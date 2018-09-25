@@ -20,6 +20,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.Properties;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -66,17 +67,16 @@ public class AESetup extends AbstractTest {
     static String numericTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedNumeric"));
     static String scaleDateTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedScaleDate"));
 
-    static final String uid = "171fbe25-4331-4765-a838-b2e3eea3e7ea";
+    static final String uid = UUID.randomUUID().toString();
 
     static String filePath = null;
     static String thumbprint = null;
-    static SQLServerConnection con = null;
-    static SQLServerStatement stmt = null;
     static String keyPath = null;
     static String javaKeyAliases = null;
     static String OS = System.getProperty("os.name").toLowerCase();
     static SQLServerColumnEncryptionKeyStoreProvider storeProvider = null;
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
+    static String AETestConnectionString;
 
     /**
      * Create connection, statement and generate path of resource file
@@ -91,7 +91,7 @@ public class AESetup extends AbstractTest {
             assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
         }
 
-        String AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
+        AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
         readFromFile(javaKeyStoreInputFile, "Alias name");
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
@@ -110,8 +110,6 @@ public class AESetup extends AbstractTest {
         info.setProperty("keyStoreLocation", keyPath);
         info.setProperty("keyStoreSecret", secretstrJks);
 
-        con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
-        stmt = (SQLServerStatement) con.createStatement();
         createCMK(keyStoreName, javaKeyAliases);
         createCEK(storeProvider);
     }
@@ -124,10 +122,13 @@ public class AESetup extends AbstractTest {
      */
     @AfterAll
     public static void dropAll() throws SQLException {
-        dropTables(stmt);
-        dropCEK(stmt);
-        dropCMK(stmt);
-        TestUtils.close(null, stmt, con);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            dropTables(stmt);
+            dropCEK(stmt);
+            dropCMK(stmt);
+            TestUtils.close(null, stmt, con);
+        }
     }
 
     /**
@@ -198,7 +199,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -268,7 +270,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -320,7 +323,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -380,7 +384,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -416,7 +421,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -528,7 +534,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -565,7 +572,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -804,8 +812,8 @@ public class AESetup extends AbstractTest {
     protected static void populateBinarySetObject(LinkedList<byte[]> byteValues) throws SQLException {
         String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
                 + ")";
-
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // binary(20)
@@ -867,8 +875,9 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
                 + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // binary(20)
             for (int i = 1; i <= 3; i++) {
@@ -928,8 +937,9 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
                 + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // binary
             for (int i = 1; i <= 3; i++) {
@@ -965,8 +975,9 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // char
             for (int i = 1; i <= 3; i++) {
@@ -1031,7 +1042,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // char
@@ -1093,7 +1105,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // char
@@ -1154,7 +1167,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // char
@@ -1207,7 +1221,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // date
@@ -1253,7 +1268,8 @@ public class AESetup extends AbstractTest {
     protected static void populateDateScaleNormalCase(LinkedList<Object> dateValues) throws SQLException {
         String sql = "insert into " + scaleDateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // datetime2(2)
@@ -1290,7 +1306,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // date
@@ -1356,7 +1373,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // date
@@ -1402,7 +1420,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // date
@@ -1450,7 +1469,8 @@ public class AESetup extends AbstractTest {
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
@@ -1558,7 +1578,8 @@ public class AESetup extends AbstractTest {
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
@@ -1666,7 +1687,8 @@ public class AESetup extends AbstractTest {
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
@@ -1773,7 +1795,8 @@ public class AESetup extends AbstractTest {
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
@@ -1873,7 +1896,8 @@ public class AESetup extends AbstractTest {
 
                 + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
@@ -1972,7 +1996,8 @@ public class AESetup extends AbstractTest {
 
                 + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
@@ -2100,6 +2125,8 @@ public class AESetup extends AbstractTest {
      * @throws TestAbortedException
      */
     protected static void skipTestForJava7() throws TestAbortedException, SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info)) {
          assumeTrue(TestUtils.supportJDBC42(con)); // With Java 7, skip tests for JDBCType.
+        }
     }
 }

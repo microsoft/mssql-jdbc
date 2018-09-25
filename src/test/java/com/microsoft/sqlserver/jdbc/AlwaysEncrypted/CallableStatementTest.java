@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -26,8 +27,10 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -245,27 +248,30 @@ public class CallableStatementTest extends AESetup {
     }
 
     private static void dropTables() throws SQLException {
-        TestUtils.dropTableIfExists(table1, stmt);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            TestUtils.dropTableIfExists(table1, stmt);
 
-        TestUtils.dropTableIfExists(table2, stmt);
+            TestUtils.dropTableIfExists(table2, stmt);
 
-        TestUtils.dropTableIfExists(table3, stmt);
+            TestUtils.dropTableIfExists(table3, stmt);
 
-        TestUtils.dropTableIfExists(table4, stmt);
+            TestUtils.dropTableIfExists(table4, stmt);
 
-        TestUtils.dropTableIfExists(charTable, stmt);
+            TestUtils.dropTableIfExists(charTable, stmt);
 
-        TestUtils.dropTableIfExists(numericTable, stmt);
+            TestUtils.dropTableIfExists(numericTable, stmt);
 
-        TestUtils.dropTableIfExists(binaryTable, stmt);
+            TestUtils.dropTableIfExists(binaryTable, stmt);
 
-        TestUtils.dropTableIfExists(dateTable, stmt);
+            TestUtils.dropTableIfExists(dateTable, stmt);
 
-        TestUtils.dropTableIfExists(table5, stmt);
+            TestUtils.dropTableIfExists(table5, stmt);
 
-        TestUtils.dropTableIfExists(table6, stmt);
+            TestUtils.dropTableIfExists(table6, stmt);
 
-        TestUtils.dropTableIfExists(scaleDateTable, stmt);
+            TestUtils.dropTableIfExists(scaleDateTable, stmt);
+        }
     }
 
     private static void createTables() throws SQLException {
@@ -281,7 +287,8 @@ public class CallableStatementTest extends AESetup {
                 + "DeterministicVarchar varchar(50) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL" + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.toString());
@@ -301,7 +308,8 @@ public class CallableStatementTest extends AESetup {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.toString());
@@ -411,7 +419,8 @@ public class CallableStatementTest extends AESetup {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.toString());
@@ -423,7 +432,8 @@ public class CallableStatementTest extends AESetup {
                 + "DeterministicInt int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL," + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.toString());
@@ -437,7 +447,8 @@ public class CallableStatementTest extends AESetup {
                 + "c3 bigint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL," + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.toString());
@@ -451,7 +462,8 @@ public class CallableStatementTest extends AESetup {
                 + "c3 bigint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL," + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.toString());
@@ -461,8 +473,9 @@ public class CallableStatementTest extends AESetup {
     private static void populateTable4() throws SQLException {
         String sql = "insert into " + table4 + " values( " + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // bit
             for (int i = 1; i <= 3; i++) {
@@ -478,8 +491,9 @@ public class CallableStatementTest extends AESetup {
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // bit
             for (int i = 1; i <= 3; i++) {
@@ -582,49 +596,52 @@ public class CallableStatementTest extends AESetup {
     private void createMultiInsertionSelection() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + multiStatementsProcedure
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + multiStatementsProcedure;
-        stmt.execute(sql);
+        
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + multiStatementsProcedure
-                + " (@p0 char(20) = null, @p1 char(20) = null, @p2 char(20) = null, "
-                + "@p3 varchar(50) = null, @p4 varchar(50) = null, @p5 varchar(50) = null)" + " AS" + " INSERT INTO "
-                + table1 + " values (@p0,@p1,@p2,@p3,@p4,@p5)" + " INSERT INTO " + table2
-                + " values (@p0,@p1,@p2,@p3,@p4,@p5)" + " SELECT * FROM " + table1 + " SELECT * FROM " + table2;
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + multiStatementsProcedure
+                    + " (@p0 char(20) = null, @p1 char(20) = null, @p2 char(20) = null, "
+                    + "@p3 varchar(50) = null, @p4 varchar(50) = null, @p5 varchar(50) = null)" + " AS"
+                    + " INSERT INTO " + table1 + " values (@p0,@p1,@p2,@p3,@p4,@p5)" + " INSERT INTO " + table2
+                    + " values (@p0,@p1,@p2,@p3,@p4,@p5)" + " SELECT * FROM " + table1 + " SELECT * FROM " + table2;
+            stmt.execute(sql);
+        }
     }
 
     private void MultiInsertionSelection() throws SQLException {
 
-        try {
-            String sql = "{call " + multiStatementsProcedure + " (?,?,?,?,?,?)}";
-            try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con,
-                    sql, stmtColEncSetting)) {
+        String sql = "{call " + multiStatementsProcedure + " (?,?,?,?,?,?)}";
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
-                // char, varchar
-                for (int i = 1; i <= 3; i++) {
-                    callableStatement.setString(i, charValues[0]);
-                }
+            // char, varchar
+            for (int i = 1; i <= 3; i++) {
+                callableStatement.setString(i, charValues[0]);
+            }
 
-                for (int i = 4; i <= 6; i++) {
-                    callableStatement.setString(i, charValues[1]);
-                }
+            for (int i = 4; i <= 6; i++) {
+                callableStatement.setString(i, charValues[1]);
+            }
 
-                boolean results = callableStatement.execute();
+            boolean results = callableStatement.execute();
 
-                // skip update count which is given by insertion
-                while (false == results && (-1) != callableStatement.getUpdateCount()) {
-                    results = callableStatement.getMoreResults();
-                }
+            // skip update count which is given by insertion
+            while (false == results && (-1) != callableStatement.getUpdateCount()) {
+                results = callableStatement.getMoreResults();
+            }
 
-                while (results) {
-                    try (ResultSet rs = callableStatement.getResultSet()) {
-                        int numberOfColumns = rs.getMetaData().getColumnCount();
+            while (results) {
+                try (ResultSet rs = callableStatement.getResultSet()) {
+                    int numberOfColumns = rs.getMetaData().getColumnCount();
 
-                        while (rs.next()) {
-                            testGetString(rs, numberOfColumns);
-                        }
+                    while (rs.next()) {
+                        testGetString(rs, numberOfColumns);
                     }
-                    results = callableStatement.getMoreResults();
                 }
+                results = callableStatement.getMoreResults();
             }
         } catch (SQLException e) {
             fail(e.toString());
@@ -648,26 +665,30 @@ public class CallableStatementTest extends AESetup {
     private void createInputProcedure() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + inputProcedure
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + inputProcedure;
-        stmt.execute(sql);
+        
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + inputProcedure + " @p0 int, @p1 decimal(18, 0), "
-                + "@p2 float, @p3 real, @p4 numeric(18, 0), @p5 smallmoney, @p6 money,"
-                + "@p7 bit, @p8 smallint, @p9 bigint, @p10 float(30), @p11 decimal(10,5), @p12 numeric(8,2), "
-                + "@p13 decimal(28,4), @p14 numeric(28,4)  " + " AS" + " SELECT top 1 RandomizedInt FROM "
-                + numericTable + " where DeterministicInt=@p0 and DeterministicDecimalDefault=@p1 and "
-                + " DeterministicFloatDefault=@p2 and DeterministicReal=@p3 and DeterministicNumericDefault=@p4 and"
-                + " DeterministicSmallMoney=@p5 and DeterministicMoney=@p6 and DeterministicBit=@p7 and"
-                + " DeterministicSmallint=@p8 and DeterministicBigint=@p9 and DeterministicFloat=@p10 and"
-                + " DeterministicDecimal=@p11 and DeterministicNumeric=@p12 and DeterministicDecimal2=@p13 and"
-                + " DeterministicNumeric2=@p14 ";
+            sql = "CREATE PROCEDURE " + inputProcedure + " @p0 int, @p1 decimal(18, 0), "
+                    + "@p2 float, @p3 real, @p4 numeric(18, 0), @p5 smallmoney, @p6 money,"
+                    + "@p7 bit, @p8 smallint, @p9 bigint, @p10 float(30), @p11 decimal(10,5), @p12 numeric(8,2), "
+                    + "@p13 decimal(28,4), @p14 numeric(28,4)  " + " AS" + " SELECT top 1 RandomizedInt FROM "
+                    + numericTable + " where DeterministicInt=@p0 and DeterministicDecimalDefault=@p1 and "
+                    + " DeterministicFloatDefault=@p2 and DeterministicReal=@p3 and DeterministicNumericDefault=@p4 and"
+                    + " DeterministicSmallMoney=@p5 and DeterministicMoney=@p6 and DeterministicBit=@p7 and"
+                    + " DeterministicSmallint=@p8 and DeterministicBigint=@p9 and DeterministicFloat=@p10 and"
+                    + " DeterministicDecimal=@p11 and DeterministicNumeric=@p12 and DeterministicDecimal2=@p13 and"
+                    + " DeterministicNumeric2=@p14 ";
 
-        stmt.execute(sql);
+            stmt.execute(sql);
+        }
     }
 
     private void testInputProcedure(String sql, String[] values) throws SQLException {
-
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.setInt(1, Integer.parseInt(values[3]));
             if (RandomData.returnZero)
@@ -706,22 +727,27 @@ public class CallableStatementTest extends AESetup {
     private void createInputProcedure2() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + inputProcedure2
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + inputProcedure2;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + inputProcedure2
-                + " @p0 varchar(50), @p1 uniqueidentifier, @p2 varchar(max), @p3 nchar(30), @p4 nvarchar(60), @p5 nvarchar(max), "
-                + " @p6 varchar(8000), @p7 nvarchar(4000)" + " AS"
-                + " SELECT top 1 RandomizedVarchar, DeterministicUniqueidentifier, DeterministicVarcharMax, RandomizedNchar, "
-                + " DeterministicNvarchar, DeterministicNvarcharMax, DeterministicVarchar8000, RandomizedNvarchar4000  FROM "
-                + charTable + " where DeterministicVarchar = @p0 and DeterministicUniqueidentifier =@p1";
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + inputProcedure2
+                    + " @p0 varchar(50), @p1 uniqueidentifier, @p2 varchar(max), @p3 nchar(30), @p4 nvarchar(60), @p5 nvarchar(max), "
+                    + " @p6 varchar(8000), @p7 nvarchar(4000)" + " AS"
+                    + " SELECT top 1 RandomizedVarchar, DeterministicUniqueidentifier, DeterministicVarcharMax, RandomizedNchar, "
+                    + " DeterministicNvarchar, DeterministicNvarcharMax, DeterministicVarchar8000, RandomizedNvarchar4000  FROM "
+                    + charTable + " where DeterministicVarchar = @p0 and DeterministicUniqueidentifier =@p1";
+
+            stmt.execute(sql);
+        }
     }
 
     private void testInputProcedure2(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.setString(1, charValues[1]);
             callableStatement.setUniqueIdentifier(2, charValues[6]);
@@ -752,19 +778,24 @@ public class CallableStatementTest extends AESetup {
     private void createOutputProcedure3() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedure3
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedure3;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + outputProcedure3 + " @p0 int OUTPUT, @p1 int OUTPUT " + " AS"
-                + " SELECT top 1 @p0=DeterministicInt FROM " + table3 + " SELECT top 1 @p1=RandomizedInt FROM "
-                + table4;
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + outputProcedure3 + " @p0 int OUTPUT, @p1 int OUTPUT " + " AS"
+                    + " SELECT top 1 @p0=DeterministicInt FROM " + table3 + " SELECT top 1 @p1=RandomizedInt FROM "
+                    + table4;
+
+            stmt.execute(sql);
+        }
     }
 
     private void testOutputProcedure3RandomOrder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.INTEGER);
@@ -792,8 +823,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure3Inorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.INTEGER);
@@ -812,8 +844,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure3ReverseOrder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.INTEGER);
@@ -833,22 +866,27 @@ public class CallableStatementTest extends AESetup {
     private void createOutputProcedure2() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedure2
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedure2;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + outputProcedure2
-                + " @p0 int OUTPUT, @p1 int OUTPUT, @p2 smallint OUTPUT, @p3 smallint OUTPUT, @p4 tinyint OUTPUT, @p5 tinyint OUTPUT, @p6 smallmoney OUTPUT,"
-                + " @p7 smallmoney OUTPUT, @p8 money OUTPUT, @p9 money OUTPUT " + " AS"
-                + " SELECT top 1 @p0=PlainInt, @p1=DeterministicInt, @p2=PlainSmallint,"
-                + " @p3=RandomizedSmallint, @p4=PlainTinyint, @p5=DeterministicTinyint, @p6=DeterministicSmallMoney, @p7=PlainSmallMoney,"
-                + " @p8=PlainMoney, @p9=DeterministicMoney FROM " + table3;
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + outputProcedure2
+                    + " @p0 int OUTPUT, @p1 int OUTPUT, @p2 smallint OUTPUT, @p3 smallint OUTPUT, @p4 tinyint OUTPUT, @p5 tinyint OUTPUT, @p6 smallmoney OUTPUT,"
+                    + " @p7 smallmoney OUTPUT, @p8 money OUTPUT, @p9 money OUTPUT " + " AS"
+                    + " SELECT top 1 @p0=PlainInt, @p1=DeterministicInt, @p2=PlainSmallint,"
+                    + " @p3=RandomizedSmallint, @p4=PlainTinyint, @p5=DeterministicTinyint, @p6=DeterministicSmallMoney, @p7=PlainSmallMoney,"
+                    + " @p8=PlainMoney, @p9=DeterministicMoney FROM " + table3;
+
+            stmt.execute(sql);
+        }
     }
 
     private void testOutputProcedure2RandomOrder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.INTEGER);
@@ -899,8 +937,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure2Inorder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.INTEGER);
@@ -951,8 +990,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure2ReverseOrder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.INTEGER);
@@ -1004,21 +1044,26 @@ public class CallableStatementTest extends AESetup {
     private void createOutputProcedure() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedure
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedure;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + outputProcedure + " @p0 int OUTPUT, @p1 float OUTPUT, @p2 smallint OUTPUT, "
-                + "@p3 bigint OUTPUT, @p4 tinyint OUTPUT, @p5 smallmoney OUTPUT, @p6 money OUTPUT " + " AS"
-                + " SELECT top 1 @p0=RandomizedInt, @p1=DeterministicFloatDefault, @p2=RandomizedSmallint,"
-                + " @p3=RandomizedBigint, @p4=DeterministicTinyint, @p5=DeterministicSmallMoney, @p6=DeterministicMoney FROM "
-                + table3;
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + outputProcedure + " @p0 int OUTPUT, @p1 float OUTPUT, @p2 smallint OUTPUT, "
+                    + "@p3 bigint OUTPUT, @p4 tinyint OUTPUT, @p5 smallmoney OUTPUT, @p6 money OUTPUT " + " AS"
+                    + " SELECT top 1 @p0=RandomizedInt, @p1=DeterministicFloatDefault, @p2=RandomizedSmallint,"
+                    + " @p3=RandomizedBigint, @p4=DeterministicTinyint, @p5=DeterministicSmallMoney, @p6=DeterministicMoney FROM "
+                    + table3;
+
+            stmt.execute(sql);
+        }
     }
 
     private void testOutputProcedureRandomOrder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.DOUBLE);
@@ -1065,8 +1110,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureInorder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.DOUBLE);
@@ -1106,8 +1152,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureReverseOrder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql,                stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.DOUBLE);
@@ -1147,18 +1194,23 @@ public class CallableStatementTest extends AESetup {
     private void createInOutProcedure() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + inoutProcedure
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + inoutProcedure;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + inoutProcedure + " @p0 int OUTPUT" + " AS"
-                + " SELECT top 1 @p0=DeterministicInt FROM " + table3 + " where DeterministicInt=@p0";
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + inoutProcedure + " @p0 int OUTPUT" + " AS"
+                    + " SELECT top 1 @p0=DeterministicInt FROM " + table3 + " where DeterministicInt=@p0";
+
+            stmt.execute(sql);
+        }
     }
 
     private void testInOutProcedure(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.setInt(1, Integer.parseInt(numericValues[3]));
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
@@ -1175,19 +1227,24 @@ public class CallableStatementTest extends AESetup {
     private void createMixedProcedure() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + mixedProcedure
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + mixedProcedure;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + mixedProcedure + " @p0 int OUTPUT, @p1 float OUTPUT, @p3 decimal " + " AS"
-                + " SELECT top 1 @p0=DeterministicInt2, @p1=RandomizedFloatDefault FROM " + table3
-                + " where DeterministicInt=@p0 and DeterministicDecimalDefault=@p3" + " return 123";
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + mixedProcedure + " @p0 int OUTPUT, @p1 float OUTPUT, @p3 decimal " + " AS"
+                    + " SELECT top 1 @p0=DeterministicInt2, @p1=RandomizedFloatDefault FROM " + table3
+                    + " where DeterministicInt=@p0 and DeterministicDecimalDefault=@p3" + " return 123";
+
+            stmt.execute(sql);
+        }
     }
 
     private void testMixedProcedure(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.setInt(2, Integer.parseInt(numericValues[3]));
@@ -1215,19 +1272,24 @@ public class CallableStatementTest extends AESetup {
     private void createMixedProcedure2() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + mixedProcedure2
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + mixedProcedure2;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + mixedProcedure2 + " @p0 int OUTPUT, @p1 float OUTPUT, @p3 int, @p4 float " + " AS"
-                + " SELECT top 1 @p0=DeterministicInt, @p1=PlainFloatDefault FROM " + table3
-                + " where PlainInt=@p3 and DeterministicFloatDefault=@p4";
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + mixedProcedure2 + " @p0 int OUTPUT, @p1 float OUTPUT, @p3 int, @p4 float "
+                    + " AS" + " SELECT top 1 @p0=DeterministicInt, @p1=PlainFloatDefault FROM " + table3
+                    + " where PlainInt=@p3 and DeterministicFloatDefault=@p4";
+
+            stmt.execute(sql);
+        }
     }
 
     private void testMixedProcedure2RandomOrder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.FLOAT);
@@ -1260,8 +1322,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure2Inorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.FLOAT);
@@ -1282,20 +1345,25 @@ public class CallableStatementTest extends AESetup {
     private void createMixedProcedure3() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + mixedProcedure3
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + mixedProcedure3;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + mixedProcedure3
-                + " @p0 bigint OUTPUT, @p1 float OUTPUT, @p2 int OUTPUT, @p3 smallint" + " AS"
-                + " SELECT top 1 @p0=PlainBigint, @p1=PlainFloatDefault FROM " + table3
-                + " where PlainInt=@p2 and PlainSmallint=@p3";
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + mixedProcedure3
+                    + " @p0 bigint OUTPUT, @p1 float OUTPUT, @p2 int OUTPUT, @p3 smallint" + " AS"
+                    + " SELECT top 1 @p0=PlainBigint, @p1=PlainFloatDefault FROM " + table3
+                    + " where PlainInt=@p2 and PlainSmallint=@p3";
+
+            stmt.execute(sql);
+        }
     }
 
     private void testMixedProcedure3RandomOrder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.BIGINT);
             callableStatement.registerOutParameter(2, java.sql.Types.FLOAT);
@@ -1328,8 +1396,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure3Inorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.BIGINT);
             callableStatement.registerOutParameter(2, java.sql.Types.FLOAT);
@@ -1349,8 +1418,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure3ReverseOrder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.BIGINT);
             callableStatement.registerOutParameter(2, java.sql.Types.FLOAT);
@@ -1372,21 +1442,26 @@ public class CallableStatementTest extends AESetup {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + mixedProcedureNumericPrcisionScale
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE "
                 + mixedProcedureNumericPrcisionScale;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + mixedProcedureNumericPrcisionScale
-                + " @p1 decimal(18,0) OUTPUT, @p2 decimal(10,5) OUTPUT, @p3 numeric(18, 0) OUTPUT, @p4 numeric(8,2) OUTPUT "
-                + " AS" + " SELECT top 1 @p1=RandomizedDecimalDefault, @p2=DeterministicDecimal,"
-                + " @p3=RandomizedNumericDefault, @p4=DeterministicNumeric FROM " + table3
-                + " where DeterministicDecimal=@p2 and DeterministicNumeric=@p4" + " return 123";
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + mixedProcedureNumericPrcisionScale
+                    + " @p1 decimal(18,0) OUTPUT, @p2 decimal(10,5) OUTPUT, @p3 numeric(18, 0) OUTPUT, @p4 numeric(8,2) OUTPUT "
+                    + " AS" + " SELECT top 1 @p1=RandomizedDecimalDefault, @p2=DeterministicDecimal,"
+                    + " @p3=RandomizedNumericDefault, @p4=DeterministicNumeric FROM " + table3
+                    + " where DeterministicDecimal=@p2 and DeterministicNumeric=@p4" + " return 123";
+
+            stmt.execute(sql);
+        }
     }
 
     private void testMixedProcedureNumericPrcisionScaleInorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.DECIMAL, 18, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.DECIMAL, 10, 5);
@@ -1415,8 +1490,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedureNumericPrcisionScaleParameterName(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter("p1", java.sql.Types.DECIMAL, 18, 0);
             callableStatement.registerOutParameter("p2", java.sql.Types.DECIMAL, 10, 5);
@@ -1446,23 +1522,28 @@ public class CallableStatementTest extends AESetup {
     private void createOutputProcedureChar() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureChar
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureChar;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + outputProcedureChar
-                + " @p0 char(20) OUTPUT,@p1 varchar(50) OUTPUT,@p2 nchar(30) OUTPUT,"
-                + "@p3 nvarchar(60) OUTPUT, @p4 uniqueidentifier OUTPUT, @p5 varchar(max) OUTPUT, @p6 nvarchar(max) OUTPUT, @p7 varchar(8000) OUTPUT, @p8 nvarchar(4000) OUTPUT"
-                + " AS" + " SELECT top 1 @p0=DeterministicChar,@p1=RandomizedVarChar,@p2=RandomizedNChar,"
-                + " @p3=DeterministicNVarChar, @p4=DeterministicUniqueidentifier, @p5=DeterministicVarcharMax,"
-                + " @p6=DeterministicNvarcharMax, @p7=DeterministicVarchar8000, @p8=RandomizedNvarchar4000  FROM  "
-                + charTable;
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + outputProcedureChar
+                    + " @p0 char(20) OUTPUT,@p1 varchar(50) OUTPUT,@p2 nchar(30) OUTPUT,"
+                    + "@p3 nvarchar(60) OUTPUT, @p4 uniqueidentifier OUTPUT, @p5 varchar(max) OUTPUT, @p6 nvarchar(max) OUTPUT, @p7 varchar(8000) OUTPUT, @p8 nvarchar(4000) OUTPUT"
+                    + " AS" + " SELECT top 1 @p0=DeterministicChar,@p1=RandomizedVarChar,@p2=RandomizedNChar,"
+                    + " @p3=DeterministicNVarChar, @p4=DeterministicUniqueidentifier, @p5=DeterministicVarcharMax,"
+                    + " @p6=DeterministicNvarcharMax, @p7=DeterministicVarchar8000, @p8=RandomizedNvarchar4000  FROM  "
+                    + charTable;
+
+            stmt.execute(sql);
+        }
     }
 
     private void testOutputProcedureCharInorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.CHAR, 20, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.VARCHAR, 50, 0);
             callableStatement.registerOutParameter(3, java.sql.Types.NCHAR, 30, 0);
@@ -1509,8 +1590,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureCharInorderObject(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.CHAR, 20, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.VARCHAR, 50, 0);
             callableStatement.registerOutParameter(3, java.sql.Types.NCHAR, 30, 0);
@@ -1561,25 +1643,30 @@ public class CallableStatementTest extends AESetup {
     private void createOutputProcedureNumeric() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureNumeric
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureNumeric;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + outputProcedureNumeric
-                + " @p0 bit OUTPUT, @p1 tinyint OUTPUT, @p2 smallint OUTPUT, @p3 int OUTPUT,"
-                + " @p4 bigint OUTPUT, @p5 float OUTPUT, @p6 float(30) output, @p7 real output, @p8 decimal(18, 0) output, @p9 decimal(10,5) output,"
-                + " @p10 numeric(18, 0) output, @p11 numeric(8,2) output, @p12 smallmoney output, @p13 money output, @p14 decimal(28,4) output, @p15 numeric(28,4) output"
-                + " AS" + " SELECT top 1 @p0=DeterministicBit, @p1=RandomizedTinyint, @p2=DeterministicSmallint,"
-                + " @p3=RandomizedInt, @p4=DeterministicBigint, @p5=RandomizedFloatDefault, @p6=DeterministicFloat,"
-                + " @p7=RandomizedReal, @p8=DeterministicDecimalDefault, @p9=RandomizedDecimal,"
-                + " @p10=DeterministicNumericDefault, @p11=RandomizedNumeric, @p12=RandomizedSmallMoney, @p13=DeterministicMoney,"
-                + " @p14=DeterministicDecimal2, @p15=DeterministicNumeric2 FROM " + numericTable;
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + outputProcedureNumeric
+                    + " @p0 bit OUTPUT, @p1 tinyint OUTPUT, @p2 smallint OUTPUT, @p3 int OUTPUT,"
+                    + " @p4 bigint OUTPUT, @p5 float OUTPUT, @p6 float(30) output, @p7 real output, @p8 decimal(18, 0) output, @p9 decimal(10,5) output,"
+                    + " @p10 numeric(18, 0) output, @p11 numeric(8,2) output, @p12 smallmoney output, @p13 money output, @p14 decimal(28,4) output, @p15 numeric(28,4) output"
+                    + " AS" + " SELECT top 1 @p0=DeterministicBit, @p1=RandomizedTinyint, @p2=DeterministicSmallint,"
+                    + " @p3=RandomizedInt, @p4=DeterministicBigint, @p5=RandomizedFloatDefault, @p6=DeterministicFloat,"
+                    + " @p7=RandomizedReal, @p8=DeterministicDecimalDefault, @p9=RandomizedDecimal,"
+                    + " @p10=DeterministicNumericDefault, @p11=RandomizedNumeric, @p12=RandomizedSmallMoney, @p13=DeterministicMoney,"
+                    + " @p14=DeterministicDecimal2, @p15=DeterministicNumeric2 FROM " + numericTable;
+
+            stmt.execute(sql);
+        }
     }
 
     private void testOutputProcedureNumericInorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.BIT);
             callableStatement.registerOutParameter(2, java.sql.Types.TINYINT);
             callableStatement.registerOutParameter(3, java.sql.Types.SMALLINT);
@@ -1665,8 +1752,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testcoerctionsOutputProcedureNumericInorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.BIT);
             callableStatement.registerOutParameter(2, java.sql.Types.TINYINT);
             callableStatement.registerOutParameter(3, java.sql.Types.SMALLINT);
@@ -1947,21 +2035,26 @@ public class CallableStatementTest extends AESetup {
     private void createOutputProcedureBinary() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureBinary
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureBinary;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + outputProcedureBinary
-                + " @p0 binary(20) OUTPUT,@p1 varbinary(50) OUTPUT,@p2 varbinary(max) OUTPUT,"
-                + " @p3 binary(512) OUTPUT,@p4 varbinary(8000) OUTPUT " + " AS"
-                + " SELECT top 1 @p0=RandomizedBinary,@p1=DeterministicVarbinary,@p2=DeterministicVarbinaryMax,"
-                + " @p3=DeterministicBinary512,@p4=DeterministicBinary8000 FROM " + binaryTable;
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + outputProcedureBinary
+                    + " @p0 binary(20) OUTPUT,@p1 varbinary(50) OUTPUT,@p2 varbinary(max) OUTPUT,"
+                    + " @p3 binary(512) OUTPUT,@p4 varbinary(8000) OUTPUT " + " AS"
+                    + " SELECT top 1 @p0=RandomizedBinary,@p1=DeterministicVarbinary,@p2=DeterministicVarbinaryMax,"
+                    + " @p3=DeterministicBinary512,@p4=DeterministicBinary8000 FROM " + binaryTable;
+
+            stmt.execute(sql);
+        }
     }
 
     private void testOutputProcedureBinaryInorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.BINARY, 20, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.VARBINARY, 50, 0);
             callableStatement.registerOutParameter(3, java.sql.Types.LONGVARBINARY);
@@ -2006,8 +2099,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureBinaryInorderObject(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.BINARY, 20, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.VARBINARY, 50, 0);
             callableStatement.registerOutParameter(3, java.sql.Types.LONGVARBINARY);
@@ -2045,8 +2139,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureBinaryInorderString(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.BINARY, 20, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.VARBINARY, 50, 0);
             callableStatement.registerOutParameter(3, java.sql.Types.LONGVARBINARY);
@@ -2138,7 +2233,8 @@ public class CallableStatementTest extends AESetup {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -2177,80 +2273,87 @@ public class CallableStatementTest extends AESetup {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        SQLServerPreparedStatement sqlPstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                stmtColEncSetting);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerPreparedStatement sqlPstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-        // date
-        for (int i = 1; i <= 3; i++) {
-            sqlPstmt.setDate(i, (Date) dateValues.get(0));
-        }
+            // date
+            for (int i = 1; i <= 3; i++) {
+                sqlPstmt.setDate(i, (Date) dateValues.get(0));
+            }
 
-        // datetime2 default
-        for (int i = 4; i <= 6; i++) {
-            sqlPstmt.setTimestamp(i, (Timestamp) dateValues.get(1));
-        }
+            // datetime2 default
+            for (int i = 4; i <= 6; i++) {
+                sqlPstmt.setTimestamp(i, (Timestamp) dateValues.get(1));
+            }
 
-        // datetimeoffset default
-        for (int i = 7; i <= 9; i++) {
-            sqlPstmt.setDateTimeOffset(i, (DateTimeOffset) dateValues.get(2));
-        }
+            // datetimeoffset default
+            for (int i = 7; i <= 9; i++) {
+                sqlPstmt.setDateTimeOffset(i, (DateTimeOffset) dateValues.get(2));
+            }
 
-        // time default
-        for (int i = 10; i <= 12; i++) {
-            sqlPstmt.setTime(i, (Time) dateValues.get(3));
-        }
+            // time default
+            for (int i = 10; i <= 12; i++) {
+                sqlPstmt.setTime(i, (Time) dateValues.get(3));
+            }
 
-        // datetime2(2)
-        for (int i = 13; i <= 15; i++) {
-            sqlPstmt.setTimestamp(i, (Timestamp) dateValues.get(4), 2);
-        }
+            // datetime2(2)
+            for (int i = 13; i <= 15; i++) {
+                sqlPstmt.setTimestamp(i, (Timestamp) dateValues.get(4), 2);
+            }
 
-        // time(2)
-        for (int i = 16; i <= 18; i++) {
-            sqlPstmt.setTime(i, (Time) dateValues.get(5), 2);
-        }
+            // time(2)
+            for (int i = 16; i <= 18; i++) {
+                sqlPstmt.setTime(i, (Time) dateValues.get(5), 2);
+            }
 
-        // datetimeoffset(2)
-        for (int i = 19; i <= 21; i++) {
-            sqlPstmt.setDateTimeOffset(i, (DateTimeOffset) dateValues.get(6), 2);
-        }
+            // datetimeoffset(2)
+            for (int i = 19; i <= 21; i++) {
+                sqlPstmt.setDateTimeOffset(i, (DateTimeOffset) dateValues.get(6), 2);
+            }
 
-        // datetime()
-        for (int i = 22; i <= 24; i++) {
-            sqlPstmt.setDateTime(i, (Timestamp) dateValues.get(7));
-        }
+            // datetime()
+            for (int i = 22; i <= 24; i++) {
+                sqlPstmt.setDateTime(i, (Timestamp) dateValues.get(7));
+            }
 
-        // smalldatetime()
-        for (int i = 25; i <= 27; i++) {
-            sqlPstmt.setSmallDateTime(i, (Timestamp) dateValues.get(8));
+            // smalldatetime()
+            for (int i = 25; i <= 27; i++) {
+                sqlPstmt.setSmallDateTime(i, (Timestamp) dateValues.get(8));
+            }
+            sqlPstmt.execute();
         }
-        sqlPstmt.execute();
     }
 
     private void createOutputProcedureDate() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureDate
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureDate;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + outputProcedureDate
-                + " @p0 date OUTPUT, @p01 date OUTPUT, @p1 datetime2 OUTPUT, @p11 datetime2 OUTPUT,"
-                + " @p2 datetimeoffset OUTPUT, @p21 datetimeoffset OUTPUT, @p3 time OUTPUT, @p31 time OUTPUT, @p4 datetime OUTPUT, @p41 datetime OUTPUT,"
-                + " @p5 smalldatetime OUTPUT, @p51 smalldatetime OUTPUT, @p6 datetime2(2) OUTPUT, @p61 datetime2(2) OUTPUT, @p7 time(2) OUTPUT, @p71 time(2) OUTPUT, "
-                + " @p8 datetimeoffset(2) OUTPUT, @p81 datetimeoffset(2) OUTPUT " + " AS"
-                + " SELECT top 1 @p0=PlainDate,@p01=RandomizedDate,@p1=PlainDatetime2Default,@p11=RandomizedDatetime2Default,"
-                + " @p2=PlainDatetimeoffsetDefault,@p21=DeterministicDatetimeoffsetDefault,"
-                + " @p3=PlainTimeDefault,@p31=DeterministicTimeDefault,"
-                + " @p4=PlainDateTime,@p41=DeterministicDateTime, @p5=PlainSmallDateTime,@p51=RandomizedSmallDateTime, "
-                + " @p6=PlainDatetime2,@p61=RandomizedDatetime2, @p7=PlainTime,@p71=Deterministictime, "
-                + " @p8=PlainDatetimeoffset, @p81=RandomizedDatetimeoffset" + " FROM " + dateTable;
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + outputProcedureDate
+                    + " @p0 date OUTPUT, @p01 date OUTPUT, @p1 datetime2 OUTPUT, @p11 datetime2 OUTPUT,"
+                    + " @p2 datetimeoffset OUTPUT, @p21 datetimeoffset OUTPUT, @p3 time OUTPUT, @p31 time OUTPUT, @p4 datetime OUTPUT, @p41 datetime OUTPUT,"
+                    + " @p5 smalldatetime OUTPUT, @p51 smalldatetime OUTPUT, @p6 datetime2(2) OUTPUT, @p61 datetime2(2) OUTPUT, @p7 time(2) OUTPUT, @p71 time(2) OUTPUT, "
+                    + " @p8 datetimeoffset(2) OUTPUT, @p81 datetimeoffset(2) OUTPUT " + " AS"
+                    + " SELECT top 1 @p0=PlainDate,@p01=RandomizedDate,@p1=PlainDatetime2Default,@p11=RandomizedDatetime2Default,"
+                    + " @p2=PlainDatetimeoffsetDefault,@p21=DeterministicDatetimeoffsetDefault,"
+                    + " @p3=PlainTimeDefault,@p31=DeterministicTimeDefault,"
+                    + " @p4=PlainDateTime,@p41=DeterministicDateTime, @p5=PlainSmallDateTime,@p51=RandomizedSmallDateTime, "
+                    + " @p6=PlainDatetime2,@p61=RandomizedDatetime2, @p7=PlainTime,@p71=Deterministictime, "
+                    + " @p8=PlainDatetimeoffset, @p81=RandomizedDatetimeoffset" + " FROM " + dateTable;
+
+            stmt.execute(sql);
+        }
     }
 
     private void testOutputProcedureDateInorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.DATE);
             callableStatement.registerOutParameter(2, java.sql.Types.DATE);
             callableStatement.registerOutParameter(3, java.sql.Types.TIMESTAMP);
@@ -2301,8 +2404,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureDateInorderObject(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.DATE);
             callableStatement.registerOutParameter(2, java.sql.Types.DATE);
             callableStatement.registerOutParameter(3, java.sql.Types.TIMESTAMP);
@@ -2354,23 +2458,29 @@ public class CallableStatementTest extends AESetup {
     private void createOutputProcedureBatch() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureBatch
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureBatch;
-        stmt.execute(sql);
 
-        // If a procedure contains more than one SQL statement, it is considered
-        // to be a batch of SQL statements.
-        sql = "CREATE PROCEDURE " + outputProcedureBatch
-                + " @p0 int OUTPUT, @p1 float OUTPUT, @p2 smallint OUTPUT, @p3 smallmoney OUTPUT " + " AS"
-                + " select top 1 @p0=RandomizedInt FROM " + table3 + " select top 1 @p1=DeterministicFloatDefault FROM "
-                + table3 + " select top 1 @p2=RandomizedSmallint FROM " + table3
-                + " select top 1 @p3=DeterministicSmallMoney FROM " + table3;
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            // If a procedure contains more than one SQL statement, it is considered
+            // to be a batch of SQL statements.
+            sql = "CREATE PROCEDURE " + outputProcedureBatch
+                    + " @p0 int OUTPUT, @p1 float OUTPUT, @p2 smallint OUTPUT, @p3 smallmoney OUTPUT " + " AS"
+                    + " select top 1 @p0=RandomizedInt FROM " + table3
+                    + " select top 1 @p1=DeterministicFloatDefault FROM " + table3
+                    + " select top 1 @p2=RandomizedSmallint FROM " + table3
+                    + " select top 1 @p3=DeterministicSmallMoney FROM " + table3;
+
+            stmt.execute(sql);
+        }
     }
 
     private void testOutputProcedureBatchInorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
 
             callableStatement.registerOutParameter(1, java.sql.Types.INTEGER);
             callableStatement.registerOutParameter(2, java.sql.Types.DOUBLE);
@@ -2397,37 +2507,46 @@ public class CallableStatementTest extends AESetup {
     private void createOutputProcedure4() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedure4
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedure4;
-        stmt.execute(sql);
 
-        sql = "create procedure " + outputProcedure4
-                + " @in1 int, @in2 smallint, @in3 bigint, @in4 int, @in5 smallint, @in6 bigint, @out1 int output, @out2 smallint output, @out3 bigint output, @out4 int output, @out5 smallint output, @out6 bigint output"
-                + " as " + " insert into " + table5 + " values (@in1, @in2, @in3)" + " insert into " + table6
-                + " values (@in4, @in5, @in6)" + " select * from " + table5 + " select * from " + table6
-                + " select @out1 = c1, @out2=c2, @out3=c3 from " + table5
-                + " select @out4 = c1, @out5=c2, @out6=c3 from " + table6;
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "create procedure " + outputProcedure4
+                    + " @in1 int, @in2 smallint, @in3 bigint, @in4 int, @in5 smallint, @in6 bigint, @out1 int output, @out2 smallint output, @out3 bigint output, @out4 int output, @out5 smallint output, @out6 bigint output"
+                    + " as " + " insert into " + table5 + " values (@in1, @in2, @in3)" + " insert into " + table6
+                    + " values (@in4, @in5, @in6)" + " select * from " + table5 + " select * from " + table6
+                    + " select @out1 = c1, @out2=c2, @out3=c3 from " + table5
+                    + " select @out4 = c1, @out5=c2, @out6=c3 from " + table6;
+
+            stmt.execute(sql);
+        }
     }
 
     private void createMixedProcedureDateScale() throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureDateScale
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureDateScale;
-        stmt.execute(sql);
 
-        sql = "CREATE PROCEDURE " + outputProcedureDateScale + " @p1 datetime2(2) OUTPUT, @p2 datetime2(2) OUTPUT,"
-                + " @p3 time(2) OUTPUT, @p4 time(2) OUTPUT, @p5 datetimeoffset(2) OUTPUT, @p6 datetimeoffset(2) OUTPUT "
-                + " AS"
-                + " SELECT top 1 @p1=DeterministicDatetime2,@p2=RandomizedDatetime2,@p3=DeterministicTime,@p4=RandomizedTime,"
-                + " @p5=DeterministicDatetimeoffset,@p6=RandomizedDatetimeoffset " + " FROM " + scaleDateTable
-                + " where DeterministicDatetime2 = @p1 and DeterministicTime = @p3 and DeterministicDatetimeoffset=@p5";
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            stmt.execute(sql);
 
-        stmt.execute(sql);
+            sql = "CREATE PROCEDURE " + outputProcedureDateScale + " @p1 datetime2(2) OUTPUT, @p2 datetime2(2) OUTPUT,"
+                    + " @p3 time(2) OUTPUT, @p4 time(2) OUTPUT, @p5 datetimeoffset(2) OUTPUT, @p6 datetimeoffset(2) OUTPUT "
+                    + " AS"
+                    + " SELECT top 1 @p1=DeterministicDatetime2,@p2=RandomizedDatetime2,@p3=DeterministicTime,@p4=RandomizedTime,"
+                    + " @p5=DeterministicDatetimeoffset,@p6=RandomizedDatetimeoffset " + " FROM " + scaleDateTable
+                    + " where DeterministicDatetime2 = @p1 and DeterministicTime = @p3 and DeterministicDatetimeoffset=@p5";
+
+            stmt.execute(sql);
+        }
     }
 
     private void testMixedProcedureDateScaleInorder(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter(1, java.sql.Types.TIMESTAMP, 2);
             callableStatement.registerOutParameter(2, java.sql.Types.TIMESTAMP, 2);
             callableStatement.registerOutParameter(3, java.sql.Types.TIME, 2);
@@ -2455,8 +2574,9 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedureDateScaleWithParameterName(String sql) throws SQLException {
 
-        try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils.getCallableStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
             callableStatement.registerOutParameter("p1", java.sql.Types.TIMESTAMP, 2);
             callableStatement.registerOutParameter("p2", java.sql.Types.TIMESTAMP, 2);
             callableStatement.registerOutParameter("p3", java.sql.Types.TIME, 2);
