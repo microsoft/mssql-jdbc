@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed issues in Bulk Copy exception handling [#801](https://github.com/Microsoft/mssql-jdbc/pull/801)
 - Fixed closeable resource leaks in Junit tests [#797](https://github.com/Microsoft/mssql-jdbc/pull/797)
 - Fixed issues with apostrophe being passed in table name [#780](https://github.com/Microsoft/mssql-jdbc/pull/780)
-- Fixed statement leaks and exception possibilities in SQLServerParameterMetadata [#780](https://github.com/Microsoft/mssql-jdbc/pull/780)
+- Fixed statement leaks and improved exception handling in SQLServerParameterMetadata [#780](https://github.com/Microsoft/mssql-jdbc/pull/780)
 
 ### Changed
 - Changed error message to be thrown when data out of range for DECIMAL/NUMERIC types [#796](https://github.com/Microsoft/mssql-jdbc/pull/796)
