@@ -14,10 +14,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBTable;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -26,12 +27,12 @@ public class DBMetadataTest extends AbstractTest {
     public void testDatabaseMetaData() throws SQLException {
         String functionName = RandomUtil.getIdentifier("proc");
         functionName = DBTable.escapeIdentifier(functionName);
-
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
 
-        String sqlDropFunction = "if exists (select * from dbo.sysobjects where id = object_id(N'[dbo]." + functionName
-                + "')" + "and xtype in (N'FN', N'IF', N'TF'))" + "drop function " + functionName;
+        String sqlDropFunction = "if exists (select * from dbo.sysobjects where id = object_id(N'[dbo]."
+                + TestUtils.escapeSingleQuotes(functionName) + "')" + "and xtype in (N'FN', N'IF', N'TF'))"
+                + "drop function " + functionName;
         String sqlCreateFunction = "CREATE  FUNCTION " + functionName
                 + " (@text varchar(8000), @delimiter varchar(20) = ' ') RETURNS @Strings TABLE "
                 + "(position int IDENTITY PRIMARY KEY, value varchar(8000)) AS BEGIN INSERT INTO @Strings VALUES ('DDD') RETURN END ";

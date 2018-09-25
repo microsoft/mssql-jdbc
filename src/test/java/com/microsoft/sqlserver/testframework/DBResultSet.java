@@ -20,8 +20,9 @@ import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.microsoft.sqlserver.testframework.Utils.DBBinaryStream;
-import com.microsoft.sqlserver.testframework.Utils.DBCharacterStream;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.jdbc.TestUtils.DBBinaryStream;
+import com.microsoft.sqlserver.jdbc.TestUtils.DBCharacterStream;
 
 
 /**
@@ -328,7 +329,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                 break;
 
             case java.sql.Types.BINARY:
-                assertTrue(Utils.parseByte((byte[]) expectedData, (byte[]) retrieved),
+                assertTrue(TestUtils.parseByte((byte[]) expectedData, (byte[]) retrieved),
                         " unexpected BINARY value, expected: " + expectedData + " ,received: " + retrieved);
                 break;
 

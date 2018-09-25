@@ -8,8 +8,8 @@ package com.microsoft.sqlserver.testframework.sqlType;
 import java.sql.JDBCType;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.DBCoercion;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /*
@@ -33,7 +33,7 @@ public class SqlChar extends SqlType {
         coercions
                 .add(new DBCoercion(String.class, new int[] {DBCoercion.GET, DBCoercion.UPDATE, DBCoercion.UPDATEOBJECT,
                         DBCoercion.SET, DBCoercion.SETOBJECT, DBCoercion.GETPARAM, DBCoercion.REG, DBCoercion.CHAR}));
-        coercions.add(new DBCoercion(Utils.DBCharacterStream.class,
+        coercions.add(new DBCoercion(TestUtils.DBCharacterStream.class,
                 new int[] {DBCoercion.GET, DBCoercion.UPDATE, DBCoercion.UPDATEOBJECT, DBCoercion.SET,
                         DBCoercion.SETOBJECT, DBCoercion.GETPARAM, DBCoercion.REG, DBCoercion.STREAM,
                         DBCoercion.CHAR}));

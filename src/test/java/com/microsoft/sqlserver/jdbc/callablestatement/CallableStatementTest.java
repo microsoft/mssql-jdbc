@@ -22,8 +22,8 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -49,10 +49,10 @@ public class CallableStatementTest extends AbstractTest {
         connection = DriverManager.getConnection(connectionString);
         stmt = connection.createStatement();
 
-        Utils.dropTableIfExists(tableNameGUID, stmt);
-        Utils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
-        Utils.dropProcedureIfExists(setNullProcedureName, stmt);
-        Utils.dropProcedureIfExists(inputParamsProcedureName, stmt);
+        TestUtils.dropTableIfExists(tableNameGUID, stmt);
+        TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
+        TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
+        TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
 
         createGUIDTable(stmt);
         createGUIDStoredProcedure(stmt);
@@ -130,28 +130,30 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void inputParamsTest() throws SQLException {
         String call = "{CALL " + inputParamsProcedureName + " (?,?)}";
-        ResultSet rs = null;
 
         // the historical way: no leading '@', parameter names respected (not positional)
-        CallableStatement cs1 = connection.prepareCall(call);
-        cs1.setString("p2", "world");
-        cs1.setString("p1", "hello");
-        rs = cs1.executeQuery();
-        rs.next();
-        assertEquals("helloworld", rs.getString(1));
+        try (CallableStatement cs = connection.prepareCall(call)) {
+            cs.setString("p2", "world");
+            cs.setString("p1", "hello");
+            try (ResultSet rs = cs.executeQuery()) {
+                rs.next();
+                assertEquals("helloworld", rs.getString(1));
+            }
+        }
 
         // the "new" way: leading '@', parameter names still respected (not positional)
-        CallableStatement cs2 = connection.prepareCall(call);
-        cs2.setString("@p2", "world!");
-        cs2.setString("@p1", "Hello ");
-        rs = cs2.executeQuery();
-        rs.next();
-        assertEquals("Hello world!", rs.getString(1));
+        try (CallableStatement cs = connection.prepareCall(call)) {
+            cs.setString("@p2", "world!");
+            cs.setString("@p1", "Hello ");
+            try (ResultSet rs = cs.executeQuery()) {
+                rs.next();
+                assertEquals("Hello world!", rs.getString(1));
+            }
+        }
 
         // sanity check: unrecognized parameter name
-        CallableStatement cs3 = connection.prepareCall(call);
-        try {
-            cs3.setString("@whatever", "test");
+        try (CallableStatement cs = connection.prepareCall(call)) {
+            cs.setString("@whatever", "test");
             fail(TestResource.getResource("R_shouldThrowException"));
         } catch (SQLException sse) {
 
@@ -162,7 +164,6 @@ public class CallableStatementTest extends AbstractTest {
                 fail(TestResource.getResource("R_unexpectedExceptionContent"));
             }
         }
-
     }
 
     /**
@@ -172,10 +173,10 @@ public class CallableStatementTest extends AbstractTest {
      */
     @AfterAll
     public static void cleanup() throws SQLException {
-        Utils.dropTableIfExists(tableNameGUID, stmt);
-        Utils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
-        Utils.dropProcedureIfExists(setNullProcedureName, stmt);
-        Utils.dropProcedureIfExists(inputParamsProcedureName, stmt);
+        TestUtils.dropTableIfExists(tableNameGUID, stmt);
+        TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
+        TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
+        TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
 
         if (null != stmt) {
             stmt.close();

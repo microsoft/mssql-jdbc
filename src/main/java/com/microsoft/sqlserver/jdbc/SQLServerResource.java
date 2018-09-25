@@ -257,6 +257,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_invalidProperty", "This property is not supported: {0}."},
             {"R_referencingFailedTSP", "The DataSource trustStore password needs to be set."},
             {"R_valueOutOfRange", "One or more values is out of range of values for the {0} SQL Server data type."},
+            {"R_valueOutOfRangeSQLType", "One or more values is out of range of values for the {0} SQL type."},
             {"R_integratedAuthenticationFailed", "Integrated authentication failed."},
             {"R_permissionDenied", "Security violation. Permission to target \"{0}\" denied."},
             {"R_getSchemaError", "Error getting default schema name."},

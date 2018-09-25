@@ -22,13 +22,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerParameterMetaData;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 /**
@@ -630,13 +630,14 @@ public class PQImpsTest extends AbstractTest {
     }
 
     private static void createTablesForCompexQueries() throws SQLException {
-        stmt.executeUpdate("if object_id('" + nameTable + "','U') is not null" + " drop table " + nameTable);
+        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(nameTable) + "','U') is not null"
+                + " drop table " + nameTable);
 
-        stmt.executeUpdate(
-                "if object_id('" + phoneNumberTable + "','U') is not null" + " drop table " + phoneNumberTable);
+        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(phoneNumberTable) + "','U') is not null"
+                + " drop table " + phoneNumberTable);
 
-        stmt.executeUpdate(
-                "if object_id('" + mergeNameDesTable + "','U') is not null" + " drop table " + mergeNameDesTable);
+        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(mergeNameDesTable) + "','U') is not null"
+                + " drop table " + mergeNameDesTable);
 
         String sql = "create table " + nameTable + " ("
         // + "ID int NOT NULL,"
@@ -1370,17 +1371,17 @@ public class PQImpsTest extends AbstractTest {
      */
     @AfterAll
     public static void dropTables() throws SQLException {
-        Utils.dropTableIfExists(nameTable, stmt);
-        Utils.dropTableIfExists(phoneNumberTable, stmt);
-        Utils.dropTableIfExists(mergeNameDesTable, stmt);
-        Utils.dropTableIfExists(numericTable, stmt);
-        Utils.dropTableIfExists(phoneNumberTable, stmt);
-        Utils.dropTableIfExists(charTable, stmt);
-        Utils.dropTableIfExists(charTable2, stmt);
-        Utils.dropTableIfExists(binaryTable, stmt);
-        Utils.dropTableIfExists(dateAndTimeTable, stmt);
-        Utils.dropTableIfExists(multipleTypesTable, stmt);
-        Utils.dropTableIfExists(spaceTable, stmt);
+        TestUtils.dropTableIfExists(nameTable, stmt);
+        TestUtils.dropTableIfExists(phoneNumberTable, stmt);
+        TestUtils.dropTableIfExists(mergeNameDesTable, stmt);
+        TestUtils.dropTableIfExists(numericTable, stmt);
+        TestUtils.dropTableIfExists(phoneNumberTable, stmt);
+        TestUtils.dropTableIfExists(charTable, stmt);
+        TestUtils.dropTableIfExists(charTable2, stmt);
+        TestUtils.dropTableIfExists(binaryTable, stmt);
+        TestUtils.dropTableIfExists(dateAndTimeTable, stmt);
+        TestUtils.dropTableIfExists(multipleTypesTable, stmt);
+        TestUtils.dropTableIfExists(spaceTable, stmt);
 
         if (null != rs) {
             rs.close();

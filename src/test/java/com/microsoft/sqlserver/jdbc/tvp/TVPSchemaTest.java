@@ -52,15 +52,12 @@ public class TVPSchemaTest extends AbstractTest {
 
         final String sql = "{call " + procedureName + "(?)}";
 
-        SQLServerPreparedStatement P_C_statement = (SQLServerPreparedStatement) connection.prepareStatement(sql);
-        P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
-        P_C_statement.execute();
+        try (SQLServerPreparedStatement P_C_statement = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
+            P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
+            P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + charTable);
-        verify(rs);
-
-        if (null != P_C_statement) {
-            P_C_statement.close();
+            rs = stmt.executeQuery("select * from " + charTable);
+            verify(rs);
         }
     }
 
@@ -75,15 +72,12 @@ public class TVPSchemaTest extends AbstractTest {
 
         final String sql = "{call " + procedureName + "(?)}";
 
-        SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
-        P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
-        P_C_statement.execute();
+        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
+            P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + charTable);
-        verify(rs);
-
-        if (null != P_C_statement) {
-            P_C_statement.close();
+            rs = stmt.executeQuery("select * from " + charTable);
+            verify(rs);
         }
     }
 
@@ -97,16 +91,13 @@ public class TVPSchemaTest extends AbstractTest {
     @DisplayName("TVPSchemaPreparedInsertCommand")
     public void testTVPSchemaPreparedInsertCommand() throws SQLException, IOException {
 
-        SQLServerPreparedStatement P_C_stmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
-        P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
-        P_C_stmt.executeUpdate();
+        try (SQLServerPreparedStatement P_C_stmt = (SQLServerPreparedStatement) connection
+                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;")) {
+            P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
+            P_C_stmt.executeUpdate();
 
-        rs = stmt.executeQuery("select * from " + charTable);
-        verify(rs);
-
-        if (null != P_C_stmt) {
-            P_C_stmt.close();
+            rs = stmt.executeQuery("select * from " + charTable);
+            verify(rs);
         }
     }
 
@@ -120,16 +111,13 @@ public class TVPSchemaTest extends AbstractTest {
     @DisplayName("TVPSchemaCallableInsertCommand()")
     public void testTVPSchemaCallableInsertCommand() throws SQLException, IOException {
 
-        SQLServerCallableStatement P_C_stmt = (SQLServerCallableStatement) connection
-                .prepareCall("INSERT INTO " + charTable + " select * from ? ;");
-        P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
-        P_C_stmt.executeUpdate();
+        try (SQLServerCallableStatement P_C_stmt = (SQLServerCallableStatement) connection
+                .prepareCall("INSERT INTO " + charTable + " select * from ? ;")) {
+            P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
+            P_C_stmt.executeUpdate();
 
-        rs = stmt.executeQuery("select * from " + charTable);
-        verify(rs);
-
-        if (null != P_C_stmt) {
-            P_C_stmt.close();
+            rs = stmt.executeQuery("select * from " + charTable);
+            verify(rs);
         }
     }
 

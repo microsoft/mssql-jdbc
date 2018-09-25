@@ -130,10 +130,10 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
     }
 
     /**
-     * BulkCopy:test null connenction string
+     * BulkCopy:test null connection string
      */
     @Test
-    @DisplayName("BulkCopy:test null connenction string")
+    @DisplayName("BulkCopy:test null connection string")
     public void testInvalidConnection4() {
         assertThrows(SQLException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
