@@ -140,7 +140,7 @@ public class CallableStatementTest extends AbstractTest {
                 assertEquals("helloworld", rs.getString(1));
             }
         }
-        
+
         // the "new" way: leading '@', parameter names still respected (not positional)
         try (CallableStatement cs = connection.prepareCall(call)) {
             cs.setString("@p2", "world!");

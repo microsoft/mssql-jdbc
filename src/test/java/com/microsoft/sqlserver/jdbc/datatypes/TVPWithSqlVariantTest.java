@@ -114,7 +114,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
-        
+
         try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
             while (rs.next()) {
                 assertEquals(rs.getMoney(1), new BigDecimal(numeric[14]));
@@ -140,7 +140,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             pstmt.execute();
 
         }
-        
+
         try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTable)) {
             while (rs.next()) {
                 assertEquals("" + rs.getInt(1), numeric[2]);

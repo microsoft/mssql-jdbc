@@ -60,8 +60,8 @@ public class TVPAllTypes extends AbstractTest {
         setupVariation(setSelectMethod, resultSetType, resultSetConcurrency);
 
         try (ResultSet rs = stmt.executeQuery("select * from " + tableSrc.getEscapedTableName());
-            SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                    .prepareStatement("INSERT INTO " + tableDest.getEscapedTableName() + " select * from ? ;")) {
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                        .prepareStatement("INSERT INTO " + tableDest.getEscapedTableName() + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, rs);
             pstmt.execute();
 
@@ -155,8 +155,9 @@ public class TVPAllTypes extends AbstractTest {
         stmt.executeUpdate(TVPCreateCmd);
     }
 
-    private void setupVariation(boolean setSelectMethod, Integer resultSetType, Integer resultSetConcurrency) throws SQLException {
-        
+    private void setupVariation(boolean setSelectMethod, Integer resultSetType,
+            Integer resultSetConcurrency) throws SQLException {
+
         if (setSelectMethod) {
             conn = DriverManager.getConnection(connectionString + ";selectMethod=cursor;");
         } else {
@@ -193,7 +194,7 @@ public class TVPAllTypes extends AbstractTest {
         TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
         TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
         dropTVPS(tvpName);
-        
+
         if (null != stmt) {
             stmt.close();
         }

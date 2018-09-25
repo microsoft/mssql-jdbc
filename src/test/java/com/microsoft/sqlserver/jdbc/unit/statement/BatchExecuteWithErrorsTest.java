@@ -296,8 +296,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                     }
                 }
             }
-        }
-        finally {
+        } finally {
             try (Connection conn = DriverManager.getConnection(connectionString);
                     Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("drop table " + tableName);

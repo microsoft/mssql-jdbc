@@ -45,7 +45,8 @@ public class BatchTriggerTest extends AbstractTest {
      */
     @Test
     public void statementTest() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString); Statement stmt = connection.createStatement()) {
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                Statement stmt = connection.createStatement()) {
             stmt.addBatch(insertQuery);
             stmt.executeBatch();
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));

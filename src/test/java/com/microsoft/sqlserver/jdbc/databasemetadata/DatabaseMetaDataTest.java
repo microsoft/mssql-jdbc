@@ -175,7 +175,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testDBSchema() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString); ResultSet rs = conn.getMetaData().getSchemas()) {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                ResultSet rs = conn.getMetaData().getSchemas()) {
 
             MessageFormat form = new MessageFormat(TestResource.getResource("R_nameEmpty"));
             Object[] msgArgs = {"Schema"};
@@ -198,7 +199,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
         String testSchema = "some-schema" + id;
-        
+
         try (Connection conn = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement()) {
             TestUtils.dropDatabaseIfExists(testCatalog, stmt);
@@ -294,10 +295,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-        /*
-        try (ResultSet rsCatalog = connection.getMetaData().getCatalogs(); ResultSet rs = connection.getMetaData()
-                        .getTables(rsCatalog.getString("TABLE_CAT"), null, "%", new String[] {"TABLE"})) {
-*/
+    /*
+     * try (ResultSet rsCatalog = connection.getMetaData().getCatalogs(); ResultSet rs = connection.getMetaData()
+     * .getTables(rsCatalog.getString("TABLE_CAT"), null, "%", new String[] {"TABLE"})) {
+     */
     public void testDBTables() throws SQLException {
 
         try (Connection con = DriverManager.getConnection(connectionString)) {

@@ -96,7 +96,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
 
             try (ResultSet rs = stmt.executeQuery("select * from " + srcTable);
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
-                
+
                 bulkCopy.setDestinationTableName(desTable);
                 bulkCopy.writeToServer(rs);
 
@@ -213,14 +213,14 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
     }
 
     private static void createTables(Statement stmt) throws SQLException {
-        
+
         if (null == srcTable) {
             srcTable = "[BulkCopyResultSetCursorTest_Source_" + RandomUtil.getIdentifier("table") + "]";
         }
-        if (null == desTable) {            
+        if (null == desTable) {
             desTable = "[BulkCopyResultSetCursorTest_Destination_" + RandomUtil.getIdentifier("table") + "]";
         }
-        
+
         String sql = "create table " + srcTable
                 + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
         stmt.execute(sql);
@@ -228,7 +228,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
                 + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
         stmt.execute(sql);
     }
-    
+
     /**
      * drops tables
      * 
