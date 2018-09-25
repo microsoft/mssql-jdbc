@@ -25,9 +25,6 @@ class PLPInputStream extends BaseInputStream {
     static final int PLP_TERMINATOR = 0x00000000;
     private final static byte[] EMPTY_PLP_BYTES = new byte[0];
 
-    // Stated length of the PLP stream payload; -1 if unknown length.
-    int payloadLength;
-
     private static final int PLP_EOS = -1;
     private int currentChunkRemain;
 
