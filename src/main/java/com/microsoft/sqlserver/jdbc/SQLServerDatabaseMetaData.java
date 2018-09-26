@@ -296,7 +296,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             } else { // hassoc != null
                 CS = hassoc.getMappedStatement(catalog);
                 // No Cached Statement yet
-                if (null == CS) {
+                if (null == CS || CS.isClosed()) {
                     CS = request.prepare(connection);
                     hassoc.addToMap(catalog, CS);
                 }
