@@ -44,8 +44,8 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
 
     //static Statement stmt = null;
     static String query;
-    static String srcTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("sourceTable"));
-    static String destTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("destTable"));
+    static String srcTable = RandomUtil.getIdentifier("sourceTable");
+    static String destTable = RandomUtil.getIdentifier("destTable");
 
     String variation;
 
@@ -58,12 +58,12 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
     public void testVarchar() throws Exception {
         variation = "testVarchar";
         BulkData bData = new BulkData(variation);
-        query = "CREATE TABLE " + destTable + " (smallDATA varchar(2))";
+        query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (smallDATA varchar(2))";
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
-                bcOperation.setDestinationTableName(destTable);
+                bcOperation.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(destTable));
                 bcOperation.writeToServer(bData);
                 bcOperation.close();
                 fail(TestResource.getResource("R_expectedFailPassed"));
@@ -88,15 +88,15 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         variation = "testSmalldatetime";
         BulkData bData = new BulkData(variation);
         String value = ("1954-05-22 02:44:00.0").toString();
-        query = "CREATE TABLE " + destTable + " (smallDATA smalldatetime)";
+        query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (smallDATA smalldatetime)";
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
-                bcOperation.setDestinationTableName(destTable);
+                bcOperation.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(destTable));
                 bcOperation.writeToServer(bData);
 
-                try (ResultSet rs = stmt.executeQuery("select * from " + destTable)) {
+                try (ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
                     while (rs.next()) {
                         assertEquals(rs.getString(1), value);
                     }
@@ -115,12 +115,12 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         variation = "testSmalldatetimeOutofRange";
         BulkData bData = new BulkData(variation);
 
-        query = "CREATE TABLE " + destTable + " (smallDATA smalldatetime)";
+        query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (smallDATA smalldatetime)";
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
-                bcOperation.setDestinationTableName(destTable);
+                bcOperation.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(destTable));
                 bcOperation.writeToServer(bData);
                 fail("BulkCopy executed for testSmalldatetimeOutofRange when it it was expected to fail");
             } catch (Exception e) {
@@ -146,12 +146,12 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
     public void testBinaryColumnAsByte() throws Exception {
         variation = "testBinaryColumnAsByte";
         BulkData bData = new BulkData(variation);
-        query = "CREATE TABLE " + destTable + " (col1 binary(5))";
+        query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (col1 binary(5))";
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
-                bcOperation.setDestinationTableName(destTable);
+                bcOperation.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(destTable));
                 bcOperation.writeToServer(bData);
                 fail(TestResource.getResource("R_expectedFailPassed"));
             } catch (Exception e) {
@@ -174,12 +174,12 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
     public void testBinaryColumnAsString() throws Exception {
         variation = "testBinaryColumnAsString";
         BulkData bData = new BulkData(variation);
-        query = "CREATE TABLE " + destTable + " (col1 binary(5))";
+        query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (col1 binary(5))";
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
-                bcOperation.setDestinationTableName(destTable);
+                bcOperation.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(destTable));
                 bcOperation.writeToServer(bData);
                 fail(TestResource.getResource("R_expectedFailPassed"));
             } catch (Exception e) {
@@ -202,15 +202,15 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
     public void testSendValidValueforBinaryColumnAsString() throws Exception {
         variation = "testSendValidValueforBinaryColumnAsString";
         BulkData bData = new BulkData(variation);
-        query = "CREATE TABLE " + destTable + " (col1 binary(5))";
+        query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (col1 binary(5))";
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
-                bcOperation.setDestinationTableName(destTable);
+                bcOperation.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(destTable));
                 bcOperation.writeToServer(bData);
 
-                try (ResultSet rs = stmt.executeQuery("select * from " + destTable)) {
+                try (ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
                     while (rs.next()) {
                         assertEquals(rs.getString(1), "0101010000");
                     }
@@ -231,8 +231,8 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
     @BeforeAll
     public static void setupHere() throws SQLException, SecurityException, IOException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
-            TestUtils.dropTableIfExists(destTable, stmt);
-            TestUtils.dropTableIfExists(srcTable, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTable), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable), stmt);
         }
     }
 
@@ -244,8 +244,8 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
     @AfterEach
     public void afterEachTests() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
-            TestUtils.dropTableIfExists(destTable, stmt);
-            TestUtils.dropTableIfExists(srcTable, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTable), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable), stmt);
         }
     }
 }

@@ -39,7 +39,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 public class RegressionTest extends AbstractTest {
     static Connection con = null;
 
-    static String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("table"));
+    static String tableName = RandomUtil.getIdentifier("table");
 
 
 
@@ -52,7 +52,7 @@ public class RegressionTest extends AbstractTest {
     public static void setupTest() throws SQLException {
         con = DriverManager.getConnection(connectionString);
         try (Statement stmt = con.createStatement()) {
-            TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }
 
@@ -63,8 +63,8 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void createViewTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create view " + tableName + " as select 1 a");
-                PreparedStatement pstmt2 = con.prepareStatement("drop view " + tableName)) {
+        try (PreparedStatement pstmt1 = con.prepareStatement("create view " + AbstractSQLGenerator.escapeIdentifier(tableName) + " as select 1 a");
+                PreparedStatement pstmt2 = con.prepareStatement("drop view " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
             pstmt1.execute();
             pstmt2.execute();
         } catch (SQLException e) {
@@ -97,8 +97,8 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void createTableTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create table " + tableName + " (col1 int)");
-                PreparedStatement pstmt2 = con.prepareStatement("drop table " + tableName)) {
+        try (PreparedStatement pstmt1 = con.prepareStatement("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
+                PreparedStatement pstmt2 = con.prepareStatement("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
             pstmt1.execute();
             pstmt2.execute();
         } catch (SQLException e) {
@@ -114,9 +114,9 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void alterTableTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create table " + tableName + " (col1 int)");
-                PreparedStatement pstmt2 = con.prepareStatement("ALTER TABLE " + tableName + " ADD column_name char;");
-                PreparedStatement pstmt3 = con.prepareStatement("drop table " + tableName)) {
+        try (PreparedStatement pstmt1 = con.prepareStatement("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
+                PreparedStatement pstmt2 = con.prepareStatement("ALTER TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ADD column_name char;");
+                PreparedStatement pstmt3 = con.prepareStatement("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
             pstmt1.execute();
             pstmt2.execute();
             pstmt3.execute();
@@ -133,10 +133,10 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void grantTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create table " + tableName + " (col1 int)");
-                PreparedStatement pstmt2 = con.prepareStatement("grant select on " + tableName + " to public");
-                PreparedStatement pstmt3 = con.prepareStatement("revoke select on " + tableName + " from public");
-                PreparedStatement pstmt4 = con.prepareStatement("drop table " + tableName)) {
+        try (PreparedStatement pstmt1 = con.prepareStatement("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
+                PreparedStatement pstmt2 = con.prepareStatement("grant select on " + AbstractSQLGenerator.escapeIdentifier(tableName) + " to public");
+                PreparedStatement pstmt3 = con.prepareStatement("revoke select on " + AbstractSQLGenerator.escapeIdentifier(tableName) + " from public");
+                PreparedStatement pstmt4 = con.prepareStatement("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
             pstmt1.execute();
             pstmt2.execute();
             pstmt3.execute();

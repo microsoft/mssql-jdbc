@@ -43,10 +43,11 @@ public class LimitEscapeTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("LimitEscape");
     private static Vector<String> offsetQuery = new Vector<>();
     private static Connection conn = null;
-    static String table1;
-    static String table2;
-    static String table3;
-    static String table4;
+    
+    static String table1 = RandomUtil.getIdentifier("UnitStatement_LimitEscape_t1").replaceAll("\'", "");
+    static String table2 = RandomUtil.getIdentifier("UnitStatement_LimitEscape_t2").replaceAll("\'", "");
+    static String table3 = RandomUtil.getIdentifier("UnitStatement_LimitEscape_t3").replaceAll("\'", "");
+    static String table4 = RandomUtil.getIdentifier("UnitStatement_LimitEscape_t4").replaceAll("\'", "");
 
     static class Query {
         String inputSql, outputSql;
@@ -220,38 +221,38 @@ public class LimitEscapeTest extends AbstractTest {
             // is done
             // around table names.
             try {
-                stmt.executeUpdate("drop table " + table1);
+                stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(table1));
             } catch (Exception ex) {} ;
             try {
-                stmt.executeUpdate("drop table " + table2);
+                stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(table2));
             } catch (Exception ex) {} ;
             try {
-                stmt.executeUpdate("drop table " + table3);
+                stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(table3));
             } catch (Exception ex) {} ;
             try {
-                stmt.executeUpdate("drop table " + table4);
+                stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(table4));
             } catch (Exception ex) {} ;
             try {
                 stmt.executeUpdate("drop procedure UnitStatement_LimitEscape_p1");
             } catch (Exception ex) {} ;
             stmt.executeUpdate(
-                    "create table " + table1 + " (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
+                    "create table " + AbstractSQLGenerator.escapeIdentifier(table1) + " (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
             stmt.executeUpdate(
-                    "create table " + table2 + " (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
+                    "create table " + AbstractSQLGenerator.escapeIdentifier(table2) + " (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
             stmt.executeUpdate(
-                    "create table " + table3 + " (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
+                    "create table " + AbstractSQLGenerator.escapeIdentifier(table3) + " (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
             stmt.executeUpdate(
-                    "create table " + table4 + " (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
+                    "create table " + AbstractSQLGenerator.escapeIdentifier(table4) + " (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
 
-            stmt.executeUpdate("Insert into " + table1 + " values " + "(1, 1, 'col3', 'col4'), "
+            stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(table1) + " values " + "(1, 1, 'col3', 'col4'), "
                     + "(2, 2, 'row2 '' with '' quote', 'row2 with limit  {limit 22} {limit ?}'),"
                     + "(3, 3, 'row3 with subquery (select * from t1)', 'row3 with subquery (select * from (select * from t1) {limit 4})'),"
                     + "(4, 4, 'select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)'),"
                     + "(5, 5, 'openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')')");
-            stmt.executeUpdate("Insert into " + table2 + " values (11, 11, 'col33', 'col44')");
-            stmt.executeUpdate("Insert into " + table3 + " values (111, 111, 'col333', 'col444')");
-            stmt.executeUpdate("Insert into " + table4 + " values (1111, 1111, 'col4444', 'col4444')");
-            String query = "create procedure UnitStatement_LimitEscape_p1 @col3Value varchar(512), @col4Value varchar(512) AS BEGIN SELECT TOP 1 * from " + table1 + " where col3 = @col3Value and col4 = @col4Value END";
+            stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(table2) + " values (11, 11, 'col33', 'col44')");
+            stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(table3) + " values (111, 111, 'col333', 'col444')");
+            stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(table4) + " values (1111, 1111, 'col4444', 'col4444')");
+            String query = "create procedure UnitStatement_LimitEscape_p1 @col3Value varchar(512), @col4Value varchar(512) AS BEGIN SELECT TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = @col3Value and col4 = @col4Value END";
             stmt.execute(query);
         }
     }
@@ -267,8 +268,8 @@ public class LimitEscapeTest extends AbstractTest {
         Query qry;
         // 1
         // Test whether queries without limit syntax works
-        qry = new Query("select TOP 1 * from " + table1,
-                "select TOP 1 * from " + table1, 1, // # of rows
+        qry = new Query("select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1),
+                "select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1), 1, // # of rows
                 5, // # of columns
                 new int[] {1}, // id column values
                 new int[][] {{1, 1}}, // int column values
@@ -277,21 +278,19 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 2
         // Test parentheses in limit syntax
-        qry = new Query("select * from " + table1 + " {limit ( (  (2)))}",
-                "select TOP ( (  (2))) * from " + table1, 2, // # of rows
+        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit ( (  (2)))}",
+                "select TOP ( (  (2))) * from " + AbstractSQLGenerator.escapeIdentifier(table1), 2, // # of rows
                 5, // # of columns
                 new int[] {1, 2}, // id column values
                 new int[][] {{1, 1}, {2, 2}}, // int column values
-                new String[][] {{"col3", "col4"}, {"row2 ' with ' quote", "row2 with limit  {limit 22} {limit ?}"}}); // string
-                                                                                                                      // column
-                                                                                                                      // values
+                new String[][] {{"col3", "col4"}, {"row2 ' with ' quote", "row2 with limit  {limit 22} {limit ?}"}}); // string column values
         qry.execute(conn);
 
         // 3
         // Test limit syntax in string literal as well as in query, also test subquery syntax in string literal
         qry = new Query(
-                "select ( (col1)), ( ((col2) ) ) from " + table1 + " where col3 = 'row3 with subquery (select * from t1)' and col4 = 'row3 with subquery (select * from (select * from t1) {limit 4})' {limit (35)}",
-                "select TOP (35) ( (col1)), ( ((col2) ) ) from " + table1 + " where col3 = 'row3 with subquery (select * from t1)' and col4 = 'row3 with subquery (select * from (select * from t1) {limit 4})'",
+                "select ( (col1)), ( ((col2) ) ) from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = 'row3 with subquery (select * from t1)' and col4 = 'row3 with subquery (select * from (select * from t1) {limit 4})' {limit (35)}",
+                "select TOP (35) ( (col1)), ( ((col2) ) ) from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = 'row3 with subquery (select * from t1)' and col4 = 'row3 with subquery (select * from (select * from t1) {limit 4})'",
                 1, // # of rows
                 2, // # of columns
                 new int[] {3}, // id column values
@@ -302,8 +301,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 4
         // Test quotes/limit syntax/scalar function in string literal. Also test real limit syntax in query.
         qry = new Query(
-                "select (col1), (col2) from " + table1 + " where col3 = 'select * from t1 {limit 4} ''quotes'' (braces)' and col4 = 'ucase(scalar function)' {limit 3543}",
-                "select TOP 3543 (col1), (col2) from " + table1 + " where col3 = 'select * from t1 {limit 4} ''quotes'' (braces)' and col4 = 'ucase(scalar function)'",
+                "select (col1), (col2) from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = 'select * from t1 {limit 4} ''quotes'' (braces)' and col4 = 'ucase(scalar function)' {limit 3543}",
+                "select TOP 3543 (col1), (col2) from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = 'select * from t1 {limit 4} ''quotes'' (braces)' and col4 = 'ucase(scalar function)'",
                 1, // # of rows
                 2, // # of columns
                 new int[] {4}, // id column values
@@ -314,8 +313,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 5
         // Test openquery/openrowset in string literals
         qry = new Query(
-                "select col1 from " + table1 + " where col3 = 'openquery(''server'', ''query'')' and col4 = 'openrowset(''server'',''connection string'',''query'')' {limit (((2)))}",
-                "select TOP (((2))) col1 from " + table1 + " where col3 = 'openquery(''server'', ''query'')' and col4 = 'openrowset(''server'',''connection string'',''query'')'",
+                "select col1 from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = 'openquery(''server'', ''query'')' and col4 = 'openrowset(''server'',''connection string'',''query'')' {limit (((2)))}",
+                "select TOP (((2))) col1 from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = 'openquery(''server'', ''query'')' and col4 = 'openrowset(''server'',''connection string'',''query'')'",
                 1, // # of rows
                 1, // # of columns
                 new int[] {5}, // id column values
@@ -325,8 +324,8 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 6
         // Test limit syntax in subquery as well as in outer query
-        qry = new Query("select id from (select * from " + table1 + " {limit 10}) t1 {limit ((1) )}",
-                "select TOP ((1) ) id from (select TOP 10 * from " + table1 + ") t1", 1, // # of rows
+        qry = new Query("select id from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 10}) t1 {limit ((1) )}",
+                "select TOP ((1) ) id from (select TOP 10 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + ") t1", 1, // # of rows
                 1, // # of columns
                 new int[] {1}, // id column values
                 null, // int column values
@@ -336,8 +335,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 7
         // Test multiple parentheses in limit syntax and in subquery
         qry = new Query(
-                "select id from (( (select * from " + table1 + " {limit 10})) ) t1 {limit ((1) )}",
-                "select TOP ((1) ) id from (( (select TOP 10 * from " + table1 + ")) ) t1", 1, // # of
+                "select id from (( (select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 10})) ) t1 {limit ((1) )}",
+                "select TOP ((1) ) id from (( (select TOP 10 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + ")) ) t1", 1, // # of
                                                                                                              // rows
                 1, // # of columns
                 new int[] {1}, // id column values
@@ -348,8 +347,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 8
         // Test limit syntax in multiple subqueries, also test arbitrary spaces in limit syntax
         qry = new Query(
-                "select j1.id from (( (select * from " + table1 + " {limit 10})) ) j1 join (select * from " + table2 + " {limit 4}) j2 on j1.id = j2.id {limit  	(1)}",
-                "select TOP (1) j1.id from (( (select TOP 10 * from " + table1 + ")) ) j1 join (select TOP 4 * from " + table2 + ") j2 on j1.id = j2.id",
+                "select j1.id from (( (select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 10})) ) j1 join (select * from " + AbstractSQLGenerator.escapeIdentifier(table2) + " {limit 4}) j2 on j1.id = j2.id {limit  	(1)}",
+                "select TOP (1) j1.id from (( (select TOP 10 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + ")) ) j1 join (select TOP 4 * from " + AbstractSQLGenerator.escapeIdentifier(table2) + ") j2 on j1.id = j2.id",
                 1, // # of rows
                 1, // # of columns
                 new int[] {1}, // id column values
@@ -360,8 +359,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 9
         // Test limit syntax in multiple levels of nested subqueries
         qry = new Query(
-                "select j1.id from (select * from (select * from " + table1 + " {limit 3}) j3 {limit 2}) j1 join (select * from " + table2 + " {limit 4}) j2 on j1.id = j2.id {limit 1}",
-                "select TOP 1 j1.id from (select TOP 2 * from (select TOP 3 * from " + table1 + ") j3) j1 join (select TOP 4 * from " + table2 + ") j2 on j1.id = j2.id",
+                "select j1.id from (select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 3}) j3 {limit 2}) j1 join (select * from " + AbstractSQLGenerator.escapeIdentifier(table2) + " {limit 4}) j2 on j1.id = j2.id {limit 1}",
+                "select TOP 1 j1.id from (select TOP 2 * from (select TOP 3 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + ") j3) j1 join (select TOP 4 * from " + AbstractSQLGenerator.escapeIdentifier(table2) + ") j2 on j1.id = j2.id",
                 1, // # of rows
                 1, // # of columns
                 new int[] {1}, // id column values
@@ -372,8 +371,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 10
         // Test limit syntax in multiple levels of nested subqueries as well as in outer query
         qry = new Query(
-                "select j1.id from (select * from (select * from " + table1 + " {limit 3}) j3 {limit 2}) j1 join (select j4.id from (select * from " + table3 + " {limit 5}) j4 join (select * from  " + table4 + " {limit 6}) j5 on j4.id = j5.id ) j2 on j1.id = j2.id {limit 1}",
-                "select TOP 1 j1.id from (select TOP 2 * from (select TOP 3 * from " + table1 + ") j3) j1 join (select j4.id from (select TOP 5 * from " + table3 + ") j4 join (select TOP 6 * from  " + table4 + ") j5 on j4.id = j5.id ) j2 on j1.id = j2.id",
+                "select j1.id from (select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 3}) j3 {limit 2}) j1 join (select j4.id from (select * from " + AbstractSQLGenerator.escapeIdentifier(table3) + " {limit 5}) j4 join (select * from  " + AbstractSQLGenerator.escapeIdentifier(table4) + " {limit 6}) j5 on j4.id = j5.id ) j2 on j1.id = j2.id {limit 1}",
+                "select TOP 1 j1.id from (select TOP 2 * from (select TOP 3 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + ") j3) j1 join (select j4.id from (select TOP 5 * from " + AbstractSQLGenerator.escapeIdentifier(table3) + ") j4 join (select TOP 6 * from  " + AbstractSQLGenerator.escapeIdentifier(table4) + ") j5 on j4.id = j5.id ) j2 on j1.id = j2.id",
                 1, // # of rows
                 1, // # of columns
                 new int[] {1}, // id column values
@@ -383,8 +382,8 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 11
         // Test multiple parentheses/spaces in limit syntax, also test '[]' in columns
-        qry = new Query("select [col1], col2, [col3], col4 from " + table1 + " {limit ( (  (2)))}",
-                "select TOP ( (  (2))) [col1], col2, [col3], col4 from " + table1, 2, // # of rows
+        qry = new Query("select [col1], col2, [col3], col4 from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit ( (  (2)))}",
+                "select TOP ( (  (2))) [col1], col2, [col3], col4 from " + AbstractSQLGenerator.escapeIdentifier(table1), 2, // # of rows
                 4, // # of columns
                 new int[] {1, 2}, // id column values
                 new int[][] {{1, 1}, {2, 2}}, // int column values
@@ -396,8 +395,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 12
         // Test complicated query with nested subquery having limit syntax
         qry = new Query(
-                "select j1.id from ( ((select * from (select * from " + table1 + " {limit 3}) j3 {limit 2}))) j1 join (select j4.id from ((((select * from " + table3 + " {limit 5})))) j4 join (select * from  " + table4 + " {limit 6}) j5 on j4.id = j5.id ) j2 on j1.id = j2.id {limit 1}",
-                "select TOP 1 j1.id from ( ((select TOP 2 * from (select TOP 3 * from " + table1 + ") j3))) j1 join (select j4.id from ((((select TOP 5 * from " + table3 + ")))) j4 join (select TOP 6 * from  " + table4 + ") j5 on j4.id = j5.id ) j2 on j1.id = j2.id",
+                "select j1.id from ( ((select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 3}) j3 {limit 2}))) j1 join (select j4.id from ((((select * from " + AbstractSQLGenerator.escapeIdentifier(table3) + " {limit 5})))) j4 join (select * from  " + AbstractSQLGenerator.escapeIdentifier(table4) + " {limit 6}) j5 on j4.id = j5.id ) j2 on j1.id = j2.id {limit 1}",
+                "select TOP 1 j1.id from ( ((select TOP 2 * from (select TOP 3 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + ") j3))) j1 join (select j4.id from ((((select TOP 5 * from " + AbstractSQLGenerator.escapeIdentifier(table3) + ")))) j4 join (select TOP 6 * from  " + AbstractSQLGenerator.escapeIdentifier(table4) + ") j5 on j4.id = j5.id ) j2 on j1.id = j2.id",
                 1, // # of rows
                 1, // # of columns
                 new int[] {1}, // id column values
@@ -407,8 +406,8 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 13
         // Test prepared statements with limit syntax with multiple parentheses/spaces
-        qry = new PreparedQuery("select * from " + table1 + " {limit ( (  (?)))}",
-                "select TOP ( (  (?))) * from " + table1, 1, // # of rows
+        qry = new PreparedQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit ( (  (?)))}",
+                "select TOP ( (  (?))) * from " + AbstractSQLGenerator.escapeIdentifier(table1), 1, // # of rows
                 5, // # of columns
                 new int[] {1}, // id column values
                 new int[][] {{1, 1}}, // int column values
@@ -417,8 +416,8 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 14
         // Test prepared statements with limit syntax
-        qry = new PreparedQuery("select * from " + table1 + " {limit (?)}",
-                "select TOP (?) * from " + table1, 1, // #
+        qry = new PreparedQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit (?)}",
+                "select TOP (?) * from " + AbstractSQLGenerator.escapeIdentifier(table1), 1, // #
                                                                          // of
                                                                          // rows
                 5, // # of columns
@@ -429,8 +428,8 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 15
         // Test prepared statements with limit syntax with multiple parentheses/spaces
-        qry = new PreparedQuery("select * from " + table1 + " {limit ?}",
-                "select TOP (?) * from " + table1, 1, // #
+        qry = new PreparedQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit ?}",
+                "select TOP (?) * from " + AbstractSQLGenerator.escapeIdentifier(table1), 1, // #
                                                                          // of
                                                                          // rows
                 5, // # of columns
@@ -441,8 +440,8 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 16
         // Test prepared statements with limit syntax with subqueries
-        qry = new PreparedQuery("select * from (select * from " + table1 + " {limit ?}) t1 {limit (?)}",
-                "select TOP (?) * from (select TOP (?) * from " + table1 + ") t1", 1, // # of rows
+        qry = new PreparedQuery("select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit ?}) t1 {limit (?)}",
+                "select TOP (?) * from (select TOP (?) * from " + AbstractSQLGenerator.escapeIdentifier(table1) + ") t1", 1, // # of rows
                 5, // # of columns
                 new int[] {1}, // id column values
                 new int[][] {{1, 1}}, // int column values
@@ -530,8 +529,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 23
         // Test openquery syntax translation with limit syntax
         qry = new Query(
-                "select * from openquery('linked_server', 'select * from " + table1 + " {limit 2}') {limit 1}",
-                "select TOP 1 * from openquery('linked_server', 'select TOP 2 * from " + table1 + "')", 1, // #
+                "select * from openquery('linked_server', 'select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 2}') {limit 1}",
+                "select TOP 1 * from openquery('linked_server', 'select TOP 2 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + "')", 1, // #
                                                                                                                          // of
                                                                                                                          // rows
                 5, // # of columns
@@ -543,8 +542,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 24
         // Test openrowset syntax translation with a complicated query with subqueries and limit syntax
         qry = new Query(
-                "select * from openrowset('provider_name', 'provider_string', 'select j1.id from (select * from (select * from " + table1 + " {limit 3}) j3 {limit 2}) j1 join (select j4.id from (select * from " + table3 + " {limit 5}) j4 join (select * from " + table4 + " {limit 6}) j5 on j4.id = j5.id ) j2 on j1.id = j2.id {limit 1}') {limit 1}",
-                "select TOP 1 * from openrowset('provider_name', 'provider_string', 'select TOP 1 j1.id from (select TOP 2 * from (select TOP 3 * from " + table1 + ") j3) j1 join (select j4.id from (select TOP 5 * from " + table3 + ") j4 join (select TOP 6 * from " + table4 + ") j5 on j4.id = j5.id ) j2 on j1.id = j2.id')",
+                "select * from openrowset('provider_name', 'provider_string', 'select j1.id from (select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 3}) j3 {limit 2}) j1 join (select j4.id from (select * from " + AbstractSQLGenerator.escapeIdentifier(table3) + " {limit 5}) j4 join (select * from " + AbstractSQLGenerator.escapeIdentifier(table4) + " {limit 6}) j5 on j4.id = j5.id ) j2 on j1.id = j2.id {limit 1}') {limit 1}",
+                "select TOP 1 * from openrowset('provider_name', 'provider_string', 'select TOP 1 j1.id from (select TOP 2 * from (select TOP 3 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + ") j3) j1 join (select j4.id from (select TOP 5 * from " + AbstractSQLGenerator.escapeIdentifier(table3) + ") j4 join (select TOP 6 * from " + AbstractSQLGenerator.escapeIdentifier(table4) + ") j5 on j4.id = j5.id ) j2 on j1.id = j2.id')",
                 1, // # of rows
                 5, // # of columns
                 new int[] {5}, // id column values
@@ -553,8 +552,8 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 25
         // Test offset syntax in string literals
-        qry = new Query("select * from " + table1 + " where col3 = '{limit 1 offset 2}'",
-                "select * from " + table1 + " where col3 = '{limit 1 offset 2}'", 0, // # of rows
+        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = '{limit 1 offset 2}'",
+                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = '{limit 1 offset 2}'", 0, // # of rows
                 5, // # of columns
                 null, // id column values
                 null, // int column values
@@ -566,8 +565,8 @@ public class LimitEscapeTest extends AbstractTest {
         // Only test the syntax translation.
         // Test batch query.
         qry = new Query(
-                "select * from " + table1 + " {limit 1}; select * from " + table1 + " {limit 4}",
-                "select TOP 1 * from " + table1 + "; select TOP 4 * from " + table1, 0, // #
+                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1}; select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 4}",
+                "select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + "; select TOP 4 * from " + AbstractSQLGenerator.escapeIdentifier(table1), 0, // #
                                                                                                                          // of
                                                                                                                          // rows
                 5, // # of columns
@@ -577,8 +576,8 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 27
         // Execute query, and verify exception for unclosed quotation marks.
-        qry = new Query("select * from " + table1 + " where col3 = 'abcd",
-                "select * from " + table1 + " where col3 = 'abcd", 0, // # of rows
+        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = 'abcd",
+                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = 'abcd", 0, // # of rows
                 0, // # of columns
                 null, // id column values
                 null, // int column values
@@ -589,20 +588,21 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 28
         // Execute query, and verify exception for unclosed subquery.
-        qry = new Query("select * from (select * from " + table1 + " {limit 1}",
-                "select * from (select TOP 1 * from " + table1, 0, // # of rows
+        qry = new Query("select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1}",
+                "select * from (select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1), 0, // # of rows
                 0, // # of columns
                 null, // id column values
                 null, // int column values
                 null); // string column values
         // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '" + table1.replaceAll("\\[|\\]", "") + "'.");
+        qry.setExceptionMsg("Incorrect syntax near '" + table1 + "'.");
         qry.execute(conn);
+
 
         // 29
         // Execute query, and verify exception for syntax error in select.
-        qry = new Query("selectsel * from from " + table1 + " {limit 1}",
-                "selectsel * from from " + table1 + " {limit 1}", 0, // # of rows
+        qry = new Query("selectsel * from from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1}",
+                "selectsel * from from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1}", 0, // # of rows
                 0, // # of columns
                 null, // id column values
                 null, // int column values
@@ -614,8 +614,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 29
         // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
         // as limit syntax is not correct.
-        qry = new Query("select * from " + table1 + " {limit1}",
-                "select * from " + table1 + " {limit1}", 0, // # of rows
+        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1}",
+                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1}", 0, // # of rows
                 0, // # of columns
                 null, // id column values
                 null, // int column values
@@ -627,8 +627,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 30
         // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
         // as limit syntax is not correct.
-        qry = new Query("select * from " + table1 + " {limit(1}",
-                "select * from " + table1 + " {limit(1}", 0, // # of
+        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit(1}",
+                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit(1}", 0, // # of
                                                                            // rows
                 0, // # of columns
                 null, // id column values
@@ -641,8 +641,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 31
         // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
         // as limit syntax is not correct.
-        qry = new Query("select * from " + table1 + " {limit 1 offset10}",
-                "select * from " + table1 + " {limit 1 offset10}", 0, // # of rows
+        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1 offset10}",
+                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1 offset10}", 0, // # of rows
                 0, // # of columns
                 null, // id column values
                 null, // int column values
@@ -654,8 +654,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 32
         // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
         // as limit syntax is not correct.
-        qry = new Query("select * from " + table1 + " {limit1 offset 10}",
-                "select * from " + table1 + " {limit1 offset 10}", 0, // # of rows
+        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1 offset 10}",
+                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1 offset 10}", 0, // # of rows
                 0, // # of columns
                 null, // id column values
                 null, // int column values
@@ -667,8 +667,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 33
         // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
         // as limit syntax is not correct.
-        qry = new Query("select * from " + table1 + " {limit1 offset10}",
-                "select * from " + table1 + " {limit1 offset10}", 0, // # of rows
+        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1 offset10}",
+                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1 offset10}", 0, // # of rows
                 0, // # of columns
                 null, // id column values
                 null, // int column values
@@ -680,8 +680,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 34
         // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as
         // limit syntax is not correct.
-        qry = new Query("insert into " + table1 + "(col3) values({limit 1})",
-                "insert into " + table1 + "(col3) values({limit 1})", 0, // # of rows
+        qry = new Query("insert into " + AbstractSQLGenerator.escapeIdentifier(table1) + "(col3) values({limit 1})",
+                "insert into " + AbstractSQLGenerator.escapeIdentifier(table1) + "(col3) values({limit 1})", 0, // # of rows
                 0, // # of columns
                 null, // id column values
                 null, // int column values
@@ -693,8 +693,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 35
         // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as
         // limit syntax is not correct.
-        qry = new Query("select * from " + table1 + " {limit {limit 5}}",
-                "select TOP 5 * from " + table1 + " {limit}", 0, // #
+        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit {limit 5}}",
+                "select TOP 5 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit}", 0, // #
                                                                                // of
                                                                                // rows
                 0, // # of columns
@@ -708,8 +708,8 @@ public class LimitEscapeTest extends AbstractTest {
         // 36
         // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as
         // limit syntax is not correct.
-        qry = new Query("select * from " + table1 + " {limit 1} {limit 2}",
-                "select TOP 1 * from " + table1 + " {limit 2}", 0, // # of rows
+        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1} {limit 2}",
+                "select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 2}", 0, // # of rows
                 0, // # of columns
                 null, // id column values
                 null, // int column values
@@ -729,12 +729,12 @@ public class LimitEscapeTest extends AbstractTest {
     @Test
     @DisplayName("verifyOffsetException")
     public void verifyOffsetException() throws Exception {
-        offsetQuery.addElement("select * from " + table1 + " {limit 2 offset 1}");
-        offsetQuery.addElement("select * from " + table1 + " {limit 2232 offset 1232}");
-        offsetQuery.addElement("select * from " + table1 + " {limit (2) offset (1)}");
-        offsetQuery.addElement("select * from " + table1 + " {limit (265) offset (1972)}");
-        offsetQuery.addElement("select * from " + table1 + " {limit ? offset ?}");
-        offsetQuery.addElement("select * from " + table1 + " {limit (?) offset (?)}");
+        offsetQuery.addElement("select * from " + AbstractSQLGenerator.escapeIdentifier(TestUtils.escapeSingleQuotes(table1)) + " {limit 2 offset 1}");
+        offsetQuery.addElement("select * from " + AbstractSQLGenerator.escapeIdentifier(TestUtils.escapeSingleQuotes(table1)) + " {limit 2232 offset 1232}");
+        offsetQuery.addElement("select * from " + AbstractSQLGenerator.escapeIdentifier(TestUtils.escapeSingleQuotes(table1)) + " {limit (2) offset (1)}");
+        offsetQuery.addElement("select * from " + AbstractSQLGenerator.escapeIdentifier(TestUtils.escapeSingleQuotes(table1)) + " {limit (265) offset (1972)}");
+        offsetQuery.addElement("select * from " + AbstractSQLGenerator.escapeIdentifier(TestUtils.escapeSingleQuotes(table1)) + " {limit ? offset ?}");
+        offsetQuery.addElement("select * from " + AbstractSQLGenerator.escapeIdentifier(TestUtils.escapeSingleQuotes(table1)) + " {limit (?) offset (?)}");
 
         int i;
         for (i = 0; i < offsetQuery.size(); ++i) {
@@ -755,7 +755,7 @@ public class LimitEscapeTest extends AbstractTest {
         // Test the parsing error with unmatched braces in limit clause
         try {
             // Do not execute query. Exception will be thrown when verifying translation.
-            Query qry = new Query("select * from " + table1 + " {limit (2))}", "", 0, // # of rows
+            Query qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit (2))}", "", 0, // # of rows
                     0, // # of columns
                     null, // id column values
                     null, // int column values
@@ -771,13 +771,7 @@ public class LimitEscapeTest extends AbstractTest {
      * clean up
      */
     @BeforeAll
-    public static void beforeAll() {
-        table1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("table1"));
-        table2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("table2"));
-        table3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("table3"));
-        table4 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("table4"));
- 
-        
+    public static void beforeAll() {       
         try {
             conn = DriverManager.getConnection(connectionString);
             createAndPopulateTables(conn);
@@ -795,10 +789,10 @@ public class LimitEscapeTest extends AbstractTest {
     public static void afterAll() throws Exception {
 
         try (Statement stmt = conn.createStatement()) {
-            TestUtils.dropTableIfExists(table1, stmt);
-            TestUtils.dropTableIfExists(table2, stmt);
-            TestUtils.dropTableIfExists(table3, stmt);
-            TestUtils.dropTableIfExists(table4, stmt);
+           // TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table4), stmt);
         } catch (Exception ex) {
             fail(ex.toString());
         } finally {

@@ -35,12 +35,12 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
-    private static String table1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_1"));
-    private static String table2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_2"));
-    private static String table3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_3"));
-    private static String table4 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_4"));
-    private static String table5 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_5"));
-    
+    private static String table1 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_1");
+    private static String table2 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_2");
+    private static String table3 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_3");
+    private static String table4 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_4");
+    private static String table5 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_5");
+        
     private static String schema = null;
     private static String catalog = null;
 
@@ -51,41 +51,40 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             catalog = conn.getCatalog();
             schema = conn.getSchema();
 
-            stmt.executeUpdate("if object_id('" + table1 + "','U') is not null drop table " + table1);
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table1) + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table1));
+            stmt.executeUpdate("if object_id('" +  TestUtils.escapeSingleQuotes(table2) + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table2));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table2) + " (c21 int NOT NULL PRIMARY KEY)");
 
-            stmt.executeUpdate("if object_id('" +  table2 + "','U') is not null drop table " + table2);
-            stmt.execute("Create table " + table2 + " (c21 int NOT NULL PRIMARY KEY)");
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table3) + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table3));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table3) + " (c31 int NOT NULL PRIMARY KEY)");
 
-            stmt.executeUpdate("if object_id('" + table3 + "','U') is not null drop table " + table3);
-            stmt.execute("Create table " + table3 + " (c31 int NOT NULL PRIMARY KEY)");
-            
-            stmt.executeUpdate("if object_id('" + table4 + "','U') is not null drop table " + table4);
-            stmt.execute("Create table " + table4 + " (c41 int NOT NULL PRIMARY KEY)");
-            
-            stmt.executeUpdate("if object_id('" + table5 + "','U') is not null drop table " + table5);
-            stmt.execute("Create table " + table5 + " (c51 int NOT NULL PRIMARY KEY)");
-            
-            stmt.executeUpdate("if object_id('" + table1 + "','U') is not null drop table " + table1);            
-            stmt.execute("Create table " + table1 + " (c11 int primary key," + " c12 int FOREIGN KEY REFERENCES "
-                    + table2 + "(c21) ON DELETE no action ON UPDATE set default," + " c13 int FOREIGN KEY REFERENCES "
-                    + table3 + "(c31) ON DELETE cascade ON UPDATE set null," + " c14 int FOREIGN KEY REFERENCES "
-                    + table4 + "(c41) ON DELETE set null ON UPDATE cascade," + " c15 int FOREIGN KEY REFERENCES "
-                    + table5 + "(c51) ON DELETE set default ON UPDATE no action," + ")");
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table4) + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table4));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table4) + " (c41 int NOT NULL PRIMARY KEY)");
+
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table5) + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table5));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table5) + " (c51 int NOT NULL PRIMARY KEY)");
+
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table1) + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table1));            
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table1) + " (c11 int primary key," + " c12 int FOREIGN KEY REFERENCES "
+                    + AbstractSQLGenerator.escapeIdentifier(table2) + "(c21) ON DELETE no action ON UPDATE set default," + " c13 int FOREIGN KEY REFERENCES "
+                    + AbstractSQLGenerator.escapeIdentifier(table3) + "(c31) ON DELETE cascade ON UPDATE set null," + " c14 int FOREIGN KEY REFERENCES "
+                    + AbstractSQLGenerator.escapeIdentifier(table4) + "(c41) ON DELETE set null ON UPDATE cascade," + " c15 int FOREIGN KEY REFERENCES "
+                    + AbstractSQLGenerator.escapeIdentifier(table5) + "(c51) ON DELETE set default ON UPDATE no action," + ")");
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
         }
     }
-    
+
     @AfterAll
     public static void terminateVariation() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
 
-            TestUtils.dropTableIfExists(table1, stmt);
-            TestUtils.dropTableIfExists(table2, stmt);
-            TestUtils.dropTableIfExists(table3, stmt);
-            TestUtils.dropTableIfExists(table4, stmt);
-            TestUtils.dropTableIfExists(table5, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table4), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table5), stmt);
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
         }
@@ -102,16 +101,16 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
             SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) conn.getMetaData();
 
-            try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getImportedKeys(null, null, table1.replaceAll("\\[|\\]", ""));
-                    SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getImportedKeys(catalog, schema, table1.replaceAll("\\[|\\]", ""));
-                    SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getImportedKeys(catalog, "", table1.replaceAll("\\[|\\]", ""))) {
+            try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getImportedKeys(null, null, table1);
+                    SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getImportedKeys(catalog, schema, table1);
+                    SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getImportedKeys(catalog, "", table1)) {
 
                 validateGetImportedKeysResults(rs1);
                 validateGetImportedKeysResults(rs2);
                 validateGetImportedKeysResults(rs3);
 
                 try {
-                    dmd.getImportedKeys("", schema, table1.replaceAll("\\[|\\]", ""));
+                    dmd.getImportedKeys("", schema, table1);
                     fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                 } catch (SQLException e) {
                     assertTrue(e.getMessage().startsWith(TestResource.getResource("R_dbNameIsCurrentDB")));
@@ -169,7 +168,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) conn.getMetaData();
 
             for (int i = 0; i < tableNames.length; i++) {
-                String pkTable = tableNames[i].replaceAll("\\[|\\]", "");
+                String pkTable = tableNames[i];
                 try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getExportedKeys(null, null, pkTable);
                         SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getExportedKeys(catalog, schema, pkTable);
                         SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getExportedKeys(catalog, "", pkTable)) {
@@ -207,7 +206,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
      */
     @Test
     public void testGetCrossReference() throws SQLException {
-        String fkTable = table1.replaceAll("\\[|\\]", "");
+        String fkTable = table1;
         String[] tableNames = {table2, table3, table4, table5};
         int[][] values = {
                 // expected UPDATE_RULE, expected DELETE_RULE
@@ -216,7 +215,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) connection.getMetaData();
 
         for (int i = 0; i < tableNames.length; i++) {
-            String pkTable = tableNames[i].replaceAll("\\[|\\]", "");
+            String pkTable = tableNames[i];
             try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getCrossReference(null, null, pkTable, null, null,
                     fkTable);
                     SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getCrossReference(catalog, schema, pkTable,

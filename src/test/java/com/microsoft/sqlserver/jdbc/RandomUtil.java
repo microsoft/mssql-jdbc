@@ -43,6 +43,8 @@ public class RandomUtil {
         sb.append("jdbc_");
         sb.append(System.getProperty("user.name"));
         sb.append("_");
+        // Added to always test table names with apostrophe.
+        sb.append("'");
         if (unique) {
             // Create UUID.
             sb.append(UUID.randomUUID().toString());

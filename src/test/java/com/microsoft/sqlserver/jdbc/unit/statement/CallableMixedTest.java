@@ -31,8 +31,8 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  */
 @RunWith(JUnitPlatform.class)
 public class CallableMixedTest extends AbstractTest {
-    String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TFOO3"));
-    String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPFOO3"));
+    String tableName = RandomUtil.getIdentifier("TFOO3");
+    String procName = RandomUtil.getIdentifier("SPFOO3");
 
     /**
      * Tests Callable mix
@@ -45,16 +45,16 @@ public class CallableMixedTest extends AbstractTest {
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement statement = connection.createStatement();) {
 
-            statement.executeUpdate("create table " + tableName + " (c1_int int primary key, col2 int)");
-            statement.executeUpdate("Insert into " + tableName + " values(0, 1)");
+            statement.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1_int int primary key, col2 int)");
+            statement.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 1)");
 
-            statement.executeUpdate("CREATE PROCEDURE " + procName
+            statement.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
                     + " (@p2_int int, @p2_int_out int OUTPUT, @p4_smallint smallint,  @p4_smallint_out smallint OUTPUT) AS begin transaction SELECT * FROM "
-                    + tableName
+                    + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + "  ; SELECT @p2_int_out=@p2_int, @p4_smallint_out=@p4_smallint commit transaction RETURN -2147483648");
 
             try (CallableStatement callableStatement = connection
-                    .prepareCall("{  ? = CALL " + procName + " (?, ?, ?, ?) }")) {
+                    .prepareCall("{  ? = CALL " + AbstractSQLGenerator.escapeIdentifier(procName) + " (?, ?, ?, ?) }")) {
                 callableStatement.registerOutParameter((int) 1, (int) 4);
                 callableStatement.setObject((int) 2, Integer.valueOf("31"), (int) 4);
                 callableStatement.registerOutParameter((int) 3, (int) 4);
@@ -70,28 +70,27 @@ public class CallableMixedTest extends AbstractTest {
                     assertEquals(callableStatement.getInt((int) 5), -5372,
                             TestResource.getResource("R_setDataNotEqual"));
                 }
-                
+
                 // do nothing and re-execute
-                try (ResultSet rs = callableStatement.executeQuery()) {
-                }
-                
+                try (ResultSet rs = callableStatement.executeQuery()) {}
+
                 // get the param without getting the resultset
                 try (ResultSet rs = callableStatement.executeQuery()) {
-                assertEquals(callableStatement.getInt((int) 1), -2147483648,
-                        TestResource.getResource("R_setDataNotEqual"));
+                    assertEquals(callableStatement.getInt((int) 1), -2147483648,
+                            TestResource.getResource("R_setDataNotEqual"));
                 }
-                
-                try (ResultSet rs = callableStatement.executeQuery()) {
-                rs.next();
 
-                assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
-                assertEquals(callableStatement.getInt((int) 1), -2147483648,
-                        TestResource.getResource("R_setDataNotEqual"));
-                assertEquals(callableStatement.getInt((int) 5), -5372, TestResource.getResource("R_setDataNotEqual"));
-                }
-                
                 try (ResultSet rs = callableStatement.executeQuery()) {
-                }               
+                    rs.next();
+
+                    assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
+                    assertEquals(callableStatement.getInt((int) 1), -2147483648,
+                            TestResource.getResource("R_setDataNotEqual"));
+                    assertEquals(callableStatement.getInt((int) 5), -5372,
+                            TestResource.getResource("R_setDataNotEqual"));
+                }
+
+                try (ResultSet rs = callableStatement.executeQuery()) {}
             }
             terminateVariation(statement);
         }
@@ -103,7 +102,7 @@ public class CallableMixedTest extends AbstractTest {
      * @throws SQLException
      */
     private void terminateVariation(Statement statement) throws SQLException {
-        TestUtils.dropTableIfExists(tableName, statement);
-        TestUtils.dropProcedureIfExists(procName, statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), statement);
+        TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), statement);
     }
 }

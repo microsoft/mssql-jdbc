@@ -61,11 +61,11 @@ public class AESetup extends AbstractTest {
     static final String cekName = "JDBC_CEK";
     static final String secretstrJks = "password";
 
-    static String charTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedChar"));
-    static String binaryTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedBinary"));
-    static String dateTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedDate"));
-    static String numericTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedNumeric"));
-    static String scaleDateTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedScaleDate"));
+    static String charTable = RandomUtil.getIdentifier("JDBCEncryptedChar");
+    static String binaryTable = RandomUtil.getIdentifier("JDBCEncryptedBinary");
+    static String dateTable = RandomUtil.getIdentifier("JDBCEncryptedDate");
+    static String numericTable = RandomUtil.getIdentifier("JDBCEncryptedNumeric");
+    static String scaleDateTable = RandomUtil.getIdentifier("JDBCEncryptedScaleDate");
 
     static final String uid = UUID.randomUUID().toString();
 
@@ -167,7 +167,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createBinaryTable() throws SQLException {
-        String sql = "create table " + binaryTable + " (" + "PlainBinary binary(20) null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " (" + "PlainBinary binary(20) null,"
                 + "RandomizedBinary binary(20) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicBinary binary(20) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -214,7 +214,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createCharTable() throws SQLException {
-        String sql = "create table " + charTable + " (" + "PlainChar char(20) null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(charTable) + " (" + "PlainChar char(20) null,"
                 + "RandomizedChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -285,7 +285,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected void createDateTable() throws SQLException {
-        String sql = "create table " + dateTable + " (" + "PlainDate date null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " (" + "PlainDate date null,"
                 + "RandomizedDate date ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicDate date ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -338,7 +338,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected void createDatePrecisionTable(int scale) throws SQLException {
-        String sql = "create table " + dateTable + " ("
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " ("
         // 1
                 + "PlainDatetime2 datetime2(" + scale + ") null," + "RandomizedDatetime2 datetime2(" + scale
                 + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -399,7 +399,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createDateScaleTable() throws SQLException {
-        String sql = "create table " + scaleDateTable + " ("
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(AbstractSQLGenerator.escapeIdentifier(scaleDateTable)) + " ("
 
                 + "PlainDatetime2 datetime2(2) null,"
                 + "RandomizedDatetime2 datetime2(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -436,7 +436,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createNumericTable() throws SQLException {
-        String sql = "create table " + numericTable + " (" + "PlainBit bit null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " (" + "PlainBit bit null,"
                 + "RandomizedBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -549,7 +549,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected void createNumericPrecisionTable(int floatPrecision, int precision, int scale) throws SQLException {
-        String sql = "create table " + numericTable + " (" + "PlainFloat float(" + floatPrecision + ") null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " (" + "PlainFloat float(" + floatPrecision + ") null,"
                 + "RandomizedFloat float(" + floatPrecision
                 + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL," + "DeterministicFloat float(" + floatPrecision
@@ -733,10 +733,10 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void dropTables(SQLServerStatement statement) throws SQLException {
-        TestUtils.dropTableIfExists(numericTable, statement);
-        TestUtils.dropTableIfExists(charTable, statement);
-        TestUtils.dropTableIfExists(binaryTable, statement);
-        TestUtils.dropTableIfExists(dateTable, statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(numericTable), statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(charTable), statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(binaryTable), statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(dateTable), statement);
     }
 
     /**
@@ -746,7 +746,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinaryNormalCase(LinkedList<byte[]> byteValues) throws SQLException {
-        String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
                 + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager
@@ -810,7 +810,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinarySetObject(LinkedList<byte[]> byteValues) throws SQLException {
-        String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
                 + ")";
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -872,7 +872,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinarySetObjectWithJDBCType(LinkedList<byte[]> byteValues) throws SQLException {
-        String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
                 + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
@@ -934,7 +934,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinaryNullCase() throws SQLException {
-        String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
                 + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
@@ -972,7 +972,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharNormalCase(String[] charValues) throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
@@ -1039,7 +1039,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharSetObject(String[] charValues) throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
@@ -1102,7 +1102,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharSetObjectWithJDBCTypes(String[] charValues) throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
@@ -1164,7 +1164,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharNullCase() throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
@@ -1218,7 +1218,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateNormalCase(LinkedList<Object> dateValues) throws SQLException {
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
@@ -1266,7 +1266,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateScaleNormalCase(LinkedList<Object> dateValues) throws SQLException {
-        String sql = "insert into " + scaleDateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(AbstractSQLGenerator.escapeIdentifier(scaleDateTable)) + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1303,7 +1303,7 @@ public class AESetup extends AbstractTest {
             skipTestForJava7();
         }
 
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
@@ -1370,7 +1370,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected void populateDateSetObjectNull() throws SQLException {
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
@@ -1417,7 +1417,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateNullCase() throws SQLException {
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
@@ -1465,7 +1465,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumeric(String[] values) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
@@ -1574,7 +1574,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericSetObject(String[] values) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
@@ -1683,7 +1683,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericSetObjectWithJDBCTypes(String[] values) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
@@ -1791,7 +1791,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericSetObjectNull() throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
@@ -1890,7 +1890,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericNullCase(String[] values) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?"
 
@@ -1990,7 +1990,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericNormalCase(String[] numericValues) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?"
 

@@ -34,7 +34,7 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 @RunWith(JUnitPlatform.class)
 public class BatchExecutionWithNullTest extends AbstractTest {
 
-    static String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("esimple"));
+    static String tableName = RandomUtil.getIdentifier("esimple");
 
     /**
      * Test with combination of setString and setNull which cause the "Violation of PRIMARY KEY constraint and
@@ -45,7 +45,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     @Test
     public void testAddBatch2() throws SQLException {
         // try {
-        String sPrepStmt = "insert into " + tableName + " (id, name) values (?, ?)";
+        String sPrepStmt = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, name) values (?, ?)";
         int updateCountlen = 0;
         int key = 42;
 
@@ -80,7 +80,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
             assertTrue(updateCountlen == 5, TestResource.getResource("R_addBatchFailed"));
         }
-        String sPrepStmt1 = "select count(*) from " + tableName;
+        String sPrepStmt1 = "select count(*) from " + AbstractSQLGenerator.escapeIdentifier(tableName);
 
         try (PreparedStatement pstmt1 = connection.prepareStatement(sPrepStmt1); ResultSet rs = pstmt1.executeQuery()) {
             rs.next();
@@ -110,8 +110,8 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
         try (Connection connection = DriverManager.getConnection(connectionString);
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
-            TestUtils.dropTableIfExists(tableName, stmt);
-            String sql1 = "create table " + tableName
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (id integer not null, name varchar(255), constraint pk_esimple primary key (id))";
             stmt.execute(sql1);
             stmt.close();
@@ -122,7 +122,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     public static void terminateVariation() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString);
                 SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
-            TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }
 }

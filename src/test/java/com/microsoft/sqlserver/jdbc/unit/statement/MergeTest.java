@@ -32,20 +32,21 @@ import com.microsoft.sqlserver.testframework.DBStatement;
  */
 @RunWith(JUnitPlatform.class)
 public class MergeTest extends AbstractTest {
-    static String cricketTeams = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CricketTeams"));
-    static String cricketTeamsUpdated = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("cricketTeamsUpdated"));
+    static String cricketTeams = RandomUtil.getIdentifier("CricketTeams");
+    static String cricketTeamsUpdated = RandomUtil.getIdentifier("cricketTeamsUpdated");
+    
 
-    private static final String setupTables = "IF OBJECT_ID (N'" + cricketTeams + "', N'U') IS NOT NULL DROP TABLE " + cricketTeams + ";"
-            + "   CREATE TABLE " + cricketTeams + "   (       CricketTeamID tinyint NOT NULL PRIMARY KEY,     CricketTeamCountry nvarchar(30),        CricketTeamContinent nvarchar(50))"
-            + "   INSERT INTO " + cricketTeams + " VALUES      (1, 'Australia', 'Australia'),      (2, 'India', 'Asia'),       (3, 'Pakistan', 'Asia'),        (4, 'Srilanka', 'Asia'),        (5, 'Bangaladesh', 'Asia'),     (6, 'HongKong', 'Asia'),"
+    private static final String setupTables = "IF OBJECT_ID (N'" + TestUtils.escapeSingleQuotes(cricketTeams) + "', N'U') IS NOT NULL DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(cricketTeams) + ";"
+            + "   CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(cricketTeams) + "   (       CricketTeamID tinyint NOT NULL PRIMARY KEY,     CricketTeamCountry nvarchar(30),        CricketTeamContinent nvarchar(50))"
+            + "   INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(cricketTeams) + " VALUES      (1, 'Australia', 'Australia'),      (2, 'India', 'Asia'),       (3, 'Pakistan', 'Asia'),        (4, 'Srilanka', 'Asia'),        (5, 'Bangaladesh', 'Asia'),     (6, 'HongKong', 'Asia'),"
             + "     (7, 'U.A.E', 'Asia'),      (8, 'England', 'Europe'),       (9, 'South Africa', 'Africa'),      (10, 'West Indies', 'North America');"
-            + "   SELECT * FROM " + cricketTeams + "  IF OBJECT_ID (N'" + cricketTeams + "_UpdatedList', N'U') IS NOT NULL        DROP TABLE " + cricketTeamsUpdated + ";"
-            + "   CREATE TABLE " + cricketTeamsUpdated + "   (       CricketTeamID tinyint NOT NULL PRIMARY KEY,     CricketTeamCountry nvarchar(30),        CricketTeamContinent nvarchar(50))"
-            + "INSERT INTO " + cricketTeamsUpdated + " VALUES  (1, 'Australia', 'Australia'),     (2, 'India', 'Asia'),       (3, 'Pakistan', 'Asia'),     (4, 'Srilanka', 'Asia'),   (5, 'Bangaladesh', 'Asia'),"
+            + "   SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(cricketTeams) + "  IF OBJECT_ID (N'" + TestUtils.escapeSingleQuotes(cricketTeams) + "_UpdatedList', N'U') IS NOT NULL        DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated) + ";"
+            + "   CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated) + "   (       CricketTeamID tinyint NOT NULL PRIMARY KEY,     CricketTeamCountry nvarchar(30),        CricketTeamContinent nvarchar(50))"
+            + "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated) + " VALUES  (1, 'Australia', 'Australia'),     (2, 'India', 'Asia'),       (3, 'Pakistan', 'Asia'),     (4, 'Srilanka', 'Asia'),   (5, 'Bangaladesh', 'Asia'),"
             + " (6, 'Thailand', 'Asia'),      (8, 'England', 'Europe'),       (9, 'South Africa', 'Africa'),      (10, 'West Indies', 'North America'),       (11, 'Zimbabwe', 'Africa');";
 
-    private static final String mergeCmd2 = "MERGE " + cricketTeams + " AS TARGET "
-            + "USING " + cricketTeamsUpdated + " AS SOURCE " + "ON (TARGET.CricketTeamID = SOURCE.CricketTeamID) "
+    private static final String mergeCmd2 = "MERGE " + AbstractSQLGenerator.escapeIdentifier(cricketTeams) + " AS TARGET "
+            + "USING " + AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated) + " AS SOURCE " + "ON (TARGET.CricketTeamID = SOURCE.CricketTeamID) "
             + "WHEN MATCHED AND TARGET.CricketTeamContinent <> SOURCE.CricketTeamContinent OR "
             + "TARGET.CricketTeamCountry <> SOURCE.CricketTeamCountry "
             + "THEN UPDATE SET TARGET.CricketTeamContinent = SOURCE.CricketTeamContinent ,"
@@ -86,7 +87,7 @@ public class MergeTest extends AbstractTest {
 
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             try {
-                TestUtils.dropTableIfExists(cricketTeams, stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(cricketTeams), stmt);
             } catch (Exception ex) {
                 fail(ex.toString());
             }

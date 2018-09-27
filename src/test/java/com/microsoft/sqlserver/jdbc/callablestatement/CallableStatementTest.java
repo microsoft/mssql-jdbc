@@ -32,10 +32,10 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
  */
 @RunWith(JUnitPlatform.class)
 public class CallableStatementTest extends AbstractTest {
-    private static String tableNameGUID = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("uniqueidentifier_Table"));
-    private static String outputProcedureNameGUID = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("uniqueidentifier_SP"));
-    private static String setNullProcedureName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_setNull_SP"));
-    private static String inputParamsProcedureName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_inputParams_SP"));
+    private static String tableNameGUID = RandomUtil.getIdentifier("uniqueidentifier_Table");
+    private static String outputProcedureNameGUID = RandomUtil.getIdentifier("uniqueidentifier_SP");
+    private static String setNullProcedureName = RandomUtil.getIdentifier("CallableStatementTest_setNull_SP");
+    private static String inputParamsProcedureName = RandomUtil.getIdentifier("CallableStatementTest_inputParams_SP");
 
     /**
      * Setup before test
@@ -47,10 +47,10 @@ public class CallableStatementTest extends AbstractTest {
         
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(tableNameGUID, stmt);
-            TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
-            TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
-            TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameGUID), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName), stmt);
 
             createGUIDTable(stmt);
             createGUIDStoredProcedure(stmt);
@@ -67,7 +67,7 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void getStringGUIDTest() throws SQLException {
 
-        String sql = "{call " + outputProcedureNameGUID + "(?)}";
+        String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID) + "(?)}";
 
         try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
 
@@ -96,7 +96,7 @@ public class CallableStatementTest extends AbstractTest {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
         ds.setSendStringParametersAsUnicode(true);
-        String sql = "{? = call " + setNullProcedureName + " (?,?)}";
+        String sql = "{? = call " + AbstractSQLGenerator.escapeIdentifier(setNullProcedureName) + " (?,?)}";
         try (Connection connection = ds.getConnection();
                 SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall(sql);
                 SQLServerCallableStatement cs2 = (SQLServerCallableStatement) connection.prepareCall(sql)) {
@@ -128,7 +128,7 @@ public class CallableStatementTest extends AbstractTest {
      */
     @Test
     public void inputParamsTest() throws SQLException {
-        String call = "{CALL " + inputParamsProcedureName + " (?,?)}";
+        String call = "{CALL " + AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName) + " (?,?)}";
 
         // the historical way: no leading '@', parameter names respected (not positional)
         try (CallableStatement cs = connection.prepareCall(call)) {
@@ -139,7 +139,7 @@ public class CallableStatementTest extends AbstractTest {
                 assertEquals("helloworld", rs.getString(1));
             }
         }
-        
+
         // the "new" way: leading '@', parameter names still respected (not positional)
         try (CallableStatement cs = connection.prepareCall(call)) {
             cs.setString("@p2", "world!");
@@ -175,31 +175,31 @@ public class CallableStatementTest extends AbstractTest {
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement()) {
 
-            TestUtils.dropTableIfExists(tableNameGUID, stmt);
-            TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
-            TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
-            TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameGUID), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName), stmt);
         }
     }
 
     private static void createGUIDStoredProcedure(Statement stmt) throws SQLException {
-        String sql = "CREATE PROCEDURE " + outputProcedureNameGUID
-                + "(@p1 uniqueidentifier OUTPUT) AS SELECT @p1 = c1 FROM " + tableNameGUID + ";";
+        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID)
+                + "(@p1 uniqueidentifier OUTPUT) AS SELECT @p1 = c1 FROM " + AbstractSQLGenerator.escapeIdentifier(tableNameGUID) + ";";
         stmt.execute(sql);
     }
 
     private static void createGUIDTable(Statement stmt) throws SQLException {
-        String sql = "CREATE TABLE " + tableNameGUID + " (c1 uniqueidentifier null)";
+        String sql = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableNameGUID) + " (c1 uniqueidentifier null)";
         stmt.execute(sql);
     }
 
     private static void createSetNullPreocedure(Statement stmt) throws SQLException {
-        stmt.execute("create procedure " + setNullProcedureName
+        stmt.execute("create procedure " + AbstractSQLGenerator.escapeIdentifier(setNullProcedureName)
                 + " (@p1 nvarchar(255), @p2 nvarchar(255) output) as select @p2=@p1 return 0");
     }
 
     private static void createInputParamsProcedure(Statement stmt) throws SQLException {
-        String sql = "CREATE PROCEDURE " + inputParamsProcedureName
+        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName)
                 + "    @p1 nvarchar(max) = N'parameter1', " + "    @p2 nvarchar(max) = N'parameter2' " + "AS "
                 + "BEGIN " + "    SET NOCOUNT ON; " + "    SELECT @p1 + @p2 AS result; " + "END ";
 

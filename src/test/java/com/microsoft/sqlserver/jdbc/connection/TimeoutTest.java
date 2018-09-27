@@ -30,7 +30,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class TimeoutTest extends AbstractTest {
     String randomServer = RandomUtil.getIdentifier("Server");
-    String waitForDelaySPName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("waitForDelaySP"));
+    String waitForDelaySPName = RandomUtil.getIdentifier("waitForDelaySP");
     final int waitForDelaySeconds = 10;
 
     @Test
@@ -38,13 +38,13 @@ public class TimeoutTest extends AbstractTest {
     public void testDefaultLoginTimeout() {
         long timerStart = 0;
         long timerEnd = 0;
-        
+
         timerStart = System.currentTimeMillis();
         // Try a non existing server and see if the default timeout is 15 seconds
-        try (Connection con = DriverManager.getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;")) {
-            
-        }
-        catch (Exception e) {
+        try (Connection con = DriverManager
+                .getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;")) {
+
+        } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
             timerEnd = System.currentTimeMillis();
         }
@@ -59,7 +59,7 @@ public class TimeoutTest extends AbstractTest {
     public void testFailoverInstanceResolution() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
-        
+
         timerStart = System.currentTimeMillis();
         // Try a non existing server and see if the default timeout is 15 seconds
         try (Connection con = DriverManager
@@ -78,7 +78,7 @@ public class TimeoutTest extends AbstractTest {
     public void testFOInstanceResolution2() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
-        
+
         timerStart = System.currentTimeMillis();
         try (Connection con = DriverManager
                 .getConnection("jdbc:sqlserver://" + randomServer + "\\fooggg;databaseName=FailoverDB;failoverPartner="
@@ -103,12 +103,12 @@ public class TimeoutTest extends AbstractTest {
             dropWaitForDelayProcedure(conn);
             createWaitForDelayPreocedure(conn);
         }
-        
+
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
                 .getConnection(connectionString + ";queryTimeout=" + (waitForDelaySeconds / 2) + ";")) {
 
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("exec " + waitForDelaySPName);
+                stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
                 throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception e) {
                 if (!(e instanceof java.sql.SQLTimeoutException)) {
@@ -146,7 +146,7 @@ public class TimeoutTest extends AbstractTest {
                 + ";queryTimeout=" + (waitForDelaySeconds / 2) + ";cancelQueryTimeout=" + waitForDelaySeconds + ";")) {
 
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
-                stmt.execute("exec " + waitForDelaySPName);
+                stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
                 throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception e) {
                 if (!(e instanceof java.sql.SQLTimeoutException)) {
@@ -184,7 +184,7 @@ public class TimeoutTest extends AbstractTest {
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
                 stmt.setQueryTimeout(waitForDelaySeconds / 2);
                 stmt.setCancelQueryTimeout(waitForDelaySeconds);
-                stmt.execute("exec " + waitForDelaySPName);
+                stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
                 throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception e) {
                 if (!(e instanceof java.sql.SQLTimeoutException)) {
@@ -193,7 +193,7 @@ public class TimeoutTest extends AbstractTest {
                 assertEquals(e.getMessage(), TestResource.getResource("R_queryTimedOut"),
                         TestResource.getResource("R_invalidExceptionMessage"));
             }
-            
+
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
                 stmt.execute("SELECT @@version");
             } catch (Exception e) {
@@ -221,7 +221,7 @@ public class TimeoutTest extends AbstractTest {
                 .getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";")) {
 
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
-                stmt.execute("exec " + waitForDelaySPName);
+                stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
                 throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception e) {
                 if (!(e instanceof SQLException)) {
@@ -230,7 +230,7 @@ public class TimeoutTest extends AbstractTest {
                 assertEquals(e.getMessage(), TestResource.getResource("R_readTimedOut"),
                         TestResource.getResource("R_invalidExceptionMessage"));
             }
-            
+
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
                 stmt.execute("SELECT @@version");
             } catch (SQLException e) {
@@ -244,7 +244,7 @@ public class TimeoutTest extends AbstractTest {
 
     private void dropWaitForDelayProcedure(SQLServerConnection conn) throws SQLException {
         try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
-            TestUtils.dropProcedureIfExists(waitForDelaySPName, stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName), stmt);
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
         }
@@ -253,7 +253,7 @@ public class TimeoutTest extends AbstractTest {
     private void createWaitForDelayPreocedure(SQLServerConnection conn) throws SQLException {
         try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
 
-            String sql = "CREATE PROCEDURE " + waitForDelaySPName + " AS" + " BEGIN" + " WAITFOR DELAY '00:00:"
+            String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName) + " AS" + " BEGIN" + " WAITFOR DELAY '00:00:"
                     + waitForDelaySeconds + "';" + " END";
             stmt.execute(sql);
         } catch (Exception e) {

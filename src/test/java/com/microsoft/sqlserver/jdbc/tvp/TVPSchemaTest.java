@@ -20,6 +20,8 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
@@ -124,13 +126,12 @@ public class TVPSchemaTest extends AbstractTest {
 
     @BeforeEach
     public void testSetup() throws SQLException {
-        schemaName = "[" + RandomUtil.getIdentifier("anotherSchema") + "]";
-        tvpNameWithouSchema = "[" + RandomUtil.getIdentifier("charTVP")  + "]";
-        tvpNameWithSchema = schemaName + "." + tvpNameWithouSchema;
+        schemaName = RandomUtil.getIdentifier("anotherSchema");
+        tvpNameWithouSchema = RandomUtil.getIdentifier("charTVP");
+        tvpNameWithSchema = AbstractSQLGenerator.escapeIdentifier(schemaName) + "." + AbstractSQLGenerator.escapeIdentifier(tvpNameWithouSchema);
         
-        charTable = schemaName + ".[tvpCharTable]";
-        procedureName = schemaName + ".[procedureThatCallsTVP]";
-
+        charTable = AbstractSQLGenerator.escapeIdentifier(schemaName) + ".[tvpCharTable]";
+        procedureName = AbstractSQLGenerator.escapeIdentifier(schemaName) + ".[procedureThatCallsTVP]";
        
         conn = new DBConnection(connectionString);
         stmt = conn.createStatement();
@@ -170,23 +171,23 @@ public class TVPSchemaTest extends AbstractTest {
     }
 
     private void dropProcedure() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + procedureName
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(procedureName)
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procedureName;
         stmt.execute(sql);
     }
 
     private static void dropTables() throws SQLException {
-        stmt.executeUpdate("if object_id('" + charTable + "','U') is not null" + " drop table " + charTable);
+        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(charTable) + "','U') is not null" + " drop table " + charTable);
     }
 
     private static void dropTVPS() throws SQLException {
         stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
-                + tvpNameWithouSchema + "') " + " drop type " + tvpNameWithSchema);
+                + TestUtils.escapeSingleQuotes(tvpNameWithouSchema) + "') " + " drop type " + tvpNameWithSchema);
     }
 
     private static void dropAndCreateSchema() throws SQLException {
-        stmt.execute("if EXISTS (SELECT * FROM sys.schemas where name = '" + schemaName + "') drop schema " + schemaName);
-        stmt.execute("CREATE SCHEMA " + schemaName);
+        stmt.execute("if EXISTS (SELECT * FROM sys.schemas where name = '" + TestUtils.escapeSingleQuotes(schemaName) + "') drop schema " + AbstractSQLGenerator.escapeIdentifier(schemaName));
+        stmt.execute("CREATE SCHEMA " + AbstractSQLGenerator.escapeIdentifier(schemaName));
     }
 
     private static void createPreocedure() throws SQLException {

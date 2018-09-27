@@ -45,32 +45,32 @@ import microsoft.sql.DateTimeOffset;
 @RunWith(JUnitPlatform.class)
 public class CallableStatementTest extends AESetup {
 
-    private static String multiStatementsProcedure = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("multiStatementsProcedure"));
-    private static String inputProcedure = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("inputProcedure"));
-    private static String inputProcedure2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("inputProcedure2"));
-    private static String outputProcedure = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedure"));
-    private static String outputProcedure2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedure2"));
-    private static String outputProcedure3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedure3"));
-    private static String outputProcedureChar = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedureChar"));
-    private static String outputProcedureNumeric = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedureNumeric"));
-    private static String outputProcedureBinary = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedureBinary"));
-    private static String outputProcedureDate = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedureDate"));
-    private static String outputProcedureDateScale = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedureDateScale"));
-    private static String outputProcedureBatch = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedureBatch"));
-    private static String outputProcedure4 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("outputProcedure4"));
+    private static String multiStatementsProcedure = RandomUtil.getIdentifier("multiStatementsProcedure");
+    private static String inputProcedure = RandomUtil.getIdentifier("inputProcedure");
+    private static String inputProcedure2 = RandomUtil.getIdentifier("inputProcedure2");
+    private static String outputProcedure = RandomUtil.getIdentifier("outputProcedure");
+    private static String outputProcedure2 = RandomUtil.getIdentifier("outputProcedure2");
+    private static String outputProcedure3 = RandomUtil.getIdentifier("outputProcedure3");
+    private static String outputProcedure4 = RandomUtil.getIdentifier("outputProcedure4");
+    private static String outputProcedureChar = RandomUtil.getIdentifier("outputProcedureChar");
+    private static String outputProcedureNumeric = RandomUtil.getIdentifier("outputProcedureNumeric");
+    private static String outputProcedureBinary = RandomUtil.getIdentifier("outputProcedureBinary");
+    private static String outputProcedureDate = RandomUtil.getIdentifier("outputProcedureDate");
+    private static String outputProcedureDateScale = RandomUtil.getIdentifier("outputProcedureDateScale");
+    private static String outputProcedureBatch = RandomUtil.getIdentifier("outputProcedureBatch");
   
-    private static String inoutProcedure = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("inoutProcedure"));
-    private static String mixedProcedure = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("inoutProcedure"));
-    private static String mixedProcedure2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("mixedProcedure2"));
-    private static String mixedProcedure3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("mixedProcedure3"));
-    private static String mixedProcedureNumericPrcisionScale = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("mixedProcedureNumericPrcisionScale"));
+    private static String inoutProcedure = RandomUtil.getIdentifier("inoutProcedure");
+    private static String mixedProcedure = RandomUtil.getIdentifier("mixedProcedure");
+    private static String mixedProcedure2 = RandomUtil.getIdentifier("mixedProcedure2");
+    private static String mixedProcedure3 = RandomUtil.getIdentifier("mixedProcedure3");
+    private static String mixedProcedureNumericPrcisionScale = RandomUtil.getIdentifier("mixedProcedureNumericPrcisionScale");
   
-    private static String table1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table1"));
-    private static String table2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table2"));
-    private static String table3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table3"));
-    private static String table4 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table4"));
-    private static String table5 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table5"));
-    private static String table6 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table6"));
+    private static String table1 = RandomUtil.getIdentifier("StoredProcedure_table1");
+    private static String table2 = RandomUtil.getIdentifier("StoredProcedure_table2");
+    private static String table3 = RandomUtil.getIdentifier("StoredProcedure_table3");
+    private static String table4 = RandomUtil.getIdentifier("StoredProcedure_table4");
+    private static String table5 = RandomUtil.getIdentifier("StoredProcedure_table5");
+    private static String table6 = RandomUtil.getIdentifier("StoredProcedure_table6");
     
     static final String uid = UUID.randomUUID().toString();
 
@@ -127,51 +127,51 @@ public class CallableStatementTest extends AESetup {
     @Test
     public void testInputProcedureNumeric() throws SQLException {
         createInputProcedure();
-        testInputProcedure("{call " + inputProcedure + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}", numericValues);
+        testInputProcedure("{call " + AbstractSQLGenerator.escapeIdentifier(inputProcedure) + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}", numericValues);
     }
 
     @Test
     public void testInputProcedureChar() throws SQLException {
         createInputProcedure2();
-        testInputProcedure2("{call " + inputProcedure2 + "(?,?,?,?,?,?,?,?)}");
+        testInputProcedure2("{call " + AbstractSQLGenerator.escapeIdentifier(inputProcedure2) + "(?,?,?,?,?,?,?,?)}");
     }
 
     @Test
     public void testEncryptedOutputNumericParams() throws SQLException {
         createOutputProcedure();
-        testOutputProcedureRandomOrder("{call " + outputProcedure + "(?,?,?,?,?,?,?)}", numericValues);
-        testOutputProcedureInorder("{call " + outputProcedure + "(?,?,?,?,?,?,?)}", numericValues);
-        testOutputProcedureReverseOrder("{call " + outputProcedure + "(?,?,?,?,?,?,?)}", numericValues);
-        testOutputProcedureRandomOrder("exec " + outputProcedure + " ?,?,?,?,?,?,?", numericValues);
+        testOutputProcedureRandomOrder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure) + "(?,?,?,?,?,?,?)}", numericValues);
+        testOutputProcedureInorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure) + "(?,?,?,?,?,?,?)}", numericValues);
+        testOutputProcedureReverseOrder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure) + "(?,?,?,?,?,?,?)}", numericValues);
+        testOutputProcedureRandomOrder("exec " + AbstractSQLGenerator.escapeIdentifier(outputProcedure) + " ?,?,?,?,?,?,?", numericValues);
     }
 
     @Test
     public void testUnencryptedAndEncryptedNumericOutputParams() throws SQLException {
         createOutputProcedure2();
-        testOutputProcedure2RandomOrder("{call " + outputProcedure2 + "(?,?,?,?,?,?,?,?,?,?)}", numericValues);
-        testOutputProcedure2Inorder("{call " + outputProcedure2 + "(?,?,?,?,?,?,?,?,?,?)}", numericValues);
-        testOutputProcedure2ReverseOrder("{call " + outputProcedure2 + "(?,?,?,?,?,?,?,?,?,?)}", numericValues);
+        testOutputProcedure2RandomOrder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure2) + "(?,?,?,?,?,?,?,?,?,?)}", numericValues);
+        testOutputProcedure2Inorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure2) + "(?,?,?,?,?,?,?,?,?,?)}", numericValues);
+        testOutputProcedure2ReverseOrder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure2) + "(?,?,?,?,?,?,?,?,?,?)}", numericValues);
     }
 
     @Test
     public void testEncryptedOutputParamsFromDifferentTables() throws SQLException {
         createOutputProcedure3();
-        testOutputProcedure3RandomOrder("{call " + outputProcedure3 + "(?,?)}");
-        testOutputProcedure3Inorder("{call " + outputProcedure3 + "(?,?)}");
-        testOutputProcedure3ReverseOrder("{call " + outputProcedure3 + "(?,?)}");
+        testOutputProcedure3RandomOrder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3) + "(?,?)}");
+        testOutputProcedure3Inorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3) + "(?,?)}");
+        testOutputProcedure3ReverseOrder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3) + "(?,?)}");
     }
 
     @Test
     public void testInOutProcedure() throws SQLException {
         createInOutProcedure();
-        testInOutProcedure("{call " + inoutProcedure + "(?)}");
-        testInOutProcedure("exec " + inoutProcedure + " ?");
+        testInOutProcedure("{call " + AbstractSQLGenerator.escapeIdentifier(inoutProcedure) + "(?)}");
+        testInOutProcedure("exec " + AbstractSQLGenerator.escapeIdentifier(inoutProcedure) + " ?");
     }
 
     @Test
     public void testMixedProcedure() throws SQLException {
         createMixedProcedure();
-        testMixedProcedure("{ ? = call " + mixedProcedure + "(?,?,?)}");
+        testMixedProcedure("{ ? = call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure) + "(?,?,?)}");
     }
 
     @Test
@@ -179,67 +179,67 @@ public class CallableStatementTest extends AESetup {
         // unencrypted input and output parameter
         // encrypted input and output parameter
         createMixedProcedure2();
-        testMixedProcedure2RandomOrder("{call " + mixedProcedure2 + "(?,?,?,?)}");
-        testMixedProcedure2Inorder("{call " + mixedProcedure2 + "(?,?,?,?)}");
+        testMixedProcedure2RandomOrder("{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure2) + "(?,?,?,?)}");
+        testMixedProcedure2Inorder("{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure2) + "(?,?,?,?)}");
     }
 
     @Test
     public void testUnencryptedIOParams() throws SQLException {
         createMixedProcedure3();
-        testMixedProcedure3RandomOrder("{call " + mixedProcedure3 + "(?,?,?,?)}");
-        testMixedProcedure3Inorder("{call " + mixedProcedure3 + "(?,?,?,?)}");
-        testMixedProcedure3ReverseOrder("{call " + mixedProcedure3 + "(?,?,?,?)}");
+        testMixedProcedure3RandomOrder("{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure3) + "(?,?,?,?)}");
+        testMixedProcedure3Inorder("{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure3) + "(?,?,?,?)}");
+        testMixedProcedure3ReverseOrder("{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure3) + "(?,?,?,?)}");
     }
 
     @Test
     public void testVariousIOParams() throws SQLException {
         createMixedProcedureNumericPrcisionScale();
-        testMixedProcedureNumericPrcisionScaleInorder("{call " + mixedProcedureNumericPrcisionScale + "(?,?,?,?)}");
+        testMixedProcedureNumericPrcisionScaleInorder("{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale) + "(?,?,?,?)}");
         testMixedProcedureNumericPrcisionScaleParameterName(
-                "{call " + mixedProcedureNumericPrcisionScale + "(?,?,?,?)}");
+                "{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale) + "(?,?,?,?)}");
     }
 
     @Test
     public void testOutputProcedureChar() throws SQLException {
         createOutputProcedureChar();
-        testOutputProcedureCharInorder("{call " + outputProcedureChar + "(?,?,?,?,?,?,?,?,?)}");
-        testOutputProcedureCharInorderObject("{call " + outputProcedureChar + "(?,?,?,?,?,?,?,?,?)}");
+        testOutputProcedureCharInorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureChar) + "(?,?,?,?,?,?,?,?,?)}");
+        testOutputProcedureCharInorderObject("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureChar) + "(?,?,?,?,?,?,?,?,?)}");
     }
 
     @Test
     public void testOutputProcedureNumeric() throws SQLException {
         createOutputProcedureNumeric();
-        testOutputProcedureNumericInorder("{call " + outputProcedureNumeric + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
+        testOutputProcedureNumericInorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNumeric) + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
         testcoerctionsOutputProcedureNumericInorder(
-                "{call " + outputProcedureNumeric + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
+                "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNumeric) + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
     }
 
     @Test
     public void testOutputProcedureBinary() throws SQLException {
         createOutputProcedureBinary();
-        testOutputProcedureBinaryInorder("{call " + outputProcedureBinary + "(?,?,?,?,?)}");
-        testOutputProcedureBinaryInorderObject("{call " + outputProcedureBinary + "(?,?,?,?,?)}");
-        testOutputProcedureBinaryInorderString("{call " + outputProcedureBinary + "(?,?,?,?,?)}");
+        testOutputProcedureBinaryInorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary) + "(?,?,?,?,?)}");
+        testOutputProcedureBinaryInorderObject("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary) + "(?,?,?,?,?)}");
+        testOutputProcedureBinaryInorderString("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary) + "(?,?,?,?,?)}");
     }
 
     @Test
     public void testOutputProcedureDate() throws SQLException {
         createOutputProcedureDate();
-        testOutputProcedureDateInorder("{call " + outputProcedureDate + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
-        testOutputProcedureDateInorderObject("{call " + outputProcedureDate + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
+        testOutputProcedureDateInorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDate) + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
+        testOutputProcedureDateInorderObject("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDate) + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
     }
 
     @Test
     public void testMixedProcedureDateScale() throws SQLException {
         createMixedProcedureDateScale();
-        testMixedProcedureDateScaleInorder("{call " + outputProcedureDateScale + "(?,?,?,?,?,?)}");
-        testMixedProcedureDateScaleWithParameterName("{call " + outputProcedureDateScale + "(?,?,?,?,?,?)}");
+        testMixedProcedureDateScaleInorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDateScale) + "(?,?,?,?,?,?)}");
+        testMixedProcedureDateScaleWithParameterName("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDateScale) + "(?,?,?,?,?,?)}");
     }
 
     @Test
     public void testOutputProcedureBatch() throws SQLException {
         createOutputProcedureBatch();
-        testOutputProcedureBatchInorder("{call " + outputProcedureBatch + "(?,?,?,?)}");
+        testOutputProcedureBatchInorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBatch) + "(?,?,?,?)}");
     }
 
     @Test
@@ -250,32 +250,32 @@ public class CallableStatementTest extends AESetup {
     private static void dropTables() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            TestUtils.dropTableIfExists(table1, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
 
-            TestUtils.dropTableIfExists(table2, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
 
-            TestUtils.dropTableIfExists(table3, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
 
-            TestUtils.dropTableIfExists(table4, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table4), stmt);
 
-            TestUtils.dropTableIfExists(charTable, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(charTable), stmt);
 
-            TestUtils.dropTableIfExists(numericTable, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(AbstractSQLGenerator.escapeIdentifier(numericTable)), stmt);
 
-            TestUtils.dropTableIfExists(binaryTable, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(binaryTable), stmt);
 
-            TestUtils.dropTableIfExists(dateTable, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(dateTable), stmt);
 
-            TestUtils.dropTableIfExists(table5, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table5), stmt);
 
-            TestUtils.dropTableIfExists(table6, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table6), stmt);
 
-            TestUtils.dropTableIfExists(scaleDateTable, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(scaleDateTable), stmt);
         }
     }
 
     private static void createTables() throws SQLException {
-        String sql = "create table " + table1 + " (" + "PlainChar char(20) null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table1) + " (" + "PlainChar char(20) null,"
                 + "RandomizedChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -294,7 +294,7 @@ public class CallableStatementTest extends AESetup {
             fail(e.toString());
         }
 
-        sql = "create table " + table2 + " (" + "PlainChar char(20) null,"
+        sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table2) + " (" + "PlainChar char(20) null,"
                 + "RandomizedChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -315,7 +315,7 @@ public class CallableStatementTest extends AESetup {
             fail(e.toString());
         }
 
-        sql = "create table " + table3 + " (" + "PlainBit bit null,"
+        sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table3) + " (" + "PlainBit bit null,"
                 + "RandomizedBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -426,7 +426,7 @@ public class CallableStatementTest extends AESetup {
             fail(e.toString());
         }
 
-        sql = "create table " + table4 + " (" + "PlainInt int null,"
+        sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table4) + " (" + "PlainInt int null,"
                 + "RandomizedInt int ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicInt int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -439,7 +439,7 @@ public class CallableStatementTest extends AESetup {
             fail(e.toString());
         }
 
-        sql = "create table " + table5 + " ("
+        sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table5) + " ("
                 + "c1 int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "c2 smallint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -454,7 +454,7 @@ public class CallableStatementTest extends AESetup {
             fail(e.toString());
         }
 
-        sql = "create table " + table6 + " ("
+        sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table6) + " ("
                 + "c1 int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "c2 smallint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -471,7 +471,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     private static void populateTable4() throws SQLException {
-        String sql = "insert into " + table4 + " values( " + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(table4) + " values( " + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -487,7 +487,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     private static void populateTable3() throws SQLException {
-        String sql = "insert into " + table3 + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(table3) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
@@ -594,25 +594,25 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createMultiInsertionSelection() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + multiStatementsProcedure
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + multiStatementsProcedure;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(multiStatementsProcedure)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(multiStatementsProcedure);
         
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + multiStatementsProcedure
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(multiStatementsProcedure)
                     + " (@p0 char(20) = null, @p1 char(20) = null, @p2 char(20) = null, "
                     + "@p3 varchar(50) = null, @p4 varchar(50) = null, @p5 varchar(50) = null)" + " AS"
-                    + " INSERT INTO " + table1 + " values (@p0,@p1,@p2,@p3,@p4,@p5)" + " INSERT INTO " + table2
-                    + " values (@p0,@p1,@p2,@p3,@p4,@p5)" + " SELECT * FROM " + table1 + " SELECT * FROM " + table2;
+                    + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table1) + " values (@p0,@p1,@p2,@p3,@p4,@p5)" + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table2)
+                    + " values (@p0,@p1,@p2,@p3,@p4,@p5)" + " SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(table1) + " SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(table2);
             stmt.execute(sql);
         }
     }
 
     private void MultiInsertionSelection() throws SQLException {
 
-        String sql = "{call " + multiStatementsProcedure + " (?,?,?,?,?,?)}";
+        String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(multiStatementsProcedure) + " (?,?,?,?,?,?)}";
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
@@ -663,18 +663,18 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createInputProcedure() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + inputProcedure
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + inputProcedure;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(inputProcedure)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputProcedure);
         
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + inputProcedure + " @p0 int, @p1 decimal(18, 0), "
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputProcedure) + " @p0 int, @p1 decimal(18, 0), "
                     + "@p2 float, @p3 real, @p4 numeric(18, 0), @p5 smallmoney, @p6 money,"
                     + "@p7 bit, @p8 smallint, @p9 bigint, @p10 float(30), @p11 decimal(10,5), @p12 numeric(8,2), "
                     + "@p13 decimal(28,4), @p14 numeric(28,4)  " + " AS" + " SELECT top 1 RandomizedInt FROM "
-                    + numericTable + " where DeterministicInt=@p0 and DeterministicDecimalDefault=@p1 and "
+                    + AbstractSQLGenerator.escapeIdentifier(numericTable) + " where DeterministicInt=@p0 and DeterministicDecimalDefault=@p1 and "
                     + " DeterministicFloatDefault=@p2 and DeterministicReal=@p3 and DeterministicNumericDefault=@p4 and"
                     + " DeterministicSmallMoney=@p5 and DeterministicMoney=@p6 and DeterministicBit=@p7 and"
                     + " DeterministicSmallint=@p8 and DeterministicBigint=@p9 and DeterministicFloat=@p10 and"
@@ -725,19 +725,19 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createInputProcedure2() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + inputProcedure2
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + inputProcedure2;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(inputProcedure2)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputProcedure2);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + inputProcedure2
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputProcedure2)
                     + " @p0 varchar(50), @p1 uniqueidentifier, @p2 varchar(max), @p3 nchar(30), @p4 nvarchar(60), @p5 nvarchar(max), "
                     + " @p6 varchar(8000), @p7 nvarchar(4000)" + " AS"
                     + " SELECT top 1 RandomizedVarchar, DeterministicUniqueidentifier, DeterministicVarcharMax, RandomizedNchar, "
                     + " DeterministicNvarchar, DeterministicNvarcharMax, DeterministicVarchar8000, RandomizedNvarchar4000  FROM "
-                    + charTable + " where DeterministicVarchar = @p0 and DeterministicUniqueidentifier =@p1";
+                    + AbstractSQLGenerator.escapeIdentifier(charTable) + " where DeterministicVarchar = @p0 and DeterministicUniqueidentifier =@p1";
 
             stmt.execute(sql);
         }
@@ -776,16 +776,16 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createOutputProcedure3() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedure3
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedure3;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(outputProcedure3)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + outputProcedure3 + " @p0 int OUTPUT, @p1 int OUTPUT " + " AS"
-                    + " SELECT top 1 @p0=DeterministicInt FROM " + table3 + " SELECT top 1 @p1=RandomizedInt FROM "
-                    + table4;
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3) + " @p0 int OUTPUT, @p1 int OUTPUT " + " AS"
+                    + " SELECT top 1 @p0=DeterministicInt FROM " + AbstractSQLGenerator.escapeIdentifier(table3) + " SELECT top 1 @p1=RandomizedInt FROM "
+                    + AbstractSQLGenerator.escapeIdentifier(table4);
 
             stmt.execute(sql);
         }
@@ -864,19 +864,19 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createOutputProcedure2() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedure2
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedure2;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(outputProcedure2)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure2);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + outputProcedure2
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure2)
                     + " @p0 int OUTPUT, @p1 int OUTPUT, @p2 smallint OUTPUT, @p3 smallint OUTPUT, @p4 tinyint OUTPUT, @p5 tinyint OUTPUT, @p6 smallmoney OUTPUT,"
                     + " @p7 smallmoney OUTPUT, @p8 money OUTPUT, @p9 money OUTPUT " + " AS"
                     + " SELECT top 1 @p0=PlainInt, @p1=DeterministicInt, @p2=PlainSmallint,"
                     + " @p3=RandomizedSmallint, @p4=PlainTinyint, @p5=DeterministicTinyint, @p6=DeterministicSmallMoney, @p7=PlainSmallMoney,"
-                    + " @p8=PlainMoney, @p9=DeterministicMoney FROM " + table3;
+                    + " @p8=PlainMoney, @p9=DeterministicMoney FROM " + AbstractSQLGenerator.escapeIdentifier(table3);
 
             stmt.execute(sql);
         }
@@ -1042,18 +1042,18 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createOutputProcedure() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedure
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedure;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(outputProcedure)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + outputProcedure + " @p0 int OUTPUT, @p1 float OUTPUT, @p2 smallint OUTPUT, "
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure) + " @p0 int OUTPUT, @p1 float OUTPUT, @p2 smallint OUTPUT, "
                     + "@p3 bigint OUTPUT, @p4 tinyint OUTPUT, @p5 smallmoney OUTPUT, @p6 money OUTPUT " + " AS"
                     + " SELECT top 1 @p0=RandomizedInt, @p1=DeterministicFloatDefault, @p2=RandomizedSmallint,"
                     + " @p3=RandomizedBigint, @p4=DeterministicTinyint, @p5=DeterministicSmallMoney, @p6=DeterministicMoney FROM "
-                    + table3;
+                    + AbstractSQLGenerator.escapeIdentifier(table3);
 
             stmt.execute(sql);
         }
@@ -1192,15 +1192,15 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createInOutProcedure() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + inoutProcedure
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + inoutProcedure;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(inoutProcedure)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inoutProcedure);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + inoutProcedure + " @p0 int OUTPUT" + " AS"
-                    + " SELECT top 1 @p0=DeterministicInt FROM " + table3 + " where DeterministicInt=@p0";
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inoutProcedure) + " @p0 int OUTPUT" + " AS"
+                    + " SELECT top 1 @p0=DeterministicInt FROM " + AbstractSQLGenerator.escapeIdentifier(table3) + " where DeterministicInt=@p0";
 
             stmt.execute(sql);
         }
@@ -1225,15 +1225,15 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createMixedProcedure() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + mixedProcedure
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + mixedProcedure;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(mixedProcedure)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + mixedProcedure + " @p0 int OUTPUT, @p1 float OUTPUT, @p3 decimal " + " AS"
-                    + " SELECT top 1 @p0=DeterministicInt2, @p1=RandomizedFloatDefault FROM " + table3
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure) + " @p0 int OUTPUT, @p1 float OUTPUT, @p3 decimal " + " AS"
+                    + " SELECT top 1 @p0=DeterministicInt2, @p1=RandomizedFloatDefault FROM " + AbstractSQLGenerator.escapeIdentifier(table3)
                     + " where DeterministicInt=@p0 and DeterministicDecimalDefault=@p3" + " return 123";
 
             stmt.execute(sql);
@@ -1270,15 +1270,15 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createMixedProcedure2() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + mixedProcedure2
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + mixedProcedure2;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(mixedProcedure2)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure2);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + mixedProcedure2 + " @p0 int OUTPUT, @p1 float OUTPUT, @p3 int, @p4 float "
-                    + " AS" + " SELECT top 1 @p0=DeterministicInt, @p1=PlainFloatDefault FROM " + table3
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure2) + " @p0 int OUTPUT, @p1 float OUTPUT, @p3 int, @p4 float "
+                    + " AS" + " SELECT top 1 @p0=DeterministicInt, @p1=PlainFloatDefault FROM " + AbstractSQLGenerator.escapeIdentifier(table3)
                     + " where PlainInt=@p3 and DeterministicFloatDefault=@p4";
 
             stmt.execute(sql);
@@ -1343,16 +1343,16 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createMixedProcedure3() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + mixedProcedure3
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + mixedProcedure3;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(mixedProcedure3)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure3);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + mixedProcedure3
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure3)
                     + " @p0 bigint OUTPUT, @p1 float OUTPUT, @p2 int OUTPUT, @p3 smallint" + " AS"
-                    + " SELECT top 1 @p0=PlainBigint, @p1=PlainFloatDefault FROM " + table3
+                    + " SELECT top 1 @p0=PlainBigint, @p1=PlainFloatDefault FROM " + AbstractSQLGenerator.escapeIdentifier(table3)
                     + " where PlainInt=@p2 and PlainSmallint=@p3";
 
             stmt.execute(sql);
@@ -1439,18 +1439,18 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createMixedProcedureNumericPrcisionScale() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + mixedProcedureNumericPrcisionScale
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(mixedProcedureNumericPrcisionScale)
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE "
-                + mixedProcedureNumericPrcisionScale;
+                + AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + mixedProcedureNumericPrcisionScale
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale)
                     + " @p1 decimal(18,0) OUTPUT, @p2 decimal(10,5) OUTPUT, @p3 numeric(18, 0) OUTPUT, @p4 numeric(8,2) OUTPUT "
                     + " AS" + " SELECT top 1 @p1=RandomizedDecimalDefault, @p2=DeterministicDecimal,"
-                    + " @p3=RandomizedNumericDefault, @p4=DeterministicNumeric FROM " + table3
+                    + " @p3=RandomizedNumericDefault, @p4=DeterministicNumeric FROM " + AbstractSQLGenerator.escapeIdentifier(table3)
                     + " where DeterministicDecimal=@p2 and DeterministicNumeric=@p4" + " return 123";
 
             stmt.execute(sql);
@@ -1520,20 +1520,20 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createOutputProcedureChar() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureChar
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureChar;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(outputProcedureChar)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureChar);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + outputProcedureChar
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureChar)
                     + " @p0 char(20) OUTPUT,@p1 varchar(50) OUTPUT,@p2 nchar(30) OUTPUT,"
                     + "@p3 nvarchar(60) OUTPUT, @p4 uniqueidentifier OUTPUT, @p5 varchar(max) OUTPUT, @p6 nvarchar(max) OUTPUT, @p7 varchar(8000) OUTPUT, @p8 nvarchar(4000) OUTPUT"
                     + " AS" + " SELECT top 1 @p0=DeterministicChar,@p1=RandomizedVarChar,@p2=RandomizedNChar,"
                     + " @p3=DeterministicNVarChar, @p4=DeterministicUniqueidentifier, @p5=DeterministicVarcharMax,"
                     + " @p6=DeterministicNvarcharMax, @p7=DeterministicVarchar8000, @p8=RandomizedNvarchar4000  FROM  "
-                    + charTable;
+                    + AbstractSQLGenerator.escapeIdentifier(charTable);
 
             stmt.execute(sql);
         }
@@ -1544,6 +1544,7 @@ public class CallableStatementTest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
+
             callableStatement.registerOutParameter(1, java.sql.Types.CHAR, 20, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.VARCHAR, 50, 0);
             callableStatement.registerOutParameter(3, java.sql.Types.NCHAR, 30, 0);
@@ -1593,6 +1594,7 @@ public class CallableStatementTest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
+
             callableStatement.registerOutParameter(1, java.sql.Types.CHAR, 20, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.VARCHAR, 50, 0);
             callableStatement.registerOutParameter(3, java.sql.Types.NCHAR, 30, 0);
@@ -1641,14 +1643,14 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createOutputProcedureNumeric() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureNumeric
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureNumeric;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(outputProcedureNumeric)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNumeric);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + outputProcedureNumeric
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNumeric)
                     + " @p0 bit OUTPUT, @p1 tinyint OUTPUT, @p2 smallint OUTPUT, @p3 int OUTPUT,"
                     + " @p4 bigint OUTPUT, @p5 float OUTPUT, @p6 float(30) output, @p7 real output, @p8 decimal(18, 0) output, @p9 decimal(10,5) output,"
                     + " @p10 numeric(18, 0) output, @p11 numeric(8,2) output, @p12 smallmoney output, @p13 money output, @p14 decimal(28,4) output, @p15 numeric(28,4) output"
@@ -1656,7 +1658,7 @@ public class CallableStatementTest extends AESetup {
                     + " @p3=RandomizedInt, @p4=DeterministicBigint, @p5=RandomizedFloatDefault, @p6=DeterministicFloat,"
                     + " @p7=RandomizedReal, @p8=DeterministicDecimalDefault, @p9=RandomizedDecimal,"
                     + " @p10=DeterministicNumericDefault, @p11=RandomizedNumeric, @p12=RandomizedSmallMoney, @p13=DeterministicMoney,"
-                    + " @p14=DeterministicDecimal2, @p15=DeterministicNumeric2 FROM " + numericTable;
+                    + " @p14=DeterministicDecimal2, @p15=DeterministicNumeric2 FROM " + AbstractSQLGenerator.escapeIdentifier(numericTable);
 
             stmt.execute(sql);
         }
@@ -1667,6 +1669,7 @@ public class CallableStatementTest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
+
             callableStatement.registerOutParameter(1, java.sql.Types.BIT);
             callableStatement.registerOutParameter(2, java.sql.Types.TINYINT);
             callableStatement.registerOutParameter(3, java.sql.Types.SMALLINT);
@@ -1755,6 +1758,7 @@ public class CallableStatementTest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
+
             callableStatement.registerOutParameter(1, java.sql.Types.BIT);
             callableStatement.registerOutParameter(2, java.sql.Types.TINYINT);
             callableStatement.registerOutParameter(3, java.sql.Types.SMALLINT);
@@ -2033,18 +2037,18 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createOutputProcedureBinary() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureBinary
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureBinary;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(outputProcedureBinary)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + outputProcedureBinary
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary)
                     + " @p0 binary(20) OUTPUT,@p1 varbinary(50) OUTPUT,@p2 varbinary(max) OUTPUT,"
                     + " @p3 binary(512) OUTPUT,@p4 varbinary(8000) OUTPUT " + " AS"
                     + " SELECT top 1 @p0=RandomizedBinary,@p1=DeterministicVarbinary,@p2=DeterministicVarbinaryMax,"
-                    + " @p3=DeterministicBinary512,@p4=DeterministicBinary8000 FROM " + binaryTable;
+                    + " @p3=DeterministicBinary512,@p4=DeterministicBinary8000 FROM " + AbstractSQLGenerator.escapeIdentifier(binaryTable);
 
             stmt.execute(sql);
         }
@@ -2055,6 +2059,7 @@ public class CallableStatementTest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
+
             callableStatement.registerOutParameter(1, java.sql.Types.BINARY, 20, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.VARBINARY, 50, 0);
             callableStatement.registerOutParameter(3, java.sql.Types.LONGVARBINARY);
@@ -2102,6 +2107,7 @@ public class CallableStatementTest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
+
             callableStatement.registerOutParameter(1, java.sql.Types.BINARY, 20, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.VARBINARY, 50, 0);
             callableStatement.registerOutParameter(3, java.sql.Types.LONGVARBINARY);
@@ -2142,6 +2148,7 @@ public class CallableStatementTest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
+
             callableStatement.registerOutParameter(1, java.sql.Types.BINARY, 20, 0);
             callableStatement.registerOutParameter(2, java.sql.Types.VARBINARY, 50, 0);
             callableStatement.registerOutParameter(3, java.sql.Types.LONGVARBINARY);
@@ -2177,7 +2184,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     protected static void createDateTableCallableStatement() throws SQLException {
-        String sql = "create table " + dateTable + " (" + "PlainDate date null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " (" + "PlainDate date null,"
                 + "RandomizedDate date ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicDate date ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -2270,7 +2277,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     private static void populateDateNormalCase() throws SQLException {
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
@@ -2326,14 +2333,14 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createOutputProcedureDate() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureDate
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureDate;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(outputProcedureDate)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDate);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + outputProcedureDate
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDate)
                     + " @p0 date OUTPUT, @p01 date OUTPUT, @p1 datetime2 OUTPUT, @p11 datetime2 OUTPUT,"
                     + " @p2 datetimeoffset OUTPUT, @p21 datetimeoffset OUTPUT, @p3 time OUTPUT, @p31 time OUTPUT, @p4 datetime OUTPUT, @p41 datetime OUTPUT,"
                     + " @p5 smalldatetime OUTPUT, @p51 smalldatetime OUTPUT, @p6 datetime2(2) OUTPUT, @p61 datetime2(2) OUTPUT, @p7 time(2) OUTPUT, @p71 time(2) OUTPUT, "
@@ -2343,7 +2350,7 @@ public class CallableStatementTest extends AESetup {
                     + " @p3=PlainTimeDefault,@p31=DeterministicTimeDefault,"
                     + " @p4=PlainDateTime,@p41=DeterministicDateTime, @p5=PlainSmallDateTime,@p51=RandomizedSmallDateTime, "
                     + " @p6=PlainDatetime2,@p61=RandomizedDatetime2, @p7=PlainTime,@p71=Deterministictime, "
-                    + " @p8=PlainDatetimeoffset, @p81=RandomizedDatetimeoffset" + " FROM " + dateTable;
+                    + " @p8=PlainDatetimeoffset, @p81=RandomizedDatetimeoffset" + " FROM " + AbstractSQLGenerator.escapeIdentifier(dateTable);
 
             stmt.execute(sql);
         }
@@ -2354,6 +2361,7 @@ public class CallableStatementTest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
+
             callableStatement.registerOutParameter(1, java.sql.Types.DATE);
             callableStatement.registerOutParameter(2, java.sql.Types.DATE);
             callableStatement.registerOutParameter(3, java.sql.Types.TIMESTAMP);
@@ -2407,6 +2415,7 @@ public class CallableStatementTest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
+
             callableStatement.registerOutParameter(1, java.sql.Types.DATE);
             callableStatement.registerOutParameter(2, java.sql.Types.DATE);
             callableStatement.registerOutParameter(3, java.sql.Types.TIMESTAMP);
@@ -2456,8 +2465,8 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createOutputProcedureBatch() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureBatch
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureBatch;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(outputProcedureBatch)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBatch);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -2465,12 +2474,12 @@ public class CallableStatementTest extends AESetup {
 
             // If a procedure contains more than one SQL statement, it is considered
             // to be a batch of SQL statements.
-            sql = "CREATE PROCEDURE " + outputProcedureBatch
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBatch)
                     + " @p0 int OUTPUT, @p1 float OUTPUT, @p2 smallint OUTPUT, @p3 smallmoney OUTPUT " + " AS"
-                    + " select top 1 @p0=RandomizedInt FROM " + table3
-                    + " select top 1 @p1=DeterministicFloatDefault FROM " + table3
-                    + " select top 1 @p2=RandomizedSmallint FROM " + table3
-                    + " select top 1 @p3=DeterministicSmallMoney FROM " + table3;
+                    + " select top 1 @p0=RandomizedInt FROM " + AbstractSQLGenerator.escapeIdentifier(table3)
+                    + " select top 1 @p1=DeterministicFloatDefault FROM " + AbstractSQLGenerator.escapeIdentifier(table3)
+                    + " select top 1 @p2=RandomizedSmallint FROM " + AbstractSQLGenerator.escapeIdentifier(table3)
+                    + " select top 1 @p3=DeterministicSmallMoney FROM " + AbstractSQLGenerator.escapeIdentifier(table3);
 
             stmt.execute(sql);
         }
@@ -2505,37 +2514,37 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void createOutputProcedure4() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedure4
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedure4;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(outputProcedure4)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure4);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "create procedure " + outputProcedure4
+            sql = "create procedure " + AbstractSQLGenerator.escapeIdentifier(outputProcedure4)
                     + " @in1 int, @in2 smallint, @in3 bigint, @in4 int, @in5 smallint, @in6 bigint, @out1 int output, @out2 smallint output, @out3 bigint output, @out4 int output, @out5 smallint output, @out6 bigint output"
-                    + " as " + " insert into " + table5 + " values (@in1, @in2, @in3)" + " insert into " + table6
-                    + " values (@in4, @in5, @in6)" + " select * from " + table5 + " select * from " + table6
-                    + " select @out1 = c1, @out2=c2, @out3=c3 from " + table5
-                    + " select @out4 = c1, @out5=c2, @out6=c3 from " + table6;
+                    + " as " + " insert into " + AbstractSQLGenerator.escapeIdentifier(table5) + " values (@in1, @in2, @in3)" + " insert into " + AbstractSQLGenerator.escapeIdentifier(table6)
+                    + " values (@in4, @in5, @in6)" + " select * from " + AbstractSQLGenerator.escapeIdentifier(table5) + " select * from " + AbstractSQLGenerator.escapeIdentifier(table6)
+                    + " select @out1 = c1, @out2=c2, @out3=c3 from " + AbstractSQLGenerator.escapeIdentifier(table5)
+                    + " select @out4 = c1, @out5=c2, @out6=c3 from " + AbstractSQLGenerator.escapeIdentifier(table6);
 
             stmt.execute(sql);
         }
     }
 
     private void createMixedProcedureDateScale() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + outputProcedureDateScale
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + outputProcedureDateScale;
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + TestUtils.escapeSingleQuotes(outputProcedureDateScale)
+                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDateScale);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
-            sql = "CREATE PROCEDURE " + outputProcedureDateScale + " @p1 datetime2(2) OUTPUT, @p2 datetime2(2) OUTPUT,"
+            sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDateScale) + " @p1 datetime2(2) OUTPUT, @p2 datetime2(2) OUTPUT,"
                     + " @p3 time(2) OUTPUT, @p4 time(2) OUTPUT, @p5 datetimeoffset(2) OUTPUT, @p6 datetimeoffset(2) OUTPUT "
                     + " AS"
                     + " SELECT top 1 @p1=DeterministicDatetime2,@p2=RandomizedDatetime2,@p3=DeterministicTime,@p4=RandomizedTime,"
-                    + " @p5=DeterministicDatetimeoffset,@p6=RandomizedDatetimeoffset " + " FROM " + scaleDateTable
+                    + " @p5=DeterministicDatetimeoffset,@p6=RandomizedDatetimeoffset " + " FROM " + AbstractSQLGenerator.escapeIdentifier(scaleDateTable)
                     + " where DeterministicDatetime2 = @p1 and DeterministicTime = @p3 and DeterministicDatetimeoffset=@p5";
 
             stmt.execute(sql);
@@ -2547,6 +2556,7 @@ public class CallableStatementTest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
+
             callableStatement.registerOutParameter(1, java.sql.Types.TIMESTAMP, 2);
             callableStatement.registerOutParameter(2, java.sql.Types.TIMESTAMP, 2);
             callableStatement.registerOutParameter(3, java.sql.Types.TIME, 2);
@@ -2577,6 +2587,7 @@ public class CallableStatementTest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
+
             callableStatement.registerOutParameter("p1", java.sql.Types.TIMESTAMP, 2);
             callableStatement.registerOutParameter("p2", java.sql.Types.TIMESTAMP, 2);
             callableStatement.registerOutParameter("p3", java.sql.Types.TIME, 2);

@@ -630,13 +630,14 @@ public class PQImpsTest extends AbstractTest {
     }
 
     private static void createTablesForCompexQueries() throws SQLException {
-        stmt.executeUpdate("if object_id('" + nameTable + "','U') is not null" + " drop table " + nameTable);
+        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(nameTable) + "','U') is not null"
+                + " drop table " + nameTable);
 
-        stmt.executeUpdate(
-                "if object_id('" + phoneNumberTable + "','U') is not null" + " drop table " + phoneNumberTable);
+        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(phoneNumberTable) + "','U') is not null"
+                + " drop table " + phoneNumberTable);
 
-        stmt.executeUpdate(
-                "if object_id('" + mergeNameDesTable + "','U') is not null" + " drop table " + mergeNameDesTable);
+        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(mergeNameDesTable) + "','U') is not null"
+                + " drop table " + mergeNameDesTable);
 
         String sql = "create table " + nameTable + " ("
         // + "ID int NOT NULL,"
