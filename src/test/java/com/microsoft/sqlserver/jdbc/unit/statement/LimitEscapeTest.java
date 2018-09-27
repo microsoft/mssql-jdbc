@@ -44,6 +44,8 @@ public class LimitEscapeTest extends AbstractTest {
     private static Vector<String> offsetQuery = new Vector<>();
     private static Connection conn = null;
     
+    
+    // TODO: remove quote for now to avoid bug in driver
     static String table1 = RandomUtil.getIdentifier("UnitStatement_LimitEscape_t1").replaceAll("\'", "");
     static String table2 = RandomUtil.getIdentifier("UnitStatement_LimitEscape_t2").replaceAll("\'", "");
     static String table3 = RandomUtil.getIdentifier("UnitStatement_LimitEscape_t3").replaceAll("\'", "");
