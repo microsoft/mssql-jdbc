@@ -2214,9 +2214,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                         if (bulkNullable) {
                             tdsWriter.writeByte((byte) 0x04);
                         }
-        
-                        tdsWriter.writeInt(Integer.parseInt((String )colValue));
-                       }
+                        tdsWriter.writeInt((int) colValue);
+                    }
                     break;
 
                 case java.sql.Types.SMALLINT:
@@ -2278,9 +2277,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                         if (bulkNullable) {
                             tdsWriter.writeByte((byte) 0x08);
                         }
-                       
-                        tdsWriter.writeDouble(Double.parseDouble((String) colValue));
-                        
+                        tdsWriter.writeDouble((double) colValue);
                     }
                     break;
 
