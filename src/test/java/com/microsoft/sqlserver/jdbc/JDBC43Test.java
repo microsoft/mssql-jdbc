@@ -25,8 +25,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
-import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.util.Util;;
+import com.microsoft.sqlserver.testframework.AbstractTest;;
 
 
 /**
@@ -48,7 +47,7 @@ public class JDBC43Test extends AbstractTest {
      */
     @Test
     public void connectionBuilderTest() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC43(connection));
+        assumeTrue(TestUtils.supportJDBC43(connection));
         SQLServerDataSource ds = new SQLServerDataSource();
         try {
             superShardingKey = ds.createShardingKeyBuilder().subkey("EASTERN_REGION", JDBCType.VARCHAR).build();
@@ -80,7 +79,7 @@ public class JDBC43Test extends AbstractTest {
      */
     @Test
     public void xaConnectionBuilderTest() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC43(connection));
+        assumeTrue(TestUtils.supportJDBC43(connection));
         SQLServerXADataSource ds = new SQLServerXADataSource();
         try {
             superShardingKey = ds.createShardingKeyBuilder().subkey("EASTERN_REGION", JDBCType.VARCHAR).build();
@@ -111,7 +110,7 @@ public class JDBC43Test extends AbstractTest {
      */
     @Test
     public void connectionPoolDataSourceTest() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC43(connection));
+        assumeTrue(TestUtils.supportJDBC43(connection));
         ConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
         try {
             superShardingKey = ds.createShardingKeyBuilder().subkey("EASTERN_REGION", JDBCType.VARCHAR).build();
@@ -141,7 +140,7 @@ public class JDBC43Test extends AbstractTest {
      */
     @Test
     public void setShardingKeyIfValidTest() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC43(connection));
+        assumeTrue(TestUtils.supportJDBC43(connection));
         SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString);
         try {
             connection43.setShardingKeyIfValid(shardingKey, 10);
@@ -165,7 +164,7 @@ public class JDBC43Test extends AbstractTest {
      */
     @Test
     public void setShardingKeyTest() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC43(connection));
+        assumeTrue(TestUtils.supportJDBC43(connection));
         SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString);
         try {
             connection43.setShardingKey(shardingKey);

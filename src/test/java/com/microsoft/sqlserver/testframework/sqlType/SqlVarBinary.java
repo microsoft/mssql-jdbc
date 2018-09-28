@@ -7,9 +7,9 @@ package com.microsoft.sqlserver.testframework.sqlType;
 
 import java.sql.JDBCType;
 
+import com.microsoft.sqlserver.jdbc.TestUtils.DBBinaryStream;
+import com.microsoft.sqlserver.jdbc.TestUtils.DBCharacterStream;
 import com.microsoft.sqlserver.testframework.DBCoercion;
-import com.microsoft.sqlserver.testframework.Utils.DBBinaryStream;
-import com.microsoft.sqlserver.testframework.Utils.DBCharacterStream;
 
 
 /**

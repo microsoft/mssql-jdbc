@@ -17,12 +17,12 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.testframework.util.RandomData;
-import com.microsoft.sqlserver.testframework.util.Util;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 
 
 /**
@@ -516,7 +516,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
     private void testChar(SQLServerStatement stmt, String[] values) throws SQLException {
         String sql = "select * from " + charTable;
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
             try (ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
                 int numberOfColumns = rs.getMetaData().getColumnCount();
@@ -530,7 +530,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
     private void testBinary(SQLServerStatement stmt, LinkedList<byte[]> values) throws SQLException {
         String sql = "select * from " + binaryTable;
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
             try (ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
                 int numberOfColumns = rs.getMetaData().getColumnCount();
@@ -545,7 +545,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
     private void testDate(SQLServerStatement stmt, LinkedList<Object> values1) throws SQLException {
         String sql = "select * from " + dateTable;
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
             try (ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
                 int numberOfColumns = rs.getMetaData().getColumnCount();
@@ -599,9 +599,9 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
                 Object expected = null;
                 if (rs.getMetaData().getColumnTypeName(i).equalsIgnoreCase("smalldatetime")) {
-                    expected = Util.roundSmallDateTimeValue(values.get(index));
+                    expected = TestUtils.roundSmallDateTimeValue(values.get(index));
                 } else if (rs.getMetaData().getColumnTypeName(i).equalsIgnoreCase("datetime")) {
-                    expected = Util.roundDatetimeValue(values.get(index));
+                    expected = TestUtils.roundDatetimeValue(values.get(index));
                 } else {
                     expected = values.get(index);
                 }
@@ -758,7 +758,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                                     + TestResource.getResource("R_expectedValue") + values.get(index));
                 } else if (index == 4) // round value for datetime
                 {
-                    Object datetimeValue = "" + Util.roundDatetimeValue(values.get(index));
+                    Object datetimeValue = "" + TestUtils.roundDatetimeValue(values.get(index));
                     assertTrue(
                             stringValue1.equalsIgnoreCase("" + datetimeValue)
                                     && stringValue2.equalsIgnoreCase("" + datetimeValue)
@@ -768,7 +768,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                                     + TestResource.getResource("R_expectedValue") + datetimeValue);
                 } else if (index == 5) // round value for smalldatetime
                 {
-                    Object smalldatetimeValue = "" + Util.roundSmallDateTimeValue(values.get(index));
+                    Object smalldatetimeValue = "" + TestUtils.roundSmallDateTimeValue(values.get(index));
                     assertTrue(
                             stringValue1.equalsIgnoreCase("" + smalldatetimeValue)
                                     && stringValue2.equalsIgnoreCase("" + smalldatetimeValue)
@@ -896,14 +896,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                         stringValue1 = "" + ((SQLServerResultSet) rs).getDateTime(i);
                         stringValue2 = "" + ((SQLServerResultSet) rs).getDateTime(i + 1);
                         stringValue3 = "" + ((SQLServerResultSet) rs).getDateTime(i + 2);
-                        expected = "" + Util.roundDatetimeValue(values.get(4));
+                        expected = "" + TestUtils.roundDatetimeValue(values.get(4));
                         break;
 
                     case 16:
                         stringValue1 = "" + ((SQLServerResultSet) rs).getSmallDateTime(i);
                         stringValue2 = "" + ((SQLServerResultSet) rs).getSmallDateTime(i + 1);
                         stringValue3 = "" + ((SQLServerResultSet) rs).getSmallDateTime(i + 2);
-                        expected = "" + Util.roundSmallDateTimeValue(values.get(5));
+                        expected = "" + TestUtils.roundSmallDateTimeValue(values.get(5));
                         break;
 
                     default:
@@ -926,7 +926,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
     private void testNumeric(Statement stmt, String[] numericValues, boolean isNull) throws SQLException {
         String sql = "select * from " + numericTable;
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
             try (SQLServerResultSet rs = (stmt == null) ? (SQLServerResultSet) pstmt.executeQuery()
                                                         : (SQLServerResultSet) stmt.executeQuery(sql)) {

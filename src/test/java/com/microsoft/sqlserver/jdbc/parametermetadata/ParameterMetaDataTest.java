@@ -18,14 +18,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 @RunWith(JUnitPlatform.class)
 public class ParameterMetaDataTest extends AbstractTest {
-    private static final String tableName = "[" + RandomUtil.getIdentifier("StatementParam") + "]";
+    private static final String tableName = "[" + RandomUtil.getIdentifier("Statement'Param") + "]";
 
     /**
      * Test ParameterMetaData#isWrapperFor and ParameterMetaData#unwrap.
@@ -46,7 +46,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                     assertSame(parameterMetaData, parameterMetaData.unwrap(ParameterMetaData.class));
                 }
             } finally {
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
     }
@@ -85,7 +85,34 @@ public class ParameterMetaDataTest extends AbstractTest {
                     pstmt.getParameterMetaData();
                 }
             } finally {
-                Utils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test ParameterMetaData when parameter name containing apostrophe
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testParameterMetaData() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+
+            stmt.executeUpdate("create table " + tableName + " ([c1_varchar(max)] varchar(max), c2 decimal(38,5))");
+            try {
+                String query = "insert into " + tableName + " ([c1_varchar(max)], c2) values (?,?)";
+
+                try (PreparedStatement pstmt = con.prepareStatement(query)) {
+                    ParameterMetaData metadata = pstmt.getParameterMetaData();
+                    assert (metadata.getParameterCount() == 2);
+                    assert (metadata.getParameterTypeName(1).equalsIgnoreCase("varchar"));
+                    assert (metadata.getParameterTypeName(2).equalsIgnoreCase("decimal"));
+                    assert (metadata.getPrecision(2) == 38);
+                    assert (metadata.getScale(2) == 5);
+                }
+            } finally {
+                TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
     }

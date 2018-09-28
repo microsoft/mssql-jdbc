@@ -27,6 +27,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
@@ -34,11 +35,9 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomData;
-import com.microsoft.sqlserver.testframework.util.Util;
 
 import microsoft.sql.DateTimeOffset;
 
@@ -84,19 +83,20 @@ public class AESetup extends AbstractTest {
      */
     @BeforeAll
     public static void setUpConnection() throws TestAbortedException, Exception {
-        assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                TestResource.getResource("R_Incompat_SQLServerVersion"));
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
+        }
 
-        String AETestConenctionString = connectionString + ";sendTimeAsDateTime=false";
+        String AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
         readFromFile(javaKeyStoreInputFile, "Alias name");
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConenctionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropCEK(stmt);
             dropCMK(stmt);
         }
 
-        keyPath = Utils.getCurrentClassPath() + jksName;
+        keyPath = TestUtils.getCurrentClassPath() + jksName;
         storeProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(keyPath, secretstrJks.toCharArray());
         stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;
 
@@ -106,7 +106,7 @@ public class AESetup extends AbstractTest {
         info.setProperty("keyStoreLocation", keyPath);
         info.setProperty("keyStoreSecret", secretstrJks);
 
-        con = (SQLServerConnection) DriverManager.getConnection(AETestConenctionString, info);
+        con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
         stmt = (SQLServerStatement) con.createStatement();
         createCMK(keyStoreName, javaKeyAliases);
         createCEK(storeProvider);
@@ -123,7 +123,7 @@ public class AESetup extends AbstractTest {
         dropTables(stmt);
         dropCEK(stmt);
         dropCMK(stmt);
-        Util.close(null, stmt, con);
+        TestUtils.close(null, stmt, con);
     }
 
     /**
@@ -135,7 +135,7 @@ public class AESetup extends AbstractTest {
      * @throws IOException
      */
     private static void readFromFile(String inputFile, String lookupValue) throws IOException {
-        filePath = Utils.getCurrentClassPath();
+        filePath = TestUtils.getCurrentClassPath();
         try {
             File f = new File(filePath + inputFile);
             assumeTrue(f.exists(), TestResource.getResource("R_noKeyStore"));
@@ -683,10 +683,14 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     private static void createCMK(String keyStoreName, String keyPath) throws SQLException {
-        String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin"
-                + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '" + keyStoreName
-                + "', KEY_PATH = '" + keyPath + "')" + " end";
-        stmt.execute(sql);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager
+                .getConnection(connectionString + ";sendTimeAsDateTime=false", info);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
+                    + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
+                    + keyStoreName + "', KEY_PATH = '" + keyPath + "')" + " end";
+            stmt.execute(sql);
+        }
     }
 
     /**
@@ -697,13 +701,18 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     private static void createCEK(SQLServerColumnEncryptionKeyStoreProvider storeProvider) throws SQLException {
-        String letters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-        byte[] valuesDefault = letters.getBytes();
-        String cekSql = null;
-        byte[] key = storeProvider.encryptColumnEncryptionKey(javaKeyAliases, "RSA_OAEP", valuesDefault);
-        cekSql = "CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES " + "(COLUMN_MASTER_KEY = " + cmkName
-                + ", ALGORITHM = 'RSA_OAEP', ENCRYPTED_VALUE = 0x" + Util.bytesToHexString(key, key.length) + ")" + ";";
-        stmt.execute(cekSql);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager
+                .getConnection(connectionString + ";sendTimeAsDateTime=false", info);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String letters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            byte[] valuesDefault = letters.getBytes();
+            String cekSql = null;
+            byte[] key = storeProvider.encryptColumnEncryptionKey(javaKeyAliases, "RSA_OAEP", valuesDefault);
+            cekSql = "CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES " + "(COLUMN_MASTER_KEY = " + cmkName
+                    + ", ALGORITHM = 'RSA_OAEP', ENCRYPTED_VALUE = 0x" + TestUtils.bytesToHexString(key, key.length)
+                    + ")" + ";";
+            stmt.execute(cekSql);
+        }
     }
 
     /**
@@ -712,10 +721,10 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void dropTables(SQLServerStatement statement) throws SQLException {
-        Utils.dropTableIfExists(numericTable, statement);
-        Utils.dropTableIfExists(charTable, statement);
-        Utils.dropTableIfExists(binaryTable, statement);
-        Utils.dropTableIfExists(dateTable, statement);
+        TestUtils.dropTableIfExists(numericTable, statement);
+        TestUtils.dropTableIfExists(charTable, statement);
+        TestUtils.dropTableIfExists(binaryTable, statement);
+        TestUtils.dropTableIfExists(dateTable, statement);
     }
 
     /**
@@ -728,8 +737,10 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
                 + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager
+                .getConnection(connectionString + ";sendTimeAsDateTime=false", info);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // binary20
             for (int i = 1; i <= 3; i++) {
@@ -790,8 +801,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
                 + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // binary(20)
             for (int i = 1; i <= 3; i++) {
@@ -852,7 +863,7 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
                 + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
 
             // binary(20)
@@ -913,7 +924,7 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
                 + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
 
             // binary
@@ -950,7 +961,7 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 stmtColEncSetting)) {
 
             // char
@@ -1016,8 +1027,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // char
             for (int i = 1; i <= 3; i++) {
@@ -1078,8 +1089,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // char
             for (int i = 1; i <= 3; i++) {
@@ -1139,8 +1150,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // char
             for (int i = 1; i <= 3; i++) {
@@ -1192,8 +1203,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // date
             for (int i = 1; i <= 3; i++) {
@@ -1238,8 +1249,8 @@ public class AESetup extends AbstractTest {
     protected static void populateDateScaleNormalCase(LinkedList<Object> dateValues) throws SQLException {
         String sql = "insert into " + scaleDateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // datetime2(2)
             for (int i = 1; i <= 3; i++) {
@@ -1275,8 +1286,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // date
             for (int i = 1; i <= 3; i++) {
@@ -1341,8 +1352,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // date
             for (int i = 1; i <= 3; i++) {
@@ -1387,8 +1398,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // date
             for (int i = 1; i <= 3; i++) {
@@ -1435,8 +1446,8 @@ public class AESetup extends AbstractTest {
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // bit
             for (int i = 1; i <= 3; i++) {
@@ -1543,8 +1554,8 @@ public class AESetup extends AbstractTest {
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // bit
             for (int i = 1; i <= 3; i++) {
@@ -1651,8 +1662,8 @@ public class AESetup extends AbstractTest {
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // bit
             for (int i = 1; i <= 3; i++) {
@@ -1758,8 +1769,8 @@ public class AESetup extends AbstractTest {
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // bit
             for (int i = 1; i <= 3; i++) {
@@ -1858,8 +1869,8 @@ public class AESetup extends AbstractTest {
 
                 + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // bit
             for (int i = 1; i <= 3; i++) {
@@ -1957,8 +1968,8 @@ public class AESetup extends AbstractTest {
 
                 + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // bit
             for (int i = 1; i <= 3; i++) {
@@ -2085,6 +2096,6 @@ public class AESetup extends AbstractTest {
      * @throws TestAbortedException
      */
     protected static void skipTestForJava7() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC42(con)); // With Java 7, skip tests for JDBCType.
+         assumeTrue(TestUtils.supportJDBC42(con)); // With Java 7, skip tests for JDBCType.
     }
 }
