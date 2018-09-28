@@ -25,6 +25,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 
 
 /**
@@ -599,7 +600,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testChar(SQLServerStatement stmt, String[] values) throws SQLException {
-        String sql = "select * from " + charTable;
+        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(charTable);
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
@@ -615,7 +616,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testBinary(SQLServerStatement stmt, LinkedList<byte[]> values) throws SQLException {
-        String sql = "select * from " + binaryTable;
+        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(binaryTable);
         
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -632,7 +633,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testDate(SQLServerStatement stmt, LinkedList<Object> values1) throws SQLException {
-        String sql = "select * from " + dateTable;
+        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(dateTable);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1015,7 +1016,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testNumeric(Statement stmt, String[] numericValues, boolean isNull) throws SQLException {
-        String sql = "select * from " + numericTable;
+        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(numericTable);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,

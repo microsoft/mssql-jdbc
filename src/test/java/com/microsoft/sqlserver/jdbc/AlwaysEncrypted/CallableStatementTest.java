@@ -260,7 +260,7 @@ public class CallableStatementTest extends AESetup {
 
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(charTable), stmt);
 
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(AbstractSQLGenerator.escapeIdentifier(numericTable)), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(numericTable), stmt);
 
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(binaryTable), stmt);
 

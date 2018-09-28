@@ -399,7 +399,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createDateScaleTable() throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(AbstractSQLGenerator.escapeIdentifier(scaleDateTable)) + " ("
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(scaleDateTable) + " ("
 
                 + "PlainDatetime2 datetime2(2) null,"
                 + "RandomizedDatetime2 datetime2(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -1266,7 +1266,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateScaleNormalCase(LinkedList<Object> dateValues) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(AbstractSQLGenerator.escapeIdentifier(scaleDateTable)) + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(scaleDateTable) + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,

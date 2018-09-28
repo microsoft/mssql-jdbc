@@ -24,10 +24,12 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 
@@ -169,9 +171,9 @@ public class DateAndTimeTypeTest extends AbstractTest {
         try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
 
-            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName
-                    + "') " + " drop type " + tvpName);
-            String TVPCreateCmd = "CREATE TYPE " + tvpName + " as table (c1 " + tvpType + " null)";
+            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + TestUtils.escapeSingleQuotes(tvpName)
+                    + "') " + " drop type " + AbstractSQLGenerator.escapeIdentifier(tvpName));
+            String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName) + " as table (c1 " + tvpType + " null)";
             stmt.executeUpdate(TVPCreateCmd);
         }
     }
@@ -199,9 +201,9 @@ public class DateAndTimeTypeTest extends AbstractTest {
                 pstmt.setTimestamp(4, TIMESTAMP_TO_TEST);
                 pstmt.execute();
                 pstmt.close();
-                createTVPs("dateTVP", "date");
-                createTVPs("timeTVP", "time");
-                createTVPs("timestampTVP", "datetime2");
+                createTVPs(RandomUtil.getIdentifier("dateTVP"), "date");
+                createTVPs(RandomUtil.getIdentifier("timeTVP"), "time");
+                createTVPs(RandomUtil.getIdentifier("timestampTVP"), "datetime2");
             }
         }
     }
