@@ -670,6 +670,22 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
 
         loggerExternal.exiting(loggerClassName, "writeToServer");
     }
+    
+    
+    public void writeToServer(ISQLServerBulkRecord sourceData , String column) throws SQLServerException {
+        loggerExternal.entering(loggerClassName, "writeToServer");
+
+        if (null == sourceData) {
+            throwInvalidArgument("sourceData");
+        }
+
+        sourceBulkRecord = sourceData;
+        sourceResultSet = null;
+
+        writeToServer(column);
+
+        loggerExternal.exiting(loggerClassName, "writeToServer");
+    }
 
     /*
      * Initializes the defaults for member variables that require it.
@@ -1667,6 +1683,35 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
     /*
      * The bulk copy operation
      */
+    private void writeToServer(String  columns) throws SQLServerException {
+        if (connection.isClosed()) {
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
+                    SQLServerException.EXCEPTION_XOPEN_CONNECTION_DOES_NOT_EXIST, false);
+        }
+
+        long start = System.currentTimeMillis();
+        if (loggerExternal.isLoggable(Level.FINER))
+            loggerExternal.finer(this.toString() + " Start writeToServer: " + start);
+
+        getDestinationMetadata(columns);
+
+        // Get source metadata in the BulkColumnMetaData object so that we can access metadata
+        // from the same object for both ResultSet and File.
+        getSourceMetadata();
+
+        validateColumnMappings();
+
+        sendBulkLoadBCP();
+
+        long end = System.currentTimeMillis();
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.finer(this.toString() + " End writeToServer: " + end);
+            int seconds = (int) ((end - start) / 1000L);
+            loggerExternal.finer(this.toString() + "Time elapsed: " + seconds + " seconds");
+        }
+    }
+
+
     private void writeToServer() throws SQLServerException {
         if (connection.isClosed()) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
@@ -1694,7 +1739,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             loggerExternal.finer(this.toString() + "Time elapsed: " + seconds + " seconds");
         }
     }
-
+    
+    
     private void validateStringBinaryLengths(Object colValue,
             int srcCol,
             int destCol) throws SQLServerException {
@@ -1787,6 +1833,64 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                 rsMoreMetaData.close();
         }
     }
+    
+    
+    
+    private void getDestinationMetadata(String columns ) throws SQLServerException {
+        if (null == destinationTableName) {
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_invalidDestinationTable"), null, false);
+        }
+
+        SQLServerResultSet rs = null;
+        SQLServerResultSet rsMoreMetaData = null;
+
+        try {
+            // Get destination metadata
+            rs = ((SQLServerStatement) connection.createStatement())
+                    .executeQueryInternal("SET FMTONLY ON SELECT  " + columns  + "   FROM " + destinationTableName + " SET FMTONLY OFF ");
+
+            destColumnCount = rs.getMetaData().getColumnCount();
+            destColumnMetadata = new HashMap<>();
+            destCekTable = rs.getCekTable();
+
+            if (!connection.getServerSupportsColumnEncryption()) {
+                // SQL server prior to 2016 does not support encryption_type
+                rsMoreMetaData = ((SQLServerStatement) connection.createStatement())
+                        .executeQueryInternal("select collation_name from sys.columns where " + "object_id=OBJECT_ID('" + destinationTableName + "') "
+                                + "order by column_id ASC");
+            }
+            else {
+                rsMoreMetaData = ((SQLServerStatement) connection.createStatement())
+                        .executeQueryInternal("select collation_name, encryption_type from sys.columns where " + "object_id=OBJECT_ID('"
+                                + destinationTableName + "') " + "order by column_id ASC");
+            }
+            for (int i = 1; i <= destColumnCount; ++i) {
+                if (rsMoreMetaData.next()) {
+                    if (!connection.getServerSupportsColumnEncryption()) {
+                        destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i), rsMoreMetaData.getString("collation_name"), null));
+                    }
+                    else {
+                        destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i), rsMoreMetaData.getString("collation_name"),
+                                rsMoreMetaData.getString("encryption_type")));
+                    }
+                }
+                else {
+                    destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));
+                }
+            }
+        }
+        catch (SQLException e) {
+            // Unable to retrieve metadata for destination
+            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
+        }
+        finally {
+            if (null != rs)
+                rs.close();
+            if (null != rsMoreMetaData)
+                rsMoreMetaData.close();
+        }
+    }
+
 
     /*
      * Retrieves the column metadata for the source (and saves it for later). Retrieving source metadata in BulkColumnMetaData object helps to access
@@ -2065,6 +2169,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
             int destColOrdinal,
             boolean isStreaming,
             Object colValue) throws SQLServerException {
+    	
         SSType destSSType = destColumnMetadata.get(destColOrdinal).ssType;
 
         bulkPrecision = validateSourcePrecision(bulkPrecision, bulkJdbcType, destColumnMetadata.get(destColOrdinal).precision);
@@ -2109,8 +2214,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                         if (bulkNullable) {
                             tdsWriter.writeByte((byte) 0x04);
                         }
-                        tdsWriter.writeInt((int) colValue);
-                    }
+        
+                        tdsWriter.writeInt(Integer.parseInt((String )colValue));
+                       }
                     break;
 
                 case java.sql.Types.SMALLINT:
@@ -2172,7 +2278,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable {
                         if (bulkNullable) {
                             tdsWriter.writeByte((byte) 0x08);
                         }
-                        tdsWriter.writeDouble((double) colValue);
+                       
+                        tdsWriter.writeDouble(Double.parseDouble((String) colValue));
+                        
                     }
                     break;
 
