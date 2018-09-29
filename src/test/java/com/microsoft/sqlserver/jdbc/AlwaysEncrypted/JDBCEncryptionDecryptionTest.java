@@ -54,7 +54,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testCharSpecificSetter() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             charValues = createCharValues(nullable);
             dropTables(stmt);
@@ -72,7 +72,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testCharSetObject() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             charValues = createCharValues(nullable);
             dropTables(stmt);
@@ -92,7 +92,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     public void testCharSetObjectWithJDBCTypes() throws SQLException {
         skipTestForJava7();
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             charValues = createCharValues(nullable);
             dropTables(stmt);
@@ -110,7 +110,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testCharSpecificSetterNull() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] charValuesNull = {null, null, null, null, null, null, null, null, null};
             dropTables(stmt);
@@ -128,7 +128,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testCharSetObjectNull() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] charValuesNull = {null, null, null, null, null, null, null, null, null};
             dropTables(stmt);
@@ -146,7 +146,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testCharSetNull() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] charValuesNull = {null, null, null, null, null, null, null, null, null};
             dropTables(stmt);
@@ -164,7 +164,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testBinarySpecificSetter() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> byteValues = createbinaryValues(false);
             dropTables(stmt);
@@ -182,7 +182,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testBinarySetobject() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byteValuesSetObject = createbinaryValues(false);
             dropTables(stmt);
@@ -200,7 +200,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testBinarySetNull() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byteValuesNull = createbinaryValues(true);
             dropTables(stmt);
@@ -218,7 +218,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testBinarySpecificSetterNull() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byteValuesNull = createbinaryValues(true);
             dropTables(stmt);
@@ -236,7 +236,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testBinarysetObjectNull() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byteValuesNull = createbinaryValues(true);
             dropTables(stmt);
@@ -256,7 +256,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     public void testBinarySetObjectWithJDBCTypes() throws SQLException {
         skipTestForJava7();
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byteValuesSetObject = createbinaryValues(false);
             dropTables(stmt);
@@ -274,7 +274,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testDateSpecificSetter() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dateValues = createTemporalTypes(nullable);
             dropTables(stmt);
@@ -292,7 +292,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testDateSetObject() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
         dateValues = createTemporalTypes(nullable);
         dropTables(stmt);
@@ -310,7 +310,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testDateSetObjectWithJavaType() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dateValues = createTemporalTypes(nullable);
             dropTables(stmt);
@@ -328,7 +328,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testDateSetObjectWithJDBCType() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dateValues = createTemporalTypes(nullable);
             dropTables(stmt);
@@ -346,7 +346,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testDateSpecificSetterMinMaxValue() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             RandomData.returnMinMax = true;
             dateValues = createTemporalTypes(nullable);
@@ -365,7 +365,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testDateSetNull() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             RandomData.returnNull = true;
             nullable = true;
@@ -392,7 +392,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         RandomData.returnNull = true;
         nullable = true;
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dateValues = createTemporalTypes(nullable);
             dropTables(stmt);
@@ -417,7 +417,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         numericValues2 = new String[numericValues.length];
         System.arraycopy(numericValues, 0, numericValues2, 0, numericValues.length);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
             createNumericTable();
@@ -438,7 +438,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         numericValues2 = new String[numericValues.length];
         System.arraycopy(numericValues, 0, numericValues2, 0, numericValues.length);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
             createNumericTable();
@@ -457,7 +457,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     public void testNumericSetObjectWithJDBCTypes() throws SQLException {
         skipTestForJava7();
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             numericValues = createNumericValues(nullable);
             numericValues2 = new String[numericValues.length];
@@ -487,7 +487,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
                 "999999999999999999999999.9999"};
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
             createNumericTable();
@@ -513,7 +513,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
                 "999999999999999999999999.9999"};
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
             createNumericTable();
@@ -536,7 +536,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         numericValuesNull2 = new String[numericValuesNull.length];
         System.arraycopy(numericValuesNull, 0, numericValuesNull2, 0, numericValuesNull.length);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
             createNumericTable();
@@ -562,7 +562,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         numericValuesNull2 = new String[numericValuesNull.length];
         System.arraycopy(numericValuesNull, 0, numericValuesNull2, 0, numericValuesNull.length);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
             createNumericTable();
@@ -589,7 +589,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
                 "999999999999999999999999.9999", "999999999999999999999999.9999"};
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
             createNumericTable();
@@ -601,7 +601,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
     private void testChar(SQLServerStatement stmt, String[] values) throws SQLException {
         String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(charTable);
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
             try (ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
@@ -618,7 +618,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     private void testBinary(SQLServerStatement stmt, LinkedList<byte[]> values) throws SQLException {
         String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(binaryTable);
         
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
             try (ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
@@ -635,7 +635,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     private void testDate(SQLServerStatement stmt, LinkedList<Object> values1) throws SQLException {
         String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(dateTable);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
             try (ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
@@ -1018,7 +1018,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     private void testNumeric(Statement stmt, String[] numericValues, boolean isNull) throws SQLException {
         String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(numericTable);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
             try (SQLServerResultSet rs = (stmt == null) ? (SQLServerResultSet) pstmt.executeQuery()
