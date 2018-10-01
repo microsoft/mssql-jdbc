@@ -504,7 +504,7 @@ public class TVPTypesTest extends AbstractTest {
     public void testSetup() throws SQLException {
         tvpName = RandomUtil.getIdentifier("TVP");
         table = RandomUtil.getIdentifier("TVPTable");
-        procedureName = RandomUtil.getIdentifier("procedureThatCallsTVP"        );
+        procedureName = RandomUtil.getIdentifier("procedureThatCallsTVP");
 
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
             dropProcedure();

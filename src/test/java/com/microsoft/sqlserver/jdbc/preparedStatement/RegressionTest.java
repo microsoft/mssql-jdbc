@@ -37,11 +37,10 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  */
 @RunWith(JUnitPlatform.class)
 public class RegressionTest extends AbstractTest {
-    static Connection con = null;
 
     static String tableName = RandomUtil.getIdentifier("table");
-
-
+    static String tableName2 = RandomUtil.getIdentifier("table2");
+    static String schemaName = RandomUtil.getIdentifier("schemaName");
 
     /**
      * Setup before test
@@ -50,8 +49,7 @@ public class RegressionTest extends AbstractTest {
      */
     @BeforeAll
     public static void setupTest() throws SQLException {
-        con = DriverManager.getConnection(connectionString);
-        try (Statement stmt = con.createStatement()) {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }
@@ -63,8 +61,11 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void createViewTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create view " + AbstractSQLGenerator.escapeIdentifier(tableName) + " as select 1 a");
-                PreparedStatement pstmt2 = con.prepareStatement("drop view " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+        try (Connection con = DriverManager.getConnection(connectionString);
+                PreparedStatement pstmt1 = con.prepareStatement(
+                        "create view " + AbstractSQLGenerator.escapeIdentifier(tableName) + " as select 1 a");
+                PreparedStatement pstmt2 = con
+                        .prepareStatement("drop view " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
             pstmt1.execute();
             pstmt2.execute();
         } catch (SQLException e) {
@@ -80,8 +81,11 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void createSchemaTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create schema x");
-                PreparedStatement pstmt2 = con.prepareStatement("drop schema x")) {
+        try (Connection con = DriverManager.getConnection(connectionString);
+                PreparedStatement pstmt1 = con
+                        .prepareStatement("create schema " + AbstractSQLGenerator.escapeIdentifier(schemaName));
+                PreparedStatement pstmt2 = con
+                        .prepareStatement("drop schema " + AbstractSQLGenerator.escapeIdentifier(schemaName))) {
             pstmt1.execute();
             pstmt2.execute();
         } catch (SQLException e) {
@@ -97,8 +101,11 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void createTableTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
-                PreparedStatement pstmt2 = con.prepareStatement("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+        try (Connection con = DriverManager.getConnection(connectionString);
+                PreparedStatement pstmt1 = con.prepareStatement(
+                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
+                PreparedStatement pstmt2 = con
+                        .prepareStatement("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
             pstmt1.execute();
             pstmt2.execute();
         } catch (SQLException e) {
@@ -114,9 +121,13 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void alterTableTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
-                PreparedStatement pstmt2 = con.prepareStatement("ALTER TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ADD column_name char;");
-                PreparedStatement pstmt3 = con.prepareStatement("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+        try (Connection con = DriverManager.getConnection(connectionString);
+                PreparedStatement pstmt1 = con.prepareStatement(
+                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
+                PreparedStatement pstmt2 = con.prepareStatement(
+                        "ALTER TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ADD column_name char;");
+                PreparedStatement pstmt3 = con
+                        .prepareStatement("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
             pstmt1.execute();
             pstmt2.execute();
             pstmt3.execute();
@@ -133,10 +144,15 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void grantTest() throws SQLException {
-        try (PreparedStatement pstmt1 = con.prepareStatement("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
-                PreparedStatement pstmt2 = con.prepareStatement("grant select on " + AbstractSQLGenerator.escapeIdentifier(tableName) + " to public");
-                PreparedStatement pstmt3 = con.prepareStatement("revoke select on " + AbstractSQLGenerator.escapeIdentifier(tableName) + " from public");
-                PreparedStatement pstmt4 = con.prepareStatement("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+        try (Connection con = DriverManager.getConnection(connectionString);
+                PreparedStatement pstmt1 = con.prepareStatement(
+                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
+                PreparedStatement pstmt2 = con.prepareStatement(
+                        "grant select on " + AbstractSQLGenerator.escapeIdentifier(tableName) + " to public");
+                PreparedStatement pstmt3 = con.prepareStatement(
+                        "revoke select on " + AbstractSQLGenerator.escapeIdentifier(tableName) + " from public");
+                PreparedStatement pstmt4 = con
+                        .prepareStatement("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
             pstmt1.execute();
             pstmt2.execute();
             pstmt3.execute();
@@ -169,18 +185,21 @@ public class RegressionTest extends AbstractTest {
             }
 
             try (Statement stmt = con.createStatement()) {
-                TestUtils.dropTableIfExists("TEST_TABLE", stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
 
                 con.setAutoCommit(false);
 
                 // create a table with two columns
                 boolean createPrimaryKey = false;
                 try {
-                    stmt.execute("if object_id('TEST_TABLE', 'U') is not null\ndrop table TEST_TABLE;");
+                    stmt.execute("if object_id('" + TestUtils.escapeSingleQuotes(tableName2)
+                            + "', 'U') is not null\ndrop table " + AbstractSQLGenerator.escapeIdentifier(tableName2));
                     if (createPrimaryKey) {
-                        stmt.execute("create table TEST_TABLE ( ID int, DATA nvarchar(max), primary key (ID) );");
+                        stmt.execute("create table " + AbstractSQLGenerator.escapeIdentifier(tableName2)
+                                + " ( ID int, DATA nvarchar(max), primary key (ID) );");
                     } else {
-                        stmt.execute("create table TEST_TABLE ( ID int, DATA nvarchar(max) );");
+                        stmt.execute("create table " + AbstractSQLGenerator.escapeIdentifier(tableName2)
+                                + " ( ID int, DATA nvarchar(max) );");
                     }
                 } catch (Exception e) {
                     fail(e.toString());
@@ -197,7 +216,8 @@ public class RegressionTest extends AbstractTest {
 
                 String[] values = {"a", "b", largeString, "d", "e"};
                 // insert five rows into the table; use a batch for each row
-                try (PreparedStatement pstmt = con.prepareStatement("insert into TEST_TABLE values (?,?)")) {
+                try (PreparedStatement pstmt = con.prepareStatement(
+                        "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName2) + " values (?,?)")) {
                     // 0,a
                     pstmt.setInt(1, 0);
                     pstmt.setNString(2, values[0]);
@@ -232,7 +252,8 @@ public class RegressionTest extends AbstractTest {
                 // check the data in the table
                 Map<Integer, String> selectedValues = new LinkedHashMap<>();
                 int id = 0;
-                try (PreparedStatement pstmt = con.prepareStatement("select * from TEST_TABLE;")) {
+                try (PreparedStatement pstmt = con
+                        .prepareStatement("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName2) + ";")) {
                     try (ResultSet rs = pstmt.executeQuery()) {
                         int i = 0;
                         while (rs.next()) {
@@ -246,7 +267,7 @@ public class RegressionTest extends AbstractTest {
                         }
                     }
                 } finally {
-                    TestUtils.dropTableIfExists("TEST_TABLE", stmt);
+                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
                 }
             }
         }
@@ -259,19 +280,22 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void addBatchWithLargeStringTest() throws SQLException {
-        try (Statement stmt = con.createStatement()) {
-            TestUtils.dropTableIfExists("TEST_TABLE", stmt);
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
 
             con.setAutoCommit(false);
 
             // create a table with two columns
             boolean createPrimaryKey = false;
             try {
-                stmt.execute("if object_id('testTable', 'U') is not null\ndrop table testTable;");
+                stmt.execute("if object_id('" + TestUtils.escapeSingleQuotes(tableName2)
+                        + "', 'U') is not null\ndrop table " + AbstractSQLGenerator.escapeIdentifier(tableName2));
                 if (createPrimaryKey) {
-                    stmt.execute("create table testTable ( ID int, DATA nvarchar(max), primary key (ID) );");
+                    stmt.execute("create table " + AbstractSQLGenerator.escapeIdentifier(tableName2)
+                            + " ( ID int, DATA nvarchar(max), primary key (ID) );");
                 } else {
-                    stmt.execute("create table testTable ( ID int, DATA nvarchar(max) );");
+                    stmt.execute("create table " + AbstractSQLGenerator.escapeIdentifier(tableName2)
+                            + " ( ID int, DATA nvarchar(max) );");
                 }
             } catch (Exception e) {
                 fail(e.toString());
@@ -286,7 +310,8 @@ public class RegressionTest extends AbstractTest {
             String largeString = stringBuilder.toString();
 
             // insert five rows into the table; use a batch for each row
-            try (PreparedStatement pstmt = con.prepareStatement("insert into testTable values (?,?), (?,?);")) {
+            try (PreparedStatement pstmt = con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName2) + " values (?,?), (?,?);")) {
                 // 0,a
                 // 1,b
                 pstmt.setInt(1, 0);
@@ -335,7 +360,7 @@ public class RegressionTest extends AbstractTest {
             catch (Exception e) {
                 fail(e.toString());
             } finally {
-                TestUtils.dropTableIfExists("testTable", stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
             }
         }
     }
@@ -347,12 +372,9 @@ public class RegressionTest extends AbstractTest {
      */
     @AfterAll
     public static void cleanup() throws SQLException {
-        try (Statement stmt = con.createStatement()) {
-            TestUtils.dropTableIfExists("x", stmt);
-            TestUtils.dropTableIfExists("TEST_TABLE", stmt);
-        }
-        if (null != con) {
-            con.close();
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
         }
     }
 

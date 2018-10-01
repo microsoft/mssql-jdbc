@@ -28,15 +28,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
 public class PreparedStatementTest extends AbstractTest {
+
+    final String tableName = RandomUtil.getIdentifier("#update1");
+
     private void executeSQL(SQLServerConnection conn, String sql) throws SQLException {
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
@@ -550,9 +555,11 @@ public class PreparedStatementTest extends AbstractTest {
             this.executeSQL(con,
                     "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
             // Test with missing handle failures (fake).
-            this.executeSQL(con, "CREATE TABLE #update1 (col INT);INSERT #update1 VALUES (1);");
-            this.executeSQL(con,
-                    "CREATE PROC #updateProc1 AS UPDATE #update1 SET col += 1; IF EXISTS (SELECT * FROM #update1 WHERE col % 5 = 0) RAISERROR(99586,16,1);");
+            this.executeSQL(con, "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (col INT);INSERT " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (1);");
+            this.executeSQL(con, "CREATE PROC #updateProc1 AS UPDATE "
+                    + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET col += 1; IF EXISTS (SELECT * FROM "
+                    + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE col % 5 = 0) RAISERROR(99586,16,1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc1")) {
                 for (int i = 0; i < 100; ++i) {
                     try {
@@ -571,7 +578,8 @@ public class PreparedStatementTest extends AbstractTest {
 
             // test updated value, should be 1 + 100 = 101
             // although executeUpdate() throws exception, update operation should be executed successfully.
-            try (ResultSet rs = con.createStatement().executeQuery("select * from #update1")) {
+            try (ResultSet rs = con.createStatement()
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + "")) {
                 rs.next();
                 assertSame(101, rs.getInt(1));
             }
