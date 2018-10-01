@@ -167,7 +167,7 @@ public class UTF8SupportTest extends AbstractTest {
                 // Test UTF8 sequence returned from getBytes().
                 assertArrayEquals(valueBytes, rs.getBytes(1));
             }
-            
+
             // Fetch using PreparedStatement.
             try (ResultSet rsPreparedStatement = psFetch.executeQuery()) {
                 rsPreparedStatement.next();

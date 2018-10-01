@@ -1139,8 +1139,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     public static void afterAll() throws SQLException {
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement()) {
-        TestUtils.dropTableIfExists(geomTableName, stmt);
-        TestUtils.dropTableIfExists(geogTableName, stmt);
+            TestUtils.dropTableIfExists(geomTableName, stmt);
+            TestUtils.dropTableIfExists(geogTableName, stmt);
         }
     }
 }

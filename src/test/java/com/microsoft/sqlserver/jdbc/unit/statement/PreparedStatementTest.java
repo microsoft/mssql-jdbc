@@ -361,7 +361,7 @@ public class PreparedStatementTest extends AbstractTest {
             // disabling the prepared statement metadata caching.
             assertTrue(connectionEnableStatementPooling.isStatementPoolingEnabled());
         }
-        
+
         String connectionPropertyStringEnableStatementPooling = connectionString
                 + ";disableStatementPooling=false;statementPoolingCacheSize=10";
         try (SQLServerConnection connectionPropertyEnableStatementPooling = (SQLServerConnection) DriverManager
@@ -374,7 +374,7 @@ public class PreparedStatementTest extends AbstractTest {
             // disabling the prepared statement metadata caching.
             assertTrue(connectionPropertyEnableStatementPooling.isStatementPoolingEnabled());
         }
-        
+
         String connectionPropertyStringDisableStatementPooling = connectionString
                 + ";disableStatementPooling=true;statementPoolingCacheSize=10";
         try (SQLServerConnection connectionPropertyDisableStatementPooling = (SQLServerConnection) DriverManager
@@ -394,7 +394,7 @@ public class PreparedStatementTest extends AbstractTest {
             // disabling the prepared statement metadata caching.
             assertTrue(!connectionPropertyDisableStatementPooling.isStatementPoolingEnabled());
         }
-        
+
         String connectionPropertyStringDisableStatementPooling2 = connectionString
                 + ";disableStatementPooling=false;statementPoolingCacheSize=0";
         try (SQLServerConnection connectionPropertyDisableStatementPooling2 = (SQLServerConnection) DriverManager
@@ -415,14 +415,14 @@ public class PreparedStatementTest extends AbstractTest {
             // disabling the prepared statement metadata caching.
             assertTrue(!connectionPropertyDisableStatementPooling2.isStatementPoolingEnabled());
         }
-        
+
         // Test EnablePrepareOnFirstPreparedStatementCall
         String connectionStringNoExecuteSQL = connectionString + ";enablePrepareOnFirstPreparedStatementCall=true;";
         try (SQLServerConnection connectionNoExecuteSQL = (SQLServerConnection) DriverManager
                 .getConnection(connectionStringNoExecuteSQL)) {
             assertSame(true, connectionNoExecuteSQL.getEnablePrepareOnFirstPreparedStatementCall());
         }
-        
+
         // Test ServerPreparedStatementDiscardThreshold
         String connectionStringThreshold3 = connectionString + ";ServerPreparedStatementDiscardThreshold=3;";
         try (SQLServerConnection connectionThreshold3 = (SQLServerConnection) DriverManager
@@ -438,18 +438,20 @@ public class PreparedStatementTest extends AbstractTest {
             assertSame(true, connectionThresholdAndNoExecuteSQL.getEnablePrepareOnFirstPreparedStatementCall());
             assertSame(3, connectionThresholdAndNoExecuteSQL.getServerPreparedStatementDiscardThreshold());
         }
-        
+
         // Test that an error is thrown for invalid connection string property values (non int/bool).
         String connectionStringThresholdError = connectionString + ";ServerPreparedStatementDiscardThreshold=hej;";
-        try (SQLServerConnection con =  (SQLServerConnection)DriverManager.getConnection(connectionStringThresholdError)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager
+                .getConnection(connectionStringThresholdError)) {
             fail("Error for invalid ServerPreparedStatementDiscardThresholdexpected.");
         } catch (SQLException e) {
             // Good!
         }
-        
+
         String connectionStringNoExecuteSQLError = connectionString
                 + ";enablePrepareOnFirstPreparedStatementCall=dobidoo;";
-        try (SQLServerConnection con =  (SQLServerConnection)DriverManager.getConnection(connectionStringNoExecuteSQLError)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager
+                .getConnection(connectionStringNoExecuteSQLError)) {
             fail("Error for invalid enablePrepareOnFirstPreparedStatementCall expected.");
         } catch (SQLException e) {
             // Good!

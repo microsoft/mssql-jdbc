@@ -154,7 +154,8 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
                 }
             }
 
-    }}
+        }
+    }
 
     /**
      * test float value
@@ -177,7 +178,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
                     bulkCopy.writeToServer(rs);
                     bulkCopy.close();
                 }
-                
+
                 try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + destTableName)) {
                     while (rs.next()) {
                         assertEquals(rs.getDouble(1), col1Value);
@@ -208,7 +209,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
                     bulkCopy.writeToServer(rs);
                     bulkCopy.close();
                 }
-                
+
                 try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + destTableName)) {
                     while (rs.next()) {
                         assertEquals(rs.getFloat(1), col1Value);
@@ -301,7 +302,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
                 bulkCopy.writeToServer(rs);
                 bulkCopy.close();
             }
-            
+
             try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + destTableName)) {
                 while (rs.next()) {
                     assertEquals("" + rs.getDate(1), col1Value);
@@ -336,7 +337,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
                 bulkCopy.writeToServer(rs);
                 bulkCopy.close();
             }
-            
+
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + destTableName)) {
                 while (rs.next()) {
                     assertEquals("" + rs.getDate(1), col1Value);
@@ -501,7 +502,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
                 bulkCopy.writeToServer(rs);
                 bulkCopy.close();
             }
-            
+
             try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + destTableName)) {
                 while (rs.next()) {
                     assertTrue(TestUtils.parseByte(rs.getBytes(1), col1Value.getBytes()));
@@ -582,7 +583,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
                 bulkCopy.writeToServer(rs);
                 bulkCopy.close();
             }
-            
+
             try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + destTableName)) {
                 while (rs.next()) {
                     assertEquals(rs.getBoolean(1), false);

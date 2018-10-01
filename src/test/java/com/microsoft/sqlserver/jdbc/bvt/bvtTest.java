@@ -25,7 +25,7 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBResultSetTypes;
-import com.microsoft.sqlserver.testframework.DBStatement;;
+import com.microsoft.sqlserver.testframework.DBStatement;
 
 
 @RunWith(JUnitPlatform.class)
@@ -420,9 +420,9 @@ public class bvtTest extends bvtTestSetup {
     public static void terminate() throws SQLException {
 
         try (DBConnection conn = new DBConnection(connectionString); DBStatement stmt = conn.createStatement()) {
-            stmt.execute("if object_id('" + table1.getEscapedTableName() + "','U') is not null" + " drop table "
+            stmt.execute("if object_id('" + table2.getEscapedQuotesTableName() + "','U') is not null" + " drop table "
                     + table1.getEscapedTableName());
-            stmt.execute("if object_id('" + table2.getEscapedTableName() + "','U') is not null" + " drop table "
+            stmt.execute("if object_id('" + table2.getEscapedQuotesTableName() + "','U') is not null" + " drop table "
                     + table2.getEscapedTableName());
         }
     }

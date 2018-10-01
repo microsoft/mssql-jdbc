@@ -71,7 +71,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
         }
     }
-    
+
     @AfterAll
     public static void terminateVariation() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);

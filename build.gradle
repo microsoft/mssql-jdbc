@@ -10,7 +10,7 @@
 
 apply plugin: 'java'
 
-version = '7.1.1-SNAPSHOT'
+version = '7.1.2-SNAPSHOT'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'

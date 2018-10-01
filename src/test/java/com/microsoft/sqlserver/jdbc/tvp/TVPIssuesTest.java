@@ -160,7 +160,7 @@ public class TVPIssuesTest extends AbstractTest {
         createPreocedure();
 
         populateCharSrcTable();
-        populateTime6SrcTable();      
+        populateTime6SrcTable();
     }
 
     private static void populateCharSrcTable() throws SQLException {

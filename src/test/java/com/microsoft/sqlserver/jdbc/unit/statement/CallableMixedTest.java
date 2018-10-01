@@ -72,28 +72,27 @@ public class CallableMixedTest extends AbstractTest {
                     assertEquals(callableStatement.getInt((int) 5), -5372,
                             TestResource.getResource("R_setDataNotEqual"));
                 }
-                
+
                 // do nothing and re-execute
-                try (ResultSet rs = callableStatement.executeQuery()) {
-                }
-                
+                try (ResultSet rs = callableStatement.executeQuery()) {}
+
                 // get the param without getting the resultset
                 try (ResultSet rs = callableStatement.executeQuery()) {
-                assertEquals(callableStatement.getInt((int) 1), -2147483648,
-                        TestResource.getResource("R_setDataNotEqual"));
+                    assertEquals(callableStatement.getInt((int) 1), -2147483648,
+                            TestResource.getResource("R_setDataNotEqual"));
                 }
-                
-                try (ResultSet rs = callableStatement.executeQuery()) {
-                rs.next();
 
-                assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
-                assertEquals(callableStatement.getInt((int) 1), -2147483648,
-                        TestResource.getResource("R_setDataNotEqual"));
-                assertEquals(callableStatement.getInt((int) 5), -5372, TestResource.getResource("R_setDataNotEqual"));
-                }
-                
                 try (ResultSet rs = callableStatement.executeQuery()) {
-                }               
+                    rs.next();
+
+                    assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
+                    assertEquals(callableStatement.getInt((int) 1), -2147483648,
+                            TestResource.getResource("R_setDataNotEqual"));
+                    assertEquals(callableStatement.getInt((int) 5), -5372,
+                            TestResource.getResource("R_setDataNotEqual"));
+                }
+
+                try (ResultSet rs = callableStatement.executeQuery()) {}
             }
             terminateVariation(statement);
         }
