@@ -2003,6 +2003,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
 
                     SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                    if (queryTimeout > 0) {
+                        SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                        option.setBulkCopyTimeout(queryTimeout);
+                        bcOperation.setBulkCopyOptions(option);
+                    }
                     bcOperation.setDestinationTableName(tableName);
                     bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                     bcOperation.setDestinationTableMetadata(rs);
@@ -2157,6 +2162,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
 
                     SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                    if (queryTimeout > 0) {
+                        SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                        option.setBulkCopyTimeout(queryTimeout);
+                        bcOperation.setBulkCopyOptions(option);
+                    }
                     bcOperation.setDestinationTableName(tableName);
                     bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                     bcOperation.setDestinationTableMetadata(rs);
