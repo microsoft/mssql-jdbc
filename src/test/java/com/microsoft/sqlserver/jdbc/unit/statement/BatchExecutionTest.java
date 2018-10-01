@@ -235,7 +235,11 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     @AfterAll
-    public static void terminateVariation() throws SQLException {
+    public static void terminateVariation() throws Exception {
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
+        }
+        
         dropTable();
     }
 }
