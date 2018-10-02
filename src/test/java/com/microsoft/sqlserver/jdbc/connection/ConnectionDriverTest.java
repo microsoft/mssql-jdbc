@@ -43,8 +43,6 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.DBTable;
-
 
 @RunWith(JUnitPlatform.class)
 public class ConnectionDriverTest extends AbstractTest {

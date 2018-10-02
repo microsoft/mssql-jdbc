@@ -29,7 +29,6 @@ import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
-import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
