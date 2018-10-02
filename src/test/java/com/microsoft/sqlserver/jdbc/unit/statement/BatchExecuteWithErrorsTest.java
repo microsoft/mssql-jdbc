@@ -45,10 +45,12 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("BatchExecuteWithErrors");
     Connection con = null;
     final String tableName = RandomUtil.getIdentifier("t_Repro47239");
-    final String insertStmt = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (999, 'HELLO', '4/12/1994')";
+    final String insertStmt = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+            + " VALUES (999, 'HELLO', '4/12/1994')";
     final String error16 = "RAISERROR ('raiserror level 16',16,42)";
     final String select = "SELECT 1";
-    final String dateConversionError = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (999999, 'Hello again', 'asdfasdf')";
+    final String dateConversionError = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+            + " values (999999, 'Hello again', 'asdfasdf')";
 
     /**
      * Batch test
@@ -86,10 +88,12 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
 
     private void Repro47239Internal(String mode) throws Exception {
         final String tableName = RandomUtil.getIdentifier("t_Repro47239");
-        final String insertStmt = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (999, 'HELLO', '4/12/1994')";
+        final String insertStmt = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " VALUES (999, 'HELLO', '4/12/1994')";
         final String error16 = "RAISERROR ('raiserror level 16',16,42)";
         final String select = "SELECT 1";
-        final String dateConversionError = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (999999, 'Hello again', 'asdfasdf')";
+        final String dateConversionError = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " values (999999, 'Hello again', 'asdfasdf')";
 
         String warning;
         String error;
@@ -294,8 +298,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                     }
                 }
             }
-        }
-        finally {
+        } finally {
             try (Connection conn = DriverManager.getConnection(connectionString);
                     Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));

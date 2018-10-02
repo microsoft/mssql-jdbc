@@ -37,7 +37,7 @@ public class TVPIssuesTest extends AbstractTest {
     private static String spName_varcharMax = RandomUtil.getIdentifier("TVPIssuesTest_varcharMax_SP");
     private static String srcTable_varcharMax = RandomUtil.getIdentifier("TVPIssuesTest_varcharMax_srcTable");
     private static String desTable_varcharMax = RandomUtil.getIdentifier("TVPIssuesTest_varcharMax_destTable");
-    
+
     private static String tvp_time_6 = RandomUtil.getIdentifier("TVPIssuesTest_time_6_TVP");
     private static String srcTable_time_6 = RandomUtil.getIdentifier("TVPIssuesTest_time_6_srcTable");
     private static String desTable_time_6 = RandomUtil.getIdentifier("TVPIssuesTest_time_6_destTable");
@@ -49,10 +49,12 @@ public class TVPIssuesTest extends AbstractTest {
         setup();
 
         try (SQLServerStatement st = (SQLServerStatement) connection.createStatement();
-                ResultSet rs = st.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax));
+                ResultSet rs = st
+                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax));
 
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                        .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax) + " select * from ? ;")) {
+                        .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax)
+                                + " select * from ? ;")) {
 
             pstmt.setStructured(1, tvp_varcharMax, rs);
             pstmt.execute();
@@ -100,9 +102,11 @@ public class TVPIssuesTest extends AbstractTest {
 
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable_time_6));
+                ResultSet rs = stmt
+                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable_time_6));
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                        .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable_time_6) + " select * from ? ;")) {
+                        .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable_time_6)
+                                + " select * from ? ;")) {
             pstmt.setStructured(1, tvp_time_6, rs);
             pstmt.execute();
 
@@ -111,7 +115,8 @@ public class TVPIssuesTest extends AbstractTest {
     }
 
     private void testCharDestTable() throws SQLException, IOException {
-        try (ResultSet rs = connection.createStatement().executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax))) {
+        try (ResultSet rs = connection.createStatement()
+                .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax))) {
             while (rs.next()) {
                 assertEquals(rs.getString(1).length(), 4001, TestResource.getResource("R_lengthTruncated"));
             }
@@ -119,7 +124,8 @@ public class TVPIssuesTest extends AbstractTest {
     }
 
     private void testTime6DestTable() throws SQLException, IOException {
-        try (ResultSet rs = connection.createStatement().executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable_time_6))) {
+        try (ResultSet rs = connection.createStatement()
+                .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable_time_6))) {
             while (rs.next()) {
                 assertEquals(rs.getString(1), expectedTime6value, TestResource.getResource("R_timeValueTruncated"));
             }
@@ -134,18 +140,22 @@ public class TVPIssuesTest extends AbstractTest {
             dropProcedure();
 
             stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
-                    + TestUtils.escapeSingleQuotes(tvp_varcharMax) + "') " + " drop type " + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax));
+                    + TestUtils.escapeSingleQuotes(tvp_varcharMax) + "') " + " drop type "
+                    + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax));
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax), stmt);
 
-            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + TestUtils.escapeSingleQuotes(tvp_time_6)
-                    + "') " + " drop type " + AbstractSQLGenerator.escapeIdentifier(tvp_time_6));
+            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
+                    + TestUtils.escapeSingleQuotes(tvp_time_6) + "') " + " drop type "
+                    + AbstractSQLGenerator.escapeIdentifier(tvp_time_6));
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable_time_6), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(desTable_time_6), stmt);
 
-            String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax) + " (c1 varchar(max) null);";
+            String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax)
+                    + " (c1 varchar(max) null);";
             stmt.execute(sql);
-            sql = "create table " + AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax) + " (c1 varchar(max) null);";
+            sql = "create table " + AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax)
+                    + " (c1 varchar(max) null);";
             stmt.execute(sql);
 
             sql = "create table " + AbstractSQLGenerator.escapeIdentifier(srcTable_time_6) + " (c1 time(6) null);";
@@ -153,10 +163,12 @@ public class TVPIssuesTest extends AbstractTest {
             sql = "create table " + AbstractSQLGenerator.escapeIdentifier(desTable_time_6) + " (c1 time(6) null);";
             stmt.execute(sql);
 
-            String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax) + " as table (c1 varchar(max) null)";
+            String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax)
+                    + " as table (c1 varchar(max) null)";
             stmt.executeUpdate(TVPCreateCmd);
 
-            TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvp_time_6) + " as table (c1 time(6) null)";
+            TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvp_time_6)
+                    + " as table (c1 time(6) null)";
             stmt.executeUpdate(TVPCreateCmd);
 
             createProcedure();
@@ -165,7 +177,7 @@ public class TVPIssuesTest extends AbstractTest {
             populateTime6SrcTable();
         }
     }
-    
+
     private static void populateCharSrcTable() throws SQLException {
         String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax) + " values (?)";
 
@@ -185,7 +197,8 @@ public class TVPIssuesTest extends AbstractTest {
     private static void populateTime6SrcTable() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement()) {
-            String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(srcTable_time_6) + " values ('2017-05-12 " + expectedTime6value + "')";
+            String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(srcTable_time_6)
+                    + " values ('2017-05-12 " + expectedTime6value + "')";
             connection.createStatement().execute(sql);
         }
     }
@@ -200,8 +213,10 @@ public class TVPIssuesTest extends AbstractTest {
     private static void createProcedure() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement()) {
-            String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(spName_varcharMax) + " @InputData " + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax) + " READONLY "
-                    + " AS " + " BEGIN " + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax) + " SELECT * FROM @InputData" + " END";
+            String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(spName_varcharMax) + " @InputData "
+                    + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax) + " READONLY " + " AS " + " BEGIN "
+                    + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax)
+                    + " SELECT * FROM @InputData" + " END";
 
             stmt.execute(sql);
         }
@@ -213,12 +228,14 @@ public class TVPIssuesTest extends AbstractTest {
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
-                    + TestUtils.escapeSingleQuotes(tvp_varcharMax) + "') " + " drop type " + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax));
+                    + TestUtils.escapeSingleQuotes(tvp_varcharMax) + "') " + " drop type "
+                    + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax));
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax), stmt);
 
-            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + TestUtils.escapeSingleQuotes(tvp_time_6)
-                    + "') " + " drop type " + AbstractSQLGenerator.escapeIdentifier(tvp_time_6));
+            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
+                    + TestUtils.escapeSingleQuotes(tvp_time_6) + "') " + " drop type "
+                    + AbstractSQLGenerator.escapeIdentifier(tvp_time_6));
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable_time_6), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(desTable_time_6), stmt);
         }

@@ -326,13 +326,15 @@ public class lobsTest extends AbstractTest {
                             if (streamClass == DBCharacterStream.class) {
                                 try (Reader stream = (Reader) rs.getXXX(i + 1, streamClass)) {
                                     if (null == stream) {
-                                        assertEquals(stream, rs.getObject(i + 1), TestResource.getResource("R_streamNull"));
+                                        assertEquals(stream, rs.getObject(i + 1),
+                                                TestResource.getResource("R_streamNull"));
                                     }
                                 }
                             } else {
                                 try (InputStream stream = (InputStream) rs.getXXX(i + 1, streamClass)) {
                                     if (null == stream) {
-                                        assertEquals(stream, rs.getObject(i + 1), TestResource.getResource("R_streamNull"));
+                                        assertEquals(stream, rs.getObject(i + 1),
+                                                TestResource.getResource("R_streamNull"));
                                     }
                                 }
                             }

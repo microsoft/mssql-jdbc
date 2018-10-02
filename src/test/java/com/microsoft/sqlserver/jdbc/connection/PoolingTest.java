@@ -50,7 +50,6 @@ public class PoolingTest extends AbstractTest {
     static String tempTableName = RandomUtil.getIdentifier("#poolingtest");
     static String tableName = RandomUtil.getIdentifier("PoolingTestTable");
 
-
     @Test
     public void testPooling() throws SQLException {
         assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
@@ -251,7 +250,7 @@ public class PoolingTest extends AbstractTest {
 
         return count;
     }
-    
+
     /**
      * drop the tables
      * 
@@ -259,8 +258,7 @@ public class PoolingTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tempTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }

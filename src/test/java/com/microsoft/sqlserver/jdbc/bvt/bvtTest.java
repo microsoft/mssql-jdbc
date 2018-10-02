@@ -440,7 +440,7 @@ public class bvtTest extends AbstractTest {
                     + table2.getEscapedTableName());
         }
     }
-    
+
     @BeforeAll
     public static void init() throws SQLException {
         try (DBConnection conn = new DBConnection(connectionString); DBStatement stmt = conn.createStatement()) {

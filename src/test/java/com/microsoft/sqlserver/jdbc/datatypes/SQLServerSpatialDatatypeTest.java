@@ -317,8 +317,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                     assertEquals(e.getMessage(), "Fullglobe is not supported for Geometry.");
                 }
 
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                        .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                        "insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
                     pstmt.setGeography(1, geogWKT);
                     pstmt.execute();
 
@@ -481,8 +481,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
 
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                        .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)")) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                        "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)")) {
                     geomWKT = Geometry.STGeomFromText(geoWKTPoint, 0);
                     pstmt.setGeometry(1, geomWKT);
                     pstmt.executeUpdate();
@@ -533,8 +533,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 }
 
                 // Geography
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                        .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)")) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                        "insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)")) {
                     geogWKT = Geography.STGeomFromText(geoWKTPoint, 4326);
                     pstmt.setGeography(1, geogWKT);
 
@@ -635,8 +635,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
             try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                        .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName) + " values (?, ?, ?, ?, ?)");) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                        "insert into " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName)
+                                + " values (?, ?, ?, ?, ?)");) {
                     geomWKT = Geometry.STGeomFromText(geoWKTPoint, 0);
                     geogWKT = Geography.STGeomFromText(geoWKTPoint, 4326);
                     pstmt.setGeometry(1, geomWKT);
@@ -737,8 +738,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
                     pstmt.executeUpdate();
 
-                    try (SQLServerResultSet rs = (SQLServerResultSet) stmt
-                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName))) {
+                    try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery(
+                            "select * from " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName))) {
                         for (int i = 0; i < geoWKTList.size(); i++) {
                             rs.next();
                             assertEquals(rs.getGeometry(1).asTextZM(), geoWKTList.get(i));
@@ -775,8 +776,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement()) {
 
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                    .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
                 pstmt.setGeometry(1, geomWKT);
                 pstmt.execute();
 
@@ -788,8 +789,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 }
             }
 
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                    .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
                 pstmt.setGeography(1, geogWKT);
                 pstmt.execute();
 
@@ -816,8 +817,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement()) {
 
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                    .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
                 pstmt.setGeometry(1, geomWKT);
                 pstmt.execute();
 
@@ -829,8 +830,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 }
             }
 
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                    .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
                 pstmt.setGeography(1, geogWKT);
                 pstmt.execute();
 
@@ -857,8 +858,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement()) {
 
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                    .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
                 pstmt.setGeometry(1, geomWKT);
                 pstmt.execute();
 
@@ -869,8 +870,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 }
             }
 
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                    .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
                 pstmt.setGeography(1, geogWKT);
                 pstmt.execute();
 
@@ -911,8 +912,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement();
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                        .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " (c1) VALUES (?)")) {
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " (c1) VALUES (?)")) {
             ParameterMetaData paramMetaData = pstmt.getParameterMetaData();
             Geometry g = Geometry.STGeomFromText("POINT (1 2 3 4)", 0);
             pstmt.setGeometry(1, g);
@@ -922,7 +923,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             String sqlTypeName = paramMetaData.getParameterTypeName(1);
             assertEquals(sqlType, -157);
             assertEquals(sqlTypeName, "geometry");
-            try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
+            try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
                 ResultSetMetaData rsmd = rs.getMetaData();
                 assertEquals(rsmd.getColumnType(1), -157);
             }
@@ -935,8 +937,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement();
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                        .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " (c1) VALUES (?)")) {
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " (c1) VALUES (?)")) {
             ParameterMetaData paramMetaData = pstmt.getParameterMetaData();
             Geography g = Geography.STGeomFromText("POINT (1 2 3 4)", 4326);
             pstmt.setGeography(1, g);
@@ -946,7 +948,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             String sqlTypeName = paramMetaData.getParameterTypeName(1);
             assertEquals(sqlType, -158);
             assertEquals(sqlTypeName, "geography");
-            try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
+            try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
                 ResultSetMetaData rsmd = rs.getMetaData();
                 assertEquals(rsmd.getColumnType(1), -158);
             }
@@ -1000,8 +1003,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
 
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                        .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName) + " values (?, ?, ?, ?, ?)");) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                        "insert into " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName)
+                                + " values (?, ?, ?, ?, ?)");) {
                     geomWKT = Geometry.STGeomFromText(geoWKTPoint, 0);
                     geogWKT = Geography.STGeomFromText(geoWKTPoint, 4326);
                     pstmt.setGeometry(1, geomWKT);
@@ -1022,8 +1026,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
                     pstmt.executeUpdate();
 
-                    try (SQLServerResultSet rs = (SQLServerResultSet) stmt
-                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName))) {
+                    try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery(
+                            "select * from " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName))) {
                         for (int i = 0; i < geoWKTList.size(); i++) {
                             rs.next();
                             assertEquals(rs.getGeometry(1).asTextZM(), geoWKTListExpected.get(i));
@@ -1043,8 +1047,10 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(geomTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(geogTableName), stmt);
-            stmt.executeUpdate("Create table " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " (c1 geometry)");
-            stmt.executeUpdate("Create table " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " (c1 geography)");
+            stmt.executeUpdate(
+                    "Create table " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " (c1 geometry)");
+            stmt.executeUpdate(
+                    "Create table " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " (c1 geography)");
         }
     }
 
@@ -1052,8 +1058,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName), stmt);
-            stmt.executeUpdate("Create table " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName) + " (c1 geometry," + "c2 geography,"
-                    + "c3 nvarchar(512)," + "c4 decimal(28,4)," + "c5 int)");
+            stmt.executeUpdate("Create table " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName)
+                    + " (c1 geometry," + "c2 geography," + "c3 nvarchar(512)," + "c4 decimal(28,4)," + "c5 int)");
         }
     }
 
@@ -1068,8 +1074,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement()) {
 
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                    .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
                 pstmt.setGeometry(1, geomWKT);
                 pstmt.execute();
 
@@ -1080,8 +1086,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 }
             }
 
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                    .prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
                 pstmt.setGeography(1, geogWKT);
                 pstmt.execute();
 

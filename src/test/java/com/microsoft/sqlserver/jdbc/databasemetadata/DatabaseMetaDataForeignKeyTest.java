@@ -40,7 +40,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     private static String table3 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_3");
     private static String table4 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_4");
     private static String table5 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_5");
-        
+
     private static String schema = null;
     private static String catalog = null;
 
@@ -51,25 +51,38 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             catalog = conn.getCatalog();
             schema = conn.getSchema();
 
-            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table1) + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table1));
-            stmt.executeUpdate("if object_id('" +  TestUtils.escapeSingleQuotes(table2) + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table2));
-            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table2) + " (c21 int NOT NULL PRIMARY KEY)");
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table1)
+                    + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table1));
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table2)
+                    + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table2));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table2)
+                    + " (c21 int NOT NULL PRIMARY KEY)");
 
-            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table3) + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table3));
-            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table3) + " (c31 int NOT NULL PRIMARY KEY)");
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table3)
+                    + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table3));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table3)
+                    + " (c31 int NOT NULL PRIMARY KEY)");
 
-            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table4) + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table4));
-            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table4) + " (c41 int NOT NULL PRIMARY KEY)");
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table4)
+                    + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table4));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table4)
+                    + " (c41 int NOT NULL PRIMARY KEY)");
 
-            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table5) + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table5));
-            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table5) + " (c51 int NOT NULL PRIMARY KEY)");
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table5)
+                    + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table5));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table5)
+                    + " (c51 int NOT NULL PRIMARY KEY)");
 
-            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table1) + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table1));            
-            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table1) + " (c11 int primary key," + " c12 int FOREIGN KEY REFERENCES "
-                    + AbstractSQLGenerator.escapeIdentifier(table2) + "(c21) ON DELETE no action ON UPDATE set default," + " c13 int FOREIGN KEY REFERENCES "
-                    + AbstractSQLGenerator.escapeIdentifier(table3) + "(c31) ON DELETE cascade ON UPDATE set null," + " c14 int FOREIGN KEY REFERENCES "
-                    + AbstractSQLGenerator.escapeIdentifier(table4) + "(c41) ON DELETE set null ON UPDATE cascade," + " c15 int FOREIGN KEY REFERENCES "
-                    + AbstractSQLGenerator.escapeIdentifier(table5) + "(c51) ON DELETE set default ON UPDATE no action," + ")");
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table1)
+                    + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table1));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table1) + " (c11 int primary key,"
+                    + " c12 int FOREIGN KEY REFERENCES " + AbstractSQLGenerator.escapeIdentifier(table2)
+                    + "(c21) ON DELETE no action ON UPDATE set default," + " c13 int FOREIGN KEY REFERENCES "
+                    + AbstractSQLGenerator.escapeIdentifier(table3) + "(c31) ON DELETE cascade ON UPDATE set null,"
+                    + " c14 int FOREIGN KEY REFERENCES " + AbstractSQLGenerator.escapeIdentifier(table4)
+                    + "(c41) ON DELETE set null ON UPDATE cascade," + " c15 int FOREIGN KEY REFERENCES "
+                    + AbstractSQLGenerator.escapeIdentifier(table5) + "(c51) ON DELETE set default ON UPDATE no action,"
+                    + ")");
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
         }

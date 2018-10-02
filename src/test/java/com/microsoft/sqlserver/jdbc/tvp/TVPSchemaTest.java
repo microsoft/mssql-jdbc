@@ -28,6 +28,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
+
 @RunWith(JUnitPlatform.class)
 public class TVPSchemaTest extends AbstractTest {
 
@@ -130,11 +131,14 @@ public class TVPSchemaTest extends AbstractTest {
     public void testSetup() throws SQLException {
         schemaName = RandomUtil.getIdentifier("anotherSchema");
         tvpNameWithouSchema = RandomUtil.getIdentifier("charTVP");
-        tvpNameWithSchema = AbstractSQLGenerator.escapeIdentifier(schemaName) + "." + AbstractSQLGenerator.escapeIdentifier(tvpNameWithouSchema);
-        
-        charTable = AbstractSQLGenerator.escapeIdentifier(schemaName) + "." + AbstractSQLGenerator.escapeIdentifier("tvpCharTable");
-        procedureName = AbstractSQLGenerator.escapeIdentifier(schemaName) + "." + AbstractSQLGenerator.escapeIdentifier("procedureThatCallsTVP");
-       
+        tvpNameWithSchema = AbstractSQLGenerator.escapeIdentifier(schemaName) + "."
+                + AbstractSQLGenerator.escapeIdentifier(tvpNameWithouSchema);
+
+        charTable = AbstractSQLGenerator.escapeIdentifier(schemaName) + "."
+                + AbstractSQLGenerator.escapeIdentifier("tvpCharTable");
+        procedureName = AbstractSQLGenerator.escapeIdentifier(schemaName) + "."
+                + AbstractSQLGenerator.escapeIdentifier("procedureThatCallsTVP");
+
         dropProcedure();
         dropTables();
         dropTVPS();
@@ -228,7 +232,7 @@ public class TVPSchemaTest extends AbstractTest {
     }
 
     @AfterEach
-    public void terminateVariation() throws SQLException {        
+    public void terminateVariation() throws SQLException {
         dropProcedure();
         dropTables();
         dropTVPS();

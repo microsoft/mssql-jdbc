@@ -27,6 +27,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 
+
 /**
  * Test CallableStatement
  */
@@ -44,7 +45,7 @@ public class CallableStatementTest extends AbstractTest {
      */
     @BeforeAll
     public static void setupTest() throws SQLException {
-        
+
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameGUID), stmt);
@@ -184,12 +185,14 @@ public class CallableStatementTest extends AbstractTest {
 
     private static void createGUIDStoredProcedure(Statement stmt) throws SQLException {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID)
-                + "(@p1 uniqueidentifier OUTPUT) AS SELECT @p1 = c1 FROM " + AbstractSQLGenerator.escapeIdentifier(tableNameGUID) + ";";
+                + "(@p1 uniqueidentifier OUTPUT) AS SELECT @p1 = c1 FROM "
+                + AbstractSQLGenerator.escapeIdentifier(tableNameGUID) + ";";
         stmt.execute(sql);
     }
 
     private static void createGUIDTable(Statement stmt) throws SQLException {
-        String sql = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableNameGUID) + " (c1 uniqueidentifier null)";
+        String sql = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableNameGUID)
+                + " (c1 uniqueidentifier null)";
         stmt.execute(sql);
     }
 

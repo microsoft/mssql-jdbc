@@ -253,8 +253,8 @@ public class TimeoutTest extends AbstractTest {
     private void createWaitForDelayPreocedure(SQLServerConnection conn) throws SQLException {
         try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
 
-            String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName) + " AS" + " BEGIN" + " WAITFOR DELAY '00:00:"
-                    + waitForDelaySeconds + "';" + " END";
+            String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName) + " AS"
+                    + " BEGIN" + " WAITFOR DELAY '00:00:" + waitForDelaySeconds + "';" + " END";
             stmt.execute(sql);
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());

@@ -45,7 +45,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
             "2017-04-02 08:58:53.0000000"};
 
     private static String srcTable = RandomUtil.getIdentifier("BulkCopyResultSetCursorTest_SourceTable");
-    private static String desTable = RandomUtil.getIdentifier("BulkCopyResultSetCursorTest_DestinationTable");   
+    private static String desTable = RandomUtil.getIdentifier("BulkCopyResultSetCursorTest_DestinationTable");
 
     /**
      * Test a previous failure when using server cursor and using the same connection to create Bulk Copy and result
@@ -69,7 +69,8 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
             populateSourceTable();
 
             try (Statement stmt2 = conn.createStatement(resultSetType, resultSetConcurrency);
-                    ResultSet rs = stmt2.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
+                    ResultSet rs = stmt2
+                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
                 bulkCopy.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
                 bulkCopy.writeToServer(rs);
@@ -120,7 +121,8 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
             populateSourceTable();
 
             try (Statement stmt1 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-                    ResultSet rs = stmt1.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable))) {
+                    ResultSet rs = stmt1
+                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable))) {
                 try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
                     bulkCopy.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
                     bulkCopy.writeToServer(rs);
@@ -154,7 +156,9 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
                     verifyDestinationTableData(expectedBigDecimals.length * 4);
                 }
                 try (Statement stmt2 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
-                        ResultSet.CONCUR_UPDATABLE); ResultSet rs2 = stmt2.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
+                        ResultSet.CONCUR_UPDATABLE);
+                        ResultSet rs2 = stmt2
+                                .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
                         SQLServerBulkCopy bulkCopy3 = new SQLServerBulkCopy(conn)) {
                     bulkCopy3.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
                     bulkCopy3.writeToServer(rs2);
@@ -165,8 +169,8 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
     }
 
     private static void verifyDestinationTableData(int expectedNumberOfRows) throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                ResultSet rs = conn.createStatement().executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable))) {
+        try (Connection conn = DriverManager.getConnection(connectionString); ResultSet rs = conn.createStatement()
+                .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable))) {
 
             int expectedArrayLength = expectedBigDecimals.length;
 
@@ -213,7 +217,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
         }
     }
 
-    private static void createTables(Statement stmt) throws SQLException {       
+    private static void createTables(Statement stmt) throws SQLException {
         String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(srcTable)
                 + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
         stmt.execute(sql);

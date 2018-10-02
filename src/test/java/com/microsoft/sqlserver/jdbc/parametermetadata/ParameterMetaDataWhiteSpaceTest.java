@@ -57,8 +57,10 @@ public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
      */
     @Test
     public void NormalTest() throws SQLException {
-        testUpdateWithTwoParameters("update " + AbstractSQLGenerator.escapeIdentifier(tableName) + " set c1 = ? where c1 = ?");
-        testInsertWithOneParameter("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1) values (?)");
+        testUpdateWithTwoParameters(
+                "update " + AbstractSQLGenerator.escapeIdentifier(tableName) + " set c1 = ? where c1 = ?");
+        testInsertWithOneParameter(
+                "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1) values (?)");
     }
 
     /**
@@ -92,13 +94,20 @@ public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
     }
 
     private void testQueriesWithWhiteSpaces(String whiteSpace) throws SQLException {
-        testUpdateWithTwoParameters("update" + whiteSpace + AbstractSQLGenerator.escapeIdentifier(tableName) + " set c1 = ? where c1 = ?");
-        testUpdateWithTwoParameters("update " + AbstractSQLGenerator.escapeIdentifier(tableName) + " set" + whiteSpace + "c1 = ? where c1 = ?");
-        testUpdateWithTwoParameters("update " + AbstractSQLGenerator.escapeIdentifier(tableName) + " set c1 = ? where" + whiteSpace + "c1 = ?");
+        testUpdateWithTwoParameters(
+                "update" + whiteSpace + AbstractSQLGenerator.escapeIdentifier(tableName) + " set c1 = ? where c1 = ?");
+        testUpdateWithTwoParameters("update " + AbstractSQLGenerator.escapeIdentifier(tableName) + " set" + whiteSpace
+                + "c1 = ? where c1 = ?");
+        testUpdateWithTwoParameters("update " + AbstractSQLGenerator.escapeIdentifier(tableName) + " set c1 = ? where"
+                + whiteSpace + "c1 = ?");
 
-        testInsertWithOneParameter("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + "(c1) values (?)"); // no space between table name and
-                                                                                    // column name
-        testInsertWithOneParameter("insert into" + whiteSpace + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1) values (?)");
+        testInsertWithOneParameter(
+                "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + "(c1) values (?)"); // no space
+                                                                                                        // between table
+                                                                                                        // name and
+        // column name
+        testInsertWithOneParameter(
+                "insert into" + whiteSpace + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1) values (?)");
     }
 
     private void testUpdateWithTwoParameters(String sql) throws SQLException {
@@ -122,14 +131,16 @@ public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
     }
 
     private void insertTestRow(int id) throws SQLException {
-        try (PreparedStatement ps = connection.prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1) values (?)")) {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1) values (?)")) {
             ps.setInt(1, id);
             ps.executeUpdate();
         }
     }
 
     private boolean isIdPresentInTable(int id) throws SQLException {
-        try (PreparedStatement ps = connection.prepareStatement("select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where c1 = ?")) {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where c1 = ?")) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();

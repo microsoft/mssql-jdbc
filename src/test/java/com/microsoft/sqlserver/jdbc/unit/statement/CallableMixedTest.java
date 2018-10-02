@@ -45,16 +45,18 @@ public class CallableMixedTest extends AbstractTest {
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement statement = connection.createStatement();) {
 
-            statement.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1_int int primary key, col2 int)");
-            statement.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 1)");
+            statement.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (c1_int int primary key, col2 int)");
+            statement
+                    .executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 1)");
 
             statement.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
                     + " (@p2_int int, @p2_int_out int OUTPUT, @p4_smallint smallint,  @p4_smallint_out smallint OUTPUT) AS begin transaction SELECT * FROM "
                     + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + "  ; SELECT @p2_int_out=@p2_int, @p4_smallint_out=@p4_smallint commit transaction RETURN -2147483648");
 
-            try (CallableStatement callableStatement = connection
-                    .prepareCall("{  ? = CALL " + AbstractSQLGenerator.escapeIdentifier(procName) + " (?, ?, ?, ?) }")) {
+            try (CallableStatement callableStatement = connection.prepareCall(
+                    "{  ? = CALL " + AbstractSQLGenerator.escapeIdentifier(procName) + " (?, ?, ?, ?) }")) {
                 callableStatement.registerOutParameter((int) 1, (int) 4);
                 callableStatement.setObject((int) 2, Integer.valueOf("31"), (int) 4);
                 callableStatement.registerOutParameter((int) 3, (int) 4);

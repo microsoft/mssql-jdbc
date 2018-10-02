@@ -52,7 +52,7 @@ public class RegressionTest extends AbstractTest {
             String col3Lookup = "IN";
 
             tableName = RandomUtil.getIdentifier("ServerCursorPStmt");
-            
+
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (col1 int primary key, col2 varchar(3), col3 varchar(128))");
             stmt.executeUpdate(
@@ -221,14 +221,14 @@ public class RegressionTest extends AbstractTest {
             createTable(stmt);
 
             tableName = RandomUtil.getIdentifier("try_SQLXML_Table");
-            
+
             String sql = "UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET [c2] = ?, [c3] = ?";
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
                 pstmt.setObject(1, null);
                 pstmt.setObject(2, null, Types.SQLXML);
                 pstmt.executeUpdate();
             }
-            
+
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
                 pstmt.setObject(1, null, Types.SQLXML);
                 pstmt.setObject(2, null);

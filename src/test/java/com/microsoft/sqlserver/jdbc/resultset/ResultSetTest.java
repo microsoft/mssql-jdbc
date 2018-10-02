@@ -43,6 +43,7 @@ public class ResultSetTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("StatementParam");
 
     static final String uuid = UUID.randomUUID().toString();
+
     /**
      * Tests proper exception for unsupported operation
      * 
@@ -51,37 +52,39 @@ public class ResultSetTest extends AbstractTest {
     @Test
     public void testJdbc41ResultSetMethods() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
-            stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ( " + "col1 int, " + "col2 varchar(512), "
-                    + "col3 float, " + "col4 decimal(10,5), " + "col5 uniqueidentifier, " + "col6 xml, "
-                    + "col7 varbinary(max), " + "col8 text, " + "col9 ntext, " + "col10 varbinary(max), "
+            stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ( " + "col1 int, "
+                    + "col2 varchar(512), " + "col3 float, " + "col4 decimal(10,5), " + "col5 uniqueidentifier, "
+                    + "col6 xml, " + "col7 varbinary(max), " + "col8 text, " + "col9 ntext, " + "col10 varbinary(max), "
                     + "col11 date, " + "col12 time, " + "col13 datetime2, " + "col14 datetimeoffset, "
                     + "col15 decimal(10,9), " + "col16 decimal(38,38), "
                     + "order_column int identity(1,1) primary key)");
             try {
 
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(" + "1, " // col1
-                        + "'hello', " // col2
-                        + "2.0, " // col3
-                        + "123.45, " // col4
-                        + "'" + uuid + "', " // col5
-                        + "'<test/>', " // col6
-                        + "0x63C34D6BCAD555EB64BF7E848D02C376, " // col7
-                        + "'text', " // col8
-                        + "'ntext', " // col9
-                        + "0x63C34D6BCAD555EB64BF7E848D02C376," // col10
-                        + "'2017-05-19'," // col11
-                        + "'10:47:15.1234567'," // col12
-                        + "'2017-05-19T10:47:15.1234567'," // col13
-                        + "'2017-05-19T10:47:15.1234567+02:00'," // col14
-                        + "0.123456789, " // col15
-                        + "0.1234567890123456789012345678901234567" // col16
-                        + ")");
+                stmt.executeUpdate(
+                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(" + "1, " // col1
+                                + "'hello', " // col2
+                                + "2.0, " // col3
+                                + "123.45, " // col4
+                                + "'" + uuid + "', " // col5
+                                + "'<test/>', " // col6
+                                + "0x63C34D6BCAD555EB64BF7E848D02C376, " // col7
+                                + "'text', " // col8
+                                + "'ntext', " // col9
+                                + "0x63C34D6BCAD555EB64BF7E848D02C376," // col10
+                                + "'2017-05-19'," // col11
+                                + "'10:47:15.1234567'," // col12
+                                + "'2017-05-19T10:47:15.1234567'," // col13
+                                + "'2017-05-19T10:47:15.1234567+02:00'," // col14
+                                + "0.123456789, " // col15
+                                + "0.1234567890123456789012345678901234567" // col16
+                                + ")");
 
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(" + "null, " + "null, " + "null, " + "null, "
+                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values("
                         + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, "
-                        + "null, " + "null, " + "null, " + "null)");
+                        + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null)");
 
-                try (ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " order by order_column")) {
+                try (ResultSet rs = stmt.executeQuery("select * from "
+                        + AbstractSQLGenerator.escapeIdentifier(tableName) + " order by order_column")) {
                     // test non-null values
                     assertTrue(rs.next());
                     assertEquals(Byte.valueOf((byte) 1), rs.getObject(1, Byte.class));
@@ -108,8 +111,7 @@ public class ResultSetTest extends AbstractTest {
                     assertEquals(0, rs.getObject("col4", BigDecimal.class).compareTo(new BigDecimal("123.45")));
 
                     assertEquals(UUID.fromString(uuid), rs.getObject(5, UUID.class));
-                    assertEquals(UUID.fromString(uuid),
-                            rs.getObject("col5", UUID.class));
+                    assertEquals(UUID.fromString(uuid), rs.getObject("col5", UUID.class));
 
                     SQLXML sqlXml;
                     sqlXml = rs.getObject(6, SQLXML.class);
@@ -262,10 +264,13 @@ public class ResultSetTest extends AbstractTest {
             final String testValueTime = "02:00:00.1234567";
             final String testValueDateTime = testValueDate + "T" + testValueTime;
 
-            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id INT PRIMARY KEY, dt2 DATETIME2)");
-            stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, dt2) VALUES (1, '" + testValueDateTime + "')");
+            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id INT PRIMARY KEY, dt2 DATETIME2)");
+            stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id, dt2) VALUES (1, '" + testValueDateTime + "')");
 
-            try (ResultSet rs = stmt.executeQuery("SELECT dt2 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id=1")) {
+            try (ResultSet rs = stmt.executeQuery(
+                    "SELECT dt2 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id=1")) {
                 rs.next();
 
                 LocalDateTime expectedLocalDateTime = LocalDateTime.parse(testValueDateTime);
@@ -295,10 +300,11 @@ public class ResultSetTest extends AbstractTest {
     public void testResultSetWrapper() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
-            stmt.executeUpdate(
-                    "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
+            stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
 
-            try (ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (ResultSet rs = stmt
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 assertTrue(rs.isWrapperFor(ResultSet.class));
                 assertTrue(rs.isWrapperFor(ISQLServerResultSet.class));
 

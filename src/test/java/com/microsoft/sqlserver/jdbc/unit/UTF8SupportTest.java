@@ -138,7 +138,8 @@ public class UTF8SupportTest extends AbstractTest {
     private static void createTable(String columnType) throws SQLException {
         try (Statement stmt = connection.createStatement();) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c " + columnType + ")");
+            stmt.executeUpdate(
+                    "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c " + columnType + ")");
         }
     }
 
@@ -149,8 +150,10 @@ public class UTF8SupportTest extends AbstractTest {
     }
 
     public void validate(String value) throws SQLException {
-        try (PreparedStatement psInsert = connection.prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES(?)");
-                PreparedStatement psFetch = connection.prepareStatement("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName));
+        try (PreparedStatement psInsert = connection
+                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES(?)");
+                PreparedStatement psFetch = connection
+                        .prepareStatement("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName));
                 Statement stmt = connection.createStatement();) {
             clearTable();
             // Used for exact byte comparison.
@@ -160,7 +163,8 @@ public class UTF8SupportTest extends AbstractTest {
             psInsert.executeUpdate();
 
             // Fetch using Statement.
-            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
                 // Compare Strings.
                 assertEquals(value, rs.getString(1));

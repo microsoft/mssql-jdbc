@@ -234,13 +234,15 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 con.beginRequest();
                 try (Statement stmt = con.createStatement()) {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col int)");
-                    try (PreparedStatement ps = con.prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?)")) {
+                    stmt.executeUpdate(
+                            "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col int)");
+                    try (PreparedStatement ps = con.prepareStatement(
+                            "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?)")) {
                         ps.setInt(1, 2);
                         ps.executeUpdate();
 
-                        try (Statement stmt1 = con.createStatement();
-                                ResultSet rs = stmt1.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                        try (Statement stmt1 = con.createStatement(); ResultSet rs = stmt1
+                                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                             rs.next();
                             assertEquals(2, rs.getInt(1));
                             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);

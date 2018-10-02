@@ -314,14 +314,18 @@ public class ConnectionDriverTest extends AbstractTest {
                 Statement stmt = conn.createStatement()) {
 
             conn.setAutoCommit(false);
-            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int primary key)");
+            stmt.executeUpdate(
+                    "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int primary key)");
             for (int i = 0; i < 80; i++) {
-                stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + "(col1) values (" + i + ")");
+                stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + "(col1) values ("
+                        + i + ")");
             }
             conn.commit();
             try {
-                stmt.execute("SELECT x1.col1 as foo, x2.col1 as bar, x1.col1 as eeep FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " as x1, "
-                        + AbstractSQLGenerator.escapeIdentifier(tableName) + " as x2; RAISERROR ('Oops', 21, 42) WITH LOG");
+                stmt.execute("SELECT x1.col1 as foo, x2.col1 as bar, x1.col1 as eeep FROM "
+                        + AbstractSQLGenerator.escapeIdentifier(tableName) + " as x1, "
+                        + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " as x2; RAISERROR ('Oops', 21, 42) WITH LOG");
             } catch (SQLException e) {
                 assertEquals(e.getMessage(), TestResource.getResource("R_connectionReset"),
                         TestResource.getResource("R_unknownException"));

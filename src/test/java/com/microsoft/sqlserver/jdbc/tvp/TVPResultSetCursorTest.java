@@ -44,7 +44,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
             new Timestamp(1491123533000L)};
     static String[] expectedTimestampStrings = {"2015-06-03 13:35:33.4610000", "2442-09-19 01:59:43.9990000",
             "2017-04-02 08:58:53.0000000"};
-   
+
     private static String tvpName = RandomUtil.getIdentifier("TVPResultSetCursorTest_TVP");
     private static String procedureName = RandomUtil.getIdentifier("TVPResultSetCursorTest_SP");
     private static String srcTable = RandomUtil.getIdentifier("TVPResultSetCursorTest_SourceTable");
@@ -76,8 +76,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
             try (ResultSet rs = conn.createStatement(resultSetType, resultSetConcurrency)
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
-                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                            .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                            "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
                 pstmt.setStructured(1, AbstractSQLGenerator.escapeIdentifier(tvpName), rs);
                 pstmt.execute();
 
@@ -107,9 +107,10 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
             populateSourceTable();
 
-            try (ResultSet rs = conn.createStatement().executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
-                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                            .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
+            try (ResultSet rs = conn.createStatement()
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                            "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
                 pstmt.setStructured(1, AbstractSQLGenerator.escapeIdentifier(tvpName), rs);
                 pstmt.execute();
 
@@ -141,7 +142,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
             populateSourceTable();
 
-            try (ResultSet rs = conn.createStatement().executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
+            try (ResultSet rs = conn.createStatement()
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
                     SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn
                             .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}")) {
                 pstmt.setStructured(1, AbstractSQLGenerator.escapeIdentifier(tvpName), rs);
@@ -175,9 +177,10 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
             populateSourceTable();
 
-            try (ResultSet rs = conn.createStatement().executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
-                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                            .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
+            try (ResultSet rs = conn.createStatement()
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                            "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
 
                 pstmt.setStructured(1, "invalid" + tvpName, rs);
 
@@ -212,9 +215,10 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
             populateSourceTable();
 
-            try (ResultSet rs = conn.createStatement().executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
-                    SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn
-                            .prepareCall("{call invalid" + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}")) {
+            try (ResultSet rs = conn.createStatement()
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
+                    SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn.prepareCall(
+                            "{call invalid" + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}")) {
                 pstmt.setStructured(1, tvpName, rs);
 
                 pstmt.execute();
@@ -247,10 +251,11 @@ public class TVPResultSetCursorTest extends AbstractTest {
             populateSourceTable();
 
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-                try (ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable))) {
+                try (ResultSet rs = stmt
+                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable))) {
 
-                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                            .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                            "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
                         pstmt.setStructured(1, AbstractSQLGenerator.escapeIdentifier(tvpName), rs);
                         pstmt.execute();
                         verifyDestinationTableData(expectedBigDecimals.length);
@@ -258,8 +263,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
                         rs.beforeFirst();
                     }
 
-                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                            .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                            "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
                         pstmt.setStructured(1, AbstractSQLGenerator.escapeIdentifier(tvpName), rs);
                         pstmt.execute();
                         verifyDestinationTableData(expectedBigDecimals.length * 2);
@@ -267,8 +272,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
                         rs.beforeFirst();
                     }
 
-                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                            .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                            "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
                         pstmt.setStructured(1, AbstractSQLGenerator.escapeIdentifier(tvpName), rs);
                         pstmt.execute();
                         verifyDestinationTableData(expectedBigDecimals.length * 3);
@@ -287,9 +292,11 @@ public class TVPResultSetCursorTest extends AbstractTest {
                         verifyDestinationTableData(expectedBigDecimals.length * 4);
                     }
                 }
-                try (ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
+                try (ResultSet rs = stmt
+                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
                         SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
+                                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable)
+                                        + " select * from ? ;")) {
                     pstmt.setStructured(1, AbstractSQLGenerator.escapeIdentifier(tvpName), rs);
                     pstmt.execute();
                     verifyDestinationTableData(expectedBigDecimals.length * 5);
@@ -300,7 +307,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
     private static void verifyDestinationTableData(int expectedNumberOfRows) throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
-                ResultSet rs = conn.createStatement().executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable))) {
+                ResultSet rs = conn.createStatement()
+                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable))) {
 
             int expectedArrayLength = expectedBigDecimals.length;
 
@@ -368,8 +376,9 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
     private static void dropTVPS() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            stmt.execute("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + TestUtils.escapeSingleQuotes(tvpName) + "') "
-                    + " drop type " + AbstractSQLGenerator.escapeIdentifier(tvpName));
+            stmt.execute("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
+                    + TestUtils.escapeSingleQuotes(tvpName) + "') " + " drop type "
+                    + AbstractSQLGenerator.escapeIdentifier(tvpName));
         }
     }
 
@@ -381,13 +390,15 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
     private static void createProcedure() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData " + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS "
-                    + " BEGIN " + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " SELECT * FROM @InputData" + " END";
+            String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
+                    + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN "
+                    + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " SELECT * FROM @InputData"
+                    + " END";
 
             stmt.execute(sql);
         }
     }
-    
+
     @AfterAll
     public static void terminate() throws SQLException {
         dropProcedure();

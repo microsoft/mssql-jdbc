@@ -60,13 +60,14 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(12);
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
 
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
             while (rs.next()) {
                 assertEquals(rs.getInt(1), 12);
                 assertEquals(rs.getString(1), "" + 12);
@@ -88,13 +89,14 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(date);
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable)  + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
 
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
             while (rs.next()) {
                 assertEquals(rs.getString(1), "" + date); // TODO: GetDate has issues
             }
@@ -113,13 +115,14 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(new BigDecimal(numeric[14]));
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
 
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
             while (rs.next()) {
                 assertEquals(rs.getMoney(1), new BigDecimal(numeric[14]));
             }
@@ -138,14 +141,15 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(Short.valueOf(numeric[2]));
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
 
         }
 
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
             while (rs.next()) {
                 assertEquals("" + rs.getInt(1), numeric[2]);
                 // System.out.println(rs.getShort(1)); //does not work says cannot cast integer to short cause it is
@@ -168,12 +172,13 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         String[] numeric = createNumericValues();
         tvp.addRow(Long.parseLong(numeric[4]));
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
             while (rs.next()) {
                 assertEquals(rs.getLong(1), Long.parseLong(numeric[4]));
             }
@@ -192,12 +197,13 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(Boolean.parseBoolean(numeric[0]));
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
             while (rs.next()) {
                 assertEquals(rs.getBoolean(1), Boolean.parseBoolean(numeric[0]));
             }
@@ -216,12 +222,13 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String[] numeric = createNumericValues();
         tvp.addRow(Float.parseFloat(numeric[1]));
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
             while (rs.next()) {
                 assertEquals(rs.getFloat(1), Float.parseFloat(numeric[1]));
             }
@@ -240,12 +247,13 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         String colValue = "س";
         tvp.addRow(colValue);
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
             while (rs.next()) {
                 assertEquals(rs.getString(1), colValue);
             }
@@ -269,12 +277,13 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         String value = buffer.toString();
         tvp.addRow(value);
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
             while (rs.next()) {
                 assertEquals(rs.getString(1), value);
             }
@@ -298,8 +307,8 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         String value = buffer.toString();
         tvp.addRow(value);
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             try {
                 pstmt.execute();
@@ -326,12 +335,13 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
         tvp.addRow(timestamp);
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
             while (rs.next()) {
                 assertEquals(rs.getString(1), "" + timestamp);
                 // System.out.println(rs.getDateTime(1));// TODO does not work
@@ -355,12 +365,13 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             assertTrue(e.getMessage().startsWith("Use of TVPs containing null sql_variant columns is not supported."));
         }
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
             while (rs.next()) {
                 System.out.println(rs.getString(1));
             }
@@ -383,7 +394,8 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         try (SQLServerCallableStatement cstatement = (SQLServerCallableStatement) conn.prepareCall(sql)) {
             cstatement.setStructured(1, tvpName, tvp);
             cstatement.execute();
-            try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+            try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
                 while (rs.next()) {
                     System.out.println(rs.getString(1));
                 }
@@ -471,13 +483,15 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     }
 
     private static void dropTVPS() throws SQLException {
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + TestUtils.escapeSingleQuotes(tvpName) + "') "
-                + " drop type " + AbstractSQLGenerator.escapeIdentifier(tvpName));
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
+                + TestUtils.escapeSingleQuotes(tvpName) + "') " + " drop type "
+                + AbstractSQLGenerator.escapeIdentifier(tvpName));
     }
 
     private static void createPreocedure() throws SQLException {
-        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData " + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN "
-                + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(destTable) + " SELECT * FROM @InputData" + " END";
+        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
+                + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN " + " INSERT INTO "
+                + AbstractSQLGenerator.escapeIdentifier(destTable) + " SELECT * FROM @InputData" + " END";
 
         stmt.execute(sql);
     }
@@ -488,7 +502,8 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     }
 
     private void createTVPS() throws SQLException {
-        String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName) + " as table (c1 sql_variant null)";
+        String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName)
+                + " as table (c1 sql_variant null)";
         stmt.executeUpdate(TVPCreateCmd);
     }
 

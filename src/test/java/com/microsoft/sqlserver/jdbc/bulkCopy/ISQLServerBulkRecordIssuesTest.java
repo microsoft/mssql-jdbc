@@ -42,7 +42,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
 
-    //static Statement stmt = null;
+    // static Statement stmt = null;
     static String query;
     static String srcTable = RandomUtil.getIdentifier("sourceTable");
     static String destTable = RandomUtil.getIdentifier("destTable");
@@ -96,7 +96,8 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
                 bcOperation.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(destTable));
                 bcOperation.writeToServer(bData);
 
-                try (ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+                try (ResultSet rs = stmt
+                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
                     while (rs.next()) {
                         assertEquals(rs.getString(1), value);
                     }
@@ -210,7 +211,8 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
                 bcOperation.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(destTable));
                 bcOperation.writeToServer(bData);
 
-                try (ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+                try (ResultSet rs = stmt
+                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
                     while (rs.next()) {
                         assertEquals(rs.getString(1), "0101010000");
                     }

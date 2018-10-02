@@ -1391,7 +1391,8 @@ public class PQImpsTest extends AbstractTest {
     @Test
     public void testComplexQueryWithMultipleTables() throws SQLException {
         pstmt = connection.prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(charTable)
-                + " (c1) select ? where not exists (select * from " + AbstractSQLGenerator.escapeIdentifier(charTable2) + " where table2c1 = ?)");
+                + " (c1) select ? where not exists (select * from " + AbstractSQLGenerator.escapeIdentifier(charTable2)
+                + " where table2c1 = ?)");
 
         try {
             SQLServerParameterMetaData pMD = (SQLServerParameterMetaData) pstmt.getParameterMetaData();

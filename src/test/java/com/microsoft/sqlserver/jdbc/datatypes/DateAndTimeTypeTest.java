@@ -40,12 +40,11 @@ public class DateAndTimeTypeTest extends AbstractTest {
     private static final Date DATE_TO_TEST = new java.sql.Date(61494793200000L);
     private static final Time TIME_TO_TEST = new java.sql.Time(74096000L);
     private static final Timestamp TIMESTAMP_TO_TEST = new java.sql.Timestamp(61494838496000L);
-    
+
     private String dateTVP = RandomUtil.getIdentifier("dateTVP");
     private String timeTVP = RandomUtil.getIdentifier("timeTVP");
     private String timestampTVP = RandomUtil.getIdentifier("timestampTVP");
     private static String tableName = RandomUtil.getIdentifier("DataTypesTable");
-
 
     /**
      * Test query with date
@@ -54,7 +53,8 @@ public class DateAndTimeTypeTest extends AbstractTest {
     public void testQueryDate() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
 
-            String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where my_date = ?";
+            String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " where my_date = ?";
             try (PreparedStatement pstmt = connection.prepareStatement(sPrepStmt)) {
                 pstmt.setDate(1, DATE_TO_TEST);
 
@@ -73,7 +73,8 @@ public class DateAndTimeTypeTest extends AbstractTest {
     public void testQueryTimestamp() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
 
-            String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where my_timestamp = ?";
+            String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " where my_timestamp = ?";
             try (PreparedStatement pstmt = connection.prepareStatement(sPrepStmt)) {
                 pstmt.setTimestamp(1, TIMESTAMP_TO_TEST);
 
@@ -92,7 +93,8 @@ public class DateAndTimeTypeTest extends AbstractTest {
     public void testQueryTime() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
 
-            String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where my_time = ?";
+            String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " where my_time = ?";
             try (PreparedStatement pstmt = connection.prepareStatement(sPrepStmt)) {
                 pstmt.setTime(1, TIME_TO_TEST);
 
@@ -114,7 +116,8 @@ public class DateAndTimeTypeTest extends AbstractTest {
             SQLServerDataTable tvp = new SQLServerDataTable();
             tvp.addColumnMetadata("c1", java.sql.Types.DATE);
             tvp.addRow(DATE_TO_TEST);
-            String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where my_date IN (select * from ?)";
+            String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " where my_date IN (select * from ?)";
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement(sPrepStmt)) {
                 pstmt.setStructured(1, dateTVP, tvp);
@@ -137,7 +140,8 @@ public class DateAndTimeTypeTest extends AbstractTest {
             SQLServerDataTable tvp = new SQLServerDataTable();
             tvp.addColumnMetadata("c1", java.sql.Types.TIMESTAMP);
             tvp.addRow(TIMESTAMP_TO_TEST);
-            String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where my_timestamp IN (select * from ?)";
+            String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " where my_timestamp IN (select * from ?)";
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement(sPrepStmt)) {
                 pstmt.setStructured(1, timestampTVP, tvp);
@@ -160,7 +164,8 @@ public class DateAndTimeTypeTest extends AbstractTest {
             SQLServerDataTable tvp = new SQLServerDataTable();
             tvp.addColumnMetadata("c1", java.sql.Types.TIME);
             tvp.addRow(TIME_TO_TEST);
-            String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where my_time IN (select * from ?)";
+            String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " where my_time IN (select * from ?)";
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement(sPrepStmt)) {
                 ((SQLServerPreparedStatement) pstmt).setStructured(1, timeTVP, tvp);
@@ -177,9 +182,11 @@ public class DateAndTimeTypeTest extends AbstractTest {
         try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
 
-            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + TestUtils.escapeSingleQuotes(tvpName)
-                    + "') " + " drop type " + AbstractSQLGenerator.escapeIdentifier(tvpName));
-            String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName) + " as table (c1 " + tvpType + " null)";
+            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
+                    + TestUtils.escapeSingleQuotes(tvpName) + "') " + " drop type "
+                    + AbstractSQLGenerator.escapeIdentifier(tvpName));
+            String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName) + " as table (c1 "
+                    + tvpType + " null)";
             stmt.executeUpdate(TVPCreateCmd);
         }
     }
@@ -195,11 +202,13 @@ public class DateAndTimeTypeTest extends AbstractTest {
         try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint pk_esimple primary key (id))";
+            String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint pk_esimple primary key (id))";
             stmt.execute(sql1);
 
             // add one sample data
-            String sPrepStmt = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, my_date, my_time, my_timestamp) values (?, ?, ?, ?)";
+            String sPrepStmt = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id, my_date, my_time, my_timestamp) values (?, ?, ?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(sPrepStmt)) {
                 pstmt.setInt(1, 42);
                 pstmt.setDate(2, DATE_TO_TEST);

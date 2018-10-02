@@ -80,11 +80,11 @@ public class StatementTest extends AbstractTest {
                     try {
                         TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                     } catch (SQLException e) {}
-                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 INT PRIMARY KEY, col2 VARCHAR("
-                            + TEST_STRING.length() + "))");
+                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                            + " (col1 INT PRIMARY KEY, col2 VARCHAR(" + TEST_STRING.length() + "))");
                     for (int i = 0; i < NUM_TABLE_ROWS; i++)
-                        stmt.executeUpdate(
-                                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1, col2) VALUES (" + i + ", '" + TEST_STRING + "')");
+                        stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                + " (col1, col2) VALUES (" + i + ", '" + TEST_STRING + "')");
                 }
                 con.commit();
             }
@@ -111,7 +111,8 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
                 stmt.cancel();
-                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                try (ResultSet rs = stmt
+                        .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     int numSelectedRows = 0;
                     while (rs.next())
                         ++numSelectedRows;
@@ -133,8 +134,9 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testErrorInRequest() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString); PreparedStatement ps = con
-                    .prepareStatement("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET col2 = ? WHERE col1 = ?")) {
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    PreparedStatement ps = con.prepareStatement("UPDATE "
+                            + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET col2 = ? WHERE col1 = ?")) {
                 ps.setString(1, TEST_STRING);
                 for (int i = 0; i < MIN_TABLE_ROWS; i++) {
                     ps.setInt(2, i);
@@ -232,7 +234,8 @@ public class StatementTest extends AbstractTest {
                 }
 
                 try (ResultSet rs = stmt.executeQuery(
-                        "SELECT " + "a.col1, a.col2 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " a CROSS JOIN " + AbstractSQLGenerator.escapeIdentifier(tableName) + " b")) {
+                        "SELECT " + "a.col1, a.col2 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                + " a CROSS JOIN " + AbstractSQLGenerator.escapeIdentifier(tableName) + " b")) {
 
                     // Scan the first MIN_TABLE_ROWS rows
                     int numSelectedRows = 0;
@@ -310,8 +313,8 @@ public class StatementTest extends AbstractTest {
                 // and leave it non-responsive for now...
                 conLock.setAutoCommit(false);
                 try (Statement stmtLock = conLock.createStatement()) {
-                    stmtLock.executeUpdate("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET col2 = 'New Value!' WHERE col1 = "
-                            + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
+                    stmtLock.executeUpdate("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                            + " SET col2 = 'New Value!' WHERE col1 = " + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
 
                     try (Connection con = DriverManager.getConnection(connectionString)) {
                         // In SQL Azure, both ALLOW_SNAPSHOT_ISOLATION and READ_COMMITTED_SNAPSHOT options
@@ -338,7 +341,8 @@ public class StatementTest extends AbstractTest {
                         try (Statement stmt = con.createStatement(SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY,
                                 ResultSet.CONCUR_READ_ONLY)) {
                             ((SQLServerStatement) stmt).setResponseBuffering("adaptive");
-                            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                            try (ResultSet rs = stmt.executeQuery(
+                                    "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
                                 // Time how long it takes for execution to be cancelled...
                                 long elapsedMillis = -System.currentTimeMillis();
@@ -401,8 +405,8 @@ public class StatementTest extends AbstractTest {
                 // and leave it non-responsive for now...
                 conLock.setAutoCommit(false);
                 try (Statement stmtLock = conLock.createStatement()) {
-                    stmtLock.executeUpdate("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET col2 = 'New Value!' WHERE col1 = "
-                            + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
+                    stmtLock.executeUpdate("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                            + " SET col2 = 'New Value!' WHERE col1 = " + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
 
                     try (Connection con = DriverManager.getConnection(connectionString)) {
                         // In SQL Azure, both ALLOW_SNAPSHOT_ISOLATION and READ_COMMITTED_SNAPSHOT options
@@ -425,7 +429,8 @@ public class StatementTest extends AbstractTest {
                         //
                         // Need to use adaptive response buffering when executing the statement.
                         // Otherwise, we would block in executeQuery()...
-                        try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName),
+                        try (PreparedStatement stmt = con.prepareStatement(
+                                "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName),
                                 SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
                             ((SQLServerStatement) stmt).setResponseBuffering("adaptive");
                             try (ResultSet rs = stmt.executeQuery()) {
@@ -495,8 +500,8 @@ public class StatementTest extends AbstractTest {
                 // and leave it non-responsive for now...
                 conLock.setAutoCommit(false);
                 try (Statement stmtLock = conLock.createStatement()) {
-                    stmtLock.executeUpdate("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET col2 = 'New Value!' WHERE col1 = "
-                            + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
+                    stmtLock.executeUpdate("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                            + " SET col2 = 'New Value!' WHERE col1 = " + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
 
                     try (Connection con = DriverManager.getConnection(connectionString)) {
                         // In SQL Azure, both ALLOW_SNAPSHOT_ISOLATION and READ_COMMITTED_SNAPSHOT options
@@ -514,7 +519,8 @@ public class StatementTest extends AbstractTest {
                             con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
                         }
 
-                        try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName),
+                        try (PreparedStatement stmt = con.prepareStatement(
+                                "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName),
                                 SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
 
                             // Start up a thread to cancel the following SELECT after 3 seconds of blocking.
@@ -576,7 +582,8 @@ public class StatementTest extends AbstractTest {
             int numSelectedRows;
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
-                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                try (ResultSet rs = stmt
+                        .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     numSelectedRows = 0;
                     while (rs.next())
                         ++numSelectedRows;
@@ -588,7 +595,8 @@ public class StatementTest extends AbstractTest {
                 stmt.cancel();
 
                 // Verify that the query can be re-executed without error
-                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                try (ResultSet rs = stmt
+                        .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     numSelectedRows = 0;
                     while (rs.next())
                         ++numSelectedRows;
@@ -612,10 +620,12 @@ public class StatementTest extends AbstractTest {
                 try {
                     TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
                 } catch (Exception ex) {} ;
-                stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + "    @arg1 CHAR(512) OUTPUT, "
-                        + "    @arg2 CHAR(512) OUTPUT, " + "    @arg3 CHAR(512) OUTPUT " + "AS " + "BEGIN "
-                        + "   SET @arg1='hi' " + "   SET @arg2='there' " + "   SET @arg3='!' " + "END");
-                try (CallableStatement cstmt = con.prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?, ?)}")) {
+                stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
+                        + "    @arg1 CHAR(512) OUTPUT, " + "    @arg2 CHAR(512) OUTPUT, "
+                        + "    @arg3 CHAR(512) OUTPUT " + "AS " + "BEGIN " + "   SET @arg1='hi' "
+                        + "   SET @arg2='there' " + "   SET @arg3='!' " + "END");
+                try (CallableStatement cstmt = con
+                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?, ?)}")) {
                     ((SQLServerStatement) cstmt).setResponseBuffering("adaptive");
                     cstmt.registerOutParameter(1, Types.CHAR);
                     cstmt.registerOutParameter(2, Types.CHAR);
@@ -708,7 +718,8 @@ public class StatementTest extends AbstractTest {
                         public void run() {
                             ++numExecuteTries;
 
-                            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                            try (ResultSet rs = stmt.executeQuery(
+                                    "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
                                 while (rs.next())
                                     ++numExecuteSuccesses;
@@ -955,10 +966,13 @@ public class StatementTest extends AbstractTest {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2Name), stmt);
                 } catch (SQLException e) {}
 
-                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table1Name) + " (col1 INT PRIMARY KEY)");
-                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table2Name) + " (col1 INT PRIMARY KEY)");
+                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table1Name)
+                        + " (col1 INT PRIMARY KEY)");
+                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table2Name)
+                        + " (col1 INT PRIMARY KEY)");
 
-                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(table2Name))) {} catch (Exception e) {
+                try (ResultSet rs = stmt.executeQuery(
+                        "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(table2Name))) {} catch (Exception e) {
                     assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
                 }
             }
@@ -1073,10 +1087,10 @@ public class StatementTest extends AbstractTest {
 
             try (Connection conn = DriverManager.getConnection(connectionString);
                     Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
-                String query = "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName) + " @col1Value varchar(512) OUTPUT,"
-                        + " @col2Value int OUTPUT," + " @col3Value float OUTPUT," + " @col4Value decimal(10,5) OUTPUT,"
-                        + " @col5Value uniqueidentifier OUTPUT," + " @col6Value xml OUTPUT,"
-                        + " @col7Value varbinary(max) OUTPUT," + " @col8Value text OUTPUT,"
+                String query = "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName)
+                        + " @col1Value varchar(512) OUTPUT," + " @col2Value int OUTPUT," + " @col3Value float OUTPUT,"
+                        + " @col4Value decimal(10,5) OUTPUT," + " @col5Value uniqueidentifier OUTPUT,"
+                        + " @col6Value xml OUTPUT," + " @col7Value varbinary(max) OUTPUT," + " @col8Value text OUTPUT,"
                         + " @col9Value ntext OUTPUT," + " @col10Value varbinary(max) OUTPUT,"
                         + " @col11Value date OUTPUT," + " @col12Value time OUTPUT," + " @col13Value datetime2 OUTPUT,"
                         + " @col14Value datetimeoffset OUTPUT," + " @col15Value decimal(10,10) OUTPUT,"
@@ -1093,7 +1107,8 @@ public class StatementTest extends AbstractTest {
 
                 // Test JDBC 4.1 methods for CallableStatement
                 try (CallableStatement cstmt = conn
-                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
+                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName)
+                                + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
                     cstmt.registerOutParameter(1, java.sql.Types.VARCHAR);
                     cstmt.registerOutParameter(2, java.sql.Types.INTEGER);
                     cstmt.registerOutParameter(3, java.sql.Types.FLOAT);
@@ -1249,7 +1264,8 @@ public class StatementTest extends AbstractTest {
                     }
                 }
 
-                try (CallableStatement cstmt = con.prepareCall("{  ? = CALL " + AbstractSQLGenerator.escapeIdentifier(procName) + " (?,?)}")) {
+                try (CallableStatement cstmt = con
+                        .prepareCall("{  ? = CALL " + AbstractSQLGenerator.escapeIdentifier(procName) + " (?,?)}")) {
                     cstmt.registerOutParameter(1, Types.INTEGER);
                     cstmt.setObject(2, Short.valueOf("32"), Types.SMALLINT);
                     cstmt.registerOutParameter(3, Types.SMALLINT);
@@ -1280,7 +1296,8 @@ public class StatementTest extends AbstractTest {
                 stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
                         + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT,  @p4_smallint smallint OUTPUT, @p5_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p2_smallint, @p5_smallint_out=@p4_smallint RETURN @p2_smallint + 1");
 
-                try (CallableStatement cstmt = con.prepareCall("{  ? = CALL " + AbstractSQLGenerator.escapeIdentifier(procName) + " (?,?, ?, ?)}")) {
+                try (CallableStatement cstmt = con.prepareCall(
+                        "{  ? = CALL " + AbstractSQLGenerator.escapeIdentifier(procName) + " (?,?, ?, ?)}")) {
                     cstmt.registerOutParameter(1, Types.INTEGER);
                     cstmt.setObject(2, Short.valueOf("32"), Types.SMALLINT);
                     cstmt.registerOutParameter(3, Types.SMALLINT);
@@ -1313,7 +1330,8 @@ public class StatementTest extends AbstractTest {
                 stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
                         + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p3_smallint_out +1 RETURN @p2_smallint + 1");
 
-                try (CallableStatement cstmt = con.prepareCall("{  ? = CALL " + AbstractSQLGenerator.escapeIdentifier(procName) + " (?,?)}")) {
+                try (CallableStatement cstmt = con
+                        .prepareCall("{  ? = CALL " + AbstractSQLGenerator.escapeIdentifier(procName) + " (?,?)}")) {
                     cstmt.registerOutParameter(1, Types.INTEGER);
                     cstmt.setObject(2, Short.valueOf("1"), Types.SMALLINT);
                     cstmt.setObject(3, Short.valueOf("100"), Types.SMALLINT);
@@ -1340,16 +1358,20 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
                 stmt.executeUpdate(
-                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hi')");
+                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
+                stmt.executeUpdate(
+                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hi')");
                 String query = "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from "
+                        + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " where col1=@col1Value SET @col2Value='hi' END";
                 stmt.execute(query);
 
-                try (CallableStatement cstmt = con.prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?)}")) {
+                try (CallableStatement cstmt = con
+                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?)}")) {
                     cstmt.setInt(1, 0);
                     cstmt.registerOutParameter(2, java.sql.Types.VARCHAR);
                     try (ResultSet rs = cstmt.executeQuery()) {
@@ -1371,16 +1393,20 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
                 stmt.executeUpdate(
-                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hi')");
+                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
+                stmt.executeUpdate(
+                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hi')");
                 String query = "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from "
+                        + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " where col1=@col1Value SET @col2Value='hi' END";
                 stmt.execute(query);
 
-                try (CallableStatement cstmt = con.prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?)}")) {
+                try (CallableStatement cstmt = con
+                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?)}")) {
                     cstmt.setInt(1, 0);
                     try {
                         cstmt.getInt(2);
@@ -1401,21 +1427,24 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
 
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int primary key)");
+                stmt.executeUpdate(
+                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int primary key)");
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(1)");
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(2)");
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(3)");
-                try (PreparedStatement ps = con
-                        .prepareStatement("BEGIN TRAN " + "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(4) " + "ROLLBACK")) {}
+                try (PreparedStatement ps = con.prepareStatement("BEGIN TRAN " + "Insert into "
+                        + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(4) " + "ROLLBACK")) {}
                 con.setAutoCommit(false);
 
-                try (PreparedStatement ps2 = con.prepareStatement("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values('a')")) {
+                try (PreparedStatement ps2 = con.prepareStatement(
+                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values('a')")) {
                     try {
                         ps2.execute();
                     } catch (SQLException e) {}
                     try {
-                        stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(4)");
+                        stmt.executeUpdate(
+                                "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(4)");
                     } catch (SQLException ex) {}
                 }
             }
@@ -1430,15 +1459,18 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
                 stmt.executeUpdate(
-                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hi')");
+                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
+                stmt.executeUpdate(
+                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hi')");
                 String query = "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName)
                         + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from somenonexistanttable where col1=@col1Value SET @col2Value='hi' END";
                 stmt.execute(query);
 
-                try (CallableStatement cstmt = con.prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?)}")) {
+                try (CallableStatement cstmt = con
+                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?)}")) {
                     cstmt.setInt(1, 0);
                     cstmt.registerOutParameter(2, Types.VARCHAR);
 
@@ -1459,13 +1491,15 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
 
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int primary key)");
+                stmt.executeUpdate(
+                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int primary key)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(1)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(2)");
                 stmt.execute(
-                        "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName) + " @col1Value int AS " + " BEGIN " + "    SELECT col1 FROM "
-                                + AbstractSQLGenerator.escapeIdentifier(tableName) + "       WITH (UPDLOCK) WHERE (col1 = @col1Value) " + " END");
+                        "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName) + " @col1Value int AS "
+                                + " BEGIN " + "    SELECT col1 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                + "       WITH (UPDLOCK) WHERE (col1 = @col1Value) " + " END");
 
                 // For the test, lock each row in the table, one by one, for update
                 // on one connection and, on another connection, verify that the
@@ -1481,7 +1515,8 @@ public class StatementTest extends AbstractTest {
                     // locking it for update.
                     try (Connection testConn1 = DriverManager.getConnection(connectionString)) {
                         testConn1.setAutoCommit(false);
-                        try (CallableStatement cstmt = testConn1.prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?)}")) {
+                        try (CallableStatement cstmt = testConn1
+                                .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?)}")) {
                             cstmt.setInt(1, row);
 
                             // enable isCloseOnCompletion
@@ -1504,8 +1539,8 @@ public class StatementTest extends AbstractTest {
                                 try (Statement stmt2 = testConn2.createStatement()) {
                                     stmt2.executeUpdate("SET LOCK_TIMEOUT 0");
 
-                                    try (CallableStatement cstmt2 = testConn2
-                                            .prepareCall("SELECT col1 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WITH (UPDLOCK)")) {
+                                    try (CallableStatement cstmt2 = testConn2.prepareCall("SELECT col1 FROM "
+                                            + AbstractSQLGenerator.escapeIdentifier(tableName) + " WITH (UPDLOCK)")) {
 
                                         // Verify that the result set can be closed after
                                         // the lock timeout error
@@ -1730,7 +1765,8 @@ public class StatementTest extends AbstractTest {
                     stmt.close();
                     rsmd.isSparseColumnSet(1);
                 }
-                try (ResultSet rs = con.createStatement().executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                try (ResultSet rs = con.createStatement()
+                        .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
                     con.close();
                     rsmd.isSparseColumnSet(1);
@@ -1760,7 +1796,8 @@ public class StatementTest extends AbstractTest {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 } catch (SQLException e) {}
 
-                String createTableQuery = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + "(col1 int PRIMARY KEY IDENTITY(1,1)";
+                String createTableQuery = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + "(col1 int PRIMARY KEY IDENTITY(1,1)";
 
                 int noOfColumns = 128;
                 for (int i = 2; i <= noOfColumns; i++) {
@@ -1768,8 +1805,10 @@ public class StatementTest extends AbstractTest {
                 }
                 createTableQuery += ")";
                 stmt.executeUpdate(createTableQuery);
-                stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " DEFAULT VALUES");
-                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                stmt.executeUpdate(
+                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " DEFAULT VALUES");
+                try (ResultSet rs = stmt
+                        .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     rs.next();
 
                     // test that all columns except the first one are null
@@ -1812,7 +1851,8 @@ public class StatementTest extends AbstractTest {
                     } catch (SQLException e) {}
 
                     // construct a query to create a table with 100 columns
-                    String createTableQuery = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + "(col1 int PRIMARY KEY IDENTITY(1,1)";
+                    String createTableQuery = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                            + "(col1 int PRIMARY KEY IDENTITY(1,1)";
 
                     for (int i = 2; i <= noOfColumns; i++) {
                         createTableQuery = createTableQuery + ", col" + i + " int";
@@ -1853,7 +1893,8 @@ public class StatementTest extends AbstractTest {
 
                     // if there are no non-null columns
                     if (nonNullColumns.size() == 1)
-                        insertQuery = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " DEFAULT VALUES";
+                        insertQuery = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                + " DEFAULT VALUES";
 
                     log.fine("INSEER Query:" + insertQuery);
                     // populate the table by executing the insert query
@@ -1863,7 +1904,8 @@ public class StatementTest extends AbstractTest {
                 }
 
                 try (Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-                        ResultSet rs = stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                        ResultSet rs = stmt
+                                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
                     // Try accessing rows and columns randomly for 10 times
                     for (int j = 0; j < 10; j++) {
@@ -2077,27 +2119,36 @@ public class StatementTest extends AbstractTest {
                 try (Statement stmt = con.createStatement()) {
 
                     try {
-                        stmt.executeUpdate("if EXISTS (SELECT * FROM sys.triggers where name = '" + TestUtils.escapeSingleQuotes((triggerName))
-                                + "') drop trigger " + AbstractSQLGenerator.escapeIdentifier(triggerName));
+                        stmt.executeUpdate("if EXISTS (SELECT * FROM sys.triggers where name = '"
+                                + TestUtils.escapeSingleQuotes((triggerName)) + "') drop trigger "
+                                + AbstractSQLGenerator.escapeIdentifier(triggerName));
                     } catch (SQLException e) {
                         throw new SQLException(e);
                     }
-                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 INT PRIMARY KEY)");
+                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                            + " (col1 INT PRIMARY KEY)");
                     for (int i = 0; i < NUM_ROWS; i++)
-                        stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1) VALUES (" + i + ")");
+                        stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                + " (col1) VALUES (" + i + ")");
 
-                    stmt.executeUpdate(
-                            "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table2Name) + " (NAME VARCHAR(100), col2 int identity(1,1) primary key)");
-                    stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table2Name) + " (NAME) VALUES ('BLAH')");
-                    stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table2Name) + " (NAME) VALUES ('FNORD')");
-                    stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table2Name) + " (NAME) VALUES ('EEEP')");
+                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table2Name)
+                            + " (NAME VARCHAR(100), col2 int identity(1,1) primary key)");
+                    stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table2Name)
+                            + " (NAME) VALUES ('BLAH')");
+                    stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table2Name)
+                            + " (NAME) VALUES ('FNORD')");
+                    stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table2Name)
+                            + " (NAME) VALUES ('EEEP')");
 
-                    stmt.executeUpdate("Create Procedure " + AbstractSQLGenerator.escapeIdentifier(sprocName) + " AS " + "Begin " + "   Update " + AbstractSQLGenerator.escapeIdentifier(table2Name)
-                            + " SET " + " NAME = 'Update' Where NAME = 'TEST' " + "Return 0 " + "End");
+                    stmt.executeUpdate("Create Procedure " + AbstractSQLGenerator.escapeIdentifier(sprocName) + " AS "
+                            + "Begin " + "   Update " + AbstractSQLGenerator.escapeIdentifier(table2Name) + " SET "
+                            + " NAME = 'Update' Where NAME = 'TEST' " + "Return 0 " + "End");
 
-                    stmt.executeUpdate("CREATE Trigger " + AbstractSQLGenerator.escapeIdentifier(triggerName) + " ON " + AbstractSQLGenerator.escapeIdentifier(tableName) + " FOR DELETE AS "
-                            + "Begin " + "Declare @l_retstat Integer " + "Execute @l_retstat = " + AbstractSQLGenerator.escapeIdentifier(sprocName) + " "
-                            + "If (@l_retstat <> 0) " + "Begin " + "  Rollback Transaction " + "End " + "End");
+                    stmt.executeUpdate("CREATE Trigger " + AbstractSQLGenerator.escapeIdentifier(triggerName) + " ON "
+                            + AbstractSQLGenerator.escapeIdentifier(tableName) + " FOR DELETE AS " + "Begin "
+                            + "Declare @l_retstat Integer " + "Execute @l_retstat = "
+                            + AbstractSQLGenerator.escapeIdentifier(sprocName) + " " + "If (@l_retstat <> 0) "
+                            + "Begin " + "  Rollback Transaction " + "End " + "End");
 
                 }
                 con.commit();
@@ -2113,7 +2164,8 @@ public class StatementTest extends AbstractTest {
         public void testLastUpdateCountTrue() throws Exception {
 
             try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount=true");
-                    PreparedStatement ps = con.prepareStatement("DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE col1 = ?")) {
+                    PreparedStatement ps = con.prepareStatement(
+                            "DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE col1 = ?")) {
                 ps.setInt(1, 1);
                 int updateCount = ps.executeUpdate();
 
@@ -2132,7 +2184,8 @@ public class StatementTest extends AbstractTest {
         public void testLastUpdateCountFalse() throws Exception {
 
             try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount=false");
-                    PreparedStatement ps = con.prepareStatement("DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE col1 = ?")) {
+                    PreparedStatement ps = con.prepareStatement(
+                            "DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE col1 = ?")) {
                 ps.setInt(1, 1);
                 int updateCount = ps.executeUpdate();
 
@@ -2151,9 +2204,10 @@ public class StatementTest extends AbstractTest {
         public void testPreparedStatementInsertExecInsert() throws Exception {
 
             try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount=true");
-                    PreparedStatement ps = con
-                            .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1) VALUES (" + (NUM_ROWS + 1) + "); "
-                                    + "EXEC " + AbstractSQLGenerator.escapeIdentifier(sprocName) + "; " + "UPDATE " + AbstractSQLGenerator.escapeIdentifier(table2Name) + " SET NAME = 'FISH'")) {
+                    PreparedStatement ps = con.prepareStatement("INSERT INTO "
+                            + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1) VALUES (" + (NUM_ROWS + 1)
+                            + "); " + "EXEC " + AbstractSQLGenerator.escapeIdentifier(sprocName) + "; " + "UPDATE "
+                            + AbstractSQLGenerator.escapeIdentifier(table2Name) + " SET NAME = 'FISH'")) {
 
                 int updateCount = ps.executeUpdate();
 
@@ -2173,8 +2227,10 @@ public class StatementTest extends AbstractTest {
 
             try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount=true");
                     Statement stmt = con.createStatement()) {
-                int updateCount = stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1) VALUES (" + (NUM_ROWS + 1)
-                        + "); " + "EXEC " + AbstractSQLGenerator.escapeIdentifier(sprocName) + "; " + "UPDATE " + AbstractSQLGenerator.escapeIdentifier(table2Name) + " SET NAME = 'FISH'");
+                int updateCount = stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (col1) VALUES (" + (NUM_ROWS + 1) + "); " + "EXEC "
+                        + AbstractSQLGenerator.escapeIdentifier(sprocName) + "; " + "UPDATE "
+                        + AbstractSQLGenerator.escapeIdentifier(table2Name) + " SET NAME = 'FISH'");
 
                 // updateCount should be from the INSERT,
                 // which should have affected 1 (new) row in AbstractSQLGenerator.escapeIdentifier(tableName).
@@ -2211,14 +2267,17 @@ public class StatementTest extends AbstractTest {
                 try (Statement stmt = con.createStatement()) {
 
                     try {
-                        stmt.executeUpdate("if EXISTS (SELECT * FROM sys.triggers where name = '" + AbstractSQLGenerator.escapeIdentifier(triggerName)
-                                + "') drop trigger " + AbstractSQLGenerator.escapeIdentifier(triggerName));
+                        stmt.executeUpdate("if EXISTS (SELECT * FROM sys.triggers where name = '"
+                                + AbstractSQLGenerator.escapeIdentifier(triggerName) + "') drop trigger "
+                                + AbstractSQLGenerator.escapeIdentifier(triggerName));
                     } catch (SQLException e) {
                         System.out.println(e.toString());
                     }
-                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 INT primary key)");
+                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                            + " (col1 INT primary key)");
                     for (int i = 0; i < NUM_ROWS; i++)
-                        stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1) VALUES (" + i + ")");
+                        stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                + " (col1) VALUES (" + i + ")");
 
                     // Skip adding message for 50001 if the target server is SQL Azure, because SQL Azure does not
                     // support
@@ -2235,9 +2294,10 @@ public class StatementTest extends AbstractTest {
                         }
                     }
 
-                    stmt.executeUpdate(
-                            "CREATE TRIGGER " + AbstractSQLGenerator.escapeIdentifier(triggerName) + " ON " + AbstractSQLGenerator.escapeIdentifier(tableName) + " FOR INSERT AS BEGIN DELETE FROM "
-                                    + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE col1 = 1 RAISERROR(50001, 17, 1) END");
+                    stmt.executeUpdate("CREATE TRIGGER " + AbstractSQLGenerator.escapeIdentifier(triggerName) + " ON "
+                            + AbstractSQLGenerator.escapeIdentifier(tableName) + " FOR INSERT AS BEGIN DELETE FROM "
+                            + AbstractSQLGenerator.escapeIdentifier(tableName)
+                            + " WHERE col1 = 1 RAISERROR(50001, 17, 1) END");
                 }
                 con.commit();
             }
@@ -2252,8 +2312,10 @@ public class StatementTest extends AbstractTest {
         public void testUpdateCountAfterRaiseError() throws Exception {
 
             try (Connection con = DriverManager.getConnection(connectionString);
-                    PreparedStatement pstmt = con.prepareStatement("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                            + " SET col1 = 5 WHERE col1 = 2 RAISERROR(50001, 17, 1) SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    PreparedStatement pstmt = con
+                            .prepareStatement("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                    + " SET col1 = 5 WHERE col1 = 2 RAISERROR(50001, 17, 1) SELECT * FROM "
+                                    + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
                 // enable isCloseOnCompletion
                 try {
@@ -2306,7 +2368,8 @@ public class StatementTest extends AbstractTest {
         public void testUpdateCountAfterErrorInTriggerLastUpdateCountFalse() throws Exception {
 
             try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = false");
-                    PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (5)")) {
+                    PreparedStatement pstmt = con.prepareStatement(
+                            "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (5)")) {
 
                 int updateCount = pstmt.executeUpdate();
                 assertEquals(updateCount, 1, "First result: should have been 1 row deleted");
@@ -2334,7 +2397,8 @@ public class StatementTest extends AbstractTest {
                 result = pstmt.getMoreResults();
                 assertEquals(result, false, "Third result: wrong result type; update count expected");
                 assertEquals(pstmt.getUpdateCount(), 1, "Third result: wrong number of rows inserted");
-                try (ResultSet rs = con.createStatement().executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                try (ResultSet rs = con.createStatement()
+                        .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     int rowCount = 0;
                     while (rs.next())
                         ++rowCount;
@@ -2353,7 +2417,8 @@ public class StatementTest extends AbstractTest {
         public void testUpdateCountAfterErrorInTriggerLastUpdateCountTrue() throws Exception {
 
             try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = true");
-                    PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (5)")) {
+                    PreparedStatement pstmt = con.prepareStatement(
+                            "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (5)")) {
 
                 try {
                     pstmt.executeUpdate();
@@ -2382,7 +2447,8 @@ public class StatementTest extends AbstractTest {
                     assertEquals(pstmt.getUpdateCount(), 1, "Second result: wrong number of rows inserted");
                 }
 
-                try (ResultSet rs = con.createStatement().executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                try (ResultSet rs = con.createStatement()
+                        .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     int rowCount = 0;
                     while (rs.next())
                         ++rowCount;
@@ -2422,9 +2488,11 @@ public class StatementTest extends AbstractTest {
                     } catch (Exception e) {
                         throw new SQLException(TestResource.getResource("R_unexpectedException"), e);
                     }
-                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 INT primary key)");
+                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                            + " (col1 INT primary key)");
                     for (int i = 0; i < NUM_ROWS; i++)
-                        stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1) VALUES (" + i + ")");
+                        stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                + " (col1) VALUES (" + i + ")");
 
                     assertEquals(stmt.isClosed(), false, TestResource.getResource("R_statementShouldBeOpened"));
                 }
@@ -2443,8 +2511,9 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = true");
                     Statement stmt = con.createStatement();) {
 
-                boolean isResultSet = stmt.execute("set nocount on\n" + "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + "(col1) values("
-                        + (NUM_ROWS + 1) + ")\n" + "select 1");
+                boolean isResultSet = stmt
+                        .execute("set nocount on\n" + "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                + "(col1) values(" + (NUM_ROWS + 1) + ")\n" + "select 1");
 
                 assertEquals(true, isResultSet, "execute() said first result was an update count");
 

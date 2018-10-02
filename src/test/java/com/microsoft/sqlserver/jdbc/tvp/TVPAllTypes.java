@@ -142,20 +142,23 @@ public class TVPAllTypes extends AbstractTest {
 
     private static void createPreocedure(String procedureName, String destTable) throws SQLException {
         tvpName = RandomUtil.getIdentifier("TVPAllTypesTable_char_TVP");
-        procedureName = RandomUtil.getIdentifier("TVPAllTypesTable_char_SP");    
-        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData " + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN "
-                + " INSERT INTO " + destTable + " SELECT * FROM @InputData" + " END";
+        procedureName = RandomUtil.getIdentifier("TVPAllTypesTable_char_SP");
+        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
+                + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN " + " INSERT INTO "
+                + destTable + " SELECT * FROM @InputData" + " END";
 
         stmt.execute(sql);
     }
 
     private static void dropTVPS(String tvpName) throws SQLException {
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + TestUtils.escapeSingleQuotes(tvpName) + "') "
-                + " drop type " + AbstractSQLGenerator.escapeIdentifier(tvpName));
+        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
+                + TestUtils.escapeSingleQuotes(tvpName) + "') " + " drop type "
+                + AbstractSQLGenerator.escapeIdentifier(tvpName));
     }
 
     private static void createTVPS(String tvpName, String TVPDefinition) throws SQLException {
-        String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName) + " as table (" + TVPDefinition + ");";
+        String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName) + " as table ("
+                + TVPDefinition + ");";
         stmt.executeUpdate(TVPCreateCmd);
     }
 

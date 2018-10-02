@@ -45,7 +45,8 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     @Test
     public void testAddBatch2() throws SQLException {
         // try {
-        String sPrepStmt = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, name) values (?, ?)";
+        String sPrepStmt = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (id, name) values (?, ?)";
         int updateCountlen = 0;
         int key = 42;
 

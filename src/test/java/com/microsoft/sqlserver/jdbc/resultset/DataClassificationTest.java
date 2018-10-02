@@ -52,10 +52,10 @@ public class DataClassificationTest extends AbstractTest {
      * @throws SQLException
      */
     private void createTable(Connection connection, Statement stmt) throws SQLException {
-        String createQuery = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" + "[Id] [int] IDENTITY(1,1) NOT NULL,"
-                + "[CompanyName] [nvarchar](40) NOT NULL," + "[ContactName] [nvarchar](50) NULL,"
-                + "[ContactTitle] [nvarchar](40) NULL," + "[City] [nvarchar](40) NULL,"
-                + "[CountryName] [nvarchar](40) NULL,"
+        String createQuery = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ("
+                + "[Id] [int] IDENTITY(1,1) NOT NULL," + "[CompanyName] [nvarchar](40) NOT NULL,"
+                + "[ContactName] [nvarchar](50) NULL," + "[ContactTitle] [nvarchar](40) NULL,"
+                + "[City] [nvarchar](40) NULL," + "[CountryName] [nvarchar](40) NULL,"
                 + "[Phone] [nvarchar](30) MASKED WITH (FUNCTION = 'default()') NULL,"
                 + "[Fax] [nvarchar](30) MASKED WITH (FUNCTION = 'default()') NULL)";
         stmt.execute(createQuery);
@@ -70,8 +70,8 @@ public class DataClassificationTest extends AbstractTest {
                 + ".Fax WITH (LABEL='PII', LABEL_ID='L1', INFORMATION_TYPE='Contact Information', INFORMATION_TYPE_ID='CONTACT')");
 
         // INSERT ROWS OF DATA
-        try (PreparedStatement ps = connection
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (?,?,?,?,?,?,?)")) {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (?,?,?,?,?,?,?)")) {
 
             ps.setString(1, "Exotic Liquids");
             ps.setString(2, "Charlotte Cooper");
@@ -109,7 +109,8 @@ public class DataClassificationTest extends AbstractTest {
      * @throws Exception
      */
     private void runTestsForServer(Statement stmt) throws Exception {
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
             verifySensitivityClassification(rs);
         }
     }
