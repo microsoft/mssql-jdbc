@@ -44,7 +44,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
     private String dateTVP = RandomUtil.getIdentifier("dateTVP");
     private String timeTVP = RandomUtil.getIdentifier("timeTVP");
     private String timestampTVP = RandomUtil.getIdentifier("timestampTVP");
-    private static String tableName = RandomUtil.getIdentifier("tableName");
+    private static String tableName = RandomUtil.getIdentifier("DataTypesTable");
 
 
     /**

@@ -61,7 +61,6 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             // create dest table
             destTable = sourceTable.cloneSchema();
             stmt.createTable(destTable);
-
             // set up bulkCopy without explicit column mapping
             BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
             bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
@@ -82,7 +81,6 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             // create dest table
             destTable = sourceTable.cloneSchema();
             stmt.createTable(destTable);
-
             // set up bulkCopy with explicit column mapping
             BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
             bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
@@ -120,13 +118,14 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
     @DisplayName("BulkCopy:test unicode column mapping")
     public void testUnicodeCM() {
         DBTable sourceTableUnicode = null;
+        DBTable destTableUnicode = null;
         try {
             // create source unicode table
             sourceTableUnicode = new DBTable(true, true);
             stmt.createTable(sourceTableUnicode);
 
             // create destination unicode table with same schema as source
-            DBTable destTableUnicode = sourceTableUnicode.cloneSchema();
+            destTableUnicode = sourceTableUnicode.cloneSchema();
             stmt.createTable(destTableUnicode);
 
             // set up bulkCopy with explicit column mapping
@@ -158,6 +157,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         } finally {
             if (null != sourceTableUnicode) {
                 dropTable(sourceTableUnicode.getEscapedTableName());
+            }
+            if (null != destTableUnicode) {
+                dropTable(destTableUnicode.getEscapedTableName());
             }
         }
     }

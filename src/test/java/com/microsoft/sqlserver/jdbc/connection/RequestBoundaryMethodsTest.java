@@ -41,6 +41,8 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 public class RequestBoundaryMethodsTest extends AbstractTest {
 
+    static String tableName = RandomUtil.getIdentifier("RequestBoundaryTable");
+
     /**
      * Tests Request Boundary methods with SQLServerConnection properties that are modifiable through public APIs.
      * 
@@ -176,11 +178,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
      */
     @Test
     public void testOpenTransactions() throws SQLException {
-        String tableName = null;
-
         try (SQLServerConnection con = connect(); Statement stmt = con.createStatement()) {
             if (TestUtils.isJDBC43OrGreater(con)) {
-                tableName = RandomUtil.getIdentifier("RequestBoundaryTable");
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col int)");
                 con.beginRequest();
@@ -190,7 +189,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 con.endRequest();
                 con.commit();
 
-                try (ResultSet rs = con.createStatement().executeQuery("SELECT * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                try (ResultSet rs = con.createStatement()
+                        .executeQuery("SELECT * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     assertTrue(!rs.isBeforeFirst(), "Should not have returned a result set.");
                 } finally {
                     if (null != tableName) {
@@ -211,8 +211,6 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
     @SuppressWarnings("resource")
     @Test
     public void testStatements() throws SQLException {
-        String tableName = null;
-
         try (SQLServerConnection con = connect();) {
             if (TestUtils.isJDBC43OrGreater(con)) {
                 try (Statement stmt1 = con.createStatement()) {
@@ -235,7 +233,6 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 // Multiple statements inside beginRequest()/endRequest() block
                 con.beginRequest();
                 try (Statement stmt = con.createStatement()) {
-                    tableName = RandomUtil.getIdentifier("RequestBoundary");
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                     stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col int)");
                     try (PreparedStatement ps = con.prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?)")) {

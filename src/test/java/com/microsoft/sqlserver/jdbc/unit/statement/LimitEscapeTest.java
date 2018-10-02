@@ -791,7 +791,7 @@ public class LimitEscapeTest extends AbstractTest {
     public static void afterAll() throws Exception {
 
         try (Statement stmt = conn.createStatement()) {
-           // TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table4), stmt);

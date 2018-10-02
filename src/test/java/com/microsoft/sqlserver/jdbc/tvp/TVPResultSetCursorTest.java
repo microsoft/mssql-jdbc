@@ -17,6 +17,7 @@ import java.util.Calendar;
 import java.util.Properties;
 import java.util.TimeZone;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -385,5 +386,12 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
             stmt.execute(sql);
         }
+    }
+    
+    @AfterAll
+    public static void terminate() throws SQLException {
+        dropProcedure();
+        dropTVPS();
+        dropTables();
     }
 }

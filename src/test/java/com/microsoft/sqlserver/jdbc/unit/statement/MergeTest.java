@@ -88,6 +88,7 @@ public class MergeTest extends AbstractTest {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             try {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(cricketTeams), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated), stmt);
             } catch (Exception ex) {
                 fail(ex.toString());
             }

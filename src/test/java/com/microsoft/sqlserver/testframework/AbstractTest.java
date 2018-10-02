@@ -79,7 +79,6 @@ public abstract class AbstractTest {
             info.setProperty("keyStoreLocation", jksPaths[0]);
             info.setProperty("keyStoreSecret", secretstrJks);
         }
-        logger.info("In AbstractTest:setup");
 
         try {
             Assertions.assertNotNull(connectionString, "Connection String should not be null");

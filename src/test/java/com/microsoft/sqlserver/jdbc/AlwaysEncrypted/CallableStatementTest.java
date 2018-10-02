@@ -65,23 +65,14 @@ public class CallableStatementTest extends AESetup {
     private static String mixedProcedure3 = RandomUtil.getIdentifier("mixedProcedure3");
     private static String mixedProcedureNumericPrcisionScale = RandomUtil.getIdentifier("mixedProcedureNumericPrcisionScale");
   
-    /*
+    
     private static String table1 = RandomUtil.getIdentifier("StoredProcedure_table1");
     private static String table2 = RandomUtil.getIdentifier("StoredProcedure_table2");
     private static String table3 = RandomUtil.getIdentifier("StoredProcedure_table3");
     private static String table4 = RandomUtil.getIdentifier("StoredProcedure_table4");
     private static String table5 = RandomUtil.getIdentifier("StoredProcedure_table5");
     private static String table6 = RandomUtil.getIdentifier("StoredProcedure_table6");
-    */
-    private static String table1 = "StoredProcedure_table1";
-    private static String table2 = "StoredProcedure_table2";
-    private static String table3 = "StoredProcedure_table3";
-    private static String table4 = "StoredProcedure_table4";
-    private static String table5 = "StoredProcedure_table5";
-    private static String table6 = "StoredProcedure_table6";
-
-    static final String uid = UUID.randomUUID().toString();
-
+    
     private static String[] numericValues;
     private static LinkedList<byte[]> byteValues;
     private static String[] charValues;

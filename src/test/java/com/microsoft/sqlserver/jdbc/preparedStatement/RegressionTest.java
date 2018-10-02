@@ -38,8 +38,8 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class RegressionTest extends AbstractTest {
 
-    static String tableName = RandomUtil.getIdentifier("table");
-    static String tableName2 = RandomUtil.getIdentifier("table2");
+    static String tableName = RandomUtil.getIdentifier("PrepareDStatementTestTable");
+    static String tableName2 = RandomUtil.getIdentifier("PrepareDStatementTestTable2");
     static String schemaName = RandomUtil.getIdentifier("schemaName");
 
     /**

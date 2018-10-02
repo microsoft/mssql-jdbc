@@ -41,6 +41,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 public class PreparedStatementTest extends AbstractTest {
 
     final String tableName = RandomUtil.getIdentifier("#update1");
+    final String tableName2 = RandomUtil.getIdentifier("#update2");
 
     private void executeSQL(SQLServerConnection conn, String sql) throws SQLException {
         Statement stmt = conn.createStatement();
@@ -539,9 +540,6 @@ public class PreparedStatementTest extends AbstractTest {
                             pstmt.getMoreResults(); // Make sure handle is updated.
                         }
                     }
-                    System.out.println(String.format("Prep on first call: %s Query count:%s: %s of %s (%s)",
-                            prepOnFirstCall, queryCount, testsWithHandleReuse, testCount,
-                            (double) testsWithHandleReuse / (double) testCount));
                 }
             }
         }
@@ -587,9 +585,11 @@ public class PreparedStatementTest extends AbstractTest {
             // Test batching with missing handle failures (fake).
             this.executeSQL(con,
                     "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
-            this.executeSQL(con, "CREATE TABLE #update2 (col INT);INSERT #update2 VALUES (1);");
-            this.executeSQL(con,
-                    "CREATE PROC #updateProc2 AS UPDATE #update2 SET col += 1; IF EXISTS (SELECT * FROM #update2 WHERE col % 5 = 0) RAISERROR(99586,16,1);");
+            this.executeSQL(con, "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName2)
+                    + " (col INT);INSERT " + AbstractSQLGenerator.escapeIdentifier(tableName2) + " VALUES (1);");
+            this.executeSQL(con, "CREATE PROC #updateProc2 AS UPDATE "
+                    + AbstractSQLGenerator.escapeIdentifier(tableName2) + " SET col += 1; IF EXISTS (SELECT * FROM "
+                    + AbstractSQLGenerator.escapeIdentifier(tableName2) + " WHERE col % 5 = 0) RAISERROR(99586,16,1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc2")) {
                 for (int i = 0; i < 100; ++i) {
                     pstmt.addBatch();
@@ -613,7 +613,8 @@ public class PreparedStatementTest extends AbstractTest {
 
                 // test updated value, should be 1 + 100 = 101
                 // although executeBatch() throws exception, update operation should be executed successfully.
-                try (ResultSet rs = con.createStatement().executeQuery("select * from #update2")) {
+                try (ResultSet rs = con.createStatement()
+                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName2) + "")) {
                     rs.next();
                     assertSame(101, rs.getInt(1));
                 }

@@ -61,13 +61,6 @@ public class AESetup extends AbstractTest {
     static final String cekName = "JDBC_CEK";
     static final String secretstrJks = "password";
 
-    /*
-     * static String charTable = RandomUtil.getIdentifier("JDBCEncryptedChar"); static String binaryTable =
-     * RandomUtil.getIdentifier("JDBCEncryptedBinary"); static String dateTable =
-     * RandomUtil.getIdentifier("JDBCEncryptedDate"); static String numericTable =
-     * RandomUtil.getIdentifier("JDBCEncryptedNumeric"); static String scaleDateTable =
-     * RandomUtil.getIdentifier("JDBCEncryptedScaleDate");
-     */
     static String charTable = "JDBCEncryptedChar";
     static String binaryTable = "JDBCEncryptedBinary";
     static String dateTable = "JDBCEncryptedDate";

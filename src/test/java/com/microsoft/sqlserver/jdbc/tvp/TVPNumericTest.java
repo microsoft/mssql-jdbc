@@ -117,6 +117,10 @@ public class TVPNumericTest extends AbstractTest {
 
     @AfterEach
     public void terminateVariation() throws SQLException {
+        dropProcedure();
+        dropTables();
+        dropTVPS();
+        
         if (null != tvp) {
             tvp.clear();
         }

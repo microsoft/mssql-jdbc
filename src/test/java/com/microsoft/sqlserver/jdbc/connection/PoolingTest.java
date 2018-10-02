@@ -23,6 +23,7 @@ import javax.sql.DataSource;
 import javax.sql.PooledConnection;
 
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -46,15 +47,14 @@ import com.zaxxer.hikari.HikariDataSource;
  */
 @RunWith(JUnitPlatform.class)
 public class PoolingTest extends AbstractTest {
+    static String tempTableName = RandomUtil.getIdentifier("#poolingtest");
+    static String tableName = RandomUtil.getIdentifier("PoolingTestTable");
+
+
     @Test
     public void testPooling() throws SQLException {
         assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
                 "Skipping test case on Azure SQL.");
-
-        String randomTableName = RandomUtil.getIdentifier("table");
-
-        // make the table a temporary table (will be created in tempdb database)
-        String tempTableName = "#" + randomTableName;
 
         SQLServerXADataSource XADataSource1 = new SQLServerXADataSource();
         XADataSource1.setURL(connectionString);
@@ -101,8 +101,6 @@ public class PoolingTest extends AbstractTest {
 
     @Test
     public void testConnectionPoolConnFunctions() throws SQLException {
-        String tableName = RandomUtil.getIdentifier("table");
-
         String sql1 = "if exists (select * from dbo.sysobjects where name = '" + TestUtils.escapeSingleQuotes(tableName)
                 + "' and type = 'U')\n" + "drop table " + AbstractSQLGenerator.escapeIdentifier(tableName) + "\n"
                 + "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + "\n" + "(\n"
@@ -252,5 +250,19 @@ public class PoolingTest extends AbstractTest {
         }
 
         return count;
+    }
+    
+    /**
+     * drop the tables
+     * 
+     * @throws SQLException
+     */
+    @AfterAll
+    public static void afterAll() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString);
+                Statement stmt = con.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tempTableName), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+        }
     }
 }

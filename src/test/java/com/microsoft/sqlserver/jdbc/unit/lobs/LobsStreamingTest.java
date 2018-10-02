@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
@@ -81,7 +82,7 @@ public class LobsStreamingTest extends AbstractTest {
 
     private void createLobTable(Statement stmt, String table, Lob l) throws SQLException {
         String columnType = (l == Lob.CLOB) ? "varchar(max)" : "nvarchar(max)";
-        stmt.execute("CREATE TABLE [" + table + "] (id int, lobValue " + columnType + ")");
+        stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table) + " (id int, lobValue " + columnType + ")");
     }
 
     private ArrayList<String> createRandomStringArray(Lob l) {

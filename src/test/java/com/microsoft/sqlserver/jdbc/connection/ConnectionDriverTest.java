@@ -308,7 +308,7 @@ public class ConnectionDriverTest extends AbstractTest {
         assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
                 TestResource.getResource("R_skipAzure"));
 
-        String tableName = RandomUtil.getIdentifier("Table");
+        String tableName = RandomUtil.getIdentifier("ConnectionTestTable");
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
                 .getConnection(connectionString + ";responseBuffering=adaptive");
                 Statement stmt = conn.createStatement()) {

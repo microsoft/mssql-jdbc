@@ -36,8 +36,9 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
-    static String tableName;
-    static String destTableName;
+    static String tableName = RandomUtil.getIdentifier("sqlVariantTestSrcTable");
+    static String destTableName = RandomUtil.getIdentifier("dest_sqlVariant");
+
 
     /**
      * Test integer value
@@ -261,7 +262,6 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
             String col1Value = "126.1230";
-            String destTableName = RandomUtil.getIdentifier("dest_sqlVariant");
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTableName), stmt);
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 sql_variant)");
@@ -324,7 +324,6 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
             String col1Value = "2015-05-05";
             String col2Value = "126.1230";
-            String destTableName = RandomUtil.getIdentifier("dest_sqlVariant");
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTableName), stmt);
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 sql_variant, col2 sql_variant)");
@@ -716,7 +715,6 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
             String col1Value = "'12:26:27.1452367'";
-            String destTableName = RandomUtil.getIdentifier("dest_sqlVariant");
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTableName), stmt);
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 sql_variant)");
@@ -809,20 +807,6 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(destTableName) + " (col1 sql_variant)");
         }
     }
-
-    /**
-     * Prepare test
-     * 
-     * @throws SQLException
-     * @throws SecurityException
-     * @throws IOException
-     */
-    @BeforeAll
-    public static void setupHere() throws SQLException, SecurityException, IOException {
-        tableName = RandomUtil.getIdentifier("sqlVariantTestSrcTable");
-        destTableName = RandomUtil.getIdentifier("sqlVariantDestTable");
-    }
-
 
     /**
      * drop the tables

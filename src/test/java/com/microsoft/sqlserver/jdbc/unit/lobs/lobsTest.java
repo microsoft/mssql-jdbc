@@ -584,6 +584,7 @@ public class lobsTest extends AbstractTest {
             if (null != stream) {
                 stream.close();
             }
+            dropTables(table);
         }
     }
 

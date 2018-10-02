@@ -36,7 +36,7 @@ public class TVPTypesTest extends AbstractTest {
 
     static SQLServerDataTable tvp = null;
     private static String tvpName;
-    private static String table;
+    private static String tableName;
     private static String procedureName;
     private String value = null;
 
@@ -60,13 +60,13 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value);
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table) + " select * from ? ;")) {
+                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
 
             pstmt.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next()) {
                     assertEquals(rs.getString(1), value);
                 }
@@ -94,14 +94,14 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value);
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table) + " select * from ? ;")) {
+                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
 
             pstmt.execute();
 
             try (Connection conn = DriverManager.getConnection(connectionString);
                     Statement stmt = conn.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next()) {
                     assertEquals(rs.getString(1), value);
                 }
@@ -127,13 +127,13 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value);
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table) + " select * from ? ;")) {
+                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
 
             pstmt.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -158,13 +158,13 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value);
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table) + " select * from ? ;")) {
+                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
 
             pstmt.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -189,13 +189,13 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value);
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table) + " select * from ? ;")) {
+                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
 
             pstmt.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -220,13 +220,13 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value.getBytes());
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table) + " select * from ? ;")) {
+                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
 
             pstmt.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
                 while (rs.next())
                     assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
@@ -261,7 +261,7 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -294,7 +294,7 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -327,7 +327,7 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -361,7 +361,7 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -395,7 +395,7 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -429,7 +429,7 @@ public class TVPTypesTest extends AbstractTest {
             P_C_statement.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next())
                     assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
             }
@@ -453,13 +453,13 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value);
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table) + " select * from ? ;")) {
+                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
 
             pstmt.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next()) {
                     assertEquals(((SQLServerResultSet) rs).getDateTime(1), value);
                 }
@@ -485,13 +485,13 @@ public class TVPTypesTest extends AbstractTest {
         tvp.addRow(value);
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table) + " select * from ? ;")) {
+                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
 
             pstmt.execute();
 
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table))) {
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 while (rs.next()) {
                     assertEquals(((SQLServerResultSet) rs).getSmallDateTime(1), returnValue);
                 }
@@ -503,7 +503,7 @@ public class TVPTypesTest extends AbstractTest {
     @BeforeEach
     public void testSetup() throws SQLException {
         tvpName = RandomUtil.getIdentifier("TVP");
-        table = RandomUtil.getIdentifier("TVPTable");
+        tableName = RandomUtil.getIdentifier("TVPTable");
         procedureName = RandomUtil.getIdentifier("procedureThatCallsTVP");
 
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
@@ -532,7 +532,7 @@ public class TVPTypesTest extends AbstractTest {
 
     private static void dropTables() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table) + "','U') is not null" + " drop table " + AbstractSQLGenerator.escapeIdentifier(table));
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(tableName) + "','U') is not null" + " drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
         }
     }
 
@@ -546,14 +546,14 @@ public class TVPTypesTest extends AbstractTest {
     private static void createPreocedure() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
             String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData " + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS "
-                    + " BEGIN " + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table) + " SELECT * FROM @InputData" + " END";
+                    + " BEGIN " + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SELECT * FROM @InputData" + " END";
             stmt.execute(sql);
         }
     }
 
     private void createTables(String colType) throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table) + " (c1 " + colType + " null);";
+            String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1 " + colType + " null);";
             stmt.execute(sql);
         }
     }
@@ -576,6 +576,10 @@ public class TVPTypesTest extends AbstractTest {
 
     @AfterEach
     public void terminateVariation() throws SQLException {
+        dropProcedure();
+        dropTables();
+        dropTVPS();
+
         if (null != tvp) {
             tvp.clear();
         }

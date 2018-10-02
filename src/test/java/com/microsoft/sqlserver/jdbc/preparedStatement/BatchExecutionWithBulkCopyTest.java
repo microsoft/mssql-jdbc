@@ -43,6 +43,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     static String unsupportedTableName = RandomUtil.getIdentifier("BulkCopyUnsupportedTable'");
     static String squareBracketTableName = RandomUtil.getIdentifier("BulkCopy]]]]test'");
     static String doubleQuoteTableName = RandomUtil.getIdentifier("\"BulkCopy\"\"\"\"test\"");
+    static String schemaTableName = "\"dbo\"         . /*some comment */     " + squareBracketTableName;
 
     @Test
     public void testIsInsert() throws Exception {
@@ -395,7 +396,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testSchemaAgainstDB() throws Exception {
-        String schemaTableName = "\"dbo\"         . /*some comment */     " + squareBracketTableName;
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(schemaTableName) + " values (?)";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
@@ -651,9 +651,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         try (Connection connection = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulk), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(unsupportedTableName), stmt);
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(squareBracketTableName), stmt);
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName), stmt);
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(unsupportedTableName), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(schemaTableName), stmt);
             }
         }
     }
