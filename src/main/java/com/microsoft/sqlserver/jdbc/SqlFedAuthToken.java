@@ -9,23 +9,29 @@ import java.util.Date;
 
 
 class SqlFedAuthToken {
-    final Date expiresOn;
-    final String accessToken;
+    Date expiresOn;
+    String accessToken;
+    final String refreshToken;
 
-    SqlFedAuthToken(final String accessToken, final long expiresIn) {
+    SqlFedAuthToken(final String accessToken, final long expiresIn, final String refreshToken) {
         this.accessToken = accessToken;
 
         Date now = new Date();
         now.setTime(now.getTime() + (expiresIn * 1000));
         this.expiresOn = now;
+
+        this.refreshToken = refreshToken;
     }
 
-    SqlFedAuthToken(final String accessToken, final Date expiresOn) {
+    SqlFedAuthToken(final String accessToken, final Date expiresOn, final String refreshToken) {
         this.accessToken = accessToken;
         this.expiresOn = expiresOn;
+        this.refreshToken = refreshToken;
     }
 
-    Date getExpiresOnDate() {
-        return expiresOn;
+    void updateAccessToken(String accessToken, Date expiresOnDate) {
+        this.accessToken = accessToken;
+        this.expiresOn = expiresOnDate;
+
     }
 }

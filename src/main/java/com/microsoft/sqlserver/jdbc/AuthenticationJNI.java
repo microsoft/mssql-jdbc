@@ -10,10 +10,12 @@ import java.util.logging.Level;
 
 class FedAuthDllInfo {
     byte[] accessTokenBytes = null;
+    byte[] refreshTokenBytes = null;
     long expiresIn = 0;
 
-    FedAuthDllInfo(byte[] accessTokenBytes, long expiresIn) {
+    FedAuthDllInfo(byte[] accessTokenBytes, long expiresIn, byte[] refreshTokenBytes) {
         this.accessTokenBytes = accessTokenBytes;
+        this.refreshTokenBytes = refreshTokenBytes;
         this.expiresIn = expiresIn;
     }
 }

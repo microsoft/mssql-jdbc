@@ -124,6 +124,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private byte[] accessTokenInByte = null;
 
     private SqlFedAuthToken fedAuthToken = null;
+    private SqlFedAuthInfo sqlFedAuthInfo = null;
 
     private String originalHostNameInCertificate = null;
 
@@ -1054,7 +1055,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         if (null != fedAuthToken) {
             if (Util.checkIfNeedNewAccessToken(this)) {
-                connect(this.activeConnectionProperties, null);
+                fedAuthToken = SQLServerADAL4JUtils.aquireTokenFromRefreshToken(sqlFedAuthInfo, fedAuthToken,
+                        authenticationString);
+                attemptRefreshTokenLocked = false;
+                if (null == fedAuthToken) {
+                    // Try acquiring a fresh access token now.
+                    connect(this.activeConnectionProperties, null);
+                }
             }
         }
     }
@@ -4053,10 +4060,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         assert null != dllInfo.accessTokenBytes;
 
                         byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
-
                         String accessToken = new String(accessTokenFromDLL, UTF_16LE);
 
-                        fedAuthToken = new SqlFedAuthToken(accessToken, dllInfo.expiresIn);
+                        byte[] refreshTokenFromDLL = dllInfo.refreshTokenBytes;
+                        String refreshToken = new String(refreshTokenFromDLL, UTF_16LE);
+                        fedAuthToken = new SqlFedAuthToken(accessToken, dllInfo.expiresIn, refreshToken);
 
                         // Break out of the retry loop in successful case.
                         break;

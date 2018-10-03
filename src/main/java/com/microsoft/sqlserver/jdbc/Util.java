@@ -937,7 +937,7 @@ final class Util {
     // it.
     // If a thread is already doing the refresh, just use the existing token and proceed.
     static synchronized boolean checkIfNeedNewAccessToken(SQLServerConnection connection) {
-        Date accessTokenExpireDate = connection.getAuthenticationResult().getExpiresOnDate();
+        Date accessTokenExpireDate = connection.getAuthenticationResult().expiresOn;
         Date now = new Date();
 
         // if the token's expiration is within the next 45 mins
