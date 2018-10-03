@@ -7,12 +7,12 @@ package com.microsoft.sqlserver.jdbc.datatypes;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Connection;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
