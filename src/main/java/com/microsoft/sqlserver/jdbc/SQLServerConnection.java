@@ -1042,7 +1042,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Checks if the connection is closed Create a new connection if it's a fedauth connection and the access token is
+     * Checks if the connection is closed Create a new connection if it's a fedAuth connection and the access token is
      * going to expire.
      * 
      * @throws SQLServerException
@@ -1052,13 +1052,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
                     null, false);
         }
-
+        
+        // Check if federated Authentication is in use
         if (null != fedAuthToken) {
+            // Check if access token is about to expire soon
             if (Util.checkIfNeedNewAccessToken(this)) {
-                fedAuthToken = SQLServerADAL4JUtils.aquireTokenFromRefreshToken(sqlFedAuthInfo, fedAuthToken,
-                        authenticationString);
-                attemptRefreshTokenLocked = false;
-                if (null == fedAuthToken) {
+                boolean needsReconnect = false;
+                // Check is no refreshToken was received
+                // Applies to cases where nativeDLL is in use.
+                if (null != fedAuthToken.refreshToken) {
+                    // Attempt to refresh access token
+                    fedAuthToken = SQLServerADAL4JUtils.aquireTokenFromRefreshToken(sqlFedAuthInfo, fedAuthToken,
+                            authenticationString);
+                    attemptRefreshTokenLocked = false;
+                    // Check if refreshing Access token has failed
+                    if (null == fedAuthToken) {
+                        needsReconnect = true;
+                    }
+                } else {
+                    // Reconnect is needed is Native DLL is in use by user application.
+                    needsReconnect = true;
+                }
+                if (needsReconnect) {
                     // Try acquiring a fresh access token now.
                     connect(this.activeConnectionProperties, null);
                 }
@@ -4062,9 +4077,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
                         String accessToken = new String(accessTokenFromDLL, UTF_16LE);
 
-                        byte[] refreshTokenFromDLL = dllInfo.refreshTokenBytes;
-                        String refreshToken = new String(refreshTokenFromDLL, UTF_16LE);
-                        fedAuthToken = new SqlFedAuthToken(accessToken, dllInfo.expiresIn, refreshToken);
+                        fedAuthToken = new SqlFedAuthToken(accessToken, dllInfo.expiresIn, null);
 
                         // Break out of the retry loop in successful case.
                         break;
