@@ -1058,19 +1058,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // Check if access token is about to expire soon
             if (Util.checkIfNeedNewAccessToken(this)) {
                 boolean needsReconnect = false;
-                // Check is no refreshToken was received
-                // Applies to cases where nativeDLL is in use.
+                // Check if no refreshToken was received
+                // Applies to cases where nativeDLL is in use
                 if (null != fedAuthToken.refreshToken) {
-                    // Attempt to refresh access token
+                    // Attempt to refresh access token using refresh token
                     fedAuthToken = SQLServerADAL4JUtils.aquireTokenFromRefreshToken(sqlFedAuthInfo, fedAuthToken,
                             authenticationString);
                     attemptRefreshTokenLocked = false;
-                    // Check if refreshing Access token has failed
+                    // Check if refreshing Access token has failed, would need reconnect
                     if (null == fedAuthToken) {
                         needsReconnect = true;
                     }
                 } else {
-                    // Reconnect is needed is Native DLL is in use by user application.
+                    // Reconnect is needed if Native DLL is in use by user application.
                     needsReconnect = true;
                 }
                 if (needsReconnect) {
