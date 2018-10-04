@@ -382,38 +382,6 @@ public class TestUtils {
     }
 
     /**
-     * Utility function for safely closing open resultset/statement/connection
-     * 
-     * @param ResultSet
-     * @param Statement
-     * @param Connection
-     */
-    public static void close(ResultSet rs, Statement stmt, Connection con) {
-        if (rs != null) {
-            try {
-                rs.close();
-
-            } catch (SQLException e) {
-                System.out.println("The result set cannot be closed.");
-            }
-        }
-        if (stmt != null) {
-            try {
-                stmt.close();
-            } catch (SQLException e) {
-                System.out.println("The statement cannot be closed.");
-            }
-        }
-        if (con != null) {
-            try {
-                con.close();
-            } catch (SQLException e) {
-                System.out.println("The data source connection cannot be closed.");
-            }
-        }
-    }
-
-    /**
      * Utility method for a callable statement
      * 
      * @param connection

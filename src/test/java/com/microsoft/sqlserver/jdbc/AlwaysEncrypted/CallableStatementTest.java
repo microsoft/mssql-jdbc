@@ -57,7 +57,6 @@ public class CallableStatementTest extends AESetup {
     private static String outputProcedureDate = RandomUtil.getIdentifier("outputProcedureDate");
     private static String outputProcedureDateScale = RandomUtil.getIdentifier("outputProcedureDateScale");
     private static String outputProcedureBatch = RandomUtil.getIdentifier("outputProcedureBatch");
-
     private static String inoutProcedure = RandomUtil.getIdentifier("inoutProcedure");
     private static String mixedProcedure = RandomUtil.getIdentifier("mixedProcedure");
     private static String mixedProcedure2 = RandomUtil.getIdentifier("mixedProcedure2");
@@ -114,6 +113,7 @@ public class CallableStatementTest extends AESetup {
     @AfterAll
     public static void dropAll() throws SQLException {
         dropTables();
+        dropProcedures();
     }
 
     @Test
@@ -272,29 +272,43 @@ public class CallableStatementTest extends AESetup {
         createOutputProcedure4();
     }
 
+    private static void dropProcedures() throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(multiStatementsProcedure), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputProcedure), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputProcedure2), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedure), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedure2), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedure3), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedure4), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureChar), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNumeric), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureDate), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureDateScale), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureBatch), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inoutProcedure), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(mixedProcedure), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(mixedProcedure2), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(mixedProcedure3), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale), stmt);
+        }
+    }
+
     private static void dropTables() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
                 AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
-
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
-
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
-
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table4), stmt);
-
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(charTable), stmt);
-
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(numericTable), stmt);
-
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(binaryTable), stmt);
-
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(dateTable), stmt);
-
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table5), stmt);
-
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table6), stmt);
-
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(scaleDateTable), stmt);
         }
     }

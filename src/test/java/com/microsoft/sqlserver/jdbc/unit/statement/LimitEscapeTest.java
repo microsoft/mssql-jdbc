@@ -49,6 +49,7 @@ public class LimitEscapeTest extends AbstractTest {
     static String table2 = RandomUtil.getIdentifier("UnitStatement_LimitEscape_t2").replaceAll("\'", "");
     static String table3 = RandomUtil.getIdentifier("UnitStatement_LimitEscape_t3").replaceAll("\'", "");
     static String table4 = RandomUtil.getIdentifier("UnitStatement_LimitEscape_t4").replaceAll("\'", "");
+    static String procName = RandomUtil.getIdentifier("UnitStatement_LimitEscape_p1").replaceAll("\'", "");
 
     static class Query {
         String inputSql, outputSql;
@@ -234,7 +235,7 @@ public class LimitEscapeTest extends AbstractTest {
                 stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(table4));
             } catch (Exception ex) {} ;
             try {
-                stmt.executeUpdate("drop procedure UnitStatement_LimitEscape_p1");
+                stmt.executeUpdate("drop procedure " + AbstractSQLGenerator.escapeIdentifier(procName));
             } catch (Exception ex) {} ;
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(table1)
                     + " (col1 int, col2 int, col3 varchar(100), col4 varchar(100), id int identity(1,1) primary key)");
@@ -257,7 +258,8 @@ public class LimitEscapeTest extends AbstractTest {
                     + " values (111, 111, 'col333', 'col444')");
             stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(table4)
                     + " values (1111, 1111, 'col4444', 'col4444')");
-            String query = "create procedure UnitStatement_LimitEscape_p1 @col3Value varchar(512), @col4Value varchar(512) AS BEGIN SELECT TOP 1 * from "
+            String query = "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName)
+                    + " @col3Value varchar(512), @col4Value varchar(512) AS BEGIN SELECT TOP 1 * from "
                     + AbstractSQLGenerator.escapeIdentifier(table1)
                     + " where col3 = @col3Value and col4 = @col4Value END";
             stmt.execute(query);
@@ -356,7 +358,7 @@ public class LimitEscapeTest extends AbstractTest {
                 "select TOP ((1) ) id from (( (select TOP 10 * from " + AbstractSQLGenerator.escapeIdentifier(table1)
                         + ")) ) t1",
                 1, // # of
-                // rows
+                   // rows
                 1, // # of columns
                 new int[] {1}, // id column values
                 null, // int column values
@@ -502,8 +504,10 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 17
         // Test callable statements as they are also translated by the driver
-        qry = new CallableQuery("EXEC UnitStatement_LimitEscape_p1 @col3Value = 'col3', @col4Value = 'col4'",
-                "EXEC UnitStatement_LimitEscape_p1 @col3Value = 'col3', @col4Value = 'col4'", 1, // # of rows
+        qry = new CallableQuery(
+                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName) + " @col3Value = 'col3', @col4Value = 'col4'",
+                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName) + " @col3Value = 'col3', @col4Value = 'col4'",
+                1, // # of rows
                 5, // # of columns
                 new int[] {1}, // id column values
                 new int[][] {{1, 1}}, // int column values
@@ -513,8 +517,10 @@ public class LimitEscapeTest extends AbstractTest {
         // 18
         // Test callable statements with limit syntax in string literals
         qry = new CallableQuery(
-                "EXEC UnitStatement_LimitEscape_p1 @col3Value = 'row2 '' with '' quote', @col4Value = 'row2 with limit  {limit 22} {limit ?}'",
-                "EXEC UnitStatement_LimitEscape_p1 @col3Value = 'row2 '' with '' quote', @col4Value = 'row2 with limit  {limit 22} {limit ?}'",
+                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                        + " @col3Value = 'row2 '' with '' quote', @col4Value = 'row2 with limit  {limit 22} {limit ?}'",
+                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                        + " @col3Value = 'row2 '' with '' quote', @col4Value = 'row2 with limit  {limit 22} {limit ?}'",
                 1, // #
                    // of
                    // rows
@@ -526,9 +532,10 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 19
         // Test callable statements with subquery/limit syntax in string literals
-        qry = new CallableQuery(
-                "EXEC UnitStatement_LimitEscape_p1 @col3Value = 'row3 with subquery (select * from t1)', @col4Value = 'row3 with subquery (select * from (select * from t1) {limit 4})'",
-                "EXEC UnitStatement_LimitEscape_p1 @col3Value = 'row3 with subquery (select * from t1)', @col4Value = 'row3 with subquery (select * from (select * from t1) {limit 4})'",
+        qry = new CallableQuery("EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                + " @col3Value = 'row3 with subquery (select * from t1)', @col4Value = 'row3 with subquery (select * from (select * from t1) {limit 4})'",
+                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                        + " @col3Value = 'row3 with subquery (select * from t1)', @col4Value = 'row3 with subquery (select * from (select * from t1) {limit 4})'",
                 1, // # of rows
                 5, // # of columns
                 new int[] {3}, // id column values
@@ -540,9 +547,10 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 20
         // Test callable statements with quotes/scalar functions/limit syntax in string literals
-        qry = new CallableQuery(
-                "EXEC UnitStatement_LimitEscape_p1 @col3Value = 'select * from t1 {limit 4} ''quotes'' (braces)', @col4Value = 'ucase(scalar function)'",
-                "EXEC UnitStatement_LimitEscape_p1 @col3Value = 'select * from t1 {limit 4} ''quotes'' (braces)', @col4Value = 'ucase(scalar function)'",
+        qry = new CallableQuery("EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                + " @col3Value = 'select * from t1 {limit 4} ''quotes'' (braces)', @col4Value = 'ucase(scalar function)'",
+                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                        + " @col3Value = 'select * from t1 {limit 4} ''quotes'' (braces)', @col4Value = 'ucase(scalar function)'",
                 1, // # of rows
                 5, // # of columns
                 new int[] {4}, // id column values
@@ -553,9 +561,13 @@ public class LimitEscapeTest extends AbstractTest {
         // 21
         // Test callable statement escape syntax with quotes/scalar functions/limit syntax in string literals
         qry = new CallableQuery(
-                "{call UnitStatement_LimitEscape_p1 ('select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)')}",
-                "EXEC UnitStatement_LimitEscape_p1 'select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)'",
-                1, // # of rows
+                "{call " + AbstractSQLGenerator.escapeIdentifier(procName)
+                        + " ('select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)')}",
+                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                        + " 'select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)'",
+                1, // #
+                // of
+                // rows
                 5, // # of columns
                 new int[] {4}, // id column values
                 new int[][] {{4, 4}}, // int column value
@@ -564,9 +576,10 @@ public class LimitEscapeTest extends AbstractTest {
 
         // 22
         // Test callable statement escape syntax with openrowquery/openrowset/quotes in string literals
-        qry = new CallableQuery(
-                "{call UnitStatement_LimitEscape_p1 ('openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')')}",
-                "EXEC UnitStatement_LimitEscape_p1 'openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')'",
+        qry = new CallableQuery("{call " + AbstractSQLGenerator.escapeIdentifier(procName)
+                + " ('openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')')}",
+                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                        + " 'openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')'",
                 1, // #
                    // of
                    // rows
@@ -586,8 +599,8 @@ public class LimitEscapeTest extends AbstractTest {
                 "select TOP 1 * from openquery('linked_server', 'select TOP 2 * from "
                         + AbstractSQLGenerator.escapeIdentifier(table1) + "')",
                 1, // #
-                // of
-                // rows
+                   // of
+                   // rows
                 5, // # of columns
                 new int[] {5}, // id column values
                 new int[][] {{5, 5}}, // int column value
@@ -637,8 +650,8 @@ public class LimitEscapeTest extends AbstractTest {
                 "select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + "; select TOP 4 * from "
                         + AbstractSQLGenerator.escapeIdentifier(table1),
                 0, // #
-                // of
-                // rows
+                   // of
+                   // rows
                 5, // # of columns
                 null, // id column values
                 null, // int column values
@@ -877,6 +890,7 @@ public class LimitEscapeTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table4), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
         } catch (Exception ex) {
             fail(ex.toString());
         } finally {

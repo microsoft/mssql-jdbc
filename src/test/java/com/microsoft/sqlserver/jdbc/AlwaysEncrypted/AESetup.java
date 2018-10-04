@@ -29,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
@@ -60,12 +61,12 @@ public class AESetup extends AbstractTest {
     static final String cekName = "JDBC_CEK";
     static final String secretstrJks = "password";
 
-    static String charTable = "JDBCEncryptedChar";
-    static String binaryTable = "JDBCEncryptedBinary";
-    static String dateTable = "JDBCEncryptedDate";
-    static String numericTable = "JDBCEncryptedNumeric";
-    static String scaleDateTable = "JDBCEncryptedScaleDate";
-
+    static String charTable = RandomUtil.getIdentifier("JDBCEncryptedChar");
+    static String binaryTable = RandomUtil.getIdentifier("JDBCEncryptedBinary");
+    static String dateTable = RandomUtil.getIdentifier("JDBCEncryptedDate");
+    static String numericTable = RandomUtil.getIdentifier("JDBCEncryptedNumeric");
+    static String scaleDateTable = RandomUtil.getIdentifier("JDBCEncryptedScaleDate");      
+    
     static final String uid = UUID.randomUUID().toString();
 
     static String filePath = null;
@@ -127,7 +128,6 @@ public class AESetup extends AbstractTest {
             dropTables(stmt);
             dropCEK(stmt);
             dropCMK(stmt);
-            TestUtils.close(null, stmt, con);
         }
     }
 
