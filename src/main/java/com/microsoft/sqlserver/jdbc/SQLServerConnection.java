@@ -3859,7 +3859,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     final void processFedAuthInfo(TDSReader tdsReader, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
-        SqlFedAuthInfo sqlFedAuthInfo = new SqlFedAuthInfo();
+        sqlFedAuthInfo = new SqlFedAuthInfo();
 
         tdsReader.readUnsignedByte(); // token type, 0xEE
 
