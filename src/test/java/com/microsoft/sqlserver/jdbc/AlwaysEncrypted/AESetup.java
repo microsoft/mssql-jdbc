@@ -77,6 +77,7 @@ public class AESetup extends AbstractTest {
     static SQLServerColumnEncryptionKeyStoreProvider storeProvider = null;
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
     static String AETestConnectionString;
+
     static Properties AEInfo;
 
     /**
@@ -87,14 +88,12 @@ public class AESetup extends AbstractTest {
      */
     @BeforeAll
     public static void setUpConnection() throws TestAbortedException, Exception {
-
         try (DBConnection con = new DBConnection(connectionString)) {
             assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
         }
-
+        
         AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
         readFromFile(javaKeyStoreInputFile, "Alias name");
-
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropCEK(stmt);
@@ -122,9 +121,13 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     @AfterAll
-    public static void dropAll() throws Exception {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+    public static void dropAll() throws Exception {        
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
+        }
+
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
             dropCEK(stmt);
             dropCMK(stmt);
@@ -2125,7 +2128,7 @@ public class AESetup extends AbstractTest {
     private static void dropCEK(SQLServerStatement stmt) throws SQLException {
         String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
                 + " begin" + " drop column encryption key " + cekName + " end";
-        stmt.execute(cekSql);
+        stmt.execute(cekSql);      
     }
 
     /**
