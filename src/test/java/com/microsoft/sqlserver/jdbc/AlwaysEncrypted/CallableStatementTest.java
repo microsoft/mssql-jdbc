@@ -90,7 +90,7 @@ public class CallableStatementTest extends AESetup {
         try (DBConnection con = new DBConnection(connectionString)) {
             assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
         }
-        
+
         dropTables();
 
         numericValues = createNumericValues(nullable);
