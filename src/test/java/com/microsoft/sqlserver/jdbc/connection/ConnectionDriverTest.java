@@ -40,14 +40,13 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.DBTable;
-
 
 @RunWith(JUnitPlatform.class)
 public class ConnectionDriverTest extends AbstractTest {
-    // If no retry is done, the function should atleast exit in 5 seconds
+    // If no retry is done, the function should at least exit in 5 seconds
     static int threshHoldForNoRetryInMilliseconds = 5000;
     static int loginTimeOutInSeconds = 10;
 
@@ -307,23 +306,24 @@ public class ConnectionDriverTest extends AbstractTest {
         assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
                 TestResource.getResource("R_skipAzure"));
 
-        String tableName = null;
+        String tableName = RandomUtil.getIdentifier("ConnectionTestTable");
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
                 .getConnection(connectionString + ";responseBuffering=adaptive");
                 Statement stmt = conn.createStatement()) {
 
-            tableName = RandomUtil.getIdentifier("Table");
-            tableName = DBTable.escapeIdentifier(tableName);
-
             conn.setAutoCommit(false);
-            stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int primary key)");
+            stmt.executeUpdate(
+                    "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int primary key)");
             for (int i = 0; i < 80; i++) {
-                stmt.executeUpdate("INSERT INTO " + tableName + "(col1) values (" + i + ")");
+                stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + "(col1) values ("
+                        + i + ")");
             }
             conn.commit();
             try {
-                stmt.execute("SELECT x1.col1 as foo, x2.col1 as bar, x1.col1 as eeep FROM " + tableName + " as x1, "
-                        + tableName + " as x2; RAISERROR ('Oops', 21, 42) WITH LOG");
+                stmt.execute("SELECT x1.col1 as foo, x2.col1 as bar, x1.col1 as eeep FROM "
+                        + AbstractSQLGenerator.escapeIdentifier(tableName) + " as x1, "
+                        + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " as x2; RAISERROR ('Oops', 21, 42) WITH LOG");
             } catch (SQLException e) {
                 assertEquals(e.getMessage(), TestResource.getResource("R_connectionReset"),
                         TestResource.getResource("R_unknownException"));
@@ -336,7 +336,7 @@ public class ConnectionDriverTest extends AbstractTest {
                 try (SQLServerConnection conn = (SQLServerConnection) DriverManager
                         .getConnection(connectionString + ";responseBuffering=adaptive");
                         Statement stmt = conn.createStatement()) {
-                    stmt.execute("drop table " + tableName);
+                    stmt.execute("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
                 }
             }
         }

@@ -26,6 +26,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
@@ -43,8 +44,8 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
     static String[] expectedTimestampStrings = {"2015-06-03 13:35:33.4610000", "2442-09-19 01:59:43.9990000",
             "2017-04-02 08:58:53.0000000"};
 
-    private static String srcTable = null;
-    private static String desTable = null;
+    private static String srcTable = RandomUtil.getIdentifier("BulkCopyResultSetCursorTest_SourceTable");
+    private static String desTable = RandomUtil.getIdentifier("BulkCopyResultSetCursorTest_DestinationTable");
 
     /**
      * Test a previous failure when using server cursor and using the same connection to create Bulk Copy and result
@@ -68,9 +69,10 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
             populateSourceTable();
 
             try (Statement stmt2 = conn.createStatement(resultSetType, resultSetConcurrency);
-                    ResultSet rs = stmt2.executeQuery("select * from " + srcTable);
+                    ResultSet rs = stmt2
+                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
-                bulkCopy.setDestinationTableName(desTable);
+                bulkCopy.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
                 bulkCopy.writeToServer(rs);
 
                 verifyDestinationTableData(expectedBigDecimals.length);
@@ -94,10 +96,10 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
             createTables(stmt);
             populateSourceTable();
 
-            try (ResultSet rs = stmt.executeQuery("select * from " + srcTable);
+            try (ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
-                bulkCopy.setDestinationTableName(desTable);
+                bulkCopy.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
                 bulkCopy.writeToServer(rs);
 
                 verifyDestinationTableData(expectedBigDecimals.length);
@@ -119,28 +121,29 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
             populateSourceTable();
 
             try (Statement stmt1 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-                    ResultSet rs = stmt1.executeQuery("select * from " + srcTable)) {
+                    ResultSet rs = stmt1
+                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable))) {
                 try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
-                    bulkCopy.setDestinationTableName(desTable);
+                    bulkCopy.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
                     bulkCopy.writeToServer(rs);
                     verifyDestinationTableData(expectedBigDecimals.length);
                 }
 
                 rs.beforeFirst();
                 try (SQLServerBulkCopy bulkCopy1 = new SQLServerBulkCopy(conn)) {
-                    bulkCopy1.setDestinationTableName(desTable);
+                    bulkCopy1.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
                     bulkCopy1.writeToServer(rs);
                     verifyDestinationTableData(expectedBigDecimals.length * 2);
                 }
 
                 rs.beforeFirst();
                 try (SQLServerBulkCopy bulkCopy2 = new SQLServerBulkCopy(conn)) {
-                    bulkCopy2.setDestinationTableName(desTable);
+                    bulkCopy2.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
                     bulkCopy2.writeToServer(rs);
                     verifyDestinationTableData(expectedBigDecimals.length * 3);
                 }
 
-                String sql = "insert into " + desTable + " values (?,?,?,?)";
+                String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(desTable) + " values (?,?,?,?)";
                 Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
                 try (SQLServerPreparedStatement pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
                     for (int i = 0; i < expectedBigDecimals.length; i++) {
@@ -153,9 +156,11 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
                     verifyDestinationTableData(expectedBigDecimals.length * 4);
                 }
                 try (Statement stmt2 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
-                        ResultSet.CONCUR_UPDATABLE); ResultSet rs2 = stmt2.executeQuery("select * from " + srcTable);
+                        ResultSet.CONCUR_UPDATABLE);
+                        ResultSet rs2 = stmt2
+                                .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
                         SQLServerBulkCopy bulkCopy3 = new SQLServerBulkCopy(conn)) {
-                    bulkCopy3.setDestinationTableName(desTable);
+                    bulkCopy3.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
                     bulkCopy3.writeToServer(rs2);
                     verifyDestinationTableData(expectedBigDecimals.length * 5);
                 }
@@ -164,8 +169,8 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
     }
 
     private static void verifyDestinationTableData(int expectedNumberOfRows) throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                ResultSet rs = conn.createStatement().executeQuery("select * from " + desTable)) {
+        try (Connection conn = DriverManager.getConnection(connectionString); ResultSet rs = conn.createStatement()
+                .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable))) {
 
             int expectedArrayLength = expectedBigDecimals.length;
 
@@ -187,7 +192,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
     }
 
     private static void populateSourceTable() throws SQLException {
-        String sql = "insert into " + srcTable + " values (?,?,?,?)";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(srcTable) + " values (?,?,?,?)";
         Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 
         try (Connection conn = DriverManager.getConnection(connectionString);
@@ -205,26 +210,18 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
 
     private static void dropTables(Statement stmt) throws SQLException {
         if (null != srcTable) {
-            TestUtils.dropTableIfExists(srcTable, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable), stmt);
         }
         if (null != desTable) {
-            TestUtils.dropTableIfExists(desTable, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(desTable), stmt);
         }
     }
 
     private static void createTables(Statement stmt) throws SQLException {
-
-        if (null == srcTable) {
-            srcTable = "[BulkCopyResultSetCursorTest_Source_" + RandomUtil.getIdentifier("table") + "]";
-        }
-        if (null == desTable) {
-            desTable = "[BulkCopyResultSetCursorTest_Destination_" + RandomUtil.getIdentifier("table") + "]";
-        }
-
-        String sql = "create table " + srcTable
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(srcTable)
                 + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
         stmt.execute(sql);
-        sql = "create table " + desTable
+        sql = "create table " + AbstractSQLGenerator.escapeIdentifier(desTable)
                 + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
         stmt.execute(sql);
     }

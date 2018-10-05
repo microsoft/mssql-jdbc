@@ -23,10 +23,12 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 
@@ -37,6 +39,9 @@ import com.microsoft.sqlserver.testframework.DBConnection;
  */
 @RunWith(JUnitPlatform.class)
 public class BatchExecutionTest extends AbstractTest {
+
+    static String ctstable1;
+    static String ctstable2;
 
     /**
      * testAddBatch1 and testExecutionBatch one looks similar except for the parameters being passed for select query.
@@ -82,7 +87,8 @@ public class BatchExecutionTest extends AbstractTest {
         int updateCountlen = 0;
         try (Connection connection = DriverManager
                 .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");) {
-            String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
+            String sPrepStmt = "update " + AbstractSQLGenerator.escapeIdentifier(ctstable2)
+                    + " set PRICE=PRICE*20 where TYPE_ID=?";
 
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI((SQLServerConnection) connection);
@@ -105,7 +111,8 @@ public class BatchExecutionTest extends AbstractTest {
                 assertTrue(updateCountlen == 3, TestResource.getResource("R_executeBatchFailed") + ": "
                         + TestResource.getResource("R_incorrectUpdateCount"));
 
-                String sPrepStmt1 = "select count(*) from ctstable2 where TYPE_ID=?";
+                String sPrepStmt1 = "select count(*) from " + AbstractSQLGenerator.escapeIdentifier(ctstable2)
+                        + " where TYPE_ID=?";
 
                 try (PreparedStatement pstmt1 = connection.prepareStatement(sPrepStmt1)) {
                     for (int n = 1; n <= 3; n++) {
@@ -133,23 +140,30 @@ public class BatchExecutionTest extends AbstractTest {
         try (Connection connection = DriverManager
                 .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
-            String sql1 = "create table ctstable1 (TYPE_ID int, TYPE_DESC varchar(32), primary key(TYPE_ID)) ";
-            String sql2 = "create table ctstable2 (KEY_ID int,  COF_NAME varchar(32),  PRICE float, TYPE_ID int, primary key(KEY_ID), foreign key(TYPE_ID) references ctstable1) ";
+            String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(ctstable1)
+                    + " (TYPE_ID int, TYPE_DESC varchar(32), primary key(TYPE_ID)) ";
+            String sql2 = "create table " + AbstractSQLGenerator.escapeIdentifier(ctstable2)
+                    + " (KEY_ID int,  COF_NAME varchar(32),  PRICE float, TYPE_ID int, primary key(KEY_ID), foreign key(TYPE_ID) references "
+                    + AbstractSQLGenerator.escapeIdentifier(ctstable1) + ")";
             stmt.execute(sql1);
             stmt.execute(sql2);
 
-            String sqlin2 = "insert into ctstable1 values (1,'COFFEE-Desc')";
+            String sqlin2 = "insert into " + AbstractSQLGenerator.escapeIdentifier(ctstable1)
+                    + " values (1,'COFFEE-Desc')";
             stmt.execute(sqlin2);
-            sqlin2 = "insert into ctstable1 values (2,'COFFEE-Desc2')";
+            sqlin2 = "insert into " + AbstractSQLGenerator.escapeIdentifier(ctstable1) + " values (2,'COFFEE-Desc2')";
             stmt.execute(sqlin2);
-            sqlin2 = "insert into ctstable1 values (3,'COFFEE-Desc3')";
+            sqlin2 = "insert into " + AbstractSQLGenerator.escapeIdentifier(ctstable1) + " values (3,'COFFEE-Desc3')";
             stmt.execute(sqlin2);
 
-            String sqlin1 = "insert into ctstable2 values (9,'COFFEE-9',9.0, 1)";
+            String sqlin1 = "insert into " + AbstractSQLGenerator.escapeIdentifier(ctstable2)
+                    + " values (9,'COFFEE-9',9.0, 1)";
             stmt.execute(sqlin1);
-            sqlin1 = "insert into ctstable2 values (10,'COFFEE-10',10.0, 2)";
+            sqlin1 = "insert into " + AbstractSQLGenerator.escapeIdentifier(ctstable2)
+                    + " values (10,'COFFEE-10',10.0, 2)";
             stmt.execute(sqlin1);
-            sqlin1 = "insert into ctstable2 values (11,'COFFEE-11',11.0, 3)";
+            sqlin1 = "insert into " + AbstractSQLGenerator.escapeIdentifier(ctstable2)
+                    + " values (11,'COFFEE-11',11.0, 3)";
             stmt.execute(sqlin1);
         }
     }
@@ -159,7 +173,8 @@ public class BatchExecutionTest extends AbstractTest {
         int retValue[] = {0, 0, 0};
         try (Connection connection = DriverManager
                 .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");) {
-            String sPrepStmt = "update ctstable2 set PRICE=PRICE*20 where TYPE_ID=?";
+            String sPrepStmt = "update " + AbstractSQLGenerator.escapeIdentifier(ctstable2)
+                    + " set PRICE=PRICE*20 where TYPE_ID=?";
 
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI((SQLServerConnection) connection);
@@ -181,7 +196,8 @@ public class BatchExecutionTest extends AbstractTest {
                 assertTrue(updateCountlen == 3, TestResource.getResource("R_addBatchFailed") + ": "
                         + TestResource.getResource("R_incorrectUpdateCount"));
 
-                String sPrepStmt1 = "select count(*) from ctstable2 where TYPE_ID=?";
+                String sPrepStmt1 = "select count(*) from " + AbstractSQLGenerator.escapeIdentifier(ctstable2)
+                        + " where TYPE_ID=?";
 
                 try (PreparedStatement pstmt1 = connection.prepareStatement(sPrepStmt1)) {
 
@@ -217,6 +233,9 @@ public class BatchExecutionTest extends AbstractTest {
 
     @BeforeAll
     public static void testSetup() throws TestAbortedException, Exception {
+        ctstable1 = RandomUtil.getIdentifier("ctstable1");
+        ctstable2 = RandomUtil.getIdentifier("ctstable2");
+
         try (DBConnection con = new DBConnection(connectionString)) {
             assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
         }
@@ -229,8 +248,8 @@ public class BatchExecutionTest extends AbstractTest {
         try (Connection connection = DriverManager
                 .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
-            TestUtils.dropTableIfExists("ctstable2", stmt);
-            TestUtils.dropTableIfExists("ctstable1", stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable2), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable1), stmt);
         }
     }
 
