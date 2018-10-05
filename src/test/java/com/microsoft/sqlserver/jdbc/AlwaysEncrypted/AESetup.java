@@ -122,7 +122,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     @AfterAll
-    public static void dropAll() throws SQLException {
+    public static void dropAll() throws Exception {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
                 AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);

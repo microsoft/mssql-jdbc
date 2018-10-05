@@ -18,10 +18,9 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 
-import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
+import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 
 

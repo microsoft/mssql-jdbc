@@ -8,11 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Connection;
-import java.sql.ResultSet;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;

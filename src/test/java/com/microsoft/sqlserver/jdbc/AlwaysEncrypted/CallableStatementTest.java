@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -33,6 +34,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
+import com.microsoft.sqlserver.testframework.DBConnection;
 
 import microsoft.sql.DateTimeOffset;
 
@@ -84,8 +86,11 @@ public class CallableStatementTest extends AESetup {
      * @throws SQLException
      */
     @BeforeAll
-    public static void initCallableStatementTest() throws SQLException {
-
+    public static void initCallableStatementTest() throws Exception {
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
+        }
+        
         dropTables();
 
         numericValues = createNumericValues(nullable);
@@ -111,7 +116,10 @@ public class CallableStatementTest extends AESetup {
     }
 
     @AfterAll
-    public static void dropAll() throws SQLException {
+    public static void dropAll() throws Exception {
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
+        }
         dropTables();
         dropProcedures();
     }
