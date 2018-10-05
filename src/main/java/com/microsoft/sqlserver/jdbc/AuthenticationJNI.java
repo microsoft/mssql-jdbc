@@ -92,7 +92,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
         outsize[0] = GetMaxSSPIBlobSize();
         pOut = new byte[outsize[0]];
 
-        // assert DNSName cant be null
+        // assert DNSName can't be null
         assert DNSName != null;
 
         int failure = SNISecGenClientContext(sniSec, sniSecLen, pin, pin.length, pOut, outsize, done, DNSName, port,

@@ -4049,11 +4049,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
         String password = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
 
-        // No:of milliseconds to sleep for the inital back off.
+        // No:of milliseconds to sleep for the initial back off.
         int sleepInterval = 100;
 
         while (true) {
             if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
+                validateAdalLibrary("R_ADALMissing");
                 fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password,
                         authenticationString);
 
@@ -4136,7 +4137,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // so we don't need to check the
                 // OS version here.
                 else {
+                    //Check if ADAL4J library is available
+                    validateAdalLibrary("R_DLLandADALMissing");
                     fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
+                    
                 }
                 // Break out of the retry loop in successful case.
                 break;
@@ -4144,6 +4148,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         return fedAuthToken;
+    }
+
+    private void validateAdalLibrary(String errorMessage) throws SQLServerException{
+        try {
+            Class.forName("com.microsoft.aad.adal4j.AuthenticationContext");
+        } catch(ClassNotFoundException e) {
+            //throw Exception for missing libraries
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(errorMessage));
+            throw new SQLServerException(form.format(new Object[] {authenticationString.trim()}), null, 0, null);
+        }
     }
 
     /**
