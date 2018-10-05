@@ -119,7 +119,10 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     @AfterAll
-    public static void dropAll() throws SQLException {
+    public static void dropAll() throws Exception {
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
+        }
         dropTables(stmt);
         dropCEK(stmt);
         dropCMK(stmt);
