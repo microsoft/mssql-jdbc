@@ -17,10 +17,10 @@ import java.util.Calendar;
 import java.util.Properties;
 import java.util.TimeZone;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
-import org.junit.jupiter.api.AfterAll;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;

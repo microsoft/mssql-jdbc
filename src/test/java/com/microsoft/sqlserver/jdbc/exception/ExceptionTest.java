@@ -8,9 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.net.SocketTimeoutException;
+import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.Connection;
 import java.sql.Statement;
 import java.text.MessageFormat;
 
