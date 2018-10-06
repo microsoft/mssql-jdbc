@@ -129,6 +129,7 @@ final class TDS {
     static final int AE_METADATA = 0x08;
 
     static final byte TDS_FEATURE_EXT_UTF8SUPPORT = 0x0A;
+    static final byte TDS_FEATURE_EXT_SESSIONRECOVERY = 0x01;
 
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;

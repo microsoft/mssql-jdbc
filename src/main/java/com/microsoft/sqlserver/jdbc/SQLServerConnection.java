@@ -814,6 +814,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean inXATransaction = false; // Set to true when in an XA transaction.
     private byte[] transactionDescriptor = new byte[8];
 
+    private int connectRetryCount, connectRetryInterval;
+
     // Flag (Yukon and later) set to true whenever a transaction is rolled back.
     // The flag's value is reset to false when a new transaction starts or when the autoCommit mode changes.
     private boolean rolledBackTransaction;
@@ -1838,6 +1840,48 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             } else {
                 activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
+            }
+
+            connectRetryCount = SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue();
+            sPropValue = activeConnectionProperties
+                    .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString());
+            if (null != sPropValue && sPropValue.length() > 0) {
+                try {
+                    connectRetryCount = Integer.parseInt(sPropValue);
+                } catch (NumberFormatException e) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidConnectRetryCount"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+
+                if (connectRetryCount < 0 || connectRetryCount > 255) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidConnectRetryCount"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+            }
+
+            connectRetryInterval = SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue();
+            sPropValue = activeConnectionProperties
+                    .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString());
+            if (null != sPropValue && sPropValue.length() > 0) {
+                try {
+                    connectRetryInterval = Integer.parseInt(sPropValue);
+                } catch (NumberFormatException e) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidConnectRetryInterval"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+
+                if (connectRetryInterval < 1 || connectRetryInterval > 60) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidConnectRetryInterval"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
             }
 
             FailoverInfo fo = null;
@@ -3532,6 +3576,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return len;
     }
 
+    int writeSessionRecoveryFeatureRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
+        int len = 5;
+        if (write) {
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_SESSIONRECOVERY);
+            tdsWriter.writeInt(0);
+        }
+        return len;
+    }
+
     private final class LogonCommand extends UninterruptableTDSCommand {
         LogonCommand() {
             super("logon");
@@ -4294,6 +4347,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 break;
             }
+            case TDS.TDS_FEATURE_EXT_SESSIONRECOVERY: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(
+                            toString() + " Received feature extension acknowledgement for Idle Connection Resiliency.");
+                }
+                break;
+            }
             default: {
                 // Unknown feature ack
                 if (connectionlogger.isLoggable(Level.SEVERE)) {
@@ -4577,6 +4637,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         len2 += writeDataClassificationFeatureRequest(false, tdsWriter);
 
         len2 = len2 + writeUTF8SupportFeatureRequest(false, tdsWriter);
+  
+        // Idle Connection Resiliency is requested
+        if (connectRetryCount > 0) {
+            len2 = len2 + writeSessionRecoveryFeatureRequest(false, tdsWriter);
+        }
 
         len2 = len2 + 1; // add 1 to length because of FeatureEx terminator
 
@@ -4761,6 +4826,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         writeDataClassificationFeatureRequest(true, tdsWriter);
         writeUTF8SupportFeatureRequest(true, tdsWriter);
+        // Idle Connection Resiliency is requested
+        if (connectRetryCount > 0) {
+            writeSessionRecoveryFeatureRequest(true, tdsWriter);
+        }
 
         tdsWriter.writeByte((byte) TDS.FEATURE_EXT_TERMINATOR);
         tdsWriter.setDataLoggable(true);

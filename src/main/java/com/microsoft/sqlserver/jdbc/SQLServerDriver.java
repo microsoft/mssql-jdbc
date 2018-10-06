@@ -45,8 +45,8 @@ final class SQLServerDriverPropertyInfo {
     }
 
     DriverPropertyInfo build(Properties connProperties) {
-        String propValue = name.equals(SQLServerDriverStringProperty.PASSWORD.toString()) ? "" : connProperties
-                .getProperty(name);
+        String propValue = name
+                .equals(SQLServerDriverStringProperty.PASSWORD.toString()) ? "" : connProperties.getProperty(name);
 
         if (null == propValue)
             propValue = defaultValue;
@@ -309,7 +309,9 @@ enum SQLServerDriverIntProperty {
     SOCKET_TIMEOUT("socketTimeout", 0),
     SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", SQLServerConnection.DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD),
     STATEMENT_POOLING_CACHE_SIZE("statementPoolingCacheSize", SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
-    CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),;
+    CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
+    CONNECT_RETRY_COUNT("connectRetryCount", 1),
+    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10);
 
     private final String name;
     private final int defaultValue;
@@ -504,7 +506,12 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Integer.toString(SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue()),
-                    false, TRUE_FALSE),};
+                    false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue()), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue()), false,
+                    null)};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string

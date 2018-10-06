@@ -534,5 +534,9 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},
             {"R_illegalWKT", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
             {"R_illegalTypeForGeometry", "{0} is not supported for Geometry."},
-            {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},};
+            {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},
+            {"R_invalidConnectRetryCount", "Connection retry count {0} is not valid."},
+            {"R_connectRetryCountPropertyDescription", "The maximum number of attempts to reestablish a broken connection."},
+            {"R_invalidConnectRetryInterval", "Connection retry interval {0} is not valid."},
+            {"R_connectRetryIntervalPropertyDescription", "The interval, in seconds, between attempts to reestablish a connection."},};
 }

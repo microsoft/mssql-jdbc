@@ -805,4 +805,34 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        indicates whether Bulk Copy API should be used for Batch Insert operations.
      */
     public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
+
+    /**
+     * Sets the maximum number of attempts to reestablish a broken connection.
+     *
+     * @param connectRetryCount
+     *        maximum number of attempts
+     */
+    public void setConnectRetryCount(int connectRetryCount);
+
+    /**
+     * Returns the maximum number of attempts set to reestablish a broken connection.
+     *
+     * @return maximum number of attempts
+     */
+    public int getConnectRetryCount();
+
+    /**
+     * Sets the interval, in seconds, between attempts to reestablish a broken connection.
+     *
+     * @param connectRetryInterval
+     *        interval in seconds
+     */
+    public void setConnectRetryInterval(int connectRetryInterval);
+
+    /**
+     * Returns the interval set, in seconds, between attempts to reestablish a broken connection.
+     *
+     * @return interval in seconds
+     */
+    public int getConnectRetryInterval();
 }
