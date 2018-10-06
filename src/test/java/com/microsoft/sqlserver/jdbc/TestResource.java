@@ -92,7 +92,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_shouldThrowException", "Exception should have been thrown"},
             {"R_tcpipConnectionToHost", "The TCP/IP connection to the host"},
             {"R_queryTimedOut", "The query has timed out."}, {"R_readTimedOut", "Read timed out"},
-            {"R_unexpectedErrorMessage", "Unexpected error message occured!"},
+            {"R_unexpectedErrorMessage", "Unexpected error message occurred!"},
             {"R_warningsNotFound", "Warnings not found!"}, {"R_warningsFound", "Warnings found!"},
             {"R_causeShouldNotBeNull", "Cause should not be null."},
             {"R_causeShouldBeInstance", "Cause should be instance of {0}."},

@@ -309,7 +309,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Locates statement parameters.
      * 
      * @param sql
-     *        SQL text to parse for positions of parameters to intialize.
+     *        SQL text to parse for positions of parameters to initialize.
      */
     private static int[] locateParams(String sql) {
         LinkedList<Integer> parameterPositions = new LinkedList<>();
@@ -2326,8 +2326,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // maximum timeout the socket takes is int max.
         if (result > Integer.MAX_VALUE)
             result = Integer.MAX_VALUE;
-        // we have to make sure that we return atleast one ms
-        // we want atleast one attempt to happen with a positive timeout passed by the user.
+        // we have to make sure that we return at least one ms
+        // we want at least one attempt to happen with a positive timeout passed by the user.
         if (result <= 0)
             result = 1;
         return (int) result;
@@ -5453,7 +5453,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Replaces JDBC syntax parameter markets '?' with SQL Server paramter markers @p1, @p2 etc...
+     * Replaces JDBC syntax parameter markets '?' with SQL Server parameter markers @p1, @p2 etc...
      * 
      * @param sql
      *        the user's SQL
@@ -5502,7 +5502,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param nParam
      *        the parameter number
      * @param name
-     *        the paramter name
+     *        the parameter name
      * @param offset
      * @return int
      */
