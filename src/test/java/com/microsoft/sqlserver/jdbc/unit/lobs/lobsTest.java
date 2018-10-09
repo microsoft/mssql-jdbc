@@ -139,7 +139,7 @@ public class lobsTest extends AbstractTest {
                 datasize = packetSize;
                 break;
             case 1:
-                datasize = packetSize + ThreadLocalRandom.current().nextInt(packetSize) + 1;
+                datasize = packetSize + (ThreadLocalRandom.current().nextInt(packetSize/2) * 2);
                 break;
             default:
                 datasize = packetSize - ThreadLocalRandom.current().nextInt(packetSize);
