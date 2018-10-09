@@ -207,11 +207,7 @@ public class lobsTest extends AbstractTest {
                     }
                     if (!verified) {
                         // Odd CharacterStream length will throw this exception
-                        if (!e.getMessage().contains(TestResource.getResource("R_badStreamLength")))
-
-                        {
-                            if (lobClass == DBCharacterStream.class || lobClass == DBBinaryStream.class)
-                                assertTrue(e.getSQLState() != null, TestResource.getResource("R_SQLStateNull"));
+                        if (!e.getMessage().contains(TestResource.getResource("R_badStreamLength"))) {
                             assertTrue(e.getMessage().contains(TestResource.getResource("R_streamReadError")));
                         }
 
