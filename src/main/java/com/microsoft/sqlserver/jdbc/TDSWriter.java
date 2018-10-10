@@ -13,6 +13,7 @@ import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -202,7 +203,7 @@ public final class TDSWriter {
 	// (0x01)
 	// set in the status to cancel the request.
 	final boolean ignoreMessage() throws SQLServerException {
-		if (packetNum > 0) {
+		if (packetNum > 0 || TDS.PKT_BULK == this.tdsMessageType) {
 			assert !isEOMSent;
 
 			if (logger.isLoggable(Level.FINER))
@@ -239,7 +240,7 @@ public final class TDSWriter {
 	/**
 	 * writing sqlCollation information for sqlVariant type when sending character
 	 * types.
-	 *
+	 * 
 	 * @param variantType
 	 * @throws SQLServerException
 	 */
@@ -295,7 +296,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append a real value in the TDS stream.
-	 *
+	 * 
 	 * @param value the data value
 	 */
 	void writeReal(Float value) throws SQLServerException {
@@ -304,7 +305,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append a double value in the TDS stream.
-	 *
+	 * 
 	 * @param value the data value
 	 */
 	void writeDouble(double value) throws SQLServerException {
@@ -330,7 +331,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append a big decimal in the TDS stream.
-	 *
+	 * 
 	 * @param bigDecimalVal the big decimal data value
 	 * @param srcJdbcType   the source JDBCType
 	 * @param precision     the precision of the data value
@@ -369,7 +370,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append a big decimal inside sql_variant in the TDS stream.
-	 *
+	 * 
 	 * @param bigDecimalVal the big decimal data value
 	 * @param srcJdbcType   the source JDBCType
 	 */
@@ -486,8 +487,9 @@ public final class TDSWriter {
 
 		// Number of milliseconds since midnight of the current day.
 		int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-		// the current
-		// second
+																											// the
+																											// current
+																											// second
 				1000 * calendar.get(Calendar.SECOND) + // Seconds into the current minute
 				60 * 1000 * calendar.get(Calendar.MINUTE) + // Minutes into the current hour
 				60 * 60 * 1000 * calendar.get(Calendar.HOUR_OF_DAY); // Hours into the current day
@@ -596,9 +598,10 @@ public final class TDSWriter {
 			minutesOffset = offsetDateTimeValue.getOffset().getTotalSeconds() / 60;
 		} catch (Exception e) {
 			throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null
-					// as this error is
-					// generated in
-					// the driver
+																										// as this error
+																										// is
+																										// generated in
+																										// the driver
 					0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
 					e);
 		}
@@ -659,9 +662,10 @@ public final class TDSWriter {
 			minutesOffset = offsetTimeValue.getOffset().getTotalSeconds() / 60;
 		} catch (Exception e) {
 			throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null
-					// as this error is
-					// generated in
-					// the driver
+																										// as this error
+																										// is
+																										// generated in
+																										// the driver
 					0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
 					e);
 		}
@@ -1123,14 +1127,14 @@ public final class TDSWriter {
 		stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_TYPE, tdsMessageType);
 		stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_STATUS, (byte) tdsMessageStatus);
 		stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH, (byte) ((tdsMessageLength >> 8) & 0xFF)); // Note: message
-		// length is 16
-		// bits,
+																										// length is 16
+																										// bits,
 		stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) ((tdsMessageLength >> 0) & 0xFF)); // written BIG
-		// ENDIAN
+																											// ENDIAN
 		stagingBuffer.put(TDS.PACKET_HEADER_SPID, (byte) ((tdsChannel.getSPID() >> 8) & 0xFF)); // Note: SPID is 16
-		// bits,
+																								// bits,
 		stagingBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) ((tdsChannel.getSPID() >> 0) & 0xFF)); // written BIG
-		// ENDIAN
+																									// ENDIAN
 		stagingBuffer.put(TDS.PACKET_HEADER_SEQUENCE_NUM, (byte) (packetNum % 256));
 		stagingBuffer.put(TDS.PACKET_HEADER_WINDOW, (byte) 0); // Window (Reserved/Not used)
 
@@ -1139,14 +1143,14 @@ public final class TDSWriter {
 			logBuffer.put(TDS.PACKET_HEADER_MESSAGE_TYPE, tdsMessageType);
 			logBuffer.put(TDS.PACKET_HEADER_MESSAGE_STATUS, (byte) tdsMessageStatus);
 			logBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH, (byte) ((tdsMessageLength >> 8) & 0xFF)); // Note: message
-			// length is 16
-			// bits,
+																										// length is 16
+																										// bits,
 			logBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) ((tdsMessageLength >> 0) & 0xFF)); // written BIG
-			// ENDIAN
+																											// ENDIAN
 			logBuffer.put(TDS.PACKET_HEADER_SPID, (byte) ((tdsChannel.getSPID() >> 8) & 0xFF)); // Note: SPID is 16
-			// bits,
+																								// bits,
 			logBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) ((tdsChannel.getSPID() >> 0) & 0xFF)); // written BIG
-			// ENDIAN
+																									// ENDIAN
 			logBuffer.put(TDS.PACKET_HEADER_SEQUENCE_NUM, (byte) (packetNum % 256));
 			logBuffer.put(TDS.PACKET_HEADER_WINDOW, (byte) 0); // Window (Reserved/Not used);
 		}
@@ -1196,7 +1200,7 @@ public final class TDSWriter {
 
 	/**
 	 * Write out elements common to all RPC values.
-	 *
+	 * 
 	 * @param sName   the optional parameter name
 	 * @param bOut    boolean true if the value that follows is being registered as
 	 *                an ouput parameter
@@ -1223,7 +1227,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append a boolean value in RPC transmission format.
-	 *
+	 * 
 	 * @param sName        the optional parameter name
 	 * @param booleanValue the data value
 	 * @param bOut         boolean true if the data value is being registered as an
@@ -1242,7 +1246,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append a short value in RPC transmission format.
-	 *
+	 * 
 	 * @param sName      the optional parameter name
 	 * @param shortValue the data value
 	 * @param bOut       boolean true if the data value is being registered as an
@@ -1261,7 +1265,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append a short value in RPC transmission format.
-	 *
+	 * 
 	 * @param sName      the optional parameter name
 	 * @param shortValue the data value
 	 * @param bOut       boolean true if the data value is being registered as an
@@ -1280,7 +1284,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append an int value in RPC transmission format.
-	 *
+	 * 
 	 * @param sName    the optional parameter name
 	 * @param intValue the data value
 	 * @param bOut     boolean true if the data value is being registered as an
@@ -1299,7 +1303,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append a long value in RPC transmission format.
-	 *
+	 * 
 	 * @param sName     the optional parameter name
 	 * @param longValue the data value
 	 * @param bOut      boolean true if the data value is being registered as an
@@ -1318,7 +1322,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append a real value in RPC transmission format.
-	 *
+	 * 
 	 * @param sName      the optional parameter name
 	 * @param floatValue the data value
 	 * @param bOut       boolean true if the data value is being registered as an
@@ -1350,7 +1354,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append a double value in RPC transmission format.
-	 *
+	 * 
 	 * @param sName       the optional parameter name
 	 * @param doubleValue the data value
 	 * @param bOut        boolean true if the data value is being registered as an
@@ -1380,7 +1384,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append a big decimal in RPC transmission format.
-	 *
+	 * 
 	 * @param sName   the optional parameter name
 	 * @param bdValue the data value
 	 * @param nScale  the desired scale
@@ -1398,7 +1402,7 @@ public final class TDSWriter {
 
 	/**
 	 * Appends a standard v*max header for RPC parameter transmission.
-	 *
+	 * 
 	 * @param headerLength the total length of the PLP data block.
 	 * @param isNull       true if the value is NULL.
 	 * @param collation    The SQL collation associated with the value that follows
@@ -1438,7 +1442,7 @@ public final class TDSWriter {
 
 	/**
 	 * Writes a string value as Unicode for RPC
-	 *
+	 * 
 	 * @param sName     the optional parameter name
 	 * @param sValue    the data value
 	 * @param bOut      boolean true if the data value is being registered as an
@@ -1605,7 +1609,7 @@ public final class TDSWriter {
 			}
 
 			Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
-			Iterator<Map.Entry<Integer, SQLServerMetaData>> columnsIterator;
+			Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator;
 
 			while (value.next()) {
 
@@ -1974,7 +1978,7 @@ public final class TDSWriter {
 
 	/**
 	 * writes Header for sql_variant for TVP
-	 *
+	 * 
 	 * @param length
 	 * @param tdsType
 	 * @param probBytes
@@ -1997,7 +2001,7 @@ public final class TDSWriter {
 		 * TypeColumnMetaData = UserType Flags TYPE_INFO ColName ;
 		 */
 
-		for (Map.Entry<Integer, SQLServerMetaData> pair : columnMetadata.entrySet()) {
+		for (Entry<Integer, SQLServerMetaData> pair : columnMetadata.entrySet()) {
 			JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
 			boolean useServerDefault = pair.getValue().useServerDefault;
 			// ULONG ; UserType of column
@@ -2124,7 +2128,7 @@ public final class TDSWriter {
 		 */
 
 		Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
-		Iterator<Map.Entry<Integer, SQLServerMetaData>> columnsIterator = columnMetadata.entrySet().iterator();
+		Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator = columnMetadata.entrySet().iterator();
 		LinkedList<TdsOrderUnique> columnList = new LinkedList<>();
 
 		while (columnsIterator.hasNext()) {
@@ -2323,7 +2327,7 @@ public final class TDSWriter {
 	/**
 	 * Append a timestamp in RPC transmission format as a SQL Server DATETIME data
 	 * type
-	 *
+	 * 
 	 * @param sName          the optional parameter name
 	 * @param cal            Pure Gregorian calendar containing the timestamp,
 	 *                       including its associated time zone
@@ -2372,8 +2376,9 @@ public final class TDSWriter {
 		// Next, figure out the number of milliseconds since midnight of the current
 		// day.
 		int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-		// the current
-		// second
+																											// the
+																											// current
+																											// second
 				1000 * cal.get(Calendar.SECOND) + // Seconds into the current minute
 				60 * 1000 * cal.get(Calendar.MINUTE) + // Minutes into the current hour
 				60 * 60 * 1000 * cal.get(Calendar.HOUR_OF_DAY); // Hours into the current day
@@ -2461,7 +2466,7 @@ public final class TDSWriter {
 			writeEncryptedRPCByteArray(null);
 		else
 			writeEncryptedRPCByteArray(writeEncryptedScaledTemporal(localCalendar, 0, // subsecond nanos (none for a
-					// date value)
+																						// date value)
 					0, // scale (dates are not scaled)
 					SSType.DATE, (short) 0));
 
@@ -2503,8 +2508,9 @@ public final class TDSWriter {
 		// Next, figure out the number of milliseconds since midnight of the current
 		// day.
 		int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-		// the current
-		// second
+																											// the
+																											// current
+																											// second
 				1000 * cal.get(Calendar.SECOND) + // Seconds into the current minute
 				60 * 1000 * cal.get(Calendar.MINUTE) + // Minutes into the current hour
 				60 * 60 * 1000 * cal.get(Calendar.HOUR_OF_DAY); // Hours into the current day
@@ -3035,7 +3041,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append the data in a stream in RPC transmission format.
-	 *
+	 * 
 	 * @param sName        the optional parameter name
 	 * @param stream       is the stream
 	 * @param streamLength length of the stream (may be unknown)
@@ -3133,7 +3139,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append the XML data in a stream in RPC transmission format.
-	 *
+	 * 
 	 * @param sName        the optional parameter name
 	 * @param stream       is the stream
 	 * @param streamLength length of the stream (may be unknown)
@@ -3169,7 +3175,7 @@ public final class TDSWriter {
 
 	/**
 	 * Append the data in a character reader in RPC transmission format.
-	 *
+	 * 
 	 * @param sName     the optional parameter name
 	 * @param re        the reader
 	 * @param reLength  the reader data length (in characters)
@@ -3200,8 +3206,8 @@ public final class TDSWriter {
 			// Handle Yukon v*max type header here.
 			writeVMaxHeader(
 					(DataTypes.UNKNOWN_STREAM_LENGTH == reLength) ? DataTypes.UNKNOWN_STREAM_LENGTH : 2 * reLength, // Length
-					// (in
-					// bytes)
+																													// (in
+																													// bytes)
 					false, collation);
 		}
 

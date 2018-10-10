@@ -11,8 +11,8 @@
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
 	<description>
-		Microsoft JDBC Driver for SQL Server.
-	</description>
+        Microsoft JDBC Driver for SQL Server.
+    </description>
 	<url>https://github.com/Microsoft/mssql-jdbc</url>
 
 	<licenses>
@@ -38,7 +38,7 @@
 	</scm>
 
 	<properties>
-        <jmockit.version>1.42</jmockit.version>
+		<jmockit.version>1.42</jmockit.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<junit.platform.version>1.2.0</junit.platform.version>
 		<junit.jupiter.version>5.2.0</junit.jupiter.version>
@@ -120,12 +120,12 @@
 			<version>2.5.0</version>
 			<scope>test</scope>
 		</dependency>
-        <dependency>
-            <groupId>org.jmockit</groupId>
-            <artifactId>jmockit</artifactId>
-            <version>${jmockit.version}</version>
-            <scope>test</scope>
-        </dependency>
+		<dependency>
+			<groupId>org.jmockit</groupId>
+			<artifactId>jmockit</artifactId>
+			<version>${jmockit.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<profiles>
@@ -282,7 +282,7 @@
 					</execution>
 				</executions>
 			</plugin>
-      
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
@@ -308,9 +308,9 @@
 				<version>2.22.0</version>
 
 				<configuration>
-                    <argLine>
-                        -javaagent:${settings.localRepository}/org/jmockit/jmockit/${jmockit.version}/jmockit-${jmockit.version}.jar
-                    </argLine>
+					<argLine>
+						-javaagent:${settings.localRepository}/org/jmockit/jmockit/${jmockit.version}/jmockit-${jmockit.version}.jar
+					</argLine>
 					<properties>
 						<excludeTags>${skipTestTag}</excludeTags>
 					</properties>
