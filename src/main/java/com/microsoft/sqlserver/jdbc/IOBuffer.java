@@ -1412,6 +1412,14 @@ final class TDSChannel {
                 return false;
             }
 
+            // Respect wildcard
+            if (nameInCert.startsWith("*")) {
+                String nameInCertWithoutWildCard = nameInCert.substring(1);
+                if (hostName.endsWith(nameInCertWithoutWildCard)) {
+                    return true;
+                }
+            }
+
             // Verify that the name in certificate matches exactly with the host name
             if (!nameInCert.equals(hostName)) {
                 if (logger.isLoggable(Level.FINER))
