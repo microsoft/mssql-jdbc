@@ -12,7 +12,6 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Types;
 
 import org.junit.jupiter.api.AfterAll;
@@ -22,21 +21,19 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 @RunWith(JUnitPlatform.class)
 public class BatchExecutionWithNullTest extends AbstractTest {
 
-    static Statement stmt = null;
-    static Connection connection = null;
-    static PreparedStatement pstmt = null;
-    static PreparedStatement pstmt1 = null;
-    static ResultSet rs = null;
+    static String tableName = RandomUtil.getIdentifier("esimple");
 
     /**
      * Test with combination of setString and setNull which cause the "Violation of PRIMARY KEY constraint and
@@ -47,48 +44,49 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     @Test
     public void testAddBatch2() throws SQLException {
         // try {
-        String sPrepStmt = "insert into esimple (id, name) values (?, ?)";
+        String sPrepStmt = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (id, name) values (?, ?)";
         int updateCountlen = 0;
         int key = 42;
 
-        // this is the minimum sequence, I've found to trigger the error
-        pstmt = connection.prepareStatement(sPrepStmt);
-        pstmt.setInt(1, key++);
-        pstmt.setNull(2, Types.VARCHAR);
-        pstmt.addBatch();
+        // this is the minimum sequence, I've found to trigger the error\
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                PreparedStatement pstmt = conn.prepareStatement(sPrepStmt)) {
+            pstmt.setInt(1, key++);
+            pstmt.setNull(2, Types.VARCHAR);
+            pstmt.addBatch();
 
-        pstmt.setInt(1, key++);
-        pstmt.setString(2, "FOO");
-        pstmt.addBatch();
+            pstmt.setInt(1, key++);
+            pstmt.setString(2, "FOO");
+            pstmt.addBatch();
 
-        pstmt.setInt(1, key++);
-        pstmt.setNull(2, Types.VARCHAR);
-        pstmt.addBatch();
+            pstmt.setInt(1, key++);
+            pstmt.setNull(2, Types.VARCHAR);
+            pstmt.addBatch();
 
-        int[] updateCount = pstmt.executeBatch();
-        updateCountlen += updateCount.length;
+            int[] updateCount = pstmt.executeBatch();
+            updateCountlen += updateCount.length;
 
-        pstmt.setInt(1, key++);
-        pstmt.setString(2, "BAR");
-        pstmt.addBatch();
+            pstmt.setInt(1, key++);
+            pstmt.setString(2, "BAR");
+            pstmt.addBatch();
 
-        pstmt.setInt(1, key++);
-        pstmt.setNull(2, Types.VARCHAR);
-        pstmt.addBatch();
+            pstmt.setInt(1, key++);
+            pstmt.setNull(2, Types.VARCHAR);
+            pstmt.addBatch();
 
-        updateCount = pstmt.executeBatch();
-        updateCountlen += updateCount.length;
+            updateCount = pstmt.executeBatch();
+            updateCountlen += updateCount.length;
 
-        assertTrue(updateCountlen == 5, TestResource.getResource("R_addBatchFailed"));
+            assertTrue(updateCountlen == 5, TestResource.getResource("R_addBatchFailed"));
+        }
+        String sPrepStmt1 = "select count(*) from " + AbstractSQLGenerator.escapeIdentifier(tableName);
 
-        String sPrepStmt1 = "select count(*) from esimple";
-
-        pstmt1 = connection.prepareStatement(sPrepStmt1);
-        rs = pstmt1.executeQuery();
-        rs.next();
-        assertTrue(rs.getInt(1) == 5, TestResource.getResource("R_insertBatchFailed"));
-        pstmt1.close();
-
+        try (PreparedStatement pstmt1 = connection.prepareStatement(sPrepStmt1); ResultSet rs = pstmt1.executeQuery()) {
+            rs.next();
+            assertTrue(rs.getInt(1) == 5, TestResource.getResource("R_insertBatchFailed"));
+            pstmt1.close();
+        }
     }
 
     /**
@@ -98,44 +96,33 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      */
     @Test
     public void testAddbatch2AEOnConnection() throws SQLException {
-        connection = DriverManager.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
-        testAddBatch2();
+        try (Connection connection = DriverManager
+                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
+            testAddBatch2();
+        }
     }
 
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
-        assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                TestResource.getResource("R_Incompat_SQLServerVersion"));
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
+        }
 
-        connection = DriverManager.getConnection(connectionString);
-        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
-        Utils.dropTableIfExists("esimple", stmt);
-        String sql1 = "create table esimple (id integer not null, name varchar(255), constraint pk_esimple primary key (id))";
-        stmt.execute(sql1);
-        stmt.close();
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id integer not null, name varchar(255), constraint pk_esimple primary key (id))";
+            stmt.execute(sql1);
+            stmt.close();
+        }
     }
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        connection = DriverManager.getConnection(connectionString);
-
-        SQLServerStatement stmt = (SQLServerStatement) connection.createStatement();
-        Utils.dropTableIfExists("esimple", stmt);
-
-        if (null != pstmt) {
-            pstmt.close();
-        }
-        if (null != pstmt1) {
-            pstmt1.close();
-        }
-        if (null != stmt) {
-            stmt.close();
-        }
-        if (null != rs) {
-            rs.close();
-        }
-        if (null != connection) {
-            connection.close();
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }
 }

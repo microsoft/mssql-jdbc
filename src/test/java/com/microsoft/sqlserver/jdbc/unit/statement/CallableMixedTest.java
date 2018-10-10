@@ -18,11 +18,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 /**
@@ -31,11 +31,8 @@ import com.microsoft.sqlserver.testframework.util.RandomUtil;
  */
 @RunWith(JUnitPlatform.class)
 public class CallableMixedTest extends AbstractTest {
-    Connection connection = null;
-    String tableN = RandomUtil.getIdentifier("TFOO3");
-    String procN = RandomUtil.getIdentifier("SPFOO3");
-    String tableName = AbstractSQLGenerator.escapeIdentifier(tableN);
-    String procName = AbstractSQLGenerator.escapeIdentifier(procN);
+    String tableName = RandomUtil.getIdentifier("TFOO3");
+    String procName = RandomUtil.getIdentifier("SPFOO3");
 
     /**
      * Tests Callable mix
@@ -48,16 +45,18 @@ public class CallableMixedTest extends AbstractTest {
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement statement = connection.createStatement();) {
 
-            statement.executeUpdate("create table " + tableName + " (c1_int int primary key, col2 int)");
-            statement.executeUpdate("Insert into " + tableName + " values(0, 1)");
+            statement.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (c1_int int primary key, col2 int)");
+            statement
+                    .executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 1)");
 
-            statement.executeUpdate("CREATE PROCEDURE " + procName
+            statement.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
                     + " (@p2_int int, @p2_int_out int OUTPUT, @p4_smallint smallint,  @p4_smallint_out smallint OUTPUT) AS begin transaction SELECT * FROM "
-                    + tableName
+                    + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + "  ; SELECT @p2_int_out=@p2_int, @p4_smallint_out=@p4_smallint commit transaction RETURN -2147483648");
 
-            try (CallableStatement callableStatement = connection
-                    .prepareCall("{  ? = CALL " + procName + " (?, ?, ?, ?) }")) {
+            try (CallableStatement callableStatement = connection.prepareCall(
+                    "{  ? = CALL " + AbstractSQLGenerator.escapeIdentifier(procName) + " (?, ?, ?, ?) }")) {
                 callableStatement.registerOutParameter((int) 1, (int) 4);
                 callableStatement.setObject((int) 2, Integer.valueOf("31"), (int) 4);
                 callableStatement.registerOutParameter((int) 3, (int) 4);
@@ -66,28 +65,34 @@ public class CallableMixedTest extends AbstractTest {
                 callableStatement.setObject((int) 4, Short.valueOf("-5372"), (int) 5);
 
                 // get results and a value
-                ResultSet rs = callableStatement.executeQuery();
-                rs.next();
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    rs.next();
 
-                assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
-                assertEquals(callableStatement.getInt((int) 5), -5372, TestResource.getResource("R_setDataNotEqual"));
+                    assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
+                    assertEquals(callableStatement.getInt((int) 5), -5372,
+                            TestResource.getResource("R_setDataNotEqual"));
+                }
 
-                // do nothing and reexecute
-                rs = callableStatement.executeQuery();
+                // do nothing and re-execute
+                try (ResultSet rs = callableStatement.executeQuery()) {}
+
                 // get the param without getting the resultset
-                rs = callableStatement.executeQuery();
-                assertEquals(callableStatement.getInt((int) 1), -2147483648,
-                        TestResource.getResource("R_setDataNotEqual"));
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    assertEquals(callableStatement.getInt((int) 1), -2147483648,
+                            TestResource.getResource("R_setDataNotEqual"));
+                }
 
-                rs = callableStatement.executeQuery();
-                rs.next();
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    rs.next();
 
-                assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
-                assertEquals(callableStatement.getInt((int) 1), -2147483648,
-                        TestResource.getResource("R_setDataNotEqual"));
-                assertEquals(callableStatement.getInt((int) 5), -5372, TestResource.getResource("R_setDataNotEqual"));
-                rs = callableStatement.executeQuery();
-                rs.close();
+                    assertEquals(rs.getInt(1), 0, TestResource.getResource("R_setDataNotEqual"));
+                    assertEquals(callableStatement.getInt((int) 1), -2147483648,
+                            TestResource.getResource("R_setDataNotEqual"));
+                    assertEquals(callableStatement.getInt((int) 5), -5372,
+                            TestResource.getResource("R_setDataNotEqual"));
+                }
+
+                try (ResultSet rs = callableStatement.executeQuery()) {}
             }
             terminateVariation(statement);
         }
@@ -99,7 +104,7 @@ public class CallableMixedTest extends AbstractTest {
      * @throws SQLException
      */
     private void terminateVariation(Statement statement) throws SQLException {
-        Utils.dropTableIfExists(tableName, statement);
-        Utils.dropProcedureIfExists(procName, statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), statement);
+        TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), statement);
     }
 }

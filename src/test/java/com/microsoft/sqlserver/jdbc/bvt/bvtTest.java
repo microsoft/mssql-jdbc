@@ -14,24 +14,30 @@ import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.DBStatement;
+import com.microsoft.sqlserver.testframework.DBTable;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBResultSetTypes;
-import com.microsoft.sqlserver.testframework.DBStatement;;
-
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("BVT Test")
-public class bvtTest extends bvtTestSetup {
+public class bvtTest extends AbstractTest {
     private static String driverNamePattern = "Microsoft JDBC Driver \\d.\\d for SQL Server";
+    static DBTable table1;
+    static DBTable table2;
 
     /**
      * Connect to specified server and close the connection
@@ -55,7 +61,6 @@ public class bvtTest extends bvtTestSetup {
             assertTrue(!conn.isClosed(), TestResource.getResource("R_connShouldNotBeClosed"));
             conn.close();
             assertTrue(conn.isClosed(), TestResource.getResource("R_connShouldNotBeOpen"));
-
         }
     }
 
@@ -281,9 +286,9 @@ public class bvtTest extends bvtTestSetup {
                 DBPreparedStatement pstmt = conn.prepareStatement(query)) {
 
             pstmt.setObject(1, new BigDecimal(value));
-            DBResultSet rs = pstmt.executeQuery();
-            rs.verify(table1);
-            rs.close();
+            try (DBResultSet rs = pstmt.executeQuery()) {
+                rs.verify(table1);
+            }
         }
     }
 
@@ -330,21 +335,21 @@ public class bvtTest extends bvtTestSetup {
         try (DBConnection conn = new DBConnection(connectionString); DBStatement stmt1 = conn.createStatement();
                 DBStatement stmt2 = conn.createStatement()) {
 
-            DBResultSet rs1 = stmt1.selectAll(table1);
-            DBResultSet rs2 = stmt2.selectAll(table2);
+            try (DBResultSet rs1 = stmt1.selectAll(table1); DBResultSet rs2 = stmt2.selectAll(table2)) {
 
-            // Interleave resultset calls
-            rs1.next();
-            rs1.verifyCurrentRow(table1);
-            rs2.next();
-            rs2.verifyCurrentRow(table2);
-            rs1.next();
-            rs1.verifyCurrentRow(table1);
-            rs1.verify(table1);
-            rs1.close();
-            rs2.next();
-            rs2.verify(table2);
-            rs2.close();
+                // Interleave resultset calls
+                rs1.next();
+                rs1.verifyCurrentRow(table1);
+                rs2.next();
+                rs2.verifyCurrentRow(table2);
+                rs1.next();
+                rs1.verifyCurrentRow(table1);
+                rs1.verify(table1);
+                rs1.close();
+                rs2.next();
+                rs2.verify(table2);
+                rs2.close();
+            }
         }
     }
 
@@ -357,25 +362,25 @@ public class bvtTest extends bvtTestSetup {
     public void testTwoResultsetsSameStmt() throws SQLException {
         try (DBConnection conn = new DBConnection(connectionString); DBStatement stmt = conn.createStatement()) {
 
-            DBResultSet rs1 = stmt.selectAll(table1);
-            DBResultSet rs2 = stmt.selectAll(table2);
-            // Interleave resultset calls. rs is expected to be closed
-            try {
-                rs1.next();
-            } catch (SQLException e) {
-                assertEquals(e.getMessage(), TestResource.getResource("R_resultsetClosed"));
+            try (DBResultSet rs1 = stmt.selectAll(table1); DBResultSet rs2 = stmt.selectAll(table2)) {
+                // Interleave resultset calls. rs is expected to be closed
+                try {
+                    rs1.next();
+                } catch (SQLException e) {
+                    assertEquals(e.getMessage(), TestResource.getResource("R_resultsetClosed"));
+                }
+                rs2.next();
+                rs2.verifyCurrentRow(table2);
+                try {
+                    rs1.next();
+                } catch (SQLException e) {
+                    assertEquals(e.getMessage(), TestResource.getResource("R_resultsetClosed"));
+                }
+                rs1.close();
+                rs2.next();
+                rs2.verify(table2);
+                rs2.close();
             }
-            rs2.next();
-            rs2.verifyCurrentRow(table2);
-            try {
-                rs1.next();
-            } catch (SQLException e) {
-                assertEquals(e.getMessage(), TestResource.getResource("R_resultsetClosed"));
-            }
-            rs1.close();
-            rs2.next();
-            rs2.verify(table2);
-            rs2.close();
         }
     }
 
@@ -421,10 +426,23 @@ public class bvtTest extends bvtTestSetup {
     public static void terminate() throws SQLException {
 
         try (DBConnection conn = new DBConnection(connectionString); DBStatement stmt = conn.createStatement()) {
-            stmt.execute("if object_id('" + table1.getEscapedTableName() + "','U') is not null" + " drop table "
+            stmt.execute("if object_id('" + table2.getEscapedQuotesTableName() + "','U') is not null" + " drop table "
                     + table1.getEscapedTableName());
-            stmt.execute("if object_id('" + table2.getEscapedTableName() + "','U') is not null" + " drop table "
+            stmt.execute("if object_id('" + table2.getEscapedQuotesTableName() + "','U') is not null" + " drop table "
                     + table2.getEscapedTableName());
+        }
+    }
+
+    @BeforeAll
+    public static void init() throws SQLException {
+        try (DBConnection conn = new DBConnection(connectionString); DBStatement stmt = conn.createStatement()) {
+            // create tables
+            table1 = new DBTable(true);
+            stmt.createTable(table1);
+            stmt.populateTable(table1);
+            table2 = new DBTable(true);
+            stmt.createTable(table2);
+            stmt.populateTable(table2);
         }
     }
 }

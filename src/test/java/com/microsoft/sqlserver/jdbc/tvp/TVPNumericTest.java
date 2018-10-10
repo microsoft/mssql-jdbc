@@ -6,6 +6,9 @@ package com.microsoft.sqlserver.jdbc.tvp;
 
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
+import java.sql.Connection;
+import java.sql.Statement;
+import java.sql.DriverManager;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,27 +16,24 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.DBResultSet;
-import com.microsoft.sqlserver.testframework.DBStatement;
 
 
 @RunWith(JUnitPlatform.class)
 public class TVPNumericTest extends AbstractTest {
 
-    private static DBConnection conn = null;
-    static DBStatement stmt = null;
-    static DBResultSet rs = null;
     static SQLServerDataTable tvp = null;
     static String expectecValue1 = "hello";
     static String expectecValue2 = "world";
     static String expectecValue3 = "again";
-    private static String tvpName = "numericTVP";
-    private static String charTable = "tvpNumericTable";
-    private static String procedureName = "procedureThatCallsTVP";
+    private static String tvpName;
+    private static String charTable;
+    private static String procedureName;
 
     /**
      * Test a previous failure regarding to numeric precision. Issue #211
@@ -49,21 +49,19 @@ public class TVPNumericTest extends AbstractTest {
         tvp.addRow(12.12);
         tvp.addRow(1.123);
 
-        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
-        pstmt.setStructured(1, tvpName, tvp);
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(charTable) + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
 
-        pstmt.execute();
-
-        if (null != pstmt) {
-            pstmt.close();
+            pstmt.execute();
         }
     }
 
     @BeforeEach
     public void testSetup() throws SQLException {
-        conn = new DBConnection(connectionString);
-        stmt = conn.createStatement();
+        tvpName = RandomUtil.getIdentifier("numericTVP");
+        procedureName = RandomUtil.getIdentifier("procedureThatCallsTVP");
+        charTable = RandomUtil.getIdentifier("tvpNumericTable");
 
         dropProcedure();
         dropTables();
@@ -75,48 +73,59 @@ public class TVPNumericTest extends AbstractTest {
     }
 
     private void dropProcedure() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + procedureName
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procedureName;
-        stmt.execute(sql);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'"
+                    + TestUtils.escapeSingleQuotes(procedureName) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                    + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName);
+            stmt.execute(sql);
+        }
     }
 
     private static void dropTables() throws SQLException {
-        stmt.executeUpdate("if object_id('" + charTable + "','U') is not null" + " drop table " + charTable);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(charTable) + "','U') is not null"
+                    + " drop table " + AbstractSQLGenerator.escapeIdentifier(charTable));
+        }
     }
 
     private static void dropTVPS() throws SQLException {
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
-                + " drop type " + tvpName);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
+                    + TestUtils.escapeSingleQuotes(tvpName) + "') " + " drop type "
+                    + AbstractSQLGenerator.escapeIdentifier(tvpName));
+        }
     }
 
     private static void createPreocedure() throws SQLException {
-        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN "
-                + " INSERT INTO " + charTable + " SELECT * FROM @InputData" + " END";
-
-        stmt.execute(sql);
+        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
+                + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN " + " INSERT INTO "
+                + AbstractSQLGenerator.escapeIdentifier(charTable) + " SELECT * FROM @InputData" + " END";
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private void createTables() throws SQLException {
-        String sql = "create table " + charTable + " (c1 numeric(6,3) null);";
-        stmt.execute(sql);
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(charTable) + " (c1 numeric(6,3) null);";
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private void createTVPS() throws SQLException {
-        String TVPCreateCmd = "CREATE TYPE " + tvpName + " as table (c1 numeric(6,3) null)";
-        stmt.executeUpdate(TVPCreateCmd);
+        String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName)
+                + " as table (c1 numeric(6,3) null)";
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(TVPCreateCmd);
+        }
     }
 
     @AfterEach
     public void terminateVariation() throws SQLException {
-        if (null != conn) {
-            conn.close();
-        }
-        if (null != stmt) {
-            stmt.close();
-        }
-        if (null != rs) {
-            rs.close();
-        }
+        dropProcedure();
+        dropTables();
+        dropTVPS();
+
         if (null != tvp) {
             tvp.clear();
         }

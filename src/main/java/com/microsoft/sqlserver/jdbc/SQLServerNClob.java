@@ -32,10 +32,12 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
 
     SQLServerNClob(SQLServerConnection connection) {
         super(connection, "", connection.getDatabaseCollation(), logger, null);
+        this.setDefaultCharset(java.nio.charset.StandardCharsets.UTF_16LE);
     }
 
     SQLServerNClob(BaseInputStream stream, TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
         super(null, stream, typeInfo.getSQLCollation(), logger, typeInfo);
+        this.setDefaultCharset(java.nio.charset.StandardCharsets.UTF_16LE);
     }
 
     @Override
@@ -45,6 +47,9 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
 
     @Override
     public InputStream getAsciiStream() throws SQLException {
+        // NClobs are mapped to Nvarchar(max), and are always UTF-16 encoded. This API expects a US_ASCII stream.
+        // It's not possible to modify the stream without loading it into memory. Users should use getCharacterStream.
+        this.fillFromStream();
         return super.getAsciiStream();
     }
 
@@ -65,7 +70,9 @@ public final class SQLServerNClob extends SQLServerClobBase implements NClob {
 
     @Override
     public long length() throws SQLException {
-        return super.length();
+        // If streaming, every 2 bytes represents 1 character. If not, length() just returns string length
+        long length = super.length();
+        return (null == value) ? length / 2 : length;
     }
 
     @Override
