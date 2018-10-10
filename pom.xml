@@ -193,7 +193,7 @@
 						<version>2.22.0</version>
 						<configuration>
 							<argLine>
-								${argLine} --illegal-access=permit
+								${argLine} --illegal-access=permit -javaagent:${settings.localRepository}/org/jmockit/jmockit/${jmockit.version}/jmockit-${jmockit.version}.jar
 							</argLine>
 							<properties>
 								<excludeTags>${skipTestTag}</excludeTags>
@@ -262,7 +262,7 @@
 						<version>2.22.0</version>
 						<configuration>
 							<argLine>
-								${argLine} --illegal-access=permit
+								${argLine} --illegal-access=permit -javaagent:${settings.localRepository}/org/jmockit/jmockit/${jmockit.version}/jmockit-${jmockit.version}.jar
 							</argLine>
 							<properties>
 								<excludeTags>${skipTestTag}</excludeTags>
