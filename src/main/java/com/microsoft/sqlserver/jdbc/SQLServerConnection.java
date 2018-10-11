@@ -598,6 +598,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return serverSupportsDataClassification;
     }
 
+    private SessionRecoveryFeature sessionRecovery = new SessionRecoveryFeature(this);
+
     static boolean isWindows;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
     static {
@@ -2435,6 +2437,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber());
         }
 
+        sessionRecovery.setSessionStateTable(new SessionStateTable());
+
         // We have successfully connected, now do the login. logon takes seconds timeout
         executeCommand(new LogonCommand());
     }
@@ -4221,21 +4225,26 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             featureId = (byte) tdsReader.readUnsignedByte();
 
             if (featureId != TDS.FEATURE_EXT_TERMINATOR) {
-                int dataLen;
-                dataLen = tdsReader.readInt();
-
-                byte[] data = new byte[dataLen];
-                if (dataLen > 0) {
-                    tdsReader.readBytes(data, 0, dataLen);
-                }
-                onFeatureExtAck(featureId, data);
+                onFeatureExtAck(featureId, tdsReader);
             }
         } while (featureId != TDS.FEATURE_EXT_TERMINATOR);
     }
 
-    private void onFeatureExtAck(byte featureId, byte[] data) throws SQLServerException {
+    private void onFeatureExtAck(byte featureId, TDSReader tdsReader) throws SQLServerException {
         if (null != routingInfo) {
             return;
+        }
+
+        int dataLen;
+        byte[] data = null;
+        
+        if (TDS.TDS_FEATURE_EXT_SESSIONRECOVERY != featureId) {
+            dataLen = tdsReader.readInt();
+            data = new byte[dataLen];
+
+            if (dataLen > 0) {
+                tdsReader.readBytes(data, 0, dataLen);
+            }
         }
 
         switch (featureId) {
@@ -4352,6 +4361,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     connectionlogger.fine(
                             toString() + " Received feature extension acknowledgement for Idle Connection Resiliency.");
                 }
+                sessionRecovery.parseInitialSessionStateData(tdsReader,
+                        sessionRecovery.getSessionStateTable().getSessionStateInitial());
+                sessionRecovery.setConnectionRecoveryNegotiated(true);
                 break;
             }
             default: {
@@ -4637,7 +4649,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         len2 += writeDataClassificationFeatureRequest(false, tdsWriter);
 
         len2 = len2 + writeUTF8SupportFeatureRequest(false, tdsWriter);
-  
+
         // Idle Connection Resiliency is requested
         if (connectRetryCount > 0) {
             len2 = len2 + writeSessionRecoveryFeatureRequest(false, tdsWriter);
