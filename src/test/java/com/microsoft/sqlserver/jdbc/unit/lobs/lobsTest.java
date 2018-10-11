@@ -139,6 +139,7 @@ public class lobsTest extends AbstractTest {
                 datasize = packetSize;
                 break;
             case 1:
+                //NClobs are always 2 bytes per character, generate an even number only
                 datasize = packetSize + (ThreadLocalRandom.current().nextInt(packetSize/2) * 2);
                 break;
             default:
