@@ -14,24 +14,30 @@ import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.DBStatement;
+import com.microsoft.sqlserver.testframework.DBTable;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBResultSetTypes;
-import com.microsoft.sqlserver.testframework.DBStatement;
-
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("BVT Test")
-public class bvtTest extends bvtTestSetup {
+public class bvtTest extends AbstractTest {
     private static String driverNamePattern = "Microsoft JDBC Driver \\d.\\d for SQL Server";
+    static DBTable table1;
+    static DBTable table2;
 
     /**
      * Connect to specified server and close the connection
@@ -424,6 +430,19 @@ public class bvtTest extends bvtTestSetup {
                     + table1.getEscapedTableName());
             stmt.execute("if object_id('" + table2.getEscapedQuotesTableName() + "','U') is not null" + " drop table "
                     + table2.getEscapedTableName());
+        }
+    }
+
+    @BeforeAll
+    public static void init() throws SQLException {
+        try (DBConnection conn = new DBConnection(connectionString); DBStatement stmt = conn.createStatement()) {
+            // create tables
+            table1 = new DBTable(true);
+            stmt.createTable(table1);
+            stmt.populateTable(table1);
+            table2 = new DBTable(true);
+            stmt.createTable(table2);
+            stmt.populateTable(table2);
         }
     }
 }

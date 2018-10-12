@@ -323,23 +323,20 @@ public class lobsTest extends AbstractTest {
                                     continue;
                             }
 
-                            Object stream = null;
-                            try {
-                                stream = rs.getXXX(i + 1, streamClass);
-                            } finally {
-                                if (null == stream) {
-                                    assertEquals(stream, rs.getObject(i + 1), TestResource.getResource("R_streamNull"));
-                                } else {
-                                    // close the stream twice
-                                    if (streamClass == DBCharacterStream.class) {
-                                        ((Reader) stream).close();
-                                        ((Reader) stream).close();
-                                    } else {
-                                        ((InputStream) stream).close();
-                                        ((InputStream) stream).close();
+                            if (streamClass == DBCharacterStream.class) {
+                                try (Reader stream = (Reader) rs.getXXX(i + 1, streamClass)) {
+                                    if (null == stream) {
+                                        assertEquals(stream, rs.getObject(i + 1),
+                                                TestResource.getResource("R_streamNull"));
                                     }
                                 }
-
+                            } else {
+                                try (InputStream stream = (InputStream) rs.getXXX(i + 1, streamClass)) {
+                                    if (null == stream) {
+                                        assertEquals(stream, rs.getObject(i + 1),
+                                                TestResource.getResource("R_streamNull"));
+                                    }
+                                }
                             }
                         }
                     }
@@ -589,6 +586,7 @@ public class lobsTest extends AbstractTest {
             if (null != stream) {
                 stream.close();
             }
+            dropTables(table);
         }
     }
 
