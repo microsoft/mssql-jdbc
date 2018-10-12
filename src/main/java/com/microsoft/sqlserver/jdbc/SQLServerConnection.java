@@ -4077,8 +4077,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             .getSessionStateDelta()[sessionStateId] = new SessionStateValue();
                 }
                 /*
-                 * else
-                 * Exception will not be thrown. Instead the state is just ignored.
+                 * else Exception will not be thrown. Instead the state is just ignored.
                  */
 
                 if (SessionStateTable.MASTER_RECOVERY_DISABLE_SEQ_NUMBER != sequenceNumber

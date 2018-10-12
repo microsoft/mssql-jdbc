@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+
 class SessionRecoveryFeature {
     private boolean connectionRecoveryNegotiated;
     private int connectRetryCount;
@@ -177,7 +178,7 @@ class SessionStateTable {
             }
         } else {
             int count;
-            //@TODO Where is count supposed to be used?
+            // @TODO Where is count supposed to be used?
             // Not a first time state update hence if only there is a transition in state do we update the count.
             if (fRecoverable != sessionStateDelta[sessionStateId].isRecoverable()) {
                 count = fRecoverable ? unRecoverableSessionStateCount.decrementAndGet()
