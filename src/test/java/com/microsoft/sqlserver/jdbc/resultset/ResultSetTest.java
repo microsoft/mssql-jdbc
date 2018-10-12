@@ -24,6 +24,7 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -287,6 +288,34 @@ public class ResultSetTest extends AbstractTest {
             } finally {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 TimeZone.setDefault(prevTimeZone);
+            }
+        }
+    }
+
+    /**
+     * Tests getObject(n, java.time.OffsetDateTime.class).
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testGetObjectAsOffsetDateTime() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            final String testValue = "2018-01-02T11:22:33.123456700+12:34";
+
+            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id INT PRIMARY KEY, dto DATETIMEOFFSET)");
+            stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id, dto) VALUES (1, '" + testValue + "')");
+
+            try (ResultSet rs = stmt.executeQuery(
+                    "SELECT dto FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id=1")) {
+                rs.next();
+
+                OffsetDateTime expected = OffsetDateTime.parse(testValue);
+                OffsetDateTime actual = rs.getObject(1, OffsetDateTime.class);
+                assertEquals(expected, actual);
+            } finally {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
     }
