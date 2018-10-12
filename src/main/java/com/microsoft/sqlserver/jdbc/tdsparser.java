@@ -58,6 +58,9 @@ final class TDSParser {
                 case TDS.TDS_ENV_CHG:
                     parsing = tdsTokenHandler.onEnvChange(tdsReader);
                     break;
+                case TDS.TDS_SESSION_STATE:
+                    parsing = tdsTokenHandler.onSessionState(tdsReader);
+                    break;
                 case TDS.TDS_RET_STAT:
                     parsing = tdsTokenHandler.onRetStatus(tdsReader);
                     break;
@@ -185,6 +188,11 @@ class TDSTokenHandler {
 
     boolean onEnvChange(TDSReader tdsReader) throws SQLServerException {
         tdsReader.getConnection().processEnvChange(tdsReader);
+        return true;
+    }
+
+    boolean onSessionState(TDSReader tdsReader) throws SQLServerException {
+        tdsReader.getConnection().processSessionState(tdsReader);
         return true;
     }
 

@@ -93,6 +93,7 @@ final class TDS {
     static final int TDS_ROW = 0xD1;
     static final int TDS_NBCROW = 0xD2;
     static final int TDS_ENV_CHG = 0xE3;
+    static final int TDS_SESSION_STATE = 0xE4;
     static final int TDS_SSPI = 0xED;
     static final int TDS_DONE = 0xFD;
     static final int TDS_DONEPROC = 0xFE;
@@ -179,6 +180,8 @@ final class TDS {
                 return "TDS_NBCROW (0xD2)";
             case TDS_ENV_CHG:
                 return "TDS_ENV_CHG (0xE3)";
+            case TDS_SESSION_STATE:
+                return "TDS_SESSION_STATE (0xE4)";
             case TDS_SSPI:
                 return "TDS_SSPI (0xED)";
             case TDS_DONE:
@@ -193,6 +196,8 @@ final class TDS {
                 return "TDS_FEATURE_EXT_DATACLASSIFICATION (0x09)";
             case TDS_FEATURE_EXT_UTF8SUPPORT:
                 return "TDS_FEATURE_EXT_UTF8SUPPORT (0x0A)";
+            case TDS_FEATURE_EXT_SESSIONRECOVERY:
+                return "TDS_FEATURE_EXT_SESSIONRECOVERY (0x01)";
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
@@ -6607,6 +6612,30 @@ final class TDSReader {
             System.arraycopy(currentPacket.payload, payloadOffset, value, valueOffset + bytesRead, bytesToCopy);
             bytesRead += bytesToCopy;
             payloadOffset += bytesToCopy;
+        }
+    }
+
+    /**
+     * This function reads valueLength no. of bytes from input buffer without storing them in any array
+     *
+     * @param valueLength
+     * @throws SQLServerException
+     */
+    final void readSkipBytes(long valueLength) throws SQLServerException {
+        for (long bytesSkipped = 0; bytesSkipped < valueLength;) {
+            // Ensure that we have a packet to read from.
+            if (!ensurePayload())
+                throwInvalidTDS();
+
+            long bytesToSkip = valueLength - bytesSkipped;
+            if (bytesToSkip > currentPacket.payloadLength - payloadOffset)
+                bytesToSkip = currentPacket.payloadLength - payloadOffset;
+
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest(toString() + " Skipping " + bytesToSkip + " bytes from offset " + payloadOffset);
+
+            bytesSkipped += bytesToSkip;
+            payloadOffset += bytesToSkip;
         }
     }
 

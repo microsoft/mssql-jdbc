@@ -4037,6 +4037,76 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         onFedAuthInfo(sqlFedAuthInfo, tdsTokenHandler);
     }
 
+    final void processSessionState(TDSReader tdsReader) throws SQLServerException {
+        if (sessionRecovery.isConnectionRecoveryNegotiated()) {
+            tdsReader.readUnsignedByte(); // token type
+            long dataLength = tdsReader.readUnsignedInt();
+            if (dataLength < 7) {
+                if (connectionlogger.isLoggable(Level.SEVERE))
+                    connectionlogger.severe(toString()
+                            + "SESSIONSTATETOKEN token stream is not long enough to contain the data it claims to.");
+                sessionRecovery.getSessionStateTable().setMasterRecoveryDisabled(true);
+                tdsReader.throwInvalidTDS();
+            }
+            int sequenceNumber = tdsReader.readInt();
+            long dataBytesRead = 4;
+            /*
+             * Sequence number has reached max value and will now roll over. Hence disable CR permanently. This is set
+             * to false when session state data is being reset to initial state when connection is taken out of a
+             * connection pool.
+             */
+            if (SessionStateTable.MASTER_RECOVERY_DISABLE_SEQ_NUMBER == sequenceNumber) {
+                sessionRecovery.getSessionStateTable().setMasterRecoveryDisabled(true);
+            }
+
+            byte status = (byte) tdsReader.readUnsignedByte();
+            boolean fRecoverable = (status & 0x01) > 0 ? true : false;
+            dataBytesRead += 1;
+
+            while (dataBytesRead < dataLength) {
+                short sessionStateId = (short) tdsReader.readUnsignedByte(); // unsigned byte
+                long sessionStateLength = (short) tdsReader.readUnsignedByte(); // unsigned byte
+                dataBytesRead += 2;
+                if (sessionStateLength == 0xFF) {
+                    sessionStateLength = tdsReader.readUnsignedInt(); // DWORD
+                    dataBytesRead += 4;
+                }
+
+                if (sessionRecovery.getSessionStateTable().getSessionStateDelta()[sessionStateId] == null) {
+                    sessionRecovery.getSessionStateTable()
+                            .getSessionStateDelta()[sessionStateId] = new SessionStateValue();
+                }
+                /*
+                 * else
+                 * Exception will not be thrown. Instead the state is just ignored.
+                 */
+
+                if (SessionStateTable.MASTER_RECOVERY_DISABLE_SEQ_NUMBER != sequenceNumber
+                        && ((sessionRecovery.getSessionStateTable().getSessionStateDelta()[sessionStateId]
+                                .getData() == null)
+                                || (sessionRecovery.getSessionStateTable().getSessionStateDelta()[sessionStateId]
+                                        .isSequenceNumberGreater(sequenceNumber)))) {
+                    sessionRecovery.getSessionStateTable().updateSessionState(tdsReader, sessionStateId,
+                            sessionStateLength, sequenceNumber, fRecoverable);
+                } else {
+                    tdsReader.readSkipBytes(sessionStateLength);
+                }
+                dataBytesRead += sessionStateLength;
+            }
+            if (dataBytesRead != dataLength) {
+                if (connectionlogger.isLoggable(Level.SEVERE))
+                    connectionlogger.severe(toString() + " Session State data length is corrupt.");
+                sessionRecovery.getSessionStateTable().setMasterRecoveryDisabled(true);
+                tdsReader.throwInvalidTDS();
+            }
+        } else {
+            if (connectionlogger.isLoggable(Level.SEVERE))
+                connectionlogger
+                        .severe(toString() + " Session state received when session recovery was not negotiated.");
+            tdsReader.throwInvalidTDSToken(TDS.getTokenName(tdsReader.peekTokenType()));
+        }
+    }
+
     final class FedAuthTokenCommand extends UninterruptableTDSCommand {
         TDSTokenHandler tdsTokenHandler = null;
         SqlFedAuthToken fedAuthToken = null;
@@ -4237,7 +4307,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         int dataLen;
         byte[] data = null;
-        
+
         if (TDS.TDS_FEATURE_EXT_SESSIONRECOVERY != featureId) {
             dataLen = tdsReader.readInt();
             data = new byte[dataLen];
