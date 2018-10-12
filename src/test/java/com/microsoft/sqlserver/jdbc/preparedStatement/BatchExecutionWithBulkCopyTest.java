@@ -26,30 +26,34 @@ import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.Geography;
 import com.microsoft.sqlserver.jdbc.Geometry;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 @RunWith(JUnitPlatform.class)
 public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
-    static long UUID = System.currentTimeMillis();;
-    static String tableName = "BulkCopyParseTest" + UUID;
-    static String unsupportedTableName = "BulkCopyUnsupportedTable" + UUID;
-    static String squareBracketTableName = "[peter]]]]test" + UUID + "]";
-    static String doubleQuoteTableName = "\"peter\"\"\"\"test" + UUID + "\"";
+    static String tableName = RandomUtil.getIdentifier("BulkCopyParseTest");
+    static String tableNameBulk = RandomUtil.getIdentifier("BulkCopyParseTest");
+    static String unsupportedTableName = RandomUtil.getIdentifier("BulkCopyUnsupportedTable'");
+    static String squareBracketTableName = RandomUtil.getIdentifier("BulkCopy]]]]test'");
+    static String doubleQuoteTableName = RandomUtil.getIdentifier("\"BulkCopy\"\"\"\"test\"");
+    static String schemaTableName = "\"dbo\"         . /*some comment */     " + squareBracketTableName;
 
     @Test
     public void testIsInsert() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
-            String valid1 = "INSERT INTO PeterTable values (1, 2)";
-            String valid2 = " INSERT INTO PeterTable values (1, 2)";
-            String valid3 = "/* asdf */ INSERT INTO PeterTable values (1, 2)";
-            String invalid = "Select * from PEterTable";
+            String valid1 = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " values (1, 2)";
+            String valid2 = " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " values (1, 2)";
+            String valid3 = "/* asdf */ INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk)
+                    + " values (1, 2)";
+            String invalid = "Select * from " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk);
 
             Method method = stmt.getClass().getDeclaredMethod("isInsert", String.class);
             method.setAccessible(true);
@@ -64,7 +68,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testComments() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
-            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ PeterTable /*rando comment */"
+            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ "
+                    + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " /*rando comment */"
                     + " /* rando comment */values/* rando comment */ (1, 2)";
 
             Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
@@ -75,7 +80,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals("PeterTable", (String) method.invoke(pstmt, false, false, false, false));
+            assertEquals(AbstractSQLGenerator.escapeIdentifier(tableNameBulk),
+                    (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -83,7 +89,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testBrackets() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
-            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ [Peter[]]Table] /*rando comment */"
+            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ [BulkCopy[]]Table] /*rando comment */"
                     + " /* rando comment */values/* rando comment */ (1, 2)";
 
             Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
@@ -94,7 +100,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals("[Peter[]]Table]", (String) method.invoke(pstmt, false, false, false, false));
+            assertEquals("[BulkCopy[]]Table]", (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -102,7 +108,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testDoubleQuotes() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
-            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Peter\"\"\"\"Table\" /*rando comment */"
+            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Bulk\"\"\"\"Table\" /*rando comment */"
                     + " /* rando comment */values/* rando comment */ (1, 2)";
 
             Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
@@ -113,7 +119,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals("\"Peter\"\"\"\"Table\"", (String) method.invoke(pstmt, false, false, false, false));
+            assertEquals("\"Bulk\"\"\"\"Table\"", (String) method.invoke(pstmt, false, false, false, false));
         }
     }
 
@@ -122,7 +128,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testAll() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
-            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Peter\"\"\"\"Table\" /*rando comment */"
+            String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Bulk\"\"\"\"Table\" /*rando comment */"
                     + " /* rando comment */ (\"c1\"/* rando comment */, /* rando comment */[c2]/* rando comment */, /* rando comment */ /* rando comment */c3/* rando comment */, c4)"
                     + "values/* rando comment */ (/* rando comment */1/* rando comment */, /* rando comment */2/* rando comment */ , '?', ?)/* rando comment */";
 
@@ -134,7 +140,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals((String) method.invoke(pstmt, false, false, false, false), "\"Peter\"\"\"\"Table\"");
+            assertEquals((String) method.invoke(pstmt, false, false, false, false), "\"Bulk\"\"\"\"Table\"");
 
             method = pstmt.getClass().getDeclaredMethod("parseUserSQLForColumnListDW");
             method.setAccessible(true);
@@ -154,8 +160,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testAllcolumns() throws Exception {
-        String valid = "INSERT INTO " + tableName + " values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
-                + "?, " + "?, " + "? " + ")";
+        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
+                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? " + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -181,31 +187,33 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
-            Object[] expected = new Object[9];
+                Object[] expected = new Object[9];
 
-            expected[0] = 1234;
-            expected[1] = false;
-            expected[2] = "a";
-            expected[3] = d;
-            expected[4] = myTimestamp;
-            expected[5] = 123.45;
-            expected[6] = "b";
-            expected[7] = "varc";
-            expected[8] = "''";
+                expected[0] = 1234;
+                expected[1] = false;
+                expected[2] = "a";
+                expected[3] = d;
+                expected[4] = myTimestamp;
+                expected[5] = 123.45;
+                expected[6] = "b";
+                expected[7] = "varc";
+                expected[8] = "''";
 
-            rs.next();
-            for (int i = 0; i < expected.length; i++) {
-                assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                rs.next();
+                for (int i = 0; i < expected.length; i++) {
+                    assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                }
             }
         }
     }
 
     @Test
     public void testMixColumns() throws Exception {
-        String valid = "INSERT INTO " + tableName + " (c1, c3, c5, c8) values " + "(" + "?, " + "?, " + "?, " + "? "
-                + ")";
+        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1, c3, c5, c8) values "
+                + "(" + "?, " + "?, " + "?, " + "? " + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -226,24 +234,26 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
-            Object[] expected = new Object[9];
+                Object[] expected = new Object[9];
 
-            expected[0] = 1234;
-            expected[1] = false;
-            expected[2] = "a";
-            expected[3] = d;
-            expected[4] = myTimestamp;
-            expected[5] = 123.45;
-            expected[6] = "b";
-            expected[7] = "varc";
-            expected[8] = "varcmax";
+                expected[0] = 1234;
+                expected[1] = false;
+                expected[2] = "a";
+                expected[3] = d;
+                expected[4] = myTimestamp;
+                expected[5] = 123.45;
+                expected[6] = "b";
+                expected[7] = "varc";
+                expected[8] = "varcmax";
 
-            rs.next();
-            for (int i = 0; i < expected.length; i++) {
-                if (null != rs.getObject(i + 1)) {
-                    assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                rs.next();
+                for (int i = 0; i < expected.length; i++) {
+                    if (null != rs.getObject(i + 1)) {
+                        assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                    }
                 }
             }
         }
@@ -251,8 +261,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testNullOrEmptyColumns() throws Exception {
-        String valid = "INSERT INTO " + tableName + " (c1, c2, c3, c4, c5, c6, c7) values " + "(" + "?, " + "?, "
-                + "?, " + "?, " + "?, " + "?, " + "? " + ")";
+        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (c1, c2, c3, c4, c5, c6, c7) values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? "
+                + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -272,22 +283,24 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
-            Object[] expected = new Object[9];
+                Object[] expected = new Object[9];
 
-            expected[0] = 1234;
-            expected[1] = false;
-            expected[2] = null;
-            expected[3] = null;
-            expected[4] = null;
-            expected[5] = 123.45;
-            expected[6] = " ";
+                expected[0] = 1234;
+                expected[1] = false;
+                expected[2] = null;
+                expected[3] = null;
+                expected[4] = null;
+                expected[5] = 123.45;
+                expected[6] = " ";
 
-            rs.next();
-            for (int i = 0; i < expected.length; i++) {
-                if (null != rs.getObject(i + 1)) {
-                    assertEquals(expected[i], rs.getObject(i + 1));
+                rs.next();
+                for (int i = 0; i < expected.length; i++) {
+                    if (null != rs.getObject(i + 1)) {
+                        assertEquals(expected[i], rs.getObject(i + 1));
+                    }
                 }
             }
         }
@@ -296,8 +309,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     // Non-parameterized queries are not supported anymore.
     // @Test
     public void testAllFilledColumns() throws Exception {
-        String valid = "INSERT INTO " + tableName + " values " + "(" + "1234, " + "false, " + "a, " + "null, "
-                + "null, " + "123.45, " + "b, " + "varc, " + "sadf, " + ")";
+        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "1234, "
+                + "false, " + "a, " + "null, " + "null, " + "123.45, " + "b, " + "varc, " + "sadf, " + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -310,30 +323,32 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
-            Object[] expected = new Object[9];
+                Object[] expected = new Object[9];
 
-            expected[0] = 1234;
-            expected[1] = false;
-            expected[2] = "a";
-            expected[3] = null;
-            expected[4] = null;
-            expected[5] = 123.45;
-            expected[6] = "b";
-            expected[7] = "varc";
-            expected[8] = "sadf";
+                expected[0] = 1234;
+                expected[1] = false;
+                expected[2] = "a";
+                expected[3] = null;
+                expected[4] = null;
+                expected[5] = 123.45;
+                expected[6] = "b";
+                expected[7] = "varc";
+                expected[8] = "sadf";
 
-            rs.next();
-            for (int i = 0; i < expected.length; i++) {
-                assertEquals(expected[i], rs.getObject(i + 1));
+                rs.next();
+                for (int i = 0; i < expected.length; i++) {
+                    assertEquals(expected[i], rs.getObject(i + 1));
+                }
             }
         }
     }
 
     @Test
     public void testSquareBracketAgainstDB() throws Exception {
-        String valid = "insert into " + squareBracketTableName + " values (?)";
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName) + " values (?)";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -342,8 +357,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Utils.dropTableIfExists(squareBracketTableName, stmt);
-            String createTable = "create table " + squareBracketTableName + " (c1 int)";
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(squareBracketTableName), stmt);
+            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName)
+                    + " (c1 int)";
             stmt.execute(createTable);
 
             pstmt.setInt(1, 1);
@@ -351,16 +367,18 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + squareBracketTableName);
-            rs.next();
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName))) {
+                rs.next();
 
-            assertEquals(1, rs.getObject(1));
+                assertEquals(1, rs.getObject(1));
+            }
         }
     }
 
     @Test
     public void testDoubleQuoteAgainstDB() throws Exception {
-        String valid = "insert into " + doubleQuoteTableName + " values (?)";
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName) + " values (?)";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -369,8 +387,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Utils.dropTableIfExists(doubleQuoteTableName, stmt);
-            String createTable = "create table " + doubleQuoteTableName + " (c1 int)";
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName), stmt);
+            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName)
+                    + " (c1 int)";
             stmt.execute(createTable);
 
             pstmt.setInt(1, 1);
@@ -378,17 +397,18 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + doubleQuoteTableName);
-            rs.next();
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName))) {
+                rs.next();
 
-            assertEquals(1, rs.getObject(1));
+                assertEquals(1, rs.getObject(1));
+            }
         }
     }
 
     @Test
     public void testSchemaAgainstDB() throws Exception {
-        String schemaTableName = "\"dbo\"         . /*some comment */     " + squareBracketTableName;
-        String valid = "insert into " + schemaTableName + " values (?)";
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(schemaTableName) + " values (?)";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -397,9 +417,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Utils.dropTableIfExists("[dbo]." + squareBracketTableName, stmt);
-
-            String createTable = "create table " + schemaTableName + " (c1 int)";
+            TestUtils.dropTableIfExists("[dbo]." + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName), stmt);
+            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(schemaTableName) + " (c1 int)";
             stmt.execute(createTable);
 
             pstmt.setInt(1, 1);
@@ -407,16 +426,19 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + schemaTableName);
-            rs.next();
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(schemaTableName))) {
+                rs.next();
 
-            assertEquals(1, rs.getObject(1));
+                assertEquals(1, rs.getObject(1));
+            }
         }
     }
 
     @Test
     public void testColumnNameMixAgainstDB() throws Exception {
-        String valid = "insert into " + squareBracketTableName + " ([c]]]]1], [c]]]]2]) values (?, 1)";
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName)
+                + " ([c]]]]1], [c]]]]2]) values (?, 1)";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -425,8 +447,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Utils.dropTableIfExists(squareBracketTableName, stmt);
-            String createTable = "create table " + squareBracketTableName + " ([c]]]]1] int, [c]]]]2] int)";
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(squareBracketTableName), stmt);
+            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName)
+                    + " ([c]]]]1] int, [c]]]]2] int)";
             stmt.execute(createTable);
 
             pstmt.setInt(1, 1);
@@ -434,17 +457,19 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + squareBracketTableName);
-            rs.next();
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName))) {
+                rs.next();
 
-            assertEquals(1, rs.getObject(1));
+                assertEquals(1, rs.getObject(1));
+            }
         }
     }
 
     @Test
     public void testAllColumnsLargeBatch() throws Exception {
-        String valid = "INSERT INTO " + tableName + " values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
-                + "?, " + "?, " + "? " + ")";
+        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
+                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? " + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -470,30 +495,32 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeLargeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
-            Object[] expected = new Object[9];
+                Object[] expected = new Object[9];
 
-            expected[0] = 1234;
-            expected[1] = false;
-            expected[2] = "a";
-            expected[3] = d;
-            expected[4] = myTimestamp;
-            expected[5] = 123.45;
-            expected[6] = "b";
-            expected[7] = "varc";
-            expected[8] = "''";
+                expected[0] = 1234;
+                expected[1] = false;
+                expected[2] = "a";
+                expected[3] = d;
+                expected[4] = myTimestamp;
+                expected[5] = 123.45;
+                expected[6] = "b";
+                expected[7] = "varc";
+                expected[8] = "''";
 
-            rs.next();
-            for (int i = 0; i < expected.length; i++) {
-                assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                rs.next();
+                for (int i = 0; i < expected.length; i++) {
+                    assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                }
             }
         }
     }
 
     @Test
     public void testIllegalNumberOfArgNoColumnList() throws Exception {
-        String invalid = "insert into " + tableName + " values (?, ?,? ,?) ";
+        String invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?, ?,? ,?) ";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
@@ -514,7 +541,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
         }
 
-        invalid = "insert into " + tableName + " (c1, c2, c3) values (?, ?,? ,?) ";
+        invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (c1, c2, c3) values (?, ?,? ,?) ";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
@@ -540,7 +568,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testNonParameterizedQuery() throws Exception {
-        String invalid = "insert into " + tableName + " values ((SELECT * from table where c1=?), ?,? ,?) ";
+        String invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " values ((SELECT * from table where c1=?), ?,? ,?) ";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
@@ -561,7 +590,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             assertEquals("Incorrect syntax near the keyword 'table'.", e.getMessage());
         }
 
-        invalid = "insert into " + tableName + " values ('?', ?,? ,?) ";
+        invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values ('?', ?,? ,?) ";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
@@ -584,7 +613,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testNonSupportedColumns() throws Exception {
-        String valid = "insert into " + unsupportedTableName + " values (?, ?, ?, ?)";
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName)
+                + " values (?, ?, ?, ?)";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -593,9 +623,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Utils.dropTableIfExists(unsupportedTableName, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(unsupportedTableName), stmt);
 
-            String createTable = "create table " + unsupportedTableName
+            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName)
                     + " (c1 geometry, c2 geography, c3 datetime, c4 smalldatetime)";
             stmt.execute(createTable);
 
@@ -611,12 +641,14 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + unsupportedTableName);
-            rs.next();
-            assertEquals(g1.toString(), Geometry.STGeomFromWKB((byte[]) rs.getObject(1)).toString());
-            assertEquals(g2.toString(), Geography.STGeomFromWKB((byte[]) rs.getObject(2)).toString());
-            assertEquals(myTimestamp, rs.getObject(3));
-            assertEquals(myTimestamp, rs.getObject(4));
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName))) {
+                rs.next();
+                assertEquals(g1.toString(), Geometry.STGeomFromWKB((byte[]) rs.getObject(1)).toString());
+                assertEquals(g2.toString(), Geography.STGeomFromWKB((byte[]) rs.getObject(2)).toString());
+                assertEquals(myTimestamp, rs.getObject(3));
+                assertEquals(myTimestamp, rs.getObject(4));
+            }
         }
     }
 
@@ -625,10 +657,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         try (Connection connection = DriverManager
                 .getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
             try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
-                Utils.dropTableIfExists(tableName, stmt);
-                String sql1 = "create table " + tableName + " " + "(" + "c1 int DEFAULT 1234, " + "c2 bit, "
-                        + "c3 char DEFAULT NULL, " + "c4 date, " + "c5 datetime2, " + "c6 float, " + "c7 nchar, "
-                        + "c8 varchar(20), " + "c9 varchar(max)" + ")";
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+                String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " " + "("
+                        + "c1 int DEFAULT 1234, " + "c2 bit, " + "c3 char DEFAULT NULL, " + "c4 date, "
+                        + "c5 datetime2, " + "c6 float, " + "c7 nchar, " + "c8 varchar(20), " + "c9 varchar(max)" + ")";
 
                 stmt.execute(sql1);
             }
@@ -639,10 +671,12 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public static void terminateVariation() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
-                Utils.dropTableIfExists(tableName, stmt);
-                Utils.dropTableIfExists(squareBracketTableName, stmt);
-                Utils.dropTableIfExists(doubleQuoteTableName, stmt);
-                Utils.dropTableIfExists(unsupportedTableName, stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulk), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(unsupportedTableName), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(squareBracketTableName), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(schemaTableName), stmt);
             }
         }
     }

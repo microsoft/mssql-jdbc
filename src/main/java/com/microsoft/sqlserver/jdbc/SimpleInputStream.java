@@ -24,6 +24,9 @@ abstract class BaseInputStream extends InputStream {
 
     // Flag indicating whether the stream consumes and discards data as it reads it
     final boolean isStreaming;
+    
+    // Stated length of the payload
+    int payloadLength;
 
     /** Generate the logging ID */
     private String parentLoggingInfo = "";
@@ -130,9 +133,6 @@ abstract class BaseInputStream extends InputStream {
 
 
 final class SimpleInputStream extends BaseInputStream {
-
-    // Stated length of the payload
-    private final int payloadLength;
 
     /**
      * Initializes the input stream.

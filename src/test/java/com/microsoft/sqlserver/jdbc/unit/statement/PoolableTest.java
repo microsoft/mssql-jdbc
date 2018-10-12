@@ -24,8 +24,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -46,41 +46,37 @@ public class PoolableTest extends AbstractTest {
     public void poolableTest() throws SQLException, ClassNotFoundException {
         try (Connection conn = DriverManager.getConnection(connectionString);
                 Statement statement = conn.createStatement()) {
-            try {
-                // First get the default values
-                boolean isPoolable = ((SQLServerStatement) statement).isPoolable();
-                assertEquals(isPoolable, false,
-                        "SQLServerStatement: " + TestResource.getResource("R_incorrectDefault"));
+            // First get the default values
+            boolean isPoolable = ((SQLServerStatement) statement).isPoolable();
+            assertEquals(isPoolable, false, "SQLServerStatement: " + TestResource.getResource("R_incorrectDefault"));
 
-                try (PreparedStatement prepStmt = connection.prepareStatement("select 1")) {
-                    isPoolable = ((SQLServerPreparedStatement) prepStmt).isPoolable();
-                    assertEquals(isPoolable, true,
-                            "SQLServerPreparedStatement: " + TestResource.getResource("R_incorrectDefault"));
-                }
-
-                try (CallableStatement callableStatement = connection
-                        .prepareCall("{  ? = CALL " + "ProcName" + " (?, ?, ?, ?) }");) {
-                    isPoolable = ((SQLServerCallableStatement) callableStatement).isPoolable();
-
-                    assertEquals(isPoolable, true,
-                            "SQLServerCallableStatement: " + TestResource.getResource("R_incorrectDefault"));
-
-                    // Now do couple of sets and gets
-
-                    ((SQLServerCallableStatement) callableStatement).setPoolable(false);
-                    assertEquals(((SQLServerCallableStatement) callableStatement).isPoolable(), false,
-                            "set did not work");
-                }
-
-                ((SQLServerStatement) statement).setPoolable(true);
-                assertEquals(((SQLServerStatement) statement).isPoolable(), true, "set did not work");
-            } catch (UnsupportedOperationException e) {
-                // PoolableTest should be supported in anything other than 1.5
-                assertEquals(System.getProperty("java.specification.version"), "1.5",
-                        "PoolableTest " + TestResource.getResource("R_shouldBeSupported"));
-                assertEquals(e.getMessage(), TestResource.getResource("R_operationNotSupported"));
-                assertEquals(e.getMessage(), TestResource.getResource("R_unexpectedExceptionContent"));
+            try (PreparedStatement prepStmt = connection.prepareStatement("select 1")) {
+                isPoolable = ((SQLServerPreparedStatement) prepStmt).isPoolable();
+                assertEquals(isPoolable, true,
+                        "SQLServerPreparedStatement: " + TestResource.getResource("R_incorrectDefault"));
             }
+
+            try (CallableStatement callableStatement = connection
+                    .prepareCall("{  ? = CALL " + "ProcName" + " (?, ?, ?, ?) }");) {
+                isPoolable = ((SQLServerCallableStatement) callableStatement).isPoolable();
+
+                assertEquals(isPoolable, true,
+                        "SQLServerCallableStatement: " + TestResource.getResource("R_incorrectDefault"));
+
+                // Now do couple of sets and gets
+
+                ((SQLServerCallableStatement) callableStatement).setPoolable(false);
+                assertEquals(((SQLServerCallableStatement) callableStatement).isPoolable(), false, "set did not work");
+            }
+
+            ((SQLServerStatement) statement).setPoolable(true);
+            assertEquals(((SQLServerStatement) statement).isPoolable(), true, "set did not work");
+        } catch (UnsupportedOperationException e) {
+            // PoolableTest should be supported in anything other than 1.5
+            assertEquals(System.getProperty("java.specification.version"), "1.5",
+                    "PoolableTest " + TestResource.getResource("R_shouldBeSupported"));
+            assertEquals(e.getMessage(), TestResource.getResource("R_operationNotSupported"));
+            assertEquals(e.getMessage(), TestResource.getResource("R_unexpectedExceptionContent"));
         }
     }
 
@@ -92,12 +88,9 @@ public class PoolableTest extends AbstractTest {
     @AfterAll
     public static void afterAll() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            try {
-                Utils.dropProcedureIfExists("ProcName", stmt);
-            } catch (Exception ex) {
-                fail(ex.toString());
-            }
+            TestUtils.dropProcedureIfExists("ProcName", stmt);
+        } catch (Exception ex) {
+            fail(ex.toString());
         }
     }
-
 }

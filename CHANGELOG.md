@@ -3,6 +3,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.1.1] Preview Release
+### Fixed Issues
+- Fixed a bug where calling length() after obtaining a stream would close the stream for Clobs/NClobs [#799](https://github.com/Microsoft/mssql-jdbc/pull/799)
+- Fixed issues in Bulk Copy exception handling [#801](https://github.com/Microsoft/mssql-jdbc/pull/801)
+- Fixed closeable resource leaks in Junit tests [#797](https://github.com/Microsoft/mssql-jdbc/pull/797)
+- Fixed issues with apostrophe being passed in table name [#780](https://github.com/Microsoft/mssql-jdbc/pull/780)
+- Fixed statement leaks and improved exception handling in SQLServerParameterMetadata [#780](https://github.com/Microsoft/mssql-jdbc/pull/780)
+
+### Changed
+- Changed error message to be thrown when data out of range for DECIMAL/NUMERIC types [#796](https://github.com/Microsoft/mssql-jdbc/pull/796)
+
+## [7.1.0] Preview Release
+### Added
+- Added support for LocalDate, LocalTime and LocalDateTime to be passed as 'type' in ResultSet.getObject() [#749](https://github.com/Microsoft/mssql-jdbc/pull/749)
+- Added support to read SQL Warnings after ResultSet is read completely [#785](https://github.com/Microsoft/mssql-jdbc/pull/785)
+
+### Fixed Issues
+- Fixed Javadoc warnings and removed obselete HTML tags from Javadocs [#786](https://github.com/Microsoft/mssql-jdbc/pull/786)
+- Fixed random JUnit failures in framework tests [#762](https://github.com/Microsoft/mssql-jdbc/pull/762)
+
+### Changed
+- Improved performance of readLong() function by unrolling loop and using bitwise operators instead of additions [#763](https://github.com/Microsoft/mssql-jdbc/pull/763)
+- Removed logging logic which caused performance degradation in AE [#773](https://github.com/Microsoft/mssql-jdbc/pull/773)
+
 ## [7.0.0] Stable Release
 ### Added
 - Added 'Automatic-Module-Name' manifest entry to jre10 Jar, allowing JDK 10 users to access driver module 'com.microsoft.sqlserver.jdbc' [#732](https://github.com/Microsoft/mssql-jdbc/pull/732)

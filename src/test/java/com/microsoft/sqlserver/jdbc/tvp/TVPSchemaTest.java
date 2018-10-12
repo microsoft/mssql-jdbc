@@ -7,7 +7,11 @@ package com.microsoft.sqlserver.jdbc.tvp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.ResultSet;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,30 +20,27 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.DBResultSet;
-import com.microsoft.sqlserver.testframework.DBStatement;
 
 
 @RunWith(JUnitPlatform.class)
 public class TVPSchemaTest extends AbstractTest {
 
-    private static DBConnection conn = null;
-    static DBStatement stmt = null;
-    static DBResultSet rs = null;
     static SQLServerDataTable tvp = null;
     static String expectecValue1 = "hello";
     static String expectecValue2 = "world";
     static String expectecValue3 = "again";
-    private static String schemaName = "anotherSchma";
-    private static String tvpNameWithouSchema = "charTVP";
-    private static String tvpNameWithSchema = "[" + schemaName + "].[" + tvpNameWithouSchema + "]";
-    private static String charTable = "[" + schemaName + "].[tvpCharTable]";
-    private static String procedureName = "[" + schemaName + "].[procedureThatCallsTVP]";
+    private static String schemaName;
+    private static String tvpNameWithouSchema;
+    private static String tvpNameWithSchema;
+    private static String charTable;
+    private static String procedureName;
 
     /**
      * PreparedStatement with storedProcedure
@@ -52,15 +53,14 @@ public class TVPSchemaTest extends AbstractTest {
 
         final String sql = "{call " + procedureName + "(?)}";
 
-        SQLServerPreparedStatement P_C_statement = (SQLServerPreparedStatement) connection.prepareStatement(sql);
-        P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
-        P_C_statement.execute();
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
+                SQLServerPreparedStatement P_C_statement = (SQLServerPreparedStatement) conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+            P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
+            P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + charTable);
-        verify(rs);
+            verify(rs);
 
-        if (null != P_C_statement) {
-            P_C_statement.close();
         }
     }
 
@@ -75,15 +75,13 @@ public class TVPSchemaTest extends AbstractTest {
 
         final String sql = "{call " + procedureName + "(?)}";
 
-        SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql);
-        P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
-        P_C_statement.execute();
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
+                SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) conn.prepareCall(sql);
+                ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+            P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
+            P_C_statement.execute();
 
-        rs = stmt.executeQuery("select * from " + charTable);
-        verify(rs);
-
-        if (null != P_C_statement) {
-            P_C_statement.close();
+            verify(rs);
         }
     }
 
@@ -97,16 +95,14 @@ public class TVPSchemaTest extends AbstractTest {
     @DisplayName("TVPSchemaPreparedInsertCommand")
     public void testTVPSchemaPreparedInsertCommand() throws SQLException, IOException {
 
-        SQLServerPreparedStatement P_C_stmt = (SQLServerPreparedStatement) connection
-                .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
-        P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
-        P_C_stmt.executeUpdate();
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
+                SQLServerPreparedStatement P_C_stmt = (SQLServerPreparedStatement) conn
+                        .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
+                ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+            P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
+            P_C_stmt.executeUpdate();
 
-        rs = stmt.executeQuery("select * from " + charTable);
-        verify(rs);
-
-        if (null != P_C_stmt) {
-            P_C_stmt.close();
+            verify(rs);
         }
     }
 
@@ -120,23 +116,28 @@ public class TVPSchemaTest extends AbstractTest {
     @DisplayName("TVPSchemaCallableInsertCommand()")
     public void testTVPSchemaCallableInsertCommand() throws SQLException, IOException {
 
-        SQLServerCallableStatement P_C_stmt = (SQLServerCallableStatement) connection
-                .prepareCall("INSERT INTO " + charTable + " select * from ? ;");
-        P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
-        P_C_stmt.executeUpdate();
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
+                SQLServerCallableStatement P_C_stmt = (SQLServerCallableStatement) conn
+                        .prepareCall("INSERT INTO " + charTable + " select * from ? ;");
+                ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+            P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
+            P_C_stmt.executeUpdate();
 
-        rs = stmt.executeQuery("select * from " + charTable);
-        verify(rs);
-
-        if (null != P_C_stmt) {
-            P_C_stmt.close();
+            verify(rs);
         }
     }
 
     @BeforeEach
     public void testSetup() throws SQLException {
-        conn = new DBConnection(connectionString);
-        stmt = conn.createStatement();
+        schemaName = RandomUtil.getIdentifier("anotherSchema");
+        tvpNameWithouSchema = RandomUtil.getIdentifier("charTVP");
+        tvpNameWithSchema = AbstractSQLGenerator.escapeIdentifier(schemaName) + "."
+                + AbstractSQLGenerator.escapeIdentifier(tvpNameWithouSchema);
+
+        charTable = AbstractSQLGenerator.escapeIdentifier(schemaName) + "."
+                + AbstractSQLGenerator.escapeIdentifier("tvpCharTable");
+        procedureName = AbstractSQLGenerator.escapeIdentifier(schemaName) + "."
+                + AbstractSQLGenerator.escapeIdentifier("procedureThatCallsTVP");
 
         dropProcedure();
         dropTables();
@@ -160,7 +161,7 @@ public class TVPSchemaTest extends AbstractTest {
         tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
     }
 
-    private void verify(DBResultSet rs) throws SQLException {
+    private void verify(ResultSet rs) throws SQLException {
         while (rs.next()) {
             String actualValue1 = rs.getString(1);
             String actualValue2 = rs.getString(2);
@@ -173,58 +174,71 @@ public class TVPSchemaTest extends AbstractTest {
     }
 
     private void dropProcedure() throws SQLException {
-        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'" + procedureName
-                + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + procedureName;
-        stmt.execute(sql);
+        String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'"
+                + TestUtils.escapeSingleQuotes(procedureName) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
+                + " DROP PROCEDURE " + procedureName;
+
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private static void dropTables() throws SQLException {
-        stmt.executeUpdate("if object_id('" + charTable + "','U') is not null" + " drop table " + charTable);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(charTable) + "','U') is not null"
+                    + " drop table " + charTable);
+        }
     }
 
     private static void dropTVPS() throws SQLException {
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
-                + tvpNameWithouSchema + "') " + " drop type " + tvpNameWithSchema);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
+                    + TestUtils.escapeSingleQuotes(tvpNameWithouSchema) + "') " + " drop type " + tvpNameWithSchema);
+        }
     }
 
     private static void dropAndCreateSchema() throws SQLException {
-        stmt.execute("if EXISTS (SELECT * FROM sys.schemas where name = 'anotherSchma') drop schema anotherSchma");
-        stmt.execute("CREATE SCHEMA anotherSchma");
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.execute(
+                    "if EXISTS (SELECT * FROM sys.schemas where name = '" + TestUtils.escapeSingleQuotes(schemaName)
+                            + "') drop schema " + AbstractSQLGenerator.escapeIdentifier(schemaName));
+            stmt.execute("CREATE SCHEMA " + AbstractSQLGenerator.escapeIdentifier(schemaName));
+        }
     }
 
     private static void createPreocedure() throws SQLException {
         String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpNameWithSchema + " READONLY " + " AS "
                 + " BEGIN " + " INSERT INTO " + charTable + " SELECT * FROM @InputData" + " END";
 
-        stmt.execute(sql);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private void createTables() throws SQLException {
         String sql = "create table " + charTable + " (" + "PlainChar char(50) null," + "PlainVarchar varchar(50) null,"
                 + "PlainVarcharMax varchar(max) null," + ");";
-        stmt.execute(sql);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private void createTVPS() throws SQLException {
         String TVPCreateCmd = "CREATE TYPE " + tvpNameWithSchema + " as table ( " + "PlainChar char(50) null,"
                 + "PlainVarchar varchar(50) null," + "PlainVarcharMax varchar(max) null" + ")";
-        stmt.executeUpdate(TVPCreateCmd);
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(TVPCreateCmd);
+        }
     }
 
     @AfterEach
     public void terminateVariation() throws SQLException {
-        if (null != conn) {
-            conn.close();
-        }
-        if (null != stmt) {
-            stmt.close();
-        }
-        if (null != rs) {
-            rs.close();
-        }
+        dropProcedure();
+        dropTables();
+        dropTVPS();
+
         if (null != tvp) {
             tvp.clear();
         }
     }
-
 }

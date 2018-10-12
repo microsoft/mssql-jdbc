@@ -21,7 +21,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.testframework.Utils;;
+import com.microsoft.sqlserver.jdbc.TestUtils;;
 
 
 /**
@@ -72,20 +72,20 @@ public class FipsEnvTest {
     public void testFIPSOnOracle() throws Exception {
         assumeTrue(ORACLE_JVM.equals(currentJVM), TestResource.getResource("R_wrongEnv") + ORACLE_JVM);
 
-        assumeTrue("FIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")),
+        assumeTrue("FIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")),
                 TestResource.getResource("R_fipsPropertyNotSet"));
 
         assertTrue(isFIPS("SunJSSE"), "FIPS " + TestResource.getResource("R_shouldBeEnabled"));
 
         // As JDK 1.7 is not supporting lambda for time being commenting.
         /*
-         * assumingThat("NSSFIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), () -> assertAll("All FIPS", () ->
+         * assumingThat("NSSFIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")), () -> assertAll("All FIPS", () ->
          * assertTrue(isFIPS("SunJSSE"), TestResource.getResource("R_shouldBeEnabled")), () ->
          * assertTrue(isFIPS("SunPKCS11-NSS"), "Testing")));
-         * assumingThat("BCFIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), () -> assertAll("All FIPS", () ->
+         * assumingThat("BCFIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")), () -> assertAll("All FIPS", () ->
          * assertTrue(isFIPS("SunJSSE"), TestResource.getResource("R_shouldBeEnabled")), () ->
          * assertTrue(isFIPS("BCFIPS"), "Testing")));
-         * assumingThat("FIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), ()-> assertTrue(isFIPS("SunJSSE"),
+         * assumingThat("FIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")), ()-> assertTrue(isFIPS("SunJSSE"),
          * TestResource.getResource("R_shouldBeEnabled")));
          */
     }
@@ -99,20 +99,20 @@ public class FipsEnvTest {
     public void testFIPSOnIBM() throws Exception {
         assumeTrue(IBM_JVM.equals(currentJVM), TestResource.getResource("R_wrongEnv") + IBM_JVM);
 
-        assumeTrue("FIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")),
+        assumeTrue("FIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")),
                 TestResource.getResource("R_fipsPropertyNotSet"));
 
         assertTrue(isFIPS("IBMJCEFIP"), "FIPS " + TestResource.getResource("R_shouldBeEnabled"));
 
         // As JDK 1.7 is not supporting lambda for time being commenting.
         /*
-         * assumingThat("NSSFIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), () -> assertAll("All FIPS", () ->
+         * assumingThat("NSSFIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")), () -> assertAll("All FIPS", () ->
          * assertTrue(isFIPS("IBMJCEFIP"), "FIPS should be Enabled."), () -> assertTrue(isFIPS("SunPKCS11-NSS"),
-         * "Testing"))); assumingThat("BCFIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), () ->
+         * "Testing"))); assumingThat("BCFIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")), () ->
          * assertAll("All FIPS", () -> assertTrue(isFIPS("IBMJCEFIPS"), "FIPS should be Enabled."), () ->
          * assertTrue(isFIPS("BCFIPS"), "Testing")));
-         * assumingThat("FIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")), ()-> assertTrue(isFIPS("IBMJCEFIPS"),
-         * "FIPS Should be enabled"));
+         * assumingThat("FIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")), ()->
+         * assertTrue(isFIPS("IBMJCEFIPS"), "FIPS Should be enabled"));
          */
     }
 
@@ -123,7 +123,7 @@ public class FipsEnvTest {
     @Test
     @Disabled
     public void testFIPSEnv() {
-        assumeTrue("FIPS".equals(Utils.getConfiguredProperty("FIPS_ENV")),
+        assumeTrue("FIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")),
                 TestResource.getResource("R_fipsPropertyNotSet"));
 
         // As JDK 1.7 is not supporting lambda for time being commenting.

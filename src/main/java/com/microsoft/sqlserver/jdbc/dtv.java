@@ -1083,8 +1083,16 @@ final class DTV {
 
         void execute(DTV dtv, BigDecimal bigDecimalValue) throws SQLServerException {
             if (DDC.exceedsMaxRPCDecimalPrecisionOrScale(bigDecimalValue)) {
-                String strValue = bigDecimalValue.toString();
-                tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
+                if (JDBCType.DECIMAL == dtv.getJdbcType() || JDBCType.NUMERIC == dtv.getJdbcType()) {
+                    // Throw exception for DECIMAL and NUMERIC Datatypes
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRangeSQLType"));
+                    Object[] msgArgs = {dtv.getJdbcType()};
+                    throw new SQLServerException(form.format(msgArgs), SQLState.NUMERIC_DATA_OUT_OF_RANGE,
+                            DriverError.NOT_SET, null);
+                } else {
+                    String strValue = bigDecimalValue.toString();
+                    tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
+                }
             } else {
                 tdsWriter.writeRPCBigDecimal(name, bigDecimalValue, outScale, isOutParam);
             }
@@ -1758,7 +1766,7 @@ final class DTV {
                                             SQLServerException.getErrString("R_valueOutOfRange"));
                                     Object[] msgArgs = {cryptoMeta.getBaseTypeInfo().getSSTypeName()};
                                     throw new SQLServerException(form.format(msgArgs),
-                                            SQLState.DATA_EXCEPTION_DATETIME_FIELD_OVERFLOW, DriverError.NOT_SET, null);
+                                            SQLState.NUMERIC_DATA_OUT_OF_RANGE, DriverError.NOT_SET, null);
                                 }
                             } else {
                                 // if the precision that user provides is smaller than the precision of the actual
@@ -1772,7 +1780,7 @@ final class DTV {
                                             SQLServerException.getErrString("R_valueOutOfRange"));
                                     Object[] msgArgs = {SSType.DECIMAL};
                                     throw new SQLServerException(form.format(msgArgs),
-                                            SQLState.DATA_EXCEPTION_DATETIME_FIELD_OVERFLOW, DriverError.NOT_SET, null);
+                                            SQLState.NUMERIC_DATA_OUT_OF_RANGE, DriverError.NOT_SET, null);
                                 }
                             }
 
