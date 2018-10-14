@@ -678,14 +678,7 @@ final class DTV {
                                                                                                                         * 1000,
                                                                                                                 "");
 
-                        // The behavior is similar to microsoft.sql.DateTimeOffset
-                        // In Timestamp format, only YEAR needs to have 4 digits. The leading zeros for the rest of the
-                        // fields can be omitted.
-                        String offDateTimeStr = String.format("%04d", offsetDateTimeValue.getYear()) + '-'
-                                + offsetDateTimeValue.getMonthValue() + '-' + offsetDateTimeValue.getDayOfMonth() + ' '
-                                + offsetDateTimeValue.getHour() + ':' + offsetDateTimeValue.getMinute() + ':'
-                                + offsetDateTimeValue.getSecond();
-                        utcMillis = Timestamp.valueOf(offDateTimeStr).getTime();
+                        utcMillis = offsetDateTimeValue.toEpochSecond() * 1000;
                         break;
 
                     case DATETIMEOFFSET: {
