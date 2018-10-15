@@ -360,7 +360,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Changed
  - Switched to clean rounding for bigDecimal [#118](https://github.com/Microsoft/mssql-jdbc/pull/118)
  - Updated BVT tests to use jUnit test framework [#120](https://github.com/Microsoft/mssql-jdbc/pull/120)
- - In case of socket timeout occurance, avoid connection retry [#122](https://github.com/Microsoft/mssql-jdbc/pull/122)
+ - In case of socket timeout occurrence, avoid connection retry [#122](https://github.com/Microsoft/mssql-jdbc/pull/122)
  - Changed ant build file to skip tests [#126](https://github.com/Microsoft/mssql-jdbc/pull/126)
 
 ### Fixed Issues

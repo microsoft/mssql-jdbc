@@ -34,7 +34,7 @@ final class Parameter {
     // Value type info for OUT parameters (excluding return status)
     private TypeInfo typeInfo;
 
-    // For unencrypted paramters cryptometa will be null. For encrypted parameters it will hold encryption metadata.
+    // For unencrypted parameters cryptometa will be null. For encrypted parameters it will hold encryption metadata.
     CryptoMetadata cryptoMeta = null;
 
     TypeInfo getTypeInfo() {
