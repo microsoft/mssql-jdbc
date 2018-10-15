@@ -4064,10 +4064,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             dataBytesRead += 1;
 
             while (dataBytesRead < dataLength) {
-                short sessionStateId = (short) tdsReader.readUnsignedByte(); // unsigned byte
-                int sessionStateLength = (int) tdsReader.readUnsignedByte(); // unsigned byte
+                short sessionStateId = (short) tdsReader.readUnsignedByte();
+                int sessionStateLength = (int) tdsReader.readUnsignedByte();
                 dataBytesRead += 2;
-                if (sessionStateLength == 0xFF) {
+                if (sessionStateLength >= 0xFF) {
                     sessionStateLength = (int) tdsReader.readUnsignedInt(); // xFF - xFFFF
                     dataBytesRead += 4;
                 }
@@ -4081,8 +4081,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                  */
 
                 if (SessionStateTable.MASTER_RECOVERY_DISABLE_SEQ_NUMBER != sequenceNumber
-                        && ((sessionRecovery.getSessionStateTable().getSessionStateDelta()[sessionStateId]
-                                .getData() == null)
+                        && ((null == sessionRecovery.getSessionStateTable().getSessionStateDelta()[sessionStateId]
+                                .getData())
                                 || (sessionRecovery.getSessionStateTable().getSessionStateDelta()[sessionStateId]
                                         .isSequenceNumberGreater(sequenceNumber)))) {
                     sessionRecovery.getSessionStateTable().updateSessionState(tdsReader, sessionStateId,

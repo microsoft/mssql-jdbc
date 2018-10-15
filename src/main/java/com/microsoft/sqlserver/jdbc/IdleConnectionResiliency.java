@@ -57,10 +57,10 @@ class SessionRecoveryFeature {
         // Contains StateId, StateLen, StateValue
         while (bytesRead < dataLength) {
             short sessionStateId = (short) tdsReader.readUnsignedByte();
-            short sessionStateLength = (short) tdsReader.readUnsignedByte();
+            int sessionStateLength = (int) tdsReader.readUnsignedByte();
             bytesRead += 2;
-            if (sessionStateLength == 0xFF) {
-                sessionStateLength = tdsReader.readShort();
+            if (sessionStateLength >= 0xFF) {
+                sessionStateLength = (int) tdsReader.readUnsignedInt(); // xFF - xFFFF
                 bytesRead += 2;
             }
             sessionStateInitial[sessionStateId] = new byte[sessionStateLength];
@@ -73,7 +73,6 @@ class SessionRecoveryFeature {
 
 class SessionStateValue {
     private boolean isRecoverable;
-    private boolean sequenceNumberUnsignedCarryover;
     private int sequenceNumber;
     private int dataLengh;
     private byte[] data;
@@ -95,7 +94,7 @@ class SessionStateValue {
             if ((sequenceNumberToBeCompared >= 0) && (sequenceNumber < 0))
                 greater = false;
         }
-        // This else takes care of these secnarios where result is false:
+        // This else takes care of these scenarios where result is false:
         // toBeCompared= 1 benchmark = 2 (both positive) ..false
         // toBeCompared=-2(254) benchmark = -1(255) (both negative) ..false
         else
@@ -114,14 +113,6 @@ class SessionStateValue {
 
     void setRecoverable(boolean isRecoverable) {
         this.isRecoverable = isRecoverable;
-    }
-
-    boolean isSequenceNumberUnsignedCarryover() {
-        return sequenceNumberUnsignedCarryover;
-    }
-
-    void setSequenceNumberUnsignedCarryover(boolean sequenceNumberUnsignedCarryover) {
-        this.sequenceNumberUnsignedCarryover = sequenceNumberUnsignedCarryover;
     }
 
     int getSequenceNumber() {
@@ -185,7 +176,7 @@ class SessionStateTable {
                                      : unRecoverableSessionStateCount.incrementAndGet();
             }
         }
-        tdsReader.readBytes(sessionStateDelta[sessionStateId].getData(), 0, (int) sessionStateLength);
+        tdsReader.readBytes(sessionStateDelta[sessionStateId].getData(), 0, sessionStateLength);
         sessionStateDelta[sessionStateId].setRecoverable(fRecoverable);
     }
 
