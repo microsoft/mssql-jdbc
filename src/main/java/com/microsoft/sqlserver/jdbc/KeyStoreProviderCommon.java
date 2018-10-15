@@ -142,19 +142,19 @@ class KeyStoreProviderCommon {
     private static boolean verifyRSASignature(byte[] hash, byte[] signature, X509Certificate certificate,
             String masterKeyPath) throws SQLServerException {
         Signature signVerify;
-        boolean verificationSucess = false;
+        boolean verificationSuccess = false;
         try {
             signVerify = Signature.getInstance("SHA256withRSA");
             signVerify.initVerify(certificate.getPublicKey());
             signVerify.update(hash);
-            verificationSucess = signVerify.verify(signature);
+            verificationSuccess = signVerify.verify(signature);
         } catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidCertificateSignature"));
             Object[] msgArgs = {masterKeyPath};
             throw new SQLServerException(form.format(msgArgs), e);
         }
 
-        return verificationSucess;
+        return verificationSuccess;
 
     }
 

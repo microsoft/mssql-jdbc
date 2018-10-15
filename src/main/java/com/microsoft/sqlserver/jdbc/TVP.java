@@ -431,7 +431,7 @@ class TVP {
     }
 
     /*
-     * parsing the multipart identifer string. paramaters: name - string to parse leftquote: set of characters which are
+     * parsing the multipart identifer string. parameters: name - string to parse leftquote: set of characters which are
      * valid quoteing characters to initiate a quote rightquote: set of characters which are valid to stop a quote,
      * array index's correspond to the the leftquote array. separator: separator to use limit: number of names to parse
      * out removequote:to remove the quotes on the returned string
