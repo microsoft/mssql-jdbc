@@ -4065,10 +4065,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             while (dataBytesRead < dataLength) {
                 short sessionStateId = (short) tdsReader.readUnsignedByte(); // unsigned byte
-                long sessionStateLength = (short) tdsReader.readUnsignedByte(); // unsigned byte
+                int sessionStateLength = (int) tdsReader.readUnsignedByte(); // unsigned byte
                 dataBytesRead += 2;
                 if (sessionStateLength == 0xFF) {
-                    sessionStateLength = tdsReader.readUnsignedInt(); // DWORD
+                    sessionStateLength = (int) tdsReader.readUnsignedInt(); // xFF - xFFFF
                     dataBytesRead += 4;
                 }
 

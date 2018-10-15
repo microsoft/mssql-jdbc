@@ -75,7 +75,7 @@ class SessionStateValue {
     private boolean isRecoverable;
     private boolean sequenceNumberUnsignedCarryover;
     private int sequenceNumber;
-    private long dataLengh;
+    private int dataLengh;
     private byte[] data;
 
     boolean isSequenceNumberGreater(int sequenceNumberToBeCompared) {
@@ -132,11 +132,11 @@ class SessionStateValue {
         this.sequenceNumber = sequenceNumber;
     }
 
-    long getDataLengh() {
+    int getDataLengh() {
         return dataLengh;
     }
 
-    void setDataLengh(long dataLengh) {
+    void setDataLengh(int dataLengh) {
         this.dataLengh = dataLengh;
     }
 
@@ -163,14 +163,14 @@ class SessionStateTable {
         this.sessionStateInitial = new byte[SessionStateTable.SESSION_STATE_ID_MAX][];
     }
 
-    void updateSessionState(TDSReader tdsReader, short sessionStateId, long sessionStateLength, int sequenceNumber,
+    void updateSessionState(TDSReader tdsReader, short sessionStateId, int sessionStateLength, int sequenceNumber,
             boolean fRecoverable) throws SQLServerException {
         sessionStateDelta[sessionStateId].setSequenceNumber(sequenceNumber);
         sessionStateDelta[sessionStateId].setDataLengh(sessionStateLength);
 
         if ((sessionStateDelta[sessionStateId].getData() == null)
                 || (sessionStateDelta[sessionStateId].getData().length < sessionStateLength)) {
-            sessionStateDelta[sessionStateId].setData(new byte[(int) sessionStateLength]);
+            sessionStateDelta[sessionStateId].setData(new byte[sessionStateLength]);
 
             // First time state update and value is not recoverable, hence count is incremented.
             if (!fRecoverable) {
