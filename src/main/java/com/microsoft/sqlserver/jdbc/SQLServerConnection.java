@@ -124,6 +124,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private byte[] accessTokenInByte = null;
 
     private SqlFedAuthToken fedAuthToken = null;
+    private SqlFedAuthInfo sqlFedAuthInfo = null;
 
     private String originalHostNameInCertificate = null;
 
@@ -1041,7 +1042,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Checks if the connection is closed Create a new connection if it's a fedauth connection and the access token is
+     * Checks if the connection is closed Create a new connection if it's a fedAuth connection and the access token is
      * going to expire.
      * 
      * @throws SQLServerException
@@ -1051,10 +1052,31 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
                     null, false);
         }
-
+        
+        // Check if federated Authentication is in use
         if (null != fedAuthToken) {
+            // Check if access token is about to expire soon
             if (Util.checkIfNeedNewAccessToken(this)) {
-                connect(this.activeConnectionProperties, null);
+                boolean needsReconnect = false;
+                // Check if no refreshToken was received
+                // Applies to cases where nativeDLL is in use
+                if (null != fedAuthToken.refreshToken) {
+                    // Attempt to refresh access token using refresh token
+                    fedAuthToken = SQLServerADAL4JUtils.aquireTokenFromRefreshToken(sqlFedAuthInfo, fedAuthToken,
+                            authenticationString);
+                    attemptRefreshTokenLocked = false;
+                    // Check if refreshing Access token has failed, would need reconnect
+                    if (null == fedAuthToken) {
+                        needsReconnect = true;
+                    }
+                } else {
+                    // Reconnect is needed if Native DLL is in use by user application.
+                    needsReconnect = true;
+                }
+                if (needsReconnect) {
+                    // Try acquiring a fresh access token now.
+                    connect(this.activeConnectionProperties, null);
+                }
             }
         }
     }
@@ -3837,7 +3859,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     final void processFedAuthInfo(TDSReader tdsReader, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
-        SqlFedAuthInfo sqlFedAuthInfo = new SqlFedAuthInfo();
+        sqlFedAuthInfo = new SqlFedAuthInfo();
 
         tdsReader.readUnsignedByte(); // token type, 0xEE
 
@@ -4027,11 +4049,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
         String password = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
 
-        // No:of milliseconds to sleep for the inital back off.
+        // No:of milliseconds to sleep for the initial back off.
         int sleepInterval = 100;
 
         while (true) {
             if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
+                validateAdalLibrary("R_ADALMissing");
                 fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password,
                         authenticationString);
 
@@ -4053,10 +4076,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         assert null != dllInfo.accessTokenBytes;
 
                         byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
-
                         String accessToken = new String(accessTokenFromDLL, UTF_16LE);
 
-                        fedAuthToken = new SqlFedAuthToken(accessToken, dllInfo.expiresIn);
+                        fedAuthToken = new SqlFedAuthToken(accessToken, dllInfo.expiresIn, null);
 
                         // Break out of the retry loop in successful case.
                         break;
@@ -4115,7 +4137,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // so we don't need to check the
                 // OS version here.
                 else {
+                    //Check if ADAL4J library is available
+                    validateAdalLibrary("R_DLLandADALMissing");
                     fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
+                    
                 }
                 // Break out of the retry loop in successful case.
                 break;
@@ -4123,6 +4148,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         return fedAuthToken;
+    }
+
+    private void validateAdalLibrary(String errorMessage) throws SQLServerException{
+        try {
+            Class.forName("com.microsoft.aad.adal4j.AuthenticationContext");
+        } catch(ClassNotFoundException e) {
+            //throw Exception for missing libraries
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(errorMessage));
+            throw new SQLServerException(form.format(new Object[] {authenticationString.trim()}), null, 0, null);
+        }
     }
 
     /**
