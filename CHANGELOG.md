@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
 ## [7.1.1] Preview Release
+### Added
+- Added streaming capabilities for Clob.getAsciiStream() [#799](https://github.com/Microsoft/mssql-jdbc/pull/799)
+
 ### Fixed Issues
 - Fixed a bug where calling length() after obtaining a stream would close the stream for Clobs/NClobs [#799](https://github.com/Microsoft/mssql-jdbc/pull/799)
+- Fixed Clob/NClob encoding issues [#799](https://github.com/Microsoft/mssql-jdbc/pull/799)
 - Fixed issues in Bulk Copy exception handling [#801](https://github.com/Microsoft/mssql-jdbc/pull/801)
 - Fixed closeable resource leaks in Junit tests [#797](https://github.com/Microsoft/mssql-jdbc/pull/797)
 - Fixed issues with apostrophe being passed in table name [#780](https://github.com/Microsoft/mssql-jdbc/pull/780)
