@@ -1466,7 +1466,7 @@ public class StatementTest extends AbstractTest {
                 stmt.executeUpdate(
                         "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hi')");
                 String query = "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from somenonexistanttable where col1=@col1Value SET @col2Value='hi' END";
+                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from somenonexistenttable where col1=@col1Value SET @col2Value='hi' END";
                 stmt.execute(query);
 
                 try (CallableStatement cstmt = con
