@@ -4154,7 +4154,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             connection = (HttpURLConnection) new URL(urlString).openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Metadata", "true");
-            System.out.println("Attempting to get token with URL " + urlString);
+
             connection.connect();
 
             try (InputStream stream = connection.getInputStream()) {
