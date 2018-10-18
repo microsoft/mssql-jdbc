@@ -94,12 +94,6 @@ public class SQLServerPooledConnection implements PooledConnection {
             if (pcLogger.isLoggable(Level.FINE))
                 pcLogger.fine(toString() + " Physical connection, " + safeCID());
 
-            if (null != physicalConnection.getAuthenticationResult()) {
-                if (Util.checkIfNeedNewAccessToken(physicalConnection)) {
-                    physicalConnection = createNewConnection();
-                }
-            }
-
             // The last proxy connection handle returned will be invalidated (moved to closed state)
             // when getConnection is called.
             if (null != lastProxyConnection) {

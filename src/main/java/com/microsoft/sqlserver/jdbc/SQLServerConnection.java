@@ -6,12 +6,18 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -122,8 +128,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private FederatedAuthenticationFeatureExtensionData fedAuthFeatureExtensionData = null;
     private String authenticationString = null;
     private byte[] accessTokenInByte = null;
-
-    private SqlFedAuthToken fedAuthToken = null;
 
     private String originalHostNameInCertificate = null;
 
@@ -324,10 +328,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return parameterPositions.stream().mapToInt(Integer::valueOf).toArray();
     }
 
-    SqlFedAuthToken getAuthenticationResult() {
-        return fedAuthToken;
-    }
-
     /**
      * Encapsulates the data to be sent to the server as part of Federated Authentication Feature Extension.
      */
@@ -348,6 +348,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     break;
                 case "ACTIVEDIRECTORYINTEGRATED":
                     this.authentication = SqlAuthentication.ActiveDirectoryIntegrated;
+                    break;
+                case "ACTIVEDIRECTORYMSI":
+                    this.authentication = SqlAuthentication.ActiveDirectoryMSI;
                     break;
                 default:
                     assert (false);
@@ -378,7 +381,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     class ActiveDirectoryAuthentication {
         static final String JDBC_FEDAUTH_CLIENT_ID = "7f98cb04-cd1e-40df-9140-3bf7e2cea4db";
+        static final String AZURE_REST_MSI_URL = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01";
         static final String ADAL_GET_ACCESS_TOKEN_FUNCTION_NAME = "ADALGetAccessToken";
+        static final String ACCESS_TOKEN_IDENTIFIER = "\"access_token\":\"";
         static final int GET_ACCESS_TOKEN_SUCCESS = 0;
         static final int GET_ACCESS_TOKEN_INVALID_GRANT = 1;
         static final int GET_ACCESS_TOKEN_TANSISENT_ERROR = 2;
@@ -1051,12 +1056,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
                     null, false);
         }
-
-        if (null != fedAuthToken) {
-            if (Util.checkIfNeedNewAccessToken(this)) {
-                connect(this.activeConnectionProperties, null);
-            }
-        }
     }
 
     /**
@@ -1562,6 +1561,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             toString() + " " + SQLServerException.getErrString("R_NoUserPasswordForActivePassword"));
                 }
                 throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForActivePassword"),
+                        null);
+            }
+
+            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
+                    && ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
+                            .isEmpty())
+                            || (!activeConnectionProperties
+                                    .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
+                if (connectionlogger.isLoggable(Level.SEVERE)) {
+                    connectionlogger.severe(
+                            toString() + " " + SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"));
+                }
+                throw new SQLServerException(SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"),
                         null);
             }
 
@@ -3490,6 +3502,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         case ActiveDirectoryIntegrated:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED;
                             break;
+                        case ActiveDirectoryMSI:
+                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYMSI;
+                            break;
                         default:
                             assert (false); // Unrecognized Authentication type for fedauth ADAL request
                             break;
@@ -3563,7 +3578,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // Extension
         // in Login7, indicating the intent to use Active Directory Authentication Library for SQL Server.
         if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
-                || (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
+                || ((authenticationString.trim()
+                        .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
+                        || authenticationString.trim()
+                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString()))
                         && fedAuthRequiredPreLoginResponse)) {
             federatedAuthenticationInfoRequested = true;
             fedAuthFeatureExtensionData = new FederatedAuthenticationFeatureExtensionData(TDS.TDS_FEDAUTH_LIBRARY_ADAL,
@@ -3982,16 +4000,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     final class FedAuthTokenCommand extends UninterruptableTDSCommand {
         TDSTokenHandler tdsTokenHandler = null;
-        SqlFedAuthToken fedAuthToken = null;
+        String accessToken = null;
 
-        FedAuthTokenCommand(SqlFedAuthToken fedAuthToken, TDSTokenHandler tdsTokenHandler) {
+        FedAuthTokenCommand(String accessToken, TDSTokenHandler tdsTokenHandler) {
             super("FedAuth");
             this.tdsTokenHandler = tdsTokenHandler;
-            this.fedAuthToken = fedAuthToken;
+            this.accessToken = accessToken;
         }
 
         final boolean doExecute() throws SQLServerException {
-            sendFedAuthToken(this, fedAuthToken, tdsTokenHandler);
+            sendFedAuthToken(this, accessToken, tdsTokenHandler);
             return true;
         }
     }
@@ -4003,23 +4021,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void onFedAuthInfo(SqlFedAuthInfo fedAuthInfo, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
         assert (null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                 && null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()))
-                || ((authenticationString.trim().equalsIgnoreCase(
-                        SqlAuthentication.ActiveDirectoryIntegrated.toString()) && fedAuthRequiredPreLoginResponse));
+                || (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
+                        || authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
+                                && fedAuthRequiredPreLoginResponse);
         assert null != fedAuthInfo;
 
         attemptRefreshTokenLocked = true;
-        fedAuthToken = getFedAuthToken(fedAuthInfo);
+        String accessToken = getFedAuthToken(fedAuthInfo);
         attemptRefreshTokenLocked = false;
 
         // fedAuthToken cannot be null.
-        assert null != fedAuthToken;
+        assert null != accessToken;
 
-        TDSCommand fedAuthCommand = new FedAuthTokenCommand(fedAuthToken, tdsTokenHandler);
+        TDSCommand fedAuthCommand = new FedAuthTokenCommand(accessToken, tdsTokenHandler);
         fedAuthCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(fedAuthCommand));
     }
 
-    private SqlFedAuthToken getFedAuthToken(SqlFedAuthInfo fedAuthInfo) throws SQLServerException {
-        SqlFedAuthToken fedAuthToken = null;
+    private String getFedAuthToken(SqlFedAuthInfo fedAuthInfo) throws SQLServerException {
+        String accessToken = null;
 
         // fedAuthInfo should not be null.
         assert null != fedAuthInfo;
@@ -4032,10 +4051,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         while (true) {
             if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
-                fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password,
+                accessToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password,
                         authenticationString);
 
                 // Break out of the retry loop in successful case.
+                break;
+            } else if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
+                accessToken = getMSIFedAuthToken(fedAuthInfo, authenticationString);
                 break;
             } else if (authenticationString.trim()
                     .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
@@ -4054,9 +4076,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                         byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
 
-                        String accessToken = new String(accessTokenFromDLL, UTF_16LE);
-
-                        fedAuthToken = new SqlFedAuthToken(accessToken, dllInfo.expiresIn);
+                        accessToken = new String(accessTokenFromDLL, UTF_16LE);
 
                         // Break out of the retry loop in successful case.
                         break;
@@ -4115,23 +4135,53 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // so we don't need to check the
                 // OS version here.
                 else {
-                    fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
+                    accessToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
                 }
                 // Break out of the retry loop in successful case.
                 break;
             }
         }
 
-        return fedAuthToken;
+        return accessToken;
+    }
+
+    private String getMSIFedAuthToken(SqlFedAuthInfo fedAuthInfo,
+            String authenticationString) throws SQLServerException {
+        String urlString = ActiveDirectoryAuthentication.AZURE_REST_MSI_URL + "&resource=" + fedAuthInfo.spn;
+        HttpURLConnection connection = null;
+
+        try {
+            connection = (HttpURLConnection) new URL(urlString).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Metadata", "true");
+            System.out.println("Attempting to get token with URL " + urlString);
+            connection.connect();
+
+            try (InputStream stream = connection.getInputStream()) {
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8), 100);
+                String result = reader.readLine();
+                int startIndex = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER)
+                        + ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER.length();
+
+                return result.substring(startIndex, result.indexOf("\"", startIndex + 1));
+            }
+        } catch (Exception e) {
+            SQLServerException.makeFromDriverError(this, null, e.getMessage(), null, true);
+            return null;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
     }
 
     /**
      * Send the access token to the server.
      */
-    private void sendFedAuthToken(FedAuthTokenCommand fedAuthCommand, SqlFedAuthToken fedAuthToken,
+    private void sendFedAuthToken(FedAuthTokenCommand fedAuthCommand, String accessToken,
             TDSTokenHandler tdsTokenHandler) throws SQLServerException {
-        assert null != fedAuthToken;
-        assert null != fedAuthToken.accessToken;
+        assert null != accessToken;
 
         if (connectionlogger.isLoggable(Level.FINER)) {
             connectionlogger.fine(toString() + " Sending federated authentication token.");
@@ -4139,17 +4189,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         TDSWriter tdsWriter = fedAuthCommand.startRequest(TDS.PKT_FEDAUTH_TOKEN_MESSAGE);
 
-        byte[] accessToken = fedAuthToken.accessToken.getBytes(UTF_16LE);
+        byte[] accessTokenBytes = accessToken.getBytes(UTF_16LE);
 
         // Send total length (length of token plus 4 bytes for the token length field)
         // If we were sending a nonce, this would include that length as well
-        tdsWriter.writeInt(accessToken.length + 4);
+        tdsWriter.writeInt(accessTokenBytes.length + 4);
 
         // Send length of token
-        tdsWriter.writeInt(accessToken.length);
+        tdsWriter.writeInt(accessTokenBytes.length);
 
         // Send federated authentication access token.
-        tdsWriter.writeBytes(accessToken, 0, accessToken.length);
+        tdsWriter.writeBytes(accessTokenBytes, 0, accessTokenBytes.length);
 
         TDSReader tdsReader;
         tdsReader = fedAuthCommand.startResponse();

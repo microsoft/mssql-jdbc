@@ -28,7 +28,7 @@ class SQLServerADAL4JUtils {
     static final private java.util.logging.Logger adal4jLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerADAL4JUtils");
 
-    static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
+    static String getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         try {
@@ -37,10 +37,8 @@ class SQLServerADAL4JUtils {
                     ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, user, password, null);
 
             AuthenticationResult authenticationResult = future.get();
-            SqlFedAuthToken fedAuthToken = new SqlFedAuthToken(authenticationResult.getAccessToken(),
-                    authenticationResult.getExpiresOnDate());
 
-            return fedAuthToken;
+            return authenticationResult.getAccessToken();
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
@@ -64,7 +62,7 @@ class SQLServerADAL4JUtils {
         }
     }
 
-    static SqlFedAuthToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
+    static String getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
 
@@ -83,10 +81,8 @@ class SQLServerADAL4JUtils {
                     ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, username, null, null);
 
             AuthenticationResult authenticationResult = future.get();
-            SqlFedAuthToken fedAuthToken = new SqlFedAuthToken(authenticationResult.getAccessToken(),
-                    authenticationResult.getExpiresOnDate());
 
-            return fedAuthToken;
+            return authenticationResult.getAccessToken();
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {

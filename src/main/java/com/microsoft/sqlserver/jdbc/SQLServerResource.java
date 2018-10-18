@@ -386,6 +386,8 @@ public final class SQLServerResource extends ListResourceBundle {
                     "Cannot set the AccessToken property if the \"IntegratedSecurity\" connection string keyword has been set to \"true\"."},
             {"R_IntegratedAuthenticationWithUserPassword",
                     "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."},
+            {"R_MSIAuthenticationWithUserPassword",
+                    "Cannot use \"Authentication=ActiveDirectoryMSI\" with \"User\", \"UserName\" or \"Password\" connection string keywords."},
             {"R_AccessTokenWithUserPassword",
                     "Cannot set the AccessToken property if \"User\", \"UserName\" or \"Password\" has been specified in the connection string."},
             {"R_AccessTokenCannotBeEmpty", "AccesToken cannot be empty."},

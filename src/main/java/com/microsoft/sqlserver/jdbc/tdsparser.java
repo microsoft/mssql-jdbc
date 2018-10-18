@@ -41,7 +41,7 @@ final class TDSParser {
                 logger.finest(tdsReader.toString() + ": " + tdsTokenHandler.logContext + ": Processing "
                         + ((-1 == tdsTokenType) ? "EOF" : TDS.getTokenName(tdsTokenType)));
             }
-
+            System.out.println(TDS.getTokenName(tdsTokenType));
             switch (tdsTokenType) {
                 case TDS.TDS_SSPI:
                     parsing = tdsTokenHandler.onSSPI(tdsReader);

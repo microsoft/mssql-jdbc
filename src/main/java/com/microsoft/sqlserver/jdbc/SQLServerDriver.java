@@ -65,7 +65,8 @@ enum SqlAuthentication {
     NotSpecified,
     SqlPassword,
     ActiveDirectoryPassword,
-    ActiveDirectoryIntegrated;
+    ActiveDirectoryIntegrated,
+    ActiveDirectoryMSI;
 
     static SqlAuthentication valueOfString(String value) throws SQLServerException {
         SqlAuthentication method = null;
@@ -80,6 +81,8 @@ enum SqlAuthentication {
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
             method = SqlAuthentication.ActiveDirectoryIntegrated;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
+            method = SqlAuthentication.ActiveDirectoryMSI;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"authentication", value};
