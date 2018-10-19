@@ -805,4 +805,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        indicates whether Bulk Copy API should be used for Batch Insert operations.
      */
     public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
+
+    /**
+     * Sets the object id to be used to retrieve access token from MSI EndPoint.
+     * 
+     * @param msiObjectId
+     *          Object ID of User Assigned Managed Identity
+     */
+    public void setMSIObjectId(String msiObjectId);
+
+    /**
+     * Returns the value for the connection property 'msiObjectId'.
+     * 
+     * @return msiObjectId property value
+     */
+    public String getMSIObjectId();
 }

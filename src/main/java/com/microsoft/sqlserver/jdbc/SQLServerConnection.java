@@ -1237,6 +1237,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     && !hostNameInCertificate.isEmpty()) {
                 originalHostNameInCertificate = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
+            } else {
+                String serverName = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+                originalHostNameInCertificate = "*" + serverName.substring(serverName.indexOf('.'));
             }
 
             if (null != originalHostNameInCertificate && !originalHostNameInCertificate.isEmpty()) {
@@ -1850,6 +1854,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             } else {
                 activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
+            }
+
+            sPropKey = SQLServerDriverStringProperty.MSI_OBJECT_ID.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
 
             FailoverInfo fo = null;
@@ -4057,7 +4067,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // Break out of the retry loop in successful case.
                 break;
             } else if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
-                accessToken = getMSIFedAuthToken(fedAuthInfo, authenticationString);
+                accessToken = getMSIAuthToken(fedAuthInfo.spn,
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_OBJECT_ID.toString()));
+
+                // Break out of the retry loop in successful case.
                 break;
             } else if (authenticationString.trim()
                     .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
@@ -4073,9 +4086,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                         // AccessToken should not be null.
                         assert null != dllInfo.accessTokenBytes;
-
                         byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
-
                         accessToken = new String(accessTokenFromDLL, UTF_16LE);
 
                         // Break out of the retry loop in successful case.
@@ -4145,9 +4156,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return accessToken;
     }
 
-    private String getMSIFedAuthToken(SqlFedAuthInfo fedAuthInfo,
-            String authenticationString) throws SQLServerException {
-        String urlString = ActiveDirectoryAuthentication.AZURE_REST_MSI_URL + "&resource=" + fedAuthInfo.spn;
+    private String getMSIAuthToken(String resource, String objectId) throws SQLServerException {
+        String urlString = ActiveDirectoryAuthentication.AZURE_REST_MSI_URL + "&resource=" + resource;
+
+        if (null != objectId && !objectId.isEmpty()) {
+            urlString += "&object_id=" + objectId;
+        }
+
         HttpURLConnection connection = null;
 
         try {
