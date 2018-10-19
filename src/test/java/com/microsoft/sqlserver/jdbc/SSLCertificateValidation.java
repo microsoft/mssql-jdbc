@@ -7,10 +7,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
 import org.junit.jupiter.api.Test;
+import org.junit.platform.runner.JUnitPlatform;
+import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 
-
+@RunWith(JUnitPlatform.class)
 public class SSLCertificateValidation {
 
     /**
