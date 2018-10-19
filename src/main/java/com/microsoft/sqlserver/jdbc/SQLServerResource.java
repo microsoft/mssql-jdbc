@@ -245,6 +245,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_statementPoolingCacheSizePropertyDescription",
                     "This setting specifies the size of the prepared statement cache for a connection. A value less than 1 means no cache."},
             {"R_gsscredentialPropertyDescription", "Impersonated GSS Credential to access SQL Server."},
+            {"R_msiObjectIdPropertyDescription", "Object Id of User Assigned Managed Identity to be used for generating access token for Azure AD MSI Authentication"},
             {"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
             {"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
             {"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
