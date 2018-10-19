@@ -2265,51 +2265,51 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     @Override
-    public void registerOutParameter(int paramterIndex, SQLType sqlType) throws SQLServerException {
+    public void registerOutParameter(int parameterIndex, SQLType sqlType) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
-                    new Object[] {paramterIndex, sqlType});
+                    new Object[] {parameterIndex, sqlType});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        registerOutParameter(paramterIndex, sqlType.getVendorTypeNumber());
+        registerOutParameter(parameterIndex, sqlType.getVendorTypeNumber());
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 
     @Override
-    public void registerOutParameter(int paramterIndex, SQLType sqlType, String typeName) throws SQLServerException {
+    public void registerOutParameter(int parameterIndex, SQLType sqlType, String typeName) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
-                    new Object[] {paramterIndex, sqlType, typeName});
+                    new Object[] {parameterIndex, sqlType, typeName});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        registerOutParameter(paramterIndex, sqlType.getVendorTypeNumber(), typeName);
+        registerOutParameter(parameterIndex, sqlType.getVendorTypeNumber(), typeName);
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 
     @Override
-    public void registerOutParameter(int paramterIndex, SQLType sqlType, int scale) throws SQLServerException {
+    public void registerOutParameter(int parameterIndex, SQLType sqlType, int scale) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
-                    new Object[] {paramterIndex, sqlType, scale});
+                    new Object[] {parameterIndex, sqlType, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        registerOutParameter(paramterIndex, sqlType.getVendorTypeNumber(), scale);
+        registerOutParameter(parameterIndex, sqlType.getVendorTypeNumber(), scale);
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 
     @Override
-    public void registerOutParameter(int paramterIndex, SQLType sqlType, int precision,
+    public void registerOutParameter(int parameterIndex, SQLType sqlType, int precision,
             int scale) throws SQLServerException {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
-                    new Object[] {paramterIndex, sqlType, scale});
+                    new Object[] {parameterIndex, sqlType, scale});
 
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
-        registerOutParameter(paramterIndex, sqlType.getVendorTypeNumber(), precision, scale);
+        registerOutParameter(parameterIndex, sqlType.getVendorTypeNumber(), precision, scale);
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 
