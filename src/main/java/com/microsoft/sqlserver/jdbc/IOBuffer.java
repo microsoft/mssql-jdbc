@@ -1428,7 +1428,12 @@ final class TDSChannel {
                 }
 
                 if (hostName.startsWith(certBeforeWildcard) && hostName.endsWith(certAfterWildcard)) {
-                    return true;
+                    // now, find the string that the wildcard covers. If it contains any periods, reject it.
+                    int wildcardCoveredStringIndexStart = hostName.indexOf(certBeforeWildcard) + certBeforeWildcard.length();
+                    int wildcardCoveredStringIndexEnd = hostName.lastIndexOf(certAfterWildcard);
+                    if (!hostName.substring(wildcardCoveredStringIndexStart, wildcardCoveredStringIndexEnd).contains(".")) {
+                        return true;
+                    }
                 }
             }
 
