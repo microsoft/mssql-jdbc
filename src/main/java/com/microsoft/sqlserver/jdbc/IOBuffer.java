@@ -1414,6 +1414,10 @@ final class TDSChannel {
             
             // Respect wildcard
             if (nameInCert.contains("*")) {
+                // We do not allow wildcards to exist past the first period.
+                if (nameInCert.indexOf("*") > nameInCert.indexOf(".")) {
+                    return false;
+                }
                 String certBeforeWildcard = nameInCert.substring(0, nameInCert.indexOf("*"));
                 int firstPeriodAfterWildcard = nameInCert.indexOf(".", nameInCert.indexOf("*"));
                 String certAfterWildcard;

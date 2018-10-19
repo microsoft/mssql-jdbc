@@ -45,24 +45,19 @@ public class SSLCertificateValidation {
         assertTrue((boolean) method.invoke(hsoObject, "msjdbc.database.windows.net"));
 
         // Server Name = msjdbc.database.windows.net
-        // SAN = msjdbc.*.windows.net
+        // SAN = msjdbc.database.windows.net
         // Expected result: true
-        assertTrue((boolean) method.invoke(hsoObject, "msjdbc.*.windows.net"));
+        assertTrue((boolean) method.invoke(hsoObject, "ms*bc.database.windows.net"));
 
         // Server Name = msjdbc.database.windows.net
-        // SAN = msjdbc.da*se.windows.net
+        // SAN = msjdbc.database.windows.net
         // Expected result: true
-        assertTrue((boolean) method.invoke(hsoObject, "msjdbc.da*se.windows.net"));
+        assertTrue((boolean) method.invoke(hsoObject, "*bc.database.windows.net"));
 
         // Server Name = msjdbc.database.windows.net
-        // SAN = msjdbc.*se.windows.net
+        // SAN = msjdbc.database.windows.net
         // Expected result: true
-        assertTrue((boolean) method.invoke(hsoObject, "msjdbc.*se.windows.net"));
-
-        // Server Name = msjdbc.database.windows.net
-        // SAN = msjdbc.da*.windows.net
-        // Expected result: true
-        assertTrue((boolean) method.invoke(hsoObject, "msjdbc.da*.windows.net"));
+        assertTrue((boolean) method.invoke(hsoObject, "ms*.database.windows.net"));
 
         // Server Name = msjdbc.database.windows.net
         // SAN = ms.*.net
@@ -78,6 +73,11 @@ public class SSLCertificateValidation {
         // SAN = .*.windows.net
         // Expected result: false
         assertFalse((boolean) method.invoke(hsoObject, ".*.windows.net"));
+        
+        // Server Name = msjdbc.database.windows.net
+        // SAN = msjdbc.*.windows.net
+        // Expected result: false
+        assertFalse((boolean) method.invoke(hsoObject, "msjdbc.*.windows.net"));
 
         // Server Name = msjdbc.database.windows.net
         // SAN = *.*.windows.net
