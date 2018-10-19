@@ -1240,7 +1240,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             } else {
                 String serverName = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
-                originalHostNameInCertificate = "*" + serverName.substring(serverName.indexOf('.'));
+                if(null != serverName && !serverName.isEmpty() && serverName.contains(".")) {
+                    originalHostNameInCertificate = "*" + serverName.substring(serverName.indexOf('.'));
+                }
             }
 
             if (null != originalHostNameInCertificate && !originalHostNameInCertificate.isEmpty()) {
