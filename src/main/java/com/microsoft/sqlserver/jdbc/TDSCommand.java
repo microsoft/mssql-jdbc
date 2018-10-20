@@ -1,5 +1,7 @@
 package com.microsoft.sqlserver.jdbc;
 
+import com.microsoft.sqlserver.jdbc.timeouts.TimeoutPoller;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,11 +39,6 @@ public abstract class TDSCommand {
 	final void log(Level level, String message) {
 		logger.log(level, toString() + ": " + message);
 	}
-
-	// Optional timer that is set if the command was created with a non-zero timeout
-	// period.
-	// When the timer expires, the command is interrupted.
-	private final TimeoutTimer timeoutTimer;
 
 	// TDS channel accessors
 	// These are set/reset at command execution time.
@@ -142,6 +139,7 @@ public abstract class TDSCommand {
 	private volatile boolean readingResponse;
 	private int queryTimeoutSeconds;
 	private int cancelQueryTimeoutSeconds;
+	private TdsTimeoutCommand timeoutCommand;
 
 	protected int getQueryTimeoutSeconds() {
 		return this.queryTimeoutSeconds;
@@ -167,7 +165,6 @@ public abstract class TDSCommand {
 		this.logContext = logContext;
 		this.queryTimeoutSeconds = queryTimeoutSeconds;
 		this.cancelQueryTimeoutSeconds = cancelQueryTimeoutSeconds;
-		this.timeoutTimer = (queryTimeoutSeconds > 0) ? (new TimeoutTimer(queryTimeoutSeconds, this, null)) : null;
 	}
 
 	/**
@@ -570,11 +567,9 @@ public abstract class TDSCommand {
 
 		// If command execution is subject to timeout then start timing until
 		// the server returns the first response packet.
-		if (null != timeoutTimer) {
-			if (logger.isLoggable(Level.FINEST))
-				logger.finest(this.toString() + ": Starting timer...");
-
-			timeoutTimer.start();
+		if (queryTimeoutSeconds > 0) {
+			this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
+			TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
 		}
 
 		if (logger.isLoggable(Level.FINEST))
@@ -598,11 +593,8 @@ public abstract class TDSCommand {
 		} finally {
 			// If command execution was subject to timeout then stop timing as soon
 			// as the server returns the first response packet or errors out.
-			if (null != timeoutTimer) {
-				if (logger.isLoggable(Level.FINEST))
-					logger.finest(this.toString() + ": Stopping timer...");
-
-				timeoutTimer.stop();
+			if (this.timeoutCommand != null) {
+				TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
 			}
 		}
 

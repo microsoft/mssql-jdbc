@@ -11,15 +11,16 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
-import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.bulkCopy.BulkCopyTestWrapper.ColumnMap;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.util.ComparisonUtil;
 
 /**
  * Utility class
@@ -91,12 +92,69 @@ class BulkCopyTestUtil {
 			} catch (SQLException ex) {
 				fail(ex.getMessage());
 			} finally {
-				if (null != destinationTable) {
-					stmt.dropTable(destinationTable);
-				}
+				stmt.dropTable(destinationTable);
+				con.close();
 			}
 		} catch (SQLException ex) {
 			fail(ex.getMessage());
+		}
+	}
+
+	static void performBulkCopyWithoutErrorHandling(BulkCopyTestWrapper wrapper, DBTable sourceTable,
+			boolean validateResult) throws SQLException {
+		DBTable destinationTable = null;
+		try (DBConnection con = new DBConnection(wrapper.getConnectionString());
+				DBStatement stmt = con.createStatement()) {
+
+			destinationTable = sourceTable.cloneSchema();
+			stmt.createTable(destinationTable);
+			try (DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName()
+					+ " ORDER BY " + sourceTable.getEscapedColumnName(0));
+					SQLServerBulkCopy bulkCopy = wrapper.isUsingConnection()
+							? new SQLServerBulkCopy((Connection) con.product())
+							: new SQLServerBulkCopy(wrapper.getConnectionString())) {
+				if (wrapper.isUsingBulkCopyOptions()) {
+					bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
+				}
+				bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
+				if (wrapper.isUsingColumnMapping()) {
+					for (int i = 0; i < wrapper.cm.size(); i++) {
+						ColumnMap currentMap = wrapper.cm.get(i);
+						if (currentMap.sourceIsInt && currentMap.destIsInt) {
+							bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
+						} else if (currentMap.sourceIsInt && (!currentMap.destIsInt)) {
+							bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
+						} else if ((!currentMap.sourceIsInt) && currentMap.destIsInt) {
+							bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
+						} else if ((!currentMap.sourceIsInt) && (!currentMap.destIsInt)) {
+							bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
+						}
+					}
+				}
+				bulkCopy.writeToServer((ResultSet) srcResultSet.product());
+				if (validateResult) {
+					validateValues(con, sourceTable, destinationTable);
+				}
+			}
+		}
+		// we drop the destination table in a separate connection because we could of
+		// timed out before sending
+		// a batch so then any subsequent operations in sql server will result in an
+		// error "Bulk load data was expected but not sent"
+		dropDestinationTable(wrapper, destinationTable);
+	}
+
+	/**
+	 * Drops the given source table
+	 * 
+	 * @param wrapper
+	 * @param destinationTable
+	 * @throws SQLException
+	 */
+	static void dropDestinationTable(BulkCopyTestWrapper wrapper, DBTable destinationTable) throws SQLException {
+		try (DBConnection con = new DBConnection(wrapper.getConnectionString());
+				DBStatement stmt = con.createStatement()) {
+			stmt.dropTable(destinationTable);
 		}
 	}
 
@@ -192,9 +250,8 @@ class BulkCopyTestUtil {
 					fail(ex.getMessage());
 				}
 			} finally {
-				if (null != destinationTable) {
-					stmt.dropTable(destinationTable);
-				}
+				stmt.dropTable(destinationTable);
+				con.close();
 			}
 		} catch (SQLException e) {
 			if (!fail) {
@@ -253,9 +310,10 @@ class BulkCopyTestUtil {
 					fail(ex.getMessage());
 				}
 			} finally {
-				if (dropDest && null != destinationTable) {
+				if (dropDest) {
 					stmt.dropTable(destinationTable);
 				}
+				con.close();
 			}
 		} catch (SQLException ex) {
 			if (!fail) {
@@ -363,64 +421,6 @@ class BulkCopyTestUtil {
 					}
 				}
 			}
-		}
-	}
-
-	static void performBulkCopyWithoutErrorHandling(BulkCopyTestWrapper wrapper, DBTable sourceTable,
-			boolean validateResult) throws SQLException {
-		DBTable destinationTable = null;
-		try (DBConnection con = new DBConnection(wrapper.getConnectionString());
-				DBStatement stmt = con.createStatement()) {
-
-			destinationTable = sourceTable.cloneSchema();
-			stmt.createTable(destinationTable);
-			try (DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName()
-					+ " ORDER BY " + sourceTable.getEscapedColumnName(0));
-					SQLServerBulkCopy bulkCopy = wrapper.isUsingConnection()
-							? new SQLServerBulkCopy((Connection) con.product())
-							: new SQLServerBulkCopy(wrapper.getConnectionString())) {
-				if (wrapper.isUsingBulkCopyOptions()) {
-					bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
-				}
-				bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
-				if (wrapper.isUsingColumnMapping()) {
-					for (int i = 0; i < wrapper.cm.size(); i++) {
-						ColumnMap currentMap = wrapper.cm.get(i);
-						if (currentMap.sourceIsInt && currentMap.destIsInt) {
-							bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
-						} else if (currentMap.sourceIsInt && (!currentMap.destIsInt)) {
-							bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
-						} else if ((!currentMap.sourceIsInt) && currentMap.destIsInt) {
-							bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
-						} else if ((!currentMap.sourceIsInt) && (!currentMap.destIsInt)) {
-							bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
-						}
-					}
-				}
-				bulkCopy.writeToServer((ResultSet) srcResultSet.product());
-				if (validateResult) {
-					validateValues(con, sourceTable, destinationTable);
-				}
-			}
-		}
-		// we drop the destination table in a separate connection because we could of
-		// timed out before sending
-		// a batch so then any subsequent operations in sql server will result in an
-		// error "Bulk load data was expected but not sent"
-		dropDestinationTable(wrapper, destinationTable);
-	}
-
-	/**
-	 * Drops the given source table
-	 * 
-	 * @param wrapper
-	 * @param destinationTable
-	 * @throws SQLException
-	 */
-	static void dropDestinationTable(BulkCopyTestWrapper wrapper, DBTable destinationTable) throws SQLException {
-		try (DBConnection con = new DBConnection(wrapper.getConnectionString());
-				DBStatement stmt = con.createStatement()) {
-			stmt.dropTable(destinationTable);
 		}
 	}
 }
