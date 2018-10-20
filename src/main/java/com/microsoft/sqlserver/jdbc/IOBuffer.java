@@ -6193,7 +6193,7 @@ final class TDSReaderMark {
 final class TDSReader {
     private final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Reader");
     final private String traceID;
-    private TimeoutCommand timeoutCommand;
+	private TimeoutCommand timeoutCommand;
 
     final public String toString() {
         return traceID;
@@ -6341,17 +6341,17 @@ final class TDSReader {
                 + " should be less than numMsgsSent:" + tdsChannel.numMsgsSent;
 
         TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
-        if (null != command) {
-            // if cancelQueryTimeout is set, we should wait for the total amount of queryTimeout + cancelQueryTimeout to
-            // terminate the connection.
-            if ((command.getCancelQueryTimeoutSeconds() > 0
-                    && command.getQueryTimeoutSeconds() > 0)) {
-                //if a timeout is configured with this object, add it to the timeout poller
-                int timeout = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
-                this.timeoutCommand = new TimeoutCommand(timeout, this.command, this.con);
-                TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
-            }
-        }
+		if (null != command) {
+			// if cancelQueryTimeout is set, we should wait for the total amount of
+			// queryTimeout + cancelQueryTimeout to
+			// terminate the connection.
+			if ((command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0)) {
+				// if a timeout is configured with this object, add it to the timeout poller
+				int timeout = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
+				this.timeoutCommand = new TimeoutCommand(timeout, this.command, this.con);
+				TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
+			}
+		}
         // First, read the packet header.
         for (int headerBytesRead = 0; headerBytesRead < TDS.PACKET_HEADER_SIZE;) {
             int bytesRead = tdsChannel.read(newPacket.header, headerBytesRead,
@@ -6369,10 +6369,10 @@ final class TDSReader {
             headerBytesRead += bytesRead;
         }
 
-        // if execution was subject to timeout then stop timing
-        if (this.timeoutCommand != null) {
-            TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
-        }
+		// if execution was subject to timeout then stop timing
+		if (this.timeoutCommand != null) {
+			TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
+		}
         // Header size is a 2 byte unsigned short integer in big-endian order.
         int packetLength = Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_MESSAGE_LENGTH);
 
@@ -6960,92 +6960,117 @@ final class TDSReader {
 }
 
 class TimeoutCommand {
-    private final long startTime;
-    private final int timeout;
-    private final TDSCommand command;
-    private final SQLServerConnection sqlServerConnection;
-    private final Thread executionThread;
+	private final long startTime;
+	private final int timeout;
+	private final TDSCommand command;
+	private final SQLServerConnection sqlServerConnection;
 
-    public TimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
-        this.timeout = timeout;
-        this.command = command;
-        this.sqlServerConnection = sqlServerConnection;
-        this.executionThread = Thread.currentThread();
-        this.startTime = System.currentTimeMillis();
-    }
-    
-    public boolean canTimeout() {
-        long currentTime = System.currentTimeMillis();
-        return ((currentTime - startTime) / 1000) >= timeout;
-    }
-    
-    public void interrupt() {
-        this.executionThread.interrupt();
-    }
+	public TimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
+		this.timeout = timeout;
+		this.command = command;
+		this.sqlServerConnection = sqlServerConnection;
+		this.startTime = System.currentTimeMillis();
+	}
+
+	public boolean canTimeout() {
+		long currentTime = System.currentTimeMillis();
+		return ((currentTime - startTime) / 1000) >= timeout;
+	}
+
+	public void interrupt() {
+		try {
+			// If TCP Connection to server is silently dropped, exceeding the query timeout
+			// on the same connection does
+			// not throw SQLTimeoutException
+			// The application stops responding instead until SocketTimeoutException is
+			// thrown. In this case, we must
+			// manually terminate the connection.
+			if (null == command && null != sqlServerConnection) {
+				sqlServerConnection.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
+						SQLServerException.getErrString("R_connectionIsClosed"));
+			} else {
+				// If the timer wasn't canceled before it ran out of
+				// time then interrupt the registered command.
+				command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
+			}
+		} catch (SQLServerException e) {
+			// Unfortunately, there's nothing we can do if we
+			// fail to time out the request. There is no way
+			// to report back what happened.
+			assert null != command;
+			command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
+		}
+	}
 }
 
 /**
- * TODO: doc
+ * Thread that runs in the background while the mssql driver is used that can
+ * timeout TDSCommands Checks all registered commands every second to see if
+ * they can be interrupted
  */
 final class TimeoutPoller implements Runnable {
-    private List<TimeoutCommand> timeoutCommands = new ArrayList<>();
-    final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Command");
+	private List<TimeoutCommand> timeoutCommands = new ArrayList<>();
+	final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Command");
 
-    private static volatile TimeoutPoller timeoutPoller = null;
-    public static TimeoutPoller getTimeoutPoller() {
-        if (timeoutPoller == null) {
-            synchronized (TimeoutPoller.class) {
-                if (timeoutPoller == null) {
-                    timeoutPoller = new TimeoutPoller();
-                    //start the timeout polling thread
-                    new Thread(timeoutPoller, "mssql-jdbc-TimeoutPoller").start();
-                }
-            }
-        }
-        return timeoutPoller;
-    }
-    
-    public void addTimeoutCommand(TimeoutCommand timeoutCommand) {
-        synchronized (timeoutCommands) {
-            timeoutCommands.add(timeoutCommand);
-        }
-    }
-    
-    public void remove(TimeoutCommand timeoutCommand) {
-        synchronized (timeoutCommands) {
-            timeoutCommands.remove(timeoutCommand);
-        }
-    }
-    
-    private TimeoutPoller() {}
-    
-    public void run() {
-        try {
-	        // Poll every second checking for commands that have timed out and need interruption
-	        while (true) {
-	            synchronized (timeoutCommands) {
-	                Iterator<TimeoutCommand> timeoutCommandIterator = timeoutCommands.iterator();
-	                while (timeoutCommandIterator.hasNext()) {
-	                    TimeoutCommand timeoutCommand = timeoutCommandIterator.next();
-	                    try {
-	                        if (timeoutCommand.canTimeout()) {
-	                            try {
-	                                timeoutCommand.interrupt();
-	                            } finally {
-	                                timeoutCommandIterator.remove();
-	                            }
-	                        }
-	                    } catch (Exception e) {
-	                        logger.log(Level.WARNING, "Could not timeout command", e);
-	                    }
-	                }
-	            }
-	            Thread.sleep(1000);
-	        }
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Error processing timeout commands", e);
-        }
-    }
+	private static volatile TimeoutPoller timeoutPoller = null;
+
+	public static TimeoutPoller getTimeoutPoller() {
+		if (timeoutPoller == null) {
+			synchronized (TimeoutPoller.class) {
+				if (timeoutPoller == null) {
+					// initialize the timeout poller thread once
+					timeoutPoller = new TimeoutPoller();
+					// start the timeout polling thread
+					new Thread(timeoutPoller, "mssql-jdbc-TimeoutPoller").start();
+				}
+			}
+		}
+		return timeoutPoller;
+	}
+
+	public void addTimeoutCommand(TimeoutCommand timeoutCommand) {
+		synchronized (timeoutCommands) {
+			timeoutCommands.add(timeoutCommand);
+		}
+	}
+
+	public void remove(TimeoutCommand timeoutCommand) {
+		synchronized (timeoutCommands) {
+			timeoutCommands.remove(timeoutCommand);
+		}
+	}
+
+	private TimeoutPoller() {
+	}
+
+	public void run() {
+		try {
+			// Poll every second checking for commands that have timed out and need
+			// interruption
+			while (true) {
+				synchronized (timeoutCommands) {
+					Iterator<TimeoutCommand> timeoutCommandIterator = timeoutCommands.iterator();
+					while (timeoutCommandIterator.hasNext()) {
+						TimeoutCommand timeoutCommand = timeoutCommandIterator.next();
+						try {
+							if (timeoutCommand.canTimeout()) {
+								try {
+									timeoutCommand.interrupt();
+								} finally {
+									timeoutCommandIterator.remove();
+								}
+							}
+						} catch (Exception e) {
+							logger.log(Level.WARNING, "Could not timeout command", e);
+						}
+					}
+				}
+				Thread.sleep(1000);
+			}
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, "Error processing timeout commands", e);
+		}
+	}
 }
 
 /**
@@ -7582,12 +7607,12 @@ abstract class TDSCommand {
             throw e;
         }
 
-        // If command execution is subject to timeout then start timing until
-        // the server returns the first response packet.
-        if (queryTimeoutSeconds > 0) {
-            this.timeoutCommand = new TimeoutCommand(queryTimeoutSeconds, this, null);
-            TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
-        }
+		// If command execution is subject to timeout then start timing until
+		// the server returns the first response packet.
+		if (queryTimeoutSeconds > 0) {
+			this.timeoutCommand = new TimeoutCommand(queryTimeoutSeconds, this, null);
+			TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
+		}
 
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this.toString() + ": Reading response...");
@@ -7607,11 +7632,11 @@ abstract class TDSCommand {
 
             throw e;
         } finally {
-            // If command execution was subject to timeout then stop timing as soon
-            // as the server returns the first response packet or errors out.
-            if (this.timeoutCommand != null) {
-                TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
-            }
+			// If command execution was subject to timeout then stop timing as soon
+			// as the server returns the first response packet or errors out.
+			if (this.timeoutCommand != null) {
+				TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
+			}
         }
 
         return tdsReader;
