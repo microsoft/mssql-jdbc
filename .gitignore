@@ -8,7 +8,6 @@ bin/
 tmp/
 target/
 build/
-AE_Certificates/
 *.tmp
 *.bak
 *.swp

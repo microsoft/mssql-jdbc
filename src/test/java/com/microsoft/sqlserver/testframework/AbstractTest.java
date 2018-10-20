@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 
 
 /**
@@ -79,6 +78,7 @@ public abstract class AbstractTest {
             info.setProperty("keyStoreLocation", jksPaths[0]);
             info.setProperty("keyStoreSecret", secretstrJks);
         }
+        logger.info("In AbstractTest:setup");
 
         try {
             Assertions.assertNotNull(connectionString, "Connection String should not be null");
@@ -123,7 +123,7 @@ public abstract class AbstractTest {
      * @return Value
      */
     public static String getConfiguredProperty(String key) {
-        return TestUtils.getConfiguredProperty(key);
+        return Utils.getConfiguredProperty(key);
     }
 
     /**
@@ -133,7 +133,7 @@ public abstract class AbstractTest {
      * @return Value
      */
     public static String getConfiguredProperty(String key, String defaultValue) {
-        return TestUtils.getConfiguredProperty(key, defaultValue);
+        return Utils.getConfiguredProperty(key, defaultValue);
     }
 
     /**

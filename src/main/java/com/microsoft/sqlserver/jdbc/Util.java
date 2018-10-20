@@ -981,17 +981,6 @@ final class Util {
     static boolean use43Wrapper() {
         return use43Wrapper;
     }
-
-    /**
-     * Escapes single quotes (') in object name to convert and pass it as String safely.
-     * 
-     * @param name
-     *        Object name to be passed as String
-     * @return Converted object name
-     */
-    static String escapeSingleQuotes(String name) {
-        return name.replace("'", "''");
-    }
 }
 
 

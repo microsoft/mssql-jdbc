@@ -16,10 +16,9 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.sqlType.VariableLengthType;
+import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 /**
@@ -30,7 +29,6 @@ public class DBTable extends AbstractSQLGenerator {
     public static final Logger log = Logger.getLogger("DBTable");
     String tableName;
     String escapedTableName;
-    String escapedQuotesTableName;
     String tableDefinition;
     List<DBColumn> columns;
     int totalColumns;
@@ -73,7 +71,6 @@ public class DBTable extends AbstractSQLGenerator {
 
         this.tableName = RandomUtil.getIdentifier("table");
         this.escapedTableName = escapeIdentifier(tableName);
-        this.escapedQuotesTableName = TestUtils.escapeSingleQuotes(escapedTableName);
         this.schema = new DBSchema(autoGenerateSchema, alternateSchema);
         if (autoGenerateSchema) {
             if (unicode)
@@ -94,7 +91,6 @@ public class DBTable extends AbstractSQLGenerator {
     private DBTable(DBTable sourceTable) {
         this.tableName = RandomUtil.getIdentifier("table");
         this.escapedTableName = escapeIdentifier(tableName);
-        this.escapedQuotesTableName = TestUtils.escapeSingleQuotes(escapedTableName);
         this.columns = sourceTable.columns;
         this.totalColumns = columns.size();
         this.schema = sourceTable.schema;
@@ -161,15 +157,6 @@ public class DBTable extends AbstractSQLGenerator {
      */
     public String getEscapedTableName() {
         return escapedTableName;
-    }
-
-    /**
-     * gets escaped table name of the {@link DBTable} object to be used within single quotes
-     * 
-     * @return {@link String} escaped table name
-     */
-    public String getEscapedQuotesTableName() {
-        return escapedQuotesTableName;
     }
 
     public String getDefinitionOfColumns() {

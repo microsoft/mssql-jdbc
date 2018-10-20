@@ -3,7 +3,7 @@
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package com.microsoft.sqlserver.jdbc;
+package com.microsoft.sqlserver.testframework.util;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

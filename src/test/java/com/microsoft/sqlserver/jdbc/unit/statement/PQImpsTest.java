@@ -22,13 +22,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerParameterMetaData;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
+import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 /**
@@ -46,16 +46,22 @@ public class PQImpsTest extends AbstractTest {
     private static ResultSet versionRS = null;
     private static int version = -1;
 
-    private static String nameTable = RandomUtil.getIdentifier("names_DB");
-    private static String phoneNumberTable = RandomUtil.getIdentifier("phoneNumbers_DB");
-    private static String mergeNameDesTable = RandomUtil.getIdentifier("mergeNameDesTable_DB");
-    private static String numericTable = RandomUtil.getIdentifier("numericTable_DB");
-    private static String charTable = RandomUtil.getIdentifier("charTable_DB");
-    private static String charTable2 = RandomUtil.getIdentifier("charTable2_DB");
-    private static String binaryTable = RandomUtil.getIdentifier("binaryTable_DB");
-    private static String dateAndTimeTable = RandomUtil.getIdentifier("dateAndTimeTable_DB");
-    private static String multipleTypesTable = RandomUtil.getIdentifier("multipleTypesTable_DB");
-    private static String spaceTable = RandomUtil.getIdentifier("spaceTable_DB");
+    private static String nameTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("names_DB"));
+    private static String phoneNumberTable = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("phoneNumbers_DB"));
+    private static String mergeNameDesTable = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("mergeNameDesTable_DB"));
+    private static String numericTable = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("numericTable_DB"));
+    private static String charTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("charTable_DB"));
+    private static String charTable2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("charTable2_DB"));
+    private static String binaryTable = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("binaryTable_DB"));
+    private static String dateAndTimeTable = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("dateAndTimeTable_DB"));
+    private static String multipleTypesTable = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("multipleTypesTable_DB"));
+    private static String spaceTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("spaceTable_DB"));
 
     /**
      * Setup
@@ -324,9 +330,9 @@ public class PQImpsTest extends AbstractTest {
     }
 
     private static void populateNumericTable() throws SQLException {
-        stmt.execute("insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values (" + "1.123,"
-                + "1.123," + "1.2345," + "1.2345," + "1.543," + "1.543," + "5.1234," + "104935," + "34323," + "123,"
-                + "5," + "1.45," + "1.3," + "0.123456789," + "0.1234567890123456789012345678901234567" + ")");
+        stmt.execute("insert into " + numericTable + " values (" + "1.123," + "1.123," + "1.2345," + "1.2345,"
+                + "1.543," + "1.543," + "5.1234," + "104935," + "34323," + "123," + "5," + "1.45," + "1.3,"
+                + "0.123456789," + "0.1234567890123456789012345678901234567" + ")");
     }
 
     private static void testBeforeExcute() throws SQLException {
@@ -334,10 +340,9 @@ public class PQImpsTest extends AbstractTest {
             pstmt.close();
         }
 
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " where " + "c1 = ? and "
-                + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and " + "c6 = ? and " + "c7 = ? and "
-                + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? and "
-                + "c14 = ? and " + "c15 = ? ";
+        String sql = "select * from " + numericTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and "
+                + "c4 = ? and " + "c5 = ? and " + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and "
+                + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? and " + "c14 = ? and " + "c15 = ? ";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -349,10 +354,9 @@ public class PQImpsTest extends AbstractTest {
     }
 
     private static void selectNumeric() throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " where " + "c1 = ? and "
-                + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and " + "c6 = ? and " + "c7 = ? and "
-                + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ?  and "
-                + "c14 = ? and " + "c15 = ? ";
+        String sql = "select * from " + numericTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and "
+                + "c4 = ? and " + "c5 = ? and " + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and "
+                + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ?  and " + "c14 = ? and " + "c15 = ? ";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -365,8 +369,8 @@ public class PQImpsTest extends AbstractTest {
 
     private static void insertNumeric() throws SQLException {
 
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?," + "?,"
-                + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?" + ")";
+        String sql = "insert into " + numericTable + " values( " + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?,"
+                + "?," + "?," + "?," + "?," + "?," + "?," + "?" + ")";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -379,9 +383,9 @@ public class PQImpsTest extends AbstractTest {
 
     private static void updateNumeric() throws SQLException {
 
-        String sql = "update " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " set " + "c1 = ?," + "c2 = ?,"
-                + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?," + "c7 = ?," + "c8 = ?," + "c9 = ?," + "c10 = ?,"
-                + "c11 = ?," + "c12 = ?," + "c13 = ?," + "c14 = ?," + "c15 = ?" + ";";
+        String sql = "update " + numericTable + " set " + "c1 = ?," + "c2 = ?," + "c3 = ?," + "c4 = ?," + "c5 = ?,"
+                + "c6 = ?," + "c7 = ?," + "c8 = ?," + "c9 = ?," + "c10 = ?," + "c11 = ?," + "c12 = ?," + "c13 = ?,"
+                + "c14 = ?," + "c15 = ?" + ";";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -394,10 +398,9 @@ public class PQImpsTest extends AbstractTest {
 
     private static void deleteNumeric() throws SQLException {
 
-        String sql = "delete from " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " where " + "c1 = ? and "
-                + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and " + "c6 = ? and " + "c7 = ? and "
-                + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? and "
-                + "c14 = ? and " + "c15 = ?" + ";";
+        String sql = "delete from " + numericTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and "
+                + "c4 = ? and " + "c5 = ? and " + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? and "
+                + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? and " + "c14 = ? and " + "c15 = ?" + ";";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -410,41 +413,38 @@ public class PQImpsTest extends AbstractTest {
 
     private static void createNumericTable() throws SQLException {
 
-        stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " ("
-                + "c1 decimal not null," + "c2 decimal(10,5) not null," + "c3 numeric not null,"
-                + "c4 numeric(8,4) not null," + "c5 float not null," + "c6 float(10) not null," + "c7 real not null,"
-                + "c8 int not null," + "c9 bigint not null," + "c10 smallint not null," + "c11 tinyint not null,"
-                + "c12 money not null," + "c13 smallmoney not null," + "c14 decimal(10,9) not null,"
-                + "c15 decimal(38,37) not null" + ")");
+        stmt.execute("Create table " + numericTable + " (" + "c1 decimal not null," + "c2 decimal(10,5) not null,"
+                + "c3 numeric not null," + "c4 numeric(8,4) not null," + "c5 float not null," + "c6 float(10) not null,"
+                + "c7 real not null," + "c8 int not null," + "c9 bigint not null," + "c10 smallint not null,"
+                + "c11 tinyint not null," + "c12 money not null," + "c13 smallmoney not null,"
+                + "c14 decimal(10,9) not null," + "c15 decimal(38,37) not null" + ")");
     }
 
     private static void createCharTable() throws SQLException {
 
-        stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(charTable) + " (" + "c1 char(50) not null,"
-                + "c2 varchar(20) not null," + "c3 nchar(30) not null," + "c4 nvarchar(60) not null,"
-                + "c5 text not null," + "c6 ntext not null" + ")");
-    }
-
-    private static void createSpaceTable() throws SQLException {
-        stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(spaceTable) + " ("
-                + "[c1*/someString withspace] char(50) not null," + "c2 varchar(20) not null,"
+        stmt.execute("Create table " + charTable + " (" + "c1 char(50) not null," + "c2 varchar(20) not null,"
                 + "c3 nchar(30) not null," + "c4 nvarchar(60) not null," + "c5 text not null," + "c6 ntext not null"
                 + ")");
     }
 
+    private static void createSpaceTable() throws SQLException {
+        stmt.execute("Create table " + spaceTable + " (" + "[c1*/someString withspace] char(50) not null,"
+                + "c2 varchar(20) not null," + "c3 nchar(30) not null," + "c4 nvarchar(60) not null,"
+                + "c5 text not null," + "c6 ntext not null" + ")");
+    }
+
     private static void createChar2Table() throws SQLException {
-        stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(charTable2) + " ("
-                + "table2c1 char(50) not null)");
+        stmt.execute("Create table " + charTable2 + " (" + "table2c1 char(50) not null)");
     }
 
     private static void populateCharTable() throws SQLException {
-        stmt.execute("insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values (" + "'Hello',"
-                + "'Hello'," + "N'Hello'," + "N'Hello'," + "'Hello'," + "N'Hello'" + ")");
+        stmt.execute("insert into " + charTable + " values (" + "'Hello'," + "'Hello'," + "N'Hello'," + "N'Hello',"
+                + "'Hello'," + "N'Hello'" + ")");
     }
 
     private static void selectChar() throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(charTable) + " where " + "c1 = ? and "
-                + "c2 = ? and " + "c3 = ? and " + "c4 = ? ";
+        String sql = "select * from " + charTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and "
+                + "c4 = ? ";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -457,8 +457,7 @@ public class PQImpsTest extends AbstractTest {
 
     private static void insertChar() throws SQLException {
 
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?," + "?,"
-                + "?," + "?," + "?," + "?" + ")";
+        String sql = "insert into " + charTable + " values( " + "?," + "?," + "?," + "?," + "?," + "?" + ")";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -471,8 +470,8 @@ public class PQImpsTest extends AbstractTest {
 
     private static void updateChar() throws SQLException {
 
-        String sql = "update " + AbstractSQLGenerator.escapeIdentifier(charTable) + " set " + "c1 = ?," + "c2 = ?,"
-                + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?" + ";";
+        String sql = "update " + charTable + " set " + "c1 = ?," + "c2 = ?," + "c3 = ?," + "c4 = ?," + "c5 = ?,"
+                + "c6 = ?" + ";";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -485,8 +484,7 @@ public class PQImpsTest extends AbstractTest {
 
     private static void deleteChar() throws SQLException {
 
-        String sql = "delete from " + AbstractSQLGenerator.escapeIdentifier(charTable) + " where " + "c1 = ? and "
-                + "c2 = ? and " + "c3 = ? and " + "c4 = ? ";
+        String sql = "delete from " + charTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and " + "c4 = ? ";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -499,19 +497,18 @@ public class PQImpsTest extends AbstractTest {
 
     private static void createBinaryTable() throws SQLException {
 
-        stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " ("
-                + "c1 binary(100) not null," + "c2 varbinary(200) not null" + ")");
+        stmt.execute(
+                "Create table " + binaryTable + " (" + "c1 binary(100) not null," + "c2 varbinary(200) not null" + ")");
     }
 
     private static void populateBinaryTable() throws SQLException {
 
-        stmt.execute("insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values ("
-                + "convert(binary(50), 'Simba tech', 0), " + "convert(varbinary(50), 'Simba tech', 0)" + ")");
+        stmt.execute("insert into " + binaryTable + " values (" + "convert(binary(50), 'Simba tech', 0), "
+                + "convert(varbinary(50), 'Simba tech', 0)" + ")");
     }
 
     private static void selectBinary() throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " where " + "c1 = ? and "
-                + "c2 = ? ";
+        String sql = "select * from " + binaryTable + " where " + "c1 = ? and " + "c2 = ? ";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -524,8 +521,7 @@ public class PQImpsTest extends AbstractTest {
 
     private static void insertBinary() throws SQLException {
 
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?," + "?"
-                + ")";
+        String sql = "insert into " + binaryTable + " values( " + "?," + "?" + ")";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -539,8 +535,7 @@ public class PQImpsTest extends AbstractTest {
 
     private static void updateBinary() throws SQLException {
 
-        String sql = "update " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " set " + "c1 = ?," + "c2 = ?"
-                + ";";
+        String sql = "update " + binaryTable + " set " + "c1 = ?," + "c2 = ?" + ";";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -554,8 +549,7 @@ public class PQImpsTest extends AbstractTest {
 
     private static void deleteBinary() throws SQLException {
 
-        String sql = "delete from " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " where " + "c1 = ? and "
-                + "c2 = ?" + ";";
+        String sql = "delete from " + binaryTable + " where " + "c1 = ? and " + "c2 = ?" + ";";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -568,23 +562,22 @@ public class PQImpsTest extends AbstractTest {
 
     private static void createDateAndTimeTable() throws SQLException {
 
-        stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(dateAndTimeTable) + " ("
-                + "c1 date not null," + "c2 datetime not null," + "c3 datetime2 not null," + "c4 datetime2(5) not null,"
-                + "c5 datetimeoffset not null," + "c6 datetimeoffset(5) not null," + "c7 smalldatetime not null,"
-                + "c8 time not null," + "c9 time(5) not null" + ")");
+        stmt.execute("Create table " + dateAndTimeTable + " (" + "c1 date not null," + "c2 datetime not null,"
+                + "c3 datetime2 not null," + "c4 datetime2(5) not null," + "c5 datetimeoffset not null,"
+                + "c6 datetimeoffset(5) not null," + "c7 smalldatetime not null," + "c8 time not null,"
+                + "c9 time(5) not null" + ")");
     }
 
     private static void populateDateAndTimeTable() throws SQLException {
-        stmt.execute("insert into " + AbstractSQLGenerator.escapeIdentifier(dateAndTimeTable) + " values ("
-                + "'1991-10-23'," + "'1991-10-23 06:20:50'," + "'1991-10-23 07:20:50.123',"
-                + "'1991-10-23 07:20:50.123'," + "'1991-10-23 08:20:50.123'," + "'1991-10-23 08:20:50.123',"
-                + "'1991-10-23 09:20:50'," + "'10:20:50'," + "'10:20:50'" + ")");
+        stmt.execute("insert into " + dateAndTimeTable + " values (" + "'1991-10-23'," + "'1991-10-23 06:20:50',"
+                + "'1991-10-23 07:20:50.123'," + "'1991-10-23 07:20:50.123'," + "'1991-10-23 08:20:50.123',"
+                + "'1991-10-23 08:20:50.123'," + "'1991-10-23 09:20:50'," + "'10:20:50'," + "'10:20:50'" + ")");
     }
 
     private static void insertDateAndTime() throws SQLException {
 
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateAndTimeTable) + " values( " + "?,"
-                + "?," + "?," + "?," + "?," + "?," + "?," + "?," + "?" + ")";
+        String sql = "insert into " + dateAndTimeTable + " values( " + "?," + "?," + "?," + "?," + "?," + "?," + "?,"
+                + "?," + "?" + ")";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -597,8 +590,8 @@ public class PQImpsTest extends AbstractTest {
 
     private static void updateDateAndTime() throws SQLException {
 
-        String sql = "update " + AbstractSQLGenerator.escapeIdentifier(dateAndTimeTable) + " set " + "c1 = ?,"
-                + "c2 = ?," + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?," + "c7 = ?," + "c8 = ?," + "c9 = ?" + ";";
+        String sql = "update " + dateAndTimeTable + " set " + "c1 = ?," + "c2 = ?," + "c3 = ?," + "c4 = ?," + "c5 = ?,"
+                + "c6 = ?," + "c7 = ?," + "c8 = ?," + "c9 = ?" + ";";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -611,9 +604,8 @@ public class PQImpsTest extends AbstractTest {
 
     private static void deleteDateAndTime() throws SQLException {
 
-        String sql = "delete from " + AbstractSQLGenerator.escapeIdentifier(dateAndTimeTable) + " where "
-                + "c1 = ? and " + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and " + "c6 = ? and "
-                + "c7 = ? and " + "c8 = ? and " + "c9 = ?" + ";";
+        String sql = "delete from " + dateAndTimeTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and "
+                + "c4 = ? and " + "c5 = ? and " + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ?" + ";";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -625,9 +617,8 @@ public class PQImpsTest extends AbstractTest {
     }
 
     private static void selectDateAndTime() throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(dateAndTimeTable) + " where "
-                + "c1 = ? and " + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and " + "c6 = ? and "
-                + "c7 = ? and " + "c8 = ? and " + "c9 = ? ";
+        String sql = "select * from " + dateAndTimeTable + " where " + "c1 = ? and " + "c2 = ? and " + "c3 = ? and "
+                + "c4 = ? and " + "c5 = ? and " + "c6 = ? and " + "c7 = ? and " + "c8 = ? and " + "c9 = ? ";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -639,16 +630,15 @@ public class PQImpsTest extends AbstractTest {
     }
 
     private static void createTablesForCompexQueries() throws SQLException {
-        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(nameTable) + "','U') is not null"
-                + " drop table " + AbstractSQLGenerator.escapeIdentifier(nameTable));
+        stmt.executeUpdate("if object_id('" + nameTable + "','U') is not null" + " drop table " + nameTable);
 
-        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(phoneNumberTable) + "','U') is not null"
-                + " drop table " + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable));
+        stmt.executeUpdate(
+                "if object_id('" + phoneNumberTable + "','U') is not null" + " drop table " + phoneNumberTable);
 
-        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(mergeNameDesTable) + "','U') is not null"
-                + " drop table " + AbstractSQLGenerator.escapeIdentifier(mergeNameDesTable));
+        stmt.executeUpdate(
+                "if object_id('" + mergeNameDesTable + "','U') is not null" + " drop table " + mergeNameDesTable);
 
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(nameTable) + " ("
+        String sql = "create table " + nameTable + " ("
         // + "ID int NOT NULL,"
                 + "PlainID int not null," + "ID smallint NOT NULL," + "FirstName varchar(50) NOT NULL,"
                 + "LastName nchar(60) NOT NULL" + ");";
@@ -659,8 +649,8 @@ public class PQImpsTest extends AbstractTest {
             fail(e.toString());
         }
 
-        sql = "create table " + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable) + " ("
-                + "PlainID smallint not null," + "ID int NOT NULL," + "PhoneNumber bigint NOT NULL" + ");";
+        sql = "create table " + phoneNumberTable + " (" + "PlainID smallint not null," + "ID int NOT NULL,"
+                + "PhoneNumber bigint NOT NULL" + ");";
 
         try {
             stmt.execute(sql);
@@ -668,7 +658,7 @@ public class PQImpsTest extends AbstractTest {
             fail(e.toString());
         }
 
-        sql = "create table " + AbstractSQLGenerator.escapeIdentifier(mergeNameDesTable) + " ("
+        sql = "create table " + mergeNameDesTable + " ("
         // + "ID int NOT NULL,"
                 + "PlainID smallint not null," + "ID int NULL," + "FirstName char(30) NULL,"
                 + "LastName varchar(50) NULL" + ");";
@@ -681,8 +671,7 @@ public class PQImpsTest extends AbstractTest {
     }
 
     private static void populateTablesForCompexQueries() throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(nameTable) + " values " + "(?,?,?,?),"
-                + "(?,?,?,?)," + "(?,?,?,?)" + "";
+        String sql = "insert into " + nameTable + " values " + "(?,?,?,?)," + "(?,?,?,?)," + "(?,?,?,?)" + "";
         pstmt = connection.prepareStatement(sql);
         int id = 1;
         for (int i = 0; i < 5; i++) {
@@ -707,8 +696,7 @@ public class PQImpsTest extends AbstractTest {
         }
         pstmt.close();
 
-        sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable) + " values " + "(?,?,?),"
-                + "(?,?,?)," + "(?,?,?)" + "";
+        sql = "insert into " + phoneNumberTable + " values " + "(?,?,?)," + "(?,?,?)," + "(?,?,?)" + "";
         pstmt = connection.prepareStatement(sql);
         id = 1;
         for (int i = 0; i < 5; i++) {
@@ -730,8 +718,7 @@ public class PQImpsTest extends AbstractTest {
         }
         pstmt.close();
 
-        sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(mergeNameDesTable) + " (PlainID) values " + "(?),"
-                + "(?)," + "(?)" + "";
+        sql = "insert into " + mergeNameDesTable + " (PlainID) values " + "(?)," + "(?)," + "(?)" + "";
         pstmt = connection.prepareStatement(sql);
         id = 1;
         for (int i = 0; i < 5; i++) {
@@ -757,10 +744,8 @@ public class PQImpsTest extends AbstractTest {
     @DisplayName("SubQuery")
     public void testSubquery() throws SQLException {
         if (version >= SQL_SERVER_2012_VERSION) {
-            String sql = "SELECT FirstName,LastName" + " FROM " + AbstractSQLGenerator.escapeIdentifier(nameTable)
-                    + " WHERE ID IN " + " (SELECT ID" + " FROM "
-                    + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable)
-                    + " WHERE PhoneNumber = ? and ID = ? and PlainID = ?" + ")";
+            String sql = "SELECT FirstName,LastName" + " FROM " + nameTable + " WHERE ID IN " + " (SELECT ID" + " FROM "
+                    + phoneNumberTable + " WHERE PhoneNumber = ? and ID = ? and PlainID = ?" + ")";
 
             pstmt = connection.prepareStatement(sql);
 
@@ -791,14 +776,8 @@ public class PQImpsTest extends AbstractTest {
             String sql = String.format(
                     "select %s.FirstName, %s.LastName, %s.PhoneNumber" + " from %s join %s on %s.PlainID = %s.PlainID"
                             + " where %s.ID = ? and %s.PlainID = ?",
-                    AbstractSQLGenerator.escapeIdentifier(nameTable), AbstractSQLGenerator.escapeIdentifier(nameTable),
-                    AbstractSQLGenerator.escapeIdentifier(phoneNumberTable),
-                    AbstractSQLGenerator.escapeIdentifier(nameTable),
-                    AbstractSQLGenerator.escapeIdentifier(phoneNumberTable),
-                    AbstractSQLGenerator.escapeIdentifier(nameTable),
-                    AbstractSQLGenerator.escapeIdentifier(phoneNumberTable),
-                    AbstractSQLGenerator.escapeIdentifier(phoneNumberTable),
-                    AbstractSQLGenerator.escapeIdentifier(phoneNumberTable));
+                    nameTable, nameTable, phoneNumberTable, nameTable, phoneNumberTable, nameTable, phoneNumberTable,
+                    phoneNumberTable, phoneNumberTable);
 
             pstmt = connection.prepareStatement(sql);
 
@@ -825,9 +804,8 @@ public class PQImpsTest extends AbstractTest {
     @DisplayName("Merge Queries")
     public void testMerge() throws SQLException {
         if (version >= SQL_SERVER_2012_VERSION) {
-            String sql = "merge " + AbstractSQLGenerator.escapeIdentifier(mergeNameDesTable) + " as T" + " using "
-                    + AbstractSQLGenerator.escapeIdentifier(nameTable) + " as S" + " on T.PlainID=S.PlainID"
-                    + " when matched" + " then update set T.firstName = ?, T.lastName = ?;";
+            String sql = "merge " + mergeNameDesTable + " as T" + " using " + nameTable + " as S"
+                    + " on T.PlainID=S.PlainID" + " when matched" + " then update set T.firstName = ?, T.lastName = ?;";
 
             pstmt = connection.prepareStatement(sql);
 
@@ -851,11 +829,11 @@ public class PQImpsTest extends AbstractTest {
 
     private static void createMultipleTypesTable() throws SQLException {
 
-        stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(multipleTypesTable) + " ("
-                + "c1n decimal not null," + "c2n decimal(10,5) not null," + "c3n numeric not null,"
-                + "c4n numeric(8,4) not null," + "c5n float not null," + "c6n float(10) not null,"
-                + "c7n real not null," + "c8n int not null," + "c9n bigint not null," + "c10n smallint not null,"
-                + "c11n tinyint not null," + "c12n money not null," + "c13n smallmoney not null,"
+        stmt.execute("Create table " + multipleTypesTable + " (" + "c1n decimal not null,"
+                + "c2n decimal(10,5) not null," + "c3n numeric not null," + "c4n numeric(8,4) not null,"
+                + "c5n float not null," + "c6n float(10) not null," + "c7n real not null," + "c8n int not null,"
+                + "c9n bigint not null," + "c10n smallint not null," + "c11n tinyint not null," + "c12n money not null,"
+                + "c13n smallmoney not null,"
 
                 + "c1c char(50) not null," + "c2c varchar(20) not null," + "c3c nchar(30) not null,"
                 + "c4c nvarchar(60) not null," + "c5c text not null," + "c6c ntext not null,"
@@ -869,8 +847,8 @@ public class PQImpsTest extends AbstractTest {
 
     private static void testInsertMultipleTypes() throws SQLException {
 
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(multipleTypesTable) + " values( "
-                + "?,?,?,?,?,?,?,?,?,?,?,?,?," + "?,?,?,?,?,?," + "?,?," + "?,?,?,?,?,?,?,?,?" + ")";
+        String sql = "insert into " + multipleTypesTable + " values( " + "?,?,?,?,?,?,?,?,?,?,?,?,?," + "?,?,?,?,?,?,"
+                + "?,?," + "?,?,?,?,?,?,?,?,?" + ")";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -940,7 +918,7 @@ public class PQImpsTest extends AbstractTest {
     @Test
     @DisplayName("testNoParameter")
     public void testNoParameter() throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(multipleTypesTable);
+        String sql = "select * from " + multipleTypesTable;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -957,9 +935,8 @@ public class PQImpsTest extends AbstractTest {
 
     private static void testMixedWithHardcodedValues() throws SQLException {
 
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(multipleTypesTable) + " values( "
-                + "1,?,?,1,?,?,?,1,?,?,?,1,1," + "?,'simba tech','simba tech',?,?,?," + "?,?,"
-                + "?,'1991-10-23',?,?,?,'1991-10-23',?,?,?" + ")";
+        String sql = "insert into " + multipleTypesTable + " values( " + "1,?,?,1,?,?,?,1,?,?,?,1,1,"
+                + "?,'simba tech','simba tech',?,?,?," + "?,?," + "?,'1991-10-23',?,?,?,'1991-10-23',?,?,?" + ")";
 
         pstmt = connection.prepareStatement(sql);
 
@@ -1022,7 +999,7 @@ public class PQImpsTest extends AbstractTest {
     @Test
     @DisplayName("Test OrderBy")
     public void testOrderBy() throws SQLException {
-        String sql = "SELECT FirstName,LastName" + " FROM " + AbstractSQLGenerator.escapeIdentifier(nameTable)
+        String sql = "SELECT FirstName,LastName" + " FROM " + nameTable
                 + " WHERE FirstName = ? and LastName = ? and PlainID = ? and ID = ? " + " ORDER BY ID ASC";
 
         pstmt = connection.prepareStatement(sql);
@@ -1051,7 +1028,7 @@ public class PQImpsTest extends AbstractTest {
     @Test
     @DisplayName("Test GroupBy")
     private void testGroupBy() throws SQLException {
-        String sql = "SELECT FirstName,COUNT(LastName)" + " FROM " + AbstractSQLGenerator.escapeIdentifier(nameTable)
+        String sql = "SELECT FirstName,COUNT(LastName)" + " FROM " + nameTable
                 + " WHERE FirstName = ? and LastName = ? and PlainID = ? and ID = ? " + " group by Firstname";
 
         pstmt = connection.prepareStatement(sql);
@@ -1079,7 +1056,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testLower() throws SQLException {
-        String sql = "SELECT FirstName,LOWER(LastName)" + " FROM " + AbstractSQLGenerator.escapeIdentifier(nameTable)
+        String sql = "SELECT FirstName,LOWER(LastName)" + " FROM " + nameTable
                 + " WHERE FirstName = ? and LastName = ? and PlainID = ? and ID = ? ";
 
         pstmt = connection.prepareStatement(sql);
@@ -1108,7 +1085,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testPower() throws SQLException {
-        String sql = "SELECT POWER(ID,2)" + " FROM " + AbstractSQLGenerator.escapeIdentifier(nameTable)
+        String sql = "SELECT POWER(ID,2)" + " FROM " + nameTable
                 + " WHERE FirstName = ? and LastName = ? and PlainID = ? and ID = ? ";
 
         pstmt = connection.prepareStatement(sql);
@@ -1139,16 +1116,10 @@ public class PQImpsTest extends AbstractTest {
     public void testAllInOneQuery() throws SQLException {
         if (version >= SQL_SERVER_2012_VERSION) {
 
-            String sql = "select lower(FirstName), count(lastName) from "
-                    + AbstractSQLGenerator.escapeIdentifier(nameTable) + "where ID = ? and FirstName in" + "("
-                    + " select " + AbstractSQLGenerator.escapeIdentifier(nameTable) + ".FirstName from "
-                    + AbstractSQLGenerator.escapeIdentifier(nameTable) + " join "
-                    + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable) + " on "
-                    + AbstractSQLGenerator.escapeIdentifier(nameTable) + ".ID = "
-                    + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable) + ".ID" + " where "
-                    + AbstractSQLGenerator.escapeIdentifier(nameTable) + ".ID = ? and "
-                    + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable) + ".ID = ?" + ")" + " group by FirstName "
-                    + " order by FirstName ASC";
+            String sql = "select lower(FirstName), count(lastName) from " + nameTable + "where ID = ? and FirstName in"
+                    + "(" + " select " + nameTable + ".FirstName from " + nameTable + " join " + phoneNumberTable
+                    + " on " + nameTable + ".ID = " + phoneNumberTable + ".ID" + " where " + nameTable + ".ID = ? and "
+                    + phoneNumberTable + ".ID = ?" + ")" + " group by FirstName " + " order by FirstName ASC";
 
             pstmt = connection.prepareStatement(sql);
 
@@ -1175,8 +1146,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithMultipleLineComments1() throws SQLException {
-        pstmt = connection.prepareStatement("/*te\nst*//*test*/select top 100 c1 from "
-                + AbstractSQLGenerator.escapeIdentifier(charTable) + " where c1 = ?");
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/select top 100 c1 from " + charTable + " where c1 = ?");
         pstmt.setString(1, "abc");
 
         try {
@@ -1196,7 +1166,7 @@ public class PQImpsTest extends AbstractTest {
     public void testQueryWithMultipleLineComments2() throws SQLException {
         pstmt = connection
                 .prepareStatement("/*/*te\nst*/ te/*test*/st /*te\nst*/*//*te/*test*/st*/select top 100 c1 from "
-                        + AbstractSQLGenerator.escapeIdentifier(charTable) + " where c1 = ?");
+                        + charTable + " where c1 = ?");
         pstmt.setString(1, "abc");
 
         try {
@@ -1214,8 +1184,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithMultipleLineCommentsInsert() throws SQLException {
-        pstmt = connection.prepareStatement("/*te\nst*//*test*/insert /*test*/into "
-                + AbstractSQLGenerator.escapeIdentifier(charTable) + " (c1) VALUES(?)");
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/insert /*test*/into " + charTable + " (c1) VALUES(?)");
 
         try {
             pstmt.getParameterMetaData();
@@ -1231,8 +1200,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithMultipleLineCommentsUpdate() throws SQLException {
-        pstmt = connection.prepareStatement("/*te\nst*//*test*/update /*test*/"
-                + AbstractSQLGenerator.escapeIdentifier(charTable) + " set c1=123 where c1=?");
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/update /*test*/" + charTable + " set c1=123 where c1=?");
 
         try {
             pstmt.getParameterMetaData();
@@ -1248,8 +1216,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithMultipleLineCommentsDeletion() throws SQLException {
-        pstmt = connection.prepareStatement("/*te\nst*//*test*/delete /*test*/from "
-                + AbstractSQLGenerator.escapeIdentifier(charTable) + " where c1=?");
+        pstmt = connection.prepareStatement("/*te\nst*//*test*/delete /*test*/from " + charTable + " where c1=?");
 
         try {
             pstmt.getParameterMetaData();
@@ -1265,8 +1232,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithSingleLineComments1() throws SQLException {
-        pstmt = connection.prepareStatement("-- #test \n select top 100 c1 from "
-                + AbstractSQLGenerator.escapeIdentifier(charTable) + " where c1 = ?");
+        pstmt = connection.prepareStatement("-- #test \n select top 100 c1 from " + charTable + " where c1 = ?");
         pstmt.setString(1, "abc");
 
         try {
@@ -1284,8 +1250,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithSingleLineComments2() throws SQLException {
-        pstmt = connection.prepareStatement("--#test\nselect top 100 c1 from "
-                + AbstractSQLGenerator.escapeIdentifier(charTable) + " where c1 = ?");
+        pstmt = connection.prepareStatement("--#test\nselect top 100 c1 from " + charTable + " where c1 = ?");
         pstmt.setString(1, "abc");
 
         try {
@@ -1303,8 +1268,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithSingleLineComments3() throws SQLException {
-        pstmt = connection.prepareStatement(
-                "select top 100 c1\nfrom " + AbstractSQLGenerator.escapeIdentifier(charTable) + " where c1 = ?");
+        pstmt = connection.prepareStatement("select top 100 c1\nfrom " + charTable + " where c1 = ?");
         pstmt.setString(1, "abc");
 
         try {
@@ -1322,8 +1286,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithSingleLineCommentsInsert() throws SQLException {
-        pstmt = connection.prepareStatement(
-                "--#test\ninsert /*test*/into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " (c1) VALUES(?)");
+        pstmt = connection.prepareStatement("--#test\ninsert /*test*/into " + charTable + " (c1) VALUES(?)");
 
         try {
             pstmt.getParameterMetaData();
@@ -1339,8 +1302,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithSingleLineCommentsUpdate() throws SQLException {
-        pstmt = connection.prepareStatement("--#test\nupdate /*test*/"
-                + AbstractSQLGenerator.escapeIdentifier(charTable) + " set c1=123 where c1=?");
+        pstmt = connection.prepareStatement("--#test\nupdate /*test*/" + charTable + " set c1=123 where c1=?");
 
         try {
             pstmt.getParameterMetaData();
@@ -1356,8 +1318,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithSingleLineCommentsDeletion() throws SQLException {
-        pstmt = connection.prepareStatement(
-                "--#test\ndelete /*test*/from " + AbstractSQLGenerator.escapeIdentifier(charTable) + " where c1=?");
+        pstmt = connection.prepareStatement("--#test\ndelete /*test*/from " + charTable + " where c1=?");
 
         try {
             pstmt.getParameterMetaData();
@@ -1373,8 +1334,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testQueryWithSpaceAndEndCommentMarkInColumnName() throws SQLException {
-        pstmt = connection.prepareStatement(
-                "SELECT [c1*/someString withspace] from " + AbstractSQLGenerator.escapeIdentifier(spaceTable));
+        pstmt = connection.prepareStatement("SELECT [c1*/someString withspace] from " + spaceTable);
 
         try {
             pstmt.getParameterMetaData();
@@ -1390,9 +1350,8 @@ public class PQImpsTest extends AbstractTest {
      */
     @Test
     public void testComplexQueryWithMultipleTables() throws SQLException {
-        pstmt = connection.prepareStatement("insert into " + AbstractSQLGenerator.escapeIdentifier(charTable)
-                + " (c1) select ? where not exists (select * from " + AbstractSQLGenerator.escapeIdentifier(charTable2)
-                + " where table2c1 = ?)");
+        pstmt = connection.prepareStatement("insert into " + charTable
+                + " (c1) select ? where not exists (select * from " + charTable2 + " where table2c1 = ?)");
 
         try {
             SQLServerParameterMetaData pMD = (SQLServerParameterMetaData) pstmt.getParameterMetaData();
@@ -1411,16 +1370,17 @@ public class PQImpsTest extends AbstractTest {
      */
     @AfterAll
     public static void dropTables() throws SQLException {
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(nameTable), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(phoneNumberTable), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(mergeNameDesTable), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(numericTable), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(charTable), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(charTable2), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(binaryTable), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(dateAndTimeTable), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(multipleTypesTable), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(spaceTable), stmt);
+        Utils.dropTableIfExists(nameTable, stmt);
+        Utils.dropTableIfExists(phoneNumberTable, stmt);
+        Utils.dropTableIfExists(mergeNameDesTable, stmt);
+        Utils.dropTableIfExists(numericTable, stmt);
+        Utils.dropTableIfExists(phoneNumberTable, stmt);
+        Utils.dropTableIfExists(charTable, stmt);
+        Utils.dropTableIfExists(charTable2, stmt);
+        Utils.dropTableIfExists(binaryTable, stmt);
+        Utils.dropTableIfExists(dateAndTimeTable, stmt);
+        Utils.dropTableIfExists(multipleTypesTable, stmt);
+        Utils.dropTableIfExists(spaceTable, stmt);
 
         if (null != rs) {
             rs.close();

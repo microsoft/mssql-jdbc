@@ -22,11 +22,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.PrepUtil;
+import com.microsoft.sqlserver.testframework.Utils;
+import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 /**
@@ -45,7 +45,7 @@ public class UTF8SupportTest extends AbstractTest {
      */
     @Test
     public void testChar() throws SQLException {
-        if (TestUtils.serverSupportsUTF8(connection)) {
+        if (Utils.serverSupportsUTF8(connection)) {
             createTable("char(10)");
             validate("teststring");
             // This is 10 UTF-8 bytes. D1 82 D0 B5 D1 81 D1 82 31 32
@@ -77,7 +77,7 @@ public class UTF8SupportTest extends AbstractTest {
      */
     @Test
     public void testVarchar() throws SQLException {
-        if (TestUtils.serverSupportsUTF8(connection)) {
+        if (Utils.serverSupportsUTF8(connection)) {
             createTable("varchar(10)");
             validate("teststring");
             validate("тест12");
@@ -108,9 +108,9 @@ public class UTF8SupportTest extends AbstractTest {
     @BeforeAll
     public static void setUp() throws ClassNotFoundException, SQLException {
         connection = PrepUtil.getConnection(getConfiguredProperty("mssql_jdbc_test_connection_properties"));
-        if (TestUtils.serverSupportsUTF8(connection)) {
+        if (Utils.serverSupportsUTF8(connection)) {
             databaseName = RandomUtil.getIdentifier("UTF8Database");
-            tableName = RandomUtil.getIdentifier("RequestBoundaryTable");
+            tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("RequestBoundaryTable"));
             createDatabaseWithUTF8Collation();
             connection.setCatalog(databaseName);
         }
@@ -118,14 +118,10 @@ public class UTF8SupportTest extends AbstractTest {
 
     @AfterAll
     public static void cleanUp() throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
-            if (TestUtils.serverSupportsUTF8(connection)) {
-                TestUtils.dropDatabaseIfExists(databaseName, stmt);
-            }
+        if (Utils.serverSupportsUTF8(connection)) {
+            Utils.dropDatabaseIfExists(databaseName, connection.createStatement());
         }
-        if (null != connection) {
-            connection.close();
-        }
+        connection.close();
     }
 
     private static void createDatabaseWithUTF8Collation() throws SQLException {
@@ -137,23 +133,20 @@ public class UTF8SupportTest extends AbstractTest {
 
     private static void createTable(String columnType) throws SQLException {
         try (Statement stmt = connection.createStatement();) {
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            stmt.executeUpdate(
-                    "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c " + columnType + ")");
+            Utils.dropTableIfExists(tableName, stmt);
+            stmt.executeUpdate("CREATE TABLE " + tableName + " (c " + columnType + ")");
         }
     }
 
     public void clearTable() throws SQLException {
         try (Statement stmt = connection.createStatement();) {
-            stmt.executeUpdate("DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(tableName));
+            stmt.executeUpdate("DELETE FROM " + tableName);
         }
     }
 
     public void validate(String value) throws SQLException {
-        try (PreparedStatement psInsert = connection
-                .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES(?)");
-                PreparedStatement psFetch = connection
-                        .prepareStatement("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName));
+        try (PreparedStatement psInsert = connection.prepareStatement("INSERT INTO " + tableName + " VALUES(?)");
+                PreparedStatement psFetch = connection.prepareStatement("SELECT * FROM " + tableName);
                 Statement stmt = connection.createStatement();) {
             clearTable();
             // Used for exact byte comparison.
@@ -163,21 +156,18 @@ public class UTF8SupportTest extends AbstractTest {
             psInsert.executeUpdate();
 
             // Fetch using Statement.
-            try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-                rs.next();
-                // Compare Strings.
-                assertEquals(value, rs.getString(1));
-                // Test UTF8 sequence returned from getBytes().
-                assertArrayEquals(valueBytes, rs.getBytes(1));
-            }
+            ResultSet rsStatement = stmt.executeQuery("SELECT * FROM " + tableName);
+            rsStatement.next();
+            // Compare Strings.
+            assertEquals(value, rsStatement.getString(1));
+            // Test UTF8 sequence returned from getBytes().
+            assertArrayEquals(valueBytes, rsStatement.getBytes(1));
 
             // Fetch using PreparedStatement.
-            try (ResultSet rsPreparedStatement = psFetch.executeQuery()) {
-                rsPreparedStatement.next();
-                assertEquals(value, rsPreparedStatement.getString(1));
-                assertArrayEquals(valueBytes, rsPreparedStatement.getBytes(1));
-            }
+            ResultSet rsPreparedStatement = psFetch.executeQuery();
+            rsPreparedStatement.next();
+            assertEquals(value, rsPreparedStatement.getString(1));
+            assertArrayEquals(valueBytes, rsPreparedStatement.getBytes(1));
         }
     }
 }

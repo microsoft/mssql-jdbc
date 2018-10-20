@@ -3,7 +3,7 @@
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package com.microsoft.sqlserver.jdbc;
+package com.microsoft.sqlserver.testframework.util;
 
 import java.util.UUID;
 
@@ -43,8 +43,6 @@ public class RandomUtil {
         sb.append("jdbc_");
         sb.append(System.getProperty("user.name"));
         sb.append("_");
-        // Added to always test table names with apostrophe.
-        sb.append("'");
         if (unique) {
             // Create UUID.
             sb.append(UUID.randomUUID().toString());

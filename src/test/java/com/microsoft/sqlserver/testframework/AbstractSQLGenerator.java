@@ -5,9 +5,6 @@
 
 package com.microsoft.sqlserver.testframework;
 
-import com.microsoft.sqlserver.jdbc.TestUtils;
-
-
 /**
  * Common methods needed for any implementation for {@link SQLGeneratorIF}
  */
@@ -61,7 +58,7 @@ public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
     public String wrapName(String name) {
         StringBuffer wrap = new StringBuffer();
         wrap.append(getWrapIdentifier());
-        wrap.append(TestUtils.escapeSingleQuotes(name));
+        wrap.append(name);
         wrap.append(getWrapIdentifier());
         return wrap.toString();
     }

@@ -37,11 +37,7 @@ import org.junit.jupiter.api.function.Executable;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;
-import com.microsoft.sqlserver.jdbc.TestUtils.DBBinaryStream;
-import com.microsoft.sqlserver.jdbc.TestUtils.DBCharacterStream;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBCoercion;
@@ -51,7 +47,11 @@ import com.microsoft.sqlserver.testframework.DBInvalidUtil;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.Utils;
+import com.microsoft.sqlserver.testframework.Utils.DBBinaryStream;
+import com.microsoft.sqlserver.testframework.Utils.DBCharacterStream;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+import com.microsoft.sqlserver.testframework.util.RandomUtil;
 
 
 /**
@@ -146,24 +146,21 @@ public class lobsTest extends AbstractTest {
         }
 
         int coercionType = isResultSet ? DBCoercion.UPDATE : DBCoercion.SET;
-        Object updater = null;
-        Statement stmt = null;
         try {
             if (clobType == classType(lobClass) || nClobType == classType(lobClass)) {
-                table = createTable(table, clobTypes, true);
+                table = this.createTable(table, clobTypes, true);
             } else {
-                table = createTable(table, blobTypes, true);
+                table = this.createTable(table, blobTypes, true);
             }
+            Object updater;
             for (int i = 0; i < table.getColumns().size(); i++) {
                 DBColumn col = table.getColumns().get(i);
-                try (DBConnection conn = new DBConnection(connectionString)) {
-                    if (!col.getSqlType().canConvert(lobClass, coercionType, conn))
-                        continue;
-                }
+                if (!col.getSqlType().canConvert(lobClass, coercionType, new DBConnection(connectionString)))
+                    continue;
                 // re-create LOB since it might get closed
                 Object lob = this.createLob(lobClass);
                 if (isResultSet) {
-                    stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+                    Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
                     updater = stmt.executeQuery("Select " + table.getEscapedTableName() + ".[" + col.getColumnName()
                             + "]" + " from " + table.getEscapedTableName());
                     ((ResultSet) updater).next();
@@ -194,15 +191,15 @@ public class lobsTest extends AbstractTest {
                     // Case 2: CharacterStream or Clob.getCharacterStream threw IOException
                     if (lobClass == DBCharacterStream.class
                             || (lobClass == Clob.class && ((DBInvalidUtil.InvalidClob) lob).stream != null)) {
-                        try (DBInvalidUtil.InvalidCharacterStream stream = lobClass == DBCharacterStream.class ? ((DBInvalidUtil.InvalidCharacterStream) lob)
-                                                                                                               : ((DBInvalidUtil.InvalidClob) lob).stream) {
-                            if (stream.threwException) {
-                                // CharacterStream threw IOException
-                                String[] args = {
-                                        "java.io.IOException: " + DBInvalidUtil.InvalidCharacterStream.IOExceptionMsg};
-                                assertTrue(e.getMessage().contains(args[0]));
-                                verified = true;
-                            }
+                        DBInvalidUtil.InvalidCharacterStream stream = lobClass == DBCharacterStream.class ? ((DBInvalidUtil.InvalidCharacterStream) lob)
+                                                                                                          : ((DBInvalidUtil.InvalidClob) lob).stream;
+                        if (stream.threwException) {
+                            // CharacterStream threw IOException
+                            String[] args = {
+                                    "java.io.IOException: " + DBInvalidUtil.InvalidCharacterStream.IOExceptionMsg};
+                            assertTrue(e.getMessage().contains(args[0]));
+                            verified = true;
+
                         }
                     }
                     if (!verified) {
@@ -219,20 +216,8 @@ public class lobsTest extends AbstractTest {
                 }
             }
         } catch (Exception e) {
-            dropTables(table);
+            this.dropTables(table);
             e.printStackTrace();
-        } finally {
-            dropTables(table);
-            if (null != updater) {
-                if (isResultSet) {
-                    ((ResultSet) updater).close();
-                } else {
-                    ((PreparedStatement) updater).close();
-                }
-            }
-            if (null != stmt) {
-                stmt.close();
-            }
         }
     }
 
@@ -248,40 +233,42 @@ public class lobsTest extends AbstractTest {
             ThreadLocalRandom.current().nextBytes(data);
 
             Blob blob = null;
+            InputStream stream = null;
             for (int i = 0; i < 5; i++) {
-                try (PreparedStatement ps = conn
-                        .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
-                    blob = conn.createBlob();
-                    blob.setBytes(1, data);
-                    ps.setInt(1, i + 1);
-                    ps.setBlob(2, blob);
-                    ps.executeUpdate();
-                }
+                PreparedStatement ps = conn
+                        .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
+                blob = conn.createBlob();
+                blob.setBytes(1, data);
+                ps.setInt(1, i + 1);
+                ps.setBlob(2, blob);
+                ps.executeUpdate();
             }
 
-            try (ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName())) {
-                for (int i = 0; i < 5; i++) {
-                    rs.next();
+            byte[] chunk = new byte[size];
+            ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName());
+            for (int i = 0; i < 5; i++) {
+                rs.next();
 
-                    blob = rs.getBlob(2);
-                    try (InputStream stream = blob.getBinaryStream()) {
-                        while (stream.available() > 0)
-                            stream.read();
-                        blob.free();
-                    }
-                    try (InputStream stream = blob.getBinaryStream()) {} catch (SQLException e) {
-                        assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
-                    }
+                blob = rs.getBlob(2);
+                stream = blob.getBinaryStream();
+                while (stream.available() > 0)
+                    stream.read();
+                blob.free();
+                try {
+                    stream = blob.getBinaryStream();
+                } catch (SQLException e) {
+                    assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
                 }
             }
-            try (InputStream stream = blob.getBinaryStream()) {} catch (SQLException e) {
+            rs.close();
+            try {
+                stream = blob.getBinaryStream();
+            } catch (SQLException e) {
                 assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
             }
         } catch (Exception e) {
-            dropTables(table);
+            this.dropTables(table);
             e.printStackTrace();
-        } finally {
-            dropTables(table);
         }
     }
 
@@ -304,88 +291,85 @@ public class lobsTest extends AbstractTest {
      * @throws Exception
      */
     private void testMultipleClose(Class streamClass) throws Exception {
+        DBConnection conn = new DBConnection(connectionString);
         String[] types = {"varchar(max)", "nvarchar(max)", "varbinary(max)"};
-        try (DBConnection conn = new DBConnection(connectionString);
-                DBStatement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
-            table = createTable(table, types, true);
+        try {
+            table = this.createTable(table, types, true);
 
+            DBStatement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
             String query = "select * from " + table.getEscapedTableName() + " ORDER BY "
                     + table.getEscapedColumnName(0);
-            try (DBResultSet rs = stmt.executeQuery(query)) {
-                while (rs.next()) {
-                    for (int i = 0; i < types.length + 1; i++) { // +1 for RowId
-                        if (i == 0) {
-                            rs.getInt(1);
+            DBResultSet rs = stmt.executeQuery(query);
+            while (rs.next()) {
+                for (int i = 0; i < types.length + 1; i++) { // +1 for RowId
+                    if (i == 0) {
+                        rs.getInt(1);
+                    } else {
+                        DBColumn col = table.getColumns().get(i);
+                        if (!col.getSqlType().canConvert(streamClass, DBCoercion.GET,
+                                new DBConnection(connectionString)))
+                            continue;
+                        Object stream = rs.getXXX(i + 1, streamClass);
+                        if (stream == null) {
+                            assertEquals(stream, rs.getObject(i + 1), TestResource.getResource("R_streamNull"));
                         } else {
-                            DBColumn col = table.getColumns().get(i);
-                            try (DBConnection con = new DBConnection(connectionString)) {
-                                if (!col.getSqlType().canConvert(streamClass, DBCoercion.GET, con))
-                                    continue;
-                            }
-
+                            // close the stream twice
                             if (streamClass == DBCharacterStream.class) {
-                                try (Reader stream = (Reader) rs.getXXX(i + 1, streamClass)) {
-                                    if (null == stream) {
-                                        assertEquals(stream, rs.getObject(i + 1),
-                                                TestResource.getResource("R_streamNull"));
-                                    }
-                                }
+                                ((Reader) stream).close();
+                                ((Reader) stream).close();
                             } else {
-                                try (InputStream stream = (InputStream) rs.getXXX(i + 1, streamClass)) {
-                                    if (null == stream) {
-                                        assertEquals(stream, rs.getObject(i + 1),
-                                                TestResource.getResource("R_streamNull"));
-                                    }
-                                }
+                                ((InputStream) stream).close();
+                                ((InputStream) stream).close();
                             }
                         }
                     }
                 }
             }
         } finally {
-            if (null != table) {
-                dropTables(table);
-            }
+            if (null != table)
+                this.dropTables(table);
+            if (null != null)
+                conn.close();
         }
     }
 
     /**
-     * Tests Insert Retrieve on nclob
+     * Tests Insert Retrive on nclob
      * 
      * @throws Exception
      */
     @Test
-    @DisplayName("testlLobsInsertRetrieve")
+    @DisplayName("testlLobsInsertRetrive")
     public void testNClob() throws Exception {
         String types[] = {"nvarchar(max)"};
-        testLobsInsertRetrieve(types, NClob.class);
+        testLobsInsertRetrive(types, NClob.class);
     }
 
     /**
-     * Tests Insert Retrieve on blob
+     * Tests Insert Retrive on blob
      * 
      * @throws Exception
      */
     @Test
-    @DisplayName("testlLobsInsertRetrieve")
+    @DisplayName("testlLobsInsertRetrive")
     public void testBlob() throws Exception {
         String types[] = {"varbinary(max)"};
-        testLobsInsertRetrieve(types, Blob.class);
+        testLobsInsertRetrive(types, Blob.class);
     }
 
     /**
-     * Tests Insert Retrieve on clob
+     * Tests Insert Retrive on clob
      * 
      * @throws Exception
      */
     @Test
-    @DisplayName("testlLobsInsertRetrieve")
+    @DisplayName("testlLobsInsertRetrive")
     public void testClob() throws Exception {
         String types[] = {"varchar(max)"};
-        testLobsInsertRetrieve(types, Clob.class);
+        testLobsInsertRetrive(types, Clob.class);
     }
 
-    private void testLobsInsertRetrieve(String types[], Class lobClass) throws Exception {
+    private void testLobsInsertRetrive(String types[], Class lobClass) throws Exception {
         table = createTable(table, types, false); // create empty table
         int size = 10000;
 
@@ -395,75 +379,71 @@ public class lobsTest extends AbstractTest {
         Clob clob = null;
         Blob blob = null;
         NClob nclob = null;
-        try (PreparedStatement ps = conn
-                .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
+        InputStream stream = null;
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
+        if (clobType == classType(lobClass)) {
+            String stringData = new String(data);
+            size = stringData.length();
+            clob = conn.createClob();
+            clob.setString(1, stringData);
+            ps.setInt(1, 1);
+            ps.setClob(2, clob);
+        } else if (nClobType == classType(lobClass)) {
+            String stringData = new String(data);
+            size = stringData.length();
+            nclob = conn.createNClob();
+            nclob.setString(1, stringData);
+            ps.setInt(1, 1);
+            ps.setNClob(2, nclob);
+        }
+
+        else {
+            blob = conn.createBlob();
+            blob.setBytes(1, data);
+            ps.setInt(1, 1);
+            ps.setBlob(2, blob);
+        }
+        ps.executeUpdate();
+
+        byte[] chunk = new byte[size];
+        ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName());
+        while (rs.next()) {
             if (clobType == classType(lobClass)) {
                 String stringData = new String(data);
                 size = stringData.length();
                 clob = conn.createClob();
                 clob.setString(1, stringData);
-                ps.setInt(1, 1);
-                ps.setClob(2, clob);
+                rs.getClob(2);
+                stream = clob.getAsciiStream();
+                assertEquals(clob.length(), size);
+
             } else if (nClobType == classType(lobClass)) {
-                String stringData = new String(data);
-                size = stringData.length();
-                nclob = conn.createNClob();
-                nclob.setString(1, stringData);
-                ps.setInt(1, 1);
-                ps.setNClob(2, nclob);
-            }
-
-            else {
-                blob = conn.createBlob();
-                blob.setBytes(1, data);
-                ps.setInt(1, 1);
-                ps.setBlob(2, blob);
-            }
-            ps.executeUpdate();
-
-            byte[] chunk = new byte[size];
-            try (ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName())) {
-                while (rs.next()) {
-                    if (clobType == classType(lobClass)) {
-                        String stringData = new String(data);
-                        size = stringData.length();
-                        clob = conn.createClob();
-                        clob.setString(1, stringData);
-                        rs.getClob(2);
-                        try (InputStream stream = clob.getAsciiStream()) {
-                            assertEquals(clob.length(), size);
-                        }
-
-                    } else if (nClobType == classType(lobClass)) {
-                        nclob = rs.getNClob(2);
-                        assertEquals(nclob.length(), size);
-                        try (InputStream stream = nclob.getAsciiStream();
-                                BufferedInputStream is = new BufferedInputStream(stream)) {
-                            is.read(chunk);
-                            assertEquals(chunk.length, size);
-                        }
-                    } else {
-                        blob = rs.getBlob(2);
-                        try (InputStream stream = blob.getBinaryStream();
-                                ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
-                            int read = 0;
-                            while ((read = stream.read(chunk)) > 0)
-                                buffer.write(chunk, 0, read);
-                            assertEquals(chunk.length, size);
-                        }
-                    }
-                }
+                nclob = rs.getNClob(2);
+                assertEquals(nclob.length(), size);
+                stream = nclob.getAsciiStream();
+                BufferedInputStream is = new BufferedInputStream(stream);
+                is.read(chunk);
+                assertEquals(chunk.length, size);
+            } else {
+                blob = rs.getBlob(2);
+                stream = blob.getBinaryStream();
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                int read = 0;
+                while ((read = stream.read(chunk)) > 0)
+                    buffer.write(chunk, 0, read);
+                assertEquals(chunk.length, size);
 
             }
-        } finally {
-            if (null != clob)
-                clob.free();
-            if (null != blob)
-                blob.free();
-            if (null != nclob)
-                nclob.free();
-            dropTables(table);
+
         }
+
+        if (null != clob)
+            clob.free();
+        if (null != blob)
+            blob.free();
+        if (null != nclob)
+            nclob.free();
+        dropTables(table);
     }
 
     @Test
@@ -498,41 +478,37 @@ public class lobsTest extends AbstractTest {
         ThreadLocalRandom.current().nextBytes(data);
 
         Blob blob = null;
-        try (PreparedStatement ps = conn
-                .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
-            blob = conn.createBlob();
-            blob.setBytes(1, data);
-            ps.setInt(1, 1);
-            ps.setBlob(2, blob);
-            ps.executeUpdate();
+        InputStream stream = null;
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
+        blob = conn.createBlob();
+        blob.setBytes(1, data);
+        ps.setInt(1, 1);
+        ps.setBlob(2, blob);
+        ps.executeUpdate();
 
-            byte[] chunk = new byte[size];
-            try (ResultSet rs = stmt.executeQuery(
-                    "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0))) {
-                rs.next();
+        byte[] chunk = new byte[size];
+        ResultSet rs = stmt.executeQuery(
+                "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0));
+        rs.next();
 
-                blob = rs.getBlob(2);
-                try (InputStream stream = blob.getBinaryStream();
-                        ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
-                    int read = 0;
-                    while ((read = stream.read(chunk)) > 0)
-                        buffer.write(chunk, 0, read);
-                    assertEquals(chunk.length, size);
-                    rs.close();
-                }
-                try (InputStream stream = blob.getBinaryStream();
-                        ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
-                    int read = 0;
-                    while ((read = stream.read(chunk)) > 0)
-                        buffer.write(chunk, 0, read);
-                    assertEquals(chunk.length, size);
-                }
-            }
-        } finally {
-            if (null != blob)
-                blob.free();
-            dropTables(table);
-        }
+        blob = rs.getBlob(2);
+        stream = blob.getBinaryStream();
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        int read = 0;
+        while ((read = stream.read(chunk)) > 0)
+            buffer.write(chunk, 0, read);
+        assertEquals(chunk.length, size);
+        rs.close();
+        stream = blob.getBinaryStream();
+        buffer = new ByteArrayOutputStream();
+        read = 0;
+        while ((read = stream.read(chunk)) > 0)
+            buffer.write(chunk, 0, read);
+        assertEquals(chunk.length, size);
+
+        if (null != blob)
+            blob.free();
+        dropTables(table);
     }
 
     @Test
@@ -547,46 +523,36 @@ public class lobsTest extends AbstractTest {
         InputStream stream = null;
         for (int i = 0; i < 5; i++)// create 5 blobs
         {
-            try (PreparedStatement ps = conn
-                    .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
-                blobs[i] = conn.createBlob();
-                ThreadLocalRandom.current().nextBytes(data);
-                blobs[i].setBytes(1, data);
-                ps.setInt(1, i + 1);
-                ps.setBlob(2, blobs[i]);
-                ps.executeUpdate();
-            }
+            PreparedStatement ps = conn
+                    .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
+            blobs[i] = conn.createBlob();
+            ThreadLocalRandom.current().nextBytes(data);
+            blobs[i].setBytes(1, data);
+            ps.setInt(1, i + 1);
+            ps.setBlob(2, blobs[i]);
+            ps.executeUpdate();
         }
-
         byte[] chunk = new byte[size];
-        try (ResultSet rs = stmt.executeQuery(
-                "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0))) {
-            for (int i = 0; i < 5; i++) {
-                rs.next();
-                blobs[i] = rs.getBlob(2);
-                stream = blobs[i].getBinaryStream();
-                try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
-                    int read = 0;
-                    while ((read = stream.read(chunk)) > 0)
-                        buffer.write(chunk, 0, read);
-                    assertEquals(chunk.length, size);
-                }
-            }
-
-            for (int i = 0; i < 5; i++) {
-                stream = blobs[i].getBinaryStream();
-                try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
-                    int read = 0;
-                    while ((read = stream.read(chunk)) > 0)
-                        buffer.write(chunk, 0, read);
-                    assertEquals(chunk.length, size);
-                }
-            }
-        } finally {
-            if (null != stream) {
-                stream.close();
-            }
-            dropTables(table);
+        ResultSet rs = stmt.executeQuery(
+                "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0));
+        for (int i = 0; i < 5; i++) {
+            rs.next();
+            blobs[i] = rs.getBlob(2);
+            stream = blobs[i].getBinaryStream();
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            int read = 0;
+            while ((read = stream.read(chunk)) > 0)
+                buffer.write(chunk, 0, read);
+            assertEquals(chunk.length, size);
+        }
+        rs.close();
+        for (int i = 0; i < 5; i++) {
+            stream = blobs[i].getBinaryStream();
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            int read = 0;
+            while ((read = stream.read(chunk)) > 0)
+                buffer.write(chunk, 0, read);
+            assertEquals(chunk.length, size);
         }
     }
 
@@ -600,64 +566,62 @@ public class lobsTest extends AbstractTest {
         Clob clob = null;
         Blob blob = null;
         NClob nclob = null;
-        try (PreparedStatement ps = conn
-                .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
+        InputStream stream = null;
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)");
+        if (clobType == classType(lobClass)) {
+            String stringData = new String(data);
+            size = stringData.length();
+            clob = conn.createClob();
+            clob.setString(1, stringData);
+            ps.setInt(1, 1);
+            ps.setClob(2, clob);
+        } else if (nClobType == classType(lobClass)) {
+            String stringData = new String(data);
+            size = stringData.length();
+            nclob = conn.createNClob();
+            nclob.setString(1, stringData);
+            ps.setInt(1, 1);
+            ps.setNClob(2, nclob);
+        }
+
+        else {
+            blob = conn.createBlob();
+            blob.setBytes(1, data);
+            ps.setInt(1, 1);
+            ps.setBlob(2, blob);
+        }
+        ps.executeUpdate();
+
+        Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName());
+        while (rs.next()) {
             if (clobType == classType(lobClass)) {
                 String stringData = new String(data);
                 size = stringData.length();
                 clob = conn.createClob();
                 clob.setString(1, stringData);
-                ps.setInt(1, 1);
-                ps.setClob(2, clob);
+                rs.updateClob(2, clob);
             } else if (nClobType == classType(lobClass)) {
                 String stringData = new String(data);
                 size = stringData.length();
                 nclob = conn.createNClob();
                 nclob.setString(1, stringData);
-                ps.setInt(1, 1);
-                ps.setNClob(2, nclob);
-            }
-
-            else {
+                rs.updateClob(2, nclob);
+            } else {
                 blob = conn.createBlob();
-                blob.setBytes(1, data);
-                ps.setInt(1, 1);
-                ps.setBlob(2, blob);
-            }
-            ps.executeUpdate();
+                rs.updateBlob(2, blob);
 
-            try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-                    ResultSet rs = stmt.executeQuery("select * from " + table.getEscapedTableName())) {
-                while (rs.next()) {
-                    if (clobType == classType(lobClass)) {
-                        String stringData = new String(data);
-                        size = stringData.length();
-                        clob = conn.createClob();
-                        clob.setString(1, stringData);
-                        rs.updateClob(2, clob);
-                    } else if (nClobType == classType(lobClass)) {
-                        String stringData = new String(data);
-                        size = stringData.length();
-                        nclob = conn.createNClob();
-                        nclob.setString(1, stringData);
-                        rs.updateClob(2, nclob);
-                    } else {
-                        blob = conn.createBlob();
-                        rs.updateBlob(2, blob);
-
-                    }
-                    rs.updateRow();
-                }
             }
-        } finally {
-            if (null != clob)
-                clob.free();
-            if (null != blob)
-                blob.free();
-            if (null != nclob)
-                nclob.free();
-            dropTables(table);
+            rs.updateRow();
         }
+        if (null != clob)
+            clob.free();
+        if (null != blob)
+            blob.free();
+        if (null != nclob)
+            nclob.free();
+        dropTables(table);
+
     }
 
     private int classType(Class type) {
@@ -718,13 +682,13 @@ public class lobsTest extends AbstractTest {
         else if (lobClass == DBBinaryStream.class)
             return new DBInvalidUtil().new InvalidBinaryStream(data, streamLength < -1);
         if (lobClass == Clob.class) {
-            ArrayList<SqlType> types = TestUtils.types();
-            SqlType type = TestUtils.find(String.class);
+            ArrayList<SqlType> types = Utils.types();
+            SqlType type = Utils.find(String.class);
             Object expected = type.createdata(String.class, data);
             return new DBInvalidUtil().new InvalidClob(expected, false);
         } else {
-            ArrayList<SqlType> types = TestUtils.types();
-            SqlType type = TestUtils.find(byte[].class);
+            ArrayList<SqlType> types = Utils.types();
+            SqlType type = Utils.find(byte[].class);
             Object expected = type.createdata(type.getClass(), data);
             return new DBInvalidUtil().new InvalidBlob(expected, false);
         }
@@ -738,10 +702,10 @@ public class lobsTest extends AbstractTest {
             table = new DBTable(false);
 
             // Add RowId
-            table.addColumn(TestUtils.find("int"));
+            table.addColumn(Utils.find("int"));
 
             for (String type1 : types) {
-                SqlType type = TestUtils.find(type1);
+                SqlType type = Utils.find(type1);
                 table.addColumn(type);
 
             }
@@ -754,8 +718,8 @@ public class lobsTest extends AbstractTest {
     }
 
     private static void dropTables(DBTable table) throws SQLException {
-        stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table.getEscapedTableName())
-                + "','U') is not null" + " drop table " + table.getEscapedTableName());
+        stmt.executeUpdate("if object_id('" + table.getEscapedTableName() + "','U') is not null" + " drop table "
+                + table.getEscapedTableName());
     }
 
 }

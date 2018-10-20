@@ -6,7 +6,6 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
@@ -34,26 +33,27 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
-import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.util.RandomUtil;
+
 
 @RunWith(JUnitPlatform.class)
 public class ConnectionDriverTest extends AbstractTest {
-    // If no retry is done, the function should at least exit in 5 seconds
+    // If no retry is done, the function should atleast exit in 5 seconds
     static int threshHoldForNoRetryInMilliseconds = 5000;
     static int loginTimeOutInSeconds = 10;
 
     String randomServer = RandomUtil.getIdentifier("Server");
 
     /**
-     * test connection properties
+     * test SSL properties
      * 
      * @throws SQLException
      */
@@ -92,7 +92,7 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     /**
-     * test connection properties with SQLServerDataSource
+     * test SSL properties with SQLServerDataSource
      */
     @Test
     public void testDataSource() {
@@ -207,19 +207,18 @@ public class ConnectionDriverTest extends AbstractTest {
         MyEventListener myE = new MyEventListener();
         pooledConnection.addConnectionEventListener(myE); // ConnectionListener implements ConnectionEventListener
 
-        try (Connection con = pooledConnection.getConnection();
-                Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-            // raise a non severe exception and make sure that the connection is not closed.
-            stmt.executeUpdate("RAISERROR ('foo', 3,1) WITH LOG");
-            // not a serious error there should not be any errors.
-            assertTrue(!myE.errorOccurred, TestResource.getResource("R_errorCalled"));
-            // check to make sure that connection is not closed.
-            assertTrue(!con.isClosed(), TestResource.getResource("R_connectionIsClosed"));
-            stmt.close();
-            con.close();
-            // check to make sure that connection is closed.
-            assertTrue(con.isClosed(), TestResource.getResource("R_connectionIsNotClosed"));
-        }
+        Connection con = pooledConnection.getConnection();
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        // raise a non severe exception and make sure that the connection is not closed.
+        stmt.executeUpdate("RAISERROR ('foo', 3,1) WITH LOG");
+        // not a serious error there should not be any errors.
+        assertTrue(!myE.errorOccurred, TestResource.getResource("R_errorCalled"));
+        // check to make sure that connection is not closed.
+        assertTrue(!con.isClosed(), TestResource.getResource("R_connectionIsClosed"));
+        stmt.close();
+        con.close();
+        // check to make sure that connection is closed.
+        assertTrue(con.isClosed(), TestResource.getResource("R_connectionIsNotClosed"));
     }
 
     @Test
@@ -229,21 +228,19 @@ public class ConnectionDriverTest extends AbstractTest {
 
         SQLServerDataSource mds = new SQLServerDataSource();
         mds.setURL(connectionString);
-        try (Connection con = mds.getConnection();
-                Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-            boolean exceptionThrown = false;
-            try {
-                stmt.executeUpdate("RAISERROR ('foo', 20,1) WITH LOG");
-            } catch (Exception e) {
-                exceptionThrown = true;
-            }
-            assertTrue(exceptionThrown, TestResource.getResource("R_expectedExceptionNotThrown"));
+        Connection con = mds.getConnection();
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
-            // check to make sure that connection is closed.
-            assertTrue(con.isClosed(), TestResource.getResource("R_connectionIsNotClosed"));
+        boolean exceptionThrown = false;
+        try {
+            stmt.executeUpdate("RAISERROR ('foo', 20,1) WITH LOG");
         } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+            exceptionThrown = true;
         }
+        assertTrue(exceptionThrown, TestResource.getResource("R_expectedExceptionNotThrown"));
+
+        // check to make sure that connection is closed.
+        assertTrue(con.isClosed(), TestResource.getResource("R_connectionIsNotClosed"));
     }
 
     @Test
@@ -280,10 +277,9 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testClosedConnection() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-            conn.close();
-            assertTrue(!conn.isValid(0), TestResource.getResource("R_closedConnectionShouldBeInvalid"));
-        }
+        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        conn.close();
+        assertTrue(!conn.isValid(0), TestResource.getResource("R_closedConnectionShouldBeInvalid"));
     }
 
     @Test
@@ -306,60 +302,52 @@ public class ConnectionDriverTest extends AbstractTest {
         assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
                 TestResource.getResource("R_skipAzure"));
 
-        String tableName = RandomUtil.getIdentifier("ConnectionTestTable");
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
-                .getConnection(connectionString + ";responseBuffering=adaptive");
-                Statement stmt = conn.createStatement()) {
+                .getConnection(connectionString + ";responseBuffering=adaptive")) {
+
+            Statement stmt = null;
+            String tableName = RandomUtil.getIdentifier("Table");
+            tableName = DBTable.escapeIdentifier(tableName);
 
             conn.setAutoCommit(false);
-            stmt.executeUpdate(
-                    "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int primary key)");
+            stmt = conn.createStatement();
+            stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int primary key)");
             for (int i = 0; i < 80; i++) {
-                stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + "(col1) values ("
-                        + i + ")");
+                stmt.executeUpdate("INSERT INTO " + tableName + "(col1) values (" + i + ")");
             }
             conn.commit();
             try {
-                stmt.execute("SELECT x1.col1 as foo, x2.col1 as bar, x1.col1 as eeep FROM "
-                        + AbstractSQLGenerator.escapeIdentifier(tableName) + " as x1, "
-                        + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " as x2; RAISERROR ('Oops', 21, 42) WITH LOG");
+                stmt.execute("SELECT x1.col1 as foo, x2.col1 as bar, x1.col1 as eeep FROM " + tableName + " as x1, "
+                        + tableName + " as x2; RAISERROR ('Oops', 21, 42) WITH LOG");
             } catch (SQLException e) {
                 assertEquals(e.getMessage(), TestResource.getResource("R_connectionReset"),
                         TestResource.getResource("R_unknownException"));
+            } finally {
+                DriverManager.getConnection(connectionString).createStatement().execute("drop table " + tableName);
             }
             assertEquals(conn.isValid(5), false, TestResource.getResource("R_deadConnection"));
-        } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
-        } finally {
-            if (null != tableName) {
-                try (SQLServerConnection conn = (SQLServerConnection) DriverManager
-                        .getConnection(connectionString + ";responseBuffering=adaptive");
-                        Statement stmt = conn.createStatement()) {
-                    stmt.execute("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
-                }
-            }
         }
     }
 
     @Test
     public void testClientConnectionId() throws Exception {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-            assertTrue(conn.getClientConnectionId() != null, TestResource.getResource("R_clientConnectionIdNull"));
-            conn.close();
-            try {
-                // Call getClientConnectionId on a closed connection, should raise exception
-                conn.getClientConnectionId();
-                throw new Exception(TestResource.getResource("R_noExceptionClosedConnection"));
-            } catch (SQLException e) {
-                assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"),
-                        TestResource.getResource("R_wrongExceptionMessage"));
-            }
+        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        assertTrue(conn.getClientConnectionId() != null, TestResource.getResource("R_clientConnectionIdNull"));
+        conn.close();
+        try {
+            // Call getClientConnectionId on a closed connection, should raise exception
+            conn.getClientConnectionId();
+            throw new Exception(TestResource.getResource("R_noExceptionClosedConnection"));
+        } catch (SQLException e) {
+            assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"),
+                    TestResource.getResource("R_wrongExceptionMessage"));
         }
 
-        // Wrong database, ClientConnectionId should be available in error message
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager
-                .getConnection(connectionString + ";databaseName=" + RandomUtil.getIdentifierForDB("DataBase") + ";")) {
+        conn = null;
+        try {
+            // Wrong database, ClientConnectionId should be available in error message
+            conn = (SQLServerConnection) DriverManager.getConnection(
+                    connectionString + ";databaseName=" + RandomUtil.getIdentifierForDB("DataBase") + ";");
             conn.close();
 
         } catch (SQLException e) {
@@ -367,9 +355,10 @@ public class ConnectionDriverTest extends AbstractTest {
                     TestResource.getResource("R_unexpectedWrongDB"));
         }
 
-        // Nonexist host, ClientConnectionId should not be available in error message
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(
-                connectionString + ";instanceName=" + RandomUtil.getIdentifier("Instance") + ";logintimeout=5;")) {
+        try {
+            // Nonexist host, ClientConnectionId should not be available in error message
+            conn = (SQLServerConnection) DriverManager.getConnection(
+                    connectionString + ";instanceName=" + RandomUtil.getIdentifier("Instance") + ";logintimeout=5;");
             conn.close();
 
         } catch (SQLException e) {
@@ -382,6 +371,7 @@ public class ConnectionDriverTest extends AbstractTest {
     public void testIncorrectDatabase() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
+        Connection con = null;
         final long milsecs = threshHoldForNoRetryInMilliseconds;
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -389,25 +379,25 @@ public class ConnectionDriverTest extends AbstractTest {
             ds.setLoginTimeout(loginTimeOutInSeconds);
             ds.setDatabaseName(RandomUtil.getIdentifier("DataBase"));
             timerStart = System.currentTimeMillis();
-            try (Connection con = ds.getConnection()) {
-
-                long timeDiff = timerEnd - timerStart;
-                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
-
-                MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
-                Object[] msgArgs = {milsecs / 1000};
-                assertTrue(timeDiff <= milsecs, form.format(msgArgs));
-            }
+            con = ds.getConnection();
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")));
             timerEnd = System.currentTimeMillis();
         }
+
+        long timeDiff = timerEnd - timerStart;
+        assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
+        Object[] msgArgs = {milsecs / 1000};
+        assertTrue(timeDiff <= milsecs, form.format(msgArgs));
     }
 
     @Test
     public void testIncorrectUserName() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
+        Connection con = null;
         final long milsecs = threshHoldForNoRetryInMilliseconds;
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -415,23 +405,24 @@ public class ConnectionDriverTest extends AbstractTest {
             ds.setLoginTimeout(loginTimeOutInSeconds);
             ds.setUser(RandomUtil.getIdentifier("User"));
             timerStart = System.currentTimeMillis();
-            try (Connection con = ds.getConnection()) {
-                long timeDiff = timerEnd - timerStart;
-                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
-                MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
-                Object[] msgArgs = {milsecs / 1000};
-                assertTrue(timeDiff <= milsecs, form.format(msgArgs));
-            }
+            con = ds.getConnection();
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
             timerEnd = System.currentTimeMillis();
         }
+
+        long timeDiff = timerEnd - timerStart;
+        assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
+        Object[] msgArgs = {milsecs / 1000};
+        assertTrue(timeDiff <= milsecs, form.format(msgArgs));
     }
 
     @Test
     public void testIncorrectPassword() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
+        Connection con = null;
         final long milsecs = threshHoldForNoRetryInMilliseconds;
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -439,23 +430,24 @@ public class ConnectionDriverTest extends AbstractTest {
             ds.setLoginTimeout(loginTimeOutInSeconds);
             ds.setPassword(RandomUtil.getIdentifier("Password"));
             timerStart = System.currentTimeMillis();
-            try (Connection con = ds.getConnection()) {
-                long timeDiff = timerEnd - timerStart;
-                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
-                MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
-                Object[] msgArgs = {milsecs / 1000};
-                assertTrue(timeDiff <= milsecs, form.format(msgArgs));
-            }
+            con = ds.getConnection();
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
             timerEnd = System.currentTimeMillis();
         }
+
+        long timeDiff = timerEnd - timerStart;
+        assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
+        Object[] msgArgs = {milsecs / 1000};
+        assertTrue(timeDiff <= milsecs, form.format(msgArgs));
     }
 
     @Test
     public void testInvalidCombination() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
+        Connection con = null;
         final long milsecs = threshHoldForNoRetryInMilliseconds;
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -464,18 +456,17 @@ public class ConnectionDriverTest extends AbstractTest {
             ds.setMultiSubnetFailover(true);
             ds.setFailoverPartner(RandomUtil.getIdentifier("FailoverPartner"));
             timerStart = System.currentTimeMillis();
-            try (Connection con = ds.getConnection()) {
-
-                long timeDiff = timerEnd - timerStart;
-                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
-                MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
-                Object[] msgArgs = {milsecs / 1000};
-                assertTrue(timeDiff <= milsecs, form.format(msgArgs));
-            }
+            con = ds.getConnection();
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_connectMirrored")));
             timerEnd = System.currentTimeMillis();
         }
+
+        long timeDiff = timerEnd - timerStart;
+        assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
+        Object[] msgArgs = {milsecs / 1000};
+        assertTrue(timeDiff <= milsecs, form.format(msgArgs));
     }
 
     @Test
@@ -483,6 +474,7 @@ public class ConnectionDriverTest extends AbstractTest {
     public void testIncorrectDatabaseWithFailoverPartner() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
+        Connection con = null;
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
             ds.setURL(connectionString);
@@ -490,50 +482,45 @@ public class ConnectionDriverTest extends AbstractTest {
             ds.setDatabaseName(RandomUtil.getIdentifierForDB("DB"));
             ds.setFailoverPartner(RandomUtil.getIdentifier("FailoverPartner"));
             timerStart = System.currentTimeMillis();
-            try (Connection con = ds.getConnection()) {
-
-                long timeDiff = timerEnd - timerStart;
-                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
-                MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedLessSeconds"));
-                Object[] msgArgs = {loginTimeOutInSeconds - 1};
-                assertTrue(timeDiff >= ((loginTimeOutInSeconds - 1) * 1000), form.format(msgArgs));
-            }
+            con = ds.getConnection();
         } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
         }
+
+        long timeDiff = timerEnd - timerStart;
+        assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+        MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedLessSeconds"));
+        Object[] msgArgs = {loginTimeOutInSeconds - 1};
+        assertTrue(timeDiff >= ((loginTimeOutInSeconds - 1) * 1000), form.format(msgArgs));
     }
 
     @Test
     public void testAbortBadParam() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-            try {
-                conn.abort(null);
-            } catch (SQLException e) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidArgumentExecutor")));
-            }
+        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        try {
+            conn.abort(null);
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidArgumentExecutor")));
         }
     }
 
     @Test
     public void testAbort() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-            Executor executor = Executors.newFixedThreadPool(2);
-            conn.abort(executor);
-        }
+        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        Executor executor = Executors.newFixedThreadPool(2);
+        conn.abort(executor);
     }
 
     @Test
     public void testSetSchema() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-            conn.setSchema(RandomUtil.getIdentifier("schema"));
-        }
+        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        conn.setSchema(RandomUtil.getIdentifier("schema"));
     }
 
     @Test
     public void testGetSchema() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-            conn.getSchema();
-        }
+        SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        conn.getSchema();
     }
 
     static Boolean isInterrupted = false;
@@ -554,7 +541,9 @@ public class ConnectionDriverTest extends AbstractTest {
                 ds.setServerName("invalidServerName" + UUID.randomUUID());
                 ds.setLoginTimeout(5);
 
-                try (Connection con = ds.getConnection()) {} catch (SQLException e) {
+                try {
+                    ds.getConnection();
+                } catch (SQLException e) {
                     isInterrupted = Thread.currentThread().isInterrupted();
                 }
             }

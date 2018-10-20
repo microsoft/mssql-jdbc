@@ -74,7 +74,6 @@ For some features (e.g. Integrated Authentication and Distributed Transactions),
 Don't want to compile anything?
 
 We're now on the Maven Central Repository. Add the following to your POM file to get the most stable release:
-
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
@@ -85,15 +84,13 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287).
 
 To get the latest preview version of the driver, add the following to your POM file: 
-
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.1.1.jre10-preview</version>
+	<version>7.1.0.jre10-preview</version>
 </dependency>
 ```
-
 ### Using driver as Java Module
 Starting from version 7.0.0, the driver Jars (jre10 and above) will expose 'Automatic-Module' as **'com.microsoft.sqlserver.jdbc'**. The supporting Jar can now be added to ModulePath to access this module.
 
@@ -118,12 +115,11 @@ mvn dependency:tree
 Projects that require either of the two features need to explicitly declare the dependency in their pom file.
 
 ***For Example:*** If you are using *Azure Active Directory Authentication feature* then you need to redeclare *adal4j* dependency in your project's pom file. Please see the following snippet: 
-
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.1.1.jre10-preview</version>
+	<version>7.1.0.jre10-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -135,12 +131,11 @@ Projects that require either of the two features need to explicitly declare the 
 ```
 
 ***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault* dependency and *adal4j* dependency in your project's pom file. Please see the following snippet: 
-
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.1.1.jre10-preview</version>
+	<version>7.1.0.jre10-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -156,7 +151,6 @@ Projects that require either of the two features need to explicitly declare the 
 	<version>1.0.0</version>
 </dependency>
 ```
-
 ***Please note*** as of the v6.2.2, the way to construct a `SQLServerColumnEncryptionAzureKeyVaultProvider` object has changed. Please refer to this [Wiki](https://github.com/Microsoft/mssql-jdbc/wiki/New-Constructor-Definition-for-SQLServerColumnEncryptionAzureKeyVaultProvider-after-6.2.2-Release) page for more information.
 
 ## Guidelines for Creating Pull Requests

@@ -19,11 +19,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;
-import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Utils;
 
 
 /**
@@ -32,8 +30,9 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  */
 @RunWith(JUnitPlatform.class)
 public class NamedParamMultiPartTest extends AbstractTest {
-    private static final String dataPut = RandomUtil.getIdentifier("dataPut");
-    static String procedureName;
+    private static final String dataPut = "eminem";
+    private static Connection connection = null;
+    String procedureName = "mystoredproc";
 
     /**
      * setup
@@ -42,13 +41,11 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @BeforeAll
     public static void beforeAll() throws SQLException {
-        procedureName = RandomUtil.getIdentifier("mystoredproc");
-
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement statement = connection.createStatement()) {
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), statement);
-            statement.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName)
-                    + " (@p_out varchar(255) OUTPUT) AS set @p_out =  '" + TestUtils.escapeSingleQuotes(dataPut) + "'");
+        connection = DriverManager.getConnection(connectionString);
+        try (Statement statement = connection.createStatement()) {
+            Utils.dropProcedureIfExists("mystoredproc", statement);
+            statement.executeUpdate(
+                    "CREATE PROCEDURE [mystoredproc] (@p_out varchar(255) OUTPUT) AS set @p_out =  '" + dataPut + "'");
         }
     }
 
@@ -59,8 +56,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @Test
     public void update1() throws Exception {
-        try (Connection connection = DriverManager.getConnection(connectionString); CallableStatement cs = connection
-                .prepareCall("{ CALL " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " (?) }")) {
+        try (CallableStatement cs = connection.prepareCall("{ CALL " + procedureName + " (?) }")) {
             cs.registerOutParameter("p_out", Types.VARCHAR);
             cs.executeUpdate();
             String data = cs.getString("p_out");
@@ -75,8 +71,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @Test
     public void update2() throws Exception {
-        try (Connection connection = DriverManager.getConnection(connectionString); CallableStatement cs = connection
-                .prepareCall("{ CALL " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " (?) }")) {
+        try (CallableStatement cs = connection.prepareCall("{ CALL " + procedureName + " (?) }")) {
             cs.registerOutParameter("p_out", Types.VARCHAR);
             cs.executeUpdate();
             Object data = cs.getObject("p_out");
@@ -92,9 +87,8 @@ public class NamedParamMultiPartTest extends AbstractTest {
     @Test
     public void update3() throws Exception {
         String catalog = connection.getCatalog();
-        String storedproc = "[" + catalog + "]" + ".[dbo]." + AbstractSQLGenerator.escapeIdentifier(procedureName);
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                CallableStatement cs = connection.prepareCall("{ CALL " + storedproc + " (?) }")) {
+        String storedproc = "[" + catalog + "]" + ".[dbo].[mystoredproc]";
+        try (CallableStatement cs = connection.prepareCall("{ CALL " + storedproc + " (?) }")) {
             cs.registerOutParameter("p_out", Types.VARCHAR);
             cs.executeUpdate();
             Object data = cs.getObject("p_out");
@@ -109,8 +103,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @Test
     public void update4() throws Exception {
-        try (Connection connection = DriverManager.getConnection(connectionString); CallableStatement cs = connection
-                .prepareCall("{ CALL " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " (?) }")) {
+        try (CallableStatement cs = connection.prepareCall("{ CALL " + procedureName + " (?) }")) {
             cs.registerOutParameter("p_out", Types.VARCHAR);
             cs.executeUpdate();
             Object data = cs.getObject("p_out");
@@ -125,8 +118,7 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @Test
     public void update5() throws Exception {
-        try (Connection connection = DriverManager.getConnection(connectionString); CallableStatement cs = connection
-                .prepareCall("{ CALL " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " (?) }")) {
+        try (CallableStatement cs = connection.prepareCall("{ CALL " + procedureName + " (?) }")) {
             cs.registerOutParameter("p_out", Types.VARCHAR);
             cs.executeUpdate();
             Object data = cs.getObject("p_out");
@@ -141,9 +133,8 @@ public class NamedParamMultiPartTest extends AbstractTest {
     @Test
     public void update6() throws Exception {
         String catalog = connection.getCatalog();
-        String storedproc = catalog + ".dbo." + AbstractSQLGenerator.escapeIdentifier(procedureName);
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                CallableStatement cs = connection.prepareCall("{ CALL " + storedproc + " (?) }")) {
+        String storedproc = catalog + ".dbo." + procedureName;
+        try (CallableStatement cs = connection.prepareCall("{ CALL " + storedproc + " (?) }")) {
             cs.registerOutParameter("p_out", Types.VARCHAR);
             cs.executeUpdate();
             Object data = cs.getObject("p_out");
@@ -158,9 +149,13 @@ public class NamedParamMultiPartTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
+        try (Statement stmt = connection.createStatement()) {
+            Utils.dropProcedureIfExists("mystoredproc", stmt);
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
+
 }

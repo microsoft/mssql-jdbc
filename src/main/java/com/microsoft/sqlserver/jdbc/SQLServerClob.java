@@ -5,9 +5,11 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,7 +20,6 @@ import java.io.Serializable;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.nio.charset.Charset;
 import java.sql.Clob;
 import java.sql.SQLException;
 import java.text.MessageFormat;
@@ -151,7 +152,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
 
     // The value of the CLOB that this Clob object represents.
     // This value is never null unless/until the free() method is called.
-    protected String value;
+    private String value;
 
     private final SQLCollation sqlCollation;
 
@@ -180,9 +181,8 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     // Unique id generator for each instance (used for logging).
     static private final AtomicInteger baseID = new AtomicInteger(0);
 
-    private Charset defaultCharset = null;
-    
     // Returns unique id for each instance.
+
     private static int nextInstanceID() {
         return baseID.incrementAndGet();
     }
@@ -281,19 +281,9 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
         if (null != sqlCollation && !sqlCollation.supportsAsciiConversion())
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
 
-        // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
-        InputStream getterStream = null;
-        if (null == value && !activeStreams.isEmpty()) {
-            InputStream inputStream = (InputStream) activeStreams.get(0);
-            try {
-                inputStream.reset();
-            } catch (IOException e) {
-                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
-            }
-            getterStream = new BufferedInputStream(inputStream);
-        } else {
-            getterStream = new ByteArrayInputStream(value.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
-        }
+        getStringFromStream();
+        InputStream getterStream = new BufferedInputStream(
+                new ReaderInputStream(new StringReader(value), US_ASCII, value.length()));
         activeStreams.add(getterStream);
         return getterStream;
     }
@@ -311,17 +301,11 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
         Reader getterStream = null;
         if (null == value && !activeStreams.isEmpty()) {
             InputStream inputStream = (InputStream) activeStreams.get(0);
-            try {
-                inputStream.reset();
-            } catch (IOException e) {
-                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
-            }
-            Charset cs = (defaultCharset == null) ? typeInfo.getCharset() : defaultCharset;
-            getterStream = new BufferedReader(new InputStreamReader(inputStream, cs));
+            getterStream = new BufferedReader(new InputStreamReader(inputStream, UTF_16LE));
         } else {
             getterStream = new StringReader(value);
+            activeStreams.add(getterStream);
         }
-        activeStreams.add(getterStream);
         return getterStream;
     }
 
@@ -397,8 +381,9 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
      */
     public long length() throws SQLException {
         checkClosed();
-        if (null == value && activeStreams.get(0) instanceof BaseInputStream) {
-            return (long) ((BaseInputStream) activeStreams.get(0)).payloadLength;
+
+        if (value == null && activeStreams.get(0) instanceof PLPInputStream) {
+            return (long) ((PLPInputStream) activeStreams.get(0)).payloadLength / 2;
         }
         return value.length();
     }
@@ -425,10 +410,9 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
             try {
                 stream.reset();
             } catch (IOException e) {
-                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
+                throw new SQLServerException(e.getMessage(), null, 0, e);
             }
-            Charset cs = (defaultCharset == null) ? typeInfo.getCharset() : defaultCharset;
-            value = new String(stream.getBytes(), cs);
+            value = new String((stream).getBytes(), typeInfo.getCharset());
         }
     }
 
@@ -676,10 +660,6 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
         }
 
         return len;
-    }
-    
-    protected void setDefaultCharset(Charset c) {
-        this.defaultCharset = c;
     }
 }
 
