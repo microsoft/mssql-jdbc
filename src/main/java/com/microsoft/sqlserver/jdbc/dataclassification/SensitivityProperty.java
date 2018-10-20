@@ -18,7 +18,7 @@ public class SensitivityProperty {
      * @param label
      *        Label as received from SQL Server for this SensitivityProperty
      * @param informationType
-     *        InformationType as recieved from SQL Server for this SensitivityProperty
+     *        InformationType as received from SQL Server for this SensitivityProperty
      */
     public SensitivityProperty(Label label, InformationType informationType) {
         this.label = label;

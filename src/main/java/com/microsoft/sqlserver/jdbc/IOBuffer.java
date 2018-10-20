@@ -2470,7 +2470,7 @@ final class SocketFinder {
                         } catch (IOException ex) {
                             if (logger.isLoggable(Level.FINER))
                                 logger.finer(this.toString() + " the exception: " + ex.getClass() + " with message: "
-                                        + ex.getMessage() + " occured while processing the channel: " + ch);
+                                        + ex.getMessage() + " occurred while processing the channel: " + ch);
                             updateSelectedException(ex, this.toString());
                             // close the channel pro-actively so that we do not
                             // rely to network resources
@@ -2899,7 +2899,7 @@ final class SocketConnector implements Runnable {
             } catch (IOException ex) {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer(this.toString() + " exception:" + ex.getClass() + " with message:" + ex.getMessage()
-                            + " occured while connecting to InetSocketAddress:" + inetSocketAddress);
+                            + " occurred while connecting to InetSocketAddress:" + inetSocketAddress);
                 }
                 exception = ex;
             }
@@ -3267,7 +3267,7 @@ final class TDSWriter {
          */
 
         /*
-         * setScale of all BigDecimal value based on metadata as scale is not sent seperately for individual value. Use
+         * setScale of all BigDecimal value based on metadata as scale is not sent separately for individual value. Use
          * the rounding used in Server. Say, for BigDecimal("0.1"), if scale in metdadata is 0, then ArithmeticException
          * would be thrown if RoundingMode is not set
          */
@@ -4085,7 +4085,7 @@ final class TDSWriter {
      * @param sName
      *        the optional parameter name
      * @param bOut
-     *        boolean true if the value that follows is being registered as an ouput parameter
+     *        boolean true if the value that follows is being registered as an output parameter
      * @param tdsType
      *        TDS type of the value that follows
      */
@@ -4116,7 +4116,7 @@ final class TDSWriter {
      * @param booleanValue
      *        the data value
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      */
     void writeRPCBit(String sName, Boolean booleanValue, boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.BITN);
@@ -4137,7 +4137,7 @@ final class TDSWriter {
      * @param shortValue
      *        the data value
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      */
     void writeRPCByte(String sName, Byte byteValue, boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.INTN);
@@ -4158,7 +4158,7 @@ final class TDSWriter {
      * @param shortValue
      *        the data value
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      */
     void writeRPCShort(String sName, Short shortValue, boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.INTN);
@@ -4179,7 +4179,7 @@ final class TDSWriter {
      * @param intValue
      *        the data value
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      */
     void writeRPCInt(String sName, Integer intValue, boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.INTN);
@@ -4200,7 +4200,7 @@ final class TDSWriter {
      * @param longValue
      *        the data value
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      */
     void writeRPCLong(String sName, Long longValue, boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.INTN);
@@ -4221,7 +4221,7 @@ final class TDSWriter {
      * @param floatValue
      *        the data value
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      */
     void writeRPCReal(String sName, Float floatValue, boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.FLOATN);
@@ -4255,7 +4255,7 @@ final class TDSWriter {
      * @param doubleValue
      *        the data value
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      */
     void writeRPCDouble(String sName, Double doubleValue, boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.FLOATN);
@@ -4289,7 +4289,7 @@ final class TDSWriter {
      * @param nScale
      *        the desired scale
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      */
     void writeRPCBigDecimal(String sName, BigDecimal bdValue, int nScale, boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.DECIMALN);
@@ -4350,7 +4350,7 @@ final class TDSWriter {
      * @param sValue
      *        the data value
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      * @param collation
      *        the collation of the data value
      */
@@ -4665,7 +4665,7 @@ final class TDSWriter {
                     BigDecimal bdValue = new BigDecimal(currentColumnStringValue);
 
                     /*
-                     * setScale of all BigDecimal value based on metadata as scale is not sent seperately for individual
+                     * setScale of all BigDecimal value based on metadata as scale is not sent separately for individual
                      * value. Use the rounding used in Server. Say, for BigDecimal("0.1"), if scale in metdadata is 0,
                      * then ArithmeticException would be thrown if RoundingMode is not set
                      */
@@ -5225,7 +5225,7 @@ final class TDSWriter {
      * @param subSecondNanos
      *        the sub-second nanoseconds (0 - 999,999,999)
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      *
      */
     void writeRPCDateTime(String sName, GregorianCalendar cal, int subSecondNanos,
@@ -5920,7 +5920,7 @@ final class TDSWriter {
      * @param streamLength
      *        length of the stream (may be unknown)
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      * @param jdbcType
      *        The JDBC type used to determine whether the value is textual or non-textual.
      * @param collation
@@ -6019,7 +6019,7 @@ final class TDSWriter {
      * @param streamLength
      *        length of the stream (may be unknown)
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      * @throws SQLServerException
      */
     void writeRPCXML(String sName, InputStream stream, long streamLength, boolean bOut) throws SQLServerException {
@@ -6058,7 +6058,7 @@ final class TDSWriter {
      * @param reLength
      *        the reader data length (in characters)
      * @param bOut
-     *        boolean true if the data value is being registered as an ouput parameter
+     *        boolean true if the data value is being registered as an output parameter
      * @param collation
      *        The SQL collation associated with the value. Null for non-textual SQL Server types.
      * @throws SQLServerException

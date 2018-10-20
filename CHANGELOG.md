@@ -3,6 +3,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.1.1] Preview Release
+### Added
+- Added streaming capabilities for Clob.getAsciiStream() [#799](https://github.com/Microsoft/mssql-jdbc/pull/799)
+
+### Fixed Issues
+- Fixed a bug where calling length() after obtaining a stream would close the stream for Clobs/NClobs [#799](https://github.com/Microsoft/mssql-jdbc/pull/799)
+- Fixed Clob/NClob encoding issues [#799](https://github.com/Microsoft/mssql-jdbc/pull/799)
+- Fixed issues in Bulk Copy exception handling [#801](https://github.com/Microsoft/mssql-jdbc/pull/801)
+- Fixed closeable resource leaks in Junit tests [#797](https://github.com/Microsoft/mssql-jdbc/pull/797)
+- Fixed issues with apostrophe being passed in table name [#780](https://github.com/Microsoft/mssql-jdbc/pull/780)
+- Fixed statement leaks and improved exception handling in SQLServerParameterMetadata [#780](https://github.com/Microsoft/mssql-jdbc/pull/780)
+
+### Changed
+- Changed error message to be thrown when data out of range for DECIMAL/NUMERIC types [#796](https://github.com/Microsoft/mssql-jdbc/pull/796)
+
 ## [7.1.0] Preview Release
 ### Added
 - Added support for LocalDate, LocalTime and LocalDateTime to be passed as 'type' in ResultSet.getObject() [#749](https://github.com/Microsoft/mssql-jdbc/pull/749)
@@ -349,7 +364,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Changed
  - Switched to clean rounding for bigDecimal [#118](https://github.com/Microsoft/mssql-jdbc/pull/118)
  - Updated BVT tests to use jUnit test framework [#120](https://github.com/Microsoft/mssql-jdbc/pull/120)
- - In case of socket timeout occurance, avoid connection retry [#122](https://github.com/Microsoft/mssql-jdbc/pull/122)
+ - In case of socket timeout occurrence, avoid connection retry [#122](https://github.com/Microsoft/mssql-jdbc/pull/122)
  - Changed ant build file to skip tests [#126](https://github.com/Microsoft/mssql-jdbc/pull/126)
 
 ### Fixed Issues

@@ -365,7 +365,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * Appends ClientConnectionId to an error message if applicable.
      * 
      * @param errMsg
-     *        - the orginal error message.
+     *        - the original error message.
      * @param conn
      *        - the SQLServerConnection object
      * @return error string concated by ClientConnectionId(in string format) if applicable, otherwise, return original

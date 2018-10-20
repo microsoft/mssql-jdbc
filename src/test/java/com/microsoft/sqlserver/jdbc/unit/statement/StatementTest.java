@@ -1509,27 +1509,29 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testResultSetErrors() throws Exception {
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            Connection conn = DriverManager.getConnection(connectionString);
-            Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+            try (Connection con = DriverManager.getConnection(connectionString);
+                    Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
-            stmt.executeUpdate(
-                    "create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
-            stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
-            stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
-            String query = "create procedure " + procName
-                    + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from somenonexistanttable where col1=@col1Value SET @col2Value='hi' END";
-            stmt.execute(query);
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
+                stmt.executeUpdate(
+                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
+                stmt.executeUpdate(
+                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hi')");
+                String query = "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName)
+                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from somenonexistenttable where col1=@col1Value SET @col2Value='hi' END";
+                stmt.execute(query);
 
-            CallableStatement cstmt = conn.prepareCall("{call " + procName + "(?, ?)}");
-            cstmt.setInt(1, 0);
-            cstmt.registerOutParameter(2, Types.VARCHAR);
+                try (CallableStatement cstmt = con
+                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?)}")) {
+                    cstmt.setInt(1, 0);
+                    cstmt.registerOutParameter(2, Types.VARCHAR);
 
-            try {
-                ResultSet rs = cstmt.executeQuery();
-            } catch (Exception ex) {} ;
+                    try (ResultSet rs = cstmt.executeQuery()) {} catch (Exception ex) {} ;
 
-            assertEquals(null, cstmt.getString(2), TestResource.getResource("R_valueNotMatch"));
+                    assertEquals(null, cstmt.getString(2), TestResource.getResource("R_valueNotMatch"));
+                }
+            }
         }
 
         /**

@@ -572,7 +572,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
      * Writes len characters of str, starting at character offset, to the CLOB value that this Clob represents. The
      * string will overwrite the existing characters in the Clob object starting at the position pos. If the end of the
      * Clob value is reached while writing the given string, then the length of the Clob value will be increased to
-     * accomodate the extra characters.
+     * accommodate the extra characters.
      *
      * SQL Server behavior: If the value specified for pos is greater than then length+1 of the CLOB value then a
      * SQLException is thrown.

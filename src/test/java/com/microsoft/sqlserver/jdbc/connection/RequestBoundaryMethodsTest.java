@@ -219,12 +219,14 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 assertEquals(1, rs.getInt(1));
                 con.endRequest();
 
-                assertTrue(!stmt1.isClosed(),
-                        "Statement created outside of beginRequest()/endRequest() block should not be closed.");
-                assertTrue(stmt.isClosed(),
-                        "Statment created inside beginRequest()/endRequest() block should be closed after endRequest().");
-                assertTrue(rs.isClosed(), "ResultSet should be closed after endRequest().");
-                stmt1.close();
+                            assertTrue(!stmt1.isClosed(),
+                                    "Statement created outside of beginRequest()/endRequest() block should not be closed.");
+                            assertTrue(stmt.isClosed(),
+                                    "Statement created inside beginRequest()/endRequest() block should be closed after endRequest().");
+                            assertTrue(rs.isClosed(), "ResultSet should be closed after endRequest().");
+                        }
+                    }
+                }
 
                 // Multiple statements inside beginRequest()/endRequest() block
                 con.beginRequest();
