@@ -1,3 +1,8 @@
+---
+name: Bug Report
+about: Create a report to help us improve
+---
+
 ## Driver version
 <!--- Provide the JDBC driver version (e.g. 7.0.0). -->
 
