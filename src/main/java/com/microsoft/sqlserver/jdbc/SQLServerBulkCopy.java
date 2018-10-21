@@ -246,31 +246,31 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      */
     private int srcColumnCount;
 
-	/**
-	 * Timeout for the bulk copy command
-	 */
-	private final class BulkTimeoutCommand extends TimeoutCommand<TDSCommand> {
-		public BulkTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
-			super(timeout, command, sqlServerConnection);
-		}
+    /**
+     * Timeout for the bulk copy command
+     */
+    private final class BulkTimeoutCommand extends TimeoutCommand<TDSCommand> {
+        public BulkTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
+            super(timeout, command, sqlServerConnection);
+        }
 
-		@Override
-		public void interrupt() {
-			TDSCommand command = getCommand();
-			// If the timer wasn't canceled before it ran out of
-			// time then interrupt the registered command.
-			try {
-				command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
-			} catch (SQLServerException e) {
-				// Unfortunately, there's nothing we can do if we
-				// fail to time out the request. There is no way
-				// to report back what happened.
-				command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
-			}
-		}
-	}
+        @Override
+        public void interrupt() {
+            TDSCommand command = getCommand();
+            // If the timer wasn't canceled before it ran out of
+            // time then interrupt the registered command.
+            try {
+                command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
+            } catch (SQLServerException e) {
+                // Unfortunately, there's nothing we can do if we
+                // fail to time out the request. There is no way
+                // to report back what happened.
+                command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
+            }
+        }
+    }
 
-	private BulkTimeoutCommand timeoutCommand;
+    private BulkTimeoutCommand timeoutCommand;
 
     /**
      * The maximum temporal precision we can send when using varchar(precision) in bulkcommand, to send a
@@ -651,7 +651,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             }
 
             final boolean doExecute() throws SQLServerException {
-            	if (null != timeoutCommand) {
+                if (null != timeoutCommand) {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(this.toString() + ": Starting bulk timer...");
 
