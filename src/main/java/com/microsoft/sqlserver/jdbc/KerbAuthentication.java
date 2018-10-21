@@ -251,7 +251,7 @@ final class KerbAuthentication extends SSPIAuthentication {
         }
         String dnsName = m.group(1);
         String portOrInstance = m.group(2);
-        RealmValidator realmValidator = getRealmValidator(dnsName);
+        RealmValidator realmValidator = getRealmValidator();
         String realm = findRealmFromHostname(realmValidator, dnsName);
         if (realm == null && allowHostnameCanonicalization) {
             // We failed, try with canonical host name to find a better match
@@ -277,13 +277,11 @@ final class KerbAuthentication extends SSPIAuthentication {
     private static RealmValidator validator;
 
     /**
-     * Find a suitable way of validating a REALM for given JVM.
+     * Get validator to validate REALM for given JVM.
      *
-     * @param hostnameToTest
-     *        an example hostname we are gonna use to test our realm validator.
-     * @return a not null realm Validator.
+     * @return a not null realm validator.
      */
-    static RealmValidator getRealmValidator(String hostnameToTest) {
+    static RealmValidator getRealmValidator() {
         if (validator != null) {
             return validator;
         }
