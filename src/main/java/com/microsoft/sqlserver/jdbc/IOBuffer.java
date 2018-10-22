@@ -1411,15 +1411,17 @@ final class TDSChannel {
                     logger.finer(logContext + " Failed to parse the name from the certificate or name is empty.");
                 return false;
             }
-            
-            // Respect wildcard
-            if (nameInCert.contains("*")) {
+
+            int wildcardIndex = nameInCert.indexOf("*");
+
+            // Respect wildcard. If wildcardIndex is larger than -1, then we have a wildcard.
+            if (wildcardIndex >= 0) {
                 // We do not allow wildcards to exist past the first period.
-                if (nameInCert.indexOf("*") > nameInCert.indexOf(".")) {
+                if (wildcardIndex > nameInCert.indexOf(".")) {
                     return false;
                 }
-                String certBeforeWildcard = nameInCert.substring(0, nameInCert.indexOf("*"));
-                int firstPeriodAfterWildcard = nameInCert.indexOf(".", nameInCert.indexOf("*"));
+                String certBeforeWildcard = nameInCert.substring(0, wildcardIndex);
+                int firstPeriodAfterWildcard = nameInCert.indexOf(".", wildcardIndex);
                 String certAfterWildcard;
 
                 if (firstPeriodAfterWildcard < 0) {
