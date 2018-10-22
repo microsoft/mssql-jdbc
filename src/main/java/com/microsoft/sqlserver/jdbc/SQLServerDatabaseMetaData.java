@@ -415,7 +415,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        // Return the orginal case instead of CAPS.removed Upper().
+        // Return the original case instead of CAPS.removed Upper().
         String s = "SELECT name AS TABLE_CAT FROM sys.databases order by name"; // Need
                                                                                 // to
                                                                                 // match
@@ -531,7 +531,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         // \x -> \x where x is any char other than the ones above.
 
         char ch;
-        // Add 2 extra chars wild guess thinking atleast one escape.
+        // Add 2 extra chars wild guess thinking at least one escape.
         StringBuilder outID = new StringBuilder(inID.length() + 2);
 
         for (int i = 0; i < inID.length(); i++) {
