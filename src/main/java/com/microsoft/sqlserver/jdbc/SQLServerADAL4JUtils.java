@@ -28,7 +28,7 @@ class SQLServerADAL4JUtils {
     static final private java.util.logging.Logger adal4jLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerADAL4JUtils");
 
-    static String getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
+    static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         try {
@@ -38,7 +38,7 @@ class SQLServerADAL4JUtils {
 
             AuthenticationResult authenticationResult = future.get();
 
-            return authenticationResult.getAccessToken();
+            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
@@ -62,7 +62,7 @@ class SQLServerADAL4JUtils {
         }
     }
 
-    static String getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
+    static SqlFedAuthToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
 
@@ -82,7 +82,7 @@ class SQLServerADAL4JUtils {
 
             AuthenticationResult authenticationResult = future.get();
 
-            return authenticationResult.getAccessToken();
+            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {

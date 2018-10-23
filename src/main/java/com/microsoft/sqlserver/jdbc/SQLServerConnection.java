@@ -33,6 +33,8 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -128,6 +130,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private FederatedAuthenticationFeatureExtensionData fedAuthFeatureExtensionData = null;
     private String authenticationString = null;
     private byte[] accessTokenInByte = null;
+    private Date accessTokenExpiry = null;
 
     private String originalHostNameInCertificate = null;
 
@@ -384,6 +387,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         static final String AZURE_REST_MSI_URL = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01";
         static final String ADAL_GET_ACCESS_TOKEN_FUNCTION_NAME = "ADALGetAccessToken";
         static final String ACCESS_TOKEN_IDENTIFIER = "\"access_token\":\"";
+        static final String ACCESS_TOKEN_EXPIRY_IDENTIFIER = "\"expires_in\":\"";
         static final int GET_ACCESS_TOKEN_SUCCESS = 0;
         static final int GET_ACCESS_TOKEN_INVALID_GRANT = 1;
         static final int GET_ACCESS_TOKEN_TANSISENT_ERROR = 2;
@@ -4032,9 +4036,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 && fedAuthRequiredPreLoginResponse);
         assert null != fedAuthInfo;
 
-        attemptRefreshTokenLocked = true;
         String accessToken = getFedAuthToken(fedAuthInfo);
-        attemptRefreshTokenLocked = false;
 
         // fedAuthToken cannot be null.
         assert null != accessToken;
@@ -4044,7 +4046,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private String getFedAuthToken(SqlFedAuthInfo fedAuthInfo) throws SQLServerException {
-        String accessToken = null;
+        SqlFedAuthToken authToken = null;
 
         // fedAuthInfo should not be null.
         assert null != fedAuthInfo;
@@ -4057,13 +4059,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         while (true) {
             if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
-                accessToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password,
-                        authenticationString);
+                authToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password, authenticationString);
 
                 // Break out of the retry loop in successful case.
                 break;
             } else if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
-                accessToken = getMSIAuthToken(fedAuthInfo.spn,
+                authToken = getMSIAuthToken(fedAuthInfo.spn,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_OBJECT_ID.toString()));
 
                 // Break out of the retry loop in successful case.
@@ -4083,7 +4084,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         // AccessToken should not be null.
                         assert null != dllInfo.accessTokenBytes;
                         byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
-                        accessToken = new String(accessTokenFromDLL, UTF_16LE);
+
+                        String accessToken = new String(accessTokenFromDLL, UTF_16LE);
+                        authToken = new SqlFedAuthToken(accessToken, dllInfo.expiresIn);
 
                         // Break out of the retry loop in successful case.
                         break;
@@ -4142,17 +4145,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // so we don't need to check the
                 // OS version here.
                 else {
-                    accessToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
+                    authToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
                 }
                 // Break out of the retry loop in successful case.
                 break;
             }
         }
 
-        return accessToken;
+        accessTokenExpiry = authToken.expiresOn;
+        return authToken.accessToken;
     }
 
-    private String getMSIAuthToken(String resource, String objectId) throws SQLServerException {
+    private SqlFedAuthToken getMSIAuthToken(String resource, String objectId) throws SQLServerException {
         String urlString = ActiveDirectoryAuthentication.AZURE_REST_MSI_URL + "&resource=" + resource;
 
         if (null != objectId && !objectId.isEmpty()) {
@@ -4172,10 +4176,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8), 100);
                 String result = reader.readLine();
-                int startIndex = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER)
-                        + ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER.length();
 
-                return result.substring(startIndex, result.indexOf("\"", startIndex + 1));
+                int startIndex_AT = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER)
+                        + ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER.length();
+                int startIndex_ATX = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRY_IDENTIFIER)
+                        + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRY_IDENTIFIER.length();
+
+                String accessToken = result.substring(startIndex_AT, result.indexOf("\"", startIndex_AT + 1));
+                String accessTokenExpiry = result.substring(startIndex_ATX, result.indexOf("\"", startIndex_ATX + 1));
+
+                Calendar cal = new Calendar.Builder().setInstant(new Date()).build();
+                cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
+
+                return new SqlFedAuthToken(accessToken, cal.getTime());
             }
         } catch (Exception e) {
             SQLServerException.makeFromDriverError(this, null, e.getMessage(), null, true);
@@ -4185,6 +4198,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 connection.disconnect();
             }
         }
+    }
+
+    /**
+     * Checks if access token is nearing expiry and a new token is required instead.
+     * 
+     * @return true if Access Token will expire in next 10 mins or less. false if Access Token has more than 10 mins to
+     *         expire.
+     */
+    protected boolean isAccessTokenExpired() {
+        Calendar now = new Calendar.Builder().setInstant(new Date()).build();
+        // Subtract 10 minutes to allow buffer time for reconnection
+        now.add(Calendar.MINUTE, -10);
+        if (accessTokenExpiry.before(now.getTime())) {
+            return true;
+        }
+        return false;
     }
 
     /**
