@@ -1011,7 +1011,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      * @return the result
      */
     static String replaceMarkerWithNull(String sql) {
-        if (!sql.contains("'")) {
+        if (!containsUnEscapedQuotes(sql)) {
             String retStr = replaceParameterWithString(sql, '?', "null");
             return retStr;
         } else {
@@ -1036,6 +1036,16 @@ public class SQLServerStatement implements ISQLServerStatement {
             }
             return retSql;
         }
+    }
+
+    static boolean containsUnEscapedQuotes(String sql) {
+        // Look for bracketed strings to be ignored
+        Pattern p = Pattern.compile("\\[(.*?)\\]");
+        Matcher m = p.matcher(sql);
+        while (m.find()) {
+            sql = sql.replace(m.group(), "");
+        }
+        return sql.contains("'");
     }
 
     void checkClosed() throws SQLServerException {
