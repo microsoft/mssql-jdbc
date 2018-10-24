@@ -90,7 +90,6 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testCharSetObjectWithJDBCTypes() throws SQLException {
-        skipTestForJava7();
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
                 AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -254,7 +253,6 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testBinarySetObjectWithJDBCTypes() throws SQLException {
-        skipTestForJava7();
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
                 AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -455,7 +453,6 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testNumericSetObjectWithJDBCTypes() throws SQLException {
-        skipTestForJava7();
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
                 AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
