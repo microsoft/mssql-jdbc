@@ -140,7 +140,7 @@ public class Geography extends SQLServerSpatialDatatype {
      *         if an exception occurs
      */
     public static Geography point(double lat, double lon, int srid) throws SQLServerException {
-        return new Geography("POINT (" + lat + " " + lon + ")", srid);
+        return new Geography("POINT (" + lon + " " + lat + ")", srid);
     }
 
     /**
