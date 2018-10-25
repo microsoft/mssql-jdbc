@@ -812,7 +812,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         String geoWKT = "POINT(1 2)";
 
         Geometry geomWKT = Geometry.point(1, 2, 0);
-        Geography geogWKT = Geography.point(1, 2, 4326);
+        Geography geogWKT = Geography.point(2, 1, 4326);
 
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement()) {
