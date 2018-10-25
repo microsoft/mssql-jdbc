@@ -59,7 +59,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  *
  */
 @RunWith(JUnitPlatform.class)
-public class lobsTest extends AbstractTest {
+public class LobsTest extends AbstractTest {
     static Connection conn = null;
     static Statement stmt = null;
     static String tableName;

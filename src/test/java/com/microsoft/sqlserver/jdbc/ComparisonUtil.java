@@ -36,10 +36,10 @@ public class ComparisonUtil {
      */
     public static void compareSrcTableAndDestTableIgnoreRowOrder(DBConnection con, DBTable srcTable,
             DBTable destTable) throws SQLException {
-        try (DBStatement stmt = con.createStatement();
+        try (DBStatement stmt = con.createStatement(); DBStatement stmt2 = con.createStatement();
                 DBResultSet srcResultSetCount = stmt
                         .executeQuery("SELECT COUNT(*) FROM " + srcTable.getEscapedTableName() + ";");
-                DBResultSet dstResultSetCount = stmt
+                DBResultSet dstResultSetCount = stmt2
                         .executeQuery("SELECT COUNT(*) FROM " + destTable.getEscapedTableName() + ";")) {
             srcResultSetCount.next();
             dstResultSetCount.next();
@@ -57,7 +57,7 @@ public class ComparisonUtil {
             try (DBResultSet srcResultSet = stmt.executeQuery(
                     "SELECT * FROM " + srcTable.getEscapedTableName() + " ORDER BY [" + srcTable.getColumnName(1)
                             + "], [" + srcTable.getColumnName(2) + "],[" + srcTable.getColumnName(3) + "];");
-                    DBResultSet dstResultSet = stmt.executeQuery("SELECT * FROM " + destTable.getEscapedTableName()
+                    DBResultSet dstResultSet = stmt2.executeQuery("SELECT * FROM " + destTable.getEscapedTableName()
                             + " ORDER BY [" + destTable.getColumnName(1) + "], [" + destTable.getColumnName(2) + "],["
                             + destTable.getColumnName(3) + "];")) {
 

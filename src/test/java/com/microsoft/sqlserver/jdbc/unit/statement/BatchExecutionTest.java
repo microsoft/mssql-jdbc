@@ -258,7 +258,7 @@ public class BatchExecutionTest extends AbstractTest {
         try (DBConnection con = new DBConnection(connectionString)) {
             assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
         }
-        
+
         dropTable();
     }
 }

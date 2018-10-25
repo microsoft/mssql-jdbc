@@ -65,8 +65,8 @@ public class AESetup extends AbstractTest {
     static String binaryTable = RandomUtil.getIdentifier("JDBCEncryptedBinary");
     static String dateTable = RandomUtil.getIdentifier("JDBCEncryptedDate");
     static String numericTable = RandomUtil.getIdentifier("JDBCEncryptedNumeric");
-    static String scaleDateTable = RandomUtil.getIdentifier("JDBCEncryptedScaleDate");      
-    
+    static String scaleDateTable = RandomUtil.getIdentifier("JDBCEncryptedScaleDate");
+
     static final String uid = UUID.randomUUID().toString();
 
     static String filePath = null;
@@ -91,7 +91,7 @@ public class AESetup extends AbstractTest {
         try (DBConnection con = new DBConnection(connectionString)) {
             assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
         }
-        
+
         AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
         readFromFile(javaKeyStoreInputFile, "Alias name");
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
@@ -121,7 +121,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     @AfterAll
-    public static void dropAll() throws Exception {        
+    public static void dropAll() throws Exception {
         try (DBConnection con = new DBConnection(connectionString)) {
             assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
         }
@@ -1314,9 +1314,6 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateSetObject(LinkedList<Object> dateValues, String setter) throws SQLException {
-        if (setter.equalsIgnoreCase("setwithJDBCType")) {
-            skipTestForJava7();
-        }
 
         String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
@@ -2128,7 +2125,7 @@ public class AESetup extends AbstractTest {
     private static void dropCEK(SQLServerStatement stmt) throws SQLException {
         String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
                 + " begin" + " drop column encryption key " + cekName + " end";
-        stmt.execute(cekSql);      
+        stmt.execute(cekSql);
     }
 
     /**
@@ -2142,16 +2139,4 @@ public class AESetup extends AbstractTest {
         stmt.execute(cekSql);
     }
 
-    /**
-     * Skip test if the client is using Java 7 or does not support JDBC 4.2.
-     * 
-     * @throws SQLException
-     * @throws TestAbortedException
-     */
-    protected static void skipTestForJava7() throws TestAbortedException, SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo)) {
-            assumeTrue(TestUtils.supportJDBC42(con)); // With Java 7, skip tests for JDBCType.
-        }
-    }
 }

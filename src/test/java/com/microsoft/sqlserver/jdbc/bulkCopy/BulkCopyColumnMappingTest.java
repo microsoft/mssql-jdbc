@@ -61,7 +61,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             // create dest table
             destTable = sourceTable.cloneSchema();
             stmt.createTable(destTable);
-            
+
             // set up bulkCopy without explicit column mapping
             BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
             bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
@@ -82,7 +82,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             // create dest table
             destTable = sourceTable.cloneSchema();
             stmt.createTable(destTable);
-            
+
             // set up bulkCopy with explicit column mapping
             BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
             bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
