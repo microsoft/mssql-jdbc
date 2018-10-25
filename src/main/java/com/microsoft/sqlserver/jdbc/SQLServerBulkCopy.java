@@ -1702,7 +1702,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         SQLServerResultSet rs = null;
         SQLServerStatement stmt = null;
-
+        String metaDataQuery = null;
+        String bulkCopyEncrytionType = null;
+        String escapedTableName = Util.escapeSingleQuotes(destinationTableName);
+        
         try {
             if (null != destinationTableMetadata) {
                 rs = (SQLServerResultSet) destinationTableMetadata;
@@ -1711,32 +1714,31 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
 
                 // Get destination metadata
-                rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                        + Util.escapeSingleQuotes(destinationTableName) + " '");
+                rs = stmt.executeQueryInternal(
+                        "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedTableName + " '");
             }
 
             destColumnCount = rs.getMetaData().getColumnCount();
             destColumnMetadata = new HashMap<>();
             destCekTable = rs.getCekTable();
+
+            if (connection.getServerSupportsColumnEncryption()) {
+                metaDataQuery = "select collation_name from sys.columns where " + "object_id=OBJECT_ID('"
+                        + escapedTableName + "') " + "order by column_id ASC";
+            } else {
+                metaDataQuery = "select collation_name, encryption_type from sys.columns where "
+                        + "object_id=OBJECT_ID('" + escapedTableName + "') " + "order by column_id ASC";
+            }
+
             try (SQLServerStatement statementMoreMetadata = (SQLServerStatement) connection.createStatement();
-                    SQLServerResultSet rsMoreMetaData = (!connection
-                            .getServerSupportsColumnEncryption() ? statementMoreMetadata
-                                    .executeQueryInternal("select collation_name from sys.columns where "
-                                            + "object_id=OBJECT_ID('" + Util.escapeSingleQuotes(destinationTableName) + "') "
-                                            + "order by column_id ASC") : statementMoreMetadata.executeQueryInternal(
-                                                    "select collation_name, encryption_type from sys.columns where "
-                                                            + "object_id=OBJECT_ID('" + Util.escapeSingleQuotes(destinationTableName) + "') "
-                                                            + "order by column_id ASC"))) {
+                    SQLServerResultSet rsMoreMetaData = statementMoreMetadata.executeQueryInternal(metaDataQuery)) {
                 for (int i = 1; i <= destColumnCount; ++i) {
                     if (rsMoreMetaData.next()) {
-                        if (!connection.getServerSupportsColumnEncryption()) {
-                            destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i),
-                                    rsMoreMetaData.getString("collation_name"), null));
-                        } else {
-                            destColumnMetadata.put(i,
-                                    new BulkColumnMetaData(rs.getColumn(i), rsMoreMetaData.getString("collation_name"),
-                                            rsMoreMetaData.getString("encryption_type")));
+                        if (connection.getServerSupportsColumnEncryption()) {
+                            bulkCopyEncrytionType = rsMoreMetaData.getString("encryption_type");
                         }
+                        destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i),
+                                rsMoreMetaData.getString("collation_name"), bulkCopyEncrytionType));
                     } else {
                         destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));
                     }
