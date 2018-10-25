@@ -18,12 +18,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
@@ -32,13 +34,12 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  */
 @RunWith(JUnitPlatform.class)
 public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
-    private static SQLServerConnection conn = null;
 
-    private static String table1 = "DatabaseMetaDataForeignKeyTest_table_1";
-    private static String table2 = "DatabaseMetaDataForeignKeyTest_table_2";
-    private static String table3 = "DatabaseMetaDataForeignKeyTest_table_3";
-    private static String table4 = "DatabaseMetaDataForeignKeyTest_table_4";
-    private static String table5 = "DatabaseMetaDataForeignKeyTest_table_5";
+    private static String table1 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_1");
+    private static String table2 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_2");
+    private static String table3 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_3");
+    private static String table4 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_4");
+    private static String table5 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_5");
 
     private static String schema = null;
     private static String catalog = null;
@@ -50,23 +51,38 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             catalog = conn.getCatalog();
             schema = conn.getSchema();
 
-            stmt.executeUpdate("if object_id('" + table1 + "','U') is not null drop table " + table1);
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table1)
+                    + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table1));
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table2)
+                    + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table2));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table2)
+                    + " (c21 int NOT NULL PRIMARY KEY)");
 
-            stmt.executeUpdate("if object_id('" + table2 + "','U') is not null drop table " + table2);
-            stmt.execute("Create table " + table2 + " (c21 int NOT NULL PRIMARY KEY)");
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table3)
+                    + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table3));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table3)
+                    + " (c31 int NOT NULL PRIMARY KEY)");
 
-            stmt.executeUpdate("if object_id('" + table3 + "','U') is not null drop table " + table3);
-            stmt.execute("Create table " + table3 + " (c31 int NOT NULL PRIMARY KEY)");
-            stmt.executeUpdate("if object_id('" + table4 + "','U') is not null drop table " + table4);
-            stmt.execute("Create table " + table4 + " (c41 int NOT NULL PRIMARY KEY)");
-            stmt.executeUpdate("if object_id('" + table5 + "','U') is not null drop table " + table5);
-            stmt.execute("Create table " + table5 + " (c51 int NOT NULL PRIMARY KEY)");
-            stmt.executeUpdate("if object_id('" + table1 + "','U') is not null drop table " + table1);
-            stmt.execute("Create table " + table1 + " (c11 int primary key," + " c12 int FOREIGN KEY REFERENCES "
-                    + table2 + "(c21) ON DELETE no action ON UPDATE set default," + " c13 int FOREIGN KEY REFERENCES "
-                    + table3 + "(c31) ON DELETE cascade ON UPDATE set null," + " c14 int FOREIGN KEY REFERENCES "
-                    + table4 + "(c41) ON DELETE set null ON UPDATE cascade," + " c15 int FOREIGN KEY REFERENCES "
-                    + table5 + "(c51) ON DELETE set default ON UPDATE no action," + ")");
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table4)
+                    + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table4));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table4)
+                    + " (c41 int NOT NULL PRIMARY KEY)");
+
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table5)
+                    + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table5));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table5)
+                    + " (c51 int NOT NULL PRIMARY KEY)");
+
+            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table1)
+                    + "','U') is not null drop table " + AbstractSQLGenerator.escapeIdentifier(table1));
+            stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table1) + " (c11 int primary key,"
+                    + " c12 int FOREIGN KEY REFERENCES " + AbstractSQLGenerator.escapeIdentifier(table2)
+                    + "(c21) ON DELETE no action ON UPDATE set default," + " c13 int FOREIGN KEY REFERENCES "
+                    + AbstractSQLGenerator.escapeIdentifier(table3) + "(c31) ON DELETE cascade ON UPDATE set null,"
+                    + " c14 int FOREIGN KEY REFERENCES " + AbstractSQLGenerator.escapeIdentifier(table4)
+                    + "(c41) ON DELETE set null ON UPDATE cascade," + " c15 int FOREIGN KEY REFERENCES "
+                    + AbstractSQLGenerator.escapeIdentifier(table5) + "(c51) ON DELETE set default ON UPDATE no action,"
+                    + ")");
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
         }
@@ -77,11 +93,11 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
 
-            TestUtils.dropTableIfExists(table1, stmt);
-            TestUtils.dropTableIfExists(table2, stmt);
-            TestUtils.dropTableIfExists(table3, stmt);
-            TestUtils.dropTableIfExists(table4, stmt);
-            TestUtils.dropTableIfExists(table5, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table4), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table5), stmt);
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
         }

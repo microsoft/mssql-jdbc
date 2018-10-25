@@ -1129,7 +1129,7 @@ final class DDC {
         try {
             // Set up a StringBuilder big enough to hold the Reader value. If we weren't told the size of
             // the value then start with a "reasonable" guess StringBuilder size. If necessary, the StringBuilder
-            // will grow automatically to accomodate arbitrary amounts of data.
+            // will grow automatically to accommodate arbitrary amounts of data.
             StringBuilder sb = new StringBuilder(
                     (DataTypes.UNKNOWN_STREAM_LENGTH != readerLength) ? readerLength : 4000);
 

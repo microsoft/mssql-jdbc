@@ -1,6 +1,6 @@
 /*
  * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
- * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more AEInformation.
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
@@ -20,6 +20,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.Properties;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
@@ -36,6 +38,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 
@@ -57,23 +60,25 @@ public class AESetup extends AbstractTest {
     static final String cmkName = "JDBC_CMK";
     static final String cekName = "JDBC_CEK";
     static final String secretstrJks = "password";
-    static final String charTable = "JDBCEncryptedCharTable";
-    static final String binaryTable = "JDBCEncryptedBinaryTable";
-    static final String dateTable = "JDBCEncryptedDateTable";
-    static final String numericTable = "JDBCEncryptedNumericTable";
-    static final String scaleDateTable = "JDBCEncryptedScaleDateTable";
 
-    static final String uid = "171fbe25-4331-4765-a838-b2e3eea3e7ea";
+    static String charTable = RandomUtil.getIdentifier("JDBCEncryptedChar");
+    static String binaryTable = RandomUtil.getIdentifier("JDBCEncryptedBinary");
+    static String dateTable = RandomUtil.getIdentifier("JDBCEncryptedDate");
+    static String numericTable = RandomUtil.getIdentifier("JDBCEncryptedNumeric");
+    static String scaleDateTable = RandomUtil.getIdentifier("JDBCEncryptedScaleDate");
+
+    static final String uid = UUID.randomUUID().toString();
 
     static String filePath = null;
     static String thumbprint = null;
-    static SQLServerConnection con = null;
-    static SQLServerStatement stmt = null;
     static String keyPath = null;
     static String javaKeyAliases = null;
     static String OS = System.getProperty("os.name").toLowerCase();
     static SQLServerColumnEncryptionKeyStoreProvider storeProvider = null;
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
+    static String AETestConnectionString;
+
+    static Properties AEInfo;
 
     /**
      * Create connection, statement and generate path of resource file
@@ -87,9 +92,8 @@ public class AESetup extends AbstractTest {
             assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
         }
 
-        String AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
+        AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
         readFromFile(javaKeyStoreInputFile, "Alias name");
-
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropCEK(stmt);
@@ -100,14 +104,12 @@ public class AESetup extends AbstractTest {
         storeProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(keyPath, secretstrJks.toCharArray());
         stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;
 
-        Properties info = new Properties();
-        info.setProperty("ColumnEncryptionSetting", "Enabled");
-        info.setProperty("keyStoreAuthentication", "JavaKeyStorePassword");
-        info.setProperty("keyStoreLocation", keyPath);
-        info.setProperty("keyStoreSecret", secretstrJks);
+        AEInfo = new Properties();
+        AEInfo.setProperty("ColumnEncryptionSetting", "Enabled");
+        AEInfo.setProperty("keyStoreAuthentication", "JavaKeyStorePassword");
+        AEInfo.setProperty("keyStoreLocation", keyPath);
+        AEInfo.setProperty("keyStoreSecret", secretstrJks);
 
-        con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString, info);
-        stmt = (SQLServerStatement) con.createStatement();
         createCMK(keyStoreName, javaKeyAliases);
         createCEK(storeProvider);
     }
@@ -119,11 +121,17 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     @AfterAll
-    public static void dropAll() throws SQLException {
-        dropTables(stmt);
-        dropCEK(stmt);
-        dropCMK(stmt);
-        TestUtils.close(null, stmt, con);
+    public static void dropAll() throws Exception {
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
+        }
+
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            dropTables(stmt);
+            dropCEK(stmt);
+            dropCMK(stmt);
+        }
     }
 
     /**
@@ -162,7 +170,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createBinaryTable() throws SQLException {
-        String sql = "create table " + binaryTable + " (" + "PlainBinary binary(20) null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " ("
+                + "PlainBinary binary(20) null,"
                 + "RandomizedBinary binary(20) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicBinary binary(20) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -194,7 +203,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -208,7 +218,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createCharTable() throws SQLException {
-        String sql = "create table " + charTable + " (" + "PlainChar char(20) null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(charTable) + " ("
+                + "PlainChar char(20) null,"
                 + "RandomizedChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -264,7 +275,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -278,7 +290,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected void createDateTable() throws SQLException {
-        String sql = "create table " + dateTable + " (" + "PlainDate date null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " (" + "PlainDate date null,"
                 + "RandomizedDate date ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicDate date ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -316,7 +328,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -330,7 +343,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected void createDatePrecisionTable(int scale) throws SQLException {
-        String sql = "create table " + dateTable + " ("
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " ("
         // 1
                 + "PlainDatetime2 datetime2(" + scale + ") null," + "RandomizedDatetime2 datetime2(" + scale
                 + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -376,7 +389,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -390,7 +404,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createDateScaleTable() throws SQLException {
-        String sql = "create table " + scaleDateTable + " ("
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(scaleDateTable) + " ("
 
                 + "PlainDatetime2 datetime2(2) null,"
                 + "RandomizedDatetime2 datetime2(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -412,7 +426,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -426,7 +441,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createNumericTable() throws SQLException {
-        String sql = "create table " + numericTable + " (" + "PlainBit bit null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " (" + "PlainBit bit null,"
                 + "RandomizedBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -524,7 +539,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -538,8 +554,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected void createNumericPrecisionTable(int floatPrecision, int precision, int scale) throws SQLException {
-        String sql = "create table " + numericTable + " (" + "PlainFloat float(" + floatPrecision + ") null,"
-                + "RandomizedFloat float(" + floatPrecision
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " (" + "PlainFloat float("
+                + floatPrecision + ") null," + "RandomizedFloat float(" + floatPrecision
                 + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL," + "DeterministicFloat float(" + floatPrecision
                 + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -561,7 +577,8 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -684,7 +701,7 @@ public class AESetup extends AbstractTest {
      */
     private static void createCMK(String keyStoreName, String keyPath) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager
-                .getConnection(connectionString + ";sendTimeAsDateTime=false", info);
+                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
                     + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
@@ -702,7 +719,7 @@ public class AESetup extends AbstractTest {
      */
     private static void createCEK(SQLServerColumnEncryptionKeyStoreProvider storeProvider) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager
-                .getConnection(connectionString + ";sendTimeAsDateTime=false", info);
+                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String letters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
             byte[] valuesDefault = letters.getBytes();
@@ -721,10 +738,10 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void dropTables(SQLServerStatement statement) throws SQLException {
-        TestUtils.dropTableIfExists(numericTable, statement);
-        TestUtils.dropTableIfExists(charTable, statement);
-        TestUtils.dropTableIfExists(binaryTable, statement);
-        TestUtils.dropTableIfExists(dateTable, statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(numericTable), statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(charTable), statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(binaryTable), statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(dateTable), statement);
     }
 
     /**
@@ -734,11 +751,11 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinaryNormalCase(LinkedList<byte[]> byteValues) throws SQLException {
-        String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
-                + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager
-                .getConnection(connectionString + ";sendTimeAsDateTime=false", info);
+                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -798,10 +815,11 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinarySetObject(LinkedList<byte[]> byteValues) throws SQLException {
-        String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
-                + ")";
-
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // binary(20)
@@ -860,11 +878,13 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinarySetObjectWithJDBCType(LinkedList<byte[]> byteValues) throws SQLException {
-        String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
-                + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // binary(20)
             for (int i = 1; i <= 3; i++) {
@@ -921,11 +941,13 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinaryNullCase() throws SQLException {
-        String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
-                + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // binary
             for (int i = 1; i <= 3; i++) {
@@ -958,11 +980,13 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharNormalCase(String[] charValues) throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
             // char
             for (int i = 1; i <= 3; i++) {
@@ -1024,10 +1048,12 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharSetObject(String[] charValues) throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // char
@@ -1086,10 +1112,12 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharSetObjectWithJDBCTypes(String[] charValues) throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // char
@@ -1147,10 +1175,12 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharNullCase() throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // char
@@ -1200,10 +1230,12 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateNormalCase(LinkedList<Object> dateValues) throws SQLException {
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // date
@@ -1247,9 +1279,12 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateScaleNormalCase(LinkedList<Object> dateValues) throws SQLException {
-        String sql = "insert into " + scaleDateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(scaleDateTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // datetime2(2)
@@ -1279,14 +1314,13 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateSetObject(LinkedList<Object> dateValues, String setter) throws SQLException {
-        if (setter.equalsIgnoreCase("setwithJDBCType")) {
-            skipTestForJava7();
-        }
 
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // date
@@ -1349,10 +1383,12 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected void populateDateSetObjectNull() throws SQLException {
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // date
@@ -1395,10 +1431,12 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateNullCase() throws SQLException {
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // date
@@ -1442,11 +1480,13 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumeric(String[] values) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
@@ -1550,11 +1590,13 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericSetObject(String[] values) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
@@ -1658,11 +1700,13 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericSetObjectWithJDBCTypes(String[] values) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
@@ -1765,11 +1809,13 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericSetObjectNull() throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
@@ -1863,13 +1909,15 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericNullCase(String[] values) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
 
                 + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
@@ -1962,13 +2010,15 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericNormalCase(String[] numericValues) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
 
                 + ")";
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
@@ -2089,13 +2139,4 @@ public class AESetup extends AbstractTest {
         stmt.execute(cekSql);
     }
 
-    /**
-     * Skip test if the client is using Java 7 or does not support JDBC 4.2.
-     * 
-     * @throws SQLException
-     * @throws TestAbortedException
-     */
-    protected static void skipTestForJava7() throws TestAbortedException, SQLException {
-         assumeTrue(TestUtils.supportJDBC42(con)); // With Java 7, skip tests for JDBCType.
-    }
 }

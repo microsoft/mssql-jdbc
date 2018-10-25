@@ -47,15 +47,15 @@ To build the jar files, you must use Java 10 with Maven.  You can choose to buil
 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the \target directory. 
-    	* Run `mvn install -Pbuild43`. This creates JDBC 4.3 compliant jar in \target directory
-    	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in \target directory
+	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the `\target` directory. 
+    	* Run `mvn install -Pbuild43`. This creates JDBC 4.3 compliant jar in `\target` directory
+    	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in `\target` directory
 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the \build\libs directory. 
-    	* Run `gradle build -PbuildProfile=build43`. This creates JDBC 4.3 compliant jar in \build\libs directory
-    	* Run `gradle build -PbuildProfile=build42`. This creates JDBC 4.2 compliant jar in \build\libs directory
+	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the `\build\libs` directory. 
+    	* Run `gradle build -PbuildProfile=build43`. This creates JDBC 4.3 compliant jar in `\build\libs` directory
+    	* Run `gradle build -PbuildProfile=build42`. This creates JDBC 4.2 compliant jar in `\build\libs` directory
 
 ## Resources
 
@@ -65,7 +65,7 @@ API reference documentation is available in [Javadocs](https://aka.ms/jdbcjavado
 This driver is documented on [Microsoft's Documentation web site](https://docs.microsoft.com/en-us/sql/connect/jdbc/getting-started-with-the-jdbc-driver).
 
 ### Sample Code
-For samples, please see the src\sample directory.
+For samples, please see the `src\sample` directory.
 
 ### Download the DLLs
 For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287)
