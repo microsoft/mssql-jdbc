@@ -32,9 +32,10 @@ import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBResultSetTypes;
 
+
 @RunWith(JUnitPlatform.class)
 @DisplayName("BVT Test")
-public class bvtTest extends AbstractTest {
+public class BvtTest extends AbstractTest {
     private static String driverNamePattern = "Microsoft JDBC Driver \\d.\\d for SQL Server";
     static DBTable table1;
     static DBTable table2;
