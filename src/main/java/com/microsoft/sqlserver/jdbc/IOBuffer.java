@@ -2473,7 +2473,7 @@ final class SocketFinder {
 
                             // ch.finishConnect should either return true or throw an exception
                             // as we have subscribed for OP_CONNECT.
-                            assert connected == true : "finishConnect on channel:" + ch + " cannot be false";
+                            assert connected : "finishConnect on channel:" + ch + " cannot be false";
 
                             selectedChannel = ch;
 

@@ -296,7 +296,7 @@ final class Parameter {
         }
 
         // forceEncryption is true, shouldhonorae is false
-        if ((true == forceEncrypt) && (false == Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, con))) {
+        if (forceEncrypt && !Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, con)) {
 
             MessageFormat form = new MessageFormat(
                     SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAEFalse"));
