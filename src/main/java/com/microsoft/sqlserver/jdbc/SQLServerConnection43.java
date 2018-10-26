@@ -6,7 +6,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLException;
-import java.sql.ShardingKey;
 
 
 /**
