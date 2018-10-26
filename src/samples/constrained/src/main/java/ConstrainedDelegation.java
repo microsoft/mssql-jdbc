@@ -74,7 +74,7 @@ public class ConstrainedDelegation {
 
         // Create a connection for target service thanks S4U2proxy mechanism
         try (Connection con = createConnection(impersonatedUserCreds)) {
-            System.out.println("Connection succesfully: " + con);
+            System.out.println("Connection successfully: " + con);
         }
     }
 

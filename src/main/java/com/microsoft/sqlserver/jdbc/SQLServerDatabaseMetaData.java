@@ -231,6 +231,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String SS_IS_COLUMN_SET = "SS_IS_COLUMN_SET";
     private static final String IS_GENERATEDCOLUMN = "IS_GENERATEDCOLUMN";
     private static final String IS_AUTOINCREMENT = "IS_AUTOINCREMENT";
+    private static final String SQL_KEYWORDS = createSqlKeyWords();
 
     /**
      * Returns the result from a simple query. This is to be used only for internal queries without any user input.
@@ -415,7 +416,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        // Return the orginal case instead of CAPS.removed Upper().
+        // Return the original case instead of CAPS.removed Upper().
         String s = "SELECT name AS TABLE_CAT FROM sys.databases order by name"; // Need
                                                                                 // to
                                                                                 // match
@@ -531,7 +532,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         // \x -> \x where x is any char other than the ones above.
 
         char ch;
-        // Add 2 extra chars wild guess thinking atleast one escape.
+        // Add 2 extra chars wild guess thinking at least one escape.
         StringBuilder outID = new StringBuilder(inID.length() + 2);
 
         for (int i = 0; i < inID.length(); i++) {
@@ -1300,7 +1301,38 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public String getSQLKeywords() throws SQLServerException {
         checkClosed();
-        return "BACKUP,BREAK,BROWSE,BULK,CHECKPOINT,CLUSTERED,COMPUTE,CONTAINS,CONTAINSTABLE,DATABASE,DBCC,DENY,DISK,DISTRIBUTED,DUMMY,DUMP,ERRLVL,EXIT,FILE,FILLFACTOR,FREETEXT,FREETEXTTABLE,FUNCTION,HOLDLOCK,IDENTITY_INSERT,IDENTITYCOL,IF,KILL,LINENO,LOAD,NOCHECK,NONCLUSTERED,OFF,OFFSETS,OPENDATASOURCE,OPENQUERY,OPENROWSET,OPENXML,OVER,PERCENT,PLAN,PRINT,PROC,RAISERROR,READTEXT,RECONFIGURE,REPLICATION,RESTORE,RETURN,ROWCOUNT,ROWGUIDCOL,RULE,SAVE,SETUSER,SHUTDOWN,STATISTICS,TEXTSIZE,TOP,TRAN,TRIGGER,TRUNCATE,TSEQUAL,UPDATETEXT,USE,WAITFOR,WHILE,WRITETEXT";
+        return SQL_KEYWORDS;
+    }
+
+    private static String createSqlKeyWords() {
+        return "ADD,ALL,ALTER,AND,ANY,AS,ASC,AUTHORIZATION," +
+                "BACKUP,BEGIN,BETWEEN,BREAK,BROWSE,BULK,BY," +
+                "CASCADE,CASE,CHECK,CHECKPOINT,CLOSE,CLUSTERED,COALESCE,COLLATE,COLUMN,COMMIT," +
+                "COMPUTE,CONSTRAINT,CONTAINS,CONTAINSTABLE,CONTINUE,CONVERT,CREATE,CROSS,CURRENT," +
+                "CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURRENT_USER,CURSOR," +
+                "DATABASE,DBCC,DEALLOCATE,DECLARE,DEFAULT,DELETE,DENY,DESC,DISK," +
+                "DISTINCT,DISTRIBUTED,DOUBLE,DROP,DUMP," +
+                "ELSE,END,ERRLVL,ESCAPE,EXCEPT,EXEC,EXECUTE,EXISTS,EXIT,EXTERNAL," +
+                "FETCH,FILE,FILLFACTOR,FOR,FOREIGN,FREETEXT,FREETEXTTABLE,FROM,FULL,FUNCTION," +
+                "GOTO,GRANT,GROUP," +
+                "HAVING,HOLDLOCK," +
+                "IDENTITY,IDENTITY_INSERT,IDENTITYCOL,IF,IN,INDEX,INNER,INSERT,INTERSECT,INTO,IS," +
+                "JOIN," +
+                "KEY,KILL," +
+                "LEFT,LIKE,LINENO,LOAD," +
+                "MERGE," +
+                "NATIONAL,NOCHECK,NONCLUSTERED,NOT,NULL,NULLIF," +
+                "OF,OFF,OFFSETS,ON,OPEN,OPENDATASOURCE,OPENQUERY," +
+                "OPENROWSET,OPENXML,OPTION,OR,ORDER,OUTER,OVER," +
+                "PERCENT,PIVOT,PLAN,PRECISION,PRIMARY,PRINT,PROC,PROCEDURE,PUBLIC," +
+                "RAISERROR,READ,READTEXT,RECONFIGURE,REFERENCES,REPLICATION,RESTORE,RESTRICT," +
+                "RETURN,REVERT,REVOKE,RIGHT,ROLLBACK,ROWCOUNT,ROWGUIDCOL,RULE," +
+                "SAVE,SCHEMA,SECURITYAUDIT,SELECT,SEMANTICKEYPHRASETABLE,SEMANTICSIMILARITYDETAILSTABLE," +
+                "SEMANTICSIMILARITYTABLE,SESSION_USER,SET,SETUSER,SHUTDOWN,SOME,STATISTICS,SYSTEM_USER," +
+                "TABLE,TABLESAMPLE,TEXTSIZE,THEN,TO,TOP,TRAN,TRANSACTION,TRIGGER,TRUNCATE,TRY_CONVERT,TSEQUAL," +
+                "UNION,UNIQUE,UNPIVOT,UPDATE,UPDATETEXT,USE,USER," +
+                "VALUES,VARYING,VIEW," +
+                "WAITFOR,WHEN,WHERE,WHILE,WITH,WITHIN GROUP,WRITETEXT";
     }
 
     @Override
