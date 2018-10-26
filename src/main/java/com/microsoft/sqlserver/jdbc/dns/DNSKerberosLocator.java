@@ -30,7 +30,7 @@ public final class DNSKerberosLocator {
     public static boolean isRealmValid(String realmName) throws NamingException {
         if (realmName == null || realmName.length() < 2) {
             return false;
-        }       
+        }
         if (realmName.startsWith(".")) {
             realmName = realmName.substring(1);
         }
