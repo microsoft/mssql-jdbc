@@ -27,15 +27,15 @@ allprojects {
 
 if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "build43")){
 	
-	jreVersion = "jre10-preview"
+	jreVersion = "jre11-preview"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 10
-	targetCompatibility = 10
+	sourceCompatibility = 11
+	targetCompatibility = 11
 }
 
 if((hasProperty('buildProfile') && buildProfile == "build42")) {
