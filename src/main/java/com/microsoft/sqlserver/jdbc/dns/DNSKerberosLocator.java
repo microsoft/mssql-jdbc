@@ -9,7 +9,6 @@ import java.util.Set;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
-
 /**
  * Represents a DNS Kerberos Locator
  */
@@ -20,7 +19,7 @@ public final class DNSKerberosLocator {
     /**
      * Returns whether a realm is valid by retrieving the KDC list in DNS SRV records.
      * This will only work if DNS lookup is setup properly or the realms are properly defined in krb5 config file.
-     * Otherwise this will fail since the realm cannot not be found.
+     * Otherwise this will fail since the realm cannot be found.
      *
      * @param realmName
      *        the realm to test
@@ -31,8 +30,7 @@ public final class DNSKerberosLocator {
     public static boolean isRealmValid(String realmName) throws NamingException {
         if (realmName == null || realmName.length() < 2) {
             return false;
-        }
-        
+        }       
         if (realmName.startsWith(".")) {
             realmName = realmName.substring(1);
         }
@@ -40,7 +38,7 @@ public final class DNSKerberosLocator {
             Set<DNSRecordSRV> records = DNSUtilities.findSrvRecords("_kerberos._udp." + realmName);
             return !records.isEmpty();
         } catch (NameNotFoundException wrongDomainException) {
-            // config error - domain controller can not be located via DNS 
+            // config error - domain controller cannot be located via DNS 
             return false;
         }
     }
