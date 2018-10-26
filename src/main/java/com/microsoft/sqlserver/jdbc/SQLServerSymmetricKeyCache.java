@@ -51,7 +51,7 @@ class CacheClear implements Runnable {
  *
  */
 final class SQLServerSymmetricKeyCache {
-    static Object lock = new Object();
+    static final Object lock = new Object();
     private final ConcurrentHashMap<String, SQLServerSymmetricKey> cache;
     private static final SQLServerSymmetricKeyCache instance = new SQLServerSymmetricKeyCache();
     private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory() {
