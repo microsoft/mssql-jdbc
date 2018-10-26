@@ -315,8 +315,8 @@ final class KerbAuthentication extends SSPIAuthentication {
         int index = 0;
         while (index != -1 && index < hostname.length() - 2) {
             String realm = hostname.substring(index);
-            if (authLogger.isLoggable(Level.FINER)) {
-                authLogger.finer(toString() + " looking up REALM candidate " + realm);
+            if (authLogger.isLoggable(Level.FINEST)) {
+                authLogger.finest(toString() + " looking up REALM candidate " + realm);
             }
             if (realmValidator.isRealmValid(realm)) {
                 return realm.toUpperCase();
