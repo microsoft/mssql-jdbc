@@ -20,7 +20,7 @@ public final class DNSKerberosLocator {
     /**
      * Returns whether a realm is valid by retrieving the KDC list in DNS SRV records.
      * This will only work if DNS lookup is setup properly or the realms are properly defined in krb5 config file.
-     * Otherwise this will fail since the realm can not be found.
+     * Otherwise this will fail since the realm cannot not be found.
      *
      * @param realmName
      *        the realm to test
