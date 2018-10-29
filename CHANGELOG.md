@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Removed illegal reflection access in Kerberos Authentication [#839](https://github.com/Microsoft/mssql-jdbc/pull/839)
 - Enabled non-running Junit tests [#847](https://github.com/Microsoft/mssql-jdbc/pull/847)
 - Updated Clobs to use StandardCharsets.US_ASCII instead of hardcoded string [#855](https://github.com/Microsoft/mssql-jdbc/pull/855)
-- Code cleanup [#821] (https://github.com/Microsoft/mssql-jdbc/pull/821) [#825] (https://github.com/Microsoft/mssql-jdbc/pull/825)
+- Code cleanup [#821](https://github.com/Microsoft/mssql-jdbc/pull/821) [#825](https://github.com/Microsoft/mssql-jdbc/pull/825)
 
 ## [7.1.1] Preview Release
 ### Added
