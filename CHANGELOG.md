@@ -16,7 +16,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed useBulkCopyForBatchInserts API to respect Statement timeout value [#817](https://github.com/Microsoft/mssql-jdbc/pull/817)
 
 ### Changed
-- Updated Maven dependencies, library versions, and Jacoco for Java 11 [#807](https://github.com/Microsoft/mssql-jdbc/pull/807)
 - Updated JUnit tests to remove hard-coded names [#809](https://github.com/Microsoft/mssql-jdbc/pull/809)
 - Removed illegal reflection access in Kerberos Authentication [#839](https://github.com/Microsoft/mssql-jdbc/pull/839)
 - Enabled non-running JUnit tests [#847](https://github.com/Microsoft/mssql-jdbc/pull/847)
