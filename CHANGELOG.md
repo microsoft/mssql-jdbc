@@ -5,22 +5,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [7.1.2] Preview Release
 ### Added
-- Added support for JDK 11 [#824](https://github.com/Microsoft/mssql-jdbc/pull/824) [#837](https://github.com/Microsoft/mssql-jdbc/pull/837)
+- Added support for JDK 11 [#824](https://github.com/Microsoft/mssql-jdbc/pull/824) [#837](https://github.com/Microsoft/mssql-jdbc/pull/837) [#807](https://github.com/Microsoft/mssql-jdbc/pull/807)
 - Updated SQL keywords in DatabaseMetaData [#829](https://github.com/Microsoft/mssql-jdbc/pull/829)
-- Improvements in Database metadata to prevent Statement leaks and enhance Statement caching [#806](https://github.com/Microsoft/mssql-jdbc/pull/806)
+- Improvements in DatabaseMetadata to prevent Statement leaks and enhance Statement caching [#806](https://github.com/Microsoft/mssql-jdbc/pull/806)
 
 ### Fixed Issues
 - Fixed slf4j warning message in tests [#841](https://github.com/Microsoft/mssql-jdbc/pull/841)
 - Fixed potential NullPointerException in logException() [#844](https://github.com/Microsoft/mssql-jdbc/pull/844)
-- Fixed intermittent failures in JUnit - LobTest [#827](https://github.com/Microsoft/mssql-jdbc/pull/827)
+- Fixed intermittent failures in JUnit - LobsTest [#827](https://github.com/Microsoft/mssql-jdbc/pull/827)
 - Fixed useBulkCopyForBatchInserts API to respect Statement timeout value [#817](https://github.com/Microsoft/mssql-jdbc/pull/817)
 
 ### Changed
 - Updated Maven dependencies, library versions, and Jacoco for Java 11 [#807](https://github.com/Microsoft/mssql-jdbc/pull/807)
-- Updated JUnit tests to remove hardcoded names [#809](https://github.com/Microsoft/mssql-jdbc/pull/809)
+- Updated JUnit tests to remove hard-coded names [#809](https://github.com/Microsoft/mssql-jdbc/pull/809)
 - Removed illegal reflection access in Kerberos Authentication [#839](https://github.com/Microsoft/mssql-jdbc/pull/839)
 - Enabled non-running JUnit tests [#847](https://github.com/Microsoft/mssql-jdbc/pull/847)
-- Updated Clobs to use StandardCharsets.US_ASCII instead of hardcoded string [#855](https://github.com/Microsoft/mssql-jdbc/pull/855)
+- Updated Clobs to use StandardCharsets.US_ASCII instead of hard-coded string [#855](https://github.com/Microsoft/mssql-jdbc/pull/855)
 - Code cleanup [#821](https://github.com/Microsoft/mssql-jdbc/pull/821) [#825](https://github.com/Microsoft/mssql-jdbc/pull/825)
 
 ## [7.1.1] Preview Release
