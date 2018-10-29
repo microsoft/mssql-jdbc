@@ -5,23 +5,23 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [7.1.2] Preview Release
 ### Added
-- Added support for JDK 11
-- Added support for Jacoco in VSTS
-- Updated SQL keywrods in DatabaseMetaData
-- Enabled non-running junit tests
-- Improvements in Database metadata to prevent Statement leaks and enhance Statement caching
+- Added support for JDK 11 [#824](https://github.com/Microsoft/mssql-jdbc/pull/824) [#837](https://github.com/Microsoft/mssql-jdbc/pull/837)
+- Updated SQL keywords in DatabaseMetaData [#829](https://github.com/Microsoft/mssql-jdbc/pull/829)
+- Improvements in Database metadata to prevent Statement leaks and enhance Statement caching [#806](https://github.com/Microsoft/mssql-jdbc/pull/806)
 
 ### Fixed Issues
-- Fixed slf4j warning message in tests
-- Fixed NullPointerException in logException
-- Fixed intermittent junit lobTest failures
-- Fixed batch insert in Bulk Copy API to respect timeout value
+- Fixed slf4j warning message in tests [#841](https://github.com/Microsoft/mssql-jdbc/pull/841)
+- Fixed potential NullPointerException in logException [#844](https://github.com/Microsoft/mssql-jdbc/pull/844)
+- Fixed intermittent Junit lobTest failures [#827](https://github.com/Microsoft/mssql-jdbc/pull/827)
+- Fixed batch insert in Bulk Copy API to respect timeout value [#817](https://github.com/Microsoft/mssql-jdbc/pull/817)
 
 ### Changed
-- Updated junit tests to remove hardcoded names
-- Updated JDK for Travis CI
-- Removed illegal reflection access in Kerberos Authentication
-- Updated to use StandardCharsets.US_ASCII instead of hardcoded string
+- Updated Maven dependencies, library versions, and Jacoco for Java 11 Jacoco [#807](https://github.com/Microsoft/mssql-jdbc/pull/807)
+- Updated Junit tests to remove hardcoded names [#809](https://github.com/Microsoft/mssql-jdbc/pull/809)
+- Removed illegal reflection access in Kerberos Authentication [#839](https://github.com/Microsoft/mssql-jdbc/pull/839)
+- Enabled non-running Junit tests [#847](https://github.com/Microsoft/mssql-jdbc/pull/847)
+- Updated Clobs to use StandardCharsets.US_ASCII instead of hardcoded string [#855](https://github.com/Microsoft/mssql-jdbc/pull/855)
+- Code cleanup [#821] (https://github.com/Microsoft/mssql-jdbc/pull/821) [#825] (https://github.com/Microsoft/mssql-jdbc/pull/825)
 
 ## [7.1.1] Preview Release
 ### Added
@@ -91,7 +91,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Added
 - Added removed constructor back to AKV Provider which supports authentication with a customized method to fetch accessToken [#675](https://github.com/Microsoft/mssql-jdbc/pull/675)
 - Added support for JDK 10 for both Maven and Gradle [#691](https://github.com/Microsoft/mssql-jdbc/pull/691)
-- Added a resource bundle to handle junit error strings [#698](https://github.com/Microsoft/mssql-jdbc/pull/698)
+- Added a resource bundle to handle Junit error strings [#698](https://github.com/Microsoft/mssql-jdbc/pull/698)
 
 ### Fixed Issues
 - Fixed the driver disposing user created credentials when using Kerberos Constrained Delegation [#636](https://github.com/Microsoft/mssql-jdbc/pull/636)
@@ -342,7 +342,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Added
 - Added socket timeout exception as cause[#180](https://github.com/Microsoft/mssql-jdbc/pull/180)
 - Added Constrained delegation support[#178](https://github.com/Microsoft/mssql-jdbc/pull/178)
-- Added junit test for Statement test[#174](https://github.com/Microsoft/mssql-jdbc/pull/174)
+- Added Junit test for Statement test[#174](https://github.com/Microsoft/mssql-jdbc/pull/174)
 - Added test for statement.cancel() when MultiSubnetFailover is set to true[#173](https://github.com/Microsoft/mssql-jdbc/pull/173)
 - Added tests for lobs [#168](https://github.com/Microsoft/mssql-jdbc/pull/168)
 - Added badges for License, Maven Central, JavaDocs & gitter chat room [#184](https://github.com/Microsoft/mssql-jdbc/pull/184)
