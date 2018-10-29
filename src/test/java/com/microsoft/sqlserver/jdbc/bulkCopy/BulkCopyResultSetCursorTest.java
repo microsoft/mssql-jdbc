@@ -143,7 +143,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
                     verifyDestinationTableData(expectedBigDecimals.length * 3);
                 }
 
-                String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(desTable) + "(c1,c2,c3,c4) values (?,?,?,?)";
+                String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(desTable) + " values (?,?,?,?)";
                 Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
                 try (SQLServerPreparedStatement pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
                     for (int i = 0; i < expectedBigDecimals.length; i++) {
@@ -192,7 +192,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
     }
 
     private static void populateSourceTable() throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(srcTable) + "(c1,c2,c3,c4) values (?,?,?,?)";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(srcTable) + " values (?,?,?,?)";
         Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 
         try (Connection conn = DriverManager.getConnection(connectionString);
