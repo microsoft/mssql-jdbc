@@ -1,3 +1,8 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.ArrayList;
@@ -11,12 +16,12 @@ import java.util.logging.Logger;
  * Thread that runs in the background while the mssql driver is used that can timeout TDSCommands Checks all registered
  * commands every second to see if they can be interrupted
  */
-public final class TimeoutPoller implements Runnable {
-    private List<TimeoutCommand> timeoutCommands = new ArrayList<>();
-    final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Command");
+final class TimeoutPoller implements Runnable {
+    private List<TimeoutCommand<TDSCommand>> timeoutCommands = new ArrayList<>();
+    final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.TimeoutPoller");
     private static volatile TimeoutPoller timeoutPoller = null;
 
-    public static TimeoutPoller getTimeoutPoller() {
+    static TimeoutPoller getTimeoutPoller() {
         if (timeoutPoller == null) {
             synchronized (TimeoutPoller.class) {
                 if (timeoutPoller == null) {
@@ -30,13 +35,13 @@ public final class TimeoutPoller implements Runnable {
         return timeoutPoller;
     }
 
-    public void addTimeoutCommand(TimeoutCommand timeoutCommand) {
+    void addTimeoutCommand(TimeoutCommand<TDSCommand> timeoutCommand) {
         synchronized (timeoutCommands) {
             timeoutCommands.add(timeoutCommand);
         }
     }
 
-    public void remove(TimeoutCommand timeoutCommand) {
+    void remove(TimeoutCommand<TDSCommand> timeoutCommand) {
         synchronized (timeoutCommands) {
             timeoutCommands.remove(timeoutCommand);
         }
@@ -50,9 +55,9 @@ public final class TimeoutPoller implements Runnable {
             // interruption
             while (true) {
                 synchronized (timeoutCommands) {
-                    Iterator<TimeoutCommand> timeoutCommandIterator = timeoutCommands.iterator();
+                    Iterator<TimeoutCommand<TDSCommand>> timeoutCommandIterator = timeoutCommands.iterator();
                     while (timeoutCommandIterator.hasNext()) {
-                        TimeoutCommand timeoutCommand = timeoutCommandIterator.next();
+                        TimeoutCommand<TDSCommand> timeoutCommand = timeoutCommandIterator.next();
                         try {
                             if (timeoutCommand.canTimeout()) {
                                 try {
