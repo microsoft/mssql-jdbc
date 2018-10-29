@@ -3,6 +3,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.1.2] Preview Release
+### Added
+- Added support for JDK 11
+- Added support for Jacoco in VSTS
+- Updated SQL keywrods in DatabaseMetaData
+- Enabled non-running junit tests
+- Improvements in Database metadata to prevent Statement leaks and enhance Statement caching
+
+### Fixed Issues
+- Fixed slf4j warning message in tests
+- Fixed NullPointerException in logException
+- Fixed intermittent junit lobTest failures
+- Fixed batch insert in Bulk Copy API to respect timeout value
+
+### Changed
+- Updated junit tests to remove hardcoded names
+- Updated JDK for Travis CI
+- Removed illegal reflection access in Kerberos Authentication
+- Updated to use StandardCharsets.US_ASCII instead of hardcoded string
+
 ## [7.1.0] Preview Release
 ### Added
 - Added support for LocalDate, LocalTime and LocalDateTime to be passed as 'type' in ResultSet.getObject() [#749](https://github.com/Microsoft/mssql-jdbc/pull/749)
