@@ -59,7 +59,7 @@ public class TVPAllTypesTest extends AbstractTest {
             Integer resultSetConcurrency) throws SQLException {
 
         String connString;
-        Statement stmt;
+        Statement stmt = null;
 
         if (setSelectMethod) {
             connString = connectionString + ";selectMethod=cursor;";
@@ -90,6 +90,8 @@ public class TVPAllTypesTest extends AbstractTest {
             } finally {
                 terminateVariation(stmt);
             }
+        } finally {
+            stmt.close();
         }
     }
 
@@ -112,7 +114,7 @@ public class TVPAllTypesTest extends AbstractTest {
             Integer resultSetConcurrency) throws SQLException {
 
         String connString;
-        Statement stmt;
+        Statement stmt = null;
 
         if (setSelectMethod) {
             connString = connectionString + ";selectMethod=cursor;";
@@ -135,13 +137,13 @@ public class TVPAllTypesTest extends AbstractTest {
                             .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}")) {
                 Cstmt.setStructured(1, tvpName, rs);
                 Cstmt.execute();
-
                 ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc,
                         tableDest);
             } finally {
                 terminateVariation(stmt);
-                stmt.close();
             }
+        } finally {
+            stmt.close();
         }
     }
 
