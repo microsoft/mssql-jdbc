@@ -1044,19 +1044,19 @@ final class SQLIdentifier {
         StringBuilder fullName = new StringBuilder(256);
 
         if (serverName.length() > 0)
-            fullName.append("[" + serverName + "].");
+            fullName.append("[").append(serverName).append("].");
 
         if (databaseName.length() > 0)
-            fullName.append("[" + databaseName + "].");
+            fullName.append("[").append(databaseName).append("].");
         else
             assert 0 == serverName.length();
 
         if (schemaName.length() > 0)
-            fullName.append("[" + schemaName + "].");
+            fullName.append("[").append(schemaName).append("].");
         else if (databaseName.length() > 0)
             fullName.append('.');
 
-        fullName.append("[" + objectName + "]");
+        fullName.append("[").append(objectName).append("]");
 
         return fullName.toString();
     }
