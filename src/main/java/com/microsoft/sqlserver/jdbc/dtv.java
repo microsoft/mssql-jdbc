@@ -19,6 +19,7 @@ import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
@@ -2193,11 +2194,7 @@ final class AppDTVImpl extends DTVImpl {
             // If the stream is to be sent as Unicode, then assume it's an ASCII stream
             if (JDBCType.NCHAR == jdbcType || JDBCType.NVARCHAR == jdbcType || JDBCType.LONGNVARCHAR == jdbcType) {
                 Reader readerValue = null;
-                try {
-                    readerValue = new InputStreamReader(inputStreamValue, "US-ASCII");
-                } catch (UnsupportedEncodingException ex) {
-                    throw new SQLServerException(ex.getMessage(), null, 0, ex);
-                }
+                readerValue = new InputStreamReader(inputStreamValue, StandardCharsets.US_ASCII);
 
                 dtv.setValue(readerValue, JavaType.READER);
 

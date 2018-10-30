@@ -20,12 +20,13 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
 public class ParameterMetaDataTest extends AbstractTest {
-    private static final String tableName = "[" + RandomUtil.getIdentifier("Statement'Param") + "]";
+    private static final String tableName = RandomUtil.getIdentifier("StatementParam");
 
     /**
      * Test ParameterMetaData#isWrapperFor and ParameterMetaData#unwrap.
@@ -36,9 +37,10 @@ public class ParameterMetaDataTest extends AbstractTest {
     public void testParameterMetaDataWrapper() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
-            stmt.executeUpdate("create table " + tableName + " (col1 int identity(1,1) primary key)");
+            stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (col1 int identity(1,1) primary key)");
             try {
-                String query = "SELECT * from " + tableName + " where col1 = ?";
+                String query = "SELECT * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where col1 = ?";
 
                 try (PreparedStatement pstmt = con.prepareStatement(query)) {
                     ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
@@ -46,7 +48,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                     assertSame(parameterMetaData, parameterMetaData.unwrap(ParameterMetaData.class));
                 }
             } finally {
-                TestUtils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
     }
@@ -77,15 +79,17 @@ public class ParameterMetaDataTest extends AbstractTest {
     public void testNameWithBraces() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
-            stmt.executeUpdate("create table " + tableName + " ([c1_varchar(max)] varchar(max))");
+            stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " ([c1_varchar(max)] varchar(max))");
             try {
-                String query = "insert into " + tableName + " ([c1_varchar(max)]) values (?)";
+                String query = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " ([c1_varchar(max)]) values (?)";
 
                 try (PreparedStatement pstmt = con.prepareStatement(query)) {
                     pstmt.getParameterMetaData();
                 }
             } finally {
-                TestUtils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
     }
@@ -99,9 +103,11 @@ public class ParameterMetaDataTest extends AbstractTest {
     public void testParameterMetaData() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
-            stmt.executeUpdate("create table " + tableName + " ([c1_varchar(max)] varchar(max), c2 decimal(38,5))");
+            stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " ([c1_varchar(max)] varchar(max), c2 decimal(38,5))");
             try {
-                String query = "insert into " + tableName + " ([c1_varchar(max)], c2) values (?,?)";
+                String query = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " ([c1_varchar(max)], c2) values (?,?)";
 
                 try (PreparedStatement pstmt = con.prepareStatement(query)) {
                     ParameterMetaData metadata = pstmt.getParameterMetaData();
@@ -112,7 +118,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                     assert (metadata.getScale(2) == 5);
                 }
             } finally {
-                TestUtils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
     }

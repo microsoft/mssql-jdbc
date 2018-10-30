@@ -24,7 +24,7 @@ import com.microsoft.sqlserver.testframework.DBTable;
 
 
 @RunWith(JUnitPlatform.class)
-public class BulkCopyAllTypes extends AbstractTest {
+public class BulkCopyAllTypesTest extends AbstractTest {
 
     private static DBTable tableSrc = null;
     private static DBTable tableDest = null;

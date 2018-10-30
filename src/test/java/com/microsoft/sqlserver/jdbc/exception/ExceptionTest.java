@@ -8,20 +8,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.net.SocketTimeoutException;
+import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.Connection;
 import java.sql.Statement;
 import java.text.MessageFormat;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
@@ -53,7 +56,7 @@ public class ExceptionTest extends AbstractTest {
         }
     }
 
-    String waitForDelaySPName = "waitForDelaySP";
+    static String waitForDelaySPName = RandomUtil.getIdentifier("waitForDelaySP");
     final int waitForDelaySeconds = 10;
 
     /**
@@ -66,13 +69,14 @@ public class ExceptionTest extends AbstractTest {
     public void testSocketTimeoutExceptionCause() throws Exception {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = conn.createStatement()) {
-            TestUtils.dropProcedureIfExists(waitForDelaySPName, stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName), stmt);
             createWaitForDelayPreocedure(conn);
         }
+
         try (Connection conn = DriverManager
                 .getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
                 Statement stmt = conn.createStatement()) {
-            stmt.execute("exec " + waitForDelaySPName);
+            stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
             throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Exception e) {
             if (!(e instanceof SQLException)) {
@@ -87,8 +91,16 @@ public class ExceptionTest extends AbstractTest {
     }
 
     private void createWaitForDelayPreocedure(SQLServerConnection conn) throws SQLException {
-        String sql = "CREATE PROCEDURE " + waitForDelaySPName + " AS" + " BEGIN" + " WAITFOR DELAY '00:00:"
-                + waitForDelaySeconds + "';" + " END";
+        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName) + " AS" + " BEGIN"
+                + " WAITFOR DELAY '00:00:" + waitForDelaySeconds + "';" + " END";
         conn.createStatement().execute(sql);
+    }
+
+    @AfterAll
+    public static void cleanup() throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement()) {
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName), stmt);
+        }
     }
 }

@@ -439,7 +439,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     int nFetchDirection;
 
     /**
-     * True is the statment is closed
+     * True is the statement is closed
      */
     boolean bIsClosed;
 
@@ -948,7 +948,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      * Determines if the SQL is a SELECT.
      * 
      * @param sql
-     *        The statment SQL.
+     *        The statement SQL.
      * @return True if the statement is a select.
      */
     final boolean isSelect(String sql) throws SQLServerException {
@@ -966,7 +966,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      * Determine if the SQL is a INSERT.
      * 
      * @param sql
-     *        The statment SQL.
+     *        The statement SQL.
      * @return True if the statement is an insert.
      */
     final boolean isInsert(String sql) throws SQLServerException {

@@ -44,12 +44,13 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
 
     public static final Logger log = Logger.getLogger("BatchExecuteWithErrors");
     Connection con = null;
-    String tableN = RandomUtil.getIdentifier("t_Repro47239");
-    final String tableName = AbstractSQLGenerator.escapeIdentifier(tableN);
-    final String insertStmt = "INSERT INTO " + tableName + " VALUES (999, 'HELLO', '4/12/1994')";
+    final String tableName = RandomUtil.getIdentifier("t_Repro47239");
+    final String insertStmt = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+            + " VALUES (999, 'HELLO', '4/12/1994')";
     final String error16 = "RAISERROR ('raiserror level 16',16,42)";
     final String select = "SELECT 1";
-    final String dateConversionError = "insert into " + tableName + " values (999999, 'Hello again', 'asdfasdf')";
+    final String dateConversionError = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+            + " values (999999, 'Hello again', 'asdfasdf')";
 
     /**
      * Batch test
@@ -86,12 +87,13 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
     }
 
     private void Repro47239Internal(String mode) throws Exception {
-        String tableN = RandomUtil.getIdentifier("t_Repro47239");
-        final String tableName = AbstractSQLGenerator.escapeIdentifier(tableN);
-        final String insertStmt = "INSERT INTO " + tableName + " VALUES (999, 'HELLO', '4/12/1994')";
+        final String tableName = RandomUtil.getIdentifier("t_Repro47239");
+        final String insertStmt = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " VALUES (999, 'HELLO', '4/12/1994')";
         final String error16 = "RAISERROR ('raiserror level 16',16,42)";
         final String select = "SELECT 1";
-        final String dateConversionError = "insert into " + tableName + " values (999999, 'Hello again', 'asdfasdf')";
+        final String dateConversionError = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " values (999999, 'Hello again', 'asdfasdf')";
 
         String warning;
         String error;
@@ -139,9 +141,9 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             try (Statement stmt = conn.createStatement()) {
 
                 try {
-                    TestUtils.dropTableIfExists(tableName, stmt);
+                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 } catch (Exception ignored) {}
-                stmt.executeUpdate("create table " + tableName
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " (c1_int int, c2_varchar varchar(20), c3_date datetime, c4_int int identity(1,1) primary key)");
 
                 // Regular Statement batch update
@@ -299,7 +301,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         } finally {
             try (Connection conn = DriverManager.getConnection(connectionString);
                     Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate("drop table " + tableName);
+                stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
             }
         }
     }
@@ -352,10 +354,10 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                 try (Statement stmt = conn.createStatement()) {
 
                     try {
-                        TestUtils.dropTableIfExists(tableName, stmt);
+                        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                     } catch (Exception ignored) {}
                     try {
-                        stmt.executeLargeUpdate("create table " + tableName
+                        stmt.executeLargeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                                 + " (c1_int int, c2_varchar varchar(20), c3_date datetime, c4_int int identity(1,1) primary key)");
                     } catch (Exception ignored) {}
                     // Regular Statement batch update
@@ -505,7 +507,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                     }
 
                     try {
-                        stmt.executeLargeUpdate("drop table " + tableName);
+                        stmt.executeLargeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
                     } catch (Exception ignored) {}
                 }
             }

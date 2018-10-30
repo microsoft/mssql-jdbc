@@ -17,11 +17,13 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -30,12 +32,12 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 
 @RunWith(JUnitPlatform.class)
-public class TVPAllTypes extends AbstractTest {
+public class TVPAllTypesTest extends AbstractTest {
     private static Connection conn = null;
     static Statement stmt = null;
 
-    private static String tvpName = "TVPAllTypesTable_char_TVP";
-    private static String procedureName = "TVPAllTypesTable_char_SP";
+    private static String tvpName;
+    private static String procedureName;
 
     private static DBTable tableSrc = null;
     private static DBTable tableDest = null;
@@ -94,7 +96,7 @@ public class TVPAllTypes extends AbstractTest {
         setupVariation(setSelectMethod, resultSetType, resultSetConcurrency);
         try (ResultSet rs = stmt.executeQuery("select * from " + tableSrc.getEscapedTableName());
                 SQLServerCallableStatement Cstmt = (SQLServerCallableStatement) conn
-                        .prepareCall("{call " + procedureName + "(?)}")) {
+                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}")) {
             Cstmt.setStructured(1, tvpName, rs);
             Cstmt.execute();
 
@@ -139,24 +141,24 @@ public class TVPAllTypes extends AbstractTest {
     }
 
     private static void createPreocedure(String procedureName, String destTable) throws SQLException {
-        String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpName + " READONLY " + " AS " + " BEGIN "
-                + " INSERT INTO " + destTable + " SELECT * FROM @InputData" + " END";
+        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
+                + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN " + " INSERT INTO "
+                + destTable + " SELECT * FROM @InputData" + " END";
 
         stmt.execute(sql);
     }
 
-    private static void dropTVPS(String tvpName) throws SQLException {
-        stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '" + tvpName + "') "
-                + " drop type " + tvpName);
-    }
-
-    private static void createTVPS(String TVPName, String TVPDefinition) throws SQLException {
-        String TVPCreateCmd = "CREATE TYPE " + TVPName + " as table (" + TVPDefinition + ");";
+    private static void createTVPS(String tvpName, String TVPDefinition) throws SQLException {
+        String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName) + " as table ("
+                + TVPDefinition + ");";
         stmt.executeUpdate(TVPCreateCmd);
     }
 
     private void setupVariation(boolean setSelectMethod, Integer resultSetType,
             Integer resultSetConcurrency) throws SQLException {
+
+        tvpName = RandomUtil.getIdentifier("TVP");
+        procedureName = RandomUtil.getIdentifier("TVP");
 
         if (setSelectMethod) {
             conn = DriverManager.getConnection(connectionString + ";selectMethod=cursor;");
@@ -170,8 +172,8 @@ public class TVPAllTypes extends AbstractTest {
             stmt = conn.createStatement();
         }
 
-        TestUtils.dropProcedureIfExists(procedureName, stmt);
-        dropTVPS(tvpName);
+        TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tvpName), stmt);
 
         try (DBConnection dbConnection = new DBConnection(connectionString);
                 DBStatement dbStmt = dbConnection.createStatement()) {
@@ -190,10 +192,10 @@ public class TVPAllTypes extends AbstractTest {
     }
 
     private void terminateVariation() throws SQLException {
-        TestUtils.dropProcedureIfExists(procedureName, stmt);
+        TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
         TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
         TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
-        dropTVPS(tvpName);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tvpName), stmt);
 
         if (null != stmt) {
             stmt.close();

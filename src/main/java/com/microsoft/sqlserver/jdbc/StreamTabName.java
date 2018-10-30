@@ -34,7 +34,7 @@ final class StreamTabName extends StreamPacket {
 
         // Read in all of the multi-part table names. The number of table
         // names to expect is determined in advance. It is computed as a side
-        // effect of processing the COLINFO token that preceeds this TABNAME token.
+        // effect of processing the COLINFO token that preceds this TABNAME token.
         SQLIdentifier[] tableNames = new SQLIdentifier[numTables];
         for (int i = 0; i < numTables; i++)
             tableNames[i] = tdsReader.readSQLIdentifier();

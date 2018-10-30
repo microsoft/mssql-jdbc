@@ -259,9 +259,8 @@ public class TestUtils {
     public static String getCurrentClassPath() {
         try {
             String className = new Object() {}.getClass().getEnclosingClass().getName();
-            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath()
-                    + "/";
-            URI uri = new URI(location.toString());
+            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
+            URI uri = new URI(location + "/");
             return uri.getPath();
         } catch (Exception e) {
             fail("Failed to get CSV file path. " + e.getMessage());
@@ -379,38 +378,6 @@ public class TestUtils {
             throw new IllegalArgumentException("The string  is not in a valid hex format. ");
         }
         return ret;
-    }
-
-    /**
-     * Utility function for safely closing open resultset/statement/connection
-     * 
-     * @param ResultSet
-     * @param Statement
-     * @param Connection
-     */
-    public static void close(ResultSet rs, Statement stmt, Connection con) {
-        if (rs != null) {
-            try {
-                rs.close();
-
-            } catch (SQLException e) {
-                System.out.println("The result set cannot be closed.");
-            }
-        }
-        if (stmt != null) {
-            try {
-                stmt.close();
-            } catch (SQLException e) {
-                System.out.println("The statement cannot be closed.");
-            }
-        }
-        if (con != null) {
-            try {
-                con.close();
-            } catch (SQLException e) {
-                System.out.println("The data source connection cannot be closed.");
-            }
-        }
     }
 
     /**

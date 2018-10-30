@@ -59,7 +59,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  *
  */
 @RunWith(JUnitPlatform.class)
-public class lobsTest extends AbstractTest {
+public class LobsTest extends AbstractTest {
     static Connection conn = null;
     static Statement stmt = null;
     static String tableName;
@@ -207,11 +207,7 @@ public class lobsTest extends AbstractTest {
                     }
                     if (!verified) {
                         // Odd CharacterStream length will throw this exception
-                        if (!e.getMessage().contains(TestResource.getResource("R_badStreamLength")))
-
-                        {
-                            if (lobClass == DBCharacterStream.class || lobClass == DBBinaryStream.class)
-                                assertTrue(e.getSQLState() != null, TestResource.getResource("R_SQLStateNull"));
+                        if (!e.getMessage().contains(TestResource.getResource("R_badStreamLength"))) {
                             assertTrue(e.getMessage().contains(TestResource.getResource("R_streamReadError")));
                         }
 
@@ -323,23 +319,20 @@ public class lobsTest extends AbstractTest {
                                     continue;
                             }
 
-                            Object stream = null;
-                            try {
-                                stream = rs.getXXX(i + 1, streamClass);
-                            } finally {
-                                if (null == stream) {
-                                    assertEquals(stream, rs.getObject(i + 1), TestResource.getResource("R_streamNull"));
-                                } else {
-                                    // close the stream twice
-                                    if (streamClass == DBCharacterStream.class) {
-                                        ((Reader) stream).close();
-                                        ((Reader) stream).close();
-                                    } else {
-                                        ((InputStream) stream).close();
-                                        ((InputStream) stream).close();
+                            if (streamClass == DBCharacterStream.class) {
+                                try (Reader stream = (Reader) rs.getXXX(i + 1, streamClass)) {
+                                    if (null == stream) {
+                                        assertEquals(stream, rs.getObject(i + 1),
+                                                TestResource.getResource("R_streamNull"));
                                     }
                                 }
-
+                            } else {
+                                try (InputStream stream = (InputStream) rs.getXXX(i + 1, streamClass)) {
+                                    if (null == stream) {
+                                        assertEquals(stream, rs.getObject(i + 1),
+                                                TestResource.getResource("R_streamNull"));
+                                    }
+                                }
                             }
                         }
                     }
@@ -589,6 +582,7 @@ public class lobsTest extends AbstractTest {
             if (null != stream) {
                 stream.close();
             }
+            dropTables(table);
         }
     }
 

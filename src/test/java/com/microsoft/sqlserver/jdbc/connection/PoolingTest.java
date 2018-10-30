@@ -23,6 +23,7 @@ import javax.sql.DataSource;
 import javax.sql.PooledConnection;
 
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -32,9 +33,9 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.DBTable;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -45,15 +46,13 @@ import com.zaxxer.hikari.HikariDataSource;
  */
 @RunWith(JUnitPlatform.class)
 public class PoolingTest extends AbstractTest {
+    static String tempTableName = RandomUtil.getIdentifier("#poolingtest");
+    static String tableName = RandomUtil.getIdentifier("PoolingTestTable");
+
     @Test
     public void testPooling() throws SQLException {
         assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
                 "Skipping test case on Azure SQL.");
-
-        String randomTableName = RandomUtil.getIdentifier("table");
-
-        // make the table a temporary table (will be created in tempdb database)
-        String tempTableName = "#" + randomTableName;
 
         SQLServerXADataSource XADataSource1 = new SQLServerXADataSource();
         XADataSource1.setURL(connectionString);
@@ -63,8 +62,8 @@ public class PoolingTest extends AbstractTest {
         try (Connection conn = pc.getConnection(); Statement stmt = conn.createStatement()) {
 
             // create table in tempdb database
-            stmt.execute("create table [" + tempTableName + "] (myid int)");
-            stmt.execute("insert into [" + tempTableName + "] values (1)");
+            stmt.execute("create table " + AbstractSQLGenerator.escapeIdentifier(tempTableName) + " (myid int)");
+            stmt.execute("insert into " + AbstractSQLGenerator.escapeIdentifier(tempTableName) + " values (1)");
         }
 
         boolean tempTableFileRemoved = false;
@@ -100,14 +99,12 @@ public class PoolingTest extends AbstractTest {
 
     @Test
     public void testConnectionPoolConnFunctions() throws SQLException {
-        String tableName = RandomUtil.getIdentifier("table");
-        tableName = DBTable.escapeIdentifier(tableName);
-
         String sql1 = "if exists (select * from dbo.sysobjects where name = '" + TestUtils.escapeSingleQuotes(tableName)
-                + "' and type = 'U')\n" + "drop table " + tableName + "\n" + "create table " + tableName + "\n" + "(\n"
+                + "' and type = 'U')\n" + "drop table " + AbstractSQLGenerator.escapeIdentifier(tableName) + "\n"
+                + "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + "\n" + "(\n"
                 + "wibble_id int primary key not null,\n" + "counter int null\n" + ");";
         String sql2 = "if exists (select * from dbo.sysobjects where name = '" + TestUtils.escapeSingleQuotes(tableName)
-                + "' and type = 'U')\n" + "drop table " + tableName + "\n";
+                + "' and type = 'U')\n" + "drop table " + AbstractSQLGenerator.escapeIdentifier(tableName) + "\n";
 
         SQLServerXADataSource ds = new SQLServerXADataSource();
         ds.setURL(connectionString);
@@ -251,5 +248,18 @@ public class PoolingTest extends AbstractTest {
         }
 
         return count;
+    }
+
+    /**
+     * drop the tables
+     * 
+     * @throws SQLException
+     */
+    @AfterAll
+    public static void afterAll() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tempTableName), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+        }
     }
 }
