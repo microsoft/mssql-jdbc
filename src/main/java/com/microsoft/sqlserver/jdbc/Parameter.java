@@ -603,10 +603,9 @@ final class Parameter {
                          */
 
                         if (userProvidesScale) {
-                            param.typeDefinition = (SSType.TIME.toString() + "(" + outScale + ")");
+                            param.typeDefinition = SSType.TIME.toString() + "(" + outScale + ")";
                         } else {
-                            param.typeDefinition = param.typeDefinition = SSType.TIME.toString() + "(" + valueLength
-                                    + ")";
+                            param.typeDefinition = SSType.TIME.toString() + "(" + valueLength + ")";
                         }
                     } else {
                         param.typeDefinition = con.getSendTimeAsDatetime() ? SSType.DATETIME.toString()
