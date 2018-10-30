@@ -2411,7 +2411,7 @@ final class JDBCSyntaxTranslator {
         OFFSET,
         QUOTE,
         PROCESS
-    };
+    }
 
     // This pattern matches the LIMIT syntax with an OFFSET clause. The driver does not support OFFSET expression in the
     // LIMIT clause.
