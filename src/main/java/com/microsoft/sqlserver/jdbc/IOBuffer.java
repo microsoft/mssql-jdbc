@@ -1420,6 +1420,19 @@ final class TDSChannel {
                 if (wildcardIndex > nameInCert.indexOf(".")) {
                     return false;
                 }
+                
+                // We do not allow wildcards in IDNs.
+                if (nameInCert.startsWith("xn--")) {
+                    return false;
+                }
+                
+                // We do not allow * plus a top-level domain.
+                // This if statement counts the number of .s in the nameInCert. If it's 1 or less, then reject it.
+                // This also catches cases where nameInCert is just *
+                if ((nameInCert.length() - nameInCert.replace(".", "").length()) <= 1) {
+                    return false;
+                }
+                
                 String certBeforeWildcard = nameInCert.substring(0, wildcardIndex);
                 int firstPeriodAfterWildcard = nameInCert.indexOf(".", wildcardIndex);
                 String certAfterWildcard;
