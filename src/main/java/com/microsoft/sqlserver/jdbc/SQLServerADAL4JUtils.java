@@ -38,7 +38,8 @@ class SQLServerADAL4JUtils {
 
             AuthenticationResult authenticationResult = future.get();
 
-            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
+            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate(),
+                    authenticationResult.getRefreshToken());
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
@@ -82,7 +83,8 @@ class SQLServerADAL4JUtils {
 
             AuthenticationResult authenticationResult = future.get();
 
-            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
+            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate(),
+                    authenticationResult.getRefreshToken());
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
@@ -111,4 +113,38 @@ class SQLServerADAL4JUtils {
             executorService.shutdown();
         }
     }
+
+    static SqlFedAuthToken aquireTokenFromRefreshToken(SqlFedAuthInfo fedAuthInfo, SqlFedAuthToken fedAuthToken,
+            String authenticationString) {
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        try {
+            // principal name does not matter, what matters is the realm name
+            // it gets the username in principal_name@realm_name format
+            KerberosPrincipal kerberosPrincipal = new KerberosPrincipal("username");
+
+            if (adal4jLogger.isLoggable(Level.FINE)) {
+                adal4jLogger.fine(adal4jLogger.toString() + " realm name is:" + kerberosPrincipal.getRealm());
+            }
+
+            AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
+            Future<AuthenticationResult> future = context.acquireTokenByRefreshToken(fedAuthToken.refreshToken,
+                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, null);
+
+            AuthenticationResult authenticationResult = future.get();
+            fedAuthToken.updateAccessToken(authenticationResult.getAccessToken(),
+                    authenticationResult.getExpiresOnDate());
+
+            return fedAuthToken;
+        } catch (InterruptedException | IOException | ExecutionException e) {
+            // We do not want to throw any exception here as we will try again to acquire a
+            // fresh access Token. In case of any exception, simply log message as INFO
+            if (adal4jLogger.isLoggable(Level.INFO)) {
+                adal4jLogger.info(adal4jLogger.toString() + " Failed to acquire access token using refresh Token");
+            }
+            return null;
+        } finally {
+            executorService.shutdown();
+        }
+    }
+
 }

@@ -245,7 +245,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_statementPoolingCacheSizePropertyDescription",
                     "This setting specifies the size of the prepared statement cache for a connection. A value less than 1 means no cache."},
             {"R_gsscredentialPropertyDescription", "Impersonated GSS Credential to access SQL Server."},
-            {"R_msiObjectIdPropertyDescription", "Object Id of User Assigned Managed Identity to be used for generating access token for Azure AD MSI Authentication"},
+            {"R_msiObjectIdPropertyDescription",
+                    "Object Id of User Assigned Managed Identity to be used for generating access token for Azure AD MSI Authentication"},
             {"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
             {"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
             {"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
@@ -537,5 +538,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},
             {"R_illegalWKT", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
             {"R_illegalTypeForGeometry", "{0} is not supported for Geometry."},
-            {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},};
+            {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},
+            {"R_ADALMissing", "Failed to load ADAL4J Java library for performing {0} authentication."},
+            {"R_DLLandADALMissing",
+                    "Failed to load both sqljdbc_auth.dll and ADAL4J Java library for performing {0} authentication. Please install one of them to proceed."}};
 }
