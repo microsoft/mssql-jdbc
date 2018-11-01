@@ -383,13 +383,13 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 DBResultSet dstResultSet = dstStmt
                         .executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";")) {
             ResultSetMetaData sourceMeta = ((ResultSet) srcResultSet.product()).getMetaData();
-            int srcTotalColumns = sourceMeta.getColumnCount();
+            int totalColumns = sourceMeta.getColumnCount();
 
             // verify data from sourceType and resultSet
             int numRows = 0;
             while (srcResultSet.next() && dstResultSet.next()) {
                 numRows++;
-                for (int i = 1; i <= srcTotalColumns; i++) {
+                for (int i = 1; i <= totalColumns; i++) {
                     Object srcValue, dstValue;
                     srcValue = srcResultSet.getObject(i);
                     dstValue = dstResultSet.getObject(i);
@@ -398,7 +398,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                     // compare value of first column of source with extra column in destination
                     if (1 == i) {
                         Object srcValueFirstCol = srcResultSet.getObject(i);
-                        Object dstValLastCol = dstResultSet.getObject(srcTotalColumns + 1);
+                        Object dstValLastCol = dstResultSet.getObject(totalColumns + 1);
                         ComparisonUtil.compareExpectedAndActual(sourceMeta.getColumnType(i), srcValueFirstCol,
                                 dstValLastCol);
                     }
