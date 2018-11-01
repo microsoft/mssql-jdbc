@@ -61,9 +61,7 @@ public class FipsEnvTest {
     }
 
     /**
-     * After stabilizing parameterized test case
-     * <LI>JVM Level - Done.
-     * <LI>Program Level - Not Done. We need to test both on different environments.
+     * Test FIPS in Oracle Env.
      * 
      * @since 6.1.2
      */
@@ -90,7 +88,7 @@ public class FipsEnvTest {
     }
 
     /**
-     * It will test FIPS on IBM Env. If JVM is not IBM test will not fail. It will simply skipped.
+     * Test FIPS in IBM Env. If JVM is not IBM test will not fail. It will simply skipped.
      * 
      * @since 6.1.2
      */
