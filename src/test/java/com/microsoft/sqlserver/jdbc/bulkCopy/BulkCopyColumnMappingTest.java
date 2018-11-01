@@ -406,7 +406,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             }
 
             // verify number of rows and columns
-            assertTrue(((ResultSet) dstResultSet.product()).getMetaData().getColumnCount() == srcTotalColumns + 1);
+            assertTrue(((ResultSet) dstResultSet.product()).getMetaData().getColumnCount() == totalColumns + 1);
             if (numRows > 0) {
                 assertTrue(sourceTable.getTotalRows() == numRows);
                 assertTrue(destinationTable.getTotalRows() == numRows);
