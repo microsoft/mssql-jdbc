@@ -86,7 +86,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 SqlType sqlType = dstTable.getSqlType(i);
                 int precision = sqlType.getPrecision();
                 if (JDBCType.TIMESTAMP == sqlType.getJdbctype()) {
-                    // TODO: update the test to use correct precision once bulkCopy is fixed
                     precision = 50;
                 }
                 columnMetadata.put(i + 1, new ColumnMetadata(sqlType.getName(),

@@ -55,14 +55,13 @@ public class FipsEnvTest {
             currentJVM = IBM_JVM;
         }
 
-        // TODO: Need to check this.
         if (p.getProperty("java.vendor").startsWith("SAP")) {
             currentJVM = SAP_JVM;
         }
     }
 
     /**
-     * After stabilizing parameterized test case TODO: Enable FIPS can be done in two ways.
+     * After stabilizing parameterized test case
      * <LI>JVM Level - Done.
      * <LI>Program Level - Not Done. We need to test both on different environments.
      * 
