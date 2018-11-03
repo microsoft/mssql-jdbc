@@ -1148,7 +1148,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Helper method that throws a timeout exception if the cause of the exception was that the query was cancelled
      */
-    private void checkForTimeoutException(SQLException e, TimeoutCommand timeoutCommand) throws SQLServerException {
+    private void checkForTimeoutException(SQLException e, BulkTimeoutCommand timeoutCommand) throws SQLServerException {
         if ((null != e.getSQLState()) && (e.getSQLState().equals(SQLState.STATEMENT_CANCELED.getSQLStateCode()))
                 && timeoutCommand.canTimeout()) {
             // If SQLServerBulkCopy is managing the transaction, a rollback is needed.

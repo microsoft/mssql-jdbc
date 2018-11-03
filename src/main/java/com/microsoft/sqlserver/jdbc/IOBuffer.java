@@ -6187,7 +6187,7 @@ final class TDSReaderMark {
 final class TDSReader {
     private final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Reader");
     final private String traceID;
-    private TimeoutCommand timeoutCommand;
+    private TimeoutCommand<TDSCommand> timeoutCommand;
 
     final public String toString() {
         return traceID;

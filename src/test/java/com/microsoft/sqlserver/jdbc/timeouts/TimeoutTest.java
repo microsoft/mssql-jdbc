@@ -49,8 +49,7 @@ public class TimeoutTest extends AbstractTest {
             exceptionThrown = true;
             Assert.assertTrue("Timeout exception not thrown", e.getClass().equals(SQLTimeoutException.class));
         }
-        Assert.assertTrue("No sql exception was thrown, a sql timeout exception should of been thrown",
-                exceptionThrown);
+        Assert.assertTrue("A SQLTimeoutException was expected", exceptionThrown);
     }
 
     private boolean runQuery(String query, int timeout) throws SQLException {
