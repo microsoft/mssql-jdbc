@@ -1373,7 +1373,7 @@ final class TDSChannel {
             this.logContext = tdsChannel.toString() + " (HostNameOverrideX509TrustManager):";
             defaultTrustManager = tm;
             // canonical name is in lower case so convert this to lowercase too.
-            this.hostName = hostName.toLowerCase(Locale.ENGLISH);;
+            this.hostName = hostName.toLowerCase(Locale.ENGLISH);
         }
 
         // Parse name in RFC 2253 format
@@ -1548,7 +1548,7 @@ final class TDSChannel {
         SSL_HANDHSAKE_NOT_STARTED,
         SSL_HANDHSAKE_STARTED,
         SSL_HANDHSAKE_COMPLETE
-    };
+    }
 
     /**
      * Enables SSL Handshake.
@@ -2114,8 +2114,8 @@ final class TDSChannel {
         //
         // Note: the log formatter itself timestamps what we write so we don't have
         // to do it again here.
-        logMsg.append(tcpSocket.getLocalAddress().toString() + ":" + tcpSocket.getLocalPort() + " SPID:" + spid + " "
-                + messageDetail + "\r\n");
+        logMsg.append(tcpSocket.getLocalAddress().toString()).append(":").append(tcpSocket.getLocalPort())
+                .append(" SPID:").append(spid).append(" ").append(messageDetail).append("\r\n");
 
         // Fill in the body of the log message, line by line, 16 bytes per line.
         int nBytesLogged = 0;
@@ -2301,7 +2301,7 @@ final class SocketFinder {
                 loggingString.append(". They are: ");
 
                 for (InetAddress inetAddr : inetAddrs) {
-                    loggingString.append(inetAddr.toString() + ";");
+                    loggingString.append(inetAddr.toString()).append(";");
                 }
 
                 logger.finer(loggingString.toString());
@@ -6169,7 +6169,7 @@ final class TDSPacket {
     final boolean isEOM() {
         return TDS.STATUS_BIT_EOM == (header[TDS.PACKET_HEADER_MESSAGE_STATUS] & TDS.STATUS_BIT_EOM);
     }
-};
+}
 
 
 /**

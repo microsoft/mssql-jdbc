@@ -6121,7 +6121,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     boolean isAzureDW() throws SQLServerException, SQLException {
         if (null == isAzureDW) {
             try (Statement stmt = this.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)");) {
+                    ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
                 // SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
                 // It should return 6 for SQL Azure DW. This is more reliable than @@version or
                 // serverproperty('edition').

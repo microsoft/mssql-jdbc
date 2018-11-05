@@ -27,7 +27,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  * Unit test case for Creating SavePoint.
  */
 @RunWith(JUnitPlatform.class)
-public class TestSavepoint extends AbstractTest {
+public class SavepointTest extends AbstractTest {
 
     String savePointName = RandomUtil.getIdentifier("SavePoint", 31, true, false);
 
