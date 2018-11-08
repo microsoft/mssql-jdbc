@@ -1972,7 +1972,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         stmtColumnEncriptionSetting);
                         SQLServerResultSet rs = stmt
                                 .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                        + Util.escapeSingleQuotes(tableName) + " '");) {
+                                        + Util.escapeSingleQuotes(tableName) + " '")) {
                     if (null != columnList && columnList.size() > 0) {
                         if (columnList.size() != valueList.size()) {
                             throw new IllegalArgumentException(
@@ -2003,6 +2003,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
 
                     SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                    SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                    option.setBulkCopyTimeout(queryTimeout);
+                    bcOperation.setBulkCopyOptions(option);
                     bcOperation.setDestinationTableName(tableName);
                     bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                     bcOperation.setDestinationTableMetadata(rs);
@@ -2126,7 +2129,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         stmtColumnEncriptionSetting);
                         SQLServerResultSet rs = stmt
                                 .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                        + Util.escapeSingleQuotes(tableName) + " '");) {
+                                        + Util.escapeSingleQuotes(tableName) + " '")) {
                     if (null != columnList && columnList.size() > 0) {
                         if (columnList.size() != valueList.size()) {
                             throw new IllegalArgumentException(
@@ -2157,6 +2160,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
 
                     SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                    SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                    option.setBulkCopyTimeout(queryTimeout);
+                    bcOperation.setBulkCopyOptions(option);
                     bcOperation.setDestinationTableName(tableName);
                     bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                     bcOperation.setDestinationTableMetadata(rs);

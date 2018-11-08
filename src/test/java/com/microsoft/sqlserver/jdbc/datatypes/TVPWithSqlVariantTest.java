@@ -371,8 +371,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         }
         try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                 .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
-            while (rs.next()) {
-            }
+            while (rs.next()) {}
         }
     }
 
@@ -394,8 +393,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             cstatement.execute();
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
-                while (rs.next()) {
-                }
+                while (rs.next()) {}
             }
         }
     }

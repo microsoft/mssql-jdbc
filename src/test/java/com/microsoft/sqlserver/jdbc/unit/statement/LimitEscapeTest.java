@@ -566,8 +566,8 @@ public class LimitEscapeTest extends AbstractTest {
                 "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
                         + " 'select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)'",
                 1, // #
-                // of
-                // rows
+                   // of
+                   // rows
                 5, // # of columns
                 new int[] {4}, // id column values
                 new int[][] {{4, 4}}, // int column value
