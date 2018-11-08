@@ -2169,6 +2169,55 @@ final class TDSChannel {
     final void setNetworkTimeout(int timeout) throws IOException {
         tcpSocket.setSoTimeout(timeout);
     }
+
+    boolean checkConnected() {
+        boolean isConnected = true;     
+        if (socketChannel != null)// this is to check that the connection was established using java NIO        
+        {       
+            // Use non-blocking socket channel read to read 1 byte. If 1 byte read is successful, there is parsing error.       
+            // detach() method called before checkConnection() should take care of reading all the response off the tdsReader for previous command      
+            // execution.       
+            // When noOfBytesRead is 0, connection is alive.        
+            try {       
+                socketChannel.configureBlocking(false);     
+                ByteBuffer bb = ByteBuffer.allocate(1);     
+                int noOfBytesRead = socketChannel.read(bb);     
+                if (noOfBytesRead > 0) {        
+                    // Parsing exception        
+                    if (logger.isLoggable(Level.SEVERE))        
+                        logger.severe(toString() + " got unexpected value in TDS response after previous response is read completely.");        
+                    con.throwInvalidTDS();      
+                }       
+                // When ManInTheMiddle is used to break connection(no kill SPID), noOfBytes=-1 when connection is broken. Non-blocking or blocking      
+                // read on the socket does not return       
+                // any exception when connection is dead and hence it is not possible to identify the dead state of the connection with an exception        
+                // when all the data is read.       
+                else if (noOfBytesRead == -1) {     
+                    isConnected = false;        
+                }       
+            }       
+            catch (IOException e) {     
+                // An existing connection was forcibly closed by the remote host        
+                isConnected = false;        
+            }       
+            finally {       
+                try {       
+                    socketChannel.configureBlocking(true);      
+                }       
+                catch (IOException e1) {        
+                    if (logger.isLoggable(Level.SEVERE))        
+                        logger.severe(toString() + " got " + e1.getMessage() + " exception.");      
+                    // If blocking mode on the connection can not be altered, further writes will fail with illegalBlockingMode exception. In such      
+                    // case, connection should be discarded.        
+                    // Reconnection will be attempted (new socketChannel, new socket, new input/output streams) hence nothing done here after catching      
+                    // the exception.       
+                    isConnected = false;        
+                }       
+            }       
+        }  
+        // TODO: exception if socketChannel was not created?
+        return isConnected;  
+    }
 }
 
 
@@ -7300,6 +7349,27 @@ abstract class TDSCommand {
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(this.toString() + ": Ignoring error from database: " + e.getMessage());
+        }
+    }
+    
+    // Before connection resiliency, interrupts were disabled during login as they were used only during query execution however we want to enable     
+    // them during reconnection.        
+    void startQueryTimeoutTimer(boolean updateInterrupts) {     
+        if (null != timeoutTimer)   // start the timer only if it was/is not already started        
+        {       
+            if (logger.isLoggable(Level.FINEST))        
+                logger.finest(this.toString() + ": Starting timer...");     
+        
+            if (updateInterrupts) {     
+                synchronized (interruptLock) {      
+                    wasInterrupted = false;     
+                    interruptReason = null;     
+                    interruptsEnabled = true; // interrupts are disabled by default. During reconnection when quertimeout timer is started, it does     
+                                              // not cause any interrupt since interrupts are disabled. Enabled here so that reconnection is stopped        
+                                              // after query timeout.       
+                }       
+            }       
+            timeoutTimer.start();       
         }
     }
 
