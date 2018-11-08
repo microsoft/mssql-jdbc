@@ -606,7 +606,7 @@ enum JavaType {
                 return false;
             return setterConversionAEMap.get(fromJavaType).contains(toJDBCType);
         }
-    };
+    }
 
 }
 
@@ -799,7 +799,7 @@ enum JDBCType {
         static boolean converts(JDBCType fromJDBCType, JDBCType toJDBCType) {
             return conversionMap.get(fromJDBCType.category).contains(toJDBCType.category);
         }
-    };
+    }
 
     boolean convertsTo(JDBCType jdbcType) {
         return SetterConversion.converts(this, jdbcType);
@@ -898,7 +898,7 @@ enum JDBCType {
         static boolean converts(JDBCType fromJDBCType, SSType toSSType) {
             return conversionMap.get(fromJDBCType.category).contains(toSSType.category);
         }
-    };
+    }
 
     boolean convertsTo(SSType ssType) {
         return UpdaterConversion.converts(this, ssType);
@@ -1076,7 +1076,7 @@ enum JDBCType {
         static boolean converts(JDBCType fromJDBCType, SSType toSSType) {
             return normalizationMapAE.get(fromJDBCType).contains(toSSType);
         }
-    };
+    }
 
     boolean normalizationCheck(SSType ssType) {
         return NormalizationAE.converts(this, ssType);

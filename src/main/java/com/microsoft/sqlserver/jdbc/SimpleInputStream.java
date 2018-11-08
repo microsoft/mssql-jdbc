@@ -37,7 +37,7 @@ abstract class BaseInputStream extends InputStream {
     }
 
     static final java.util.logging.Logger logger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.internals.InputStream");;
+            .getLogger("com.microsoft.sqlserver.jdbc.internals.InputStream");
     private String traceID;
 
     final public String toString() {
