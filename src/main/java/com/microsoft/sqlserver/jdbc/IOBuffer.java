@@ -743,6 +743,32 @@ final class TDSChannel {
             logger.finer(toString() + " SSL disabled");
     }
 
+    boolean checkConnected() throws SQLServerException {
+        int originalTimeout = 0;
+        try {
+            originalTimeout = channelSocket.getSoTimeout();
+            channelSocket.setSoTimeout(1);
+        } catch (SocketException e) {
+            return false;
+        }
+        try {
+            channelSocket.getInputStream().read(new byte[1], 0, 1);
+            SQLServerException.makeFromDriverError(con, this, "", null, true);
+            // Keeping the compiler happy for now.
+            return true;
+        } catch (SocketTimeoutException ste) {
+            return true;
+        } catch (IOException e) {
+            return false;
+        } finally {
+            try {
+                channelSocket.setSoTimeout(originalTimeout);
+            } catch (SocketException e) {
+
+            }
+        }
+    }
+
     /**
      * Used during SSL handshake, this class implements an InputStream that reads SSL handshake response data (framed in
      * TDS messages) from the TDS channel.
