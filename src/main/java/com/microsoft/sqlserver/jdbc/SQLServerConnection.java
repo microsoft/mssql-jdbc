@@ -3054,29 +3054,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
 
-        executeCommand(new ConnectionCommand(sql, logContext));
-    }
-
-    /*
-     * A copy of connectionCommand, we need this function to set server side options such as lockTimeout
-     * during a reconnect login as connectionCommand will be locked.
-     */
-    private void reconnectCommand(String sql, String logContext) throws SQLServerException {
-        final class ConnectionCommand extends UninterruptableTDSCommand {
-            final String sql;
-
-            ConnectionCommand(String sql, String logContext) {
-                super(logContext);
-                this.sql = sql;
-            }
-
-            final boolean doExecute() throws SQLServerException {
-                startRequest(TDS.PKT_QUERY).writeString(sql);
-                TDSParser.parse(startResponse(), getLogContext());
-                return true;
-            }
+        if (rt.isAlive()) {
+            executeReconnectCommand(new ConnectionCommand(sql, logContext));
+        } else {
+            executeCommand(new ConnectionCommand(sql, logContext));
         }
-        executeReconnectCommand(new ConnectionCommand(sql, logContext));
     }
 
     /**
@@ -3763,11 +3745,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalCatalog = sCatalog;
                 String sqlStmt = sqlStatementToInitialize();
                 if (sqlStmt != null) {
-                    if (!rt.isAlive()) {
-                        connectionCommand(sqlStmt, "Change Settings");
-                    } else {
-                        reconnectCommand(sqlStmt, "Change Settings");
-                    }
+                    connectionCommand(sqlStmt, "Change Settings");
                 }
             }
         } finally {
