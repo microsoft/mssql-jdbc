@@ -15,6 +15,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -575,6 +576,8 @@ public final class SQLServerDriver implements java.sql.Driver {
         instanceID = nextInstanceID();
         traceID = "SQLServerDriver:" + instanceID;
         loggingClassName = "com.microsoft.sqlserver.jdbc." + "SQLServerDriver:" + instanceID;
+        //how long a reconnect thread lives
+        reconnectThreadPoolExecutor.setKeepAliveTime(200, TimeUnit.MILLISECONDS);
     }
 
     /**

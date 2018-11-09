@@ -2957,21 +2957,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 //                  if (sessionRecovery.isConnectionRecoveryPossible()) {
 //                      if (sessionRecovery.getUnprocessedResponseCount() == 0) {
 //                          if (sessionRecovery.sessionStateTable.isRecoverable()) {
-                                if (isConnectionDead())// Ideally, isConnectionDead should be the first condition to be checked as rest of the checks
-                                                       // are required only if the connection is dead however it is the most expensive operation out
-                                                       // of the 4 conditions being checked for connection recovery hence it is checked as the last
-                                                       // condition.
-                                {
-                                    if (connectionlogger.isLoggable(Level.FINER)) {
-                                        connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
-                                    }
-                                    rt.reset();
-                                    newCommand.startQueryTimeoutTimer(true);
-                                    SQLServerDriver.reconnectThreadPoolExecutor.execute(sessionRecovery.getReconnectThread());
-                                    waitForThread = true;
-                                }
-                            }
+                    if (isConnectionDead())
+                    {
+                        if (connectionlogger.isLoggable(Level.FINER)) {
+                            connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
                         }
+                        rt.reset();
+                        newCommand.startQueryTimeoutTimer(true);
+                        SQLServerDriver.reconnectThreadPoolExecutor.execute(rt);
+                        waitForThread = true;
                     }
                 }
                 if (waitForThread) {
@@ -2983,7 +2977,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 // to wake up by reconnection thread. This number should be large enough to not frequently grab CPU from reconnection
                                 // thread while reconnection is
                                 // in progress.
-                                rt.wait(2000);// milliseconds
+                                rt.reconnectStateSynchronizer.wait(2000);// milliseconds
                             }
 
                             try {
@@ -3030,8 +3024,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             boolean commandComplete = false;
             try {
                 commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
-            }
-            finally {
+            } finally {
                 // We should never displace an existing currentCommand
                 // assert null == currentCommand;
 
