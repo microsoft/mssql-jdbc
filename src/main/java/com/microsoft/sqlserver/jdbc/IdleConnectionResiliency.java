@@ -151,6 +151,7 @@ class SessionStateTable {
     private String originalCatalog;
     private String originalLanguage;
     private SQLCollation originalCollation;
+    private byte originalNegotiatedEncryptionLevel = TDS.ENCRYPT_INVALID;
 
     SessionStateTable() {
         this.sessionStateDelta = new SessionStateValue[SESSION_STATE_ID_MAX];
@@ -257,5 +258,13 @@ class SessionStateTable {
 
     void setOriginalCollation(SQLCollation collation) {
         this.originalCollation = collation;
+    }
+
+    byte getOriginalNegotiatedEncryptionLevel() {
+        return originalNegotiatedEncryptionLevel;
+    }
+
+    void setOriginalNegotiatedEncryptionLevel(byte originalNegotiatedEncryptionLevel) {
+        this.originalNegotiatedEncryptionLevel = originalNegotiatedEncryptionLevel;
     }
 }
