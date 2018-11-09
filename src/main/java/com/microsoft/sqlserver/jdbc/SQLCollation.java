@@ -75,6 +75,11 @@ final class SQLCollation implements java.io.Serializable {
         return this.sortId;
     }
 
+    boolean isEqual(SQLCollation col) {
+        return ((col != null && col.info == info && col.sortId == sortId
+                && col.encoding.getCharsetName() == encoding.getCharsetName()) ? true : false);
+    }
+
     /**
      * Reads TDS collation from TDS buffer into SQLCollation class.
      * 
@@ -614,6 +619,10 @@ enum Encoding {
             throw new SQLServerException(form.format(msgArgs), e);
         }
         return charset;
+    }
+
+    String getCharsetName() {
+        return charsetName;
     }
 
     /**

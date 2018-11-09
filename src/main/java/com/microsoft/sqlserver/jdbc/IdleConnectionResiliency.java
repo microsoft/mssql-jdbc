@@ -142,12 +142,15 @@ class SessionStateValue {
 
 
 class SessionStateTable {
-    private static final int SESSION_STATE_ID_MAX = 256;
+    static final int SESSION_STATE_ID_MAX = 256;
     static final long MASTER_RECOVERY_DISABLE_SEQ_NUMBER = 0XFFFFFFFF;
     private boolean masterRecoveryDisabled;
     private byte[][] sessionStateInitial;
     private SessionStateValue sessionStateDelta[];
     private AtomicInteger unRecoverableSessionStateCount = new AtomicInteger(0);
+    private String originalCatalog;
+    private String originalLanguage;
+    private SQLCollation originalCollation;
 
     SessionStateTable() {
         this.sessionStateDelta = new SessionStateValue[SESSION_STATE_ID_MAX];
@@ -180,6 +183,34 @@ class SessionStateTable {
         sessionStateDelta[sessionStateId].setRecoverable(fRecoverable);
     }
 
+    /**
+     * @return length of initial session state data.
+     */
+    int getInitialLength() {
+        int length = 0;
+        for (int i = 0; i < SESSION_STATE_ID_MAX; i++) {
+            if (sessionStateInitial[i] != null) {
+                length += (1/* state id */ + (sessionStateInitial[i].length < 0xFF ? 1 : 3)/* Data length */
+                        + sessionStateInitial[i].length);
+            }
+        }
+        return length;
+    }
+
+    /**
+     * @return length of delta session state data.
+     */
+    int getDeltaLength() {
+        int length = 0;
+        for (int i = 0; i < SESSION_STATE_ID_MAX; i++) {
+            if (sessionStateDelta[i] != null && sessionStateDelta[i].getData() != null) {
+                length += (1/* state id */ + (sessionStateDelta[i].getDataLengh() < 0xFF ? 1 : 3)/* Data length */
+                        + sessionStateDelta[i].getDataLengh());
+            }
+        }
+        return length;
+    }
+
     boolean isMasterRecoveryDisabled() {
         return masterRecoveryDisabled;
     }
@@ -202,6 +233,30 @@ class SessionStateTable {
 
     void setSessionStateDelta(SessionStateValue[] sessionStateDelta) {
         this.sessionStateDelta = sessionStateDelta;
+    }
+
+    String getOriginalCatalog() {
+        return originalCatalog;
+    }
+
+    void setOriginalCatalog(String catalog) {
+        this.originalCatalog = catalog;
+    }
+
+    String getOriginalLanguage() {
+        return originalLanguage;
+    }
+
+    void setOriginalLanguage(String language) {
+        this.originalLanguage = language;
+    }
+
+    SQLCollation getOriginalCollation() {
+        return originalCollation;
+    }
+
+    void setOriginalCollation(SQLCollation collation) {
+        this.originalCollation = collation;
     }
 }
 

@@ -601,6 +601,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private SessionRecoveryFeature sessionRecovery = new SessionRecoveryFeature(this);
+    private volatile boolean reconnecting = false;
 
     static boolean isWindows;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
@@ -900,6 +901,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private String sCatalog = "master"; // the database catalog
     // This is the catalog immediately after login.
     private String originalCatalog = "master";
+
+    private String sLanguage = "us_english";
 
     private int transactionIsolationLevel;
     private SQLServerPooledConnection pooledConnectionParent;
@@ -3078,12 +3081,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * 
      * @param sDB
      *        the new catalog
-     * @return the required syntax
      */
     void setCatalogName(String sDB) {
         if (sDB != null) {
             if (sDB.length() > 0) {
                 sCatalog = sDB;
+            }
+        }
+    }
+
+    /**
+     * Sets the syntax to set the language to use.
+     *
+     * @param language
+     *        the new language
+     */
+    void setLanguageName(String language) {
+        if (language != null) {
+            if (language.length() > 0) {
+                sLanguage = language;
             }
         }
     }
@@ -3682,12 +3698,109 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     int writeSessionRecoveryFeatureRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
-        int len = 5;
+        int len = 0;
+        SessionStateTable ssTable = sessionRecovery.getSessionStateTable();
+        if (reconnecting) {
+            len = 4 // initial session state length
+                    + 1 // 1 byte of initial database length
+                    + toUCS16(ssTable.getOriginalCatalog()).length + 1 // 1 byte of initial collation length
+                    + (ssTable.getOriginalCollation() != null ? SQLCollation.tdsLength() : 0) + 1
+                    + toUCS16(ssTable.getOriginalLanguage()).length + ssTable.getInitialLength() + 4 + 1
+                    + (sCatalog.equals(ssTable.getOriginalCatalog()) ? 0 : sCatalog.length()) + 1
+                    + (databaseCollation != null
+                            && databaseCollation.isEqual(ssTable.getOriginalCollation()) ? 0 : SQLCollation.tdsLength())
+                    + 1 // 1 byte of current language length
+                    + (sLanguage.equals(ssTable.getOriginalLanguage()) ? 0 : sLanguage.length())
+                    + ssTable.getDeltaLength();
+        } else {
+            len = 0;
+        }
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_SESSIONRECOVERY);
-            tdsWriter.writeInt(0);
+            tdsWriter.writeInt(len);
+            if (reconnecting) {
+                tdsWriter.writeInt((int) (1 // 1 byte of initial database length
+                        + (toUCS16(ssTable.getOriginalCatalog()).length) + 1 // 1 byte of initial collation length
+                        + (ssTable.getOriginalCollation() != null ? SQLCollation.tdsLength() : 0) + 1
+                        + (toUCS16(ssTable.getOriginalLanguage()).length) + ssTable.getInitialLength()));
+
+                tdsWriter.writeByte((byte) ssTable.getOriginalCatalog().length());
+                tdsWriter.writeBytes(toUCS16(ssTable.getOriginalCatalog()));
+
+                if (ssTable.getOriginalCollation() != null) {
+                    tdsWriter.writeByte((byte) SQLCollation.tdsLength());
+                    ssTable.getOriginalCollation().writeCollation(tdsWriter);
+                } else {
+                    tdsWriter.writeByte((byte) 0); // collation length
+                }
+
+                tdsWriter.writeByte((byte) ssTable.getOriginalLanguage().length());
+                tdsWriter.writeBytes(toUCS16(ssTable.getOriginalLanguage()));
+
+                // Initial state
+                for (int i = 0; i < SessionStateTable.SESSION_STATE_ID_MAX; i++) {
+                    if (ssTable.getSessionStateInitial()[i] != null) {
+                        tdsWriter.writeByte((byte) i); // state id
+                        if (ssTable.getSessionStateInitial()[i].length >= 0xFF) {
+                            tdsWriter.writeByte((byte) 0xFF);
+                            tdsWriter.writeShort((short) ssTable.getSessionStateInitial()[i].length);
+                        } else
+                            tdsWriter.writeByte((byte) (ssTable.getSessionStateInitial()[i]).length); // state length
+                        tdsWriter.writeBytes(ssTable.getSessionStateInitial()[i]); // state value
+                    }
+                }
+
+                // delta data
+                tdsWriter.writeInt((int) (1// 1 byte of current database length
+                        + (sCatalog.equals(ssTable.getOriginalCatalog()) ? 0 : sCatalog.length()) + 1
+                        + (databaseCollation != null
+                                && databaseCollation.isEqual(ssTable.getOriginalCollation()) ? 0
+                                                                                             : SQLCollation.tdsLength())
+                        + 1 // 1 byte of current language length
+                        + (sLanguage.equals(ssTable.getOriginalLanguage()) ? 0 : sLanguage.length())
+                        + ssTable.getDeltaLength()));
+
+                // database/catalog
+                if (sCatalog.equals(ssTable.getOriginalCatalog())) {
+                    tdsWriter.writeByte((byte) 0);
+                } else {
+                    tdsWriter.writeByte((byte) sCatalog.length());
+                    tdsWriter.writeBytes(toUCS16(sCatalog));
+                }
+
+                // collation
+                if (databaseCollation != null && databaseCollation.isEqual(ssTable.getOriginalCollation())) {
+                    tdsWriter.writeByte((byte) 0);
+                } else {
+                    tdsWriter.writeByte((byte) SQLCollation.tdsLength());
+                    databaseCollation.writeCollation(tdsWriter);
+                }
+
+                // language
+                if (sLanguage.equals(ssTable.getOriginalLanguage())) {
+                    tdsWriter.writeByte((byte) 0);
+                } else {
+                    // Tt's a B_VARCHAR hence number of characters should be reported and not the number of bytes.
+                    tdsWriter.writeByte((byte) sLanguage.length());
+                    tdsWriter.writeBytes(toUCS16(sLanguage));
+                }
+
+                // Delta session state
+                for (int i = 0; i < SessionStateTable.SESSION_STATE_ID_MAX; i++) {
+                    if (ssTable.getSessionStateDelta()[i] != null
+                            && ssTable.getSessionStateDelta()[i].getData() != null) {
+                        tdsWriter.writeByte((byte) i); // state id
+                        if (ssTable.getSessionStateDelta()[i].getDataLengh() >= 0xFF) {
+                            tdsWriter.writeByte((byte) 0xFF);
+                            tdsWriter.writeShort((short) ssTable.getSessionStateDelta()[i].getDataLengh());
+                        } else
+                            tdsWriter.writeByte((byte) (ssTable.getSessionStateDelta()[i].getDataLengh()));
+                        tdsWriter.writeBytes(ssTable.getSessionStateDelta()[i].getData()); // state value
+                    }
+                }
+            }
         }
-        return len;
+        return (len + 1 /* feature-id length byte */ + 4 /* feature-data-length length DWORD */);
     }
 
     private final class LogonCommand extends UninterruptableTDSCommand {
@@ -3878,8 +3991,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             case ENVCHANGE_CHANGE_MIRROR:
                 setFailoverPartnerServerProvided(tdsReader.readUnicodeString(tdsReader.readUnsignedByte()));
                 break;
-            // Skip unsupported, ENVCHANGES
             case ENVCHANGE_LANGUAGE:
+                setLanguageName(tdsReader.readUnicodeString(tdsReader.readUnsignedByte()));
+                break;
+            // Skip unsupported, ENVCHANGES
             case ENVCHANGE_CHARSET:
             case ENVCHANGE_SORTLOCALEID:
             case ENVCHANGE_SORTFLAGS:
@@ -5022,6 +5137,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsReader = logonCommand.startResponse();
             TDSParser.parse(tdsReader, logonProcessor);
         } while (!logonProcessor.complete(logonCommand, tdsReader));
+
+        if(!reconnecting) {
+            sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
+            sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);
+            sessionRecovery.getSessionStateTable().setOriginalLanguage(sLanguage);
+        }
     }
 
     /* --------------- JDBC 3.0 ------------- */
