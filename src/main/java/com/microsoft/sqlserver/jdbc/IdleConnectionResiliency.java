@@ -12,10 +12,17 @@ class SessionRecoveryFeature {
     private boolean connectionRecoveryNegotiated;
     private int connectRetryCount;
     private SQLServerConnection connection;
-    SessionStateTable sessionStateTable;
+    private SessionStateTable sessionStateTable;
+    
+    long featureDataLen;
 
     SessionRecoveryFeature(SQLServerConnection connection) {
         this.connection = connection;
+    }
+    
+    //refer to TDS documentation
+    byte getFeatureID() {
+        return 0x01;
     }
 
     boolean isConnectionRecoveryNegotiated() {
@@ -74,7 +81,7 @@ class SessionRecoveryFeature {
 class SessionStateValue {
     private boolean isRecoverable;
     private int sequenceNumber;
-    private int dataLengh;
+    private int dataLength;
     private byte[] data;
 
     boolean isSequenceNumberGreater(int sequenceNumberToBeCompared) {
@@ -123,12 +130,12 @@ class SessionStateValue {
         this.sequenceNumber = sequenceNumber;
     }
 
-    int getDataLengh() {
-        return dataLengh;
+    int getDataLength() {
+        return dataLength;
     }
 
-    void setDataLengh(int dataLengh) {
-        this.dataLengh = dataLengh;
+    void setDataLengh(int dataLength) {
+        this.dataLength = dataLength;
     }
 
     byte[] getData() {
@@ -141,13 +148,17 @@ class SessionStateValue {
 }
 
 class SessionStateTable {
-    private static final int SESSION_STATE_ID_MAX = 256;
+    static final int SESSION_STATE_ID_MAX = 256;
     static final long MASTER_RECOVERY_DISABLE_SEQ_NUMBER = 0XFFFFFFFF;
     private boolean masterRecoveryDisabled;
     private byte[][] sessionStateInitial;
     private SessionStateValue sessionStateDelta[];
     private AtomicInteger unRecoverableSessionStateCount = new AtomicInteger(0);
     byte initialNegotiatedEncryptionLevel = TDS.ENCRYPT_INVALID;
+    
+    private String sOriginalCatalog;
+    private SQLCollation sOriginalCollation;
+    private String sOriginalLanguage;
 
     SessionStateTable(byte negotiatedEncryptionLevel) {
         this.sessionStateDelta = new SessionStateValue[SESSION_STATE_ID_MAX];
@@ -203,6 +214,58 @@ class SessionStateTable {
 
     void setSessionStateDelta(SessionStateValue[] sessionStateDelta) {
         this.sessionStateDelta = sessionStateDelta;
+    }
+    
+    void setOriginalCatalog(String cat) {
+        this.sOriginalCatalog = cat;
+    }
+    
+    void setOriginalCollation(SQLCollation col) {
+        this.sOriginalCollation = col;
+    }
+    
+    void setOriginalLanguage(String lang) {
+        this.sOriginalLanguage = lang;
+    }
+    
+    String getOriginalCatalog() {
+        return sOriginalCatalog;
+    }
+    
+    SQLCollation getOriginalCollation() {
+        return sOriginalCollation;
+    }
+    
+    String getOriginalLanaguage() {
+        return sOriginalLanguage;
+    }
+
+    // Length of initial session state data
+    // State id
+    // State length
+    // State value
+    long getInitialLength() {
+        long length = 0; // bytes
+        for (int i = 0; i < SESSION_STATE_ID_MAX; i++) {
+            if (sessionStateInitial[i] != null) {
+                length += (1/* state id */ + (sessionStateInitial[i].length < 0xFF ? 1 : 3)/* Data length */ + sessionStateInitial[i].length);
+            }
+        }
+        return length;
+    }    
+    
+    // Length of delta session state data
+    // State id
+    // State length
+    // State value
+    long getDeltaLength() {
+        long length = 0; // bytes
+        for (int i = 0; i < SESSION_STATE_ID_MAX; i++) {
+            if (sessionStateDelta[i] != null && sessionStateDelta[i].getData() != null) {
+                length += (1/* state id */ + (sessionStateDelta[i].getDataLength() < 0xFF ? 1 : 3)/* Data length */ + sessionStateDelta[i].getDataLength());
+            }
+        }
+        return length;
     }
 }
 

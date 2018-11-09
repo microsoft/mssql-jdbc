@@ -15,6 +15,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -575,6 +576,14 @@ public final class SQLServerDriver implements java.sql.Driver {
         instanceID = nextInstanceID();
         traceID = "SQLServerDriver:" + instanceID;
         loggingClassName = "com.microsoft.sqlserver.jdbc." + "SQLServerDriver:" + instanceID;
+        // KeepAliveTime defines time for which threads will remain alive. If they are alive for more than keepalivetime, they are terminated.
+        // One of the purposes for having thread pool is to ensure that if the situations where large number of connections fail due to infrastructre
+        // changes
+        // and try reconnection simultaneously, they get to share threads.
+        // Magical number 200 miliseconds does not have a mathematical reasonning right now however
+        // it should be large enough so that next connection object trying reconnection can leverage it but should not hog the resources when not
+        // required
+        reconnectThreadPoolExecutor.setKeepAliveTime(200, TimeUnit.MILLISECONDS);
     }
 
     /**
