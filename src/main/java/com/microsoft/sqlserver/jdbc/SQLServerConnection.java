@@ -601,7 +601,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private SessionRecoveryFeature sessionRecovery = new SessionRecoveryFeature(this);
-    private volatile boolean reconnecting = false;
 
     static boolean isWindows;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
@@ -3700,7 +3699,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     int writeSessionRecoveryFeatureRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
         int len = 0;
         SessionStateTable ssTable = sessionRecovery.getSessionStateTable();
-        if (reconnecting) {
+        if (rt.isAlive()) {
             len = 4 // initial session state length
                     + 1 // 1 byte of initial database length
                     + toUCS16(ssTable.getOriginalCatalog()).length + 1 // 1 byte of initial collation length
@@ -3718,7 +3717,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_SESSIONRECOVERY);
             tdsWriter.writeInt(len);
-            if (reconnecting) {
+            if (rt.isAlive()) {
                 tdsWriter.writeInt((int) (1 // 1 byte of initial database length
                         + (toUCS16(ssTable.getOriginalCatalog()).length) + 1 // 1 byte of initial collation length
                         + (ssTable.getOriginalCollation() != null ? SQLCollation.tdsLength() : 0) + 1
@@ -5138,7 +5137,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             TDSParser.parse(tdsReader, logonProcessor);
         } while (!logonProcessor.complete(logonCommand, tdsReader));
 
-        if(!reconnecting) {
+        if(!rt.isAlive()) {
             sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
             sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);
             sessionRecovery.getSessionStateTable().setOriginalLanguage(sLanguage);
