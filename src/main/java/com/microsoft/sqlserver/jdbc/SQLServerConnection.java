@@ -2297,9 +2297,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     boolean isFatalError(SQLServerException e) {
-        // NOTE: If these conditions are modified, consider modification to conditions in SQLServerConnection::login()
-        // and
-        // Reconnect::run()
+        /* NOTE: If these conditions are modified, consider modification to conditions in SQLServerConnection::login()
+         * and
+         * Reconnect::run()*/
         if ((SQLServerException.LOGON_FAILED == e.getErrorCode()) // actual logon failed, i.e. bad password
                 || (SQLServerException.PASSWORD_EXPIRED == e.getErrorCode()) // actual logon failed, i.e. password
                                                                              // isExpired
@@ -2449,25 +2449,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         if (rt.isAlive()) {
-            if (negotiatedEncryptionLevel != sessionRecovery.sessionStateTable.initialNegotiatedEncryptionLevel) {
-                connectionlogger.warning(toString()
-                        + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
-                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG,
-                        SQLServerException.getErrString("R_crClientSSLStateNotRecoverable"));
-                // fails fast similar to prelogin errors.
-            }
-
             try {
                 executeReconnect(new LogonCommand());
             } catch (SQLServerException e) {
+                // Won't fail fast. Back-off reconnection attempts in effect.
                 throw new SQLServerException(SQLServerException.getErrString("R_crServerSessionStateNotRecoverable"),
                         e);
-                // Won't fail fast. Backoff reconnection attempts in effect.
             }
         } else {
-            // We have successfully connected, now do the login. logon takes seconds timeout
-            if (sessionRecovery.getConnectRetryCount() != 0 || sessionRecovery.sessionStateTable == null)
-                sessionRecovery.sessionStateTable = new SessionStateTable(negotiatedEncryptionLevel);
+            // We have successfully connected, now do the login. Log on takes seconds timeout
+            if (sessionRecovery.getConnectRetryCount() != 0 || sessionRecovery.getSessionStateTable() == null)
+                sessionRecovery.setSessionStateTable(new SessionStateTable());
             executeCommand(new LogonCommand());
         }
     }
@@ -2477,7 +2469,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Negotiates prelogin information with the server.
+     * Negotiates pre-login information with the server.
      */
     void Prelogin(String serverName, int portNumber) throws SQLServerException {
         // Build a TDS Pre-Login packet to send to the server.
@@ -2486,7 +2478,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             fedAuthRequiredByUser = true;
         }
 
-        // Message length (incl. header)
+        // Message length (including header)
         final byte messageLength;
         final byte fedAuthOffset;
         if (fedAuthRequiredByUser) {
@@ -3008,36 +3000,38 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (!tdsChannel.checkConnected());
     }
 
+    /*
+     * executeCommand without reconnection logic. Only used by the reconnect thread to avoid a lock.
+     */
     synchronized boolean executeReconnectCommand(TDSCommand newCommand) throws SQLServerException {
-        // Detach (buffer) the response from any previously executing
-        // command so that we can execute the new command.
-        //
-        // Note that detaching the response does not process it. Detaching just
-        // buffers the response off of the wire to clear the TDS channel.
+        /* Detach (buffer) the response from any previously executing
+         * command so that we can execute the new command.
+         *
+         * Note that detaching the response does not process it. Detaching just
+         * buffers the response off of the wire to clear the TDS channel.*/
         if (null != currentCommand) {
             currentCommand.detach();
             currentCommand = null;
         }
 
-        // The implementation of this scheduler is pretty simple...
-        // Since only one command at a time may use a connection
-        // (to avoid TDS protocol errors), just synchronize to
-        // serialize command execution.
+        /* The implementation of this scheduler is pretty simple...
+         * Since only one command at a time may use a connection
+         * (to avoid TDS protocol errors), just synchronize to
+         * serialize command execution.*/
         boolean commandComplete = false;
         try {
             commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
         } finally {
-            // We should never displace an existing currentCommand
-            // assert null == currentCommand;
-
-            // If execution of the new command left response bytes on the wire
-            // (e.g. a large ResultSet or complex response with multiple results)
-            // then remember it as the current command so that any subsequent call
-            // to executeCommand will detach it before executing another new command.
+            /* We should never displace an existing currentCommand
+             * assert null == currentCommand;
+             *
+             * If execution of the new command left response bytes on the wire
+             * (e.g. a large ResultSet or complex response with multiple results)
+             * then remember it as the current command so that any subsequent call
+             * to executeCommand will detach it before executing another new command.*/
             if (!commandComplete && !isSessionUnAvailable())
                 currentCommand = newCommand;
         }
-
         return commandComplete;
     }
 
@@ -3063,6 +3057,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         executeCommand(new ConnectionCommand(sql, logContext));
     }
 
+    /*
+     * A copy of connectionCommand, we need this function to set server side options such as lockTimeout
+     * during a reconnect login as connectionCommand will be locked.
+     */
     private void reconnectCommand(String sql, String logContext) throws SQLServerException {
         final class ConnectionCommand extends UninterruptableTDSCommand {
             final String sql;

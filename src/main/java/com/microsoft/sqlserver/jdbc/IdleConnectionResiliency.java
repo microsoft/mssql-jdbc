@@ -12,7 +12,7 @@ class SessionRecoveryFeature {
     private boolean connectionRecoveryNegotiated;
     private int connectRetryCount;
     private SQLServerConnection connection;
-    SessionStateTable sessionStateTable;
+    private SessionStateTable sessionStateTable;
 
     SessionRecoveryFeature(SQLServerConnection connection) {
         this.connection = connection;
@@ -147,12 +147,10 @@ class SessionStateTable {
     private byte[][] sessionStateInitial;
     private SessionStateValue sessionStateDelta[];
     private AtomicInteger unRecoverableSessionStateCount = new AtomicInteger(0);
-    byte initialNegotiatedEncryptionLevel = TDS.ENCRYPT_INVALID;
 
-    SessionStateTable(byte negotiatedEncryptionLevel) {
+    SessionStateTable() {
         this.sessionStateDelta = new SessionStateValue[SESSION_STATE_ID_MAX];
         this.sessionStateInitial = new byte[SessionStateTable.SESSION_STATE_ID_MAX][];
-        initialNegotiatedEncryptionLevel = negotiatedEncryptionLevel;
     }
 
     void updateSessionState(TDSReader tdsReader, short sessionStateId, int sessionStateLength, int sequenceNumber,
