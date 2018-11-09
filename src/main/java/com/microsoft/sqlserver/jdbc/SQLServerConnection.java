@@ -2458,7 +2458,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, SQLServerException.getErrString("R_crClientSSLStateNotRecoverable"));
                 // fails fast similar to prelogin errors.
             }
-            
             try {
                 // do something with session state here?
                 executeReconnect(new LogonCommand());
