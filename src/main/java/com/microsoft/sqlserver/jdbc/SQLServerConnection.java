@@ -2452,6 +2452,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         if (rt.isAlive()) {
+            if (negotiatedEncryptionLevel != sessionRecovery.getSessionStateTable().getOriginalNegotiatedEncryptionLevel()) {
+                connectionlogger.warning(
+                        toString() + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
+                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, SQLServerException.getErrString("R_crClientSSLStateNotRecoverable"));
+                // fails fast similar to prelogin errors.
+            }
+            
             try {
                 // do something with session state here?
                 executeReconnect(new LogonCommand());
@@ -2463,6 +2470,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } else {
             // We have successfully connected, now do the login. Log on takes seconds timeout
             sessionRecovery.setSessionStateTable(new SessionStateTable());
+            sessionRecovery.getSessionStateTable().setOriginalNegotiatedEncryptionLevel(negotiatedEncryptionLevel);
             executeCommand(new LogonCommand());
         }
     }
