@@ -2450,6 +2450,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         if (rt.isAlive()) {
             try {
+                //do something with session state here?
                 executeReconnect(new LogonCommand());
             } catch (SQLServerException e) {
                 // Won't fail fast. Back-off reconnection attempts in effect.
@@ -2458,8 +2459,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         } else {
             // We have successfully connected, now do the login. Log on takes seconds timeout
-            if (sessionRecovery.getConnectRetryCount() != 0 || sessionRecovery.getSessionStateTable() == null)
-                sessionRecovery.setSessionStateTable(new SessionStateTable());
+            sessionRecovery.setSessionStateTable(new SessionStateTable());
             executeCommand(new LogonCommand());
         }
     }
