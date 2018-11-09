@@ -376,9 +376,6 @@ public final class SQLServerDriver implements java.sql.Driver {
             + " for SQL Server";
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
     
-
-    static final ThreadPoolExecutor reconnectThreadPoolExecutor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
-
     private static final String[] TRUE_FALSE = {"true", "false"};
     private static final SQLServerDriverPropertyInfo[] DRIVER_PROPERTIES = {
             // default required available choices
@@ -576,8 +573,6 @@ public final class SQLServerDriver implements java.sql.Driver {
         instanceID = nextInstanceID();
         traceID = "SQLServerDriver:" + instanceID;
         loggingClassName = "com.microsoft.sqlserver.jdbc." + "SQLServerDriver:" + instanceID;
-        //how long a reconnect thread lives
-        reconnectThreadPoolExecutor.setKeepAliveTime(200, TimeUnit.MILLISECONDS);
     }
 
     /**
