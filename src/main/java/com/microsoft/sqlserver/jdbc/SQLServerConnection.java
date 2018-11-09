@@ -896,7 +896,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     static private final AtomicInteger baseConnectionID = new AtomicInteger(0); // connection id dispenser
-    private String sLanguage = "us_english";
     // This is the current catalog
     private String sCatalog = "master"; // the database catalog
     // This is the catalog immediately after login.
@@ -2454,7 +2453,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         if (rt.isRunning()) {
-            if (negotiatedEncryptionLevel != sessionRecovery.getSessionStateTable().initialNegotiatedEncryptionLevel) {
+            if (negotiatedEncryptionLevel != sessionRecovery.sessionStateTable.initialNegotiatedEncryptionLevel) {
                 connectionlogger.warning(
                         toString() + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
                 terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, SQLServerException.getErrString("R_crClientSSLStateNotRecoverable"));
@@ -2471,8 +2470,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
         else {
             // We have successfully connected, now do the login. logon takes seconds timeout
-            if (sessionRecovery.getConnectRetryCount() != 0 || sessionRecovery.getSessionStateTable() == null)
-                sessionRecovery.setSessionStateTable(new SessionStateTable(negotiatedEncryptionLevel));
+            if (sessionRecovery.getConnectRetryCount() != 0 || sessionRecovery.sessionStateTable == null)
+                sessionRecovery.sessionStateTable = new SessionStateTable(negotiatedEncryptionLevel);
             executeCommand(new LogonCommand());
         }
     }
@@ -2958,21 +2957,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 //                  if (sessionRecovery.isConnectionRecoveryPossible()) {
 //                      if (sessionRecovery.getUnprocessedResponseCount() == 0) {
 //                          if (sessionRecovery.sessionStateTable.isRecoverable()) {
-                    if (isConnectionDead())// Ideally, isConnectionDead should be the first condition to be checked as
-                                           // rest of the checks
-                                           // are required only if the connection is dead however it is the most
-                                           // expensive operation out
-                                           // of the 4 conditions being checked for connection recovery hence it is
-                                           // checked as the last
-                                           // condition.
-                    {
-                        if (connectionlogger.isLoggable(Level.FINER)) {
-                            connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
+                                if (isConnectionDead())// Ideally, isConnectionDead should be the first condition to be checked as rest of the checks
+                                                       // are required only if the connection is dead however it is the most expensive operation out
+                                                       // of the 4 conditions being checked for connection recovery hence it is checked as the last
+                                                       // condition.
+                                {
+                                    if (connectionlogger.isLoggable(Level.FINER)) {
+                                        connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
+                                    }
+                                    rt.reset();
+                                    newCommand.startQueryTimeoutTimer(true);
+                                    SQLServerDriver.reconnectThreadPoolExecutor.execute(sessionRecovery.getReconnectThread());
+                                    waitForThread = true;
+                                }
+                            }
                         }
-                        rt.reset();
-                        newCommand.startQueryTimeoutTimer(true);
-                        SQLServerDriver.reconnectThreadPoolExecutor.execute(rt);
-                        waitForThread = true;
                     }
                 }
                 if (waitForThread) {
@@ -2984,7 +2983,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 // to wake up by reconnection thread. This number should be large enough to not frequently grab CPU from reconnection
                                 // thread while reconnection is
                                 // in progress.
-                                rt.reconnectStateSynchronizer.wait(2000);// milliseconds
+                                rt.wait(2000);// milliseconds
                             }
 
                             try {
@@ -3031,7 +3030,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             boolean commandComplete = false;
             try {
                 commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
-            } finally {
+            }
+            finally {
                 // We should never displace an existing currentCommand
                 // assert null == currentCommand;
 
@@ -3154,20 +3154,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (sDB != null) {
             if (sDB.length() > 0) {
                 sCatalog = sDB;
-            }
-        }
-    }
-    
-    /**
-     * Returns the syntax to set the language to use
-     * 
-     * @param sLang
-     *            the new language sLanguage stored the language for the connection object.
-     */
-    void setLanguageName(String sLang) {
-        if (sLang != null) {
-            if (sLang.length() > 0) {
-                sLanguage = sLang;
             }
         }
     }
@@ -3765,131 +3751,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return len;
     }
 
-    int writeSessionRecoveryFeatureRequest(boolean write,
-            TDSWriter tdsWriter) throws SQLServerException {
-        /*
-         * int len = 5;// 1 byte flag+empyu data if (write) { tdsWriter.writeByte((byte) sessionRecovery.featureId); // FEATUREEXT_TCE
-         * tdsWriter.writeInt(0); // send empty session state during login } return len;
-         * 
-         */
-
-        if (rt.isRunning()) {
-            // Get stored session state length
-            sessionRecovery.featureDataLen = 4 /* initial session state length */ + 1 /* 1 byte of initial database length */
-                    + (toUCS16(sessionRecovery.getSessionStateTable().getOriginalCatalog()).length) + 1 /* 1 byte of initial collation length */
-                    + (sessionRecovery.getSessionStateTable().getOriginalCollation() != null ? SQLCollation.tdsLength() : 0) + 1 /* 1 byte of initial language length */
-                    + (toUCS16(sessionRecovery.getSessionStateTable().getOriginalLanaguage()).length) + sessionRecovery.getSessionStateTable().getInitialLength()
-                    + 4 /* delta sessions state length */ + 1 /* 1 byte of current database length */
-                    + (sCatalog.equals(sessionRecovery.getSessionStateTable().getOriginalCatalog()) ? 0 : sCatalog.length()) + 1 /* 1 byte of current collation length */
-                    + (databaseCollation != null && databaseCollation.isEqual(sessionRecovery.getSessionStateTable().getOriginalCollation()) ? 0 : SQLCollation.tdsLength())
-                    + 1 /* 1 byte of current language length */ + (sLanguage.equals(sessionRecovery.getSessionStateTable().getOriginalLanaguage()) ? 0 : sLanguage.length())
-                    + sessionRecovery.getSessionStateTable().getDeltaLength();
-        }
-        else // This is initial connection. Hence data should be empty.
-        {
-            sessionRecovery.featureDataLen = 0;
-        }
-
+    int writeSessionRecoveryFeatureRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
+        int len = 5;
         if (write) {
-            tdsWriter.writeByte(sessionRecovery.getFeatureID());       // BYTE
-            tdsWriter.writeInt((int) sessionRecovery.featureDataLen);  // DWORD
-            if (rt.isRunning()) {
-
-                // initial data
-                tdsWriter.writeInt((int) (1 /* 1 byte of initial database length */ + (toUCS16(sessionRecovery.getSessionStateTable().getOriginalCatalog()).length)
-                        + 1 /* 1 byte of initial collation length */
-                        + (sessionRecovery.getSessionStateTable().getOriginalCollation() != null ? SQLCollation.tdsLength() : 0) + 1 /* 1 byte of initial language length */
-                        + (toUCS16(sessionRecovery.getSessionStateTable().getOriginalLanaguage()).length) + sessionRecovery.getSessionStateTable().getInitialLength()));
-
-                // database/catalog
-                byte abyte[] = toUCS16(sessionRecovery.getSessionStateTable().getOriginalCatalog());
-                tdsWriter.writeByte((byte) sessionRecovery.getSessionStateTable().getOriginalCatalog().length());
-                tdsWriter.writeBytes(abyte);
-
-                // collation
-                if (sessionRecovery.getSessionStateTable().getOriginalCollation() != null) {
-                    tdsWriter.writeByte((byte) SQLCollation.tdsLength());
-                    sessionRecovery.getSessionStateTable().getOriginalCollation().writeCollation(tdsWriter);
-                }
-                else
-                    tdsWriter.writeByte((byte) 0); // collation length
-
-                // language
-                abyte = toUCS16(sessionRecovery.getSessionStateTable().getOriginalLanaguage());
-                tdsWriter.writeByte((byte) sessionRecovery.getSessionStateTable().getOriginalLanaguage().length());
-                tdsWriter.writeBytes(abyte);
-
-                int i;
-                // Initial state
-                for (i = 0; i < SessionStateTable.SESSION_STATE_ID_MAX; i++) {
-                    if (sessionRecovery.getSessionStateTable().getSessionStateInitial()[i] != null) {
-                        tdsWriter.writeByte((byte) i); // state id
-                        if (sessionRecovery.getSessionStateTable().getSessionStateInitial()[i].length >= 0xFF) {
-                            tdsWriter.writeByte((byte) 0xFF);
-                            tdsWriter.writeShort((short) sessionRecovery.getSessionStateTable().getSessionStateInitial()[i].length);
-                        }
-                        else
-                            tdsWriter.writeByte((byte) (sessionRecovery.getSessionStateTable().getSessionStateInitial()[i]).length); // state length
-                        tdsWriter.writeBytes(sessionRecovery.getSessionStateTable().getSessionStateInitial()[i]);   // state value
-                    }
-                }
-
-                // delta data
-                tdsWriter.writeInt((int) (1
-                        /* 1 byte of current database length */ + (sCatalog.equals(sessionRecovery.getSessionStateTable().getOriginalCatalog()) ? 0 : sCatalog.length())
-                        + 1 /* 1 byte of current collation length */
-                        + (databaseCollation != null && databaseCollation.isEqual(sessionRecovery.getSessionStateTable().getOriginalCollation()) ? 0
-                                : SQLCollation.tdsLength())
-                        + 1 /* 1 byte of current langugae length */ + (sLanguage.equals(sessionRecovery.getSessionStateTable().getOriginalLanaguage()) ? 0 : sLanguage.length())
-                        + sessionRecovery.getSessionStateTable().getDeltaLength()));
-
-                // database/catalog
-                if (sCatalog.equals(sessionRecovery.getSessionStateTable().getOriginalCatalog())) {
-                    tdsWriter.writeByte((byte) 0);
-                }
-                else {
-                    tdsWriter.writeByte((byte) sCatalog.length());
-                    tdsWriter.writeBytes(toUCS16(sCatalog));
-                }
-
-                // collation
-                if (databaseCollation != null && databaseCollation.isEqual(sessionRecovery.getSessionStateTable().getOriginalCollation())) {
-                    tdsWriter.writeByte((byte) 0);
-                }
-                else {
-                    tdsWriter.writeByte((byte) SQLCollation.tdsLength());
-                    databaseCollation.writeCollation(tdsWriter);
-                }
-
-                // langugae
-                if (sLanguage.equals(sessionRecovery.getSessionStateTable().getOriginalLanaguage())) {
-                    tdsWriter.writeByte((byte) 0);
-                }
-                else {
-                    tdsWriter.writeByte((byte) sLanguage.length());    // it's a B_VARCHAR hence no. of characters should be reported and not the
-                                                                       // no. of bytes.
-                    tdsWriter.writeBytes(toUCS16(sLanguage));
-                }
-
-                // Delta session state
-                for (i = 0; i < SessionStateTable.SESSION_STATE_ID_MAX; i++) {
-                    if (sessionRecovery.getSessionStateTable().getSessionStateDelta()[i] != null && sessionRecovery.getSessionStateTable().getSessionStateDelta()[i].getData() != null) {
-                        tdsWriter.writeByte((byte) i); // state id
-                        if (sessionRecovery.getSessionStateTable().getSessionStateDelta()[i].getDataLength() >= 0xFF) {
-                            tdsWriter.writeByte((byte) 0xFF);
-                            tdsWriter.writeShort((short) sessionRecovery.getSessionStateTable().getSessionStateDelta()[i].getDataLength());
-                        }
-                        else
-                            tdsWriter.writeByte((byte) (sessionRecovery.getSessionStateTable().getSessionStateDelta()[i].getDataLength())); // state length
-                        tdsWriter.writeBytes(sessionRecovery.getSessionStateTable().getSessionStateDelta()[i].getData());    // state value
-                    }
-                }
-
-            }
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_SESSIONRECOVERY);
+            tdsWriter.writeInt(0);
         }
-
-        // TODO: check if its long or int
-        return (int) sessionRecovery.featureDataLen;
+        return len;
     }
 
     private final class LogonCommand extends UninterruptableTDSCommand {
@@ -4084,12 +3952,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             case ENVCHANGE_CHANGE_MIRROR:
                 setFailoverPartnerServerProvided(tdsReader.readUnicodeString(tdsReader.readUnsignedByte()));
                 break;
-
-            case ENVCHANGE_LANGUAGE:
-                setLanguageName(tdsReader.readUnicodeString(tdsReader.readUnsignedByte()));
-                break;
-
             // Skip unsupported, ENVCHANGES
+            case ENVCHANGE_LANGUAGE:
             case ENVCHANGE_CHARSET:
             case ENVCHANGE_SORTLOCALEID:
             case ENVCHANGE_SORTFLAGS:
@@ -4872,12 +4736,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      *        (optional) if non-zero, seconds to wait for logon to be sent.
      * @throws SQLServerException
      */
-    /**
-     * @param logonCommand
-     * @param authentication
-     * @param fedAuthFeatureExtensionData
-     * @throws SQLServerException
-     */
     private void sendLogon(LogonCommand logonCommand, SSPIAuthentication authentication,
             FederatedAuthenticationFeatureExtensionData fedAuthFeatureExtensionData) throws SQLServerException {
         // TDS token handler class for processing logon responses.
@@ -5238,21 +5096,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsReader = logonCommand.startResponse();
             TDSParser.parse(tdsReader, logonProcessor);
         } while (!logonProcessor.complete(logonCommand, tdsReader));
-        
-        if (rt.isRunning() && (!sessionRecovery.isConnectionRecoveryNegotiated())) // If featureExtAck not received during reconnection, fail fast
-        {
-            if (connectionlogger.isLoggable(Level.FINER)) {
-                connectionlogger.finer(this.toString() + "SessionRecovery feature extenstion ack was not sent by the server during reconnection.");
-            }
-            terminate(SQLServerException.DRIVER_ERROR_INVALID_TDS, SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin"));
-        }
-
-        if (!rt.isRunning()) // store initial state variables during initial connection.
-        {
-            sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
-            sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);
-            sessionRecovery.getSessionStateTable().setOriginalLanguage(sLanguage);
-        }
     }
 
     /* --------------- JDBC 3.0 ------------- */

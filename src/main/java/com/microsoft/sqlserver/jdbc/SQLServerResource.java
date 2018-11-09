@@ -538,6 +538,5 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_invalidConnectRetryCount", "Connection retry count {0} is not valid."},
             {"R_connectRetryCountPropertyDescription", "The maximum number of attempts to reestablish a broken connection."},
             {"R_invalidConnectRetryInterval", "Connection retry interval {0} is not valid."},
-            {"R_connectRetryIntervalPropertyDescription", "The interval, in seconds, between attempts to reestablish a connection."},
-    };
+            {"R_connectRetryIntervalPropertyDescription", "The interval, in seconds, between attempts to reestablish a connection."},};
 }

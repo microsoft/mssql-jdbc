@@ -743,16 +743,16 @@ final class TDSChannel {
             logger.finer(toString() + " SSL disabled");
     }
 
-    synchronized boolean checkConnected() throws SQLServerException {
+    boolean checkConnected() throws SQLServerException {
         int originalTimeout = 0;
         try {
-            originalTimeout = tcpSocket.getSoTimeout();
-            tcpSocket.setSoTimeout(1);
+            originalTimeout = channelSocket.getSoTimeout();
+            channelSocket.setSoTimeout(1);
         } catch (SocketException e) {
             return false;
         }
         try {
-            tcpSocket.getInputStream().read(new byte[1], 0, 1);
+            channelSocket.getInputStream().read(new byte[1], 0, 1);
             SQLServerException.makeFromDriverError(con, this, "", null, true);
             // Keeping the compiler happy for now.
             return true;
@@ -762,7 +762,7 @@ final class TDSChannel {
             return false;
         } finally {
             try {
-                tcpSocket.setSoTimeout(originalTimeout);
+                channelSocket.setSoTimeout(originalTimeout);
             } catch (SocketException e) {
 
             }
