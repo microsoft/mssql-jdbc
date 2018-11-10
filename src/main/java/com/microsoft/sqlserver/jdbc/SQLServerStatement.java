@@ -1491,6 +1491,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                     // The final done token in the response always marks the end of the result,
                     // even if there is no update count.
                     if (doneToken.isFinal()) {
+                        // Response is completely processed, hence decrement unprocessed response count.
+                        connection.getSessionRecovery().decrementUnprocessedResponseCount();
                         moreResults = false;
                         return false;
                     }

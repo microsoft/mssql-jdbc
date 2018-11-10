@@ -14,6 +14,8 @@ class SessionRecoveryFeature {
     private SQLServerConnection connection;
     private SessionStateTable sessionStateTable;
     private ReconnectThread reconnectThread;
+    private AtomicInteger unprocessedResponseCount = new AtomicInteger();
+    private boolean connectionRecoveryPossible;
 
     SessionRecoveryFeature(SQLServerConnection connection) {
         this.connection = connection;
@@ -56,6 +58,18 @@ class SessionRecoveryFeature {
         this.sessionStateTable = sessionStateTable;
     }
 
+    boolean isConnectionRecoveryPossible() {
+        return connectionRecoveryPossible;
+    }
+
+    void setConnectionRecoveryPossible(boolean connectionRecoveryPossible) {
+        this.connectionRecoveryPossible = connectionRecoveryPossible;
+    }
+
+    void resetUnprocessedResponseCount() {
+        this.unprocessedResponseCount.set(0);
+    }
+
     void parseInitialSessionStateData(TDSReader tdsReader, byte[][] sessionStateInitial) throws SQLServerException {
         int bytesRead = 0;
         int dataLength = tdsReader.readInt();
@@ -72,6 +86,28 @@ class SessionRecoveryFeature {
             sessionStateInitial[sessionStateId] = new byte[sessionStateLength];
             tdsReader.readBytes(sessionStateInitial[sessionStateId], 0, sessionStateLength);
             bytesRead += sessionStateLength;
+        }
+    }
+
+    void incrementUnprocessedResponseCount() {
+        if (connectionRecoveryNegotiated && connectionRecoveryPossible && !getReconnectThread().isAlive()) {
+            if (unprocessedResponseCount.incrementAndGet() < 0)
+                /*
+                 * When this number rolls over, connection recovery is disabled for the rest of the life of the
+                 * connection.
+                 */
+                connectionRecoveryPossible = false;
+        }
+    }
+
+    void decrementUnprocessedResponseCount() {
+        if (connectionRecoveryNegotiated && connectionRecoveryPossible && !getReconnectThread().isAlive()) {
+            if (unprocessedResponseCount.decrementAndGet() < 0)
+                /*
+                 * When this number rolls over, connection recovery is disabled for the rest of the life of the
+                 * connection.
+                 */
+                connectionRecoveryPossible = false;
         }
     }
 }

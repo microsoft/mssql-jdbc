@@ -209,6 +209,10 @@ class TDSTokenHandler {
     boolean onDone(TDSReader tdsReader) throws SQLServerException {
         StreamDone doneToken = new StreamDone();
         doneToken.setFromTDS(tdsReader);
+        if (doneToken.isFinal()) {
+            // Response is completely processed hence decrement unprocessed response count.
+            tdsReader.getConnection().getSessionRecovery().decrementUnprocessedResponseCount();
+        }
         return true;
     }
 

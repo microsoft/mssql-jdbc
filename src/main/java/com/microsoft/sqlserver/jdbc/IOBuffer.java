@@ -7692,7 +7692,8 @@ abstract class TDSCommand {
                 timeoutTimer.stop();
             }
         }
-
+        // A new response is received hence increment unprocessed response count.
+        tdsReader.getConnection().getSessionRecovery().incrementUnprocessedResponseCount();
         return tdsReader;
     }
 }

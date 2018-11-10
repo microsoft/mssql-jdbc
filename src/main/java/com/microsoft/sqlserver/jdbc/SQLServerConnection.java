@@ -600,6 +600,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private SessionRecoveryFeature sessionRecovery = new SessionRecoveryFeature(this);
 
+    SessionRecoveryFeature getSessionRecovery() {
+        return sessionRecovery;
+    }
+
     static boolean isWindows;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
     static {
