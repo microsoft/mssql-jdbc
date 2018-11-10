@@ -13,9 +13,11 @@ class SessionRecoveryFeature {
     private int connectRetryCount;
     private SQLServerConnection connection;
     private SessionStateTable sessionStateTable;
+    private ReconnectThread reconnectThread;
 
     SessionRecoveryFeature(SQLServerConnection connection) {
         this.connection = connection;
+        reconnectThread = new ReconnectThread(connection);
     }
 
     boolean isConnectionRecoveryNegotiated() {
@@ -40,6 +42,10 @@ class SessionRecoveryFeature {
 
     void setConnection(SQLServerConnection connection) {
         this.connection = connection;
+    }
+
+    ReconnectThread getReconnectThread() {
+        return reconnectThread;
     }
 
     SessionStateTable getSessionStateTable() {
@@ -280,6 +286,7 @@ final class ReconnectThread extends Thread {
      * This class is only meant to be used by a Connection object to reconnect in the background. Don't allow default
      * instantiation as it doesn't make sense.
      */
+    @SuppressWarnings("unused")
     private ReconnectThread() {};
 
     ReconnectThread(SQLServerConnection sqlC) {
