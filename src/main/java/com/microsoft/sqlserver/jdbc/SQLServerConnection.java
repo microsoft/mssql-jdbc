@@ -2456,10 +2456,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 connectionlogger.warning(
                         toString() + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
                 terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, SQLServerException.getErrString("R_crClientSSLStateNotRecoverable"));
-                // fails fast similar to prelogin errors.
+                // fails fast similar to pre-login errors.
             }
             try {
-                // do something with session state here?
                 executeReconnect(new LogonCommand());
             } catch (SQLServerException e) {
                 // Won't fail fast. Back-off reconnection attempts in effect.
