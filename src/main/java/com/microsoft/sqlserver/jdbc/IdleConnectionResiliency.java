@@ -269,7 +269,6 @@ class SessionStateTable {
     }
 }
 
-
 final class ReconnectThread extends Thread {
     private SQLServerConnection con = null;
     private SQLServerException eReceived = null;
