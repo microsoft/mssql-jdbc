@@ -268,3 +268,81 @@ class SessionStateTable {
         this.originalNegotiatedEncryptionLevel = originalNegotiatedEncryptionLevel;
     }
 }
+
+final class ReconnectThread extends Thread {
+    private SQLServerConnection con = null;
+    private SQLServerException eReceived = null;
+
+    private volatile boolean stopRequested = false;
+    private int connectRetryCount = 0;
+
+    /*
+     * This class is only meant to be used by a Connection object to reconnect in the background. Don't allow default
+     * instantiation as it doesn't make sense.
+     */
+    private ReconnectThread() {};
+
+    ReconnectThread(SQLServerConnection sqlC) {
+        this.con = sqlC;
+    }
+
+    private void reset() {
+        connectRetryCount = con.getRetryCount();
+        eReceived = null;
+        stopRequested = false;
+    }
+
+    public void run() {
+        reset();
+        boolean keepRetrying = true;
+
+        while ((connectRetryCount != 0) && (!stopRequested) && keepRetrying) {
+            try {
+                eReceived = null;
+                con.connect(null, con.getPooledConnectionParent());
+                keepRetrying = false;
+            } catch (SQLServerException e) {
+                if (!stopRequested) {
+                    eReceived = e;
+                    if (con.isFatalError(e)) {
+                        keepRetrying = false;
+                    } else {
+                        try {
+                            if (connectRetryCount > 1)
+                                Thread.sleep(con.getRetryInterval() * 1000);
+                        } catch (InterruptedException e1) {
+                            this.eReceived = new SQLServerException(e1.getMessage(), null, DriverError.NOT_SET, null);
+                            keepRetrying = false;
+                        }
+                    }
+                }
+            } finally {
+                connectRetryCount--;
+            }
+        }
+
+        if ((connectRetryCount == 0) && (keepRetrying)) {
+            eReceived = new SQLServerException(SQLServerException.getErrString("R_crClientAllRecoveryAttemptsFailed"),
+                    eReceived);
+        }
+
+        return;
+    }
+
+    void stop(boolean blocking) {
+        stopRequested = true;
+        if (blocking && this.isAlive()) {
+            while (this.getState() != State.TERMINATED) {
+                // wait until thread terminates
+            }
+        }
+    }
+
+    /*
+     * Run method can not be implemented to return an exception hence statement execution thread that called
+     * reconnection will get exception through this function as soon as reconnection thread execution is over.
+     */
+    SQLServerException getException() {
+        return eReceived;
+    }
+}

@@ -129,6 +129,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private Boolean isAzureDW = null;
 
+    private ReconnectThread reconnectThread = new ReconnectThread(this);
+
     static class CityHash128Key implements java.io.Serializable {
 
         /**
@@ -599,7 +601,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private SessionRecoveryFeature sessionRecovery = new SessionRecoveryFeature(this);
-    private volatile boolean reconnecting = false;
 
     static boolean isWindows;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
@@ -974,8 +975,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return clientConnectionId;
     }
 
+    final int getRetryInterval() {
+        return connectRetryInterval;
+    }
+
+    final int getRetryCount() {
+        return connectRetryCount;
+    }
+
     final boolean attachConnId() {
         return state.equals(State.Connected);
+    }
+
+    SQLServerPooledConnection getPooledConnectionParent() {
+        return pooledConnectionParent;
     }
 
     @SuppressWarnings("unused")
@@ -1232,7 +1245,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     Connection connectInternal(Properties propsIn,
             SQLServerPooledConnection pooledConnection) throws SQLServerException {
         try {
-            activeConnectionProperties = (Properties) propsIn.clone();
+            if (propsIn != null)
+                activeConnectionProperties = (Properties) propsIn.clone();
 
             pooledConnectionParent = pooledConnection;
 
@@ -2154,33 +2168,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 } else
                     break; // leave the while loop -- we've successfully connected
             } catch (SQLServerException sqlex) {
-                if ((SQLServerException.LOGON_FAILED == sqlex.getErrorCode()) // actual logon failed, i.e. bad password
-                        || (SQLServerException.PASSWORD_EXPIRED == sqlex.getErrorCode()) // actual logon failed, i.e.
-                                                                                         // password isExpired
-                        || (SQLServerException.USER_ACCOUNT_LOCKED == sqlex.getErrorCode()) // actual logon failed, i.e.
-                                                                                            // user account locked
-                        || (SQLServerException.DRIVER_ERROR_INVALID_TDS == sqlex.getDriverErrorCode()) // invalid TDS
-                                                                                                       // received from
-                                                                                                       // server
-                        || (SQLServerException.DRIVER_ERROR_SSL_FAILED == sqlex.getDriverErrorCode()) // failure
-                                                                                                      // negotiating SSL
-                        || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == sqlex.getDriverErrorCode()) // failure
-                                                                                                                   // TLS1.2
-                        || (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == sqlex.getDriverErrorCode()) // unsupported
-                                                                                                              // configuration
-                                                                                                              // (e.g.
-                                                                                                              // Sphinx,
-                                                                                                              // invalid
-                                                                                                              // packet
-                                                                                                              // size,
-                                                                                                              // etc.)
-                        || (SQLServerException.ERROR_SOCKET_TIMEOUT == sqlex.getDriverErrorCode()) // socket timeout
-                                                                                                   // ocurred
-                        || timerHasExpired(timerExpire)// no more time to try again
-                        || (state.equals(State.Connected) && !isDBMirroring)
-                // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
-                ) {
-
+                if (isFatalError(sqlex)) {
                     // close the connection and throw the error back
                     close();
                     throw sqlex;
@@ -2308,6 +2296,29 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         failoverPartnerServerProvided);
             }
         }
+    }
+
+    boolean isFatalError(SQLServerException e) {
+        /*
+         * NOTE: If these conditions are modified, consider modification to conditions in SQLServerConnection::login()
+         * and Reconnect::run()
+         */
+        if ((SQLServerException.LOGON_FAILED == e.getErrorCode()) // actual logon failed, i.e. bad password
+                || (SQLServerException.PASSWORD_EXPIRED == e.getErrorCode()) // actual logon failed, i.e. password
+                                                                             // isExpired
+                || (SQLServerException.DRIVER_ERROR_INVALID_TDS == e.getDriverErrorCode()) // invalid TDS received from
+                                                                                           // server
+                || (SQLServerException.DRIVER_ERROR_SSL_FAILED == e.getDriverErrorCode()) // failure negotiating SSL
+                || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode()) // failure TLS1.2
+                || (SQLServerException.ERROR_SOCKET_TIMEOUT == e.getDriverErrorCode()) // socket timeout ocurred
+                || (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == e.getDriverErrorCode())) // unsupported
+                                                                                                   // configuration
+                                                                                                   // (e.g. Sphinx,
+                                                                                                   // invalid
+                                                                                                   // packet size, etc.)
+            return true;
+        else
+            return false;
     }
 
     // reset all params that could have been changed due to ENVCHANGE tokens to defaults,
@@ -2440,15 +2451,34 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber());
         }
 
-        sessionRecovery.setSessionStateTable(new SessionStateTable());
-        sessionRecovery.getSessionStateTable().setOriginalNegotiatedEncryptionLevel(negotiatedEncryptionLevel);
+        if (reconnectThread.isAlive()) {
+            if (negotiatedEncryptionLevel != sessionRecovery.getSessionStateTable().getOriginalNegotiatedEncryptionLevel()) {
+                connectionlogger.warning(
+                        toString() + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
+                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, SQLServerException.getErrString("R_crClientSSLStateNotRecoverable"));
+                // fails fast similar to pre-login errors.
+            }
+            try {
+                executeReconnect(new LogonCommand());
+            } catch (SQLServerException e) {
+                // Won't fail fast. Back-off reconnection attempts in effect.
+                throw new SQLServerException(SQLServerException.getErrString("R_crServerSessionStateNotRecoverable"),
+                        e);
+            }
+        } else {
+            // We have successfully connected, now do the login. Log on takes seconds timeout
+            sessionRecovery.setSessionStateTable(new SessionStateTable());
+            sessionRecovery.getSessionStateTable().setOriginalNegotiatedEncryptionLevel(negotiatedEncryptionLevel);
+            executeCommand(new LogonCommand());
+        }
+    }
 
-        // We have successfully connected, now do the login. logon takes seconds timeout
-        executeCommand(new LogonCommand());
+    private void executeReconnect(LogonCommand logonCommand) throws SQLServerException {
+        logonCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(logonCommand));
     }
 
     /**
-     * Negotiates prelogin information with the server.
+     * Negotiates pre-login information with the server.
      */
     void Prelogin(String serverName, int portNumber) throws SQLServerException {
         // Build a TDS Pre-Login packet to send to the server.
@@ -2457,7 +2487,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             fedAuthRequiredByUser = true;
         }
 
-        // Message length (incl. header)
+        // Message length (including header)
         final byte messageLength;
         final byte fedAuthOffset;
         if (fedAuthRequiredByUser) {
@@ -2912,21 +2942,54 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 currentCommand = null;
             }
 
-            // The implementation of this scheduler is pretty simple...
-            // Since only one command at a time may use a connection
-            // (to avoid TDS protocol errors), just synchronize to
-            // serialize command execution.
+            if (!(newCommand instanceof LogonCommand)) {
+                // isAlive() doesn't guarantee the thread is actually running, just that it's been requested to start
+                if (!reconnectThread.isAlive()) {
+                    /*
+                     * TODO: add additional requirements for CR to be enabled such as unprocessed response count, is
+                     * connection recoverable, is connection recovery turned on, etc...
+                     */
+                    if (isConnectionDead()) {
+                        if (connectionlogger.isLoggable(Level.FINER)) {
+                            connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
+                        }
+                        reconnectThread.start();
+                        /*
+                         * Join only blocks the thread that started the reconnect. Currently can't think of a good
+                         * reason to leave the original thread running, no work can be done while we're not connected
+                         * anyways. Can be easily changed to non-blocking if necessary.
+                         */
+                        try {
+                            reconnectThread.join();
+                        } catch (InterruptedException e) {
+                            // Keep compiler happy, something's probably seriously wrong if this line is run
+                            SQLServerException.makeFromDriverError(this, reconnectThread, e.getMessage(), null, false);
+                        }
+                        if (reconnectThread.getException() != null) {
+                            if (connectionlogger.isLoggable(Level.FINER)) {
+                                connectionlogger
+                                        .finer(this.toString() + "Connection is broken and recovery is not possible.");
+                            }
+                            throw reconnectThread.getException();
+                        }
+                    }
+                }
+            }
+
+            /*
+             * The implementation of this scheduler is pretty simple... Since only one command at a time may use a
+             * connection (to avoid TDS protocol errors), just synchronize to serialize command execution.
+             */
             boolean commandComplete = false;
             try {
                 commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
             } finally {
-                // We should never displace an existing currentCommand
-                // assert null == currentCommand;
-
-                // If execution of the new command left response bytes on the wire
-                // (e.g. a large ResultSet or complex response with multiple results)
-                // then remember it as the current command so that any subsequent call
-                // to executeCommand will detach it before executing another new command.
+                /*
+                 * We should never displace an existing currentCommand assert null == currentCommand; If execution of
+                 * the new command left response bytes on the wire (e.g. a large ResultSet or complex response with
+                 * multiple results) then remember it as the current command so that any subsequent call to
+                 * executeCommand will detach it before executing another new command.
+                 */
                 if (!commandComplete && !isSessionUnAvailable())
                     currentCommand = newCommand;
             }
@@ -2940,6 +3003,44 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             currentCommand.detach();
             currentCommand = null;
         }
+    }
+
+    boolean isConnectionDead() throws SQLServerException {
+        return (!tdsChannel.checkConnected());
+    }
+
+    /*
+     * executeCommand without reconnection logic. Only used by the reconnect thread to avoid a lock.
+     */
+    synchronized boolean executeReconnectCommand(TDSCommand newCommand) throws SQLServerException {
+        /*
+         * Detach (buffer) the response from any previously executing command so that we can execute the new command.
+         * Note that detaching the response does not process it. Detaching just buffers the response off of the wire to
+         * clear the TDS channel.
+         */
+        if (null != currentCommand) {
+            currentCommand.detach();
+            currentCommand = null;
+        }
+
+        /*
+         * The implementation of this scheduler is pretty simple... Since only one command at a time may use a
+         * connection (to avoid TDS protocol errors), just synchronize to serialize command execution.
+         */
+        boolean commandComplete = false;
+        try {
+            commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
+        } finally {
+            /*
+             * We should never displace an existing currentCommand assert null == currentCommand; If execution of the
+             * new command left response bytes on the wire (e.g. a large ResultSet or complex response with multiple
+             * results) then remember it as the current command so that any subsequent call to executeCommand will
+             * detach it before executing another new command.
+             */
+            if (!commandComplete && !isSessionUnAvailable())
+                currentCommand = newCommand;
+        }
+        return commandComplete;
     }
 
     /*
@@ -2961,7 +3062,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
 
-        executeCommand(new ConnectionCommand(sql, logContext));
+        if (reconnectThread.isAlive()) {
+            executeReconnectCommand(new ConnectionCommand(sql, logContext));
+        } else {
+            executeCommand(new ConnectionCommand(sql, logContext));
+        }
     }
 
     /**
@@ -3600,7 +3705,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     int writeSessionRecoveryFeatureRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
         int len = 0;
         SessionStateTable ssTable = sessionRecovery.getSessionStateTable();
-        if (reconnecting) {
+        if (reconnectThread.isAlive()) {
             len = 4 // initial session state length
                     + 1 // 1 byte of initial database length
                     + toUCS16(ssTable.getOriginalCatalog()).length + 1 // 1 byte of initial collation length
@@ -3618,7 +3723,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_SESSIONRECOVERY);
             tdsWriter.writeInt(len);
-            if (reconnecting) {
+            if (reconnectThread.isAlive()) {
                 tdsWriter.writeInt((int) (1 // 1 byte of initial database length
                         + (toUCS16(ssTable.getOriginalCatalog()).length) + 1 // 1 byte of initial collation length
                         + (ssTable.getOriginalCollation() != null ? SQLCollation.tdsLength() : 0) + 1
@@ -5038,7 +5143,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             TDSParser.parse(tdsReader, logonProcessor);
         } while (!logonProcessor.complete(logonCommand, tdsReader));
 
-        if(!reconnecting) {
+        if(!reconnectThread.isAlive()) {
             sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
             sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);
             sessionRecovery.getSessionStateTable().setOriginalLanguage(sLanguage);
