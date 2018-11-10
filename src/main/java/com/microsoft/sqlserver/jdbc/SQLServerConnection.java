@@ -129,7 +129,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private Boolean isAzureDW = null;
 
-    private ReconnectThread rt = new ReconnectThread(this);
+    private ReconnectThread reconnectThread = new ReconnectThread(this);
 
     static class CityHash128Key implements java.io.Serializable {
 
@@ -2451,7 +2451,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber());
         }
 
-        if (rt.isAlive()) {
+        if (reconnectThread.isAlive()) {
             if (negotiatedEncryptionLevel != sessionRecovery.getSessionStateTable().getOriginalNegotiatedEncryptionLevel()) {
                 connectionlogger.warning(
                         toString() + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
@@ -2944,7 +2944,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             if (!(newCommand instanceof LogonCommand)) {
                 // isAlive() doesn't guarantee the thread is actually running, just that it's been requested to start
-                if (!rt.isAlive()) {
+                if (!reconnectThread.isAlive()) {
                     /*
                      * TODO: add additional requirements for CR to be enabled such as unprocessed response count, is
                      * connection recoverable, is connection recovery turned on, etc...
@@ -2953,24 +2953,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         if (connectionlogger.isLoggable(Level.FINER)) {
                             connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
                         }
-                        rt.start();
+                        reconnectThread.start();
                         /*
                          * Join only blocks the thread that started the reconnect. Currently can't think of a good
                          * reason to leave the original thread running, no work can be done while we're not connected
                          * anyways. Can be easily changed to non-blocking if necessary.
                          */
                         try {
-                            rt.join();
+                            reconnectThread.join();
                         } catch (InterruptedException e) {
                             // Keep compiler happy, something's probably seriously wrong if this line is run
-                            SQLServerException.makeFromDriverError(this, rt, e.getMessage(), null, false);
+                            SQLServerException.makeFromDriverError(this, reconnectThread, e.getMessage(), null, false);
                         }
-                        if (rt.getException() != null) {
+                        if (reconnectThread.getException() != null) {
                             if (connectionlogger.isLoggable(Level.FINER)) {
                                 connectionlogger
                                         .finer(this.toString() + "Connection is broken and recovery is not possible.");
                             }
-                            throw rt.getException();
+                            throw reconnectThread.getException();
                         }
                     }
                 }
@@ -3062,7 +3062,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
 
-        if (rt.isAlive()) {
+        if (reconnectThread.isAlive()) {
             executeReconnectCommand(new ConnectionCommand(sql, logContext));
         } else {
             executeCommand(new ConnectionCommand(sql, logContext));
@@ -3705,7 +3705,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     int writeSessionRecoveryFeatureRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
         int len = 0;
         SessionStateTable ssTable = sessionRecovery.getSessionStateTable();
-        if (rt.isAlive()) {
+        if (reconnectThread.isAlive()) {
             len = 4 // initial session state length
                     + 1 // 1 byte of initial database length
                     + toUCS16(ssTable.getOriginalCatalog()).length + 1 // 1 byte of initial collation length
@@ -3723,7 +3723,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_SESSIONRECOVERY);
             tdsWriter.writeInt(len);
-            if (rt.isAlive()) {
+            if (reconnectThread.isAlive()) {
                 tdsWriter.writeInt((int) (1 // 1 byte of initial database length
                         + (toUCS16(ssTable.getOriginalCatalog()).length) + 1 // 1 byte of initial collation length
                         + (ssTable.getOriginalCollation() != null ? SQLCollation.tdsLength() : 0) + 1
@@ -5143,7 +5143,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             TDSParser.parse(tdsReader, logonProcessor);
         } while (!logonProcessor.complete(logonCommand, tdsReader));
 
-        if(!rt.isAlive()) {
+        if(!reconnectThread.isAlive()) {
             sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
             sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);
             sessionRecovery.getSessionStateTable().setOriginalLanguage(sLanguage);

@@ -7328,7 +7328,6 @@ abstract class TDSCommand {
                 logger.finest(this.toString() + ": Ignoring error from database: " + e.getMessage());
         }
     }
-    
 
     /**
      * Clears this command from the TDS channel so that another command can execute.
