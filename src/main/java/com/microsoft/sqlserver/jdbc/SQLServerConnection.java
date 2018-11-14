@@ -2469,9 +2469,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         } else {
             // We have successfully connected, now do the login. Log on takes seconds timeout
-            if (sessionRecovery.getSessionStateTable() != null && connectRetryCount != 0) {
-                sessionRecovery.setSessionStateTable(new SessionStateTable());
-            }
+            sessionRecovery.setSessionStateTable(new SessionStateTable());
             sessionRecovery.getSessionStateTable().setOriginalNegotiatedEncryptionLevel(negotiatedEncryptionLevel);
             executeCommand(new LogonCommand());
         }
