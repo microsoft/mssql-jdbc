@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.math.BigDecimal;
 import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -420,73 +419,6 @@ public class BvtTest extends AbstractTest {
         }
     }
 
-    /**
-     * Call resultset methods to run thru some code paths
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testResultSetMethods() throws SQLException {
-        try (DBConnection conn = new DBConnection(connectionString);
-                DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_SENSITIVE_CONCUR_UPDATABLE);
-                DBResultSet rs = stmt.selectAll(table1)) {
-
-            ((ResultSet) rs.product()).clearWarnings();
-
-            assert (((ResultSet) rs.product()).getType() == ResultSet.TYPE_SCROLL_SENSITIVE);
-
-            // check cursor
-            ((ResultSet) rs.product()).first();
-            assert (((ResultSet) rs.product()).isFirst());
-
-            ((ResultSet) rs.product()).relative(1);
-            assert (!((ResultSet) rs.product()).isFirst());
-
-            ((ResultSet) rs.product()).last();
-            assert (((ResultSet) rs.product()).isLast());
-
-            ((ResultSet) rs.product()).beforeFirst();
-            assert (!((ResultSet) rs.product()).isLast());
-
-            ((ResultSet) rs.product()).afterLast();
-            assert (((ResultSet) rs.product()).isAfterLast());
-            assert (!((ResultSet) rs.product()).isLast());
-
-            ((ResultSet) rs.product()).absolute(1);
-            assert (((ResultSet) rs.product()).getRow() == 1);
-
-            ((ResultSet) rs.product()).moveToInsertRow();
-            assert (((ResultSet) rs.product()).getRow() == 0);
-
-            ((ResultSet) rs.product()).moveToCurrentRow();
-            assert (((ResultSet) rs.product()).getRow() == 1);
-            assert (!((ResultSet) rs.product()).rowInserted());
-            assert (!((ResultSet) rs.product()).rowUpdated());
-
-            // check concurrency method
-            assert (((ResultSet) rs.product()).getConcurrency() == ResultSet.CONCUR_UPDATABLE);
-
-            // check fetch direction
-            ((ResultSet) rs.product()).setFetchDirection(ResultSet.FETCH_FORWARD);
-            assert (((ResultSet) rs.product()).getFetchDirection() == ResultSet.FETCH_FORWARD);
-
-            // check fetch size
-            ((ResultSet) rs.product()).setFetchSize(1);
-            assert (((ResultSet) rs.product()).getFetchSize() == 1);
-
-            // test delete row
-            while (rs.next()) {
-                ((ResultSet) rs.product()).moveToCurrentRow();
-                if (((ResultSet) rs.product()).getRow() == 1) {
-                    ((ResultSet) rs.product()).deleteRow();
-                    assert (((ResultSet) rs.product()).rowDeleted());
-                }
-            }
-        } catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-    
     /**
      * drops tables
      * 

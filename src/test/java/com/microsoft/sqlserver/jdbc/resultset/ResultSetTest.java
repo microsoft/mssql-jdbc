@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.math.BigDecimal;
 import java.sql.Blob;
@@ -33,9 +34,14 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.DBResultSet;
+import com.microsoft.sqlserver.testframework.DBResultSetTypes;
+import com.microsoft.sqlserver.testframework.DBStatement;
 
 
 @RunWith(JUnitPlatform.class)
@@ -327,6 +333,107 @@ public class ResultSetTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery("select null")) {
             rs.next();
             assertEquals(null, rs.getTime(1));
+        }
+    }
+
+    @Test
+    public void testHoldability() throws SQLException {
+        int[] holdabilityOptions = {ResultSet.HOLD_CURSORS_OVER_COMMIT, ResultSet.CLOSE_CURSORS_AT_COMMIT};
+
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                ResultSet rs = stmt.executeQuery("select null")) {
+
+            int connHold = con.getHoldability();
+            assertEquals(stmt.getResultSetHoldability(), connHold);
+            assertEquals(rs.getHoldability(), connHold);
+
+            for (int i = 0; i < holdabilityOptions.length; i++) {
+
+                if ((connHold = con.getHoldability()) != holdabilityOptions[i]) {
+                    con.setHoldability(holdabilityOptions[i]);
+                    assertEquals(con.getHoldability(), holdabilityOptions[i]);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Call resultset methods to run thru some code paths
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testResultSetMethods() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con
+                .createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+
+            stmt.executeUpdate(
+                    "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int primary key)");
+            stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
+            stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(1)");
+            stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(2)");
+
+            try (ResultSet rs = stmt
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+
+                rs.clearWarnings();
+
+                assert (rs.getType() == ResultSet.TYPE_SCROLL_SENSITIVE);
+
+                // check cursor
+                rs.first();
+                assert (rs.isFirst());
+                
+                rs.relative(1);
+                assert (!rs.isFirst());
+
+                rs.last();
+                assert (rs.isLast());
+                
+                rs.beforeFirst();
+                assert (rs.isBeforeFirst());
+
+                rs.afterLast();
+                assert (rs.isAfterLast());
+                assert (!rs.isLast());
+
+                rs.absolute(1);
+                assert (rs.getRow() == 1);
+
+                rs.moveToInsertRow();
+                assert (rs.getRow() == 0);
+                rs.moveToCurrentRow();
+                assert (rs.getRow() == 1);
+                
+                // no inserts or updates
+                assert (!rs.rowInserted());
+                assert (!rs.rowUpdated());
+
+                // check concurrency method
+                assert (rs.getConcurrency() == ResultSet.CONCUR_UPDATABLE);
+
+                // check fetch direction
+                rs.setFetchDirection(ResultSet.FETCH_FORWARD);
+                assert (rs.getFetchDirection() == ResultSet.FETCH_FORWARD);
+
+                // check fetch size
+                rs.setFetchSize(1);
+                assert (rs.getFetchSize() == 1);
+
+                rs.refreshRow();
+
+                // test delete row
+                do {
+                    rs.moveToCurrentRow();
+                        rs.deleteRow();
+                        assert (rs.rowDeleted());
+                } while (rs.next());
+
+            } catch (Exception e) {
+                fail(e.toString());
+            } finally {
+                stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
+            }
         }
     }
 }
