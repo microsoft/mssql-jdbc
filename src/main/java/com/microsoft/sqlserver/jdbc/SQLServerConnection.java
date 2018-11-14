@@ -2469,7 +2469,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         } else {
             // We have successfully connected, now do the login. Log on takes seconds timeout
-            sessionRecovery.setSessionStateTable(new SessionStateTable());
+            if (sessionRecovery.getSessionStateTable() != null && connectRetryCount != 0) {
+                sessionRecovery.setSessionStateTable(new SessionStateTable());
+            }
             sessionRecovery.getSessionStateTable().setOriginalNegotiatedEncryptionLevel(negotiatedEncryptionLevel);
             executeCommand(new LogonCommand());
         }
@@ -4656,6 +4658,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sessionRecovery.parseInitialSessionStateData(tdsReader,
                         sessionRecovery.getSessionStateTable().getSessionStateInitial());
                 sessionRecovery.setConnectionRecoveryNegotiated(true);
+                sessionRecovery.setConnectionRecoveryPossible(true);
                 break;
             }
             default: {
@@ -5142,9 +5145,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         TDSReader tdsReader;
         do {
             tdsReader = logonCommand.startResponse();
+            sessionRecovery.setConnectionRecoveryPossible(false);
             TDSParser.parse(tdsReader, logonProcessor);
         } while (!logonProcessor.complete(logonCommand, tdsReader));
 
+        if(sessionRecovery.getReconnectThread().isAlive() && !sessionRecovery.isConnectionRecoveryPossible()) {
+            if(connectionlogger.isLoggable(Level.SEVERE)) {
+                connectionlogger.severe(this.toString() + "SessionRecovery feature extension ack was not sent by the server during reconnection.");
+            }
+            terminate(SQLServerException.DRIVER_ERROR_INVALID_TDS, SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin"));
+        }
         if(!sessionRecovery.getReconnectThread().isAlive()) {
             sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
             sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);

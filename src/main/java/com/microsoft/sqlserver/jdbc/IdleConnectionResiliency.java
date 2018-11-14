@@ -90,24 +90,24 @@ class SessionRecoveryFeature {
     }
 
     void incrementUnprocessedResponseCount() {
-        if (connectionRecoveryNegotiated && connectionRecoveryPossible && !getReconnectThread().isAlive()) {
+        if (isConnectionRecoveryNegotiated() && isConnectionRecoveryPossible() && !getReconnectThread().isAlive()) {
             if (unprocessedResponseCount.incrementAndGet() < 0)
                 /*
                  * When this number rolls over, connection recovery is disabled for the rest of the life of the
                  * connection.
                  */
-                connectionRecoveryPossible = false;
+                setConnectionRecoveryPossible(false);
         }
     }
 
     void decrementUnprocessedResponseCount() {
-        if (connectionRecoveryNegotiated && connectionRecoveryPossible && !getReconnectThread().isAlive()) {
+        if (isConnectionRecoveryNegotiated() && isConnectionRecoveryPossible() && !getReconnectThread().isAlive()) {
             if (unprocessedResponseCount.decrementAndGet() < 0)
                 /*
                  * When this number rolls over, connection recovery is disabled for the rest of the life of the
                  * connection.
                  */
-                connectionRecoveryPossible = false;
+                setConnectionRecoveryPossible(false);
         }
     }
 }
@@ -252,6 +252,10 @@ class SessionStateTable {
             }
         }
         return length;
+    }
+
+    boolean isSessionRecoverable(){
+        return(!isMasterRecoveryDisabled() && (0 == unRecoverableSessionStateCount.get()));
     }
 
     boolean isMasterRecoveryDisabled() {
