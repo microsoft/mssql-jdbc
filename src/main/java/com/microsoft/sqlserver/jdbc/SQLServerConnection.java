@@ -2469,8 +2469,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         } else {
             // We have successfully connected, now do the login. Log on takes seconds timeout
-            sessionRecovery.setSessionStateTable(new SessionStateTable());
-            sessionRecovery.getSessionStateTable().setOriginalNegotiatedEncryptionLevel(negotiatedEncryptionLevel);
+            if(connectRetryCount > 0 && null == sessionRecovery.getSessionStateTable()) {
+                sessionRecovery.setSessionStateTable(new SessionStateTable());
+                sessionRecovery.getSessionStateTable().setOriginalNegotiatedEncryptionLevel(negotiatedEncryptionLevel);
+            }
             executeCommand(new LogonCommand());
         }
     }
@@ -5153,7 +5155,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
             terminate(SQLServerException.DRIVER_ERROR_INVALID_TDS, SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin"));
         }
-        if(!sessionRecovery.getReconnectThread().isAlive()) {
+        if(connectRetryCount > 0 && !sessionRecovery.getReconnectThread().isAlive()) {
             sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
             sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);
             sessionRecovery.getSessionStateTable().setOriginalLanguage(sLanguage);
