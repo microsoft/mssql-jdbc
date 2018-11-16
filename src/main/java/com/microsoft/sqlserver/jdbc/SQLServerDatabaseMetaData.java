@@ -18,7 +18,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
 
 /**
@@ -139,9 +138,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     public SQLServerDatabaseMetaData(SQLServerConnection con) {
         traceID = " SQLServerDatabaseMetaData:" + nextInstanceID();
         connection = con;
-        if (logger.isLoggable(java.util.logging.Level.FINE)) {
-            logger.fine(toString() + " created by (" + connection.toString() + ")");
-        }
+        logger.fine(toString() + " created by (" + connection.toString() + ")");
     }
 
     @Override
@@ -1277,9 +1274,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             s += " where " + schemaName + " like ?  ";
 
         s += " order by 2, 1";
-        if (logger.isLoggable(java.util.logging.Level.FINE)) {
-            logger.fine(toString() + " schema query (" + s + ")");
-        }
+        logger.fine(toString() + " schema query (" + s + ")");
         SQLServerResultSet rs;
         if (null == schemaPattern) {
             catalog = null;

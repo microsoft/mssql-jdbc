@@ -194,8 +194,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     + p.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()) + "."
                     + p.getProperty(SQLServerDriverIntProperty.PORT_NUMBER.toString());
         }
-        if (xaLogger.isLoggable(Level.FINE))
-            xaLogger.fine(toString() + " created by (" + loginfo + ")");
+        xaLogger.fine(toString() + " created by (" + loginfo + ")");
 
         // Information about the server, needed for XA timeout logic in the DLL.
         serverInfoRetrieved = false;
@@ -267,8 +266,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         try {
             closeXAStatements();
         } catch (Exception e) {
-            if (xaLogger.isLoggable(Level.WARNING))
-                xaLogger.warning(toString() + "Closing exception ignored: " + e);
+            xaLogger.warning(toString() + "Closing exception ignored: " + e);
         }
 
         if (null != controlConnection)
@@ -416,8 +414,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                             int initStatus = initCS.getInt(1);
                             String initErr = initCS.getString(2);
                             String versionNumberXADLL = initCS.getString(3);
-                            if (xaLogger.isLoggable(Level.FINE))
-                                xaLogger.fine(toString() + " Server XA DLL version:" + versionNumberXADLL);
+                            xaLogger.fine(toString() + " Server XA DLL version:" + versionNumberXADLL);
                             initCS.close();
                             if (XA_OK != initStatus) {
                                 assert null != initErr && initErr.length() > 1;
@@ -483,9 +480,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                         // Got caught in static analysis. Catch only the thrown exceptions, do not catch
                         // run time exceptions.
                         catch (Exception e) {
-                            if (xaLogger.isLoggable(Level.WARNING))
-                                xaLogger.warning(
-                                        toString() + " Cannot retrieve server information: :" + e.getMessage());
+                            xaLogger.warning(toString() + " Cannot retrieve server information: :" + e.getMessage());
                         } finally {
                             if (null != stmt)
                                 try {

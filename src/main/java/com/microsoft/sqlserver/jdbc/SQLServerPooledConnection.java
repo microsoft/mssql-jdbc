@@ -9,7 +9,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
@@ -49,9 +48,8 @@ public class SQLServerPooledConnection implements PooledConnection {
         physicalConnection = createNewConnection();
         String nameL = getClass().getName();
         traceID = nameL.substring(1 + nameL.lastIndexOf('.')) + ":" + nextPooledConnectionID();
-        if (pcLogger.isLoggable(Level.FINE))
-            pcLogger.fine(toString() + " created by (" + ds.toString() + ")" + " Physical connection " + safeCID()
-                    + ", End create new connection for pool");
+        pcLogger.fine(toString() + " created by (" + ds.toString() + ")" + " Physical connection " + safeCID()
+                + ", End create new connection for pool");
     }
 
     /**
@@ -89,8 +87,7 @@ public class SQLServerPooledConnection implements PooledConnection {
             // Check with security manager to insure caller has rights to connect.
             // This will throw a SecurityException if the caller does not have proper rights.
             physicalConnection.doSecurityCheck();
-            if (pcLogger.isLoggable(Level.FINE))
-                pcLogger.fine(toString() + " Physical connection, " + safeCID());
+            pcLogger.fine(toString() + " Physical connection, " + safeCID());
 
             if (null != physicalConnection.getAuthenticationResult()) {
                 if (Util.checkIfNeedNewAccessToken(physicalConnection)) {
@@ -103,7 +100,7 @@ public class SQLServerPooledConnection implements PooledConnection {
             if (null != lastProxyConnection) {
                 // if there was a last proxy connection send reset
                 physicalConnection.resetPooledConnection();
-                if (pcLogger.isLoggable(Level.FINE) && !lastProxyConnection.isClosed())
+                if (!lastProxyConnection.isClosed())
                     pcLogger.fine(toString() + "proxy " + lastProxyConnection.toString()
                             + " is not closed before getting the connection.");
                 // use internal close so there wont be an event due to us closing the connection, if not closed already.
@@ -111,7 +108,7 @@ public class SQLServerPooledConnection implements PooledConnection {
             }
 
             lastProxyConnection = new SQLServerConnectionPoolProxy(physicalConnection);
-            if (pcLogger.isLoggable(Level.FINE) && !lastProxyConnection.isClosed())
+            if (!lastProxyConnection.isClosed())
                 pcLogger.fine(toString() + " proxy " + lastProxyConnection.toString() + " is returned.");
 
             return lastProxyConnection;

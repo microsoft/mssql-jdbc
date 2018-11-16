@@ -145,9 +145,8 @@ final class ScrollWindow {
             rowMark[currentRow - 1] = rs.fetchBufferMark();
             rowType[currentRow - 1] = rs.getCurrentRowType();
 
-            if (SQLServerResultSet.logger.isLoggable(java.util.logging.Level.FINEST))
-                SQLServerResultSet.logger.finest(rs.toString() + " Set mark " + rowMark[currentRow - 1] + " for row "
-                        + currentRow + " of type " + rowType[currentRow - 1]);
+            SQLServerResultSet.logger.finest(rs.toString() + " Set mark " + rowMark[currentRow - 1] + " for row "
+                    + currentRow + " of type " + rowType[currentRow - 1]);
 
             return true;
         }

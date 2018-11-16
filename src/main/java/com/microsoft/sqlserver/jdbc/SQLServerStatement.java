@@ -824,8 +824,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         if (isCursorable(executeMethod) && isSelect(sql)) {
-            if (stmtlogger.isLoggable(java.util.logging.Level.FINE))
-                stmtlogger.fine(toString() + " Executing server side cursor " + sql);
+            stmtlogger.fine(toString() + " Executing server side cursor " + sql);
 
             doExecuteCursored(execCmd, sql);
         } else // Non-cursored execution (includes EXECUTE_QUERY_INTERNAL)
@@ -845,8 +844,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 tdsWriter.writeString(identityQuery);
             }
 
-            if (stmtlogger.isLoggable(java.util.logging.Level.FINE))
-                stmtlogger.fine(toString() + " Executing (not server cursor) " + sql);
+            stmtlogger.fine(toString() + " Executing (not server cursor) " + sql);
 
             // Start the response
             ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
@@ -1275,10 +1273,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                 if (moreResults) {
                     // Silently discard database errors and continue processing the remaining results
                     if (SQLServerException.DRIVER_ERROR_FROM_DATABASE == e.getDriverErrorCode()) {
-                        if (stmtlogger.isLoggable(java.util.logging.Level.FINEST)) {
-                            stmtlogger.finest(
-                                    this + " ignoring database error: " + e.getErrorCode() + " " + e.getMessage());
-                        }
+                        stmtlogger
+                                .finest(this + " ignoring database error: " + e.getErrorCode() + " " + e.getMessage());
 
                         continue;
                     }

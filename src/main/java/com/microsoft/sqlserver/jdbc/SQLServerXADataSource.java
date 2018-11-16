@@ -6,7 +6,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.naming.Reference;
@@ -66,8 +65,7 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
 
         xaLogger.finer(toString() + " Start get physical connection.");
         SQLServerConnection physicalConnection = pooledXAConnection.getPhysicalConnection();
-        if (xaLogger.isLoggable(Level.FINE))
-            xaLogger.fine(toString() + " End get physical connection, " + physicalConnection.toString());
+        xaLogger.fine(toString() + " End get physical connection, " + physicalConnection.toString());
         loggerExternal.exiting(getClassNameLogging(), "getXAConnection", pooledXAConnection);
         return pooledXAConnection;
     }

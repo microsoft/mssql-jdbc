@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.lang.reflect.Method;
 import java.net.IDN;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -15,7 +14,6 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.MessageFormat;
 import java.util.Locale;
-import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -89,10 +87,8 @@ final class KerbAuthentication extends SSPIAuthentication {
                         currentSubject = lc.getSubject();
                     }
                 } catch (LoginException le) {
-                    if (authLogger.isLoggable(Level.FINE)) {
-                        authLogger.fine(toString() + "Failed to login using Kerberos due to " + le.getClass().getName()
-                                + ":" + le.getMessage());
-                    }
+                    authLogger.fine(toString() + "Failed to login using Kerberos due to " + le.getClass().getName()
+                            + ":" + le.getMessage());
                     try {
                         // Not very clean since it raises an Exception, but we are sure we are cleaning well everything
                         con.terminate(SQLServerException.DRIVER_ERROR_NONE,
@@ -166,9 +162,7 @@ final class KerbAuthentication extends SSPIAuthentication {
                 authLogger.finer(toString() + "Authentication done.");
             } else if (null == byteToken) {
                 // The documentation is not clear on when this can happen but it does say this could happen
-                if (authLogger.isLoggable(Level.INFO)) {
-                    authLogger.info(toString() + "byteToken is null in initSecContext.");
-                }
+                authLogger.info(toString() + "byteToken is null in initSecContext.");
                 con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                         SQLServerException.getErrString("R_integratedAuthenticationFailed"));
             }
@@ -308,9 +302,7 @@ final class KerbAuthentication extends SSPIAuthentication {
         int index = 0;
         while (index != -1 && index < hostname.length() - 2) {
             String realm = hostname.substring(index);
-            if (authLogger.isLoggable(Level.FINEST)) {
-                authLogger.finest(toString() + " looking up REALM candidate " + realm);
-            }
+            authLogger.finest(toString() + " looking up REALM candidate " + realm);
             if (realmValidator.isRealmValid(realm)) {
                 return realm.toUpperCase();
             }

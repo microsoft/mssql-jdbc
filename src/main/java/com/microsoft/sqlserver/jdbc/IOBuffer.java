@@ -703,8 +703,7 @@ final class TDSChannel {
         }
 
         // Rewire the proxy socket to the closed streams
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(toString() + " Rewiring proxy streams for SSL socket close");
+        logger.finest(toString() + " Rewiring proxy streams for SSL socket close");
         proxySocket.setStreams(is, os);
 
         // Now close the SSL socket. It will see that the proxy socket's streams
@@ -761,9 +760,8 @@ final class TDSChannel {
          */
         private void ensureSSLPayload() throws IOException {
             if (0 == tdsReader.available()) {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(logContext
-                            + " No handshake response bytes available. Flushing SSL handshake output stream.");
+                logger.finest(
+                        logContext + " No handshake response bytes available. Flushing SSL handshake output stream.");
 
                 try {
                     sslHandshakeOutputStream.endMessage();
@@ -772,8 +770,7 @@ final class TDSChannel {
                     throw new IOException(e.getMessage());
                 }
 
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(logContext + " Reading first packet of SSL handshake response");
+                logger.finest(logContext + " Reading first packet of SSL handshake response");
 
                 try {
                     tdsReader.readPacket();
@@ -785,8 +782,7 @@ final class TDSChannel {
         }
 
         public long skip(long n) throws IOException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(logContext + " Skipping " + n + " bytes...");
+            logger.finest(logContext + " Skipping " + n + " bytes...");
 
             if (n <= 0)
                 return 0;
@@ -826,8 +822,7 @@ final class TDSChannel {
         }
 
         private int readInternal(byte b[], int offset, int maxBytes) throws IOException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(logContext + " Reading " + maxBytes + " bytes...");
+            logger.finest(logContext + " Reading " + maxBytes + " bytes...");
 
             ensureSSLPayload();
 
@@ -870,16 +865,14 @@ final class TDSChannel {
             // needs to be completely encapsulated in TDS. The SSL handshake
             // input stream always ensures that this output stream has been flushed
             // before trying to read the response.
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(logContext + " Ignored a request to flush the stream");
+            logger.finest(logContext + " Ignored a request to flush the stream");
         }
 
         void endMessage() throws SQLServerException {
             // We should only be asked to end the message if we have started one
             assert messageStarted;
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(logContext + " Finishing TDS message");
+            logger.finest(logContext + " Finishing TDS message");
 
             // Flush any remaining bytes through the writer. Since there may be fewer bytes
             // ready to send than a full TDS packet, we end the message here and start a new
@@ -908,15 +901,13 @@ final class TDSChannel {
                 // Start out the handshake request in a new prelogin message. Subsequent
                 // writes just add handshake data to the request until flushed.
                 if (!messageStarted) {
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(logContext + " Starting new TDS packet...");
+                    logger.finest(logContext + " Starting new TDS packet...");
 
                     tdsWriter.startMessage(null, TDS.PKT_PRELOGIN);
                     messageStarted = true;
                 }
 
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(logContext + " Writing " + len + " bytes...");
+                logger.finest(logContext + " Writing " + len + " bytes...");
 
                 tdsWriter.writeBytes(b, off, len);
             } catch (SQLServerException e) {
@@ -946,13 +937,11 @@ final class TDSChannel {
         public long skip(long n) throws IOException {
             long bytesSkipped;
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Skipping " + n + " bytes");
+            logger.finest(toString() + " Skipping " + n + " bytes");
 
             bytesSkipped = filteredStream.skip(n);
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Skipped " + n + " bytes");
+            logger.finest(toString() + " Skipped " + n + " bytes");
 
             return bytesSkipped;
         }
@@ -960,8 +949,7 @@ final class TDSChannel {
         public int available() throws IOException {
             int bytesAvailable = filteredStream.available();
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " " + bytesAvailable + " bytes available");
+            logger.finest(toString() + " " + bytesAvailable + " bytes available");
 
             return bytesAvailable;
         }
@@ -988,8 +976,7 @@ final class TDSChannel {
         private int readInternal(byte b[], int offset, int maxBytes) throws IOException {
             int bytesRead;
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Reading " + maxBytes + " bytes");
+            logger.finest(toString() + " Reading " + maxBytes + " bytes");
 
             try {
                 bytesRead = filteredStream.read(b, offset, maxBytes);
@@ -1000,8 +987,7 @@ final class TDSChannel {
                 throw e;
             }
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Read " + bytesRead + " bytes");
+            logger.finest(toString() + " Read " + bytesRead + " bytes");
 
             return bytesRead;
         }
@@ -1009,29 +995,25 @@ final class TDSChannel {
         public boolean markSupported() {
             boolean markSupported = filteredStream.markSupported();
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Returning markSupported: " + markSupported);
+            logger.finest(toString() + " Returning markSupported: " + markSupported);
 
             return markSupported;
         }
 
         public void mark(int readLimit) {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Marking next " + readLimit + " bytes");
+            logger.finest(toString() + " Marking next " + readLimit + " bytes");
 
             filteredStream.mark(readLimit);
         }
 
         public void reset() throws IOException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Resetting to previous mark");
+            logger.finest(toString() + " Resetting to previous mark");
 
             filteredStream.reset();
         }
 
         public void close() throws IOException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Closing");
+            logger.finest(toString() + " Closing");
 
             filteredStream.close();
         }
@@ -1055,15 +1037,13 @@ final class TDSChannel {
         }
 
         public void close() throws IOException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Closing");
+            logger.finest(toString() + " Closing");
 
             filteredStream.close();
         }
 
         public void flush() throws IOException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Flushing");
+            logger.finest(toString() + " Flushing");
 
             filteredStream.flush();
         }
@@ -1084,8 +1064,7 @@ final class TDSChannel {
         }
 
         private void writeInternal(byte[] b, int off, int len) throws IOException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Writing " + len + " bytes");
+            logger.finest(toString() + " Writing " + len + " bytes");
 
             filteredStream.write(b, off, len);
         }
@@ -1128,15 +1107,13 @@ final class TDSChannel {
         }
 
         public InputStream getInputStream() throws IOException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(logContext + " Getting input stream");
+            logger.finest(logContext + " Getting input stream");
 
             return proxyInputStream;
         }
 
         public OutputStream getOutputStream() throws IOException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(logContext + " Getting output stream");
+            logger.finest(logContext + " Getting output stream");
 
             return proxyOutputStream;
         }
@@ -1405,17 +1382,14 @@ final class TDSChannel {
         }
 
         public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(logContext + " Forwarding ClientTrusted.");
+            logger.finest(logContext + " Forwarding ClientTrusted.");
             defaultTrustManager.checkClientTrusted(chain, authType);
         }
 
         public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(logContext + " Forwarding Trusting server certificate");
+            logger.finest(logContext + " Forwarding Trusting server certificate");
             defaultTrustManager.checkServerTrusted(chain, authType);
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(logContext + " default serverTrusted succeeded proceeding with server name validation");
+            logger.finest(logContext + " default serverTrusted succeeded proceeding with server name validation");
 
             validateServerNameInCertificate(chain[0]);
         }
@@ -1610,8 +1584,7 @@ final class TDSChannel {
                 else {
                     // First, obtain an interface to a KeyStore that can load trust material
                     // stored in Java Key Store (JKS) format.
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(toString() + " Finding key store interface");
+                    logger.finest(toString() + " Finding key store interface");
 
                     ks = KeyStore.getInstance(trustStoreType);
                     ksProvider = ks.getProvider();
@@ -1624,8 +1597,7 @@ final class TDSChannel {
 
                     // Finally, load the KeyStore with the trust material (if any) from the
                     // InputStream and close the stream.
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(toString() + " Loading key store");
+                    logger.finest(toString() + " Loading key store");
 
                     try {
                         ks.load(is, (null == trustStorePassword) ? null : trustStorePassword.toCharArray());
@@ -1639,8 +1611,7 @@ final class TDSChannel {
                             try {
                                 is.close();
                             } catch (IOException e) {
-                                if (logger.isLoggable(Level.FINE))
-                                    logger.fine(toString() + " Ignoring error closing trust material InputStream...");
+                                logger.fine(toString() + " Ignoring error closing trust material InputStream...");
                             }
                         }
                     }
@@ -1655,8 +1626,7 @@ final class TDSChannel {
                 // that understands X.509 certificates.
                 TrustManagerFactory tmf = null;
 
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Locating X.509 trust manager factory");
+                logger.finest(toString() + " Locating X.509 trust manager factory");
 
                 tmfDefaultAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
                 tmf = TrustManagerFactory.getInstance(tmfDefaultAlgorithm);
@@ -1664,8 +1634,7 @@ final class TDSChannel {
 
                 // Tell the TrustManagerFactory to give us TrustManagers that we can use to
                 // validate the server certificate using the trust material in the KeyStore.
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Getting trust manager");
+                logger.finest(toString() + " Getting trust manager");
 
                 tmf.init(ks);
                 tm = tmf.getTrustManagers();
@@ -1686,14 +1655,12 @@ final class TDSChannel {
             // SSL sockets through a SSL socket factory. We require at least TLS support.
             SSLContext sslContext = null;
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Getting TLS or better SSL context");
+            logger.finest(toString() + " Getting TLS or better SSL context");
 
             sslContext = SSLContext.getInstance(sslProtocol);
             sslContextProvider = sslContext.getProvider();
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Initializing SSL context");
+            logger.finest(toString() + " Initializing SSL context");
 
             sslContext.init(null, tm, null);
 
@@ -1702,8 +1669,7 @@ final class TDSChannel {
             // Initially, the proxy is set to encapsulate the SSL handshake in TDS packets.
             proxySocket = new ProxySocket(this);
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Creating SSL socket");
+            logger.finest(toString() + " Creating SSL socket");
 
             // don't close proxy when SSL socket is closed
             sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
@@ -1717,19 +1683,16 @@ final class TDSChannel {
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
 
             // After SSL handshake is complete, rewire proxy socket to use raw TCP/IP streams ...
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Rewiring proxy streams after handshake");
+            logger.finest(toString() + " Rewiring proxy streams after handshake");
 
             proxySocket.setStreams(inputStream, outputStream);
 
             // ... and rewire TDSChannel to use SSL streams.
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Getting SSL InputStream");
+            logger.finest(toString() + " Getting SSL InputStream");
 
             inputStream = sslSocket.getInputStream();
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Getting SSL OutputStream");
+            logger.finest(toString() + " Getting SSL OutputStream");
 
             outputStream = sslSocket.getOutputStream();
 
@@ -1856,13 +1819,11 @@ final class TDSChannel {
         // First case: Trust store filename was specified
         if (null != trustStoreFileName) {
             try {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Opening specified trust store: " + trustStoreFileName);
+                logger.finest(toString() + " Opening specified trust store: " + trustStoreFileName);
 
                 is = new FileInputStream(trustStoreFileName);
             } catch (FileNotFoundException e) {
-                if (logger.isLoggable(Level.FINE))
-                    logger.fine(toString() + " Trust store not found: " + e.getMessage());
+                logger.fine(toString() + " Trust store not found: " + e.getMessage());
 
                 // If the trustStoreFileName connection property is set, but the file is not found,
                 // then treat it as if the file was empty so that the TrustManager reports
@@ -1873,14 +1834,12 @@ final class TDSChannel {
         // Second case: Trust store filename derived from javax.net.ssl.trustStore system property
         else if (null != (trustStoreFileName = System.getProperty("javax.net.ssl.trustStore"))) {
             try {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Opening default trust store (from javax.net.ssl.trustStore): "
-                            + trustStoreFileName);
+                logger.finest(toString() + " Opening default trust store (from javax.net.ssl.trustStore): "
+                        + trustStoreFileName);
 
                 is = new FileInputStream(trustStoreFileName);
             } catch (FileNotFoundException e) {
-                if (logger.isLoggable(Level.FINE))
-                    logger.fine(toString() + " Trust store not found: " + e.getMessage());
+                logger.fine(toString() + " Trust store not found: " + e.getMessage());
 
                 // If the javax.net.ssl.trustStore property is set, but the file is not found,
                 // then treat it as if the file was empty so that the TrustManager reports
@@ -1891,25 +1850,21 @@ final class TDSChannel {
         // Third case: No trust store specified and no system property set. Use jssecerts/cacerts.
         else {
             try {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Opening default trust store: " + JSSECACERTS);
+                logger.finest(toString() + " Opening default trust store: " + JSSECACERTS);
 
                 is = new FileInputStream(JSSECACERTS);
             } catch (FileNotFoundException e) {
-                if (logger.isLoggable(Level.FINE))
-                    logger.fine(toString() + " Trust store not found: " + e.getMessage());
+                logger.fine(toString() + " Trust store not found: " + e.getMessage());
             }
 
             // No jssecerts. Try again with cacerts...
             if (null == is) {
                 try {
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(toString() + " Opening default trust store: " + CACERTS);
+                    logger.finest(toString() + " Opening default trust store: " + CACERTS);
 
                     is = new FileInputStream(CACERTS);
                 } catch (FileNotFoundException e) {
-                    if (logger.isLoggable(Level.FINE))
-                        logger.fine(toString() + " Trust store not found: " + e.getMessage());
+                    logger.fine(toString() + " Trust store not found: " + e.getMessage());
 
                     // No jssecerts or cacerts. Treat it as if the trust store is empty so that
                     // the TrustManager reports that no certificate is found.
@@ -1924,8 +1879,7 @@ final class TDSChannel {
         try {
             return inputStream.read(data, offset, length);
         } catch (IOException e) {
-            if (logger.isLoggable(Level.FINE))
-                logger.fine(toString() + " read failed:" + e.getMessage());
+            logger.fine(toString() + " read failed:" + e.getMessage());
 
             if (e instanceof SocketTimeoutException) {
                 con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage(), e);
@@ -1962,26 +1916,22 @@ final class TDSChannel {
             disableSSL();
 
         if (null != inputStream) {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(this.toString() + ": Closing inputStream...");
+            logger.finest(this.toString() + ": Closing inputStream...");
 
             try {
                 inputStream.close();
             } catch (IOException e) {
-                if (logger.isLoggable(Level.FINE))
-                    logger.log(Level.FINE, this.toString() + ": Ignored error closing inputStream", e);
+                logger.log(Level.FINE, this.toString() + ": Ignored error closing inputStream", e);
             }
         }
 
         if (null != outputStream) {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(this.toString() + ": Closing outputStream...");
+            logger.finest(this.toString() + ": Closing outputStream...");
 
             try {
                 outputStream.close();
             } catch (IOException e) {
-                if (logger.isLoggable(Level.FINE))
-                    logger.log(Level.FINE, this.toString() + ": Ignored error closing outputStream", e);
+                logger.log(Level.FINE, this.toString() + ": Ignored error closing outputStream", e);
             }
         }
 
@@ -1991,8 +1941,7 @@ final class TDSChannel {
             try {
                 tcpSocket.close();
             } catch (IOException e) {
-                if (logger.isLoggable(Level.FINE))
-                    logger.log(Level.FINE, this.toString() + ": Ignored error closing socket", e);
+                logger.log(Level.FINE, this.toString() + ": Ignored error closing socket", e);
             }
         }
     }
@@ -2087,9 +2036,7 @@ final class TDSChannel {
             logMsg.append("\r\n");
         }
 
-        if (packetLogger.isLoggable(Level.FINEST)) {
-            packetLogger.finest(logMsg.toString());
-        }
+        packetLogger.finest(logMsg.toString());
     }
 
     /**
@@ -2608,8 +2555,7 @@ final class SocketFinder {
             try {
                 selector.close();
             } catch (IOException e) {
-                if (logger.isLoggable(Level.FINE))
-                    logger.log(Level.FINE, this.toString() + ": Ignored the following error while closing Selector", e);
+                logger.log(Level.FINE, this.toString() + ": Ignored the following error while closing Selector", e);
             }
         }
     }
@@ -2621,8 +2567,7 @@ final class SocketFinder {
             try {
                 socket.close();
             } catch (IOException e) {
-                if (logger.isLoggable(Level.FINE))
-                    logger.log(Level.FINE, this.toString() + ": Ignored the following error while closing socket", e);
+                logger.log(Level.FINE, this.toString() + ": Ignored the following error while closing socket", e);
             }
         }
     }
@@ -2634,9 +2579,7 @@ final class SocketFinder {
             try {
                 socketChannel.close();
             } catch (IOException e) {
-                if (logger.isLoggable(Level.FINE))
-                    logger.log(Level.FINE, this.toString() + "Ignored the following error while closing socketChannel",
-                            e);
+                logger.log(Level.FINE, this.toString() + "Ignored the following error while closing socketChannel", e);
             }
         }
     }
@@ -3031,8 +2974,7 @@ final class TDSWriter {
     }
 
     final void endMessage() throws SQLServerException {
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(toString() + " Finishing TDS message");
+        logger.finest(toString() + " Finishing TDS message");
         writePacket(TDS.STATUS_BIT_EOM);
     }
 
@@ -3051,8 +2993,7 @@ final class TDSWriter {
     }
 
     final void resetPooledConnection() {
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(toString() + " resetPooledConnection");
+        logger.finest(toString() + " resetPooledConnection");
         sendResetConnection = TDS.STATUS_BIT_RESET_CONN;
     }
 
@@ -3551,8 +3492,7 @@ final class TDSWriter {
         int bytesWritten = 0;
         int bytesToWrite;
 
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(toString() + " Writing " + length + " bytes");
+        logger.finest(toString() + " Writing " + length + " bytes");
 
         while ((bytesToWrite = length - bytesWritten) > 0) {
             if (0 == stagingBuffer.remaining())
@@ -3870,8 +3810,7 @@ final class TDSWriter {
             // isEOMSent would be updated in writePacket everytime an EOM is sent
             // assert isEOMSent;
 
-            if (logger.isLoggable(Level.FINE))
-                logger.fine(this + ": sending attention...");
+            logger.fine(this + ": sending attention...");
 
             ++tdsChannel.numMsgsSent;
 
@@ -6179,14 +6118,12 @@ final class TDSReader {
     }
 
     final void throwInvalidTDS() throws SQLServerException {
-        if (logger.isLoggable(Level.SEVERE))
-            logger.severe(toString() + " got unexpected value in TDS response at offset:" + payloadOffset);
+        logger.severe(toString() + " got unexpected value in TDS response at offset:" + payloadOffset);
         con.throwInvalidTDS();
     }
 
     final void throwInvalidTDSToken(String tokenName) throws SQLServerException {
-        if (logger.isLoggable(Level.SEVERE))
-            logger.severe(toString() + " got unexpected value in TDS response at offset:" + payloadOffset);
+        logger.severe(toString() + " got unexpected value in TDS response at offset:" + payloadOffset);
         con.throwInvalidTDSToken(tokenName);
     }
 
@@ -6231,8 +6168,7 @@ final class TDSReader {
         // before moving to allow the packet to be reclaimed.
         TDSPacket nextPacket = consumedPacket.next;
         if (isStreaming) {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Moving to next packet -- unlinking consumed packet");
+            logger.finest(toString() + " Moving to next packet -- unlinking consumed packet");
 
             consumedPacket.next = null;
         }
@@ -6259,9 +6195,7 @@ final class TDSReader {
 
         TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
         if (null != tcpKeepAliveTimeoutTimer) {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(this.toString() + ": starting timer...");
-            }
+            logger.finest(this.toString() + ": starting timer...");
             tcpKeepAliveTimeoutTimer.start();
         }
         // First, read the packet header.
@@ -6282,9 +6216,7 @@ final class TDSReader {
 
         // if execution was subject to timeout then stop timing
         if (null != tcpKeepAliveTimeoutTimer) {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(this.toString() + ":stopping timer...");
-            }
+            logger.finest(this.toString() + ":stopping timer...");
             tcpKeepAliveTimeoutTimer.stop();
         }
         // Header size is a 2 byte unsigned short integer in big-endian order.
@@ -6292,10 +6224,8 @@ final class TDSReader {
 
         // Make header size is properly bounded and compute length of the packet payload.
         if (packetLength < TDS.PACKET_HEADER_SIZE || packetLength > con.getTDSPacketSize()) {
-            if (logger.isLoggable(Level.WARNING)) {
-                logger.warning(toString() + " TDS header contained invalid packet length:" + packetLength
-                        + "; packet size:" + con.getTDSPacketSize());
-            }
+            logger.warning(toString() + " TDS header contained invalid packet length:" + packetLength + "; packet size:"
+                    + con.getTDSPacketSize());
             throwInvalidTDS();
         }
 
@@ -6353,15 +6283,13 @@ final class TDSReader {
         TDSReaderMark mark = new TDSReaderMark(currentPacket, payloadOffset);
         isStreaming = false;
 
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this.toString() + ": Buffering from: " + mark.toString());
+        logger.finest(this.toString() + ": Buffering from: " + mark.toString());
 
         return mark;
     }
 
     final void reset(TDSReaderMark mark) {
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this.toString() + ": Resetting to: " + mark.toString());
+        logger.finest(this.toString() + ": Resetting to: " + mark.toString());
 
         currentPacket = mark.packet;
         payloadOffset = mark.payloadOffset;
@@ -6506,8 +6434,7 @@ final class TDSReader {
                 bytesToCopy = currentPacket.payloadLength - payloadOffset;
 
             // Copy some bytes from the current packet to the destination value.
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Reading " + bytesToCopy + " bytes from offset " + payloadOffset);
+            logger.finest(toString() + " Reading " + bytesToCopy + " bytes from offset " + payloadOffset);
 
             System.arraycopy(currentPacket.payload, payloadOffset, value, valueOffset + bytesRead, bytesToCopy);
             bytesRead += bytesToCopy;
@@ -6524,9 +6451,7 @@ final class TDSReader {
     final Object readDecimal(int valueLength, TypeInfo typeInfo, JDBCType jdbcType,
             StreamType streamType) throws SQLServerException {
         if (valueLength > valueBytes.length) {
-            if (logger.isLoggable(Level.WARNING)) {
-                logger.warning(toString() + " Invalid value length:" + valueLength);
-            }
+            logger.warning(toString() + " Invalid value length:" + valueLength);
             throwInvalidTDS();
         }
 
@@ -7150,9 +7075,8 @@ abstract class TDSCommand {
                     close();
                 }
             } catch (SQLServerException interruptException) {
-                if (logger.isLoggable(Level.FINE))
-                    logger.fine(this.toString() + ": Ignoring error in sending attention: "
-                            + interruptException.getMessage());
+                logger.fine(
+                        this.toString() + ": Ignoring error in sending attention: " + interruptException.getMessage());
             }
             // throw the original exception even if trying to interrupt fails even in the case
             // of trying to send a cancel to the server.
@@ -7166,16 +7090,14 @@ abstract class TDSCommand {
      * This default implementation just consumes everything in the response message.
      */
     void processResponse(TDSReader tdsReader) throws SQLServerException {
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this.toString() + ": Processing response");
+        logger.finest(this.toString() + ": Processing response");
         try {
             TDSParser.parse(tdsReader, getLogContext());
         } catch (SQLServerException e) {
             if (SQLServerException.DRIVER_ERROR_FROM_DATABASE != e.getDriverErrorCode())
                 throw e;
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(this.toString() + ": Ignoring error from database: " + e.getMessage());
+            logger.finest(this.toString() + ": Ignoring error from database: " + e.getMessage());
         }
     }
 
@@ -7186,8 +7108,7 @@ abstract class TDSCommand {
      * present.
      */
     final void detach() throws SQLServerException {
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this + ": detaching...");
+        logger.finest(this + ": detaching...");
 
         // Read any remaining response packets from the server.
         // This operation may be timed out or cancelled from another thread.
@@ -7198,18 +7119,15 @@ abstract class TDSCommand {
     }
 
     final void close() {
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this + ": closing...");
+        logger.finest(this + ": closing...");
 
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this + ": processing response...");
+        logger.finest(this + ": processing response...");
 
         while (!processedResponse) {
             try {
                 processResponse(tdsReader);
             } catch (SQLServerException e) {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(this + ": close ignoring error processing response: " + e.getMessage());
+                logger.finest(this + ": close ignoring error processing response: " + e.getMessage());
 
                 if (tdsReader.getConnection().isSessionUnAvailable()) {
                     processedResponse = true;
@@ -7219,19 +7137,16 @@ abstract class TDSCommand {
         }
 
         if (attentionPending) {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(this + ": processing attention ack...");
+            logger.finest(this + ": processing attention ack...");
 
             try {
                 TDSParser.parse(tdsReader, "attention ack");
             } catch (SQLServerException e) {
                 if (tdsReader.getConnection().isSessionUnAvailable()) {
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(this + ": giving up on attention ack after connection closed by exception: " + e);
+                    logger.finest(this + ": giving up on attention ack after connection closed by exception: " + e);
                     attentionPending = false;
                 } else {
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(this + ": ignored exception: " + e);
+                    logger.finest(this + ": ignored exception: " + e);
                 }
             }
 
@@ -7239,16 +7154,13 @@ abstract class TDSCommand {
             // then assume that no attention ack is forthcoming from the server and
             // terminate the connection to prevent any other command from executing.
             if (attentionPending) {
-                if (logger.isLoggable(Level.SEVERE)) {
-                    logger.severe(this.toString()
-                            + ": expected attn ack missing or not processed; terminating connection...");
-                }
+                logger.severe(
+                        this.toString() + ": expected attn ack missing or not processed; terminating connection...");
 
                 try {
                     tdsReader.throwInvalidTDS();
                 } catch (SQLServerException e) {
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(this + ": ignored expected invalid TDS exception: " + e);
+                    logger.finest(this + ": ignored expected invalid TDS exception: " + e);
 
                     assert tdsReader.getConnection().isSessionUnAvailable();
                     attentionPending = false;
@@ -7282,8 +7194,7 @@ abstract class TDSCommand {
         // Only the first one should be recognized and acted upon.
         synchronized (interruptLock) {
             if (interruptsEnabled && !wasInterrupted()) {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(this + ": Raising interrupt for reason:" + reason);
+                logger.finest(this + ": Raising interrupt for reason:" + reason);
 
                 wasInterrupted = true;
                 interruptReason = reason;
@@ -7321,8 +7232,7 @@ abstract class TDSCommand {
         if (wasInterrupted() && !interruptChecked) {
             interruptChecked = true;
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(this + ": throwing interrupt exception, reason: " + interruptReason);
+            logger.finest(this + ": throwing interrupt exception, reason: " + interruptReason);
 
             throw new SQLServerException(interruptReason, SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
         }
@@ -7341,8 +7251,7 @@ abstract class TDSCommand {
         synchronized (interruptLock) {
             assert !requestComplete;
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(this + ": request complete");
+            logger.finest(this + ": request complete");
 
             requestComplete = true;
 
@@ -7393,8 +7302,7 @@ abstract class TDSCommand {
         // an attention ack to be read.
         synchronized (interruptLock) {
             if (interruptsEnabled) {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(this + ": disabling interrupts");
+                logger.finest(this + ": disabling interrupts");
 
                 // Determine whether we still need to read the attention ack packet.
                 //
@@ -7449,15 +7357,13 @@ abstract class TDSCommand {
      *         on any error, including acknowledgement of an interrupt.
      */
     final TDSWriter startRequest(byte tdsMessageType) throws SQLServerException {
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this + ": starting request...");
+        logger.finest(this + ": starting request...");
 
         // Start this command's request message
         try {
             tdsWriter.startMessage(this, tdsMessageType);
         } catch (SQLServerException e) {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(this + ": starting request: exception: " + e.getMessage());
+            logger.finest(this + ": starting request: exception: " + e.getMessage());
 
             throw e;
         }
@@ -7494,14 +7400,12 @@ abstract class TDSCommand {
         // at any point before endMessage() returns, then endMessage() throws an
         // exception with the reason for the interrupt. Request interrupts
         // are disabled by the time endMessage() returns.
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this + ": finishing request");
+        logger.finest(this + ": finishing request");
 
         try {
             tdsWriter.endMessage();
         } catch (SQLServerException e) {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(this + ": finishing request: endMessage threw exception: " + e.getMessage());
+            logger.finest(this + ": finishing request: endMessage threw exception: " + e.getMessage());
 
             throw e;
         }
@@ -7509,14 +7413,12 @@ abstract class TDSCommand {
         // If command execution is subject to timeout then start timing until
         // the server returns the first response packet.
         if (null != timeoutTimer) {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(this.toString() + ": Starting timer...");
+            logger.finest(this.toString() + ": Starting timer...");
 
             timeoutTimer.start();
         }
 
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this.toString() + ": Reading response...");
+        logger.finest(this.toString() + ": Reading response...");
 
         try {
             // Wait for the server to execute the request and read the first packet
@@ -7528,16 +7430,14 @@ abstract class TDSCommand {
                 while (tdsReader.readPacket());
             }
         } catch (SQLServerException e) {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(this.toString() + ": Exception reading response: " + e.getMessage());
+            logger.finest(this.toString() + ": Exception reading response: " + e.getMessage());
 
             throw e;
         } finally {
             // If command execution was subject to timeout then stop timing as soon
             // as the server returns the first response packet or errors out.
             if (null != timeoutTimer) {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(this.toString() + ": Stopping timer...");
+                logger.finest(this.toString() + ": Stopping timer...");
 
                 timeoutTimer.stop();
             }
@@ -7563,8 +7463,6 @@ abstract class UninterruptableTDSCommand extends TDSCommand {
     final void interrupt(String reason) throws SQLServerException {
         // Interrupting an uninterruptable command is a no-op. That is,
         // it can happen, but it should have no effect.
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.finest(toString() + " Ignoring interrupt of uninterruptable TDS command; Reason:" + reason);
-        }
+        logger.finest(toString() + " Ignoring interrupt of uninterruptable TDS command; Reason:" + reason);
     }
 }

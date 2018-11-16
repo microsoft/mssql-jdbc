@@ -669,9 +669,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private void buildServerCursorPrepExecParams(TDSWriter tdsWriter) throws SQLServerException {
-        if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_cursorprepexec: PreparedHandle:"
-                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+        getStatementLogger().fine(toString() + ": calling sp_cursorprepexec: PreparedHandle:"
+                + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = true;
         executedSqlDirectly = false;
@@ -712,9 +711,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private void buildPrepExecParams(TDSWriter tdsWriter) throws SQLServerException {
-        if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_prepexec: PreparedHandle:"
-                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+        getStatementLogger().fine(toString() + ": calling sp_prepexec: PreparedHandle:" + getPreparedStatementHandle()
+                + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = true;
         executedSqlDirectly = true;
@@ -740,8 +738,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private void buildExecSQLParams(TDSWriter tdsWriter) throws SQLServerException {
-        if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_executesql: SQL:" + preparedSQL);
+        getStatementLogger().fine(toString() + ": calling sp_executesql: SQL:" + preparedSQL);
 
         expectPrepStmtHandle = false;
         executedSqlDirectly = true;
@@ -765,9 +762,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private void buildServerCursorExecParams(TDSWriter tdsWriter) throws SQLServerException {
-        if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_cursorexecute: PreparedHandle:"
-                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+        getStatementLogger().fine(toString() + ": calling sp_cursorexecute: PreparedHandle:"
+                + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = false;
         executedSqlDirectly = false;
@@ -797,9 +793,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private void buildExecParams(TDSWriter tdsWriter) throws SQLServerException {
-        if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_execute: PreparedHandle:"
-                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+        getStatementLogger().fine(toString() + ": calling sp_execute: PreparedHandle:" + getPreparedStatementHandle()
+                + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = false;
         executedSqlDirectly = true;
@@ -828,10 +823,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         assert connection != null : "Connection should not be null";
 
         try {
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine(
-                        "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
-            }
+            getStatementLogger().fine(
+                    "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
 
             stmt = (SQLServerCallableStatement) connection.prepareCall("exec sp_describe_parameter_encryption ?,?");
             stmt.isInternalEncryptionQuery = true;
@@ -873,9 +866,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
                         rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
             }
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Matadata of CEKs is retrieved.");
-            }
+            getStatementLogger().fine("Matadata of CEKs is retrieved.");
         } catch (SQLException e) {
             if (e instanceof SQLServerException) {
                 throw (SQLServerException) e;
@@ -927,9 +918,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
             }
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Parameter encryption metadata is set.");
-            }
+            getStatementLogger().fine("Parameter encryption metadata is set.");
         } catch (SQLException e) {
             if (e instanceof SQLServerException) {
                 throw (SQLServerException) e;
@@ -1958,10 +1947,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             throw new BatchUpdateException(e.getMessage(), null, 0, null);
         } catch (IllegalArgumentException e) {
             // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
-                getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
-            }
+            getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
+            getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
         }
 
         if (batchParamValues == null)
@@ -2115,10 +2102,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             throw new BatchUpdateException(e.getMessage(), null, 0, null);
         } catch (IllegalArgumentException e) {
             // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
-                getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
-            }
+            getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
+            getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
         }
 
         if (batchParamValues == null)

@@ -27,7 +27,6 @@ import java.text.MessageFormat;
 import java.util.Calendar;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
@@ -405,9 +404,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // increment opened resultset counter
         stmtIn.incrResultSetCount();
 
-        if (logger.isLoggable(java.util.logging.Level.FINE)) {
-            logger.fine(toString() + " created by (" + stmt.toString() + ")");
-        }
+        logger.fine(toString() + " created by (" + stmt.toString() + ")");
     }
 
     @Override
@@ -5171,8 +5168,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
         final void ensureStartMark() {
             if (null == startMark && !isForwardOnly()) {
-                if (logger.isLoggable(java.util.logging.Level.FINEST))
-                    logger.finest(toString() + " Setting fetch buffer start mark");
+                logger.finest(toString() + " Setting fetch buffer start mark");
 
                 startMark = tdsReader.mark();
             }
