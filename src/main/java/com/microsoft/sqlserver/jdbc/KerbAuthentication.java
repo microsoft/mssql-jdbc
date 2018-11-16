@@ -113,13 +113,10 @@ final class KerbAuthentication extends SSPIAuthentication {
                     return;
                 }
 
-                if (authLogger.isLoggable(Level.FINER)) {
-                    authLogger.finer(toString() + " Getting client credentials");
-                }
+                authLogger.finer(toString() + " Getting client credentials");
+
                 peerCredentials = getClientCredential(currentSubject, manager, kerberos);
-                if (authLogger.isLoggable(Level.FINER)) {
-                    authLogger.finer(toString() + " creating security context");
-                }
+                authLogger.finer(toString() + " creating security context");
 
                 peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
                         GSSContext.DEFAULT_LIFETIME);
@@ -160,15 +157,13 @@ final class KerbAuthentication extends SSPIAuthentication {
 
     private byte[] intAuthHandShake(byte[] pin, boolean[] done) throws SQLServerException {
         try {
-            if (authLogger.isLoggable(Level.FINER)) {
-                authLogger.finer(toString() + " Sending token to server over secure context");
-            }
+            authLogger.finer(toString() + " Sending token to server over secure context");
+
             byte[] byteToken = peerContext.initSecContext(pin, 0, pin.length);
 
             if (peerContext.isEstablished()) {
                 done[0] = true;
-                if (authLogger.isLoggable(Level.FINER))
-                    authLogger.finer(toString() + "Authentication done.");
+                authLogger.finer(toString() + "Authentication done.");
             } else if (null == byteToken) {
                 // The documentation is not clear on when this can happen but it does say this could happen
                 if (authLogger.isLoggable(Level.INFO)) {
@@ -188,9 +183,8 @@ final class KerbAuthentication extends SSPIAuthentication {
     }
 
     private String makeSpn(String server, int port) throws SQLServerException {
-        if (authLogger.isLoggable(Level.FINER)) {
-            authLogger.finer(toString() + " Server: " + server + " port: " + port);
-        }
+        authLogger.finer(toString() + " Server: " + server + " port: " + port);
+
         StringBuilder spn = new StringBuilder("MSSQLSvc/");
         // Format is MSSQLSvc/myhost.domain.company.com:1433
         // FQDN must be provided
@@ -202,9 +196,8 @@ final class KerbAuthentication extends SSPIAuthentication {
         spn.append(":");
         spn.append(port);
         String strSPN = spn.toString();
-        if (authLogger.isLoggable(Level.FINER)) {
-            authLogger.finer(toString() + " SPN: " + strSPN);
-        }
+        authLogger.finer(toString() + " SPN: " + strSPN);
+
         return strSPN;
     }
 
@@ -229,7 +222,7 @@ final class KerbAuthentication extends SSPIAuthentication {
             spn = makeSpn(address, port);
         }
         this.spn = enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
-        if (!this.spn.equals(spn) && authLogger.isLoggable(Level.FINER)) {
+        if (!this.spn.equals(spn)) {
             authLogger.finer(toString() + "SPN enriched: " + spn + " := " + this.spn);
         }
     }

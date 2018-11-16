@@ -645,8 +645,7 @@ final class TDSChannel {
      */
     final void open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
             boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout) throws SQLServerException {
-        if (logger.isLoggable(Level.FINER))
-            logger.finer(this.toString() + ": Opening TCP socket...");
+        logger.finer(this.toString() + ": Opening TCP socket...");
 
         SocketFinder socketFinder = new SocketFinder(traceID, con);
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
@@ -673,8 +672,7 @@ final class TDSChannel {
      * Disables SSL on this TDS channel.
      */
     void disableSSL() {
-        if (logger.isLoggable(Level.FINER))
-            logger.finer(toString() + " Disabling SSL...");
+        logger.finer(toString() + " Disabling SSL...");
 
         /*
          * The mission: To close the SSLSocket and release everything that it is holding onto other than the TCP/IP
@@ -712,8 +710,7 @@ final class TDSChannel {
         // Now close the SSL socket. It will see that the proxy socket's streams
         // are closed and not try to do any further I/O over them.
         try {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Closing SSL socket");
+            logger.finer(toString() + " Closing SSL socket");
 
             sslSocket.close();
         } catch (IOException e) {
@@ -733,8 +730,7 @@ final class TDSChannel {
         channelSocket = tcpSocket;
         sslSocket = null;
 
-        if (logger.isLoggable(Level.FINER))
-            logger.finer(toString() + " SSL disabled");
+        logger.finer(toString() + " SSL disabled");
     }
 
     /**
@@ -998,8 +994,7 @@ final class TDSChannel {
             try {
                 bytesRead = filteredStream.read(b, offset, maxBytes);
             } catch (IOException e) {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + " " + e.getMessage());
+                logger.finer(toString() + " " + e.getMessage());
 
                 logger.finer(toString() + " Reading bytes threw exception:" + e.getMessage());
                 throw e;
@@ -1254,68 +1249,55 @@ final class TDSChannel {
         // Ignore calls to methods that would otherwise allow the SSL socket
         // to directly manipulate the underlying TCP socket
         public void close() throws IOException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(logContext + " Ignoring close");
+            logger.finer(logContext + " Ignoring close");
         }
 
         public void setReceiveBufferSize(int size) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setReceiveBufferSize size:" + size);
+            logger.finer(toString() + " Ignoring setReceiveBufferSize size:" + size);
         }
 
         public void setSendBufferSize(int size) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setSendBufferSize size:" + size);
+            logger.finer(toString() + " Ignoring setSendBufferSize size:" + size);
         }
 
         public void setReuseAddress(boolean on) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setReuseAddress");
+            logger.finer(toString() + " Ignoring setReuseAddress");
         }
 
         public void setSoLinger(boolean on, int linger) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setSoLinger");
+            logger.finer(toString() + " Ignoring setSoLinger");
         }
 
         public void setSoTimeout(int timeout) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setSoTimeout");
+            logger.finer(toString() + " Ignoring setSoTimeout");
         }
 
         public void setTcpNoDelay(boolean on) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setTcpNoDelay");
+            logger.finer(toString() + " Ignoring setTcpNoDelay");
         }
 
         public void setTrafficClass(int tc) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setTrafficClass");
+            logger.finer(toString() + " Ignoring setTrafficClass");
         }
 
         public void shutdownInput() throws IOException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring shutdownInput");
+            logger.finer(toString() + " Ignoring shutdownInput");
         }
 
         public void shutdownOutput() throws IOException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring shutdownOutput");
+            logger.finer(toString() + " Ignoring shutdownOutput");
         }
 
         public void sendUrgentData(int data) throws IOException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring sendUrgentData");
+            logger.finer(toString() + " Ignoring sendUrgentData");
         }
 
         public void setKeepAlive(boolean on) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setKeepAlive");
+            logger.finer(toString() + " Ignoring setKeepAlive");
         }
 
         public void setOOBInline(boolean on) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setOOBInline");
+            logger.finer(toString() + " Ignoring setOOBInline");
         }
     }
 
@@ -1337,13 +1319,11 @@ final class TDSChannel {
         }
 
         public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(logContext + " Trusting client certificate (!)");
+            logger.finer(logContext + " Trusting client certificate (!)");
         }
 
         public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(logContext + " Trusting server certificate");
+            logger.finer(logContext + " Trusting server certificate");
         }
 
         public X509Certificate[] getAcceptedIssuers() {
@@ -1407,22 +1387,19 @@ final class TDSChannel {
         private boolean validateServerName(String nameInCert) throws CertificateException {
             // Failed to get the common name from DN or empty CN
             if (null == nameInCert) {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(logContext + " Failed to parse the name from the certificate or name is empty.");
+                logger.finer(logContext + " Failed to parse the name from the certificate or name is empty.");
                 return false;
             }
 
             // Verify that the name in certificate matches exactly with the host name
             if (!nameInCert.equals(hostName)) {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(logContext + " The name in certificate " + nameInCert
-                            + " does not match with the server name " + hostName + ".");
+                logger.finer(logContext + " The name in certificate " + nameInCert
+                        + " does not match with the server name " + hostName + ".");
                 return false;
             }
 
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(logContext + " The name in certificate:" + nameInCert + " validated against server name "
-                        + hostName + ".");
+            logger.finer(logContext + " The name in certificate:" + nameInCert + " validated against server name "
+                    + hostName + ".");
 
             return true;
         }
@@ -1445,10 +1422,8 @@ final class TDSChannel {
 
         private void validateServerNameInCertificate(X509Certificate cert) throws CertificateException {
             String nameInCertDN = cert.getSubjectX500Principal().getName("canonical");
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer(logContext + " Validating the server name:" + hostName);
-                logger.finer(logContext + " The DN name in certificate:" + nameInCertDN);
-            }
+            logger.finer(logContext + " Validating the server name:" + hostName);
+            logger.finer(logContext + " The DN name in certificate:" + nameInCertDN);
 
             boolean isServerNameValidated;
 
@@ -1469,12 +1444,9 @@ final class TDSChannel {
                             Object key = sanEntry.get(0);
                             Object value = sanEntry.get(1);
 
-                            if (logger.isLoggable(Level.FINER)) {
-                                logger.finer(logContext + "Key: " + key + "; KeyClass:"
-                                        + (key != null ? key.getClass() : null) + ";value: " + value + "; valueClass:"
-                                        + (value != null ? value.getClass() : null));
-
-                            }
+                            logger.finer(logContext + "Key: " + key + "; KeyClass:"
+                                    + (key != null ? key.getClass() : null) + ";value: " + value + "; valueClass:"
+                                    + (value != null ? value.getClass() : null));
 
                             // From
                             // Documentation(http://download.oracle.com/javase/6/docs/api/java/security/cert/X509Certificate.html):
@@ -1502,25 +1474,18 @@ final class TDSChannel {
                                     isServerNameValidated = validateServerName(dnsNameInSANCert);
 
                                     if (isServerNameValidated) {
-                                        if (logger.isLoggable(Level.FINER)) {
-                                            logger.finer(logContext + " found a valid name in certificate: "
-                                                    + dnsNameInSANCert);
-                                        }
+                                        logger.finer(
+                                                logContext + " found a valid name in certificate: " + dnsNameInSANCert);
                                         break;
                                     }
                                 }
 
-                                if (logger.isLoggable(Level.FINER)) {
-                                    logger.finer(logContext
-                                            + " the following name in certificate does not match the serverName: "
-                                            + value);
-                                }
+                                logger.finer(logContext
+                                        + " the following name in certificate does not match the serverName: " + value);
                             }
 
                         } else {
-                            if (logger.isLoggable(Level.FINER)) {
-                                logger.finer(logContext + " found an invalid san entry: " + sanEntry);
-                            }
+                            logger.finer(logContext + " found an invalid san entry: " + sanEntry);
                         }
                     }
 
@@ -1568,8 +1533,7 @@ final class TDSChannel {
 
         // If anything in here fails, terminate the connection and throw an exception
         try {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Enabling SSL...");
+            logger.finer(toString() + " Enabling SSL...");
 
             String trustStoreFileName = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.TRUST_STORE.toString());
@@ -1607,8 +1571,7 @@ final class TDSChannel {
             TrustManager[] tm = null;
             if (TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel()
                     || (TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel() && con.trustServerCertificate())) {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + " SSL handshake will trust any certificate");
+                logger.finer(toString() + " SSL handshake will trust any certificate");
 
                 tm = new TrustManager[] {new PermissiveX509TrustManager(this)};
             }
@@ -1631,8 +1594,7 @@ final class TDSChannel {
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
             else {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + " SSL handshake will validate server certificate");
+                logger.finer(toString() + " SSL handshake will validate server certificate");
 
                 KeyStore ks = null;
 
@@ -1640,8 +1602,7 @@ final class TDSChannel {
                 // then we can skip all of the KeyStore loading logic below.
                 // The security provider's implementation takes care of everything for us.
                 if (null == trustStoreFileName && null == trustStorePassword) {
-                    if (logger.isLoggable(Level.FINER))
-                        logger.finer(toString() + " Using system default trust store and password");
+                    logger.finer(toString() + " Using system default trust store and password");
                 }
 
                 // Otherwise either the trustStore, trustStorePassword, or both was specified.
@@ -1748,8 +1709,7 @@ final class TDSChannel {
             sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
 
             // At long last, start the SSL handshake ...
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Starting SSL handshake");
+            logger.finer(toString() + " Starting SSL handshake");
 
             // TLS 1.2 intermittent exception happens here.
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
@@ -1776,29 +1736,24 @@ final class TDSChannel {
             // SSL is now enabled; switch over the channel socket
             channelSocket = sslSocket;
 
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " SSL enabled");
+            logger.finer(toString() + " SSL enabled");
         } catch (Exception e) {
-            // Log the original exception and its source at FINER level
-            if (logger.isLoggable(Level.FINER))
-                logger.log(Level.FINER, e.getMessage(), e);
+            logger.log(Level.FINER, e.getMessage(), e);
 
             // If enabling SSL fails, the following information may help diagnose the problem.
             // Do not use Level INFO or above which is sent to standard output/error streams.
             // This is because due to an intermittent TLS 1.2 connection issue, we will be retrying the connection and
             // do not want to print this message in console.
-            if (logger.isLoggable(Level.FINER))
-                logger.log(Level.FINER, "java.security path: " + JAVA_SECURITY + "\n" + "Security providers: "
-                        + Arrays.asList(Security.getProviders()) + "\n"
-                        + ((null != sslContextProvider) ? ("SSLContext provider info: " + sslContextProvider.getInfo()
-                                + "\n" + "SSLContext provider services:\n" + sslContextProvider.getServices() + "\n")
-                                                        : "")
-                        + ((null != tmfProvider) ? ("TrustManagerFactory provider info: " + tmfProvider.getInfo()
-                                + "\n") : "")
-                        + ((null != tmfDefaultAlgorithm) ? ("TrustManagerFactory default algorithm: "
-                                + tmfDefaultAlgorithm + "\n") : "")
-                        + ((null != ksProvider) ? ("KeyStore provider info: " + ksProvider.getInfo() + "\n") : "")
-                        + "java.ext.dirs: " + System.getProperty("java.ext.dirs"));
+            logger.log(Level.FINER, "java.security path: " + JAVA_SECURITY + "\n" + "Security providers: "
+                    + Arrays.asList(Security.getProviders()) + "\n"
+                    + ((null != sslContextProvider) ? ("SSLContext provider info: " + sslContextProvider.getInfo()
+                            + "\n" + "SSLContext provider services:\n" + sslContextProvider.getServices() + "\n") : "")
+                    + ((null != tmfProvider) ? ("TrustManagerFactory provider info: " + tmfProvider.getInfo() + "\n")
+                                             : "")
+                    + ((null != tmfDefaultAlgorithm) ? ("TrustManagerFactory default algorithm: " + tmfDefaultAlgorithm
+                            + "\n") : "")
+                    + ((null != ksProvider) ? ("KeyStore provider info: " + ksProvider.getInfo() + "\n") : "")
+                    + "java.ext.dirs: " + System.getProperty("java.ext.dirs"));
 
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_sslFailed"));
             Object[] msgArgs = {e.getMessage()};
@@ -1864,8 +1819,7 @@ final class TDSChannel {
             if (isValidTrustStore && !isValidTrustStoreType) {
                 // In case of valid trust store we need to check TrustStoreType.
                 isValid = false;
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + "TrustStoreType is required alongside with TrustStore.");
+                logger.finer(toString() + "TrustStoreType is required alongside with TrustStore.");
             }
         }
 
@@ -1987,8 +1941,7 @@ final class TDSChannel {
         try {
             outputStream.write(data, offset, length);
         } catch (IOException e) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " write failed:" + e.getMessage());
+            logger.finer(toString() + " write failed:" + e.getMessage());
 
             con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
         }
@@ -1998,8 +1951,7 @@ final class TDSChannel {
         try {
             outputStream.flush();
         } catch (IOException e) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " flush failed:" + e.getMessage());
+            logger.finer(toString() + " flush failed:" + e.getMessage());
 
             con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
         }
@@ -2034,8 +1986,7 @@ final class TDSChannel {
         }
 
         if (null != tcpSocket) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(this.toString() + ": Closing TCP socket...");
+            logger.finer(this.toString() + ": Closing TCP socket...");
 
             try {
                 tcpSocket.close();
@@ -2317,14 +2268,10 @@ final class SocketFinder {
             }
             timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, minTimeoutForParallelConnections);
             if (Util.isIBM()) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(this.toString() + "Using Java NIO with timeout:" + timeoutInMilliSeconds);
-                }
+                logger.finer(this.toString() + "Using Java NIO with timeout:" + timeoutInMilliSeconds);
                 findSocketUsingJavaNIO(inetAddrs, portNumber, timeoutInMilliSeconds);
             } else {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(this.toString() + "Using Threading with timeout:" + timeoutInMilliSeconds);
-                }
+                logger.finer(this.toString() + "Using Threading with timeout:" + timeoutInMilliSeconds);
                 findSocketUsingThreading(inetAddrs, portNumber, timeoutInMilliSeconds);
             }
 
@@ -2336,9 +2283,7 @@ final class SocketFinder {
                 synchronized (socketFinderlock) {
                     if (result.equals(Result.UNKNOWN)) {
                         result = Result.FAILURE;
-                        if (logger.isLoggable(Level.FINER)) {
-                            logger.finer(this.toString() + " The parent thread updated the result to failure");
-                        }
+                        logger.finer(this.toString() + " The parent thread updated the result to failure");
                     }
                 }
             }
@@ -2349,10 +2294,8 @@ final class SocketFinder {
             // as their function calls would now be no-ops.
             if (result.equals(Result.FAILURE)) {
                 if (selectedException == null) {
-                    if (logger.isLoggable(Level.FINER)) {
-                        logger.finer(this.toString()
-                                + " There is no selectedException. The wait calls timed out before any connect call returned or timed out.");
-                    }
+                    logger.finer(this.toString()
+                            + " There is no selectedException. The wait calls timed out before any connect call returned or timed out.");
                     String message = SQLServerException.getErrString("R_connectionTimedOut");
                     selectedException = new IOException(message);
                 }
@@ -2426,9 +2369,8 @@ final class SocketFinder {
 
                 sChannel.connect(new InetSocketAddress(inetAddr, portNumber));
 
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(this.toString() + " initiated connection to address: " + inetAddr + ", portNumber: "
-                            + portNumber);
+                logger.finer(this.toString() + " initiated connection to address: " + inetAddr + ", portNumber: "
+                        + portNumber);
             }
 
             long timerNow = System.currentTimeMillis();
@@ -2447,8 +2389,7 @@ final class SocketFinder {
                 // or encountered an exception while trying to connect
                 int readyChannels = selector.select(timeRemaining);
 
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(this.toString() + " no of channels ready: " + readyChannels);
+                logger.finer(this.toString() + " no of channels ready: " + readyChannels);
 
                 // There are no real time guarantees on the time out of the select API used above.
                 // This check is necessary
@@ -2463,9 +2404,8 @@ final class SocketFinder {
                         SelectionKey key = keyIterator.next();
                         SocketChannel ch = (SocketChannel) key.channel();
 
-                        if (logger.isLoggable(Level.FINER))
-                            logger.finer(this.toString() + " processing the channel :" + ch);// this traces the IP by
-                                                                                             // default
+                        logger.finer(this.toString() + " processing the channel :" + ch);// this traces the IP by
+                                                                                         // default
 
                         boolean connected = false;
                         try {
@@ -2477,14 +2417,12 @@ final class SocketFinder {
 
                             selectedChannel = ch;
 
-                            if (logger.isLoggable(Level.FINER))
-                                logger.finer(this.toString() + " selected the channel :" + selectedChannel);
+                            logger.finer(this.toString() + " selected the channel :" + selectedChannel);
 
                             break;
                         } catch (IOException ex) {
-                            if (logger.isLoggable(Level.FINER))
-                                logger.finer(this.toString() + " the exception: " + ex.getClass() + " with message: "
-                                        + ex.getMessage() + " occurred while processing the channel: " + ch);
+                            logger.finer(this.toString() + " the exception: " + ex.getClass() + " with message: "
+                                    + ex.getMessage() + " occurred while processing the channel: " + ch);
                             updateSelectedException(ex, this.toString());
                             // close the channel pro-actively so that we do not
                             // rely to network resources
@@ -2607,11 +2545,9 @@ final class SocketFinder {
                 while (true) {
                     long timeRemaining = timerExpire - timerNow;
 
-                    if (logger.isLoggable(Level.FINER)) {
-                        logger.finer(this.toString() + " TimeRemaining:" + timeRemaining + "; Result:" + result
-                                + "; Max. open thread count: " + threadPoolExecutor.getLargestPoolSize()
-                                + "; Current open thread count:" + threadPoolExecutor.getActiveCount());
-                    }
+                    logger.finer(this.toString() + " TimeRemaining:" + timeRemaining + "; Result:" + result
+                            + "; Max. open thread count: " + threadPoolExecutor.getLargestPoolSize()
+                            + "; Current open thread count:" + threadPoolExecutor.getActiveCount());
 
                     // if there is no time left or if the result is determined, break.
                     // Note that a dirty read of result is totally fine here.
@@ -2629,9 +2565,7 @@ final class SocketFinder {
 
                     parentThreadLock.wait(timeRemaining);
 
-                    if (logger.isLoggable(Level.FINER)) {
-                        logger.finer(this.toString() + " The parent thread wokeup.");
-                    }
+                    logger.finer(this.toString() + " The parent thread wokeup.");
 
                     timerNow = System.currentTimeMillis();
                 }
@@ -2669,8 +2603,7 @@ final class SocketFinder {
 
     void close(Selector selector) {
         if (null != selector) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(this.toString() + ": Closing Selector");
+            logger.finer(this.toString() + ": Closing Selector");
 
             try {
                 selector.close();
@@ -2683,8 +2616,7 @@ final class SocketFinder {
 
     void close(Socket socket) {
         if (null != socket) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(this.toString() + ": Closing TCP socket:" + socket);
+            logger.finer(this.toString() + ": Closing TCP socket:" + socket);
 
             try {
                 socket.close();
@@ -2697,8 +2629,7 @@ final class SocketFinder {
 
     void close(SocketChannel socketChannel) {
         if (null != socketChannel) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(this.toString() + ": Closing TCP socket channel:" + socketChannel);
+            logger.finer(this.toString() + ": Closing TCP socket channel:" + socketChannel);
 
             try {
                 socketChannel.close();
@@ -2725,14 +2656,10 @@ final class SocketFinder {
      */
     void updateResult(Socket socket, IOException exception, String threadId) {
         if (result.equals(Result.UNKNOWN)) {
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer("The following child thread is waiting for socketFinderLock:" + threadId);
-            }
+            logger.finer("The following child thread is waiting for socketFinderLock:" + threadId);
 
             synchronized (socketFinderlock) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer("The following child thread acquired socketFinderLock:" + threadId);
-                }
+                logger.finer("The following child thread acquired socketFinderLock:" + threadId);
 
                 if (result.equals(Result.UNKNOWN)) {
                     // if the connection was successful and no socket has been
@@ -2740,9 +2667,7 @@ final class SocketFinder {
                     if (exception == null && selectedSocket == null) {
                         selectedSocket = socket;
                         result = Result.SUCCESS;
-                        if (logger.isLoggable(Level.FINER)) {
-                            logger.finer("The socket of the following thread has been chosen:" + threadId);
-                        }
+                        logger.finer("The socket of the following thread has been chosen:" + threadId);
                     }
 
                     // if an exception occurred
@@ -2782,29 +2707,20 @@ final class SocketFinder {
                     // This results in better performance as it would close unnecessary
                     // sockets and thus help child threads die quickly.
 
-                    if (logger.isLoggable(Level.FINER)) {
-                        logger.finer("The following child thread is waiting for parentThreadLock:" + threadId);
-                    }
+                    logger.finer("The following child thread is waiting for parentThreadLock:" + threadId);
 
                     synchronized (parentThreadLock) {
-                        if (logger.isLoggable(Level.FINER)) {
-                            logger.finer("The following child thread acquired parentThreadLock:" + threadId);
-                        }
+                        logger.finer("The following child thread acquired parentThreadLock:" + threadId);
 
                         parentThreadLock.notify();
                     }
 
-                    if (logger.isLoggable(Level.FINER)) {
-                        logger.finer(
-                                "The following child thread released parentThreadLock and notified the parent thread:"
-                                        + threadId);
-                    }
+                    logger.finer("The following child thread released parentThreadLock and notified the parent thread:"
+                            + threadId);
                 }
             }
 
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer("The following child thread released socketFinderLock:" + threadId);
-            }
+            logger.finer("The following child thread released socketFinderLock:" + threadId);
         }
 
     }
@@ -2834,10 +2750,8 @@ final class SocketFinder {
         }
 
         if (updatedException) {
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer("The selected exception is updated to the following: ExceptionType:" + ex.getClass()
-                        + "; ExceptionMessage:" + ex.getMessage() + "; by the following thread:" + traceId);
-            }
+            logger.finer("The selected exception is updated to the following: ExceptionType:" + ex.getClass()
+                    + "; ExceptionMessage:" + ex.getMessage() + "; by the following thread:" + traceId);
         }
     }
 
@@ -2904,17 +2818,13 @@ final class SocketConnector implements Runnable {
         SocketFinder.Result result = socketFinder.getResult();
         if (result.equals(SocketFinder.Result.UNKNOWN)) {
             try {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(this.toString() + " connecting to InetSocketAddress:" + inetSocketAddress
-                            + " with timeout:" + timeoutInMilliseconds);
-                }
+                logger.finer(this.toString() + " connecting to InetSocketAddress:" + inetSocketAddress
+                        + " with timeout:" + timeoutInMilliseconds);
 
                 socket.connect(inetSocketAddress, timeoutInMilliseconds);
             } catch (IOException ex) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(this.toString() + " exception:" + ex.getClass() + " with message:" + ex.getMessage()
-                            + " occurred while connecting to InetSocketAddress:" + inetSocketAddress);
-                }
+                logger.finer(this.toString() + " exception:" + ex.getClass() + " with message:" + ex.getMessage()
+                        + " occurred while connecting to InetSocketAddress:" + inetSocketAddress);
                 exception = ex;
             }
 
@@ -2937,8 +2847,7 @@ final class SocketConnector implements Runnable {
      */
     private static synchronized long nextThreadID() {
         if (lastThreadID == Long.MAX_VALUE) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer("Resetting the Id count");
+            logger.finer("Resetting the Id count");
             lastThreadID = 1;
         } else {
             lastThreadID++;
@@ -3085,8 +2994,7 @@ final class TDSWriter {
         writeBytes(actIdByteArray, 0, actIdByteArray.length); // guid part of ActivityId
         writeInt((int) seqNum); // sequence number of ActivityId
 
-        if (logger.isLoggable(Level.FINER))
-            logger.finer("Send Trace Header - ActivityID: " + activityId.toString());
+        logger.finer("Send Trace Header - ActivityID: " + activityId.toString());
     }
 
     /**
@@ -3135,8 +3043,7 @@ final class TDSWriter {
         if (packetNum > 0 || TDS.PKT_BULK == this.tdsMessageType) {
             assert !isEOMSent;
 
-            if (logger.isLoggable(Level.FINER))
-                logger.finest(toString() + " Finishing TDS message by sending ignore bit and end of message");
+            logger.finest(toString() + " Finishing TDS message by sending ignore bit and end of message");
             writePacket(TDS.STATUS_BIT_EOM | TDS.STATUS_BIT_ATTENTION);
             return true;
         }
@@ -6362,9 +6269,8 @@ final class TDSReader {
             int bytesRead = tdsChannel.read(newPacket.header, headerBytesRead,
                     TDS.PACKET_HEADER_SIZE - headerBytesRead);
             if (bytesRead < 0) {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + " Premature EOS in response. packetNum:" + packetNum + " headerBytesRead:"
-                            + headerBytesRead);
+                logger.finer(toString() + " Premature EOS in response. packetNum:" + packetNum + " headerBytesRead:"
+                        + headerBytesRead);
 
                 con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
                         ((0 == packetNum && 0 == headerBytesRead) ? SQLServerException.getErrString(

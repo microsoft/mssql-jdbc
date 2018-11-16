@@ -89,9 +89,7 @@ public class SQLServerDataSource
 
     @Override
     public Connection getConnection(String username, String password) throws SQLServerException {
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getConnection",
-                    new Object[] {username, "Password not traced"});
+        loggerExternal.entering(getClassNameLogging(), "getConnection", new Object[] {username, "Password not traced"});
         Connection con = getConnectionInternal(username, password, null);
         loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
         return con;
@@ -604,8 +602,7 @@ public class SQLServerDataSource
 
     @Override
     public String getWorkstationID() {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getWorkstationID");
+        loggerExternal.entering(getClassNameLogging(), "getWorkstationID");
         String getWSID = connectionProps.getProperty(SQLServerDriverStringProperty.WORKSTATION_ID.toString());
         // Per spec, return what the logon will send here if workstationID
         // property is not set.
@@ -876,8 +873,7 @@ public class SQLServerDataSource
      *        no property value is set.
      */
     private void setStringProperty(Properties props, String propKey, String propValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER) && !propKey.contains("password")
-                && !propKey.contains("Password")) {
+        if (!propKey.contains("password") && !propKey.contains("Password")) {
             loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
         } else
             loggerExternal.entering(getClassNameLogging(), "set" + propKey);
@@ -896,13 +892,11 @@ public class SQLServerDataSource
      *         not set.
      */
     private String getStringProperty(Properties props, String propKey, String defaultValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "get" + propKey);
+        loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         String propValue = props.getProperty(propKey);
         if (null == propValue)
             propValue = defaultValue;
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER) && !propKey.contains("password")
-                && !propKey.contains("Password"))
+        if (!propKey.contains("password") && !propKey.contains("Password"))
             loggerExternal.exiting(getClassNameLogging(), "get" + propKey, propValue);
         return propValue;
     }
@@ -916,8 +910,7 @@ public class SQLServerDataSource
      *        Caller will always supply a non-null props and propKey.
      */
     private void setIntProperty(Properties props, String propKey, int propValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
+        loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
         props.setProperty(propKey, Integer.valueOf(propValue).toString());
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
@@ -927,8 +920,7 @@ public class SQLServerDataSource
      * defaultValue if the specific property value is not set.
      */
     private int getIntProperty(Properties props, String propKey, int defaultValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "get" + propKey);
+        loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         String propValue = props.getProperty(propKey);
         int value = defaultValue;
         if (null != propValue) {
@@ -940,8 +932,7 @@ public class SQLServerDataSource
                 assert false : "Bad portNumber:-" + propValue;
             }
         }
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "get" + propKey, value);
+        loggerExternal.exiting(getClassNameLogging(), "get" + propKey, value);
         return value;
     }
 
@@ -949,8 +940,7 @@ public class SQLServerDataSource
      * Set a boolean property value. Caller will always supply a non-null props and propKey.
      */
     private void setBooleanProperty(Properties props, String propKey, boolean propValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
+        loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
         props.setProperty(propKey, (propValue) ? "true" : "false");
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
@@ -960,8 +950,7 @@ public class SQLServerDataSource
      * defaultValue if the specific property value is not set.
      */
     private boolean getBooleanProperty(Properties props, String propKey, boolean defaultValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "get" + propKey);
+        loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         String propValue = props.getProperty(propKey);
         Boolean value;
         if (null == propValue) {
@@ -976,9 +965,7 @@ public class SQLServerDataSource
     }
 
     private void setObjectProperty(Properties props, String propKey, Object propValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "set" + propKey);
-        }
+        loggerExternal.entering(getClassNameLogging(), "set" + propKey);
         if (null != propValue) {
             props.put(propKey, propValue);
         }
@@ -986,8 +973,7 @@ public class SQLServerDataSource
     }
 
     private Object getObjectProperty(Properties props, String propKey, Object defaultValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "get" + propKey);
+        loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         Object propValue = props.get(propKey);
         if (null == propValue)
             propValue = defaultValue;
@@ -1045,8 +1031,7 @@ public class SQLServerDataSource
         }
 
         // Create new connection and connect.
-        if (dsLogger.isLoggable(Level.FINER))
-            dsLogger.finer(toString() + " Begin create new connection.");
+        dsLogger.finer(toString() + " Begin create new connection.");
         SQLServerConnection result = null;
         if (Util.use43Wrapper()) {
             result = new SQLServerConnection43(toString());
@@ -1054,8 +1039,7 @@ public class SQLServerDataSource
             result = new SQLServerConnection(toString());
         }
         result.connect(mergedProps, pooledConnection);
-        if (dsLogger.isLoggable(Level.FINER))
-            dsLogger.finer(toString() + " End create new connection " + result.toString());
+        dsLogger.finer(toString() + " End create new connection " + result.toString());
         return result;
     }
 
@@ -1070,8 +1054,7 @@ public class SQLServerDataSource
     }
 
     Reference getReferenceInternal(String dataSourceClassString) {
-        if (dsLogger.isLoggable(Level.FINER))
-            dsLogger.finer(toString() + " creating reference for " + dataSourceClassString + ".");
+        dsLogger.finer(toString() + " creating reference for " + dataSourceClassString + ".");
 
         Reference ref = new Reference(this.getClass().getName(),
                 "com.microsoft.sqlserver.jdbc.SQLServerDataSourceObjectFactory", null);

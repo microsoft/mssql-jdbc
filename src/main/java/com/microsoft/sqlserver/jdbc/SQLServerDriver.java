@@ -553,7 +553,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         try {
             java.sql.DriverManager.registerDriver(new SQLServerDriver());
         } catch (SQLException e) {
-            if (drLogger.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+            if (Util.IsActivityTraceOn()) {
                 drLogger.finer("Error registering driver: " + e);
             }
         }
@@ -657,8 +657,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             }
         }
 
-        if (logger.isLoggable(Level.FINER))
-            logger.finer("Unknown property" + name);
+        logger.finer("Unknown property" + name);
         return null;
     }
 
@@ -680,8 +679,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             }
         }
 
-        if (logger.isLoggable(Level.FINER))
-            logger.finer("Unknown property" + name);
+        logger.finer("Unknown property" + name);
         return null;
     }
 

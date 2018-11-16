@@ -89,8 +89,7 @@ final class ScrollWindow {
     }
 
     final boolean next(SQLServerResultSet rs) throws SQLServerException {
-        if (SQLServerResultSet.logger.isLoggable(java.util.logging.Level.FINER))
-            SQLServerResultSet.logger.finer(rs.toString() + logCursorState());
+        SQLServerResultSet.logger.finer(rs.toString() + logCursorState());
 
         // Precondition:
         // Current position should always be on a row in the window or
@@ -161,8 +160,7 @@ final class ScrollWindow {
     }
 
     final void previous(SQLServerResultSet rs) throws SQLServerException {
-        if (SQLServerResultSet.logger.isLoggable(java.util.logging.Level.FINER))
-            SQLServerResultSet.logger.finer(rs.toString() + logCursorState());
+        SQLServerResultSet.logger.finer(rs.toString() + logCursorState());
 
         // Precondition:
         // Current position should always be on a row in the window or

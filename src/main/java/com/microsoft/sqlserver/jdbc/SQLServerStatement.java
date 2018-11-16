@@ -21,7 +21,6 @@ import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -604,15 +603,11 @@ public class SQLServerStatement implements ISQLServerStatement {
         setDefaultQueryTimeout();
         setDefaultQueryCancelTimeout();
 
-        if (stmtlogger.isLoggable(java.util.logging.Level.FINER)) {
-            stmtlogger.finer("Properties for " + toString() + ":" + " Result type:" + appResultSetType + " ("
-                    + resultSetType + ")" + " Concurrency:" + resultSetConcurrency + " Fetchsize:" + nFetchSize
-                    + " bIsClosed:" + bIsClosed + " useLastUpdateCount:" + connection.useLastUpdateCount());
-        }
+        stmtlogger.finer("Properties for " + toString() + ":" + " Result type:" + appResultSetType + " ("
+                + resultSetType + ")" + " Concurrency:" + resultSetConcurrency + " Fetchsize:" + nFetchSize
+                + " bIsClosed:" + bIsClosed + " useLastUpdateCount:" + connection.useLastUpdateCount());
 
-        if (stmtlogger.isLoggable(java.util.logging.Level.FINE)) {
-            stmtlogger.fine(toString() + " created by (" + connection.toString() + ")");
-        }
+        stmtlogger.fine(toString() + " created by (" + connection.toString() + ")");
     }
 
     private void setDefaultQueryCancelTimeout() {
@@ -681,7 +676,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public java.sql.ResultSet executeQuery(String sql) throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery", sql);
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -699,7 +694,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public int executeUpdate(String sql) throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate", sql);
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -719,7 +714,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     public long executeLargeUpdate(String sql) throws SQLServerException, SQLTimeoutException {
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", sql);
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -732,7 +727,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public boolean execute(String sql) throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "execute", sql);
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -825,7 +820,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Note: similar logic in SQLServerPreparedStatement.doExecutePreparedStatement
         setMaxRowsAndMaxFieldSize();
 
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         if (isCursorable(executeMethod) && isSelect(sql)) {
@@ -901,7 +896,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Make sure any previous maxRows limitation on the connection is removed.
         connection.setMaxRows(0);
 
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
@@ -1094,8 +1089,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     @Override
     public final void setMaxRows(int max) throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setMaxRows", max);
+        loggerExternal.entering(getClassNameLogging(), "setMaxRows", max);
         checkClosed();
         if (max < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidRowcount"));
@@ -1114,8 +1108,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public final void setLargeMaxRows(long max) throws SQLServerException {
 
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setLargeMaxRows", max);
+        loggerExternal.entering(getClassNameLogging(), "setLargeMaxRows", max);
 
         // SQL server only supports integer limits for setting max rows.
         // If <max> is bigger than integer limits then throw an exception, otherwise call setMaxRows(int)
@@ -1128,8 +1121,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     @Override
     public final void setEscapeProcessing(boolean enable) throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setEscapeProcessing", enable);
+        loggerExternal.entering(getClassNameLogging(), "setEscapeProcessing", enable);
         checkClosed();
         escapeProcessing = enable;
         loggerExternal.exiting(getClassNameLogging(), "setEscapeProcessing");
@@ -1671,8 +1663,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     @Override
     public final void setFetchDirection(int nDir) throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setFetchDirection", nDir);
+        loggerExternal.entering(getClassNameLogging(), "setFetchDirection", nDir);
         checkClosed();
         if ((ResultSet.FETCH_FORWARD != nDir && ResultSet.FETCH_REVERSE != nDir && ResultSet.FETCH_UNKNOWN != nDir) ||
 
@@ -1697,8 +1688,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     @Override
     public final void setFetchSize(int rows) throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setFetchSize", rows);
+        loggerExternal.entering(getClassNameLogging(), "setFetchSize", rows);
         checkClosed();
         if (rows < 0)
             SQLServerException.makeFromDriverError(connection, this,
@@ -1760,7 +1750,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeBatch");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -1837,7 +1827,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -1974,10 +1964,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     private void doExecuteCursored(StmtExecCmd execCmd, String sql) throws SQLServerException {
-        if (stmtlogger.isLoggable(java.util.logging.Level.FINER)) {
-            stmtlogger.finer(toString() + " Execute for cursor open" + " SQL:" + sql + " Scrollability:"
-                    + getResultSetScrollOpt() + " Concurrency:" + getResultSetCCOpt());
-        }
+        stmtlogger.finer(toString() + " Execute for cursor open" + " SQL:" + sql + " Scrollability:"
+                + getResultSetScrollOpt() + " Concurrency:" + getResultSetCCOpt());
 
         executedSqlDirectly = false;
         expectCursorOutParams = true;
@@ -2021,11 +2009,9 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public final boolean execute(java.lang.String sql,
             int autoGeneratedKeys) throws SQLServerException, SQLTimeoutException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, autoGeneratedKeys});
-            if (Util.IsActivityTraceOn()) {
-                loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
-            }
+        loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, autoGeneratedKeys});
+        if (Util.IsActivityTraceOn()) {
+            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         if (autoGeneratedKeys != Statement.RETURN_GENERATED_KEYS && autoGeneratedKeys != Statement.NO_GENERATED_KEYS) {
@@ -2042,8 +2028,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public final boolean execute(java.lang.String sql,
             int[] columnIndexes) throws SQLServerException, SQLTimeoutException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, columnIndexes});
+        loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, columnIndexes});
         checkClosed();
         if (columnIndexes == null || columnIndexes.length != 1) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -2057,8 +2042,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public final boolean execute(java.lang.String sql,
             java.lang.String[] columnNames) throws SQLServerException, SQLTimeoutException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, columnNames});
+        loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, columnNames});
         checkClosed();
         if (columnNames == null || columnNames.length != 1) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -2071,11 +2055,9 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     @Override
     public final int executeUpdate(String sql, int autoGeneratedKeys) throws SQLServerException, SQLTimeoutException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, autoGeneratedKeys});
-            if (Util.IsActivityTraceOn()) {
-                loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
-            }
+        loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, autoGeneratedKeys});
+        if (Util.IsActivityTraceOn()) {
+            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         if (autoGeneratedKeys != Statement.RETURN_GENERATED_KEYS && autoGeneratedKeys != Statement.NO_GENERATED_KEYS) {
@@ -2099,11 +2081,9 @@ public class SQLServerStatement implements ISQLServerStatement {
     public final long executeLargeUpdate(String sql,
             int autoGeneratedKeys) throws SQLServerException, SQLTimeoutException {
 
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", new Object[] {sql, autoGeneratedKeys});
-            if (Util.IsActivityTraceOn()) {
-                loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
-            }
+        loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", new Object[] {sql, autoGeneratedKeys});
+        if (Util.IsActivityTraceOn()) {
+            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         if (autoGeneratedKeys != Statement.RETURN_GENERATED_KEYS && autoGeneratedKeys != Statement.NO_GENERATED_KEYS) {
@@ -2119,8 +2099,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public final int executeUpdate(java.lang.String sql,
             int[] columnIndexes) throws SQLServerException, SQLTimeoutException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, columnIndexes});
+        loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, columnIndexes});
         checkClosed();
         if (columnIndexes == null || columnIndexes.length != 1) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -2135,8 +2114,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     public final long executeLargeUpdate(java.lang.String sql,
             int[] columnIndexes) throws SQLServerException, SQLTimeoutException {
 
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", new Object[] {sql, columnIndexes});
+        loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", new Object[] {sql, columnIndexes});
         checkClosed();
         if (columnIndexes == null || columnIndexes.length != 1) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -2150,8 +2128,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public final int executeUpdate(java.lang.String sql,
             String[] columnNames) throws SQLServerException, SQLTimeoutException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, columnNames});
+        loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, columnNames});
         checkClosed();
         if (columnNames == null || columnNames.length != 1) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -2166,8 +2143,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     public final long executeLargeUpdate(java.lang.String sql,
             String[] columnNames) throws SQLServerException, SQLTimeoutException {
 
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", new Object[] {sql, columnNames});
+        loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", new Object[] {sql, columnNames});
         checkClosed();
         if (columnNames == null || columnNames.length != 1) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -2203,8 +2179,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     @Override
     public final boolean getMoreResults(int mode) throws SQLException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getMoreResults", mode);
+        loggerExternal.entering(getClassNameLogging(), "getMoreResults", mode);
         checkClosed();
         if (KEEP_CURRENT_RESULT == mode) {
             SQLServerException.throwNotSupportedException(connection, this);

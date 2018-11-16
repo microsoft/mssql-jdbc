@@ -44,8 +44,7 @@ public class SQLServerPooledConnection implements PooledConnection {
         factoryUser = user;
         factoryPassword = password;
 
-        if (pcLogger.isLoggable(Level.FINER))
-            pcLogger.finer(toString() + " Start create new connection for pool.");
+        pcLogger.finer(toString() + " Start create new connection for pool.");
 
         physicalConnection = createNewConnection();
         String nameL = getClass().getName();
@@ -79,8 +78,7 @@ public class SQLServerPooledConnection implements PooledConnection {
      */
     @Override
     public Connection getConnection() throws SQLException {
-        if (pcLogger.isLoggable(Level.FINER))
-            pcLogger.finer(toString() + " user:(default).");
+        pcLogger.finer(toString() + " user:(default).");
         synchronized (this) {
             // If physical connection is closed, throw exception per spec, this PooledConnection is dead.
             if (physicalConnection == null) {
@@ -126,8 +124,7 @@ public class SQLServerPooledConnection implements PooledConnection {
      * is used to notify the pooling manager that the connection is bad and should be removed from the pool.
      */
     void notifyEvent(SQLServerException e) {
-        if (pcLogger.isLoggable(Level.FINER))
-            pcLogger.finer(toString() + " Exception:" + e + safeCID());
+        pcLogger.finer(toString() + " Exception:" + e + safeCID());
 
         // close the proxy on fatal error event. Note exception is null then the event comes from the proxy close.
         if (null != e) {
@@ -149,12 +146,10 @@ public class SQLServerPooledConnection implements PooledConnection {
 
                 ConnectionEvent ev = new ConnectionEvent(this, e);
                 if (null == e) {
-                    if (pcLogger.isLoggable(Level.FINER))
-                        pcLogger.finer(toString() + " notifyEvent:connectionClosed " + safeCID());
+                    pcLogger.finer(toString() + " notifyEvent:connectionClosed " + safeCID());
                     listener.connectionClosed(ev);
                 } else {
-                    if (pcLogger.isLoggable(Level.FINER))
-                        pcLogger.finer(toString() + " notifyEvent:connectionErrorOccurred " + safeCID());
+                    pcLogger.finer(toString() + " notifyEvent:connectionErrorOccurred " + safeCID());
                     listener.connectionErrorOccurred(ev);
                 }
             }
@@ -163,8 +158,7 @@ public class SQLServerPooledConnection implements PooledConnection {
 
     @Override
     public void addConnectionEventListener(ConnectionEventListener listener) {
-        if (pcLogger.isLoggable(Level.FINER))
-            pcLogger.finer(toString() + safeCID());
+        pcLogger.finer(toString() + safeCID());
         synchronized (listeners) {
             listeners.add(listener);
         }
@@ -172,8 +166,7 @@ public class SQLServerPooledConnection implements PooledConnection {
 
     @Override
     public void close() throws SQLException {
-        if (pcLogger.isLoggable(Level.FINER))
-            pcLogger.finer(toString() + " Closing physical connection, " + safeCID());
+        pcLogger.finer(toString() + " Closing physical connection, " + safeCID());
         synchronized (this) {
             // First close the last proxy
             if (null != lastProxyConnection)
@@ -193,8 +186,7 @@ public class SQLServerPooledConnection implements PooledConnection {
 
     @Override
     public void removeConnectionEventListener(ConnectionEventListener listener) {
-        if (pcLogger.isLoggable(Level.FINER))
-            pcLogger.finer(toString() + safeCID());
+        pcLogger.finer(toString() + safeCID());
         synchronized (listeners) {
             listeners.remove(listener);
         }

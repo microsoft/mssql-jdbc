@@ -1515,8 +1515,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             bulkCmd.append(")");
         }
 
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.finer(this.toString() + " TDSCommand: " + bulkCmd);
+        loggerExternal.finer(this.toString() + " TDSCommand: " + bulkCmd);
 
         return bulkCmd.toString();
     }
@@ -1641,8 +1640,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
 
         long start = System.currentTimeMillis();
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.finer(this.toString() + " Start writeToServer: " + start);
+        loggerExternal.finer(this.toString() + " Start writeToServer: " + start);
 
         getDestinationMetadata();
 
@@ -1655,11 +1653,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         sendBulkLoadBCP();
 
         long end = System.currentTimeMillis();
-        if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.finer(this.toString() + " End writeToServer: " + end);
-            int seconds = (int) ((end - start) / 1000L);
-            loggerExternal.finer(this.toString() + "Time elapsed: " + seconds + " seconds");
-        }
+        loggerExternal.finer(this.toString() + " End writeToServer: " + end);
+        int seconds = (int) ((end - start) / 1000L);
+        loggerExternal.finer(this.toString() + "Time elapsed: " + seconds + " seconds");
     }
 
     private void validateStringBinaryLengths(Object colValue, int srcCol, int destCol) throws SQLServerException {
@@ -1716,8 +1712,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
 
                 // Get destination metadata
-                rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                        + escapedDestinationTableName + " '");
+                rs = stmt.executeQueryInternal(
+                        "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
             }
 
             destColumnCount = rs.getMetaData().getColumnCount();
