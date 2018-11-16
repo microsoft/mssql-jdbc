@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 
 @RunWith(JUnitPlatform.class)
-public class CallableMixed {
+public class CallableMixedTest {
 
     @Test
     public void datatypestest() throws Exception {

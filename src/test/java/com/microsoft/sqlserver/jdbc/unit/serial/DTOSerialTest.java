@@ -7,7 +7,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import junit.framework.*;
-import javax.sql.*;
 
 import com.microsoft.sqlserver.jdbc.*;
 import microsoft.sql.*;
@@ -18,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 
 @RunWith(JUnitPlatform.class)
-public class DTOSerialT {
+public class DTOSerialTest {
     private static final String dateString = "2007-05-08 12:35:29.1234567 +12:15";
 
     // public static void testDSerial(String connString) throws Exception

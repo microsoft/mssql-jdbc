@@ -1111,11 +1111,11 @@ public class StatementTest extends AbstractTest {
                                 + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
                     cstmt.registerOutParameter(1, java.sql.Types.VARCHAR);
                     cstmt.registerOutParameter(2, java.sql.Types.INTEGER);
-                    cstmt.registerOutParameter(3, java.sql.Types.FLOAT);
-                    cstmt.registerOutParameter(4, java.sql.Types.DECIMAL);
+                    cstmt.registerOutParameter("col3Value", java.sql.Types.FLOAT);
+                    cstmt.registerOutParameter(4, java.sql.Types.DECIMAL, 2);
                     cstmt.registerOutParameter(5, microsoft.sql.Types.GUID);
                     cstmt.registerOutParameter(6, java.sql.Types.SQLXML);
-                    cstmt.registerOutParameter(7, java.sql.Types.VARBINARY);
+                    cstmt.registerOutParameter("col7Value", java.sql.Types.VARBINARY, 10);
                     cstmt.registerOutParameter(8, java.sql.Types.CLOB);
                     cstmt.registerOutParameter(9, java.sql.Types.NCLOB);
                     cstmt.registerOutParameter(10, java.sql.Types.VARBINARY);
@@ -1123,8 +1123,8 @@ public class StatementTest extends AbstractTest {
                     cstmt.registerOutParameter(12, java.sql.Types.TIME);
                     cstmt.registerOutParameter(13, java.sql.Types.TIMESTAMP);
                     cstmt.registerOutParameter(14, java.sql.Types.TIMESTAMP_WITH_TIMEZONE);
-                    cstmt.registerOutParameter(15, java.sql.Types.DECIMAL);
-                    cstmt.registerOutParameter(16, java.sql.Types.DECIMAL);
+                    cstmt.registerOutParameter(15, java.sql.Types.DECIMAL, "DECIMAL");
+                    cstmt.registerOutParameter("col16Value", java.sql.Types.DECIMAL, "DECIMAL");
                     cstmt.execute();
 
                     assertEquals("hello", cstmt.getObject(1, String.class));

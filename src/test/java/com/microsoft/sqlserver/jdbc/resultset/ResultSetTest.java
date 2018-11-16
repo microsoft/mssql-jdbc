@@ -356,7 +356,7 @@ public class ResultSetTest extends AbstractTest {
             }
         }
     }
-    
+
     /**
      * Call resultset methods to run thru some code paths
      * 
@@ -364,14 +364,17 @@ public class ResultSetTest extends AbstractTest {
      */
     @Test
     public void testResultSetMethods() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con
-                .createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+        try (Connection con = DriverManager.getConnection(connectionString);
+                Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
+            stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (col1 int primary key, col2 varchar(255))");
             stmt.executeUpdate(
-                    "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int primary key)");
-            stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
-            stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(1)");
-            stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(2)");
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, " + " 'one')");
+            stmt.executeUpdate(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(1, " + "'two')");
+            stmt.executeUpdate(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(2, " + "'three')");
 
             try (ResultSet rs = stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
@@ -383,13 +386,13 @@ public class ResultSetTest extends AbstractTest {
                 // check cursor
                 rs.first();
                 assert (rs.isFirst());
-                
+
                 rs.relative(1);
                 assert (!rs.isFirst());
 
                 rs.last();
                 assert (rs.isLast());
-                
+
                 rs.beforeFirst();
                 assert (rs.isBeforeFirst());
 
@@ -402,9 +405,38 @@ public class ResultSetTest extends AbstractTest {
 
                 rs.moveToInsertRow();
                 assert (rs.getRow() == 0);
+
+                // insert and update
+                rs.updateInt(1, 4);
+                rs.updateString(2, "four");
+                rs.insertRow();
+
+                rs.updateObject(1, 5);
+                rs.updateObject(2, new String("five"));
+                rs.insertRow();
+
+                rs.updateObject("col1", 6);
+                rs.updateObject("col2", new String("six"));
+                rs.insertRow();
+
+                rs.updateObject(1, 7, 0);
+                rs.updateObject("col2", new String("seven"), 0);
+                rs.insertRow();
+
+                // valid column names
+                assert (rs.findColumn("col1") == 1);
+                assert (rs.findColumn("col2") == 2);
+
+                // invalid column name
+                try {
+                    rs.findColumn("col3");
+                } catch (SQLException e) {
+                    assertTrue(e.getMessage().contains("column name col3 is not valid"));
+                }
+
                 rs.moveToCurrentRow();
                 assert (rs.getRow() == 1);
-                
+
                 // no inserts or updates
                 assert (!rs.rowInserted());
                 assert (!rs.rowUpdated());
@@ -422,11 +454,15 @@ public class ResultSetTest extends AbstractTest {
 
                 rs.refreshRow();
 
-                // test delete row
+                rs.previous();
+                assert (!rs.rowDeleted());
+                rs.next();
+
+                // delete row
                 do {
                     rs.moveToCurrentRow();
-                        rs.deleteRow();
-                        assert (rs.rowDeleted());
+                    rs.deleteRow();
+                    assert (rs.rowDeleted());
                 } while (rs.next());
 
             } catch (Exception e) {

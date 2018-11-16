@@ -66,6 +66,8 @@ public class TestUtils {
     public static final String SERVER_TYPE_SQL_AZURE = "SQLAzure";
     // private static SqlType types = null;
     private static ArrayList<SqlType> types = null;
+    private final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+    private final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
 
     /**
      * Returns serverType
@@ -623,6 +625,8 @@ public class TestUtils {
      * @return boolean
      */
     public static boolean serverSupportsDataClassification(Statement stmt) {
+
+
         try {
             stmt.execute("SELECT * FROM SYS.SENSITIVITY_CLASSIFICATIONS");
         } catch (SQLException e) {
@@ -665,5 +669,35 @@ public class TestUtils {
      */
     public static String escapeSingleQuotes(String name) {
         return name.replace("'", "''");
+    }
+    
+    /**
+     * Returns if connected to SQL Azure
+     * @param con
+     *        connection to server
+     * @return boolean
+     * @throws SQLException
+     */
+    public static boolean isSqlAzure(Connection con) throws SQLException {
+        try (ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+            rs.next();
+            int engineEdition = rs.getInt(1);
+            return (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+        }
+    }
+    
+    /**
+     * Returns if connected to SQL Azure DW
+     * @param con
+     *        connection to server
+     * @return boolean
+     * @throws SQLException
+     */
+    public static boolean isSqlAzureDW(Connection con) throws SQLException {
+        try (ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+            rs.next();
+            int engineEdition = rs.getInt(1);
+            return (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+        }
     }
 }
