@@ -53,10 +53,9 @@ public class TimeoutTest extends AbstractTest {
     }
 
     private boolean runQuery(String query, int timeout) throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString)) {
-            // wait 1 minute
-            PreparedStatement preparedStatement = con.prepareStatement(query);
-            // timeout after X seconds
+        try (Connection con = DriverManager.getConnection(connectionString);
+                PreparedStatement preparedStatement = con.prepareStatement(query)) {
+            // set provided timeout
             preparedStatement.setQueryTimeout(timeout);
             return preparedStatement.execute();
         }
