@@ -30,16 +30,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
     final static String tableName = RandomUtil.getIdentifier("KatmaiDataTypesTable");
     final static String procName = RandomUtil.getIdentifier("KatmaiDataTypesTableProc");
 
-    /*
-     * public void testSparse() throws Exception {
-     * assumeTrue(!isSqlAzure(DriverManager.getConnection(connectionString)), TestResource.getResource("R_skipAzure"));
-     * try (Connection connection = DriverManager.getConnection(connectionString) {
-     * SparseTest.runTest(connectionString); } } public void testJDBC41BigInteger() throws Exception { if
-     * (fxConnection.isServerSqlAzureDW()) {
-     * CTestLog.Skip("this test is skipped because it cannot be meaningfully tested on SQL Azure DW."); }
-     * BigIntegerTest.runTest(connectionString); }
-     */
-
     enum SQLType {
         date("yyyy-mm-dd", 0, java.sql.Types.DATE, "java.sql.Date"),
 
@@ -133,9 +123,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
         void verifyParameterMetaData(Connection conn) throws Exception {
 
-            final String procName = RandomUtil.getIdentifier("testParameterMetaData");
-            // final String procName = "[" + driver.createuniqueidentifer("testParameterMetaData") + "]";
-
             Statement stmt = null;
             PreparedStatement pstmt = null;
 
@@ -143,9 +130,9 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 stmt = conn.createStatement();
 
                 // Create the stored proc
-                stmt.executeUpdate("CREATE PROCEDURE " + procName + " @arg " + sqlTypeExpression + " AS SELECT @arg");
+                stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + " @arg " + sqlTypeExpression + " AS SELECT @arg");
 
-                pstmt = conn.prepareStatement("{call " + procName + "(?)}");
+                pstmt = conn.prepareStatement("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?)}");
                 ParameterMetaData metadata = pstmt.getParameterMetaData();
 
                 assertEquals(metadata.getParameterType(1), sqlType.jdbcType,
@@ -165,7 +152,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     pstmt.close();
 
                 if (null != stmt) {
-                    stmt.executeUpdate("DROP PROCEDURE " + procName);
+                    stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
                     stmt.close();
                 }
             }
@@ -187,7 +174,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
         void verifyRSUpdaters(Connection conn) throws Exception {
 
-            assumeTrue(TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
+            assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
 
             Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
             try {
@@ -223,7 +210,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         abstract void verifySettersCalendar(PreparedStatement ps) throws Exception;
 
         void verifySetters(Connection conn) throws Exception {
-            assumeTrue(TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
+            assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
 
             Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
             try {
@@ -1218,7 +1205,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
             // create a table with a datetimeoffset column and insert a value in it
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            assumeTrue(TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
+            assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
 
             String sql;
             try (Statement stmt = conn.createStatement()) {
@@ -1461,7 +1448,8 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
             // Test PreparedStatement with DateTimeOffset (using Buddhist calendar)
             // Note: Expected value does not reflect Buddhist year, even though a Buddhist calendar is used.
-            DateTimeOffset dto = DateTimeOffset.valueOf(ts, Calendar.getInstance(TimeZone.getDefault()));
+            DateTimeOffset dto = DateTimeOffset.valueOf(ts, Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles")));
+            
             ((SQLServerPreparedStatement) ps).setDateTimeOffset(1, dto);
             rs = ps.executeQuery();
             rs.next();
@@ -1632,7 +1620,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         SQLServerConnection conn = (SQLServerConnection) DriverManager
                 .getConnection(connectionString + ";sendTimeAsDatetime=true");
 
-        assumeTrue(TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
+        assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
 
         Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
         try {
