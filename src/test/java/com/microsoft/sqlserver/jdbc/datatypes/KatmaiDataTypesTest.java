@@ -1403,8 +1403,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         java.text.SimpleDateFormat tsFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS0000");
         java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("K:mmaa");
         java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
-        java.text.SimpleDateFormat dtoFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS0000 XXX");
-        
+
         Locale locale = Locale.getDefault();
         Locale.setDefault(new Locale("th", "TH"));
         try {
@@ -1456,12 +1455,13 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
             // Test PreparedStatement with DateTimeOffset (using Buddhist calendar)
             // Note: Expected value does not reflect Buddhist year, even though a Buddhist calendar is used.
-            DateTimeOffset dto = DateTimeOffset.valueOf(ts, Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles")));
-
+            DateTimeOffset dto = DateTimeOffset.valueOf(ts, Calendar.getInstance());           
             ((SQLServerPreparedStatement) ps).setDateTimeOffset(1, dto);
             rs = ps.executeQuery();
             rs.next();
-            assertEquals(rs.getString(1), dtoFormat.format(ts), "DateTimeOffset mismatch");
+            
+            // local time zone may not be same as server time zone
+            assertEquals(rs.getString(1).substring(0, 27), tsFormat.format(ts), "DateTimeOffset mismatch");
             rs.close();
 
             ps.close();
