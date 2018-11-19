@@ -1456,7 +1456,8 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
             // Test PreparedStatement with DateTimeOffset (using Buddhist calendar)
             // Note: Expected value does not reflect Buddhist year, even though a Buddhist calendar is used.
-            DateTimeOffset dto = DateTimeOffset.valueOf(ts, Calendar.getInstance());
+            DateTimeOffset dto = DateTimeOffset.valueOf(ts, Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles")));
+
             ((SQLServerPreparedStatement) ps).setDateTimeOffset(1, dto);
             rs = ps.executeQuery();
             rs.next();
