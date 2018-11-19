@@ -9,6 +9,8 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 import java.math.*;
 import java.util.*;
+import java.sql.Date;
+import java.sql.Timestamp;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -31,7 +33,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
     final static String procName = RandomUtil.getIdentifier("KatmaiDataTypesTableProc");
 
     enum SQLType {
-        date("yyyy-mm-dd", 0, java.sql.Types.DATE, "java.sql.Date"),
+        date("yyyy-mm-dd", 0, java.sql.Types.DATE, "Date"),
 
         time("hh:mm:ss", 7, java.sql.Types.TIME, "java.sql.Time"),
 
@@ -265,15 +267,15 @@ public class KatmaiDataTypesTest extends AbstractTest {
     }
 
     static final class DateValue extends SQLValue {
-        private final java.sql.Date expected;
+        private final Date expected;
 
         DateValue(String stringValue) {
             super(SQLType.date, stringValue);
-            this.expected = java.sql.Date.valueOf(stringValue);
+            this.expected = Date.valueOf(stringValue);
         }
 
-        private java.sql.Timestamp expectedTimestampMillisPrecision() {
-            return new java.sql.Timestamp(expected.getTime());
+        private Timestamp expectedTimestampMillisPrecision() {
+            return new Timestamp(expected.getTime());
         }
 
         private java.util.Date expectedUtilDate() {
@@ -291,7 +293,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
             assertEquals(rs.getDate(1), expected, "getDate mismatch");
 
-            assertEquals(rs.getTimestamp(1), new java.sql.Timestamp(expected.getTime()), "getTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1), new Timestamp(expected.getTime()), "getTimestamp mismatch");
 
             assertEquals(rs.getString(1), expected.toString(), "getString mismatch");
 
@@ -379,7 +381,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ResultSet rs = ps.getResultSet();
             rs.next();
             assertEquals(rs.getDate(1), expected, "getDate mismatch");
-            // Cannot test rs.getObject for the Calendar object type, as none of Time, Timestamp, java.sql.Date
+            // Cannot test rs.getObject for the Calendar object type, as none of Time, Timestamp, Date
             // or java.util.Date can be cast to a calendar
 
             // Test the additional conversions introduced in JDBC41 for types setters
@@ -443,12 +445,12 @@ public class KatmaiDataTypesTest extends AbstractTest {
             this.tz = tz;
         }
 
-        private java.sql.Timestamp expectedTimestamp() {
+        private Timestamp expectedTimestamp() {
             Calendar cal = Calendar.getInstance(tz);
             cal.clear();
             cal.set(1900, Calendar.JANUARY, 1, hour, minute, second);
 
-            java.sql.Timestamp timestamp = new java.sql.Timestamp(cal.getTimeInMillis());
+            Timestamp timestamp = new Timestamp(cal.getTimeInMillis());
             timestamp.setNanos(nanos);
 
             return timestamp;
@@ -464,13 +466,13 @@ public class KatmaiDataTypesTest extends AbstractTest {
             return new java.sql.Time(cal.getTimeInMillis());
         }
 
-        private java.sql.Timestamp expectedTimestampMillisPrecision() {
+        private Timestamp expectedTimestampMillisPrecision() {
             Calendar cal = Calendar.getInstance(tz);
             cal.clear();
             cal.set(1900, Calendar.JANUARY, 1, hour, minute, second);
             cal.set(Calendar.MILLISECOND, (nanos + 500000) / 1000000);
 
-            java.sql.Timestamp timestamp = new java.sql.Timestamp(cal.getTimeInMillis());
+            Timestamp timestamp = new Timestamp(cal.getTimeInMillis());
 
             return timestamp;
         }
@@ -588,7 +590,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             assertEquals(rs.getTime(1), expectedTime(), "getTime mismatch");
 
             assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision(), "getTimestamp mismatch");
-            // Cannot test rs.getObject for the Calendar object type, as none of Time, Timestamp, java.sql.Date
+            // Cannot test rs.getObject for the Calendar object type, as none of Time, Timestamp, Date
             // or java.util.Date can be cast to a calendar
 
             // Test the additional conversions introduced in JDBC41 for types setters
@@ -676,14 +678,14 @@ public class KatmaiDataTypesTest extends AbstractTest {
             this.tz = tz;
         }
 
-        private java.sql.Date expectedDate() {
+        private Date expectedDate() {
             Calendar cal = Calendar.getInstance(tz);
             cal.setTimeInMillis(utcMillis);
             cal.set(Calendar.HOUR_OF_DAY, 0);
             cal.set(Calendar.MINUTE, 0);
             cal.set(Calendar.SECOND, 0);
             cal.set(Calendar.MILLISECOND, 0);
-            return new java.sql.Date(cal.getTimeInMillis());
+            return new Date(cal.getTimeInMillis());
         }
 
         private java.sql.Time expectedTime() {
@@ -697,14 +699,14 @@ public class KatmaiDataTypesTest extends AbstractTest {
             return new java.sql.Time(cal.getTimeInMillis());
         }
 
-        private java.sql.Timestamp expectedTimestamp() {
-            Timestamp timestamp = new java.sql.Timestamp(utcMillis);
+        private Timestamp expectedTimestamp() {
+            Timestamp timestamp = new Timestamp(utcMillis);
             timestamp.setNanos(nanos);
             return timestamp;
         }
 
-        private java.sql.Timestamp expectedTimestampMillisPrecision() {
-            Timestamp timestamp = new java.sql.Timestamp(utcMillis);
+        private Timestamp expectedTimestampMillisPrecision() {
+            Timestamp timestamp = new Timestamp(utcMillis);
             // Cannot set the nanos to 0, as per doc " the fractional seconds are stored in the nanos field of the
             // Timestamp object."
             // timestamp.setNanos(0);
@@ -849,7 +851,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ResultSet rs = ps.getResultSet();
             rs.next();
             assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision(), "getTimestamp mismatch");
-            // Cannot test rs.getObject for the Calendar object type, as none of Time, Timestamp, java.sql.Date
+            // Cannot test rs.getObject for the Calendar object type, as none of Time, Timestamp, Date
             // or java.util.Date can be cast to a calendar
 
             // Test the additional conversions introduced in JDBC41 for types setters
@@ -922,7 +924,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             cal.set(Calendar.MINUTE, minute);
             cal.set(Calendar.SECOND, second);
 
-            java.sql.Timestamp timestamp = new java.sql.Timestamp(cal.getTimeInMillis());
+            Timestamp timestamp = new Timestamp(cal.getTimeInMillis());
             timestamp.setNanos(nanos);
 
             return DateTimeOffset.valueOf(timestamp, minutesOffset);
@@ -938,14 +940,14 @@ public class KatmaiDataTypesTest extends AbstractTest {
             dto = initExpected(stringValue, fractionalSecondsDigits);
         }
 
-        private java.sql.Date expectedDate() {
+        private Date expectedDate() {
             Calendar cal = Calendar.getInstance(new SimpleTimeZone(1000 * 60 * dto.getMinutesOffset(), ""), Locale.US);
             cal.setTimeInMillis(dto.getTimestamp().getTime());
             cal.set(Calendar.HOUR_OF_DAY, 0);
             cal.set(Calendar.MINUTE, 0);
             cal.set(Calendar.SECOND, 0);
             cal.set(Calendar.MILLISECOND, 0);
-            return new java.sql.Date(cal.getTimeInMillis());
+            return new Date(cal.getTimeInMillis());
         }
 
         private java.sql.Time expectedTime() {
@@ -960,13 +962,13 @@ public class KatmaiDataTypesTest extends AbstractTest {
             return new java.sql.Time(cal.getTimeInMillis());
         }
 
-        private java.sql.Timestamp expectedTimestamp() {
+        private Timestamp expectedTimestamp() {
             Calendar cal = Calendar.getInstance(new SimpleTimeZone(1000 * 60 * dto.getMinutesOffset(), ""), Locale.US);
             cal.set(Calendar.ZONE_OFFSET, 1000 * 60 * dto.getMinutesOffset());
             cal.setTimeInMillis(dto.getTimestamp().getTime());
             if (dto.getTimestamp().getNanos() % 1000000 >= 500000)
                 cal.add(Calendar.MILLISECOND, 1);
-            return new java.sql.Timestamp(cal.getTimeInMillis());
+            return new Timestamp(cal.getTimeInMillis());
         }
 
         private java.util.Date expectedUtilDate() {
@@ -1020,7 +1022,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             /*
              * Cannot test by setObject(...,java.util.Date) with the back end data type as datetimeoffset because by
              * design anything but datetimeoffset is normalized to UTC time zone in the source code (in sendTemporal
-             * function in dtv.java) setObject(...,java.sql.Date) and setObject(...,java.utl.date) gets same exception
+             * function in dtv.java) setObject(...,Date) and setObject(...,java.utl.date) gets same exception
              */
         }
 
@@ -1177,7 +1179,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         CallableStatement cs = conn.prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?,?)}");
 
         // Set up a timestamp with a time component that is the last millisecond of the day...
-        java.sql.Timestamp ts = java.sql.Timestamp.valueOf("2010-02-15 23:59:59.999");
+        Timestamp ts = Timestamp.valueOf("2010-02-15 23:59:59.999");
 
         // ... and send that timestamp to the server using the TIME SQL type rather than TIMESTAMP.
         // If the driver is doing the right thing, it strips the date portion and, because
@@ -1189,7 +1191,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
         // Fetch the OUT parameter and verify that we have a date-normalized TIME of midnight
         java.sql.Time timeOut = cs.getTime(2);
-        java.sql.Timestamp tsOut = new java.sql.Timestamp(timeOut.getTime());
+        Timestamp tsOut = new Timestamp(timeOut.getTime());
         assertEquals(tsOut.toString(), "1970-01-01 00:00:00.0", "CS.getTime() - Wrong OUT value");
 
         cs.close();
@@ -1231,7 +1233,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     rs.next();
 
                     // when double-rounding to scale of 6, nanos should be 832909
-                    java.sql.Timestamp ts = java.sql.Timestamp.valueOf("3432-12-21 15:22:58.832908453");
+                    Timestamp ts = Timestamp.valueOf("3432-12-21 15:22:58.832908453");
                     dto = DateTimeOffset.valueOf(ts, 0);
 
                     // ts value that goes to driver is 3432-12-21 15:22:58.832908453
@@ -1298,12 +1300,12 @@ public class KatmaiDataTypesTest extends AbstractTest {
             // Get Gregorian date using Japanese imperial calendar
             rs = conn.createStatement().executeQuery("SELECT CAST('0821-01-04' AS DATE)");
             rs.next();
-            java.sql.Date date = rs.getDate(1, japaneseImperialCalendar);
+            Date date = rs.getDate(1, japaneseImperialCalendar);
             assertEquals(date.toString(), "0821-01-04", "Get pre-Meiji");
             rs.close();
 
             PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR(40))");
-            java.sql.Timestamp ts;
+            Timestamp ts;
 
             // Set second day of first year of Taisho era (1912 Gregorian)
             // Note: Taisho era began July 30, 1912 Gregorian; second day of that year was July 31.
@@ -1311,7 +1313,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             japaneseImperialCalendar.set(Calendar.ERA, 2); // Taisho -> ERA 2
             japaneseImperialCalendar.set(Calendar.YEAR, 1);
             japaneseImperialCalendar.set(Calendar.DAY_OF_YEAR, 2);
-            ts = new java.sql.Timestamp(japaneseImperialCalendar.getTimeInMillis());
+            ts = new Timestamp(japaneseImperialCalendar.getTimeInMillis());
             ps.setTimestamp(1, ts, japaneseImperialCalendar);
             rs = ps.executeQuery();
             rs.next();
@@ -1328,7 +1330,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             japaneseImperialCalendar.set(Calendar.MINUTE, 49);
             japaneseImperialCalendar.set(Calendar.SECOND, 3);
             japaneseImperialCalendar.set(Calendar.MILLISECOND, 87);
-            ts = new java.sql.Timestamp(japaneseImperialCalendar.getTimeInMillis());
+            ts = new Timestamp(japaneseImperialCalendar.getTimeInMillis());
             ps.setTimestamp(1, ts, japaneseImperialCalendar);
             rs = ps.executeQuery();
             rs.next();
@@ -1398,6 +1400,11 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
     @Test
     public void testWithThaiLocale() throws Exception {
+        java.text.SimpleDateFormat tsFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS0000");
+        java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("K:mmaa");
+        java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
+        java.text.SimpleDateFormat dtoFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS0000 XXX");
+        
         Locale locale = Locale.getDefault();
         Locale.setDefault(new Locale("th", "TH"));
         try {
@@ -1411,50 +1418,49 @@ public class KatmaiDataTypesTest extends AbstractTest {
             
             // Need to use the following constructor for running against IBM JVM. Here, year should be year-1900, month
             // is from 0-11.
-            java.sql.Timestamp ts = new java.sql.Timestamp(2009 - 1900, 10, 17, 15, 23, 32, 0);
+            Timestamp ts = new Timestamp(System.currentTimeMillis());
             
             // Test PreparedStatement with Timestamp
             // Value sent as DATETIME2; result should have 7 digits of subsecond precision)
             ps.setTimestamp(1, ts);
             rs = ps.executeQuery();
             rs.next();
-            assertEquals(rs.getString(1), "2009-11-17 15:23:32.0000000", "Timestamp mismatch");
+            assertEquals(rs.getString(1), tsFormat.format(ts), "Timestamp mismatch");
+
             rs.close();
 
             // Test PreparedStatement with Time
             // Value sent as DATETIME w/Unix Epoch as base date when sendTimeAsDatetime=true
-            java.sql.Time time = new java.sql.Time(ts.getTime());
+            java.sql.Time time = new java.sql.Time(ts.getTime());           
             ps.setTime(1, time);
             rs = ps.executeQuery();
             rs.next();
-            assertEquals(rs.getString(1), "Jan  1 1970  3:23PM", "Time mismatch");
+            assertEquals(rs.getString(1), "Jan  1 1970  " + timeFormat.format(ts.getTime()), "Time mismatch");
             rs.close();
 
             // Test PreparedStatement with Date
-            java.sql.Date date = new java.sql.Date(ts.getTime());
+            Date date = new Date(ts.getTime());
             ps.setDate(1, date);
             rs = ps.executeQuery();
             rs.next();
-            assertEquals(rs.getString(1), "2009-11-17", "Date mismatch");
+            assertEquals(rs.getString(1), dateFormat.format(ts), "Date mismatch");
             rs.close();
 
             // Test PreparedStatement with Date (using Buddhist calendar)
-            date = new java.sql.Date(ts.getTime());
+            date = new Date(ts.getTime());
             ps.setDate(1, date, Calendar.getInstance());
             rs = ps.executeQuery();
             rs.next();
-            assertEquals(rs.getString(1), "2009-11-17", "Date mismatch (w/calendar)");
+            assertEquals(rs.getString(1), dateFormat.format(ts), "Date mismatch (w/calendar)");
             rs.close();
 
             // Test PreparedStatement with DateTimeOffset (using Buddhist calendar)
             // Note: Expected value does not reflect Buddhist year, even though a Buddhist calendar is used.
-            DateTimeOffset dto = DateTimeOffset.valueOf(ts, Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles")));
-            
+            DateTimeOffset dto = DateTimeOffset.valueOf(ts, Calendar.getInstance());
             ((SQLServerPreparedStatement) ps).setDateTimeOffset(1, dto);
             rs = ps.executeQuery();
             rs.next();
-            
-            assertEquals(rs.getString(1), "2009-11-17 15:23:32.0000000 -08:00", "DateTimeOffset mismatch");
+            assertEquals(rs.getString(1), dtoFormat.format(ts), "DateTimeOffset mismatch");
             rs.close();
 
             ps.close();
@@ -1501,7 +1507,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
         Connection conn = DriverManager.getConnection(connectionString);
         PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATETIMEOFFSET)");
-        ps.setTimestamp(1, java.sql.Timestamp.valueOf("2010-01-06 12:34:56"));
+        ps.setTimestamp(1, Timestamp.valueOf("2010-01-06 12:34:56"));
         ResultSet rs = ps.executeQuery();
         rs.next();
         DateTimeOffset dto = ((SQLServerResultSet) rs).getDateTimeOffset(1);
@@ -1522,7 +1528,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         ResultSet rs;
 
         // Julian date from string
-        java.sql.Date julianDate = java.sql.Date.valueOf("0700-03-01");
+        Date julianDate = Date.valueOf("0700-03-01");
         ps.setDate(1, julianDate);
         rs = ps.executeQuery();
         rs.next();
@@ -1567,7 +1573,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         Timestamp ts;
 
         // Test setting value during the Gregorian cutover via Timestamp constructed from String
-        ts = java.sql.Timestamp.valueOf("1582-10-24 15:07:09.081");
+        ts = Timestamp.valueOf("1582-10-24 15:07:09.081");
         ps.setTimestamp(1, ts);
         rs = ps.executeQuery();
         rs.next();
@@ -1578,7 +1584,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         Calendar cal = Calendar.getInstance();
         cal.set(1582, Calendar.NOVEMBER, 1, 15, 7, 9);
         cal.set(Calendar.MILLISECOND, 81);
-        ts = new java.sql.Timestamp(cal.getTimeInMillis());
+        ts = new Timestamp(cal.getTimeInMillis());
         ps.setTimestamp(1, ts);
         rs = ps.executeQuery();
         rs.next();
@@ -1600,7 +1606,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
         Connection conn = DriverManager.getConnection(connectionString);
         PreparedStatement ps = conn.prepareStatement("SELECT 1 WHERE ?=CAST('2009-12-17 17:00:29' AS DATETIME)");
-        ps.setTimestamp(1, java.sql.Timestamp.valueOf("2009-12-17 17:00:29"));
+        ps.setTimestamp(1, Timestamp.valueOf("2009-12-17 17:00:29"));
         ResultSet rs = ps.executeQuery();
         assertEquals(rs.next(), true, "Timestamp to DATETIME comparison failed for equal values");
         rs.close();
@@ -1641,7 +1647,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.next();
 
             // Update datetimeoffset(2) from pre-Gregorian Date
-            rs.updateDate(1, java.sql.Date.valueOf("0814-02-18"));
+            rs.updateDate(1, Date.valueOf("0814-02-18"));
             rs.updateRow();
             assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1).toString(), "0814-02-18 00:00:00 +00:00",
                     "Update of datetimeoffset(2) from pre-Gregorian Date");
@@ -1653,7 +1659,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     "Update datetimeoffset(2) from last Time");
 
             // Update datetimeoffset(2) from the "last" Timestamp
-            rs.updateTimestamp(1, java.sql.Timestamp.valueOf("9999-12-31 23:59:59.998"));
+            rs.updateTimestamp(1, Timestamp.valueOf("9999-12-31 23:59:59.998"));
             rs.updateRow();
             dto = ((SQLServerResultSet) rs).getDateTimeOffset(1);
             assertEquals(dto.toString(), "9999-12-31 23:59:59.99 +00:00",
@@ -1662,8 +1668,8 @@ public class KatmaiDataTypesTest extends AbstractTest {
             // Attempt to update datetimeoffset(2) from the first out of range value
             // Verify that an exception is thrown and that the statement/connection is still usable after
             try {
-                java.sql.Timestamp tsInvalid = java.sql.Timestamp.valueOf("9999-12-31 23:59:59.999999999");
-                tsInvalid = new java.sql.Timestamp(tsInvalid.getTime() + 1);
+                Timestamp tsInvalid = Timestamp.valueOf("9999-12-31 23:59:59.999999999");
+                tsInvalid = new Timestamp(tsInvalid.getTime() + 1);
                 rs.updateTimestamp(1, tsInvalid);
                 rs.updateRow();
                 assertEquals(false, true, "Update succeeded with out of range value");
@@ -1674,7 +1680,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             }
 
             // Update time(5) from Timestamp with nanos more precise than 100ns
-            Timestamp ts = java.sql.Timestamp.valueOf("2010-01-12 11:05:23");
+            Timestamp ts = Timestamp.valueOf("2010-01-12 11:05:23");
             ts.setNanos(987659999);
             rs.updateTimestamp(3, ts);
             rs.updateRow();
@@ -1682,7 +1688,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     "Update time(5) from Timestamp with sub-100ns nanos");
 
             // Update time(5) from Timestamp to max value in a day. The value should not be rounded
-            ts = java.sql.Timestamp.valueOf("2010-01-12 23:59:59");
+            ts = Timestamp.valueOf("2010-01-12 23:59:59");
             ts.setNanos(999999999);
             Time time = new java.sql.Time(ts.getTime());
             rs.updateTimestamp(3, ts);
@@ -1693,13 +1699,13 @@ public class KatmaiDataTypesTest extends AbstractTest {
             // Update time(2) from Time to max value in a day. The value should not be rounded
             rs.updateTime(6, time);
             rs.updateRow();
-            assertEquals(new java.sql.Timestamp(rs.getTime(6).getTime()).toString(), // conversion to timestamp is
+            assertEquals(new Timestamp(rs.getTime(6).getTime()).toString(), // conversion to timestamp is
                                                                                      // necessary to see fractional
                                                                                      // secs
                     "1970-01-01 23:59:59.99", "Update time(2) from Time to max value in a day");
 
             // Update time(5) from Timestamp to max value in a second. The value should be rounded
-            ts = java.sql.Timestamp.valueOf("2010-01-12 23:59:58");
+            ts = Timestamp.valueOf("2010-01-12 23:59:58");
             ts.setNanos(999999999);
             time = new java.sql.Time(ts.getTime());
             rs.updateTimestamp(3, ts);
@@ -1710,13 +1716,13 @@ public class KatmaiDataTypesTest extends AbstractTest {
             // Update time(2) from Time to max value in a second. The value should be rounded
             rs.updateTime(6, time);
             rs.updateRow();
-            assertEquals(new java.sql.Timestamp(rs.getTime(6).getTime()).toString(), // conversion to timestamp is
+            assertEquals(new Timestamp(rs.getTime(6).getTime()).toString(), // conversion to timestamp is
                                                                                      // necessary to see fractional
                                                                                      // secs
                     "1970-01-01 23:59:59.0", "Update time(2) from Time to max value in a second");
 
             // Update datetime w/expected rounding of nanos to DATETIME's 1/300second resolution
-            ts = java.sql.Timestamp.valueOf("6289-04-22 05:13:57.6745106");
+            ts = Timestamp.valueOf("6289-04-22 05:13:57.6745106");
             rs.updateTimestamp(2, ts);
             rs.updateRow();
             assertEquals(rs.getTimestamp(2).toString(), "6289-04-22 05:13:57.677",
@@ -1724,7 +1730,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
             // Update datetime with rounding-induced overflow from Time
             // (should roll date part to 1/2/1970)
-            ts = java.sql.Timestamp.valueOf("2010-01-18 23:59:59.999");
+            ts = Timestamp.valueOf("2010-01-18 23:59:59.999");
             rs.updateTime(2, new java.sql.Time(ts.getTime()));
             rs.updateRow();
             assertEquals(rs.getTimestamp(2).toString(), "1970-01-02 00:00:00.0",
