@@ -132,7 +132,8 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 stmt = conn.createStatement();
 
                 // Create the stored proc
-                stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + " @arg " + sqlTypeExpression + " AS SELECT @arg");
+                stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + " @arg "
+                        + sqlTypeExpression + " AS SELECT @arg");
 
                 pstmt = conn.prepareStatement("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?)}");
                 ParameterMetaData metadata = pstmt.getParameterMetaData();
@@ -1403,9 +1404,11 @@ public class KatmaiDataTypesTest extends AbstractTest {
         java.text.SimpleDateFormat tsFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS0000");
         java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("K:mmaa");
         java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
+        java.text.SimpleDateFormat dtoFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS0000 XXX");
 
         Locale locale = Locale.getDefault();
         Locale.setDefault(new Locale("th", "TH"));
+
         try {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
@@ -1414,27 +1417,30 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
             // Test setter conversions
             PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR(40))");
-            
+
             // Need to use the following constructor for running against IBM JVM. Here, year should be year-1900, month
             // is from 0-11.
             Timestamp ts = new Timestamp(System.currentTimeMillis());
-            
+
             // Test PreparedStatement with Timestamp
             // Value sent as DATETIME2; result should have 7 digits of subsecond precision)
             ps.setTimestamp(1, ts);
             rs = ps.executeQuery();
             rs.next();
             assertEquals(rs.getString(1), tsFormat.format(ts), "Timestamp mismatch");
-
             rs.close();
 
             // Test PreparedStatement with Time
             // Value sent as DATETIME w/Unix Epoch as base date when sendTimeAsDatetime=true
-            java.sql.Time time = new java.sql.Time(ts.getTime());           
+            Time time = new Time(ts.getTime());
             ps.setTime(1, time);
             rs = ps.executeQuery();
             rs.next();
-            assertEquals(rs.getString(1), "Jan  1 1970  " + timeFormat.format(ts.getTime()), "Time mismatch");
+
+            // compare these separately since there may be an extra space between the 2
+            assertEquals(rs.getString(1).substring(0, 11), "Jan  1 1970", "Time mismatch");
+            assertEquals(rs.getString(1).substring(rs.getString(1).length() - 7).trim(),
+                    timeFormat.format(ts.getTime()), "Time mismatch");
             rs.close();
 
             // Test PreparedStatement with Date
@@ -1455,13 +1461,15 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
             // Test PreparedStatement with DateTimeOffset (using Buddhist calendar)
             // Note: Expected value does not reflect Buddhist year, even though a Buddhist calendar is used.
-            DateTimeOffset dto = DateTimeOffset.valueOf(ts, Calendar.getInstance());           
+            DateTimeOffset dto = DateTimeOffset.valueOf(ts,
+                    Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles")));
+
             ((SQLServerPreparedStatement) ps).setDateTimeOffset(1, dto);
             rs = ps.executeQuery();
             rs.next();
-            
-            // local time zone may not be same as server time zone
-            assertEquals(rs.getString(1).substring(0, 27), tsFormat.format(ts), "DateTimeOffset mismatch");
+
+            dtoFormat.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
+            assertEquals(rs.getString(1), dtoFormat.format(ts), "DateTimeOffset mismatch");
             rs.close();
 
             ps.close();
@@ -1701,8 +1709,8 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.updateTime(6, time);
             rs.updateRow();
             assertEquals(new Timestamp(rs.getTime(6).getTime()).toString(), // conversion to timestamp is
-                                                                                     // necessary to see fractional
-                                                                                     // secs
+                                                                            // necessary to see fractional
+                                                                            // secs
                     "1970-01-01 23:59:59.99", "Update time(2) from Time to max value in a day");
 
             // Update time(5) from Timestamp to max value in a second. The value should be rounded
@@ -1718,8 +1726,8 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.updateTime(6, time);
             rs.updateRow();
             assertEquals(new Timestamp(rs.getTime(6).getTime()).toString(), // conversion to timestamp is
-                                                                                     // necessary to see fractional
-                                                                                     // secs
+                                                                            // necessary to see fractional
+                                                                            // secs
                     "1970-01-01 23:59:59.0", "Update time(2) from Time to max value in a second");
 
             // Update datetime w/expected rounding of nanos to DATETIME's 1/300second resolution
