@@ -10,7 +10,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import java.math.*;
 import java.util.*;
 import java.sql.Date;
-import java.sql.Timestamp;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -94,69 +93,62 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
 
         void verifyResultSetMetaData(Connection conn) throws Exception {
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT TOP 0 " + sqlCastExpression());
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT TOP 0 " + sqlCastExpression())) {
 
-            try {
-                ResultSetMetaData metadata = rs.getMetaData();
+                try {
+                    ResultSetMetaData metadata = rs.getMetaData();
 
-                assertEquals(metadata.getColumnType(1), sqlType.jdbcType, "getColumnType() of " + sqlCastExpression());
-                assertEquals(metadata.getColumnTypeName(1), sqlType.toString(),
-                        "getColumnTypeName() of " + sqlCastExpression());
-                assertEquals(metadata.getPrecision(1), precision, "getPrecision() of " + sqlCastExpression());
+                    assertEquals(metadata.getColumnType(1), sqlType.jdbcType,
+                            "getColumnType() of " + sqlCastExpression());
+                    assertEquals(metadata.getColumnTypeName(1), sqlType.toString(),
+                            "getColumnTypeName() of " + sqlCastExpression());
+                    assertEquals(metadata.getPrecision(1), precision, "getPrecision() of " + sqlCastExpression());
 
-                // Display size of temporal types is the precision per JDBC spec
-                assertEquals(metadata.getColumnDisplaySize(1), precision,
-                        "getColumnDisplaySize() of " + sqlCastExpression());
-                // Scale is interpreted as number of fractional seconds precision
-                assertEquals(metadata.getScale(1), scale, "getScale() of " + sqlCastExpression());
-                assertEquals(metadata.getColumnClassName(1), sqlType.className,
-                        "getColumnClassName() of " + sqlCastExpression());
-                // Katmai temporal types are not signed
-                assertEquals(metadata.isSigned(1), false, "isSigned() of " + sqlCastExpression());
+                    // Display size of temporal types is the precision per JDBC spec
+                    assertEquals(metadata.getColumnDisplaySize(1), precision,
+                            "getColumnDisplaySize() of " + sqlCastExpression());
+                    // Scale is interpreted as number of fractional seconds precision
+                    assertEquals(metadata.getScale(1), scale, "getScale() of " + sqlCastExpression());
+                    assertEquals(metadata.getColumnClassName(1), sqlType.className,
+                            "getColumnClassName() of " + sqlCastExpression());
+                    // Katmai temporal types are not signed
+                    assertEquals(metadata.isSigned(1), false, "isSigned() of " + sqlCastExpression());
 
-                // Katmai temporal types are searchable (i.e. usable in a WHERE clause)
-                assertEquals(metadata.isSearchable(1), true, "isSearchable() of " + sqlCastExpression());
-            } finally {
-                rs.close();
-                stmt.close();
+                    // Katmai temporal types are searchable (i.e. usable in a WHERE clause)
+                    assertEquals(metadata.isSearchable(1), true, "isSearchable() of " + sqlCastExpression());
+
+                } finally {}
             }
         }
 
         void verifyParameterMetaData(Connection conn) throws Exception {
 
-            Statement stmt = null;
-            PreparedStatement pstmt = null;
-
-            try {
-                stmt = conn.createStatement();
-
+            try (Statement stmt = conn.createStatement()) {
                 // Create the stored proc
                 stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + " @arg "
                         + sqlTypeExpression + " AS SELECT @arg");
 
-                pstmt = conn.prepareStatement("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?)}");
-                ParameterMetaData metadata = pstmt.getParameterMetaData();
+                try (PreparedStatement pstmt = conn
+                        .prepareStatement("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?)}")) {
+                    ParameterMetaData metadata = pstmt.getParameterMetaData();
 
-                assertEquals(metadata.getParameterType(1), sqlType.jdbcType,
-                        "getParameterType() of " + sqlCastExpression());
-                assertEquals(metadata.getParameterTypeName(1), sqlType.toString(),
-                        "getParameterTypeName() of " + sqlCastExpression());
-                assertEquals(metadata.getPrecision(1), precision, "getPrecision() of " + sqlCastExpression());
+                    assertEquals(metadata.getParameterType(1), sqlType.jdbcType,
+                            "getParameterType() of " + sqlCastExpression());
+                    assertEquals(metadata.getParameterTypeName(1), sqlType.toString(),
+                            "getParameterTypeName() of " + sqlCastExpression());
+                    assertEquals(metadata.getPrecision(1), precision, "getPrecision() of " + sqlCastExpression());
 
-                // Scale is interpreted as number of fractional seconds precision
-                assertEquals(metadata.getScale(1), scale, "getScale() of " + sqlCastExpression());
-                assertEquals(metadata.getParameterClassName(1), sqlType.className,
-                        "getParameterClassName() of " + sqlCastExpression());
-                // Katmai temporal types are not signed
-                assertEquals(metadata.isSigned(1), false, "isSigned() of " + sqlCastExpression());
+                    // Scale is interpreted as number of fractional seconds precision
+                    assertEquals(metadata.getScale(1), scale, "getScale() of " + sqlCastExpression());
+                    assertEquals(metadata.getParameterClassName(1), sqlType.className,
+                            "getParameterClassName() of " + sqlCastExpression());
+                    // Katmai temporal types are not signed
+                    assertEquals(metadata.isSigned(1), false, "isSigned() of " + sqlCastExpression());
+                }
             } finally {
-                if (null != pstmt)
-                    pstmt.close();
-
-                if (null != stmt) {
+                try (Statement stmt = conn.createStatement()) {
                     stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
-                    stmt.close();
                 }
             }
         }
@@ -164,13 +156,11 @@ public class KatmaiDataTypesTest extends AbstractTest {
         abstract void verifyRSGetters(ResultSet rs) throws Exception;
 
         void verifyRSGetters(Connection conn) throws Exception {
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(
-                    "SELECT " + sqlCastExpression() + ", CAST(" + sqlCastExpression() + " AS VARCHAR(60))");
-            rs.next();
-            verifyRSGetters(rs);
-            rs.close();
-            stmt.close();
+            try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(
+                    "SELECT " + sqlCastExpression() + ", CAST(" + sqlCastExpression() + " AS VARCHAR(60))")) {
+                rs.next();
+                verifyRSGetters(rs);
+            }
         }
 
         abstract void verifyRSUpdaters(ResultSet rs) throws Exception;
@@ -179,26 +169,24 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
             assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
 
-            Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-            try {
-                stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
-            } catch (SQLException e) {}
-            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 "
-                    + sqlTypeExpression + ", col2 int identity(1,1) primary key)");
+            try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
-            try {
+                stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+
+                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 "
+                        + sqlTypeExpression + ", col2 int identity(1,1) primary key)");
+
                 stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES ("
                         + sqlCastExpression() + ")");
 
-                ResultSet rs = stmt.executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName));
-                rs.next();
-                verifyRSUpdaters(rs);
-                rs.close();
-            } finally {
-                stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                try (ResultSet rs = stmt
+                        .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    rs.next();
+                    verifyRSUpdaters(rs);
+                } finally {
+                    stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                }
             }
-
-            stmt.close();
         }
 
         /*
@@ -215,55 +203,45 @@ public class KatmaiDataTypesTest extends AbstractTest {
         void verifySetters(Connection conn) throws Exception {
             assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
 
-            Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-            try {
+            try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
                 stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
-            } catch (SQLException e) {}
-            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 "
-                    + sqlTypeExpression + ", col2 int identity(1,1) primary key)");
+                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 "
+                        + sqlTypeExpression + ", col2 int identity(1,1) primary key)");
 
-            PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (?) SELECT * FROM "
-                            + AbstractSQLGenerator.escapeIdentifier(tableName),
-                    ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            try {
-                verifySetters(ps);
-                // Verify setObject function for the new mapping in JDBC41 (java.util.Date to TIMESTAMP)
-                stmt.executeUpdate("TRUNCATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (?) SELECT * FROM "
+                                + AbstractSQLGenerator.escapeIdentifier(tableName),
+                        ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+                    verifySetters(ps);
+                    // Verify setObject function for the new mapping in JDBC41 (java.util.Date to TIMESTAMP)
+                    stmt.executeUpdate("TRUNCATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
 
-                verifySettersUtilDate(ps);
-                // Verify setObject function for the new mapping in JDBC41 (java.util.Calendar to TIMESTAMP)
-                stmt.executeUpdate("TRUNCATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
-                verifySettersCalendar(ps);
-            } finally {
-                stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                    verifySettersUtilDate(ps);
+                    // Verify setObject function for the new mapping in JDBC41 (java.util.Calendar to TIMESTAMP)
+                    stmt.executeUpdate("TRUNCATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                    verifySettersCalendar(ps);
+                } finally {
+                    stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                }
             }
-
-            ps.close();
-            stmt.close();
         }
 
         abstract void verifyCSGetters(CallableStatement cs) throws Exception;
 
         void verifyCSGetters(Connection conn) throws Exception {
-            Statement stmt = conn.createStatement();
-            try {
+            try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
-            } catch (SQLException e) {}
-            stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + " @argIn "
-                    + sqlTypeExpression + "," + " @argOut " + sqlTypeExpression + " OUTPUT" + " AS "
-                    + " SET @argOut=@argIn");
+                stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + " @argIn "
+                        + sqlTypeExpression + "," + " @argOut " + sqlTypeExpression + " OUTPUT" + " AS "
+                        + " SET @argOut=@argIn");
 
-            CallableStatement cs = conn
-                    .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?,?)}");
-            try {
-                verifyCSGetters(cs);
-            } finally {
-                stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
+                try (CallableStatement cs = conn
+                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?,?)}")) {
+                    verifyCSGetters(cs);
+                } finally {
+                    stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
+                }
             }
-
-            cs.close();
-            stmt.close();
         }
     }
 
@@ -1104,63 +1082,50 @@ public class KatmaiDataTypesTest extends AbstractTest {
     };
 
     public void testResultSetGetters() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
 
-        for (TestValue value : TestValue.values())
-            value.sqlValue.verifyRSGetters(conn);
-
-        conn.close();
+            for (TestValue value : TestValue.values())
+                value.sqlValue.verifyRSGetters(conn);
+        }
     }
 
     public void testResultSetUpdaters() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            for (TestValue value : TestValue.values())
 
-        for (TestValue value : TestValue.values())
-            value.sqlValue.verifyRSUpdaters(conn);
-
-        conn.close();
+                value.sqlValue.verifyRSUpdaters(conn);
+        }
     }
 
     public void testSetters() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDateTime=true");
+        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDateTime=true")) {
 
-        for (TestValue value : TestValue.values())
-            value.sqlValue.verifySetters(conn);
-
-        conn.close();
+            for (TestValue value : TestValue.values())
+                value.sqlValue.verifySetters(conn);
+        }
     }
 
     public void testCallableStatementGetters() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        Connection conn = DriverManager.getConnection(connectionString);
-
-        for (TestValue value : TestValue.values())
-            value.sqlValue.verifyCSGetters(conn);
-
-        conn.close();
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            for (TestValue value : TestValue.values())
+                value.sqlValue.verifyCSGetters(conn);
+        }
     }
 
     public void testResultSetMetaData() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
 
-        for (TestValue value : TestValue.values())
-            value.sqlValue.verifyResultSetMetaData(conn);
-
-        conn.close();
+            for (TestValue value : TestValue.values())
+                value.sqlValue.verifyResultSetMetaData(conn);
+        }
     }
 
     public void testParameterMetaData() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
 
-        for (TestValue value : TestValue.values())
-            value.sqlValue.verifyParameterMetaData(conn);
-
-        conn.close();
+            for (TestValue value : TestValue.values())
+                value.sqlValue.verifyParameterMetaData(conn);
+        } ;
     }
 
     /**
@@ -1168,37 +1133,40 @@ public class KatmaiDataTypesTest extends AbstractTest {
      * sendTimeAsDatetime knob.
      */
     public void testSendTimestampAsTimeAsDatetime() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
-        Statement stmt = conn.createStatement();
-        try {
-            stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
-        } catch (SQLException e) {}
-        stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + " @argIn time(7), "
-                + " @argOut time(7) OUTPUT " + " AS " + " SET @argOut=@argIn");
+        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
+            try (Statement stmt = conn.createStatement()) {
 
-        CallableStatement cs = conn.prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?,?)}");
+                stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
 
-        // Set up a timestamp with a time component that is the last millisecond of the day...
-        Timestamp ts = Timestamp.valueOf("2010-02-15 23:59:59.999");
+                stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
+                        + " @argIn time(7), " + " @argOut time(7) OUTPUT " + " AS " + " SET @argOut=@argIn");
 
-        // ... and send that timestamp to the server using the TIME SQL type rather than TIMESTAMP.
-        // If the driver is doing the right thing, it strips the date portion and, because
-        // sendTimeAsDatetime=true, rounds the resulting time value to midnight because it should
-        // be sending a DATETIME which has only 1/300s accuracy.
-        cs.setObject(1, ts, java.sql.Types.TIME);
-        cs.registerOutParameter(2, java.sql.Types.TIME);
-        cs.execute();
+                try (CallableStatement cs = conn
+                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?,?)}")) {
 
-        // Fetch the OUT parameter and verify that we have a date-normalized TIME of midnight
-        java.sql.Time timeOut = cs.getTime(2);
-        Timestamp tsOut = new Timestamp(timeOut.getTime());
-        assertEquals(tsOut.toString(), "1970-01-01 00:00:00.0", "CS.getTime() - Wrong OUT value");
+                    // Set up a timestamp with a time component that is the last millisecond of the day...
+                    Timestamp ts = Timestamp.valueOf("2010-02-15 23:59:59.999");
 
-        cs.close();
-        stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
-        stmt.close();
-        conn.close();
+                    // ... and send that timestamp to the server using the TIME SQL type rather than TIMESTAMP.
+                    // If the driver is doing the right thing, it strips the date portion and, because
+                    // sendTimeAsDatetime=true, rounds the resulting time value to midnight because it should
+                    // be sending a DATETIME which has only 1/300s accuracy.
+                    cs.setObject(1, ts, java.sql.Types.TIME);
+                    cs.registerOutParameter(2, java.sql.Types.TIME);
+                    cs.execute();
+
+                    // Fetch the OUT parameter and verify that we have a date-normalized TIME of midnight
+                    java.sql.Time timeOut = cs.getTime(2);
+                    Timestamp tsOut = new Timestamp(timeOut.getTime());
+                    assertEquals(tsOut.toString(), "1970-01-01 00:00:00.0", "CS.getTime() - Wrong OUT value");
+
+                }
+            } finally {
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
+                }
+            }
+        }
     }
 
     // 507919 - Sending Timestamp to the server via an updater does not result in the same behavior as a setter wrt
@@ -1207,7 +1175,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
 
             // create a table with a datetimeoffset column and insert a value in it
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
 
             String sql;
@@ -1293,53 +1260,49 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
         Locale defaultLocale = Locale.getDefault();
         Locale.setDefault(japaneseImperialLocale);
-        try {
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
-            ResultSet rs;
+
+        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
 
             // Get Gregorian date using Japanese imperial calendar
-            rs = conn.createStatement().executeQuery("SELECT CAST('0821-01-04' AS DATE)");
-            rs.next();
-            Date date = rs.getDate(1, japaneseImperialCalendar);
-            assertEquals(date.toString(), "0821-01-04", "Get pre-Meiji");
-            rs.close();
+            try (ResultSet rs = conn.createStatement().executeQuery("SELECT CAST('0821-01-04' AS DATE)")) {
+                rs.next();
+                Date date = rs.getDate(1, japaneseImperialCalendar);
+                assertEquals(date.toString(), "0821-01-04", "Get pre-Meiji");
+            }
 
-            PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR(40))");
-            Timestamp ts;
+            try (PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR(40))")) {
+                Timestamp ts;
 
-            // Set second day of first year of Taisho era (1912 Gregorian)
-            // Note: Taisho era began July 30, 1912 Gregorian; second day of that year was July 31.
-            japaneseImperialCalendar.clear();
-            japaneseImperialCalendar.set(Calendar.ERA, 2); // Taisho -> ERA 2
-            japaneseImperialCalendar.set(Calendar.YEAR, 1);
-            japaneseImperialCalendar.set(Calendar.DAY_OF_YEAR, 2);
-            ts = new Timestamp(japaneseImperialCalendar.getTimeInMillis());
-            ps.setTimestamp(1, ts, japaneseImperialCalendar);
-            rs = ps.executeQuery();
-            rs.next();
-            assertEquals(rs.getString(1), "1912-07-31 00:00:00.0000000", "Set Taisho 1");
-            rs.close();
+                // Set second day of first year of Taisho era (1912 Gregorian)
+                // Note: Taisho era began July 30, 1912 Gregorian; second day of that year was July 31.
+                japaneseImperialCalendar.clear();
+                japaneseImperialCalendar.set(Calendar.ERA, 2); // Taisho -> ERA 2
+                japaneseImperialCalendar.set(Calendar.YEAR, 1);
+                japaneseImperialCalendar.set(Calendar.DAY_OF_YEAR, 2);
+                ts = new Timestamp(japaneseImperialCalendar.getTimeInMillis());
+                ps.setTimestamp(1, ts, japaneseImperialCalendar);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    assertEquals(rs.getString(1), "1912-07-31 00:00:00.0000000", "Set Taisho 1");
+                }
 
-            // Set second year of Showa era (1927 Gregorian)
-            japaneseImperialCalendar.clear();
-            japaneseImperialCalendar.set(Calendar.ERA, 3); // Showa -> ERA 3
-            japaneseImperialCalendar.set(Calendar.YEAR, 2);
-            japaneseImperialCalendar.set(Calendar.MONTH, Calendar.FEBRUARY);
-            japaneseImperialCalendar.set(Calendar.DATE, 15);
-            japaneseImperialCalendar.set(Calendar.HOUR_OF_DAY, 8);
-            japaneseImperialCalendar.set(Calendar.MINUTE, 49);
-            japaneseImperialCalendar.set(Calendar.SECOND, 3);
-            japaneseImperialCalendar.set(Calendar.MILLISECOND, 87);
-            ts = new Timestamp(japaneseImperialCalendar.getTimeInMillis());
-            ps.setTimestamp(1, ts, japaneseImperialCalendar);
-            rs = ps.executeQuery();
-            rs.next();
-            assertEquals(rs.getString(1), "1927-02-15 08:49:03.0870000", "Set Showa 2");
-            rs.close();
-
-            ps.close();
-            conn.close();
+                // Set second year of Showa era (1927 Gregorian)
+                japaneseImperialCalendar.clear();
+                japaneseImperialCalendar.set(Calendar.ERA, 3); // Showa -> ERA 3
+                japaneseImperialCalendar.set(Calendar.YEAR, 2);
+                japaneseImperialCalendar.set(Calendar.MONTH, Calendar.FEBRUARY);
+                japaneseImperialCalendar.set(Calendar.DATE, 15);
+                japaneseImperialCalendar.set(Calendar.HOUR_OF_DAY, 8);
+                japaneseImperialCalendar.set(Calendar.MINUTE, 49);
+                japaneseImperialCalendar.set(Calendar.SECOND, 3);
+                japaneseImperialCalendar.set(Calendar.MILLISECOND, 87);
+                ts = new Timestamp(japaneseImperialCalendar.getTimeInMillis());
+                ps.setTimestamp(1, ts, japaneseImperialCalendar);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    assertEquals(rs.getString(1), "1927-02-15 08:49:03.0870000", "Set Showa 2");
+                }
+            }
         } finally {
             Locale.setDefault(defaultLocale);
         }
@@ -1381,22 +1344,18 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
     @Test
     public void testGetString() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        Connection conn = DriverManager.getConnection(connectionString);
-        Statement stmt = conn.createStatement();
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
 
-        for (StringFormatTestValue testValue : EnumSet.allOf(StringFormatTestValue.class)) {
-            String query = "SELECT " + "CAST('" + testValue.sqlLiteral + "' AS " + testValue.sqlType + "), "
-                    + "CAST(CAST('" + testValue.sqlLiteral + "' AS " + testValue.sqlType + ") AS VARCHAR)";
+            for (StringFormatTestValue testValue : EnumSet.allOf(StringFormatTestValue.class)) {
+                String query = "SELECT " + "CAST('" + testValue.sqlLiteral + "' AS " + testValue.sqlType + "), "
+                        + "CAST(CAST('" + testValue.sqlLiteral + "' AS " + testValue.sqlType + ") AS VARCHAR)";
 
-            ResultSet rs = stmt.executeQuery(query);
-            rs.next();
-            assertEquals(rs.getString(1), rs.getString(2), "Test failed for " + testValue);
-            rs.close();
+                try (ResultSet rs = stmt.executeQuery(query)) {
+                    rs.next();
+                    assertEquals(rs.getString(1), rs.getString(2), "Test failed for " + testValue);
+                }
+            }
         }
-
-        stmt.close();
-        conn.close();
     }
 
     @Test
@@ -1409,71 +1368,65 @@ public class KatmaiDataTypesTest extends AbstractTest {
         Locale locale = Locale.getDefault();
         Locale.setDefault(new Locale("th", "TH"));
 
-        try {
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
-
-            ResultSet rs;
-
+        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
             // Test setter conversions
-            PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR(40))");
+            try (PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR(40))")) {
 
-            // Need to use the following constructor for running against IBM JVM. Here, year should be year-1900, month
-            // is from 0-11.
-            Timestamp ts = new Timestamp(System.currentTimeMillis());
+                // Need to use the following constructor for running against IBM JVM. Here, year should be year-1900,
+                // month
+                // is from 0-11.
+                Timestamp ts = new Timestamp(System.currentTimeMillis());
 
-            // Test PreparedStatement with Timestamp
-            // Value sent as DATETIME2; result should have 7 digits of subsecond precision)
-            ps.setTimestamp(1, ts);
-            rs = ps.executeQuery();
-            rs.next();
-            assertEquals(rs.getString(1), tsFormat.format(ts), "Timestamp mismatch");
-            rs.close();
+                // Test PreparedStatement with Timestamp
+                // Value sent as DATETIME2; result should have 7 digits of subsecond precision)
+                ps.setTimestamp(1, ts);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    assertEquals(rs.getString(1), tsFormat.format(ts), "Timestamp mismatch");
+                }
 
-            // Test PreparedStatement with Time
-            // Value sent as DATETIME w/Unix Epoch as base date when sendTimeAsDatetime=true
-            Time time = new Time(ts.getTime());
-            ps.setTime(1, time);
-            rs = ps.executeQuery();
-            rs.next();
+                // Test PreparedStatement with Time
+                // Value sent as DATETIME w/Unix Epoch as base date when sendTimeAsDatetime=true
+                Time time = new Time(ts.getTime());
+                ps.setTime(1, time);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
 
-            // compare these separately since there may be an extra space between the 2
-            assertEquals(rs.getString(1).substring(0, 11), "Jan  1 1970", "Time mismatch");
-            assertEquals(rs.getString(1).substring(rs.getString(1).length() - 7).trim(),
-                    timeFormat.format(ts.getTime()), "Time mismatch");
-            rs.close();
+                    // compare these separately since there may be an extra space between the 2
+                    assertEquals(rs.getString(1).substring(0, 11), "Jan  1 1970", "Time mismatch");
+                    assertEquals(rs.getString(1).substring(rs.getString(1).length() - 7).trim(),
+                            timeFormat.format(ts.getTime()), "Time mismatch");
+                }
 
-            // Test PreparedStatement with Date
-            Date date = new Date(ts.getTime());
-            ps.setDate(1, date);
-            rs = ps.executeQuery();
-            rs.next();
-            assertEquals(rs.getString(1), dateFormat.format(ts), "Date mismatch");
-            rs.close();
+                // Test PreparedStatement with Date
+                Date date = new Date(ts.getTime());
+                ps.setDate(1, date);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    assertEquals(rs.getString(1), dateFormat.format(ts), "Date mismatch");
+                }
 
-            // Test PreparedStatement with Date (using Buddhist calendar)
-            date = new Date(ts.getTime());
-            ps.setDate(1, date, Calendar.getInstance());
-            rs = ps.executeQuery();
-            rs.next();
-            assertEquals(rs.getString(1), dateFormat.format(ts), "Date mismatch (w/calendar)");
-            rs.close();
+                // Test PreparedStatement with Date (using Buddhist calendar)
+                date = new Date(ts.getTime());
+                ps.setDate(1, date, Calendar.getInstance());
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    assertEquals(rs.getString(1), dateFormat.format(ts), "Date mismatch (w/calendar)");
+                }
 
-            // Test PreparedStatement with DateTimeOffset (using Buddhist calendar)
-            // Note: Expected value does not reflect Buddhist year, even though a Buddhist calendar is used.
-            DateTimeOffset dto = DateTimeOffset.valueOf(ts,
-                    Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles")));
+                // Test PreparedStatement with DateTimeOffset (using Buddhist calendar)
+                // Note: Expected value does not reflect Buddhist year, even though a Buddhist calendar is used.
+                DateTimeOffset dto = DateTimeOffset.valueOf(ts,
+                        Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles")));
 
-            ((SQLServerPreparedStatement) ps).setDateTimeOffset(1, dto);
-            rs = ps.executeQuery();
-            rs.next();
+                ((SQLServerPreparedStatement) ps).setDateTimeOffset(1, dto);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
 
-            dtoFormat.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
-            assertEquals(rs.getString(1), dtoFormat.format(ts), "DateTimeOffset mismatch");
-            rs.close();
-
-            ps.close();
-            conn.close();
+                    dtoFormat.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
+                    assertEquals(rs.getString(1), dtoFormat.format(ts), "DateTimeOffset mismatch");
+                }
+            }
         } finally {
             Locale.setDefault(locale);
         }
@@ -1482,145 +1435,127 @@ public class KatmaiDataTypesTest extends AbstractTest {
     // DCR 393826 - DCR Need base date compatibility for Time to DATETIMEx conversions with 2.0 driver
     @Test
     public void testBaseDate() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+        Timestamp ts;
 
         // Test Java base date (1/1/1970)
-        Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
-        PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATETIME)");
-        ps.setTime(1, java.sql.Time.valueOf("12:34:56"));
-        ResultSet rs = ps.executeQuery();
-        rs.next();
-        Timestamp ts = rs.getTimestamp(1);
-        assertEquals(ts.toString(), "1970-01-01 12:34:56.0", "Expected Java base date");
-        rs.close();
-        ps.close();
-        conn.close();
+        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
+                PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATETIME)")) {
+            ps.setTime(1, java.sql.Time.valueOf("12:34:56"));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                ts = rs.getTimestamp(1);
+                assertEquals(ts.toString(), "1970-01-01 12:34:56.0", "Expected Java base date");
+            }
+        }
 
         // Test SQL Server base date (1/1/1900)
-        conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
-        ps = conn.prepareStatement("SELECT CAST(? AS DATETIME)");
-        ps.setTime(1, java.sql.Time.valueOf("12:34:56"));
-        rs = ps.executeQuery();
-        rs.next();
-        ts = rs.getTimestamp(1);
-        assertEquals(ts.toString(), "1900-01-01 12:34:56.0", "Expected SQL Server base date");
-        rs.close();
-        ps.close();
-        conn.close();
+        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
+                PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATETIME)")) {
+            ps.setTime(1, java.sql.Time.valueOf("12:34:56"));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                ts = rs.getTimestamp(1);
+                assertEquals(ts.toString(), "1900-01-01 12:34:56.0", "Expected SQL Server base date");
+            }
+        }
     }
 
-    // VSTS 393831 - setTimestamp to DATETIMEOFFSET must yield a value in local time with UTC time zone offset (+00:00)
+    // VSTS 393831 - setTimestamp to DATETIMEOFFSET must yield a value in local time with UTC time zone offset
+    // (+00:00)
     @Test
     public void testTimestampToDateTimeOffset() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-
-        Connection conn = DriverManager.getConnection(connectionString);
-        PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATETIMEOFFSET)");
-        ps.setTimestamp(1, Timestamp.valueOf("2010-01-06 12:34:56"));
-        ResultSet rs = ps.executeQuery();
-        rs.next();
-        DateTimeOffset dto = ((SQLServerResultSet) rs).getDateTimeOffset(1);
-        assertEquals(dto.toString(), "2010-01-06 12:34:56 +00:00", "Wrong value");
-        rs.close();
-        ps.close();
-        conn.close();
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATETIMEOFFSET)")) {
+            ps.setTimestamp(1, Timestamp.valueOf("2010-01-06 12:34:56"));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                DateTimeOffset dto = ((SQLServerResultSet) rs).getDateTimeOffset(1);
+                assertEquals(dto.toString(), "2010-01-06 12:34:56 +00:00", "Wrong value");
+            }
+        }
     }
 
-    // VSTS 400431 - PS.setObject() on a datetime2 with values on or after 0700-02-29 have a value one day ahead stored
+    // VSTS 400431 - PS.setObject() on a datetime2 with values on or after 0700-02-29 have a value one day ahead
+    // stored
     // in the server
     @Test
     public void testJulianLeapYear() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
-        // PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR)");
-        PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATE)");
-        ResultSet rs;
+        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
+                // PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR)");
+                PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATE)")) {
 
-        // Julian date from string
-        Date julianDate = Date.valueOf("0700-03-01");
-        ps.setDate(1, julianDate);
-        rs = ps.executeQuery();
-        rs.next();
-        assertEquals(rs.getString(1), "0700-03-01", "Wrong date returned");
-        rs.close();
-
-        ps.close();
-        conn.close();
+            // Julian date from string
+            Date julianDate = Date.valueOf("0700-03-01");
+            ps.setDate(1, julianDate);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                assertEquals(rs.getString(1), "0700-03-01", "Wrong date returned");
+            }
+        }
     }
 
     @Test
     public void testGetTimeRounding() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
+                Statement stmt = conn.createStatement()) {
 
-        Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
-        Statement stmt = conn.createStatement();
-        ResultSet rs;
+            // Test getTime() rounding from TIME(6) SQL type
+            try (ResultSet rs = stmt.executeQuery("SELECT CAST('12:34:56.999500' AS TIME)")) {
+                rs.next();
+                assertEquals(rs.getTime(1).toString(), "12:34:57", "Rounding from TIME(6) failed");
+            }
 
-        // Test getTime() rounding from TIME(6) SQL type
-        rs = stmt.executeQuery("SELECT CAST('12:34:56.999500' AS TIME)");
-        rs.next();
-        assertEquals(rs.getTime(1).toString(), "12:34:57", "Rounding from TIME(6) failed");
-        rs.close();
-
-        // Test getTime() rounding from character data
-        rs = stmt.executeQuery("SELECT '12:34:56.999500'");
-        rs.next();
-        assertEquals(rs.getTime(1).toString(), "12:34:57", "Rounding from character data failed");
-        rs.close();
-
-        stmt.close();
-        conn.close();
+            // Test getTime() rounding from character data
+            try (ResultSet rs = stmt.executeQuery("SELECT '12:34:56.999500'")) {
+                rs.next();
+                assertEquals(rs.getTime(1).toString(), "12:34:57", "Rounding from character data failed");
+            }
+        }
     }
 
     @Test
     public void testGregorianCutoverDateTime2() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
+                PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR)")) {
+            Timestamp ts;
 
-        Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
-        PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR)");
-        ResultSet rs;
-        Timestamp ts;
+            // Test setting value during the Gregorian cutover via Timestamp constructed from String
+            ts = Timestamp.valueOf("1582-10-24 15:07:09.081");
+            ps.setTimestamp(1, ts);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                assertEquals(rs.getString(1), "1582-10-24 15:07:09.0810000", "Wrong value");
+            }
 
-        // Test setting value during the Gregorian cutover via Timestamp constructed from String
-        ts = Timestamp.valueOf("1582-10-24 15:07:09.081");
-        ps.setTimestamp(1, ts);
-        rs = ps.executeQuery();
-        rs.next();
-        assertEquals(rs.getString(1), "1582-10-24 15:07:09.0810000", "Wrong value");
-        rs.close();
-
-        // Test setting value during the Gregorian cutover via Timestamp constructed from Calendar
-        Calendar cal = Calendar.getInstance();
-        cal.set(1582, Calendar.NOVEMBER, 1, 15, 7, 9);
-        cal.set(Calendar.MILLISECOND, 81);
-        ts = new Timestamp(cal.getTimeInMillis());
-        ps.setTimestamp(1, ts);
-        rs = ps.executeQuery();
-        rs.next();
-        assertEquals(rs.getString(1), "1582-11-01 15:07:09.0810000", "Wrong value");
-        rs.close();
-
-        ps.close();
-        conn.close();
+            // Test setting value during the Gregorian cutover via Timestamp constructed from Calendar
+            Calendar cal = Calendar.getInstance();
+            cal.set(1582, Calendar.NOVEMBER, 1, 15, 7, 9);
+            cal.set(Calendar.MILLISECOND, 81);
+            ts = new Timestamp(cal.getTimeInMillis());
+            ps.setTimestamp(1, ts);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                assertEquals(rs.getString(1), "1582-11-01 15:07:09.0810000", "Wrong value");
+            }
+        }
     }
 
-    // VSTS 393831 - setTimestamp to DATETIMEOFFSET must yield a value in local time with UTC time zone offset (+00:00)
+    // VSTS 393831 - setTimestamp to DATETIMEOFFSET must yield a value in local time with UTC time zone offset
+    // (+00:00)
     //
     // In this case, verify that SELECT with a WHERE clause doesn't fail due to mapping the Timestamp value to a
     // SQL Server type that does not compare equal. For example, a DATETIMEOFFSET and DATETIME only compare equal
     // if the DATETIMEOFFSET offset is 0 (UTC).
     @Test
     public void testTimestampToDateTime() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-
-        Connection conn = DriverManager.getConnection(connectionString);
-        PreparedStatement ps = conn.prepareStatement("SELECT 1 WHERE ?=CAST('2009-12-17 17:00:29' AS DATETIME)");
-        ps.setTimestamp(1, Timestamp.valueOf("2009-12-17 17:00:29"));
-        ResultSet rs = ps.executeQuery();
-        assertEquals(rs.next(), true, "Timestamp to DATETIME comparison failed for equal values");
-        rs.close();
-        ps.close();
-        conn.close();
+        try (Connection conn = DriverManager.getConnection(connectionString); PreparedStatement ps = conn
+                .prepareStatement("SELECT 1 WHERE ?=CAST('2009-12-17 17:00:29' AS DATETIME)")) {
+            ps.setTimestamp(1, Timestamp.valueOf("2009-12-17 17:00:29"));
+            try (ResultSet rs = ps.executeQuery()) {
+                assertEquals(rs.next(), true, "Timestamp to DATETIME comparison failed for equal values");
+            }
+        }
     }
 
     // testUpdateMisc
@@ -1628,129 +1563,122 @@ public class KatmaiDataTypesTest extends AbstractTest {
     // Haphazard collection of bugs that popped up during unit testing (i.e. regression tests)
     @Test
     public void testUpdateMisc() throws Exception {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager
+                .getConnection(connectionString + ";sendTimeAsDatetime=true")) {
 
-        // + ""[" + driver.createuniqueidentifer("testUpdateMisc") + "]";
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
 
-        SQLServerConnection conn = (SQLServerConnection) DriverManager
-                .getConnection(connectionString + ";sendTimeAsDatetime=true");
+            try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+                try {
+                    stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                } catch (SQLException e) {}
 
-        assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
+                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (col1 datetimeoffset(2)," + "  col2 datetime," + "  col3 time(5)," + "  col4 datetime2(5),"
+                        + "  col5 smalldatetime," + "  col6 time(2)," + "  col7 int identity(1,1) primary key)");
+                stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES ("
+                        + " '2010-01-12 09:00:23.17 -08:00'," + " '2010-01-12 10:20:23'," + " '10:20:23',"
+                        + " '2010-01-12 10:20:23'," + " '2010-01-12 11:45:17'," + " '10:20:23')");
+                DateTimeOffset dto;
 
-        Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-        try {
-            stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
-        } catch (SQLException e) {}
-        stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                + " (col1 datetimeoffset(2)," + "  col2 datetime," + "  col3 time(5)," + "  col4 datetime2(5),"
-                + "  col5 smalldatetime," + "  col6 time(2)," + "  col7 int identity(1,1) primary key)");
-        stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES ("
-                + " '2010-01-12 09:00:23.17 -08:00'," + " '2010-01-12 10:20:23'," + " '10:20:23',"
-                + " '2010-01-12 10:20:23'," + " '2010-01-12 11:45:17'," + " '10:20:23')");
+                try (ResultSet rs = stmt.executeQuery(
+                        "SELECT *, CAST(col1 AS VARCHAR) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    rs.next();
 
-        try {
-            DateTimeOffset dto;
+                    // Update datetimeoffset(2) from pre-Gregorian Date
+                    rs.updateDate(1, Date.valueOf("0814-02-18"));
+                    rs.updateRow();
+                    assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1).toString(),
+                            "0814-02-18 00:00:00 +00:00", "Update of datetimeoffset(2) from pre-Gregorian Date");
 
-            ResultSet rs = stmt.executeQuery(
-                    "SELECT *, CAST(col1 AS VARCHAR) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName));
-            rs.next();
+                    // Update datetimeoffset(2) from "last" Time
+                    rs.updateTime(1, new java.sql.Time(Timestamp.valueOf("1970-01-01 23:59:59.998").getTime()));
+                    rs.updateRow();
+                    assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1).toString(),
+                            "1970-01-02 00:00:00 +00:00", "Update datetimeoffset(2) from last Time");
 
-            // Update datetimeoffset(2) from pre-Gregorian Date
-            rs.updateDate(1, Date.valueOf("0814-02-18"));
-            rs.updateRow();
-            assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1).toString(), "0814-02-18 00:00:00 +00:00",
-                    "Update of datetimeoffset(2) from pre-Gregorian Date");
+                    // Update datetimeoffset(2) from the "last" Timestamp
+                    rs.updateTimestamp(1, Timestamp.valueOf("9999-12-31 23:59:59.998"));
+                    rs.updateRow();
+                    dto = ((SQLServerResultSet) rs).getDateTimeOffset(1);
+                    assertEquals(dto.toString(), "9999-12-31 23:59:59.99 +00:00",
+                            "Update datetimeoffset(2) from last Timestamp");
 
-            // Update datetimeoffset(2) from "last" Time
-            rs.updateTime(1, new java.sql.Time(Timestamp.valueOf("1970-01-01 23:59:59.998").getTime()));
-            rs.updateRow();
-            assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1).toString(), "1970-01-02 00:00:00 +00:00",
-                    "Update datetimeoffset(2) from last Time");
+                    // Attempt to update datetimeoffset(2) from the first out of range value
+                    // Verify that an exception is thrown and that the statement/connection is still usable after
+                    try {
+                        Timestamp tsInvalid = Timestamp.valueOf("9999-12-31 23:59:59.999999999");
+                        tsInvalid = new Timestamp(tsInvalid.getTime() + 1);
+                        rs.updateTimestamp(1, tsInvalid);
+                        rs.updateRow();
+                        assertEquals(false, true, "Update succeeded with out of range value");
+                    } catch (SQLServerException e) {
+                        assertEquals(e.getSQLState(), "22008", // data exception - datetime field overflow (ISO/IEC
+                                                               // 9075-2:1999)
+                                "Wrong exception received");
+                    }
 
-            // Update datetimeoffset(2) from the "last" Timestamp
-            rs.updateTimestamp(1, Timestamp.valueOf("9999-12-31 23:59:59.998"));
-            rs.updateRow();
-            dto = ((SQLServerResultSet) rs).getDateTimeOffset(1);
-            assertEquals(dto.toString(), "9999-12-31 23:59:59.99 +00:00",
-                    "Update datetimeoffset(2) from last Timestamp");
+                    // Update time(5) from Timestamp with nanos more precise than 100ns
+                    Timestamp ts = Timestamp.valueOf("2010-01-12 11:05:23");
+                    ts.setNanos(987659999);
+                    rs.updateTimestamp(3, ts);
+                    rs.updateRow();
+                    assertEquals(rs.getTimestamp(3).toString(), "1900-01-01 11:05:23.98766",
+                            "Update time(5) from Timestamp with sub-100ns nanos");
 
-            // Attempt to update datetimeoffset(2) from the first out of range value
-            // Verify that an exception is thrown and that the statement/connection is still usable after
-            try {
-                Timestamp tsInvalid = Timestamp.valueOf("9999-12-31 23:59:59.999999999");
-                tsInvalid = new Timestamp(tsInvalid.getTime() + 1);
-                rs.updateTimestamp(1, tsInvalid);
-                rs.updateRow();
-                assertEquals(false, true, "Update succeeded with out of range value");
-            } catch (SQLServerException e) {
-                assertEquals(e.getSQLState(), "22008", // data exception - datetime field overflow (ISO/IEC
-                                                       // 9075-2:1999)
-                        "Wrong exception received");
+                    // Update time(5) from Timestamp to max value in a day. The value should not be rounded
+                    ts = Timestamp.valueOf("2010-01-12 23:59:59");
+                    ts.setNanos(999999999);
+                    Time time = new java.sql.Time(ts.getTime());
+                    rs.updateTimestamp(3, ts);
+                    rs.updateRow();
+                    assertEquals(rs.getTimestamp(3).toString(), "1900-01-01 23:59:59.99999",
+                            "Update time(5) from Timestamp to max value in a day");
+
+                    // Update time(2) from Time to max value in a day. The value should not be rounded
+                    rs.updateTime(6, time);
+                    rs.updateRow();
+                    assertEquals(new Timestamp(rs.getTime(6).getTime()).toString(), // conversion to timestamp is
+                                                                                    // necessary to see fractional
+                                                                                    // secs
+                            "1970-01-01 23:59:59.99", "Update time(2) from Time to max value in a day");
+
+                    // Update time(5) from Timestamp to max value in a second. The value should be rounded
+                    ts = Timestamp.valueOf("2010-01-12 23:59:58");
+                    ts.setNanos(999999999);
+                    time = new java.sql.Time(ts.getTime());
+                    rs.updateTimestamp(3, ts);
+                    rs.updateRow();
+                    assertEquals(rs.getTimestamp(3).toString(), "1900-01-01 23:59:59.0",
+                            "Update time(5) from Timestamp to max value in a second");
+
+                    // Update time(2) from Time to max value in a second. The value should be rounded
+                    rs.updateTime(6, time);
+                    rs.updateRow();
+                    assertEquals(new Timestamp(rs.getTime(6).getTime()).toString(), // conversion to timestamp is
+                                                                                    // necessary to see fractional
+                                                                                    // secs
+                            "1970-01-01 23:59:59.0", "Update time(2) from Time to max value in a second");
+
+                    // Update datetime w/expected rounding of nanos to DATETIME's 1/300second resolution
+                    ts = Timestamp.valueOf("6289-04-22 05:13:57.6745106");
+                    rs.updateTimestamp(2, ts);
+                    rs.updateRow();
+                    assertEquals(rs.getTimestamp(2).toString(), "6289-04-22 05:13:57.677",
+                            "Update datetime from Timestamp with sub-1/3second nanos");
+
+                    // Update datetime with rounding-induced overflow from Time
+                    // (should roll date part to 1/2/1970)
+                    ts = Timestamp.valueOf("2010-01-18 23:59:59.999");
+                    rs.updateTime(2, new java.sql.Time(ts.getTime()));
+                    rs.updateRow();
+                    assertEquals(rs.getTimestamp(2).toString(), "1970-01-02 00:00:00.0",
+                            "Update datetime from Time near next day");
+
+                } finally {
+                    stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                }
             }
-
-            // Update time(5) from Timestamp with nanos more precise than 100ns
-            Timestamp ts = Timestamp.valueOf("2010-01-12 11:05:23");
-            ts.setNanos(987659999);
-            rs.updateTimestamp(3, ts);
-            rs.updateRow();
-            assertEquals(rs.getTimestamp(3).toString(), "1900-01-01 11:05:23.98766",
-                    "Update time(5) from Timestamp with sub-100ns nanos");
-
-            // Update time(5) from Timestamp to max value in a day. The value should not be rounded
-            ts = Timestamp.valueOf("2010-01-12 23:59:59");
-            ts.setNanos(999999999);
-            Time time = new java.sql.Time(ts.getTime());
-            rs.updateTimestamp(3, ts);
-            rs.updateRow();
-            assertEquals(rs.getTimestamp(3).toString(), "1900-01-01 23:59:59.99999",
-                    "Update time(5) from Timestamp to max value in a day");
-
-            // Update time(2) from Time to max value in a day. The value should not be rounded
-            rs.updateTime(6, time);
-            rs.updateRow();
-            assertEquals(new Timestamp(rs.getTime(6).getTime()).toString(), // conversion to timestamp is
-                                                                            // necessary to see fractional
-                                                                            // secs
-                    "1970-01-01 23:59:59.99", "Update time(2) from Time to max value in a day");
-
-            // Update time(5) from Timestamp to max value in a second. The value should be rounded
-            ts = Timestamp.valueOf("2010-01-12 23:59:58");
-            ts.setNanos(999999999);
-            time = new java.sql.Time(ts.getTime());
-            rs.updateTimestamp(3, ts);
-            rs.updateRow();
-            assertEquals(rs.getTimestamp(3).toString(), "1900-01-01 23:59:59.0",
-                    "Update time(5) from Timestamp to max value in a second");
-
-            // Update time(2) from Time to max value in a second. The value should be rounded
-            rs.updateTime(6, time);
-            rs.updateRow();
-            assertEquals(new Timestamp(rs.getTime(6).getTime()).toString(), // conversion to timestamp is
-                                                                            // necessary to see fractional
-                                                                            // secs
-                    "1970-01-01 23:59:59.0", "Update time(2) from Time to max value in a second");
-
-            // Update datetime w/expected rounding of nanos to DATETIME's 1/300second resolution
-            ts = Timestamp.valueOf("6289-04-22 05:13:57.6745106");
-            rs.updateTimestamp(2, ts);
-            rs.updateRow();
-            assertEquals(rs.getTimestamp(2).toString(), "6289-04-22 05:13:57.677",
-                    "Update datetime from Timestamp with sub-1/3second nanos");
-
-            // Update datetime with rounding-induced overflow from Time
-            // (should roll date part to 1/2/1970)
-            ts = Timestamp.valueOf("2010-01-18 23:59:59.999");
-            rs.updateTime(2, new java.sql.Time(ts.getTime()));
-            rs.updateRow();
-            assertEquals(rs.getTimestamp(2).toString(), "1970-01-02 00:00:00.0",
-                    "Update datetime from Time near next day");
-
-            rs.close();
-        } finally {
-            stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
-            stmt.close();
-            conn.close();
         }
     }
-
 }
