@@ -31,7 +31,9 @@ import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
+import java.text.DateFormat;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -136,11 +138,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private String originalHostNameInCertificate = null;
 
-
     protected SqlFedAuthToken getAuthenticationResult() {
         return fedAuthToken;
     }
-    
+
     private Boolean isAzureDW = null;
 
     static class CityHash128Key implements java.io.Serializable {
@@ -394,7 +395,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         static final String AZURE_REST_MSI_URL = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01";
         static final String ADAL_GET_ACCESS_TOKEN_FUNCTION_NAME = "ADALGetAccessToken";
         static final String ACCESS_TOKEN_IDENTIFIER = "\"access_token\":\"";
-        static final String ACCESS_TOKEN_EXPIRY_IDENTIFIER = "\"expires_in\":\"";
+        static final String ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER = "\"expires_in\":\"";
+        static final String ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER = "\"expires_on\":\"";
+        static final String ACCESS_TOKEN_EXPIRES_ON_DATE_FORMAT = "M/d/yyyy h:mm:ss a X";
         static final int GET_ACCESS_TOKEN_SUCCESS = 0;
         static final int GET_ACCESS_TOKEN_INVALID_GRANT = 1;
         static final int GET_ACCESS_TOKEN_TANSISENT_ERROR = 2;
@@ -4082,8 +4085,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private SqlFedAuthToken getFedAuthToken(SqlFedAuthInfo fedAuthInfo) throws SQLServerException {
-        SqlFedAuthInfo sqlFedAuthInfo = new SqlFedAuthInfo();
-
         // fedAuthInfo should not be null.
         assert null != fedAuthInfo;
 
@@ -4096,7 +4097,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         while (true) {
             if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
                 validateAdalLibrary("R_ADALMissing");
-                fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password, authenticationString);
+                fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password,
+                        authenticationString);
 
                 // Break out of the retry loop in successful case.
                 break;
@@ -4182,8 +4184,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // so we don't need to check the
                 // OS version here.
                 else {
-                  //Check if ADAL4J library is available
-                    validateAdalLibrary("R_DLLandADALMissing"); 
+                    // Check if ADAL4J library is available
+                    validateAdalLibrary("R_DLLandADALMissing");
                     fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
                 }
                 // Break out of the retry loop in successful case.
@@ -4205,7 +4207,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private SqlFedAuthToken getMSIAuthToken(String resource, String objectId) throws SQLServerException {
-        String urlString = ActiveDirectoryAuthentication.AZURE_REST_MSI_URL + "&resource=" + resource;
+        String urlString;
+        String msiEndpoint = System.getenv("MSI_ENDPOINT");
+        String msiSecret = System.getenv("MSI_SECRET");
+        boolean isAzureFunction = null != msiEndpoint && !msiEndpoint.isEmpty() && null != msiSecret
+                && !msiSecret.isEmpty();
+
+        if (isAzureFunction) {
+            urlString = msiEndpoint + "?api-version=2017-09-01&resource=" + resource;
+        } else {
+            urlString = ActiveDirectoryAuthentication.AZURE_REST_MSI_URL + "&resource=" + resource;
+        }
 
         if (null != objectId && !objectId.isEmpty()) {
             urlString += "&object_id=" + objectId;
@@ -4216,7 +4228,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         try {
             connection = (HttpURLConnection) new URL(urlString).openConnection();
             connection.setRequestMethod("GET");
-            connection.setRequestProperty("Metadata", "true");
+
+            if (isAzureFunction) {
+                connection.setRequestProperty("Secret", msiSecret);
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.finer(toString() + " Using Azure Function/App Service MSI auth: " + urlString);
+                }
+            } else {
+                connection.setRequestProperty("Metadata", "true");
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.finer(toString() + " Using Azure MSI auth: " + urlString);
+                }
+            }
 
             connection.connect();
 
@@ -4227,14 +4250,32 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 int startIndex_AT = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER)
                         + ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER.length();
-                int startIndex_ATX = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRY_IDENTIFIER)
-                        + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRY_IDENTIFIER.length();
 
                 String accessToken = result.substring(startIndex_AT, result.indexOf("\"", startIndex_AT + 1));
-                String accessTokenExpiry = result.substring(startIndex_ATX, result.indexOf("\"", startIndex_ATX + 1));
 
                 Calendar cal = new Calendar.Builder().setInstant(new Date()).build();
-                cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
+
+                if (isAzureFunction) {
+                    int startIndex_ATX = result
+                            .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER)
+                            + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER.length();
+                    String accessTokenExpiry = result.substring(startIndex_ATX,
+                            result.indexOf("\"", startIndex_ATX + 1));
+                    if (connectionlogger.isLoggable(Level.FINER)) {
+                        connectionlogger.finer(toString() + " MSI auth token expires on: " + accessTokenExpiry);
+                    }
+
+                    DateFormat df = new SimpleDateFormat(
+                            ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_DATE_FORMAT);
+                    cal = new Calendar.Builder().setInstant(df.parse(accessTokenExpiry)).build();
+                } else {
+                    int startIndex_ATX = result
+                            .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER)
+                            + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
+                    String accessTokenExpiry = result.substring(startIndex_ATX,
+                            result.indexOf("\"", startIndex_ATX + 1));
+                    cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
+                }
 
                 return new SqlFedAuthToken(accessToken, cal.getTime(), null);
             }
