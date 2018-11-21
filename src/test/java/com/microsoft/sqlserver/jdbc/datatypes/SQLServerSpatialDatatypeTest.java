@@ -968,8 +968,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
         x = geog.getLatitude();
         y = geog.getLongitude();
-        assertEquals(x, 1);
-        assertEquals(y, 2);
+        assertEquals(x, 2);
+        assertEquals(y, 1);
     }
 
     @Test
