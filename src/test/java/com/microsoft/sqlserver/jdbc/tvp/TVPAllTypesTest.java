@@ -165,7 +165,7 @@ public class TVPAllTypesTest extends AbstractTest {
                 dt.addRow(values);
             }
 
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
                     .prepareStatement("INSERT INTO " + tableDest.getEscapedTableName() + " select * from ? ;")) {
                 pstmt.setStructured(1, tvpName, dt);
                 pstmt.execute();
