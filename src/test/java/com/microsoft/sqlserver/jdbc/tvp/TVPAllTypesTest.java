@@ -36,7 +36,6 @@ public class TVPAllTypesTest extends AbstractTest {
 
     private static String tvpName;
     private static String procedureName;
-
     private static DBTable tableSrc = null;
     private static DBTable tableDest = null;
 
@@ -68,7 +67,6 @@ public class TVPAllTypesTest extends AbstractTest {
         }
 
         try (Connection conn = DriverManager.getConnection(connString)) {
-
             if (null != resultSetType && null != resultSetConcurrency) {
                 stmt = conn.createStatement(resultSetType, resultSetConcurrency);
             } else {
@@ -76,13 +74,11 @@ public class TVPAllTypesTest extends AbstractTest {
             }
 
             setupVariation(setSelectMethod, stmt);
-
             try (ResultSet rs = stmt.executeQuery("select * from " + tableSrc.getEscapedTableName());
                     SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
                             "INSERT INTO " + tableDest.getEscapedTableName() + " select * from ? ;")) {
                 pstmt.setStructured(1, tvpName, rs);
                 pstmt.execute();
-
                 ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc,
                         tableDest);
             } catch (Exception e) {
@@ -112,7 +108,6 @@ public class TVPAllTypesTest extends AbstractTest {
 
     private void testTVPStoredProcedureResultSet(boolean setSelectMethod, Integer resultSetType,
             Integer resultSetConcurrency) throws SQLException {
-
         String connString;
         Statement stmt = null;
 
@@ -123,7 +118,6 @@ public class TVPAllTypesTest extends AbstractTest {
         }
 
         try (Connection conn = DriverManager.getConnection(connString)) {
-
             if (null != resultSetType && null != resultSetConcurrency) {
                 stmt = conn.createStatement(resultSetType, resultSetConcurrency);
             } else {
@@ -131,7 +125,6 @@ public class TVPAllTypesTest extends AbstractTest {
             }
 
             setupVariation(setSelectMethod, stmt);
-
             try (ResultSet rs = stmt.executeQuery("select * from " + tableSrc.getEscapedTableName());
                     SQLServerCallableStatement Cstmt = (SQLServerCallableStatement) conn
                             .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}")) {
@@ -156,13 +149,11 @@ public class TVPAllTypesTest extends AbstractTest {
     public void testTVPDataTable() throws SQLException {
 
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-
             setupVariation(false, stmt);
-
             SQLServerDataTable dt = new SQLServerDataTable();
-
             int numberOfColumns = tableDest.getColumns().size();
             Object[] values = new Object[numberOfColumns];
+
             for (int i = 0; i < numberOfColumns; i++) {
                 SqlType sqlType = tableDest.getColumns().get(i).getSqlType();
                 dt.addColumnMetadata(tableDest.getColumnName(i), sqlType.getJdbctype().getVendorTypeNumber());
