@@ -925,7 +925,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // Decrypt the symmetric key.(This will also validate and throw if needed).
                     SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
                 } else {
-                    if (true == params[paramIndex].getForceEncryption()) {
+                    if (params[paramIndex].getForceEncryption()) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
                         Object[] msgArgs = {userSQL, paramIndex + 1};
@@ -1081,7 +1081,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             internalStmt = (SQLServerStatement) connection.createStatement();
             emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
         } catch (SQLException sqle) {
-            if (false == sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
+            if (!sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
                 // if the error is not no resultset then throw a processings error.
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_processingError"));
                 Object[] msgArgs = {sqle.getMessage()};
