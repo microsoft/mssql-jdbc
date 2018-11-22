@@ -374,7 +374,7 @@ final class Util {
                         name = SQLServerDriver.getNormalizedPropertyName(name, logger);
                         if (null != name) {
                             if (logger.isLoggable(Level.FINE)) {
-                                if (false == name.equals(SQLServerDriverStringProperty.USER.toString())) {
+                                if (!name.equals(SQLServerDriverStringProperty.USER.toString())) {
                                     if (!name.toLowerCase(Locale.ENGLISH).contains("password")
                                             && !name.toLowerCase(Locale.ENGLISH).contains("keystoresecret")) {
                                         logger.fine("Property:" + name + " Value:" + value);
@@ -411,8 +411,8 @@ final class Util {
                         name = SQLServerDriver.getNormalizedPropertyName(name, logger);
                         if (null != name) {
                             if (logger.isLoggable(Level.FINE)) {
-                                if ((false == name.equals(SQLServerDriverStringProperty.USER.toString()))
-                                        && (false == name.equals(SQLServerDriverStringProperty.PASSWORD.toString())))
+                                if (!name.equals(SQLServerDriverStringProperty.USER.toString())
+                                        && !name.equals(SQLServerDriverStringProperty.PASSWORD.toString()))
                                     logger.fine("Property:" + name + " Value:" + value);
                             }
                             p.put(name, value);
@@ -475,9 +475,9 @@ final class Util {
                 name = SQLServerDriver.getNormalizedPropertyName(name, logger);
                 if (null != name) {
                     if (logger.isLoggable(Level.FINE)) {
-                        if ((false == name.equals(SQLServerDriverStringProperty.USER.toString()))
-                                && (false == name.equals(SQLServerDriverStringProperty.PASSWORD.toString()))
-                                && (false == name.equals(SQLServerDriverStringProperty.KEY_STORE_SECRET.toString())))
+                        if (!name.equals(SQLServerDriverStringProperty.USER.toString())
+                                && !name.equals(SQLServerDriverStringProperty.PASSWORD.toString())
+                                && !name.equals(SQLServerDriverStringProperty.KEY_STORE_SECRET.toString()))
                             logger.fine("Property:" + name + " Value:" + value);
                     }
                     p.put(name, value);

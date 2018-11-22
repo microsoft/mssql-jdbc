@@ -214,7 +214,7 @@ final class Column {
                 if (JDBCType.TINYINT == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType()
                         && javaType == JavaType.SHORT) {
                     if (value instanceof Boolean) {
-                        if (true == ((boolean) value)) {
+                        if ((boolean) value) {
                             value = 1;
                         } else {
                             value = 0;
@@ -251,7 +251,7 @@ final class Column {
         }
 
         if (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, con)) {
-            if ((null == cryptoMetadata) && true == forceEncrypt) {
+            if ((null == cryptoMetadata) && forceEncrypt) {
                 MessageFormat form = new MessageFormat(
                         SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumnRS"));
                 Object[] msgArgs = {parameterIndex};
@@ -273,7 +273,7 @@ final class Column {
                 }
             }
         } else {
-            if (true == forceEncrypt) {
+            if (forceEncrypt) {
                 MessageFormat form = new MessageFormat(
                         SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAEFalseRS"));
                 Object[] msgArgs = {parameterIndex};
