@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -81,13 +82,12 @@ public class TVPAllTypesTest extends AbstractTest {
                 pstmt.execute();
                 ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc,
                         tableDest);
+                terminateVariation(stmt);
             } catch (Exception e) {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
             } finally {
-                terminateVariation(stmt);
+                stmt.close();
             }
-        } finally {
-            stmt.close();
         }
     }
 
@@ -132,11 +132,10 @@ public class TVPAllTypesTest extends AbstractTest {
                 Cstmt.execute();
                 ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc,
                         tableDest);
-            } finally {
                 terminateVariation(stmt);
+            } finally {
+                stmt.close();
             }
-        } finally {
-            stmt.close();
         }
     }
 
@@ -169,13 +168,12 @@ public class TVPAllTypesTest extends AbstractTest {
                     .prepareStatement("INSERT INTO " + tableDest.getEscapedTableName() + " select * from ? ;")) {
                 pstmt.setStructured(1, tvpName, dt);
                 pstmt.execute();
-            } finally {
-                terminateVariation(stmt);
             }
+            terminateVariation(stmt);
         }
     }
 
-    private static void createPreocedure(String procedureName, String destTable, Statement stmt) throws SQLException {
+    private static void createProcedure(String procedureName, String destTable, Statement stmt) throws SQLException {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
                 + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN " + " INSERT INTO "
                 + destTable + " SELECT * FROM @InputData" + " END";
@@ -207,7 +205,7 @@ public class TVPAllTypesTest extends AbstractTest {
             dbStmt.createTable(tableDest);
 
             createTVPS(tvpName, tableSrc.getDefinitionOfColumns(), stmt);
-            createPreocedure(procedureName, tableDest.getEscapedTableName(), stmt);
+            createProcedure(procedureName, tableDest.getEscapedTableName(), stmt);
 
             dbStmt.populateTable(tableSrc);
         }

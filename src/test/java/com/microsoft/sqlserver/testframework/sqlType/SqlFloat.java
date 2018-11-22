@@ -27,10 +27,15 @@ public class SqlFloat extends SqlType {
     public Object createdata() {
         // for float in SQL Server, any precision <=24 is considered as real so the value must be within
         // SqlTypeValue.REAL.minValue/maxValue
-        if (precision > 24)
-            return Double.longBitsToDouble(ThreadLocalRandom.current().nextLong(((Double) minvalue).longValue(),
-                    ((Double) maxvalue).longValue()));
-        else {
+        if (precision > 24) {
+            long longVal = ThreadLocalRandom.current().nextLong(((Double) minvalue).longValue(),
+                    ((Double) maxvalue).longValue());
+            if (Double.isNaN(Double.longBitsToDouble(longVal))) {
+                // Try again!
+                return createdata();
+            } else
+                return Double.longBitsToDouble(longVal);
+        } else {
             return ThreadLocalRandom.current().nextDouble((Float) SqlTypeValue.REAL.minValue,
                     (Float) SqlTypeValue.REAL.maxValue);
         }
