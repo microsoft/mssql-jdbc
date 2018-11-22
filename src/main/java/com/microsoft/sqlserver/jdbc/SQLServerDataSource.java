@@ -1113,7 +1113,7 @@ public class SQLServerDataSource
             if (propertyName.equals(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString())) {
                 // The property set and the variable set at the same time is not
                 // possible
-                assert trustStorePasswordStripped == false;
+                assert !trustStorePasswordStripped;
                 ref.add(new StringRefAddr("trustStorePasswordStripped", "true"));
             } else {
                 // do not add passwords to the collection. we have normal
