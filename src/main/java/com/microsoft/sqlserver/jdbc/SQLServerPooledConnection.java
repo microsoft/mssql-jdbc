@@ -99,11 +99,15 @@ public class SQLServerPooledConnection implements PooledConnection {
             if (null != lastProxyConnection) {
                 // if there was a last proxy connection send reset
                 physicalConnection.resetPooledConnection();
-                if (pcLogger.isLoggable(Level.FINE) && !lastProxyConnection.isClosed())
-                    pcLogger.fine(toString() + "proxy " + lastProxyConnection.toString()
-                            + " is not closed before getting the connection.");
-                // use internal close so there wont be an event due to us closing the connection, if not closed already.
-                lastProxyConnection.internalClose();
+                if (!lastProxyConnection.isClosed()) {
+                    if (pcLogger.isLoggable(Level.FINE)) {
+                        pcLogger.fine(toString() + "proxy " + lastProxyConnection.toString()
+                                + " is not closed before getting the connection.");
+                    }
+                    // use internal close so there wont be an event due to us closing the connection, if not closed
+                    // already.
+                    lastProxyConnection.internalClose();
+                }
             }
 
             lastProxyConnection = new SQLServerConnectionPoolProxy(physicalConnection);
