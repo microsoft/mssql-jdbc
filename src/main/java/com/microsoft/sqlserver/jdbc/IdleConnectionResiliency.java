@@ -74,6 +74,10 @@ class SessionRecoveryFeature {
         this.connectionRecoveryPossible = connectionRecoveryPossible;
     }
 
+    int getUnprocessedResponseCount() {
+        return unprocessedResponseCount.get();
+    }
+
     void resetUnprocessedResponseCount() {
         this.unprocessedResponseCount.set(0);
     }
@@ -98,7 +102,7 @@ class SessionRecoveryFeature {
     }
 
     void incrementUnprocessedResponseCount() {
-        if (isConnectionRecoveryNegotiated() && isConnectionRecoveryPossible() && !getReconnectThread().isAlive()) {
+        if (connection.getRetryCount() > 0 && !getReconnectThread().isAlive()) {
             if (unprocessedResponseCount.incrementAndGet() < 0)
                 /*
                  * When this number rolls over, connection recovery is disabled for the rest of the life of the
@@ -109,7 +113,7 @@ class SessionRecoveryFeature {
     }
 
     void decrementUnprocessedResponseCount() {
-        if (isConnectionRecoveryNegotiated() && isConnectionRecoveryPossible() && !getReconnectThread().isAlive()) {
+        if (connection.getRetryCount() > 0 && !getReconnectThread().isAlive()) {
             if (unprocessedResponseCount.decrementAndGet() < 0)
                 /*
                  * When this number rolls over, connection recovery is disabled for the rest of the life of the

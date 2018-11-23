@@ -310,7 +310,7 @@ enum SQLServerDriverIntProperty {
     SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", SQLServerConnection.DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD),
     STATEMENT_POOLING_CACHE_SIZE("statementPoolingCacheSize", SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
     CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
-    CONNECT_RETRY_COUNT("connectRetryCount", 1),
+    CONNECT_RETRY_COUNT("connectRetryCount", 0),
     CONNECT_RETRY_INTERVAL("connectRetryInterval", 10);
 
     private final String name;
