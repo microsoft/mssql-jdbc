@@ -7046,6 +7046,7 @@ class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
     }
 }
 
+
 /**
  * TDSCommand encapsulates an interruptable TDS conversation.
  *
@@ -7168,6 +7169,12 @@ abstract class TDSCommand {
     private int queryTimeoutSeconds;
     private int cancelQueryTimeoutSeconds;
     private TdsTimeoutCommand timeoutCommand;
+    /*
+     * Some flags for Connection Resiliency. We need to know if a command has already been registered in the poller, or
+     * if it was actually executed.
+     */
+    private boolean registeredInPoller = false;
+    private boolean executed = false;
 
     protected int getQueryTimeoutSeconds() {
         return this.queryTimeoutSeconds;
@@ -7179,6 +7186,22 @@ abstract class TDSCommand {
 
     final boolean readingResponse() {
         return readingResponse;
+    }
+
+    synchronized void addToPoller() {
+        if (!registeredInPoller) {
+            // If command execution is subject to timeout then start timing until
+            // the server returns the first response packet.
+            if (queryTimeoutSeconds > 0) {
+                this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
+                TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
+                registeredInPoller = true;
+            }
+        }
+    }
+
+    boolean wasExecuted() {
+        return executed;
     }
 
     /**
@@ -7206,6 +7229,7 @@ abstract class TDSCommand {
      */
 
     boolean execute(TDSWriter tdsWriter, TDSReader tdsReader) throws SQLServerException {
+        executed = true;
         this.tdsWriter = tdsWriter;
         this.tdsReader = tdsReader;
         assert null != tdsReader;
@@ -7579,13 +7603,7 @@ abstract class TDSCommand {
 
             throw e;
         }
-
-        // If command execution is subject to timeout then start timing until
-        // the server returns the first response packet.
-        if (queryTimeoutSeconds > 0) {
-            this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
-            TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
-        }
+        addToPoller();
 
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this.toString() + ": Reading response...");

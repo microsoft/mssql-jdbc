@@ -141,7 +141,6 @@ class SessionRecoveryFeature {
     int getLoginTimeoutSeconds() {
         return loginLoginTimeoutSeconds;
     }
-
 }
 
 
@@ -351,6 +350,7 @@ class SessionStateTable {
 final class ReconnectThread extends Thread {
     private SQLServerConnection con = null;
     private SQLServerException eReceived = null;
+    private TDSCommand command = null;
 
     private volatile boolean stopRequested = false;
     private int connectRetryCount = 0;
@@ -366,14 +366,23 @@ final class ReconnectThread extends Thread {
         this.con = sqlC;
     }
 
-    private void reset() {
+    // Resets the thread
+    void init(TDSCommand cmd) {
+        this.command = cmd;
         connectRetryCount = con.getRetryCount();
         eReceived = null;
         stopRequested = false;
     }
 
     public void run() {
-        reset();
+        boolean interruptsEnabled = command.getInterruptsEnabled();
+        /*
+         * All TDSCommands are not interruptible before execution, and all the commands passed to here won't have been
+         * executed. We need to be able to interrupt these commands so the TimeoutPoller can tell us when a query has
+         * timed out.
+         */
+        command.setInterruptsEnabled(true);
+        command.addToPoller();
         boolean keepRetrying = true;
 
         while ((connectRetryCount != 0) && (!stopRequested) && keepRetrying) {
@@ -390,14 +399,21 @@ final class ReconnectThread extends Thread {
                         try {
                             if (connectRetryCount > 1)
                                 Thread.sleep(con.getRetryInterval() * 1000);
-                        } catch (InterruptedException e1) {
-                            this.eReceived = new SQLServerException(e1.getMessage(), null, DriverError.NOT_SET, null);
+                        } catch (InterruptedException ie) {
+                            this.eReceived = new SQLServerException(ie.getMessage(), null, DriverError.NOT_SET, null);
                             keepRetrying = false;
                         }
                     }
                 }
             } finally {
                 connectRetryCount--;
+                try {
+                    command.checkForInterrupt();
+                } catch (SQLServerException e) {
+                    // Interrupted, timeout occurred. Stop retrying.
+                    keepRetrying = false;
+                    eReceived = e;
+                }
             }
         }
 
@@ -406,6 +422,7 @@ final class ReconnectThread extends Thread {
                     eReceived);
         }
 
+        command.setInterruptsEnabled(interruptsEnabled);
         return;
     }
 
