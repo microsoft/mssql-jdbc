@@ -12,7 +12,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -98,7 +97,6 @@ public class TVPAllTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @RepeatedTest(1000)
     public void testTVPStoredProcedureResultSet() throws SQLException {
         testTVPStoredProcedureResultSet(false, null, null);
         testTVPStoredProcedureResultSet(true, null, null);
