@@ -7,6 +7,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.*;
+import com.microsoft.sqlserver.testframework.AbstractTest;
+
 import microsoft.sql.*;
 
 import java.io.*;
@@ -15,15 +17,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 
 @RunWith(JUnitPlatform.class)
-public class DTOSerialTest {
+public class DTOSerialTest extends AbstractTest {
     private static final String dateString = "2007-05-08 12:35:29.1234567 +12:15";
 
     // public static void testDSerial(String connString) throws Exception
     @Test
     public void testDSerial() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        String connectionString = TestUtils.getConfiguredProperty("mssql_jdbc_test_connection_properties");
-
         try (Connection conn = DriverManager.getConnection(connectionString);
                 Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
