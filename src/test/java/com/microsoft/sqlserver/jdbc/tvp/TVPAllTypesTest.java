@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -81,12 +82,13 @@ public class TVPAllTypesTest extends AbstractTest {
                 pstmt.execute();
                 ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc,
                         tableDest);
-                terminateVariation(stmt);
             } catch (Exception e) {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
             } finally {
                 stmt.close();
             }
+        } finally {
+            terminateVariation();
         }
     }
 
@@ -96,6 +98,7 @@ public class TVPAllTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @RepeatedTest(1000)
     public void testTVPStoredProcedureResultSet() throws SQLException {
         testTVPStoredProcedureResultSet(false, null, null);
         testTVPStoredProcedureResultSet(true, null, null);
@@ -131,10 +134,11 @@ public class TVPAllTypesTest extends AbstractTest {
                 Cstmt.execute();
                 ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc,
                         tableDest);
-                terminateVariation(stmt);
             } finally {
                 stmt.close();
             }
+        } finally {
+            terminateVariation();
         }
     }
 
@@ -168,7 +172,8 @@ public class TVPAllTypesTest extends AbstractTest {
                 pstmt.setStructured(1, tvpName, dt);
                 pstmt.execute();
             }
-            terminateVariation(stmt);
+        } finally {
+            terminateVariation();
         }
     }
 
@@ -210,10 +215,12 @@ public class TVPAllTypesTest extends AbstractTest {
         }
     }
 
-    private void terminateVariation(Statement stmt) throws SQLException {
-        TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
-        TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
-        TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tvpName), stmt);
+    private void terminateVariation() throws SQLException {
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
+            TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
+            TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tvpName), stmt);
+        }
     }
 }
