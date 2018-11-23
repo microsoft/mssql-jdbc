@@ -247,56 +247,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     private int srcColumnCount;
 
     /**
-     * Timer for the bulk copy operation. The other timeout timers in the TDS layer only measure the response of the
-     * first packet from SQL Server.
+     * Timeout for the bulk copy command
      */
-    private final class BulkTimeoutTimer implements Runnable {
-        private final int timeoutSeconds;
-        private int secondsRemaining;
-        private final TDSCommand command;
-        private Thread timerThread;
-        private volatile boolean canceled = false;
-
-        BulkTimeoutTimer(int timeoutSeconds, TDSCommand command) {
-            assert timeoutSeconds > 0;
-            assert null != command;
-
-            this.timeoutSeconds = timeoutSeconds;
-            this.secondsRemaining = timeoutSeconds;
-            this.command = command;
+    private final class BulkTimeoutCommand extends TimeoutCommand<TDSCommand> {
+        public BulkTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
+            super(timeout, command, sqlServerConnection);
         }
 
-        final void start() {
-            timerThread = new Thread(this);
-            timerThread.setDaemon(true);
-            timerThread.start();
-        }
-
-        final void stop() {
-            canceled = true;
-            timerThread.interrupt();
-        }
-
-        final boolean expired() {
-            return (secondsRemaining <= 0);
-        }
-
-        public void run() {
-            try {
-                // Poll every second while time is left on the timer.
-                // Return if/when the timer is canceled.
-                do {
-                    if (canceled)
-                        return;
-
-                    Thread.sleep(1000);
-                } while (--secondsRemaining > 0);
-            } catch (InterruptedException e) {
-                // re-interrupt the current thread, in order to restore the thread's interrupt status.
-                Thread.currentThread().interrupt();
-                return;
-            }
-
+        @Override
+        public void interrupt() {
+            TDSCommand command = getCommand();
             // If the timer wasn't canceled before it ran out of
             // time then interrupt the registered command.
             try {
@@ -310,7 +270,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    private BulkTimeoutTimer timeoutTimer = null;
+    private BulkTimeoutCommand timeoutCommand;
 
     /**
      * The maximum temporal precision we can send when using varchar(precision) in bulkcommand, to send a
@@ -687,15 +647,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             InsertBulk() {
                 super("InsertBulk", 0, 0);
                 int timeoutSeconds = copyOptions.getBulkCopyTimeout();
-                timeoutTimer = (timeoutSeconds > 0) ? (new BulkTimeoutTimer(timeoutSeconds, this)) : null;
+                timeoutCommand = timeoutSeconds > 0 ? new BulkTimeoutCommand(timeoutSeconds, this, null) : null;
             }
 
             final boolean doExecute() throws SQLServerException {
-                if (null != timeoutTimer) {
+                if (null != timeoutCommand) {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(this.toString() + ": Starting bulk timer...");
 
-                    timeoutTimer.start();
+                    TimeoutPoller.getTimeoutPoller().addTimeoutCommand(timeoutCommand);
                 }
 
                 // doInsertBulk inserts the rows in one batch. It returns true if there are more rows in
@@ -712,18 +672,18 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                     // Check whether it is a timeout exception.
                     if (rootCause instanceof SQLException) {
-                        checkForTimeoutException((SQLException) rootCause, timeoutTimer);
+                        checkForTimeoutException((SQLException) rootCause, timeoutCommand);
                     }
 
                     // It is not a timeout exception. Re-throw.
                     throw topLevelException;
                 }
 
-                if (null != timeoutTimer) {
+                if (null != timeoutCommand) {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(this.toString() + ": Stopping bulk timer...");
 
-                    timeoutTimer.stop();
+                    TimeoutPoller.getTimeoutPoller().remove(timeoutCommand);
                 }
 
                 return true;
@@ -1188,9 +1148,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Helper method that throws a timeout exception if the cause of the exception was that the query was cancelled
      */
-    private void checkForTimeoutException(SQLException e, BulkTimeoutTimer timeoutTimer) throws SQLServerException {
+    private void checkForTimeoutException(SQLException e, BulkTimeoutCommand timeoutCommand) throws SQLServerException {
         if ((null != e.getSQLState()) && (e.getSQLState().equals(SQLState.STATEMENT_CANCELED.getSQLStateCode()))
-                && timeoutTimer.expired()) {
+                && timeoutCommand.canTimeout()) {
             // If SQLServerBulkCopy is managing the transaction, a rollback is needed.
             if (copyOptions.isUseInternalTransaction()) {
                 connection.rollback();
