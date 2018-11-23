@@ -1426,9 +1426,10 @@ final class TDSChannel {
                     return false;
                 }
                 
-                // We do not allow * plus a top-level domain.
-                // This if statement counts the number of .s in the nameInCert. If it's 1 or less, then reject it.
-                // This also catches cases where nameInCert is just *
+                /* We do not allow * plus a top-level domain.
+                 * This if statement counts the number of .s in the nameInCert. If it's 1 or less, then reject it.
+                 * This also catches cases where nameInCert is just *
+                 */
                 if ((nameInCert.length() - nameInCert.replace(".", "").length()) <= 1) {
                     return false;
                 }
@@ -1438,9 +1439,10 @@ final class TDSChannel {
                 String certAfterWildcard;
 
                 if (firstPeriodAfterWildcard < 0) {
-                    // if we get something like peter.database.c*, then make certAfterWildcard empty so that we accept
-                    // anything after *.
-                    // both startsWith("") and endswith("") will always resolve to "true".
+                    /* if we get something like peter.database.c*, then make certAfterWildcard empty so that we accept
+                    * anything after *.
+                    * both startsWith("") and endswith("") will always resolve to "true".
+                    */
                     certAfterWildcard = "";
                 } else {
                     certAfterWildcard = nameInCert.substring(firstPeriodAfterWildcard);
