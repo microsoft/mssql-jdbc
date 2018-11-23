@@ -1,0 +1,87 @@
+package microsoft.sql;
+
+import java.io.File;
+import java.io.FileOutputStream;
+
+/* Copyright Microsoft  All rights reserved. */
+/*
+ * Dummy class to create serialized values that should not be accepted by the standard 
+ * class.
+ */
+
+
+/**
+ *  			!DUMMY CLASS!
+ *  
+ *  
+ */
+public final class DateTimeOffset extends Object implements java.io.Serializable
+{
+    private static final long serialVersionUID = 541973748553014280L;
+
+    public final long utcMillis;
+    public final int nanos;
+    public final int minutesOffset;
+
+    public DateTimeOffset(long utcMillis, int nanos, int minutesOffset)
+    {
+    	this.utcMillis = utcMillis;
+    	this.nanos = nanos;
+    	this.minutesOffset = minutesOffset;
+    }
+        public static class SerializationProxy implements java.io.Serializable
+    {
+        private final long utcMillis;
+        private final int nanos;
+        private final int minutesOffset;
+
+        SerializationProxy(DateTimeOffset dateTimeOffset)
+        {
+            this.utcMillis = dateTimeOffset.utcMillis;
+            this.nanos = dateTimeOffset.nanos;
+            this.minutesOffset = dateTimeOffset.minutesOffset;
+        }
+        
+        private static final long serialVersionUID = 664661379547314226L;
+    
+    }
+
+    private Object writeReplace()
+    {
+        return new SerializationProxy(this);
+    }
+    
+    public static void createBadNanos()throws Exception
+	{
+		File simple = new File("d:\\temp\\wrongnanos.dat");
+		// -1 should not be accepted
+		DateTimeOffset dtm = new DateTimeOffset(1, -1, 13*60);
+		createBadSerializedForm(simple, dtm);
+	}
+	public static void createBadOffset()throws Exception
+	{
+		File simple = new File("d:\\temp\\wrongoffset.dat");
+		// 15 hours offset not valid
+		DateTimeOffset dtm = new DateTimeOffset(1, 300, 15*60);
+		createBadSerializedForm(simple, dtm);
+	}
+	static void createBadSerializedForm(File simple, DateTimeOffset dtm) throws Exception
+	{
+		FileOutputStream so = new java.io.FileOutputStream(simple);
+	    java.io.ObjectOutput s = new java.io.ObjectOutputStream(so);
+	   	s.writeObject(dtm);
+	    s.flush();
+	    s.close();
+	}
+
+    private void readObject(java.io.ObjectInputStream stream) throws java.io.InvalidObjectException
+    {
+        // For added security/robustness, the only way to rehydrate a serialized DateTimeOffset
+        // is to use a SerializationProxy.  Direct use of readObject() is not supported.
+        //
+        // Note that the reason provided for the InvalidObjectException is deliberately less
+        // than specific.  Anyone trying to "hack" this class doesn't need to know why we
+        // didn't let them...
+        throw new java.io.InvalidObjectException("");
+    }
+}

@@ -625,8 +625,6 @@ public class TestUtils {
      * @return boolean
      */
     public static boolean serverSupportsDataClassification(Statement stmt) {
-
-
         try {
             stmt.execute("SELECT * FROM SYS.SENSITIVITY_CLASSIFICATIONS");
         } catch (SQLException e) {
