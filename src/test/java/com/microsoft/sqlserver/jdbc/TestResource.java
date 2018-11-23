@@ -153,7 +153,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_expectedValue", "Expected value: "}, {"R_expectedValueAtIndex", "Expected value at index: "},
             {"R_switchFailed", "Switch case is not matched with data"},
             {"R_resultsetNotInstance", "Result set is not instance of SQLServerResultSet"},
-            {"R_resultsetNotInstance", "Result set is not instance of SQLServerResultSet"},
             {"R_noJRESupport", "No JRE support for {0}"},
     };
 }

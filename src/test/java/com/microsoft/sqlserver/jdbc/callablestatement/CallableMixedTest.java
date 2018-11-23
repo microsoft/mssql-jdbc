@@ -25,19 +25,14 @@ public class CallableMixedTest {
 
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
-                try {
-                    stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
-                    stmt.executeUpdate(" DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
-                } catch (Exception e) {}
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
 
                 String createSQL = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + "(c1_int int primary key, col2 int)";
                 stmt.executeUpdate(createSQL);
 
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 1)");
-            }
 
-            try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
                         + " (@p2_int int, @p2_int_out int OUTPUT, @p4_smallint smallint,  @p4_smallint_out smallint OUTPUT) AS begin transaction SELECT * FROM "
                         + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -61,25 +56,22 @@ public class CallableMixedTest {
 
                 if (rs.getInt(1) != 0) {
                     fail("Received data not equal to setdata");
-
                 }
 
                 if (cstmt.getInt((int) 5) != -5372) {
                     fail("Received data not equal to setdata");
-
                 }
+
                 // do nothing and reexecute
                 rs = cstmt.executeQuery();
                 // get the param without getting the resultset
                 rs = cstmt.executeQuery();
                 if (cstmt.getInt((int) 1) != -2147483648) {
                     fail("Received data not equal to setdata");
-
                 }
 
                 if (cstmt.getInt((int) 1) != -2147483648) {
                     fail("Received data not equal to setdata");
-
                 }
 
                 rs = cstmt.executeQuery();
@@ -87,17 +79,14 @@ public class CallableMixedTest {
 
                 if (rs.getInt(1) != 0) {
                     fail("Received data not equal to setdata");
-
                 }
 
                 if (cstmt.getInt((int) 1) != -2147483648) {
                     fail("Received data not equal to setdata");
-
                 }
 
                 if (cstmt.getInt((int) 5) != -5372) {
                     fail("Received data not equal to setdata");
-
                 }
 
                 rs = cstmt.executeQuery();
@@ -109,8 +98,6 @@ public class CallableMixedTest {
             } catch (SQLException e) {
                 fail(e.toString());
             }
-
         }
     }
-
 }
