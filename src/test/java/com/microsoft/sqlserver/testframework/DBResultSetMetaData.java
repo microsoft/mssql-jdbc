@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
@@ -13,6 +10,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
+
 
 /**
  * 
@@ -28,9 +26,7 @@ public class DBResultSetMetaData extends AbstractParentWrapper {
      * @param internal
      * @param name
      */
-    DBResultSetMetaData(AbstractParentWrapper parent,
-            Object internal,
-            String name) {
+    DBResultSetMetaData(AbstractParentWrapper parent, Object internal, String name) {
         super(parent, internal, name);
         // TODO Auto-generated constructor stub
     }

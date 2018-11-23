@@ -1,17 +1,15 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.dns;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 /**
- * Describe an DNS SRV Record.
+ * Represents a DNS SRV Record.
  */
 public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
 
@@ -20,13 +18,13 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
     private final int priority;
 
     /**
-     * Parse a DNS SRC Record from a DNS String record.
+     * Parses a DNS SRC Record from a DNS String record.
      *
      * @param record
-     *            the record to parse
+     *        the record to parse
      * @return a not null DNS Record
      * @throws IllegalArgumentException
-     *             if record is not correct and cannot be parsed
+     *         if record is not correct and cannot be parsed
      */
     public static DNSRecordSRV parseFromDNSRecord(String record) throws IllegalArgumentException {
         Matcher m = PATTERN.matcher(record);
@@ -43,11 +41,9 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
                 serverName = serverName.substring(0, serverName.length() - 1);
             }
             return new DNSRecordSRV(priority, weight, port, serverName);
-        }
-        catch (IllegalArgumentException err) {
+        } catch (IllegalArgumentException err) {
             throw err;
-        }
-        catch (Exception err) {
+        } catch (Exception err) {
             throw new IllegalArgumentException("Failed to parse DNS SRV record '" + record + "'", err);
         }
     }
@@ -58,23 +54,20 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
     }
 
     /**
-     * Constructor.
+     * Constructs a DNSRecordSRV.
      *
      * @param priority
-     *            is lowest
+     *        is lowest
      * @param weight
-     *            1 at minimum
+     *        1 at minimum
      * @param port
-     *            the port of service
+     *        the port of service
      * @param serverName
-     *            the host
+     *        the host
      * @throws IllegalArgumentException
-     *             if priority {@literal <} 0 or weight {@literal <=} 1
+     *         if priority {@literal <} 0 or weight {@literal <=} 1
      */
-    public DNSRecordSRV(int priority,
-            int weight,
-            int port,
-            String serverName) throws IllegalArgumentException {
+    public DNSRecordSRV(int priority, int weight, int port, String serverName) throws IllegalArgumentException {
         if (priority < 0) {
             throw new IllegalArgumentException("priority must be >= 0, but was: " + priority);
         }
@@ -137,7 +130,8 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
     }
 
     /**
-     * Get the priority of DNS SRV record.
+     * Returns the priority of DNS SRV record.
+     * 
      * @return a positive priority, where lowest values have to be considered first.
      */
     public int getPriority() {
@@ -145,7 +139,8 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
     }
 
     /**
-     * Get the weight of DNS record from 0 to 65535.
+     * Returns the weight of DNS record from 0 to 65535.
+     * 
      * @return The weight, higher value means higher probability of selecting the given record for a given priority.
      */
     public int getWeight() {
@@ -153,7 +148,8 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
     }
 
     /**
-     * IP port of record.
+     * Returns the IP port of record.
+     * 
      * @return a value from 1 to 65535.
      */
     public int getPort() {
@@ -161,7 +157,8 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
     }
 
     /**
-     * The DNS server name.
+     * Returns the DNS server name.
+     * 
      * @return a not null server name.
      */
     public String getServerName() {

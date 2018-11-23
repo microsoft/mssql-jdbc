@@ -1,11 +1,11 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.Driver;
@@ -25,14 +25,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
-import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.util.Util;
+import com.microsoft.sqlserver.testframework.AbstractTest;;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
-
-import com.microsoft.sqlserver.jdbc.TestResource;;
 
 /**
  * Tests JDBC 4.3 APIs
@@ -45,152 +39,144 @@ public class JDBC43Test extends AbstractTest {
 
     /**
      * Tests that we are throwing the unsupported exception for connectionBuilder()
-     * @throws SQLException 
-     * @throws TestAbortedException 
+     * 
+     * @throws SQLException
+     * @throws TestAbortedException
      * 
      * @since 1.9
      */
     @Test
     public void connectionBuilderTest() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC43(connection));
+        assumeTrue(TestUtils.supportJDBC43(connection));
         SQLServerDataSource ds = new SQLServerDataSource();
         try {
             superShardingKey = ds.createShardingKeyBuilder().subkey("EASTERN_REGION", JDBCType.VARCHAR).build();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
 
         try {
             shardingKey = ds.createShardingKeyBuilder().subkey("PITTSBURGH_BRANCH", JDBCType.VARCHAR).build();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
 
         try {
-            Connection con = ds.createConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey).superShardingKey(superShardingKey)
-                    .build();
-        }
-        catch (SQLException e) {
+            Connection con = ds.createConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
+                    .superShardingKey(superShardingKey).build();
+        } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
     }
 
     /**
      * Tests that we are throwing the unsupported exception for connectionBuilder()
-     * @throws SQLException 
-     * @throws TestAbortedException 
+     * 
+     * @throws SQLException
+     * @throws TestAbortedException
      * 
      * @since 1.9
      */
     @Test
     public void xaConnectionBuilderTest() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC43(connection));
+        assumeTrue(TestUtils.supportJDBC43(connection));
         SQLServerXADataSource ds = new SQLServerXADataSource();
         try {
             superShardingKey = ds.createShardingKeyBuilder().subkey("EASTERN_REGION", JDBCType.VARCHAR).build();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
 
         try {
             shardingKey = ds.createShardingKeyBuilder().subkey("PITTSBURGH_BRANCH", JDBCType.VARCHAR).build();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
 
         try {
             XAConnection con = ds.createXAConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
                     .superShardingKey(superShardingKey).build();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
     }
 
     /**
      * Tests that we are throwing the unsupported exception for createPooledConnectionBuilder()
-     * @throws SQLException 
-     * @throws TestAbortedException 
+     * 
+     * @throws SQLException
+     * @throws TestAbortedException
      * @since 1.9
      */
     @Test
     public void connectionPoolDataSourceTest() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC43(connection));
+        assumeTrue(TestUtils.supportJDBC43(connection));
         ConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
         try {
             superShardingKey = ds.createShardingKeyBuilder().subkey("EASTERN_REGION", JDBCType.VARCHAR).build();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
 
         try {
             shardingKey = ds.createShardingKeyBuilder().subkey("PITTSBURGH_BRANCH", JDBCType.VARCHAR).build();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
         try {
-            PooledConnection con = ds.createPooledConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
-                    .superShardingKey(superShardingKey).build();
-        }
-        catch (SQLException e) {
+            PooledConnection con = ds.createPooledConnectionBuilder().user("rafa").password("tennis")
+                    .shardingKey(shardingKey).superShardingKey(superShardingKey).build();
+        } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
     }
-    
+
     /**
      * Tests that we are throwing the unsupported exception for setShardingKeyIfValid()
-     * @throws SQLException 
-     * @throws TestAbortedException 
+     * 
+     * @throws SQLException
+     * @throws TestAbortedException
      * @since 1.9
      */
     @Test
     public void setShardingKeyIfValidTest() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC43(connection));
+        assumeTrue(TestUtils.supportJDBC43(connection));
         SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString);
         try {
             connection43.setShardingKeyIfValid(shardingKey, 10);
-        }
-        catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
+        } catch (SQLException e) {
+            assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
         }
         try {
             connection43.setShardingKeyIfValid(shardingKey, superShardingKey, 10);
+        } catch (SQLException e) {
+            assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
         }
-        catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
-        }
-       
+
     }
-    
+
     /**
      * Tests that we are throwing the unsupported exception for setShardingKey()
-     * @throws SQLException 
-     * @throws TestAbortedException 
+     * 
+     * @throws SQLException
+     * @throws TestAbortedException
      * @since 1.9
      */
     @Test
     public void setShardingKeyTest() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC43(connection));
+        assumeTrue(TestUtils.supportJDBC43(connection));
         SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString);
         try {
             connection43.setShardingKey(shardingKey);
-        }
-        catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
+        } catch (SQLException e) {
+            assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
         }
         try {
             connection43.setShardingKey(shardingKey, superShardingKey);
+        } catch (SQLException e) {
+            assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
         }
-        catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
-        }
-       
+
     }
 
     /**

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
@@ -32,40 +29,40 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarChar;
 
+
 /**
  * enum that returns object of desired datatype based for JDBCType type
  */
 public enum SqlTypeMapping {
-    
-    BIGINT          (new SqlBigInt()),
-    INT             (new SqlInt()),
-    SMALLINT        (new SqlSmallInt()),
-    TINYINT         (new SqlTinyInt()),
-    BIT             (new SqlBit()),
-    DECIMAL         (new SqlDecimal()),
-    NUMERIC         (new SqlNumeric()),
-    MONEY           (new SqlMoney()),
-    SMALLMONEY      (new SqlSmallMoney()),
+
+    BIGINT(new SqlBigInt()),
+    INT(new SqlInt()),
+    SMALLINT(new SqlSmallInt()),
+    TINYINT(new SqlTinyInt()),
+    BIT(new SqlBit()),
+    DECIMAL(new SqlDecimal()),
+    NUMERIC(new SqlNumeric()),
+    MONEY(new SqlMoney()),
+    SMALLMONEY(new SqlSmallMoney()),
     // Appx Numeric
-    FLOAT           (new SqlFloat()),
-    REAL            (new SqlReal()),
+    FLOAT(new SqlFloat()),
+    REAL(new SqlReal()),
     // Character
-    CHAR            (new SqlChar()),
-    VARCHAR         (new SqlVarChar()),
+    CHAR(new SqlChar()),
+    VARCHAR(new SqlVarChar()),
     // Unicode
-    NCHAR           (new SqlNChar()),
-    NVARCHAR        (new SqlNVarChar()),
+    NCHAR(new SqlNChar()),
+    NVARCHAR(new SqlNVarChar()),
     // Temporal
-    DATETIME        (new SqlDateTime()),
-    DATE            (new SqlDate()),
-    TIME            (new SqlTime()),
-    SMALLDATETIME   (new SqlSmallDateTime()),
-    DATETIME2       (new SqlDateTime2()),
-    DATETIMEOFFSET  (new SqlDateTimeOffset()),
-    //Binary
-    BINARY          (new SqlBinary()),
-    VARBINARY       (new SqlVarBinary()),
-    ;
+    DATETIME(new SqlDateTime()),
+    DATE(new SqlDate()),
+    TIME(new SqlTime()),
+    SMALLDATETIME(new SqlSmallDateTime()),
+    DATETIME2(new SqlDateTime2()),
+    DATETIMEOFFSET(new SqlDateTimeOffset()),
+    // Binary
+    BINARY(new SqlBinary()),
+    VARBINARY(new SqlVarBinary()),;
 
     public SqlType sqlType;
 

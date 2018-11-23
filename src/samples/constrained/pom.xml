@@ -3,48 +3,40 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>com.microsoft.sqlserver.jdbc</groupId>
     <artifactId>constrained</artifactId>
     <version>0.0.1</version>
-
     <packaging>jar</packaging>
-
     <name>${project.artifactId}</name>
     <url>https://github.com/Microsoft/mssql-jdbc/tree/master/src/samples</url>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
     <dependencies>
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
-            <version>6.4.0.jre9</version>
+            <version>7.0.0.jre10</version>
         </dependency>
     </dependencies>
-
     <profiles>
         <profile>
-            <id>ConstrainedSample</id>
+            <id>ConstrainedDelegation</id>
             <build>
-                <finalName>ConstrainedSample</finalName>
-
+                <finalName>ConstrainedDelegation</finalName>
                 <plugins>
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
                         <version>1.6.0</version>
                         <configuration>
-                            <mainClass>constrained.src.main.java.ConstrainedSample</mainClass>
+                            <mainClass>constrained.src.main.java.ConstrainedDelegation</mainClass>
                         </configuration>
                     </plugin>
                 </plugins>
             </build>
         </profile>
     </profiles>
-
     <build>
         <plugins>
             <plugin>
@@ -52,11 +44,10 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>10</source>
+                    <target>10</target>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -64,5 +55,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

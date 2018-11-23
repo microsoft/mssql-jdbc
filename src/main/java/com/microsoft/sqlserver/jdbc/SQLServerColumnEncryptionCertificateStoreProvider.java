@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -28,8 +25,8 @@ import java.util.Locale;
 
 
 /**
- * The implementation of the key store provider for the Windows Certificate Store. This class enables using keys stored in the Windows Certificate
- * Store as column master keys.
+ * Provides the implementation of the key store provider for the Windows Certificate Store. This class enables using
+ * keys stored in the Windows Certificate Store as column master keys.
  *
  */
 public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQLServerColumnEncryptionKeyStoreProvider {
@@ -47,13 +44,15 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
     static {
         if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
             isWindows = true;
-        }
-        else {
+        } else {
             isWindows = false;
         }
     }
     private Path keyStoreDirectoryPath = null;
 
+    /**
+     * Constructs a SQLServerColumnEncryptionCertificateStoreProvider.
+     */
     public SQLServerColumnEncryptionCertificateStoreProvider() {
         windowsCertificateStoreLogger.entering(SQLServerColumnEncryptionCertificateStoreProvider.class.getName(),
                 "SQLServerColumnEncryptionCertificateStoreProvider");
@@ -67,19 +66,18 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
         return this.name;
     }
 
-    public byte[] encryptColumnEncryptionKey(String masterKeyPath,
-            String encryptionAlgorithm,
+    public byte[] encryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] plainTextColumnEncryptionKey) throws SQLServerException {
-        throw new SQLServerException(null, SQLServerException.getErrString("R_InvalidWindowsCertificateStoreEncryption"), null, 0, false);
+        throw new SQLServerException(null,
+                SQLServerException.getErrString("R_InvalidWindowsCertificateStoreEncryption"), null, 0, false);
     }
 
-    private byte[] decryptColumnEncryptionKeyWindows(String masterKeyPath,
-            String encryptionAlgorithm,
+    private byte[] decryptColumnEncryptionKeyWindows(String masterKeyPath, String encryptionAlgorithm,
             byte[] encryptedColumnEncryptionKey) throws SQLServerException {
         try {
-            return AuthenticationJNI.DecryptColumnEncryptionKey(masterKeyPath, encryptionAlgorithm, encryptedColumnEncryptionKey);
-        }
-        catch (DLLException e) {
+            return AuthenticationJNI.DecryptColumnEncryptionKey(masterKeyPath, encryptionAlgorithm,
+                    encryptedColumnEncryptionKey);
+        } catch (DLLException e) {
             DLLException.buildException(e.GetErrCode(), e.GetParam1(), e.GetParam2(), e.GetParam3());
             return null;
         }
@@ -102,11 +100,9 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
         if (certParts.length > 2) {
             if (certParts[0].equalsIgnoreCase(localMachineDirectory)) {
                 storeLocation = localMachineDirectory;
-            }
-            else if (certParts[0].equalsIgnoreCase(currentUserDirectory)) {
+            } else if (certParts[0].equalsIgnoreCase(currentUserDirectory)) {
                 storeLocation = currentUserDirectory;
-            }
-            else {
+            } else {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AECertLocBad"));
                 Object[] msgArgs = {certParts[0], masterKeyPath};
                 throw new SQLServerException(form.format(msgArgs), null);
@@ -143,8 +139,7 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
         return Base64.getEncoder().encodeToString(digest);
     }
 
-    private CertificateDetails getCertificateByThumbprint(String storeLocation,
-            String thumbprint,
+    private CertificateDetails getCertificateByThumbprint(String storeLocation, String thumbprint,
             String masterKeyPath) throws SQLServerException {
         FileInputStream fis;
 
@@ -159,8 +154,7 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
         KeyStore keyStore = null;
         try {
             keyStore = KeyStore.getInstance("PKCS12");
-        }
-        catch (KeyStoreException e) {
+        } catch (KeyStoreException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CertificateError"));
             Object[] msgArgs = {masterKeyPath, name};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
@@ -183,8 +177,7 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
             try {
                 fis = new FileInputStream(f);
                 keyStore.load(fis, password);
-            }
-            catch (IOException | CertificateException | NoSuchAlgorithmException e) {
+            } catch (IOException | CertificateException | NoSuchAlgorithmException e) {
                 // Cannot parse the current file, continue to the next.
                 continue;
             }
@@ -203,21 +196,21 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
                         try {
                             keyPrivate = keyStore.getKey(alias, "".toCharArray());
                             if (null == keyPrivate) {
-                                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnrecoverableKeyAE"));
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_UnrecoverableKeyAE"));
                                 Object[] msgArgs = {masterKeyPath};
                                 throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                             }
-                        }
-                        catch (UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException e) {
-                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnrecoverableKeyAE"));
+                        } catch (UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException e) {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_UnrecoverableKeyAE"));
                             Object[] msgArgs = {masterKeyPath};
                             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                         }
                         return new CertificateDetails(publicCertificate, keyPrivate);
                     }
-                }// end of for for alias
-            }
-            catch (CertificateException | NoSuchAlgorithmException | KeyStoreException e) {
+                } // end of for for alias
+            } catch (CertificateException | NoSuchAlgorithmException | KeyStoreException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CertificateError"));
                 Object[] msgArgs = {masterKeyPath, name};
                 throw new SQLServerException(form.format(msgArgs), e);
@@ -227,20 +220,19 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
         throw new SQLServerException(SQLServerException.getErrString("R_KeyStoreNotFound"), null);
     }
 
-    public byte[] decryptColumnEncryptionKey(String masterKeyPath,
-            String encryptionAlgorithm,
+    public byte[] decryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] encryptedColumnEncryptionKey) throws SQLServerException {
-        windowsCertificateStoreLogger.entering(SQLServerColumnEncryptionCertificateStoreProvider.class.getName(), "decryptColumnEncryptionKey",
-                "Decrypting Column Encryption Key.");
+        windowsCertificateStoreLogger.entering(SQLServerColumnEncryptionCertificateStoreProvider.class.getName(),
+                "decryptColumnEncryptionKey", "Decrypting Column Encryption Key.");
         byte[] plainCek;
         if (isWindows) {
-            plainCek = decryptColumnEncryptionKeyWindows(masterKeyPath, encryptionAlgorithm, encryptedColumnEncryptionKey);
-        }
-        else {
+            plainCek = decryptColumnEncryptionKeyWindows(masterKeyPath, encryptionAlgorithm,
+                    encryptedColumnEncryptionKey);
+        } else {
             throw new SQLServerException(SQLServerException.getErrString("R_notSupported"), null);
         }
-        windowsCertificateStoreLogger.exiting(SQLServerColumnEncryptionCertificateStoreProvider.class.getName(), "decryptColumnEncryptionKey",
-                "Finished decrypting Column Encryption Key.");
+        windowsCertificateStoreLogger.exiting(SQLServerColumnEncryptionCertificateStoreProvider.class.getName(),
+                "decryptColumnEncryptionKey", "Finished decrypting Column Encryption Key.");
         return plainCek;
     }
 }

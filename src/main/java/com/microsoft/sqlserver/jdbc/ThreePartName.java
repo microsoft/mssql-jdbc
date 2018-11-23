@@ -1,13 +1,19 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 class ThreePartName {
     /*
-     * Three part names parsing For metdata calls we parse the procedure name into parts so we can use it in sp_sproc_columns sp_sproc_columns
-     * [[@procedure_name =] 'name'] [,[@procedure_owner =] 'owner'] [,[@procedure_qualifier =] 'qualifier']
-     *
+     * Three part names parsing For metdata calls we parse the procedure name into parts so we can use it in
+     * sp_sproc_columns sp_sproc_columns [[@procedure_name =] 'name'] [,[@procedure_owner =] 'owner']
+     * [,[@procedure_qualifier =] 'qualifier']
      */
     private static final Pattern THREE_PART_NAME = Pattern.compile(JDBCSyntaxTranslator.getSQLIdentifierWithGroups());
 
@@ -50,19 +56,16 @@ class ThreePartName {
                         if (null != matcher.group(2)) {
                             ownerPart = matcher.group(1);
                             procedurePart = matcher.group(2);
-                        }
-                        else {
+                        } else {
                             ownerPart = databasePart;
                             databasePart = null;
                             procedurePart = matcher.group(1);
                         }
                     }
-                }
-                else {
+                } else {
                     procedurePart = matcher.group(1);
                 }
-            }
-            else {
+            } else {
                 procedurePart = theProcName;
             }
         }

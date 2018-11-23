@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -23,10 +20,12 @@ import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+
 /**
  * 
- * This class implements authenticated encryption with associated data (AEAD_AES_256_CBC_HMAC_SHA256) algorithm specified at
- * <a href="http://tools.ietf.org/html/draft-mcgrew-aead-aes-cbc-hmac-sha2-05"> http://tools.ietf.org/html/draft-mcgrew-aead-aes-cbc-hmac-sha2-05</a>
+ * This class implements authenticated encryption with associated data (AEAD_AES_256_CBC_HMAC_SHA256) algorithm
+ * specified at <a href="http://tools.ietf.org/html/draft-mcgrew-aead-aes-cbc-hmac-sha2-05">
+ * http://tools.ietf.org/html/draft-mcgrew-aead-aes-cbc-hmac-sha2-05</a>
  *
  */
 class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorithm {
@@ -49,28 +48,31 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
     private byte[] versionSize = new byte[] {1};
 
     /*
-     * Minimum Length of cipherText without authentication tag. This value is 1 (version byte) + 16 (IV) + 16 (minimum of 1 block of cipher Text)
+     * Minimum Length of cipherText without authentication tag. This value is 1 (version byte) + 16 (IV) + 16 (minimum
+     * of 1 block of cipher Text)
      */
     private int minimumCipherTextLengthInBytesNoAuthenticationTag = 1 + blockSizeInBytes + blockSizeInBytes;
 
     /*
-     * Minimum Length of cipherText. This value is 1 (version byte) + 32 (authentication tag) + 16 (IV) + 16 (minimum of 1 block of cipher Text)
+     * Minimum Length of cipherText. This value is 1 (version byte) + 32 (authentication tag) + 16 (IV) + 16 (minimum of
+     * 1 block of cipher Text)
      */
-    private int minimumCipherTextLengthInBytesWithAuthenticationTag = minimumCipherTextLengthInBytesNoAuthenticationTag + keySizeInBytes;
+    private int minimumCipherTextLengthInBytesWithAuthenticationTag = minimumCipherTextLengthInBytesNoAuthenticationTag
+            + keySizeInBytes;
 
     /**
-     * Initializes a new instance of SQLServerAeadAes256CbcHmac256Algorithm with a given key, encryption type and algorithm version
+     * Initializes a new instance of SQLServerAeadAes256CbcHmac256Algorithm with a given key, encryption type and
+     * algorithm version
      * 
      * @param columnEncryptionkey
-     *            Root encryption key from which three other keys will be derived
+     *        Root encryption key from which three other keys will be derived
      * @param encryptionType
-     *            Encryption Type, accepted values are Deterministic and Randomized.
+     *        Encryption Type, accepted values are Deterministic and Randomized.
      * @param algorithmVersion
-     *            Algorithm version
+     *        Algorithm version
      */
     SQLServerAeadAes256CbcHmac256Algorithm(SQLServerAeadAes256CbcHmac256EncryptionKey columnEncryptionkey,
-            SQLServerEncryptionType encryptionType,
-            byte algorithmVersion) {
+            SQLServerEncryptionType encryptionType, byte algorithmVersion) {
         this.columnEncryptionkey = columnEncryptionkey;
 
         if (encryptionType == SQLServerEncryptionType.Deterministic) {
@@ -90,16 +92,14 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
      * Performs encryption of plain text
      * 
      * @param plainText
-     *            text to be encrypted
+     *        text to be encrypted
      * @param hasAuthenticationTag
-     *            specify if encryption needs authentication
+     *        specify if encryption needs authentication
      * @return cipher text
      * @throws SQLServerException
      */
-    protected byte[] encryptData(byte[] plainText,
-            boolean hasAuthenticationTag) throws SQLServerException {
-        aeLogger.entering(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), Thread.currentThread().getStackTrace()[1].getMethodName(),
-                "Encrypting data.");
+    protected byte[] encryptData(byte[] plainText, boolean hasAuthenticationTag) throws SQLServerException {
+        aeLogger.entering(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "encryptData", "Encrypting data.");
         // we will generate this initialization vector based whether
         // this encryption type is deterministic
         assert (plainText != null);
@@ -110,15 +110,14 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
         if (isDeterministic) {
             // this method makes sure this is 16 bytes key
             try {
-                iv = SQLServerSecurityUtility.getHMACWithSHA256(plainText, columnEncryptionkey.getIVKey(), blockSizeInBytes);
-            }
-            catch (InvalidKeyException | NoSuchAlgorithmException e) {
+                iv = SQLServerSecurityUtility.getHMACWithSHA256(plainText, columnEncryptionkey.getIVKey(),
+                        blockSizeInBytes);
+            } catch (InvalidKeyException | NoSuchAlgorithmException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_EncryptionFailed"));
                 Object[] msgArgs = {e.getMessage()};
                 throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
             }
-        }
-        else {
+        } else {
             SecureRandom random = new SecureRandom();
             random.nextBytes(iv);
         }
@@ -173,17 +172,15 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
                 System.arraycopy(hash, 0, outBuffer, hmacStartIndex, authenticationTagLen);
 
             }
-        }
-        catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | NoSuchPaddingException
-                | IllegalBlockSizeException | BadPaddingException | ShortBufferException e) {
+        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException
+                | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException | ShortBufferException e) {
 
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_EncryptionFailed"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
-        aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), Thread.currentThread().getStackTrace()[1].getMethodName(),
-                "Data encrypted.");
+        aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "encryptData", "Data encrypted.");
         return outBuffer;
 
     }
@@ -191,27 +188,25 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
     @Override
     byte[] decryptData(byte[] cipherText) throws SQLServerException {
         return decryptData(cipherText, true);
-
     }
 
     /**
      * Decrypt the cipher text and return plain text
      * 
      * @param cipherText
-     *            data to be decrypted
+     *        data to be decrypted
      * @param hasAuthenticationTag
-     *            tells whether cipher text contain authentication tag
+     *        tells whether cipher text contain authentication tag
      * @return plain text
      * @throws SQLServerException
      */
-    private byte[] decryptData(byte[] cipherText,
-            boolean hasAuthenticationTag) throws SQLServerException {
+    private byte[] decryptData(byte[] cipherText, boolean hasAuthenticationTag) throws SQLServerException {
         assert (cipherText != null);
 
         byte[] iv = new byte[blockSizeInBytes];
 
         int minimumCipherTextLength = hasAuthenticationTag ? minimumCipherTextLengthInBytesWithAuthenticationTag
-                : minimumCipherTextLengthInBytesNoAuthenticationTag;
+                                                           : minimumCipherTextLengthInBytesNoAuthenticationTag;
 
         // Here we check if length of cipher text is more than minimum value,
         // if not exception is thrown
@@ -227,7 +222,8 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
         if (cipherText[startIndex] != algorithmVersion) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidAlgorithmVersion"));
             // converting byte to Hexa Decimal
-            Object[] msgArgs = {String.format("%02X ", cipherText[startIndex]), String.format("%02X ", algorithmVersion)};
+            Object[] msgArgs = {String.format("%02X ", cipherText[startIndex]),
+                    String.format("%02X ", algorithmVersion)};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 
         }
@@ -255,16 +251,17 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
             byte[] authenticationTag;
             try {
                 authenticationTag = prepareAuthenticationTag(iv, cipherText, cipherTextOffset, cipherTextCount);
-            }
-            catch (InvalidKeyException | NoSuchAlgorithmException e) {
+            } catch (InvalidKeyException | NoSuchAlgorithmException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DecryptionFailed"));
                 Object[] msgArgs = {e.getMessage()};
                 throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 
             }
-            if (!(SQLServerSecurityUtility.compareBytes(authenticationTag, cipherText, authenticationTagOffset, cipherTextCount))) {
+            if (!(SQLServerSecurityUtility.compareBytes(authenticationTag, cipherText, authenticationTagOffset,
+                    cipherTextCount))) {
 
-                throw new SQLServerException(this, SQLServerException.getErrString("R_InvalidAuthenticationTag"), null, 0, false);
+                throw new SQLServerException(this, SQLServerException.getErrString("R_InvalidAuthenticationTag"), null,
+                        0, false);
 
             }
 
@@ -278,22 +275,18 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
      * Decrypt data with specified IV
      * 
      * @param iv
-     *            initialization vector
+     *        initialization vector
      * @param cipherText
-     *            text to be decrypted
+     *        text to be decrypted
      * @param offset
-     *            of cipher text
+     *        of cipher text
      * @param count
-     *            length of cipher text
+     *        length of cipher text
      * @return plain text
      * @throws SQLServerException
      */
-    private byte[] decryptData(byte[] iv,
-            byte[] cipherText,
-            int offset,
-            int count) throws SQLServerException {
-        aeLogger.entering(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), Thread.currentThread().getStackTrace()[1].getMethodName(),
-                "Decrypting data.");
+    private byte[] decryptData(byte[] iv, byte[] cipherText, int offset, int count) throws SQLServerException {
+        aeLogger.entering(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "decryptData", "Decrypting data.");
         assert (cipherText != null);
         assert (iv != null);
         byte[] plainText = null;
@@ -302,21 +295,18 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
         IvParameterSpec ivector = new IvParameterSpec(iv);
         Cipher decryptCipher;
         try {
-            // AES encryption CBC mode and PKCS5 padding
             decryptCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             decryptCipher.init(Cipher.DECRYPT_MODE, skeySpec, ivector);
             plainText = decryptCipher.doFinal(cipherText, offset, count);
-        }
-        catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | NoSuchPaddingException
-                | IllegalBlockSizeException | BadPaddingException e) {
+        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException
+                | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
 
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DecryptionFailed"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
-        aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), Thread.currentThread().getStackTrace()[1].getMethodName(),
-                "Data decrypted.");
+        aeLogger.exiting(SQLServerAeadAes256CbcHmac256Algorithm.class.getName(), "decryptData", "Data decrypted.");
         return plainText;
 
     }
@@ -325,18 +315,16 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
      * Prepare the authentication tag
      * 
      * @param iv
-     *            initialization vector
+     *        initialization vector
      * @param cipherText
      * @param offset
      * @param length
-     *            length of cipher text
+     *        length of cipher text
      * @return authentication tag
      * @throws NoSuchAlgorithmException
      * @throws InvalidKeyException
      */
-    private byte[] prepareAuthenticationTag(byte[] iv,
-            byte[] cipherText,
-            int offset,
+    private byte[] prepareAuthenticationTag(byte[] iv, byte[] cipherText, int offset,
             int length) throws NoSuchAlgorithmException, InvalidKeyException {
         assert (cipherText != null);
         byte[] computedHash;

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -11,8 +8,9 @@ package com.microsoft.sqlserver.jdbc;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.text.MessageFormat;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.Base64;
+import java.util.concurrent.ConcurrentHashMap;
+
 
 /**
  * Factory for SQLServerAeadAes256CbcHmac256Algorithm
@@ -24,11 +22,11 @@ class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmF
 
     @Override
     SQLServerEncryptionAlgorithm create(SQLServerSymmetricKey columnEncryptionKey,
-            SQLServerEncryptionType encryptionType,
-            String encryptionAlgorithm) throws SQLServerException {
+            SQLServerEncryptionType encryptionType, String encryptionAlgorithm) throws SQLServerException {
 
         assert (columnEncryptionKey != null);
-        if (encryptionType != SQLServerEncryptionType.Deterministic && encryptionType != SQLServerEncryptionType.Randomized) {
+        if (encryptionType != SQLServerEncryptionType.Deterministic
+                && encryptionType != SQLServerEncryptionType.Randomized) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidEncryptionType"));
             Object[] msgArgs = {encryptionType, encryptionAlgorithm,
                     "'" + SQLServerEncryptionType.Deterministic + "," + SQLServerEncryptionType.Randomized + "'"};
@@ -37,7 +35,8 @@ class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmF
         }
 
         StringBuilder factoryKeyBuilder = new StringBuilder();
-        factoryKeyBuilder.append(Base64.getEncoder().encodeToString(new String(columnEncryptionKey.getRootKey(), UTF_8).getBytes()));
+        factoryKeyBuilder.append(
+                Base64.getEncoder().encodeToString(new String(columnEncryptionKey.getRootKey(), UTF_8).getBytes()));
 
         factoryKeyBuilder.append(":");
         factoryKeyBuilder.append(encryptionType);
@@ -49,8 +48,8 @@ class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmF
         SQLServerAeadAes256CbcHmac256Algorithm aesAlgorithm;
 
         if (!encryptionAlgorithms.containsKey(factoryKey)) {
-            SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(columnEncryptionKey.getRootKey(),
-                    SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
+            SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
+                    columnEncryptionKey.getRootKey(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
             aesAlgorithm = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey, encryptionType, algorithmVersion);
             encryptionAlgorithms.putIfAbsent(factoryKey, aesAlgorithm);
         }
