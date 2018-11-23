@@ -38,23 +38,25 @@ class SQLServerADAL4JUtils {
 
             AuthenticationResult authenticationResult = future.get();
 
-            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate(),
-                    authenticationResult.getRefreshToken());
+            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
             Object[] msgArgs = {user, authenticationString};
 
-            // the cause error message uses \\n\\r which does not give correct format
-            // change it to \r\n to provide correct format
+            /*
+             * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
+             * correct format
+             */
             String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
             AuthenticationException correctedAuthenticationException = new AuthenticationException(
                     correctedErrorMessage);
 
-            // SQLServerException is caused by ExecutionException, which is caused by
-            // AuthenticationException
-            // to match the exception tree before error message correction
+            /*
+             * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to match
+             * the exception tree before error message correction
+             */
             ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
 
             throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
@@ -68,8 +70,10 @@ class SQLServerADAL4JUtils {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
 
         try {
-            // principal name does not matter, what matters is the realm name
-            // it gets the username in principal_name@realm_name format
+            /*
+             * principal name does not matter, what matters is the realm name it gets the username in
+             * principal_name@realm_name format
+             */
             KerberosPrincipal kerberosPrincipal = new KerberosPrincipal("username");
             String username = kerberosPrincipal.getName();
 
@@ -83,8 +87,7 @@ class SQLServerADAL4JUtils {
 
             AuthenticationResult authenticationResult = future.get();
 
-            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate(),
-                    authenticationResult.getRefreshToken());
+            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
@@ -95,15 +98,18 @@ class SQLServerADAL4JUtils {
                 // the case when Future's outcome has no AuthenticationResult but exception
                 throw new SQLServerException(form.format(msgArgs), null);
             } else {
-                // the cause error message uses \\n\\r which does not give correct format
-                // change it to \r\n to provide correct format
+                /*
+                 * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
+                 * correct format
+                 */
                 String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
                 AuthenticationException correctedAuthenticationException = new AuthenticationException(
                         correctedErrorMessage);
 
-                // SQLServerException is caused by ExecutionException, which is caused by
-                // AuthenticationException
-                // to match the exception tree before error message correction
+                /*
+                 * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to
+                 * match the exception tree before error message correction
+                 */
                 ExecutionException correctedExecutionException = new ExecutionException(
                         correctedAuthenticationException);
 
@@ -113,38 +119,4 @@ class SQLServerADAL4JUtils {
             executorService.shutdown();
         }
     }
-
-    static SqlFedAuthToken aquireTokenFromRefreshToken(SqlFedAuthInfo fedAuthInfo, SqlFedAuthToken fedAuthToken,
-            String authenticationString) {
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
-        try {
-            // principal name does not matter, what matters is the realm name
-            // it gets the username in principal_name@realm_name format
-            KerberosPrincipal kerberosPrincipal = new KerberosPrincipal("username");
-
-            if (adal4jLogger.isLoggable(Level.FINE)) {
-                adal4jLogger.fine(adal4jLogger.toString() + " realm name is:" + kerberosPrincipal.getRealm());
-            }
-
-            AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
-            Future<AuthenticationResult> future = context.acquireTokenByRefreshToken(fedAuthToken.refreshToken,
-                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, null);
-
-            AuthenticationResult authenticationResult = future.get();
-            fedAuthToken.updateAccessToken(authenticationResult.getAccessToken(),
-                    authenticationResult.getExpiresOnDate());
-
-            return fedAuthToken;
-        } catch (InterruptedException | IOException | ExecutionException e) {
-            // We do not want to throw any exception here as we will try again to acquire a
-            // fresh access Token. In case of any exception, simply log message as INFO
-            if (adal4jLogger.isLoggable(Level.INFO)) {
-                adal4jLogger.info(adal4jLogger.toString() + " Failed to acquire access token using refresh Token");
-            }
-            return null;
-        } finally {
-            executorService.shutdown();
-        }
-    }
-
 }

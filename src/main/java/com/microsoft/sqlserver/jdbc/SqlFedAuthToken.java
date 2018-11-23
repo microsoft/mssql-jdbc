@@ -11,21 +11,18 @@ import java.util.Date;
 class SqlFedAuthToken {
     Date expiresOn;
     String accessToken;
-    final String refreshToken;
 
-    SqlFedAuthToken(String accessToken, long expiresIn, final String refreshToken) {
+    SqlFedAuthToken(String accessToken, long expiresIn) {
         this.accessToken = accessToken;
-        this.refreshToken = refreshToken;
 
         Date now = new Date();
         now.setTime(now.getTime() + (expiresIn * 1000));
         this.expiresOn = now;
     }
 
-    SqlFedAuthToken(String accessToken, Date expiresOn, String refreshToken) {
+    SqlFedAuthToken(String accessToken, Date expiresOn) {
         this.accessToken = accessToken;
         this.expiresOn = expiresOn;
-        this.refreshToken = refreshToken;
     }
 
     void updateAccessToken(String accessToken, Date expiresOnDate) {

@@ -29,10 +29,10 @@ public class SQLServerPooledConnection implements PooledConnection {
     private SQLServerConnectionPoolProxy lastProxyConnection;
     private String factoryUser, factoryPassword;
     private java.util.logging.Logger pcLogger;
-    static private final AtomicInteger basePooledConnectionID = new AtomicInteger(0); // Unique id generator for each
-                                                                                      // PooledConnection instance
-                                                                                      // (used for logging).
     private final String traceID;
+
+    // Unique id generator for each PooledConnection instance (used for logging).
+    static private final AtomicInteger basePooledConnectionID = new AtomicInteger(0);
 
     SQLServerPooledConnection(SQLServerDataSource ds, String user, String password) throws SQLException {
         listeners = new Vector<>();
@@ -65,7 +65,12 @@ public class SQLServerPooledConnection implements PooledConnection {
         return traceID;
     }
 
-    // Helper function to create a new connection for the pool.
+    /**
+     * Helper function to create a new connection for the pool.
+     * 
+     * @return SQLServerConnection instance
+     * @throws SQLException
+     */
     private SQLServerConnection createNewConnection() throws SQLException {
         return factoryDataSource.getConnectionInternal(factoryUser, factoryPassword, this);
     }
@@ -88,24 +93,41 @@ public class SQLServerPooledConnection implements PooledConnection {
                         SQLServerException.getErrString("R_physicalConnectionIsClosed"), "", true);
             }
 
-            // Check with security manager to insure caller has rights to connect.
-            // This will throw a SecurityException if the caller does not have proper rights.
+            /*
+             * Check with security manager to insure caller has rights to connect. This will throw a SecurityException
+             * if the caller does not have proper rights.
+             */
             physicalConnection.doSecurityCheck();
             if (pcLogger.isLoggable(Level.FINE))
                 pcLogger.fine(toString() + " Physical connection, " + safeCID());
 
-            // The last proxy connection handle returned will be invalidated (moved to closed state)
-            // when getConnection is called.
+            /*
+             * The last proxy connection handle returned will be invalidated (moved to closed state) when getConnection
+             * is called.
+             */
             if (null != lastProxyConnection) {
                 // if there was a last proxy connection send reset
                 physicalConnection.resetPooledConnection();
+
+                // Check if a new access token needs to be generated for federated authentication
+                if (physicalConnection.needsReconnect()) {
+                    /*
+                     * Closing physicalConnection before reconnecting is safe as only one active connection is
+                     * maintained here.
+                     */
+                    physicalConnection.close();
+                    physicalConnection.connect(physicalConnection.activeConnectionProperties, null);
+                }
+
                 if (!lastProxyConnection.isClosed()) {
                     if (pcLogger.isLoggable(Level.FINE)) {
                         pcLogger.fine(toString() + "proxy " + lastProxyConnection.toString()
                                 + " is not closed before getting the connection.");
                     }
-                    // use internal close so there wont be an event due to us closing the connection, if not closed
-                    // already.
+                    /*
+                     * use internal close so there wont be an event due to us closing the connection, if not closed
+                     * already.
+                     */
                     lastProxyConnection.internalClose();
                 }
             }
@@ -220,8 +242,10 @@ public class SQLServerPooledConnection implements PooledConnection {
         return basePooledConnectionID.incrementAndGet();
     }
 
-    // Helper function to return connectionID of the physicalConnection in a safe manner for logging.
-    // Returns (null) if physicalConnection is null, otherwise returns connectionID.
+    /**
+     * Helper function to return connectionID of the physicalConnection in a safe manner for logging. Returns (null) if
+     * physicalConnection is null, otherwise returns connectionID.
+     **/
     private String safeCID() {
         if (null == physicalConnection)
             return " ConnectionID:(null)";
