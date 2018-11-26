@@ -47,13 +47,13 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test negative timeout")
-    public void testNegativeTimeOut() throws SQLException {
+    public void testNegativeTimeOut() {
         assertThrows(SQLException.class, new org.junit.jupiter.api.function.Executable() {
             @Override
             public void execute() throws SQLException {
                 testBulkCopyWithTimeout(-1);
             }
-        });
+        }, "The timeout argument cannot be negative.");
     }
 
     private void testBulkCopyWithTimeout(int timeout) throws SQLException {
