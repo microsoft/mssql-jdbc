@@ -92,7 +92,6 @@ public class DTOSerialTest extends AbstractTest {
 
         // create a DTO
         try (Connection conn = DriverManager.getConnection(connectionString);
-
                 SQLServerPreparedStatement ps = (SQLServerPreparedStatement) conn
                         .prepareStatement("SELECT CAST(? AS datetimeoffset(7)) AS" + "   'datetimeoffset IS08601' ")) {
             ps.setDateTimeOffset(1, dtN);

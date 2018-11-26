@@ -78,10 +78,6 @@ public final class DateTimeOffset extends Object implements java.io.Serializable
     {
         // For added security/robustness, the only way to rehydrate a serialized DateTimeOffset
         // is to use a SerializationProxy.  Direct use of readObject() is not supported.
-        //
-        // Note that the reason provided for the InvalidObjectException is deliberately less
-        // than specific.  Anyone trying to "hack" this class doesn't need to know why we
-        // didn't let them...
         throw new java.io.InvalidObjectException("");
     }
 }
