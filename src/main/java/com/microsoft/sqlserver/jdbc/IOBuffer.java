@@ -1795,7 +1795,8 @@ final class TDSChannel {
                         + ((null != ksProvider) ? ("KeyStore provider info: " + ksProvider.getInfo() + "\n") : "")
                         + "java.ext.dirs: " + System.getProperty("java.ext.dirs"));
             // Retrieve the localized error message if possible.
-            String errMsg = (e.getLocalizedMessage() != null) ? e.getLocalizedMessage() : e.getMessage();
+            String localizedMessage = e.getLocalizedMessage();
+            String errMsg = (localizedMessage != null) ? localizedMessage : e.getMessage();
             /*
              * Retrieve the error message of the cause too because actual error message can be wrapped into a different
              * message when re-thrown from underlying InputStream.
@@ -1803,7 +1804,8 @@ final class TDSChannel {
             String causeErrMsg = null;
             Throwable cause = e.getCause();
             if (cause != null) {
-                causeErrMsg = (cause.getLocalizedMessage() != null) ? cause.getLocalizedMessage() : cause.getMessage();
+                String causeLocalizedMessage = cause.getLocalizedMessage();
+                causeErrMsg = (causeLocalizedMessage != null) ? causeLocalizedMessage : cause.getMessage();
             }
 
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_sslFailed"));
