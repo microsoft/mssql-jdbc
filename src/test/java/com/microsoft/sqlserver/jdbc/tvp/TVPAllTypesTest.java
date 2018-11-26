@@ -84,10 +84,10 @@ public class TVPAllTypesTest extends AbstractTest {
             } catch (Exception e) {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
             } finally {
-                terminateVariation(stmt);
+                stmt.close();
             }
         } finally {
-            stmt.close();
+            terminateVariation();
         }
     }
 
@@ -133,10 +133,10 @@ public class TVPAllTypesTest extends AbstractTest {
                 ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connectionString), tableSrc,
                         tableDest);
             } finally {
-                terminateVariation(stmt);
+                stmt.close();
             }
         } finally {
-            stmt.close();
+            terminateVariation();
         }
     }
 
@@ -169,13 +169,13 @@ public class TVPAllTypesTest extends AbstractTest {
                     .prepareStatement("INSERT INTO " + tableDest.getEscapedTableName() + " select * from ? ;")) {
                 pstmt.setStructured(1, tvpName, dt);
                 pstmt.execute();
-            } finally {
-                terminateVariation(stmt);
             }
+        } finally {
+            terminateVariation();
         }
     }
 
-    private static void createPreocedure(String procedureName, String destTable, Statement stmt) throws SQLException {
+    private static void createProcedure(String procedureName, String destTable, Statement stmt) throws SQLException {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
                 + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN " + " INSERT INTO "
                 + destTable + " SELECT * FROM @InputData" + " END";
@@ -207,16 +207,18 @@ public class TVPAllTypesTest extends AbstractTest {
             dbStmt.createTable(tableDest);
 
             createTVPS(tvpName, tableSrc.getDefinitionOfColumns(), stmt);
-            createPreocedure(procedureName, tableDest.getEscapedTableName(), stmt);
+            createProcedure(procedureName, tableDest.getEscapedTableName(), stmt);
 
             dbStmt.populateTable(tableSrc);
         }
     }
 
-    private void terminateVariation(Statement stmt) throws SQLException {
-        TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
-        TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
-        TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tvpName), stmt);
+    private void terminateVariation() throws SQLException {
+        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
+            TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
+            TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tvpName), stmt);
+        }
     }
 }
