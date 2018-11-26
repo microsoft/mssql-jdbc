@@ -1041,6 +1041,48 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             }
         }
     }
+    
+    @Test
+    public void testWrongtype() throws SQLException {
+        beforeEachSetup();
+
+        Geometry geomWKT = Geometry.point(1, 2, 0);
+        Geography geogWKT = Geography.point(2, 1, 4326);
+
+        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                Statement stmt = con.createStatement()) {
+
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
+                pstmt.setGeometry(1, geomWKT);
+                pstmt.execute();
+
+                try {
+                    SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geomTableName));
+                    rs.next();
+                    rs.getGeography(1); // should fail
+                    throw new SQLException ("getGeography against Geometry column should fail");
+                } catch (SQLServerException e) {
+                    assertEquals(e.getMessage(), "The conversion from geometry to GEOGRAPHY is unsupported.");
+                }
+            }
+
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
+                pstmt.setGeography(1, geogWKT);
+                pstmt.execute();
+
+                try {
+                    SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geogTableName));
+                    rs.next();
+                    rs.getGeometry(1); // should fail
+                    throw new SQLException ("getGeometry against Geography column should fail");
+                } catch (SQLServerException e) {
+                    assertEquals(e.getMessage(), "The conversion from geography to GEOMETRY is unsupported.");
+                }
+            }
+        }
+    }
 
     private void beforeEachSetup() throws SQLException {
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
