@@ -1801,9 +1801,9 @@ final class TDSChannel {
              * message when re-thrown from underlying InputStream.
              */
             String causeErrMsg = null;
-            if (e.getCause() != null) {
-                causeErrMsg = (e.getCause().getLocalizedMessage() != null) ? e.getCause().getLocalizedMessage()
-                                                                           : e.getCause().getMessage();
+            Throwable cause = e.getCause();
+            if (cause != null) {
+                causeErrMsg = (cause.getLocalizedMessage() != null) ? cause.getLocalizedMessage() : cause.getMessage();
             }
 
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_sslFailed"));
