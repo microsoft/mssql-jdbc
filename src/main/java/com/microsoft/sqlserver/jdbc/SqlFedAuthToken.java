@@ -9,8 +9,8 @@ import java.util.Date;
 
 
 class SqlFedAuthToken {
-    Date expiresOn;
-    String accessToken;
+    final Date expiresOn;
+    final String accessToken;
 
     SqlFedAuthToken(String accessToken, long expiresIn) {
         this.accessToken = accessToken;
@@ -24,10 +24,4 @@ class SqlFedAuthToken {
         this.accessToken = accessToken;
         this.expiresOn = expiresOn;
     }
-
-    void updateAccessToken(String accessToken, Date expiresOnDate) {
-        this.accessToken = accessToken;
-        this.expiresOn = expiresOnDate;
-    }
-
 }
