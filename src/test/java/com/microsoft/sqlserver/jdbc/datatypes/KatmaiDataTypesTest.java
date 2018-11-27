@@ -102,6 +102,12 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
         abstract void verifySettersCalendar(PreparedStatement ps) throws Exception;
 
+        abstract void verifyRSGetters(ResultSet rs) throws Exception;
+
+        abstract void verifyRSUpdaters(ResultSet rs) throws Exception;
+
+        abstract void verifyCSGetters(CallableStatement cs) throws Exception;
+
         private String sqlCastExpression() {
             return "CAST('" + stringValue + "' AS " + sqlTypeExpression + ")";
         }
@@ -161,12 +167,10 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
-                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(escapedProcName), stmt);
+                    TestUtils.dropProcedureIfExists(escapedProcName, stmt);
                 }
             }
         }
-
-        abstract void verifyRSGetters(ResultSet rs) throws Exception;
 
         void verifyRSGetters(Connection conn) throws Exception {
             try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(
@@ -175,8 +179,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 verifyRSGetters(rs);
             }
         }
-
-        abstract void verifyRSUpdaters(ResultSet rs) throws Exception;
 
         void verifyRSUpdaters(Connection conn) throws Exception {
 
@@ -225,18 +227,16 @@ public class KatmaiDataTypesTest extends AbstractTest {
             }
         }
 
-        abstract void verifyCSGetters(CallableStatement cs) throws Exception;
-
         void verifyCSGetters(Connection conn) throws Exception {
             try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(escapedProcName), stmt);
+                TestUtils.dropProcedureIfExists(escapedProcName, stmt);
                 stmt.executeUpdate("CREATE PROCEDURE " + escapedProcName + " @argIn " + sqlTypeExpression + ","
                         + " @argOut " + sqlTypeExpression + " OUTPUT" + " AS " + " SET @argOut=@argIn");
 
                 try (CallableStatement cs = conn.prepareCall("{call " + escapedProcName + "(?,?)}")) {
                     verifyCSGetters(cs);
                 } finally {
-                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(escapedProcName), stmt);
+                    TestUtils.dropProcedureIfExists(escapedProcName, stmt);
                 }
             }
         }
@@ -1132,7 +1132,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
     public void testSendTimestampAsTimeAsDatetime() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
             try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(escapedProcName), stmt);
+                TestUtils.dropProcedureIfExists(escapedProcName, stmt);
                 stmt.executeUpdate("CREATE PROCEDURE " + escapedProcName + " @argIn time(7), "
                         + " @argOut time(7) OUTPUT " + " AS " + " SET @argOut=@argIn");
 
@@ -1157,7 +1157,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
-                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(escapedProcName), stmt);
+                    TestUtils.dropProcedureIfExists(escapedProcName, stmt);
                 }
             }
         }
