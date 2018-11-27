@@ -61,7 +61,8 @@ public class SQLServerMetaData {
     }
 
     /**
-     * Constructs a SQLServerMetaData with the column name, SQL type, length.
+     * Constructs a SQLServerMetaData with the column name, SQL type, and length.
+     * The precision for string types is length which is used to determine whether to send vmax header to the server.
      * 
      * @param columnName
      *        the name of the column
@@ -73,9 +74,6 @@ public class SQLServerMetaData {
     public SQLServerMetaData(String columnName, int sqlType, int length) {
         this.columnName = columnName;
         this.javaSqlType = sqlType;
-        
-        // precision for string types is length
-        // this is used to determine whether to send vmax header
         this.precision = length;
     }
 
