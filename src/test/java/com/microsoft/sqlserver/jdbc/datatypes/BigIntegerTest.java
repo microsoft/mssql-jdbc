@@ -15,8 +15,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.math.BigInteger;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+
 
 /*
  * This test is for testing the setObject methods for the new data type mappings in JDBC 4.1 for java.math.BigInteger
@@ -31,26 +33,23 @@ public class BigIntegerTest extends AbstractTest {
     };
 
     final static String tableName = RandomUtil.getIdentifier("BigIntegerTestTable");
+    final static String escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
 
     @Test
     public void testJDBC41BigInteger() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
 
             // Create the test table
-            try {
-                stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
-            } catch (Exception e) {}
+            TestUtils.dropTableIfExists(escapedTableName, stmt);
 
-            String query = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+            String query = "create table " + escapedTableName
                     + " (col1 varchar(100), col2 bigint, col3 real, col4 float, "
                     + "col5 numeric(38,0), col6 int, col7 smallint, col8 char(100), col9 varchar(max), "
                     + "id int IDENTITY primary key)";
             stmt.executeUpdate(query);
 
-            try (PreparedStatement pstmt = conn
-                    .prepareStatement("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                            + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) SELECT * FROM "
-                            + AbstractSQLGenerator.escapeIdentifier(tableName) + " where id = ?")) {
+            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + escapedTableName
+                    + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) SELECT * FROM " + escapedTableName + " where id = ?")) {
 
                 // test that the driver converts the BigInteger values greater than LONG.MAX_VALUE and lesser than
                 // LONG.MIN_VALUE correctly
@@ -63,45 +62,33 @@ public class BigIntegerTest extends AbstractTest {
                 // JDBC
                 // BIGINT, the max and min limits for
                 int row = 1;
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), BigInteger.valueOf(Long.MAX_VALUE),
-                        row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                testSetObject(escapedTableName, BigInteger.valueOf(Long.MAX_VALUE), row++, pstmt,
+                        TestType.SETOBJECT_WITHTYPE);
 
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), BigInteger.valueOf(Long.MIN_VALUE),
-                        row++, pstmt, TestType.SETOBJECT_WITHTYPE);
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), BigInteger.valueOf(10), row++, pstmt,
+                testSetObject(escapedTableName, BigInteger.valueOf(Long.MIN_VALUE), row++, pstmt,
                         TestType.SETOBJECT_WITHTYPE);
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), BigInteger.valueOf(-10), row++, pstmt,
-                        TestType.SETOBJECT_WITHTYPE);
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), BigInteger.ZERO, row++, pstmt,
-                        TestType.SETOBJECT_WITHTYPE);
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), bigIntPos, row++, pstmt,
-                        TestType.SETOBJECT_WITHTYPE);
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), bigIntNeg, row++, pstmt,
-                        TestType.SETOBJECT_WITHTYPE);
+                testSetObject(escapedTableName, BigInteger.valueOf(10), row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                testSetObject(escapedTableName, BigInteger.valueOf(-10), row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                testSetObject(escapedTableName, BigInteger.ZERO, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                testSetObject(escapedTableName, bigIntPos, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
 
                 // Test setObject method with SQL TYPE parameter
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), BigInteger.valueOf(Long.MAX_VALUE),
-                        row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), BigInteger.valueOf(Long.MIN_VALUE),
-                        row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), BigInteger.valueOf(1000), row++, pstmt,
+                testSetObject(escapedTableName, BigInteger.valueOf(Long.MAX_VALUE), row++, pstmt,
                         TestType.SETOBJECT_WITHOUTTYPE);
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), BigInteger.valueOf(-1000), row++, pstmt,
+                testSetObject(escapedTableName, BigInteger.valueOf(Long.MIN_VALUE), row++, pstmt,
                         TestType.SETOBJECT_WITHOUTTYPE);
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), BigInteger.ZERO, row++, pstmt,
+                testSetObject(escapedTableName, BigInteger.valueOf(1000), row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
+                testSetObject(escapedTableName, BigInteger.valueOf(-1000), row++, pstmt,
                         TestType.SETOBJECT_WITHOUTTYPE);
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), bigIntPos, row++, pstmt,
-                        TestType.SETOBJECT_WITHOUTTYPE);
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), bigIntNeg, row++, pstmt,
-                        TestType.SETOBJECT_WITHOUTTYPE);
+                testSetObject(escapedTableName, BigInteger.ZERO, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
+                testSetObject(escapedTableName, bigIntPos, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
+                testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
 
                 // Test setNull
-                testSetObject(AbstractSQLGenerator.escapeIdentifier(tableName), bigIntNeg, row++, pstmt,
-                        TestType.SETNULL);
+                testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETNULL);
 
-                try {
-                    stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
-                } catch (Exception e) {}
+                TestUtils.dropTableIfExists(escapedTableName, stmt);
             }
         }
     }

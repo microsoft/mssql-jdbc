@@ -64,10 +64,15 @@ public class TestUtils {
     // 'SQL' represents SQL Server, while 'SQLAzure' represents SQL Azure.
     public static final String SERVER_TYPE_SQL_SERVER = "SQL";
     public static final String SERVER_TYPE_SQL_AZURE = "SQLAzure";
+    
     // private static SqlType types = null;
     private static ArrayList<SqlType> types = null;
     private final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     private final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+
+    // whether we determined if the target server is SQL Azure
+    private static boolean _determinedSqlAzureOrSqlServer = false;
+    private static boolean _isSqlAzure = false;
 
     /**
      * Returns serverType
@@ -677,6 +682,10 @@ public class TestUtils {
      * @throws SQLException
      */
     public static boolean isSqlAzure(Connection con) throws SQLException {
+        if (_determinedSqlAzureOrSqlServer) {
+            return _isSqlAzure;
+        }
+        
         try (ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
             rs.next();
             int engineEdition = rs.getInt(1);

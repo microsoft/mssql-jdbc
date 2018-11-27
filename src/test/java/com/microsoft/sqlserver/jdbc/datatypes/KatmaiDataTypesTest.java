@@ -29,7 +29,10 @@ import microsoft.sql.DateTimeOffset;
 public class KatmaiDataTypesTest extends AbstractTest {
 
     final static String tableName = RandomUtil.getIdentifier("KatmaiDataTypesTable");
+    final static String escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
+
     final static String procName = RandomUtil.getIdentifier("KatmaiDataTypesTableProc");
+    final static String escapedProcName = AbstractSQLGenerator.escapeIdentifier(procName);
 
     enum SQLType {
         date("yyyy-mm-dd", 0, java.sql.Types.DATE, "Date"),
@@ -88,6 +91,17 @@ public class KatmaiDataTypesTest extends AbstractTest {
             this.scale = fractionalSecondsDigits;
         }
 
+        /**
+         * For testing the setObject and setNull methods in PreparedStatement, use the verifySetter* methods. These
+         * methods prepare a single statement and execute it for all different data types by calling the appropriate
+         * 'setObject' methods for each data type and/or type conversion.
+         */
+        abstract void verifySetters(PreparedStatement ps) throws Exception;
+
+        abstract void verifySettersUtilDate(PreparedStatement ps) throws Exception;
+
+        abstract void verifySettersCalendar(PreparedStatement ps) throws Exception;
+
         private String sqlCastExpression() {
             return "CAST('" + stringValue + "' AS " + sqlTypeExpression + ")";
         }
@@ -126,11 +140,10 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
             try (Statement stmt = conn.createStatement()) {
                 // Create the stored proc
-                stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + " @arg "
-                        + sqlTypeExpression + " AS SELECT @arg");
+                stmt.executeUpdate(
+                        "CREATE PROCEDURE " + escapedProcName + " @arg " + sqlTypeExpression + " AS SELECT @arg");
 
-                try (PreparedStatement pstmt = conn
-                        .prepareStatement("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?)}")) {
+                try (PreparedStatement pstmt = conn.prepareStatement("{call " + escapedProcName + "(?)}")) {
                     ParameterMetaData metadata = pstmt.getParameterMetaData();
 
                     assertEquals(metadata.getParameterType(1), sqlType.jdbcType,
@@ -148,7 +161,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
-                    stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
+                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(escapedProcName), stmt);
                 }
             }
         }
@@ -171,57 +184,43 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
-                stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                TestUtils.dropTableIfExists(escapedTableName, stmt);
 
-                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 "
-                        + sqlTypeExpression + ", col2 int identity(1,1) primary key)");
+                stmt.executeUpdate("CREATE TABLE " + escapedTableName + " (col1 " + sqlTypeExpression
+                        + ", col2 int identity(1,1) primary key)");
 
-                stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES ("
-                        + sqlCastExpression() + ")");
+                stmt.executeUpdate("INSERT INTO " + escapedTableName + " VALUES (" + sqlCastExpression() + ")");
 
-                try (ResultSet rs = stmt
-                        .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + escapedTableName)) {
                     rs.next();
                     verifyRSUpdaters(rs);
                 } finally {
-                    stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                    TestUtils.dropTableIfExists(escapedTableName, stmt);
                 }
             }
         }
-
-        /*
-         * For testing the setObject and setNull methods in PreparedStatement, use the verifySetter* methods. These
-         * methods prepare a single statement and execute it for all different data types by calling the appropriate
-         * 'setObject' methods for each data type and/or type conversion.
-         */
-        abstract void verifySetters(PreparedStatement ps) throws Exception;
-
-        abstract void verifySettersUtilDate(PreparedStatement ps) throws Exception;
-
-        abstract void verifySettersCalendar(PreparedStatement ps) throws Exception;
 
         void verifySetters(Connection conn) throws Exception {
             assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
 
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-                stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
-                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 "
-                        + sqlTypeExpression + ", col2 int identity(1,1) primary key)");
+                TestUtils.dropTableIfExists(escapedTableName, stmt);
+                stmt.executeUpdate("CREATE TABLE " + escapedTableName + " (col1 " + sqlTypeExpression
+                        + ", col2 int identity(1,1) primary key)");
 
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (?) SELECT * FROM "
-                                + AbstractSQLGenerator.escapeIdentifier(tableName),
+                        "INSERT INTO " + escapedTableName + " VALUES (?) SELECT * FROM " + escapedTableName,
                         ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
                     verifySetters(ps);
                     // Verify setObject function for the new mapping in JDBC41 (java.util.Date to TIMESTAMP)
-                    stmt.executeUpdate("TRUNCATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                    stmt.executeUpdate("TRUNCATE TABLE " + escapedTableName);
 
                     verifySettersUtilDate(ps);
                     // Verify setObject function for the new mapping in JDBC41 (java.util.Calendar to TIMESTAMP)
-                    stmt.executeUpdate("TRUNCATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                    stmt.executeUpdate("TRUNCATE TABLE " + escapedTableName);
                     verifySettersCalendar(ps);
                 } finally {
-                    stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                    TestUtils.dropTableIfExists(escapedTableName, stmt);
                 }
             }
         }
@@ -230,16 +229,14 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
         void verifyCSGetters(Connection conn) throws Exception {
             try (Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
-                stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + " @argIn "
-                        + sqlTypeExpression + "," + " @argOut " + sqlTypeExpression + " OUTPUT" + " AS "
-                        + " SET @argOut=@argIn");
+                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(escapedProcName), stmt);
+                stmt.executeUpdate("CREATE PROCEDURE " + escapedProcName + " @argIn " + sqlTypeExpression + ","
+                        + " @argOut " + sqlTypeExpression + " OUTPUT" + " AS " + " SET @argOut=@argIn");
 
-                try (CallableStatement cs = conn
-                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?,?)}")) {
+                try (CallableStatement cs = conn.prepareCall("{call " + escapedProcName + "(?,?)}")) {
                     verifyCSGetters(cs);
                 } finally {
-                    stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
+                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(escapedProcName), stmt);
                 }
             }
         }
@@ -1135,14 +1132,11 @@ public class KatmaiDataTypesTest extends AbstractTest {
     public void testSendTimestampAsTimeAsDatetime() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
             try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(escapedProcName), stmt);
+                stmt.executeUpdate("CREATE PROCEDURE " + escapedProcName + " @argIn time(7), "
+                        + " @argOut time(7) OUTPUT " + " AS " + " SET @argOut=@argIn");
 
-                stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
-
-                stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " @argIn time(7), " + " @argOut time(7) OUTPUT " + " AS " + " SET @argOut=@argIn");
-
-                try (CallableStatement cs = conn
-                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?,?)}")) {
+                try (CallableStatement cs = conn.prepareCall("{call " + escapedProcName + "(?,?)}")) {
 
                     // Set up a timestamp with a time component that is the last millisecond of the day...
                     Timestamp ts = Timestamp.valueOf("2010-02-15 23:59:59.999");
@@ -1163,7 +1157,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
-                    stmt.executeUpdate("DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
+                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(escapedProcName), stmt);
                 }
             }
         }
@@ -1180,11 +1174,9 @@ public class KatmaiDataTypesTest extends AbstractTest {
             String sql;
             try (Statement stmt = conn.createStatement()) {
                 // SQL Azure requires each table to have a clustered index, so change col1 to the primary key
-                sql = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (col1 int primary key, col2 datetimeoffset(6))";
+                sql = "CREATE TABLE " + escapedTableName + " (col1 int primary key, col2 datetimeoffset(6))";
                 stmt.executeUpdate(sql);
-                sql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " VALUES(1, '2010-04-29 10:51:12.123456 +00:00')";
+                sql = "INSERT INTO " + escapedTableName + " VALUES(1, '2010-04-29 10:51:12.123456 +00:00')";
                 stmt.executeUpdate(sql);
 
             }
@@ -1195,7 +1187,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 DateTimeOffset actualDto;
 
                 // create select query and update the datetimeoffset
-                String query = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName);
+                String query = "SELECT * FROM " + escapedTableName;
 
                 try (ResultSet rs = stmt.executeQuery(query)) {
                     rs.next();
@@ -1210,7 +1202,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 }
 
                 // get the datetime offset from server
-                sql = "SELECT col2 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName);
+                sql = "SELECT col2 FROM " + escapedTableName;
                 try (ResultSet rs = stmt.executeQuery(sql)) {
                     rs.next();
                     Object value = rs.getObject(1);
@@ -1229,7 +1221,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
-                    stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                    TestUtils.dropTableIfExists(escapedTableName, stmt);
                 } catch (SQLException e) {
                     fail(TestResource.getResource("R_createDropTableFailed") + e.toString());
                 }
@@ -1569,20 +1561,17 @@ public class KatmaiDataTypesTest extends AbstractTest {
             assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
 
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-                try {
-                    stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
-                } catch (SQLException e) {}
+                TestUtils.dropTableIfExists(escapedTableName, stmt);
 
-                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (col1 datetimeoffset(2)," + "  col2 datetime," + "  col3 time(5)," + "  col4 datetime2(5),"
-                        + "  col5 smalldatetime," + "  col6 time(2)," + "  col7 int identity(1,1) primary key)");
-                stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES ("
-                        + " '2010-01-12 09:00:23.17 -08:00'," + " '2010-01-12 10:20:23'," + " '10:20:23',"
-                        + " '2010-01-12 10:20:23'," + " '2010-01-12 11:45:17'," + " '10:20:23')");
+                stmt.executeUpdate("CREATE TABLE " + escapedTableName + " (col1 datetimeoffset(2)," + "  col2 datetime,"
+                        + "  col3 time(5)," + "  col4 datetime2(5)," + "  col5 smalldatetime," + "  col6 time(2),"
+                        + "  col7 int identity(1,1) primary key)");
+                stmt.executeUpdate("INSERT INTO " + escapedTableName + " VALUES (" + " '2010-01-12 09:00:23.17 -08:00',"
+                        + " '2010-01-12 10:20:23'," + " '10:20:23'," + " '2010-01-12 10:20:23',"
+                        + " '2010-01-12 11:45:17'," + " '10:20:23')");
                 DateTimeOffset dto;
 
-                try (ResultSet rs = stmt.executeQuery(
-                        "SELECT *, CAST(col1 AS VARCHAR) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                try (ResultSet rs = stmt.executeQuery("SELECT *, CAST(col1 AS VARCHAR) FROM " + escapedTableName)) {
                     rs.next();
 
                     // Update datetimeoffset(2) from pre-Gregorian Date
@@ -1676,7 +1665,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                             "Update datetime from Time near next day");
 
                 } finally {
-                    stmt.executeUpdate("DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                    TestUtils.dropTableIfExists(escapedTableName, stmt);
                 }
             }
         }

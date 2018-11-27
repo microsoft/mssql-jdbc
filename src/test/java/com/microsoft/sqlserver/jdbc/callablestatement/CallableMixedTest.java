@@ -3,9 +3,9 @@ package com.microsoft.sqlserver.jdbc.callablestatement;
 import java.sql.*;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
+import com.microsoft.sqlserver.testframework.AbstractTest;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -14,28 +14,26 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 
 @RunWith(JUnitPlatform.class)
-public class CallableMixedTest {
+public class CallableMixedTest extends AbstractTest {
 
     @Test
     public void datatypestest() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        String connectionString = TestUtils.getConfiguredProperty("mssql_jdbc_test_connection_properties");
         String tableName = RandomUtil.getIdentifier("TFOO3");
+        String escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
         String procName = RandomUtil.getIdentifier("SPFOO3");
 
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+                TestUtils.dropTableIfExists(escapedTableName, stmt);
 
-                String createSQL = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + "(c1_int int primary key, col2 int)";
+                String createSQL = "create table " + escapedTableName + "(c1_int int primary key, col2 int)";
                 stmt.executeUpdate(createSQL);
 
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 1)");
+                stmt.executeUpdate("Insert into " + escapedTableName + " values(0, 1)");
 
                 stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
                         + " (@p2_int int, @p2_int_out int OUTPUT, @p4_smallint smallint,  @p4_smallint_out smallint OUTPUT) AS begin transaction SELECT * FROM "
-                        + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + escapedTableName
                         + "  ; SELECT @p2_int_out=@p2_int, @p4_smallint_out=@p4_smallint commit transaction RETURN -2147483648");
             }
 
@@ -94,7 +92,7 @@ public class CallableMixedTest {
         } finally {
             try (Connection conn = DriverManager.getConnection(connectionString);
                     Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+                TestUtils.dropTableIfExists(escapedTableName, stmt);
             } catch (SQLException e) {
                 fail(e.toString());
             }
