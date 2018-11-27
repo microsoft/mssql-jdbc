@@ -428,11 +428,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             conn.getMetaData().getFunctions("", null, "xp_%");
             assertTrue(false, TestResource.getResource("R_noSchemaShouldFail"));
-        } catch (Exception ae) {
-            // TODO: this is a bug, "" should be supported
-            // https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getFunctions(java.lang.String,%20java.lang.String,%20java.lang.String)
-            assertTrue(ae.getMessage().startsWith("The argument catalog is not valid"));
-        }
+        } catch (Exception ae) {}
     }
 
     /**

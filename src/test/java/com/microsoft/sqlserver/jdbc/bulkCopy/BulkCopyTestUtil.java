@@ -296,9 +296,10 @@ class BulkCopyTestUtil {
             // verify number of rows and columns
             assertTrue(((ResultSet) srcResultSet.product()).getMetaData().getColumnCount() == totalColumns);
 
-            assertTrue(numRows > 0);
-            assertTrue(sourceTable.getTotalRows() == numRows);
-            assertTrue(destinationTable.getTotalRows() == numRows);
+            if (numRows > 0) {
+                assertTrue(sourceTable.getTotalRows() == numRows);
+                assertTrue(destinationTable.getTotalRows() == numRows);
+            }
         }
     }
 

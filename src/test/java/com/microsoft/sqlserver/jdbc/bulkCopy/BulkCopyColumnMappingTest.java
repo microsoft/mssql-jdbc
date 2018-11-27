@@ -22,6 +22,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -407,10 +408,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
             // verify number of rows and columns
             assertTrue(((ResultSet) dstResultSet.product()).getMetaData().getColumnCount() == totalColumns + 1);
-            if (numRows > 0) {
-                assertTrue(sourceTable.getTotalRows() == numRows);
-                assertTrue(destinationTable.getTotalRows() == numRows);
-            }
+            assertTrue(sourceTable.getTotalRows() == numRows);
+            assertTrue(destinationTable.getTotalRows() == numRows);
         }
     }
 
