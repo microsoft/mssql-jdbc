@@ -857,7 +857,7 @@ final class DTV {
                 // - java.sql.Types.DATE, use DATE SQL Server data type
                 // - microsoft.sql.Types.DATETIMEOFFSET, use DATETIMEOFFSET SQL Server data type
                 if (conn.isKatmaiOrLater()) {
-                    if (aeLogger.isLoggable(java.util.logging.Level.FINE) && (null != cryptoMeta)) {
+                    if (null != cryptoMeta) {
                         aeLogger.fine("Encrypting temporal data type.");
                     }
 
@@ -1592,7 +1592,7 @@ final class DTV {
             }
         } else // null != value
         {
-            if (aeLogger.isLoggable(java.util.logging.Level.FINE) && (null != cryptoMeta)) {
+            if (null != cryptoMeta) {
                 aeLogger.fine("Encrypting java data type: " + javaType);
             }
 
@@ -3421,10 +3421,8 @@ final class ServerDTVImpl extends DTVImpl {
             throw new SQLServerException(form.format(new Object[] {normalizeRuleVersion, 1}), null, 0, null);
         }
 
-        if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
-            aeLogger.fine("Denormalizing decrypted data based on its SQL Server type(" + baseTypeInfo.getSSType()
-                    + ") and JDBC type(" + jdbcType + ").");
-        }
+        aeLogger.fine("Denormalizing decrypted data based on its SQL Server type(" + baseTypeInfo.getSSType()
+                + ") and JDBC type(" + jdbcType + ").");
 
         SSType baseSSType = baseTypeInfo.getSSType();
         switch (baseSSType) {
@@ -3659,10 +3657,8 @@ final class ServerDTVImpl extends DTVImpl {
             baseSSType = cryptoMetadata.baseTypeInfo.getSSType();
             encrypted = true;
 
-            if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
-                aeLogger.fine("Data is encrypted, SQL Server Data Type: " + baseSSType + ", Encryption Type: "
-                        + cryptoMetadata.getEncryptionType());
-            }
+            aeLogger.fine("Data is encrypted, SQL Server Data Type: " + baseSSType + ", Encryption Type: "
+                    + cryptoMetadata.getEncryptionType());
         }
 
         // Note that the value should be prepped
@@ -3715,9 +3711,7 @@ final class ServerDTVImpl extends DTVImpl {
                             JDBCType.VARBINARY, streamGetterArgs);
                 }
 
-                if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
-                    aeLogger.fine("Encrypted data is retrieved.");
-                }
+                aeLogger.fine("Encrypted data is retrieved.");
 
                 // AE does not support streaming types
                 if ((convertedValue instanceof SimpleInputStream) || (convertedValue instanceof PLPInputStream)) {
