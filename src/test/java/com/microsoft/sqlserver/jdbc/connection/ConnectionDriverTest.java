@@ -44,6 +44,7 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 
+
 @RunWith(JUnitPlatform.class)
 public class ConnectionDriverTest extends AbstractTest {
     // If no retry is done, the function should at least exit in 5 seconds

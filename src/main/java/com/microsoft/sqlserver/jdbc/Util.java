@@ -285,9 +285,7 @@ final class Util {
                         result = result.trim();
                         if (result.length() > 0) {
                             p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), result);
-                            if (logger.isLoggable(Level.FINE)) {
-                                logger.fine("Property:serverName " + "Value:" + result);
-                            }
+                            logger.fine("Property:serverName " + "Value:" + result);
                         }
                         result = "";
 
@@ -310,9 +308,7 @@ final class Util {
                 case inPort: {
                     if (ch == ';') {
                         result = result.trim();
-                        if (logger.isLoggable(Level.FINE)) {
-                            logger.fine("Property:portNumber " + "Value:" + result);
-                        }
+                        logger.fine("Property:portNumber " + "Value:" + result);
                         p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), result);
                         result = "";
                         state = inName;
@@ -329,9 +325,7 @@ final class Util {
                     if (ch == ';' || ch == ':') {
                         // non escaped trim the string
                         result = result.trim();
-                        if (logger.isLoggable(Level.FINE)) {
-                            logger.fine("Property:instanceName " + "Value:" + result);
-                        }
+                        logger.fine("Property:instanceName " + "Value:" + result);
                         p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), result.toLowerCase(Locale.US));
                         result = "";
 
@@ -380,7 +374,7 @@ final class Util {
                         name = SQLServerDriver.getNormalizedPropertyName(name, logger);
                         if (null != name) {
                             if (logger.isLoggable(Level.FINE)) {
-                                if (false == name.equals(SQLServerDriverStringProperty.USER.toString())) {
+                                if (!name.equals(SQLServerDriverStringProperty.USER.toString())) {
                                     if (!name.toLowerCase(Locale.ENGLISH).contains("password")
                                             && !name.toLowerCase(Locale.ENGLISH).contains("keystoresecret")) {
                                         logger.fine("Property:" + name + " Value:" + value);
@@ -417,8 +411,8 @@ final class Util {
                         name = SQLServerDriver.getNormalizedPropertyName(name, logger);
                         if (null != name) {
                             if (logger.isLoggable(Level.FINE)) {
-                                if ((false == name.equals(SQLServerDriverStringProperty.USER.toString()))
-                                        && (false == name.equals(SQLServerDriverStringProperty.PASSWORD.toString())))
+                                if (!name.equals(SQLServerDriverStringProperty.USER.toString())
+                                        && !name.equals(SQLServerDriverStringProperty.PASSWORD.toString()))
                                     logger.fine("Property:" + name + " Value:" + value);
                             }
                             p.put(name, value);
@@ -461,24 +455,18 @@ final class Util {
             case inServerName:
                 result = result.trim();
                 if (result.length() > 0) {
-                    if (logger.isLoggable(Level.FINE)) {
-                        logger.fine("Property:serverName " + "Value:" + result);
-                    }
+                    logger.fine("Property:serverName " + "Value:" + result);
                     p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), result);
                 }
                 break;
             case inPort:
                 result = result.trim();
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("Property:portNumber " + "Value:" + result);
-                }
+                logger.fine("Property:portNumber " + "Value:" + result);
                 p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), result);
                 break;
             case inInstanceName:
                 result = result.trim();
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("Property:instanceName " + "Value:" + result);
-                }
+                logger.fine("Property:instanceName " + "Value:" + result);
                 p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), result);
                 break;
             case inValue:
@@ -487,9 +475,9 @@ final class Util {
                 name = SQLServerDriver.getNormalizedPropertyName(name, logger);
                 if (null != name) {
                     if (logger.isLoggable(Level.FINE)) {
-                        if ((false == name.equals(SQLServerDriverStringProperty.USER.toString()))
-                                && (false == name.equals(SQLServerDriverStringProperty.PASSWORD.toString()))
-                                && (false == name.equals(SQLServerDriverStringProperty.KEY_STORE_SECRET.toString())))
+                        if (!name.equals(SQLServerDriverStringProperty.USER.toString())
+                                && !name.equals(SQLServerDriverStringProperty.PASSWORD.toString())
+                                && !name.equals(SQLServerDriverStringProperty.KEY_STORE_SECRET.toString()))
                             logger.fine("Property:" + name + " Value:" + value);
                     }
                     p.put(name, value);
@@ -1044,19 +1032,19 @@ final class SQLIdentifier {
         StringBuilder fullName = new StringBuilder(256);
 
         if (serverName.length() > 0)
-            fullName.append("[" + serverName + "].");
+            fullName.append("[").append(serverName).append("].");
 
         if (databaseName.length() > 0)
-            fullName.append("[" + databaseName + "].");
+            fullName.append("[").append(databaseName).append("].");
         else
             assert 0 == serverName.length();
 
         if (schemaName.length() > 0)
-            fullName.append("[" + schemaName + "].");
+            fullName.append("[").append(schemaName).append("].");
         else if (databaseName.length() > 0)
             fullName.append('.');
 
-        fullName.append("[" + objectName + "]");
+        fullName.append("[").append(objectName).append("]");
 
         return fullName.toString();
     }

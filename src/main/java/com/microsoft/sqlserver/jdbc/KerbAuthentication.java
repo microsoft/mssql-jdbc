@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.lang.reflect.Method;
 import java.net.IDN;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -15,7 +14,6 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.MessageFormat;
 import java.util.Locale;
-import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -89,10 +87,8 @@ final class KerbAuthentication extends SSPIAuthentication {
                         currentSubject = lc.getSubject();
                     }
                 } catch (LoginException le) {
-                    if (authLogger.isLoggable(Level.FINE)) {
-                        authLogger.fine(toString() + "Failed to login using Kerberos due to " + le.getClass().getName()
-                                + ":" + le.getMessage());
-                    }
+                    authLogger.fine(toString() + "Failed to login using Kerberos due to " + le.getClass().getName()
+                            + ":" + le.getMessage());
                     try {
                         // Not very clean since it raises an Exception, but we are sure we are cleaning well everything
                         con.terminate(SQLServerException.DRIVER_ERROR_NONE,
@@ -113,13 +109,10 @@ final class KerbAuthentication extends SSPIAuthentication {
                     return;
                 }
 
-                if (authLogger.isLoggable(Level.FINER)) {
-                    authLogger.finer(toString() + " Getting client credentials");
-                }
+                authLogger.finer(toString() + " Getting client credentials");
+
                 peerCredentials = getClientCredential(currentSubject, manager, kerberos);
-                if (authLogger.isLoggable(Level.FINER)) {
-                    authLogger.finer(toString() + " creating security context");
-                }
+                authLogger.finer(toString() + " creating security context");
 
                 peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
                         GSSContext.DEFAULT_LIFETIME);
@@ -160,20 +153,16 @@ final class KerbAuthentication extends SSPIAuthentication {
 
     private byte[] intAuthHandShake(byte[] pin, boolean[] done) throws SQLServerException {
         try {
-            if (authLogger.isLoggable(Level.FINER)) {
-                authLogger.finer(toString() + " Sending token to server over secure context");
-            }
+            authLogger.finer(toString() + " Sending token to server over secure context");
+
             byte[] byteToken = peerContext.initSecContext(pin, 0, pin.length);
 
             if (peerContext.isEstablished()) {
                 done[0] = true;
-                if (authLogger.isLoggable(Level.FINER))
-                    authLogger.finer(toString() + "Authentication done.");
+                authLogger.finer(toString() + "Authentication done.");
             } else if (null == byteToken) {
                 // The documentation is not clear on when this can happen but it does say this could happen
-                if (authLogger.isLoggable(Level.INFO)) {
-                    authLogger.info(toString() + "byteToken is null in initSecContext.");
-                }
+                authLogger.info(toString() + "byteToken is null in initSecContext.");
                 con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                         SQLServerException.getErrString("R_integratedAuthenticationFailed"));
             }
@@ -188,9 +177,8 @@ final class KerbAuthentication extends SSPIAuthentication {
     }
 
     private String makeSpn(String server, int port) throws SQLServerException {
-        if (authLogger.isLoggable(Level.FINER)) {
-            authLogger.finer(toString() + " Server: " + server + " port: " + port);
-        }
+        authLogger.finer(toString() + " Server: " + server + " port: " + port);
+
         StringBuilder spn = new StringBuilder("MSSQLSvc/");
         // Format is MSSQLSvc/myhost.domain.company.com:1433
         // FQDN must be provided
@@ -202,9 +190,8 @@ final class KerbAuthentication extends SSPIAuthentication {
         spn.append(":");
         spn.append(port);
         String strSPN = spn.toString();
-        if (authLogger.isLoggable(Level.FINER)) {
-            authLogger.finer(toString() + " SPN: " + strSPN);
-        }
+        authLogger.finer(toString() + " SPN: " + strSPN);
+
         return strSPN;
     }
 
@@ -229,7 +216,7 @@ final class KerbAuthentication extends SSPIAuthentication {
             spn = makeSpn(address, port);
         }
         this.spn = enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
-        if (!this.spn.equals(spn) && authLogger.isLoggable(Level.FINER)) {
+        if (!this.spn.equals(spn)) {
             authLogger.finer(toString() + "SPN enriched: " + spn + " := " + this.spn);
         }
     }
@@ -251,7 +238,7 @@ final class KerbAuthentication extends SSPIAuthentication {
         }
         String dnsName = m.group(1);
         String portOrInstance = m.group(2);
-        RealmValidator realmValidator = getRealmValidator(dnsName);
+        RealmValidator realmValidator = getRealmValidator();
         String realm = findRealmFromHostname(realmValidator, dnsName);
         if (realm == null && allowHostnameCanonicalization) {
             // We failed, try with canonical host name to find a better match
@@ -277,50 +264,15 @@ final class KerbAuthentication extends SSPIAuthentication {
     private static RealmValidator validator;
 
     /**
-     * Find a suitable way of validating a REALM for given JVM.
+     * Get validator to validate REALM for given JVM.
      *
-     * @param hostnameToTest
-     *        an example hostname we are gonna use to test our realm validator.
-     * @return a not null realm Validator.
+     * @return a not null realm validator.
      */
-    static RealmValidator getRealmValidator(String hostnameToTest) {
+    static RealmValidator getRealmValidator() {
         if (validator != null) {
             return validator;
         }
-        // JVM Specific, here Sun/Oracle JVM
-        try {
-            Class<?> clz = Class.forName("sun.security.krb5.Config");
-            Method getInstance = clz.getMethod("getInstance", new Class[0]);
-            final Method getKDCList = clz.getMethod("getKDCList", new Class[] {String.class});
-            final Object instance = getInstance.invoke(null);
-            RealmValidator oracleRealmValidator = new RealmValidator() {
 
-                @Override
-                public boolean isRealmValid(String realm) {
-                    try {
-                        Object ret = getKDCList.invoke(instance, realm);
-                        return ret != null;
-                    } catch (Exception err) {
-                        return false;
-                    }
-                }
-            };
-            validator = oracleRealmValidator;
-            // As explained here: https://github.com/Microsoft/mssql-jdbc/pull/40#issuecomment-281509304
-            // The default Oracle Resolution mechanism is not bulletproof
-            // If it resolves a non-existing name, drop it.
-            if (!validator.isRealmValid("this.might.not.exist." + hostnameToTest)) {
-                // Our realm validator is well working, return it
-                authLogger.fine("Kerberos Realm Validator: Using Built-in Oracle Realm Validation method.");
-                return oracleRealmValidator;
-            }
-            authLogger
-                    .fine("Kerberos Realm Validator: Detected buggy Oracle Realm Validator, using DNSKerberosLocator.");
-        } catch (ReflectiveOperationException notTheRightJVMException) {
-            // Ignored, we simply are not using the right JVM
-            authLogger.fine("Kerberos Realm Validator: No Oracle Realm Validator Available, using DNSKerberosLocator.");
-        }
-        // No implementation found, default one, not any realm is valid
         validator = new RealmValidator() {
             @Override
             public boolean isRealmValid(String realm) {
@@ -350,9 +302,7 @@ final class KerbAuthentication extends SSPIAuthentication {
         int index = 0;
         while (index != -1 && index < hostname.length() - 2) {
             String realm = hostname.substring(index);
-            if (authLogger.isLoggable(Level.FINEST)) {
-                authLogger.finest(toString() + " looking up REALM candidate " + realm);
-            }
+            authLogger.finest(toString() + " looking up REALM candidate " + realm);
             if (realmValidator.isRealmValid(realm)) {
                 return realm.toUpperCase();
             }

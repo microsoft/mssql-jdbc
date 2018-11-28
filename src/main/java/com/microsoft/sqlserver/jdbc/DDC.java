@@ -596,8 +596,14 @@ final class DDC {
                             if (JDBCType.GUID == jdbcType) {
                                 return Util.readGUID(byteValue);
                             } else if (JDBCType.GEOMETRY == jdbcType) {
+                                if (!typeInfo.getSSTypeName().equalsIgnoreCase(jdbcType.toString())) {
+                                    DataTypes.throwConversionError(typeInfo.getSSTypeName().toUpperCase(), jdbcType.toString());
+                                }
                                 return Geometry.STGeomFromWKB(byteValue);
                             } else if (JDBCType.GEOGRAPHY == jdbcType) {
+                                if (!typeInfo.getSSTypeName().equalsIgnoreCase(jdbcType.toString())) {
+                                    DataTypes.throwConversionError(typeInfo.getSSTypeName().toUpperCase(), jdbcType.toString());
+                                }
                                 return Geography.STGeomFromWKB(byteValue);
                             } else {
                                 String hexString = Util.bytesToHexString(byteValue, byteValue.length);
@@ -1129,7 +1135,7 @@ final class DDC {
         try {
             // Set up a StringBuilder big enough to hold the Reader value. If we weren't told the size of
             // the value then start with a "reasonable" guess StringBuilder size. If necessary, the StringBuilder
-            // will grow automatically to accomodate arbitrary amounts of data.
+            // will grow automatically to accommodate arbitrary amounts of data.
             StringBuilder sb = new StringBuilder(
                     (DataTypes.UNKNOWN_STREAM_LENGTH != readerLength) ? readerLength : 4000);
 
@@ -1189,8 +1195,7 @@ final class AsciiFilteredInputStream extends InputStream {
     }
 
     AsciiFilteredInputStream(BaseInputStream containedStream) throws SQLServerException {
-        if (BaseInputStream.logger.isLoggable(java.util.logging.Level.FINER))
-            BaseInputStream.logger.finer(containedStream.toString() + " wrapping in AsciiFilteredInputStream");
+        BaseInputStream.logger.finer(containedStream.toString() + " wrapping in AsciiFilteredInputStream");
         this.containedStream = containedStream;
     }
 
@@ -1259,8 +1264,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
 
     static AsciiFilteredUnicodeInputStream MakeAsciiFilteredUnicodeInputStream(BaseInputStream strm,
             Reader rd) throws SQLServerException {
-        if (BaseInputStream.logger.isLoggable(java.util.logging.Level.FINER))
-            BaseInputStream.logger.finer(strm.toString() + " wrapping in AsciiFilteredInputStream");
+        BaseInputStream.logger.finer(strm.toString() + " wrapping in AsciiFilteredInputStream");
         return new AsciiFilteredUnicodeInputStream(rd);
     }
 
