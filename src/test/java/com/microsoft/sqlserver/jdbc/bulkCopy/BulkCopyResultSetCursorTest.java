@@ -70,7 +70,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
 
             try (Statement stmt2 = conn.createStatement(resultSetType, resultSetConcurrency);
                     ResultSet rs = stmt2
-                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
+                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable) + " ORDER BY id ASC");
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
                 bulkCopy.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
                 bulkCopy.writeToServer(rs);
@@ -96,7 +96,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
             createTables(stmt);
             populateSourceTable();
 
-            try (ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
+            try (ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable) + " ORDER BY id ASC");
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
                 bulkCopy.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
@@ -122,7 +122,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
 
             try (Statement stmt1 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
                     ResultSet rs = stmt1
-                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable))) {
+                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable) + " ORDER BY id ASC")) {
                 try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
                     bulkCopy.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
                     bulkCopy.writeToServer(rs);
@@ -158,7 +158,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
                 try (Statement stmt2 = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
                         ResultSet.CONCUR_UPDATABLE);
                         ResultSet rs2 = stmt2
-                                .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable));
+                                .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable) + " ORDER BY id ASC");
                         SQLServerBulkCopy bulkCopy3 = new SQLServerBulkCopy(conn)) {
                     bulkCopy3.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(desTable));
                     bulkCopy3.writeToServer(rs2);
@@ -170,20 +170,20 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
 
     private static void verifyDestinationTableData(int expectedNumberOfRows) throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString); ResultSet rs = conn.createStatement()
-                .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable))) {
+                .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable) + " ORDER BY id ASC")) {
 
             int expectedArrayLength = expectedBigDecimals.length;
 
             int i = 0;
             while (rs.next()) {
-                assertTrue(rs.getString(1).equals(expectedBigDecimalStrings[i % expectedArrayLength]), "Expected Value:"
-                        + expectedBigDecimalStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(1));
-                assertTrue(rs.getString(2).trim().equals(expectedStrings[i % expectedArrayLength]), "Expected Value:"
-                        + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(2));
-                assertTrue(rs.getString(3).equals(expectedTimestampStrings[i % expectedArrayLength]), "Expected Value:"
-                        + expectedTimestampStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(3));
-                assertTrue(rs.getString(4).trim().equals(expectedStrings[i % expectedArrayLength]), "Expected Value:"
-                        + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(4));
+                assertTrue(rs.getString(2).equals(expectedBigDecimalStrings[i % expectedArrayLength]), "Expected Value:"
+                        + expectedBigDecimalStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(2));
+                assertTrue(rs.getString(3).trim().equals(expectedStrings[i % expectedArrayLength]), "Expected Value:"
+                        + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(3));
+                assertTrue(rs.getString(4).equals(expectedTimestampStrings[i % expectedArrayLength]), "Expected Value:"
+                        + expectedTimestampStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(4));
+                assertTrue(rs.getString(5).trim().equals(expectedStrings[i % expectedArrayLength]), "Expected Value:"
+                        + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(5));
                 i++;
             }
 
@@ -196,8 +196,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
         Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 
         try (Connection conn = DriverManager.getConnection(connectionString);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
-
+            SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
             for (int i = 0; i < expectedBigDecimals.length; i++) {
                 pstmt.setBigDecimal(1, expectedBigDecimals[i]);
                 pstmt.setString(2, expectedStrings[i]);
@@ -219,10 +218,10 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
 
     private static void createTables(Statement stmt) throws SQLException {
         String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(srcTable)
-                + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
+                + " (id INT NOT NULL IDENTITY PRIMARY KEY, c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
         stmt.execute(sql);
         sql = "create table " + AbstractSQLGenerator.escapeIdentifier(desTable)
-                + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
+                + " (id INT NOT NULL IDENTITY PRIMARY KEY, c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
         stmt.execute(sql);
     }
 
