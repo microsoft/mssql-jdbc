@@ -261,7 +261,6 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_integratedAuthenticationFailed", "Integrated authentication failed."},
             {"R_permissionDenied", "Security violation. Permission to target \"{0}\" denied."},
             {"R_getSchemaError", "Error getting default schema name."},
-            {"R_setSchemaWarning", "Warning: setSchema is a no-op in this driver version."},
             {"R_updateCountOutofRange", "The update count value is out of range."},
             {"R_limitOffsetNotSupported", "OFFSET clause in limit escape sequence is not supported."},
             {"R_limitEscapeSyntaxError", "Error in limit escape syntax. Failed to parse query."},

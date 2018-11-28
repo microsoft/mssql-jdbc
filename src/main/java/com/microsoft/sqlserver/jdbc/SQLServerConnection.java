@@ -129,6 +129,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private Boolean isAzureDW = null;
 
+    private String schema = null;
+
     static class CityHash128Key implements java.io.Serializable {
 
         /**
@@ -5121,12 +5123,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         loggerExternal.exiting(getClassNameLogging(), "setNetworkTimeout");
     }
 
+    /**
+     * 
+     * @return If setSchema was used it'll use the value passed into setSchema or else it'll get the schema from Server.
+     * @throws SQLException
+     */
     @Override
     public String getSchema() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getSchema");
 
         checkClosed();
 
+        String schema = this.schema;
+        if (schema == null || schema.isBlank()) {
+            schema = getSchemaFromServer();
+        }
+
+        loggerExternal.exiting(getClassNameLogging(), "getSchema");
+        return schema;
+    }
+
+    private String getSchemaFromServer() throws SQLException {
         SQLServerStatement stmt = null;
         SQLServerResultSet resultSet = null;
 
@@ -5155,8 +5172,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 stmt.close();
             }
         }
-
-        loggerExternal.exiting(getClassNameLogging(), "getSchema");
         return null;
     }
 
@@ -5164,8 +5179,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void setSchema(String schema) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "setSchema", schema);
         checkClosed();
-        addWarning(SQLServerException.getErrString("R_setSchemaWarning"));
-
+        this.schema = schema;
         loggerExternal.exiting(getClassNameLogging(), "setSchema");
     }
 
