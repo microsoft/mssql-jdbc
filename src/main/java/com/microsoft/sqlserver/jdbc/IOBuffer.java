@@ -1415,15 +1415,16 @@ final class TDSChannel {
             boolean periodFound = false;
             boolean respectWildcard = false;
             int j = 0;
+            // We do not allow wildcards in IDNs (xn--).
             if (!nameInCert.startsWith("xn--") && nameInCert.contains("*")) {
                 for (int i = 0; i < nameInCert.length(); i++) {
                     char currentNameInCertChar = nameInCert.charAt(i);
                     char currentHostNameChar = hostName.charAt(j);
-                    if (currentNameInCertChar == '.') {
+                    if ('.' == currentNameInCertChar) {
                         periodFound = true;
                         respectWildcard = false;
                     }
-                    if (currentNameInCertChar == '*' && !periodFound) {
+                    if ('*' == currentNameInCertChar && !periodFound) {
                         respectWildcard = true;
                     }
                     if (respectWildcard) {
@@ -1431,11 +1432,12 @@ final class TDSChannel {
                             logFailMessage(nameInCert);
                             return false;
                         }
-                        j = hostName.indexOf(nameInCert.charAt(i + 1), i);
+                        j = hostName.indexOf(nameInCert.charAt(i + 1), j);
                         if (j < 0) {
                             logFailMessage(nameInCert);
                             return false;
                         }
+                        respectWildcard = false;
                         continue;
                     } else {
                         if (currentNameInCertChar != currentHostNameChar) {
