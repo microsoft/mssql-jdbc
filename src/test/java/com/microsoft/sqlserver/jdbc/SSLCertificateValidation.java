@@ -1,3 +1,8 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.Assert.assertFalse;
@@ -11,6 +16,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+
 
 @RunWith(JUnitPlatform.class)
 public class SSLCertificateValidation {
@@ -73,7 +79,7 @@ public class SSLCertificateValidation {
         // SAN = .*.windows.net
         // Expected result: false
         assertFalse((boolean) method.invoke(hsoObject, ".*.windows.net"));
-        
+
         // Server Name = msjdbc.database.windows.net
         // SAN = msjdbc.*.windows.net
         // Expected result: false
@@ -84,18 +90,18 @@ public class SSLCertificateValidation {
         // Expected result: false
         // Note: multiple wildcards are not allowed, so this case shouldn't happen, but we still make sure to fail this.
         assertFalse((boolean) method.invoke(hsoObject, "*.*.windows.net"));
-        
+
         // Server Name = msjdbc.database.windows.net
         // SAN = *.com
         // Expected result: false
         // A cert with * plus a top-level domain is not allowed.
         assertFalse((boolean) method.invoke(hsoObject, "*.com"));
-        
+
         // Server Name = msjdbc.database.windows.net
         // SAN = xn--caf-dma*.com
         // Expected result: fail
         assertFalse((boolean) method.invoke(hsoObject, "xn--caf-dma*.com"));
-        
+
         // Server Name = msjdbc.database.windows.net
         // SAN = *
         // Expected result: fail
