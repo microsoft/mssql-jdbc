@@ -1523,11 +1523,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             authenticationString = SqlAuthentication.valueOfString(sPropValue).toString();
 
             if (integratedSecurity
-                    && !authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(toString() + " "
-                            + SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"));
-                }
+                    && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))) {
+                connectionlogger.severe(toString() + " "
+                        + SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"));
                 throw new SQLServerException(
                         SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"), null);
             }
@@ -1576,7 +1574,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenCannotBeEmpty"), null);
             }
 
+<<<<<<< HEAD
             if ((true == integratedSecurity) && (null != accessTokenInByte)) {
+=======
+            if (integratedSecurity && (null != accessTokenInByte)) {
+>>>>>>> 1a94fa21a3abc5c879c3180d1c017452870c02dc
                 connectionlogger.severe(toString() + " "
                         + SQLServerException.getErrString("R_SetAccesstokenWhenIntegratedSecurityTrue"));
                 throw new SQLServerException(

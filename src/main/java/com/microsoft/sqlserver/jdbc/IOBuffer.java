@@ -1705,38 +1705,48 @@ final class TDSChannel {
             logger.log(Level.FINER, "java.security path: " + JAVA_SECURITY + "\n" + "Security providers: "
                     + Arrays.asList(Security.getProviders()) + "\n"
                     + ((null != sslContextProvider) ? ("SSLContext provider info: " + sslContextProvider.getInfo()
-                            + "\n" + "SSLContext provider services:\n" + sslContextProvider.getServices() + "\n") : "")
-                    + ((null != tmfProvider) ? ("TrustManagerFactory provider info: " + tmfProvider.getInfo() + "\n")
-                                             : "")
-                    + ((null != tmfDefaultAlgorithm) ? ("TrustManagerFactory default algorithm: " + tmfDefaultAlgorithm
+                            + "\n" + "SSLContext provider services:\n" + sslContextProvider.getServices() + "\n")
+                                                    : "")
+                    + ((null != tmfProvider) ? ("TrustManagerFactory provider info: " + tmfProvider.getInfo()
                             + "\n") : "")
+                    + ((null != tmfDefaultAlgorithm) ? ("TrustManagerFactory default algorithm: "
+                            + tmfDefaultAlgorithm + "\n") : "")
                     + ((null != ksProvider) ? ("KeyStore provider info: " + ksProvider.getInfo() + "\n") : "")
                     + "java.ext.dirs: " + System.getProperty("java.ext.dirs"));
+            // Retrieve the localized error message if possible.
+            String localizedMessage = e.getLocalizedMessage();
+            String errMsg = (localizedMessage != null) ? localizedMessage : e.getMessage();
+            /*
+             * Retrieve the error message of the cause too because actual error message can be wrapped into a different
+             * message when re-thrown from underlying InputStream.
+             */
+            String causeErrMsg = null;
+            Throwable cause = e.getCause();
+            if (cause != null) {
+                String causeLocalizedMessage = cause.getLocalizedMessage();
+                causeErrMsg = (causeLocalizedMessage != null) ? causeLocalizedMessage : cause.getMessage();
+            }
 
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_sslFailed"));
-            Object[] msgArgs = {e.getMessage()};
+            Object[] msgArgs = {errMsg};
 
-            // It is important to get the localized message here, otherwise error messages won't match for different
-            // locales.
-            String errMsg = e.getLocalizedMessage();
-            // If the message is null replace it with the non-localized message or a dummy string. This can happen if a
-            // custom
-            // TrustManager implementation is specified that does not provide localized messages.
-            if (errMsg == null) {
-                errMsg = e.getMessage();
-            }
-            if (errMsg == null) {
-                errMsg = "";
-            }
-            // The error message may have a connection id appended to it. Extract the message only for comparison.
-            // This client connection id is appended in method checkAndAppendClientConnId().
-            if (errMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX)) {
+            /*
+             * The error message may have a connection id appended to it. Extract the message only for comparison. This
+             * client connection id is appended in method checkAndAppendClientConnId().
+             */
+            if (errMsg != null && errMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX)) {
                 errMsg = errMsg.substring(0, errMsg.indexOf(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX));
+            }
+
+            if (causeErrMsg != null && causeErrMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX)) {
+                causeErrMsg = causeErrMsg.substring(0,
+                        causeErrMsg.indexOf(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX));
             }
 
             // Isolate the TLS1.2 intermittent connection error.
             if (e instanceof IOException && (SSLHandhsakeState.SSL_HANDHSAKE_STARTED == handshakeState)
-                    && (errMsg.equals(SQLServerException.getErrString("R_truncatedServerResponse")))) {
+                    && (SQLServerException.getErrString("R_truncatedServerResponse").equals(errMsg)
+                            || SQLServerException.getErrString("R_truncatedServerResponse").equals(causeErrMsg))) {
                 con.terminate(SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED, form.format(msgArgs), e);
             } else {
                 con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs), e);
@@ -6178,6 +6188,7 @@ final class TDSReader {
                 + " should be less than numMsgsSent:" + tdsChannel.numMsgsSent;
 
         TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
+
         if (null != command) {
             // if cancelQueryTimeout is set, we should wait for the total amount of
             // queryTimeout + cancelQueryTimeout to
@@ -6206,6 +6217,10 @@ final class TDSReader {
         }
 
         // if execution was subject to timeout then stop timing
+<<<<<<< HEAD
+=======
+
+>>>>>>> 1a94fa21a3abc5c879c3180d1c017452870c02dc
         if (this.timeoutCommand != null) {
             TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
         }
@@ -7340,6 +7355,10 @@ abstract class TDSCommand {
 
         // If command execution is subject to timeout then start timing until
         // the server returns the first response packet.
+<<<<<<< HEAD
+=======
+
+>>>>>>> 1a94fa21a3abc5c879c3180d1c017452870c02dc
         if (queryTimeoutSeconds > 0) {
             this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
             TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
@@ -7363,6 +7382,10 @@ abstract class TDSCommand {
         } finally {
             // If command execution was subject to timeout then stop timing as soon
             // as the server returns the first response packet or errors out.
+<<<<<<< HEAD
+=======
+
+>>>>>>> 1a94fa21a3abc5c879c3180d1c017452870c02dc
             if (this.timeoutCommand != null) {
                 TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
             }
