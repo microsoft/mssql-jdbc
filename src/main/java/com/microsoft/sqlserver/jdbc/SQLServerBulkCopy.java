@@ -679,13 +679,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
 
                 if (null != timeoutCommand) {
-<<<<<<< HEAD
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(this.toString() + ": Stopping bulk timer...");
-
-=======
                     logger.finest(this.toString() + ": Stopping bulk timer...");
->>>>>>> 1a94fa21a3abc5c879c3180d1c017452870c02dc
                     TimeoutPoller.getTimeoutPoller().remove(timeoutCommand);
                 }
 

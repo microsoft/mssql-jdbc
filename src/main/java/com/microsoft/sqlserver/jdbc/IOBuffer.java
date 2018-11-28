@@ -6217,10 +6217,6 @@ final class TDSReader {
         }
 
         // if execution was subject to timeout then stop timing
-<<<<<<< HEAD
-=======
-
->>>>>>> 1a94fa21a3abc5c879c3180d1c017452870c02dc
         if (this.timeoutCommand != null) {
             TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
         }
@@ -7355,10 +7351,6 @@ abstract class TDSCommand {
 
         // If command execution is subject to timeout then start timing until
         // the server returns the first response packet.
-<<<<<<< HEAD
-=======
-
->>>>>>> 1a94fa21a3abc5c879c3180d1c017452870c02dc
         if (queryTimeoutSeconds > 0) {
             this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
             TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
@@ -7382,10 +7374,6 @@ abstract class TDSCommand {
         } finally {
             // If command execution was subject to timeout then stop timing as soon
             // as the server returns the first response packet or errors out.
-<<<<<<< HEAD
-=======
-
->>>>>>> 1a94fa21a3abc5c879c3180d1c017452870c02dc
             if (this.timeoutCommand != null) {
                 TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
             }
