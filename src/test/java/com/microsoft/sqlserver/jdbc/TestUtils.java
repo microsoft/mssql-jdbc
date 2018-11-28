@@ -70,9 +70,10 @@ public class TestUtils {
     private final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     private final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
 
-    // whether we determined if the target server is SQL Azure
+    // whether we determined if the target server is SQL Azure or DW
     private static boolean _determinedSqlAzureOrSqlServer = false;
     private static boolean _isSqlAzure = false;
+    private static boolean _isSqlAzureDW = false;
 
     /**
      * Returns serverType
@@ -689,6 +690,8 @@ public class TestUtils {
         try (ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
             rs.next();
             int engineEdition = rs.getInt(1);
+            _determinedSqlAzureOrSqlServer = true;
+            _isSqlAzure = true;
             return (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
         }
     }
@@ -701,9 +704,15 @@ public class TestUtils {
      * @throws SQLException
      */
     public static boolean isSqlAzureDW(Connection con) throws SQLException {
+        if (_determinedSqlAzureOrSqlServer) {
+            return _isSqlAzureDW;
+        }
+
         try (ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
             rs.next();
             int engineEdition = rs.getInt(1);
+            _determinedSqlAzureOrSqlServer = true;
+            _isSqlAzureDW = true;
             return (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
         }
     }
