@@ -25,7 +25,6 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
@@ -182,7 +181,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     static private final AtomicInteger baseID = new AtomicInteger(0);
 
     private Charset defaultCharset = null;
-    
+
     // Returns unique id for each instance.
     private static int nextInstanceID() {
         return baseID.incrementAndGet();
@@ -220,10 +219,8 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
         this.sqlCollation = collation;
         this.logger = logger;
         this.typeInfo = typeInfo;
-        if (logger.isLoggable(Level.FINE)) {
-            String loggingInfo = (null != connection) ? connection.toString() : "null connection";
-            logger.fine(toString() + " created by (" + loggingInfo + ")");
-        }
+        logger.fine(toString() + " created by (" + ((null != connection) ? connection.toString() : "null connection")
+                + ")");
     }
 
     /**
@@ -678,7 +675,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
 
         return len;
     }
-    
+
     protected void setDefaultCharset(Charset c) {
         this.defaultCharset = c;
     }

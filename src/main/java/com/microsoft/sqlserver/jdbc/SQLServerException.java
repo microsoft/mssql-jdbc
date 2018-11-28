@@ -108,8 +108,7 @@ public final class SQLServerException extends java.sql.SQLException {
         if (o != null)
             id = o.toString();
 
-        if (exLogger.isLoggable(Level.FINE))
-            exLogger.fine("*** SQLException:" + id + " " + this.toString() + " " + errText);
+        exLogger.fine("*** SQLException:" + id + " " + this.toString() + " " + errText);
         if (bStack) {
             if (exLogger.isLoggable(Level.FINE)) {
                 StringBuilder sb = new StringBuilder(100);

@@ -6,8 +6,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.text.MessageFormat;
-import java.util.logging.Level;
-
 
 /**
  * This class keeps the failover server info and if the mirror has become the primary. For synchronizing better and not
@@ -38,9 +36,8 @@ final class FailoverInfo {
 
     // the members of this class are not exposed so inorder to log we call this function.
     void log(SQLServerConnection con) {
-        if (con.getConnectionLogger().isLoggable(Level.FINE))
-            con.getConnectionLogger().fine(con.toString() + " Failover server :" + failoverPartner
-                    + " Failover partner is primary : " + useFailoverPartner);
+        con.getConnectionLogger().fine(con.toString() + " Failover server :" + failoverPartner
+                + " Failover partner is primary : " + useFailoverPartner);
     }
 
     // this function gets the failover server port and sets up the security manager
@@ -59,8 +56,7 @@ final class FailoverInfo {
 
             // found the instance name with the severname
             if (px >= 0) {
-                if (con.getConnectionLogger().isLoggable(Level.FINE))
-                    con.getConnectionLogger().fine(con.toString() + " Failover server :" + failoverPartner);
+                con.getConnectionLogger().fine(con.toString() + " Failover server :" + failoverPartner);
                 instanceValue = failoverPartner.substring(px + 1, failoverPartner.length());
                 failoverPartner = failoverPartner.substring(0, px);
                 con.ValidateMaxSQLLoginName(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), instanceValue);
@@ -91,9 +87,8 @@ final class FailoverInfo {
     synchronized void failoverAdd(SQLServerConnection connection, boolean actualUseFailoverPartner,
             String actualFailoverPartner) throws SQLServerException {
         if (useFailoverPartner != actualUseFailoverPartner) {
-            if (connection.getConnectionLogger().isLoggable(Level.FINE))
-                connection.getConnectionLogger()
-                        .fine(connection.toString() + " Failover detected. failover partner=" + actualFailoverPartner);
+            connection.getConnectionLogger()
+                    .fine(connection.toString() + " Failover detected. failover partner=" + actualFailoverPartner);
             useFailoverPartner = actualUseFailoverPartner;
         }
         // The checking for actualUseFailoverPartner may look weird but this is required
