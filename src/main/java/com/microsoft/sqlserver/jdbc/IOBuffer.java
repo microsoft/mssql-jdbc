@@ -1428,12 +1428,18 @@ final class TDSChannel {
                     }
                     if (respectWildcard) {
                         if (i + 1 >= nameInCert.length()) {
+                            logFailMessage(nameInCert);
                             return false;
                         }
-                        j = hostName.indexOf(nameInCert.charAt(i + 1));
+                        j = hostName.indexOf(nameInCert.charAt(i + 1), i);
+                        if (j < 0) {
+                            logFailMessage(nameInCert);
+                            return false;
+                        }
                         continue;
                     } else {
                         if (currentNameInCertChar != currentHostNameChar) {
+                            logFailMessage(nameInCert);
                             return false;
                         } else {
                             j++;
@@ -1445,9 +1451,7 @@ final class TDSChannel {
 
             // Verify that the name in certificate matches exactly with the host name
             if (!nameInCert.equals(hostName)) {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(logContext + " The name in certificate " + nameInCert
-                            + " does not match with the server name " + hostName + ".");
+                logFailMessage(nameInCert);
                 return false;
             }
 
@@ -1456,6 +1460,12 @@ final class TDSChannel {
                         + hostName + ".");
 
             return true;
+        }
+        
+        private void logFailMessage(String nameInCert) {
+            if (logger.isLoggable(Level.FINER))
+                logger.finer(logContext + " The name in certificate " + nameInCert
+                        + " does not match with the server name " + hostName + ".");
         }
 
         public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
