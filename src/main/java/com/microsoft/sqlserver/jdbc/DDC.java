@@ -597,12 +597,12 @@ final class DDC {
                                 return Util.readGUID(byteValue);
                             } else if (JDBCType.GEOMETRY == jdbcType) {
                                 if (!typeInfo.getSSTypeName().equalsIgnoreCase(jdbcType.toString())) {
-                                    DataTypes.throwConversionError(typeInfo.getSSTypeName(), jdbcType.toString());
+                                    DataTypes.throwConversionError(typeInfo.getSSTypeName().toUpperCase(), jdbcType.toString());
                                 }
                                 return Geometry.STGeomFromWKB(byteValue);
                             } else if (JDBCType.GEOGRAPHY == jdbcType) {
                                 if (!typeInfo.getSSTypeName().equalsIgnoreCase(jdbcType.toString())) {
-                                    DataTypes.throwConversionError(typeInfo.getSSTypeName(), jdbcType.toString());
+                                    DataTypes.throwConversionError(typeInfo.getSSTypeName().toUpperCase(), jdbcType.toString());
                                 }
                                 return Geography.STGeomFromWKB(byteValue);
                             } else {

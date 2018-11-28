@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.datatypes;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -1061,9 +1062,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                     SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geomTableName));
                     rs.next();
                     rs.getGeography(1); // should fail
-                    throw new SQLException ("getGeography against Geometry column should fail");
+                    fail();
                 } catch (SQLServerException e) {
-                    assertEquals(e.getMessage(), "The conversion from geometry to GEOGRAPHY is unsupported.");
+                    assertEquals(e.getMessage(), "The conversion from GEOMETRY to GEOGRAPHY is unsupported.");
                 }
             }
 
@@ -1076,9 +1077,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                     SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geogTableName));
                     rs.next();
                     rs.getGeometry(1); // should fail
-                    throw new SQLException ("getGeometry against Geography column should fail");
+                    fail();
                 } catch (SQLServerException e) {
-                    assertEquals(e.getMessage(), "The conversion from geography to GEOMETRY is unsupported.");
+                    assertEquals(e.getMessage(), "The conversion from GEOGRAPHY to GEOMETRY is unsupported.");
                 }
             }
         }
