@@ -106,6 +106,11 @@ public class SSLCertificateValidation {
         // SAN = *
         // Expected result: fail
         assertFalse((boolean) method.invoke(hsoObject, "*"));
+        
+        // Server Name = msjdbc.database.windows.net
+        // SAN = ms*atabase.windows.net
+        // Expected result: fail
+        assertFalse((boolean) method.invoke(hsoObject, "ms*atabase.windows.net"));
     }
 
 }
