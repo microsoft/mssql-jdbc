@@ -24,11 +24,12 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.DBStatement;
+import com.microsoft.sqlserver.testframework.DBTable;
+
 import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBResultSetTypes;
-import com.microsoft.sqlserver.testframework.DBStatement;
-import com.microsoft.sqlserver.testframework.DBTable;
 
 
 @RunWith(JUnitPlatform.class)

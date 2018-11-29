@@ -127,6 +127,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_errorFollowInserts", "Test error followed by inserts"},
             {"R_errorFollow50280", "Test insert followed by non-fatal error (50280)"},
             {"R_syntaxErrorDateConvert", "Syntax error converting date"},
+            {"R_syntaxErrorDateConvertDW", "Conversion failed when converting date and/or time from character string."},
             {"R_dateConvertError", "Conversion failed when converting date"},
             {"R_incompatJDBC", "Aborting test case as JDBC version is not compatible."},
             {"R_unexpectedException", "Unexpected exception occurred"}, {"R_addBatchFailed", "addBatch failed"},

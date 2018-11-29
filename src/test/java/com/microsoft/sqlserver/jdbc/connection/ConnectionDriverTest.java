@@ -46,6 +46,7 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class ConnectionDriverTest extends AbstractTest {
     // If no retry is done, the function should at least exit in 5 seconds
     static int threshHoldForNoRetryInMilliseconds = 5000;
@@ -211,7 +212,7 @@ public class ConnectionDriverTest extends AbstractTest {
         try (Connection con = pooledConnection.getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
             // raise a non severe exception and make sure that the connection is not closed.
-            stmt.executeUpdate("RAISERROR ('foo', 3,1) WITH LOG");
+            stmt.executeUpdate("RAISERROR ('foo', 3,1)");
             // not a serious error there should not be any errors.
             assertTrue(!myE.errorOccurred, TestResource.getResource("R_errorCalled"));
             // check to make sure that connection is not closed.

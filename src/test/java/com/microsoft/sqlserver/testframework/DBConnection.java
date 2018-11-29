@@ -20,6 +20,9 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
  */
 public class DBConnection extends AbstractParentWrapper implements AutoCloseable {
     private double serverversion = 0;
+    private static boolean determinedSqlAzureOrSqlServer = false;
+    private static boolean isSqlAzure = false;  // Whether the target server is SQL Azure or SQL Server
+    private static boolean isSqlAzureDW = false;  // Whether the target server is SQL Azure DW
 
     // TODO: add Isolation Level
     // TODO: add auto commit
@@ -171,19 +174,38 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
      * @throws SQLException
      */
     public static boolean isSqlAzure(Connection con) throws SQLException {
-        boolean isSqlAzure = false;
-
-        ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)");
-        rs.next();
-        int engineEdition = rs.getInt(1);
-        rs.close();
-        if (ENGINE_EDITION_FOR_SQL_AZURE == engineEdition) {
-            isSqlAzure = true;
-        }
-
+        isSqlAzureDW(con);
         return isSqlAzure;
     }
-
+    
+    /**
+     * 
+     * @param con
+     * @return
+     * @throws SQLException
+     */
+    public static boolean isSqlAzureDW(Connection con) throws SQLException {
+        if (!determinedSqlAzureOrSqlServer) {
+            ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)");
+            rs.next();
+            int engineEdition = rs.getInt(1);
+            rs.close();
+            
+            if (ENGINE_EDITION_FOR_SQL_AZURE == engineEdition || ENGINE_EDITION_FOR_SQL_AZURE_DW == engineEdition) {
+                isSqlAzure = true;
+            }
+            
+            if (ENGINE_EDITION_FOR_SQL_AZURE_DW == engineEdition) {
+                isSqlAzureDW = true;
+            }
+            
+            determinedSqlAzureOrSqlServer = true;
+            return isSqlAzureDW;
+        } else {
+            return isSqlAzureDW;
+        }
+    }
+    
     /**
      * @param string
      * @return

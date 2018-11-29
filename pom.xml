@@ -263,9 +263,7 @@
 							<argLine>
 								${argLine} --illegal-access=permit
 							</argLine>
-							<properties>
-								<excludeTags>${skipTestTag}</excludeTags>
-							</properties>
+							<groups>AzureDWTest</groups>
 						</configuration>
 					</plugin>
 				</plugins>

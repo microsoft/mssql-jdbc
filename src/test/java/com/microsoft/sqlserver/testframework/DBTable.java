@@ -361,32 +361,66 @@ public class DBTable extends AbstractSQLGenerator {
     String populateTableSql() {
         StringJoiner sb = new StringJoiner(SPACE_CHAR);
 
-        sb.add("INSERT");
-        sb.add("INTO");
-        sb.add(escapedTableName);
-        sb.add("VALUES");
+        // Azure DW doesn't support VALUES (), (), () ... syntax
+        boolean isSqlAzureDW = false;
+        try {
+            isSqlAzureDW = TestUtils.isSqlAzureDW(null);
+        } catch (Exception e) {
+        }
+        if (isSqlAzureDW) {
+            for (int i = 0; i < totalRows; i++) {
+                sb.add("INSERT");
+                sb.add("INTO");
+                sb.add(escapedTableName);
+                sb.add("VALUES");
 
-        for (int i = 0; i < totalRows; i++) {
-            if (i != 0) {
-                sb.add(COMMA);
-            }
-            sb.add(OPEN_BRACKET);
-            for (int colNum = 0; colNum < totalColumns; colNum++) {
+                sb.add(OPEN_BRACKET);
+                for (int colNum = 0; colNum < totalColumns; colNum++) {
 
-                // TODO: consider how to enclose data in case of preparedStatemets
-                if (passDataAsString(colNum)) {
-                    sb.add("'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
-                } else if (passDataAsHex(colNum)) {
-                    sb.add("0X" + byteArrayToHex((byte[]) (getColumn(colNum).getRowValue(i))));
-                } else {
-                    sb.add(String.valueOf(getColumn(colNum).getRowValue(i)));
+                    // TODO: consider how to enclose data in case of preparedStatemets
+                    if (passDataAsString(colNum)) {
+                        sb.add("'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
+                    } else if (passDataAsHex(colNum)) {
+                        sb.add("0X" + byteArrayToHex((byte[]) (getColumn(colNum).getRowValue(i))));
+                    } else {
+                        sb.add(String.valueOf(getColumn(colNum).getRowValue(i)));
+                    }
+
+                    if (colNum < totalColumns - 1) {
+                        sb.add(COMMA);
+                    }
                 }
+                sb.add(CLOSE_BRACKET);
+                sb.add(SEMI_COLON);
+            }
+        } else {
+            sb.add("INSERT");
+            sb.add("INTO");
+            sb.add(escapedTableName);
+            sb.add("VALUES");
 
-                if (colNum < totalColumns - 1) {
+            for (int i = 0; i < totalRows; i++) {
+                if (i != 0) {
                     sb.add(COMMA);
                 }
+                sb.add(OPEN_BRACKET);
+                for (int colNum = 0; colNum < totalColumns; colNum++) {
+
+                    // TODO: consider how to enclose data in case of preparedStatemets
+                    if (passDataAsString(colNum)) {
+                        sb.add("'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
+                    } else if (passDataAsHex(colNum)) {
+                        sb.add("0X" + byteArrayToHex((byte[]) (getColumn(colNum).getRowValue(i))));
+                    } else {
+                        sb.add(String.valueOf(getColumn(colNum).getRowValue(i)));
+                    }
+
+                    if (colNum < totalColumns - 1) {
+                        sb.add(COMMA);
+                    }
+                }
+                sb.add(CLOSE_BRACKET);
             }
-            sb.add(CLOSE_BRACKET);
         }
 
         return (sb.toString());

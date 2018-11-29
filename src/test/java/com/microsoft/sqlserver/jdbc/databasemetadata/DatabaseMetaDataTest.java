@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -139,7 +140,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
 
-            String connectionString = getConfiguredProperty("mssql_jdbc_test_connection_properties");
+            String connectionString = getConfiguredProperty(AbstractTest.CURRENT_CONNECTION_PROPERTIES);
 
             connectionString = connectionString.toLowerCase();
 

@@ -13,6 +13,7 @@ import java.io.CharArrayReader;
 import java.net.URI;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,6 +25,7 @@ import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBit;
@@ -64,9 +66,17 @@ public class TestUtils {
     // 'SQL' represents SQL Server, while 'SQLAzure' represents SQL Azure.
     public static final String SERVER_TYPE_SQL_SERVER = "SQL";
     public static final String SERVER_TYPE_SQL_AZURE = "SQLAzure";
+    
     // private static SqlType types = null;
     private static ArrayList<SqlType> types = null;
+    private final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+    private final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
 
+    // whether we determined if the target server is SQL Azure
+    private static boolean _determinedSqlAzureOrSqlServer = false;
+    private static boolean _isSqlAzure = false;
+    private static boolean _isSqlAzureDW = false;
+    
     /**
      * Returns serverType
      * 
@@ -665,5 +675,67 @@ public class TestUtils {
      */
     public static String escapeSingleQuotes(String name) {
         return name.replace("'", "''");
+    }
+    
+    /**
+     * Returns if connected to SQL Azure
+     * @param con
+     *        connection to server
+     * @return boolean
+     * @throws SQLException
+     */
+    public static boolean isSqlAzure(Connection con) throws SQLException {
+        if (_determinedSqlAzureOrSqlServer) {
+            return _isSqlAzure;
+        }
+        
+        boolean ownsCon = false;
+        
+        if (null == con) {
+            con = DriverManager.getConnection(AbstractTest.CURRENT_CONNECTION_PROPERTIES);
+            ownsCon = true;
+        }
+        
+        try (ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+            rs.next();
+            int engineEdition = rs.getInt(1);
+            _determinedSqlAzureOrSqlServer = true;
+            _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            if (ownsCon) {
+                con.close();
+            }
+            return _isSqlAzure;
+        }
+    }
+    
+    /**
+     * Returns if connected to SQL Azure DW
+     * @param con
+     *        connection to server
+     * @return boolean
+     * @throws SQLException
+     */
+    public static boolean isSqlAzureDW(Connection con) throws SQLException {
+        if (_determinedSqlAzureOrSqlServer) {
+            return _isSqlAzureDW;
+        }
+        
+        boolean ownsCon = false;
+        
+        if (null == con) {
+            con = DriverManager.getConnection(AbstractTest.CURRENT_CONNECTION_PROPERTIES);
+            ownsCon = true;
+        }
+        
+        try (ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+            rs.next();
+            int engineEdition = rs.getInt(1);
+            _determinedSqlAzureOrSqlServer = true;
+            _isSqlAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            if (ownsCon) {
+                con.close();
+            }
+            return _isSqlAzureDW;
+        }
     }
 }

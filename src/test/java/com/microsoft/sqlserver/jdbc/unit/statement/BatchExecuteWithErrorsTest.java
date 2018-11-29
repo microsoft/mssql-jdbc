@@ -22,6 +22,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -40,6 +41,7 @@ import com.microsoft.sqlserver.testframework.DBConnection;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class BatchExecuteWithErrorsTest extends AbstractTest {
 
     public static final Logger log = Logger.getLogger("BatchExecuteWithErrors");
@@ -144,7 +146,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 } catch (Exception ignored) {}
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (c1_int int, c2_varchar varchar(20), c3_date datetime, c4_int int identity(1,1) primary key)");
+                        + " (c1_int int, c2_varchar varchar(20), c3_date datetime, c4_int int identity(1,1))");
 
                 // Regular Statement batch update
                 expectedUpdateCounts = new int[] {1, -2, 1, -2, 1, -2};
@@ -241,7 +243,11 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                 try {
                     stmt.executeBatch();
                 } catch (BatchUpdateException bue) {
-                    assertThat(bue.getMessage(), containsString(TestResource.getResource("R_syntaxErrorDateConvert")));
+                    if (TestUtils.isSqlAzureDW(conn)) {
+                        assertThat(bue.getMessage(), containsString(TestResource.getResource("R_syntaxErrorDateConvertDW")));
+                    } else {
+                        assertThat(bue.getMessage(), containsString(TestResource.getResource("R_syntaxErrorDateConvert")));
+                    }
                     // CTestLog.CompareStartsWith(bue.getMessage(), "Syntax error converting date", "Transaction
                     // rollback with conversion error threw wrong
                     // BatchUpdateException");
