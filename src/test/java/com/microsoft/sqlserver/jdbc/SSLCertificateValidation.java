@@ -1,3 +1,8 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.Assert.assertFalse;
@@ -12,6 +17,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 
+
 @RunWith(JUnitPlatform.class)
 public class SSLCertificateValidation {
 
@@ -24,6 +30,7 @@ public class SSLCertificateValidation {
     public void testValidateServerName() throws Exception {
 
         String serverName = "msjdbc.database.windows.net";
+        String serverName2 = "bbbbuuzzuzzzzzz.example.net";
 
         // Set up the HostNameOverrideX509TrustManager object using reflection
         TDSChannel tdsc = new TDSChannel(new SQLServerConnection("someConnectionProperty"));
@@ -33,12 +40,7 @@ public class SSLCertificateValidation {
         Object hsoObject = constructor.newInstance(null, tdsc, null, serverName);
         Method method = hsoObject.getClass().getDeclaredMethod("validateServerName", String.class);
         method.setAccessible(true);
-
-        // Server Name = msjdbc.database.windows.net
-        // SAN = *.database.windows.net
-        // Expected result: true
-        assertTrue((boolean) method.invoke(hsoObject, "*.database.windows.net"));
-
+        
         // Server Name = msjdbc.database.windows.net
         // SAN = msjdbc.database.windows.net
         // Expected result: true
@@ -73,7 +75,7 @@ public class SSLCertificateValidation {
         // SAN = .*.windows.net
         // Expected result: false
         assertFalse((boolean) method.invoke(hsoObject, ".*.windows.net"));
-        
+
         // Server Name = msjdbc.database.windows.net
         // SAN = msjdbc.*.windows.net
         // Expected result: false
@@ -84,22 +86,35 @@ public class SSLCertificateValidation {
         // Expected result: false
         // Note: multiple wildcards are not allowed, so this case shouldn't happen, but we still make sure to fail this.
         assertFalse((boolean) method.invoke(hsoObject, "*.*.windows.net"));
-        
+
         // Server Name = msjdbc.database.windows.net
         // SAN = *.com
         // Expected result: false
         // A cert with * plus a top-level domain is not allowed.
         assertFalse((boolean) method.invoke(hsoObject, "*.com"));
-        
+
         // Server Name = msjdbc.database.windows.net
         // SAN = xn--caf-dma*.com
         // Expected result: fail
         assertFalse((boolean) method.invoke(hsoObject, "xn--caf-dma*.com"));
-        
+
         // Server Name = msjdbc.database.windows.net
         // SAN = *
         // Expected result: fail
         assertFalse((boolean) method.invoke(hsoObject, "*"));
+        
+        // Server Name = msjdbc.database.windows.net
+        // SAN = ms*atabase.windows.net
+        // Expected result: fail
+        assertFalse((boolean) method.invoke(hsoObject, "ms*atabase.windows.net"));
+        
+        hsoObject = constructor.newInstance(null, tdsc, null, serverName2);
+        method = hsoObject.getClass().getDeclaredMethod("validateServerName", String.class);
+        method.setAccessible(true);
+        
+        // Server Name = bbbbuuzzuzzzzzz.example.net
+        // SAN = b*zzz.example.net
+        // Expected result: true
+        assertTrue((boolean) method.invoke(hsoObject, "b*zzz.example.net"));
     }
-
 }
