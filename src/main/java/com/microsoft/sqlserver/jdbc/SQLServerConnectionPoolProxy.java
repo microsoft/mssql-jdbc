@@ -148,7 +148,8 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 
         executor.execute(new Runnable() {
             public void run() {
-                wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy aborted ");
+                if (wrappedConnection.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
+                    wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy aborted ");
                 try {
                     wrappedConnection.poolCloseEventNotify();
                     wrappedConnection = null;
@@ -162,7 +163,8 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     @Override
     public void close() throws SQLServerException {
         if (bIsOpen && (null != wrappedConnection)) {
-            wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy closed ");
+            if (wrappedConnection.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
+                wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy closed ");
 
             wrappedConnection.poolCloseEventNotify();
             wrappedConnection = null;

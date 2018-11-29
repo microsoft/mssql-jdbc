@@ -14,6 +14,7 @@ import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.ietf.jgss.GSSCredential;
@@ -552,7 +553,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         try {
             java.sql.DriverManager.registerDriver(new SQLServerDriver());
         } catch (SQLException e) {
-            if (Util.IsActivityTraceOn()) {
+            if (drLogger.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
                 drLogger.finer("Error registering driver: " + e);
             }
         }
@@ -656,7 +657,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             }
         }
 
-        logger.finer("Unknown property" + name);
+        if (logger.isLoggable(Level.FINER))
+            logger.finer("Unknown property" + name);
         return null;
     }
 
@@ -678,7 +680,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             }
         }
 
-        logger.finer("Unknown property" + name);
+        if (logger.isLoggable(Level.FINER))
+            logger.finer("Unknown property" + name);
         return null;
     }
 

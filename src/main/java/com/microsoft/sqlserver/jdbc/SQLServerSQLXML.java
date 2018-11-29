@@ -1,6 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server Copyright(c)Microsoft Corporation All rights reserved.This program is
- * made*available under the terms of the MIT License.See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -139,7 +139,8 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         traceID = " SQLServerSQLXML:" + nextInstanceID();
         con = connection;
 
-        logger.fine(toString() + " created by (" + connection.toString() + ")");
+        if (logger.isLoggable(java.util.logging.Level.FINE))
+            logger.fine(toString() + " created by (" + connection.toString() + ")");
         getterArgs = null; // make the compiler happy
         typeInfo = null;
     }
@@ -150,7 +151,8 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         this.con = null;
         this.getterArgs = getterArgs;
         this.typeInfo = typeInfo;
-        logger.fine(toString() + " created by (null connection)");
+        if (logger.isLoggable(java.util.logging.Level.FINE))
+            logger.fine(toString() + " created by (null connection)");
     }
 
     InputStream getStream() {

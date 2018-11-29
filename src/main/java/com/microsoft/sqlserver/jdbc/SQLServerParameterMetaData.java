@@ -553,7 +553,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         assert null != st;
         stmtParent = st;
         con = st.connection;
-        logger.fine(toString() + " created by (" + st.toString() + ")");
+        if (logger.isLoggable(java.util.logging.Level.FINE)) {
+            logger.fine(toString() + " created by (" + st.toString() + ")");
+        }
         try {
 
             // If the CallableStatement/PreparedStatement is a stored procedure call
