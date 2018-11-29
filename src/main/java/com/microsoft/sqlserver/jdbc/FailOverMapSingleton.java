@@ -35,8 +35,9 @@ final class FailoverMapSingleton {
                 return null;
             } else {
                 String mapKey = concatPrimaryDatabase(primaryServer, instance, database);
-                connection.getConnectionLogger()
-                        .finer(connection.toString() + " Looking up info in the map using key: " + mapKey);
+                if (connection.getConnectionLogger().isLoggable(Level.FINER))
+                    connection.getConnectionLogger()
+                            .finer(connection.toString() + " Looking up info in the map using key: " + mapKey);
                 FailoverInfo fo = failoverMap.get(mapKey);
                 if (null != fo)
                     fo.log(connection);

@@ -27,6 +27,7 @@ import java.text.MessageFormat;
 import java.util.Calendar;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
@@ -404,7 +405,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // increment opened resultset counter
         stmtIn.incrResultSetCount();
 
-        logger.fine(toString() + " created by (" + stmt.toString() + ")");
+        if (logger.isLoggable(java.util.logging.Level.FINE)) {
+            logger.fine(toString() + " created by (" + stmt.toString() + ")");
+        }
     }
 
     @Override
@@ -620,7 +623,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void close() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "close");
-        if (Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         closeInternal();
@@ -781,9 +784,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public boolean relative(int rows) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "relative", rows);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "relative", rows);
 
-        logger.finer(toString() + " rows:" + rows + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + " rows:" + rows + logCursorState());
 
         checkClosed();
 
@@ -967,10 +972,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean next() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "next");
-        if (Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -1079,7 +1085,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean isBeforeFirst() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isBeforeFirst");
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -1138,7 +1145,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean isAfterLast() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isAfterLast");
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -1189,7 +1197,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean isFirst() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isFirst");
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -1238,7 +1247,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean isLast() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "isLast");
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -1288,10 +1298,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void beforeFirst() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "beforeFirst");
-        if (Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -1318,11 +1329,12 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void afterLast() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "afterLast");
-        if (Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -1366,7 +1378,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean first() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "first");
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -1422,7 +1435,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean last() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "last");
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -1468,7 +1482,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public int getRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getRow");
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -1538,10 +1553,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean absolute(int row) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "absolute");
-        if (Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
-        logger.finer(toString() + " row:" + row + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + " row:" + row + logCursorState());
 
         checkClosed();
 
@@ -1858,7 +1874,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean previous() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "previous");
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -2000,7 +2017,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             verifyResultSetHasCurrentRow();
         }
 
-        logger.finer(toString() + " Getting Column:" + index);
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + " Getting Column:" + index);
 
         fillLOBs();
         return loadColumn(index);
@@ -2072,7 +2090,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Deprecated
     @Override
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getBigDecimal", new Object[] {columnIndex, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getBigDecimal", new Object[] {columnIndex, scale});
         checkClosed();
         BigDecimal value = (BigDecimal) getValue(columnIndex, JDBCType.DECIMAL);
         if (null != value)
@@ -2084,7 +2103,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Deprecated
     @Override
     public BigDecimal getBigDecimal(String columnName, int scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "columnName", new Object[] {columnName, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "columnName", new Object[] {columnName, scale});
         checkClosed();
         BigDecimal value = (BigDecimal) getValue(findColumn(columnName), JDBCType.DECIMAL);
         if (null != value)
@@ -2185,7 +2205,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public java.sql.Date getDate(int columnIndex, Calendar cal) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getDate", new Object[] {columnIndex, cal});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getDate", new Object[] {columnIndex, cal});
         checkClosed();
         java.sql.Date value = (java.sql.Date) getValue(columnIndex, JDBCType.DATE, cal);
         loggerExternal.exiting(getClassNameLogging(), "getDate", value);
@@ -2194,7 +2215,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public java.sql.Date getDate(String colName, Calendar cal) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getDate", new Object[] {colName, cal});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getDate", new Object[] {colName, cal});
         checkClosed();
         java.sql.Date value = (java.sql.Date) getValue(findColumn(colName), JDBCType.DATE, cal);
         loggerExternal.exiting(getClassNameLogging(), "getDate", value);
@@ -2529,7 +2551,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public java.sql.Time getTime(int columnIndex, Calendar cal) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getTime", new Object[] {columnIndex, cal});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getTime", new Object[] {columnIndex, cal});
         checkClosed();
         java.sql.Time value = (java.sql.Time) getValue(columnIndex, JDBCType.TIME, cal);
         loggerExternal.exiting(getClassNameLogging(), "getTime", value);
@@ -2538,7 +2561,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public java.sql.Time getTime(String colName, Calendar cal) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getTime", new Object[] {colName, cal});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getTime", new Object[] {colName, cal});
         checkClosed();
         java.sql.Time value = (java.sql.Time) getValue(findColumn(colName), JDBCType.TIME, cal);
         loggerExternal.exiting(getClassNameLogging(), "getTime", value);
@@ -2565,7 +2589,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public java.sql.Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getTimestamp", new Object[] {columnIndex, cal});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getTimestamp", new Object[] {columnIndex, cal});
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(columnIndex, JDBCType.TIMESTAMP, cal);
         loggerExternal.exiting(getClassNameLogging(), "getTimeStamp", value);
@@ -2574,7 +2599,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public java.sql.Timestamp getTimestamp(String colName, Calendar cal) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getTimestamp", new Object[] {colName, cal});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getTimestamp", new Object[] {colName, cal});
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(findColumn(colName), JDBCType.TIMESTAMP, cal);
         loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
@@ -2601,7 +2627,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public java.sql.Timestamp getDateTime(int columnIndex, Calendar cal) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getDateTime", new Object[] {columnIndex, cal});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getDateTime", new Object[] {columnIndex, cal});
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(columnIndex, JDBCType.TIMESTAMP, cal);
         loggerExternal.exiting(getClassNameLogging(), "getDateTime", value);
@@ -2610,7 +2637,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public java.sql.Timestamp getDateTime(String colName, Calendar cal) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getDateTime", new Object[] {colName, cal});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getDateTime", new Object[] {colName, cal});
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(findColumn(colName), JDBCType.TIMESTAMP, cal);
         loggerExternal.exiting(getClassNameLogging(), "getDateTime", value);
@@ -2637,7 +2665,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public java.sql.Timestamp getSmallDateTime(int columnIndex, Calendar cal) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getSmallDateTime", new Object[] {columnIndex, cal});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getSmallDateTime", new Object[] {columnIndex, cal});
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(columnIndex, JDBCType.TIMESTAMP, cal);
         loggerExternal.exiting(getClassNameLogging(), "getSmallDateTime", value);
@@ -2646,7 +2675,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public java.sql.Timestamp getSmallDateTime(String colName, Calendar cal) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getSmallDateTime", new Object[] {colName, cal});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getSmallDateTime", new Object[] {colName, cal});
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(findColumn(colName), JDBCType.TIMESTAMP, cal);
         loggerExternal.exiting(getClassNameLogging(), "getSmallDateTime", value);
@@ -2703,7 +2733,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public Object getObject(int i, java.util.Map<String, Class<?>> map) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "getObject", new Object[] {i, map});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getObject", new Object[] {i, map});
         SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
@@ -3074,11 +3105,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBoolean(int index, boolean x) throws SQLException {
-
-        loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {index, x});
-
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {index, x});
         checkClosed();
-
         updateValue(index, JDBCType.BIT, x, JavaType.BOOLEAN, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateBoolean");
@@ -3086,7 +3115,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBoolean(int index, boolean x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {index, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {index, x, forceEncrypt});
         checkClosed();
         updateValue(index, JDBCType.BIT, x, JavaType.BOOLEAN, forceEncrypt);
 
@@ -3095,7 +3125,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateByte(int index, byte x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateByte", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateByte", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.TINYINT, x, JavaType.BYTE, false);
@@ -3105,7 +3136,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateByte(int index, byte x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateByte", new Object[] {index, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateByte", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.TINYINT, x, JavaType.BYTE, forceEncrypt);
@@ -3115,7 +3147,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateShort(int index, short x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.SMALLINT, x, JavaType.SHORT, false);
@@ -3125,7 +3158,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateShort(int index, short x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {index, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.SMALLINT, x, JavaType.SHORT, forceEncrypt);
@@ -3135,7 +3169,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateInt(int index, int x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.INTEGER, x, JavaType.INTEGER, false);
@@ -3145,7 +3180,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateInt(int index, int x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {index, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.INTEGER, x, JavaType.INTEGER, forceEncrypt);
@@ -3155,7 +3191,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateLong(int index, long x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.BIGINT, x, JavaType.LONG, false);
@@ -3165,7 +3202,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateLong(int index, long x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {index, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.BIGINT, x, JavaType.LONG, forceEncrypt);
@@ -3175,7 +3213,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateFloat(int index, float x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.REAL, x, JavaType.FLOAT, false);
@@ -3185,7 +3224,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateFloat(int index, float x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {index, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.REAL, x, JavaType.FLOAT, forceEncrypt);
@@ -3195,7 +3235,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDouble(int index, double x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.DOUBLE, x, JavaType.DOUBLE, false);
@@ -3205,7 +3246,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDouble(int index, double x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {index, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.DOUBLE, x, JavaType.DOUBLE, forceEncrypt);
@@ -3215,7 +3257,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateMoney(int index, BigDecimal x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateMoney", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateMoney", new Object[] {index, x});
         checkClosed();
         updateValue(index, JDBCType.MONEY, x, JavaType.BIGDECIMAL, false);
 
@@ -3224,7 +3267,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateMoney(int index, BigDecimal x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateMoney", new Object[] {index, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateMoney", new Object[] {index, x, forceEncrypt});
         checkClosed();
         updateValue(index, JDBCType.MONEY, x, JavaType.BIGDECIMAL, forceEncrypt);
 
@@ -3233,7 +3277,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateMoney(String columnName, BigDecimal x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateMoney", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateMoney", new Object[] {columnName, x});
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.MONEY, x, JavaType.BIGDECIMAL, false);
 
@@ -3242,7 +3287,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateMoney(String columnName, BigDecimal x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateMoney", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateMoney", new Object[] {columnName, x, forceEncrypt});
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.MONEY, x, JavaType.BIGDECIMAL, forceEncrypt);
 
@@ -3251,7 +3297,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateSmallMoney(int index, BigDecimal x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateSmallMoney", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateSmallMoney", new Object[] {index, x});
         checkClosed();
         updateValue(index, JDBCType.SMALLMONEY, x, JavaType.BIGDECIMAL, false);
 
@@ -3260,7 +3307,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateSmallMoney(int index, BigDecimal x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateSmallMoney", new Object[] {index, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateSmallMoney", new Object[] {index, x, forceEncrypt});
         checkClosed();
         updateValue(index, JDBCType.SMALLMONEY, x, JavaType.BIGDECIMAL, forceEncrypt);
 
@@ -3269,7 +3317,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateSmallMoney(String columnName, BigDecimal x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateSmallMoney", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateSmallMoney", new Object[] {columnName, x});
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.SMALLMONEY, x, JavaType.BIGDECIMAL, false);
 
@@ -3278,7 +3327,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateSmallMoney(String columnName, BigDecimal x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateSmallMoney", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateSmallMoney",
+                    new Object[] {columnName, x, forceEncrypt});
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.SMALLMONEY, x, JavaType.BIGDECIMAL, forceEncrypt);
 
@@ -3287,7 +3338,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBigDecimal(int index, BigDecimal x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBigDecimal", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBigDecimal", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, false);
@@ -3297,7 +3349,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBigDecimal(int index, BigDecimal x, Integer precision, Integer scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBigDecimal", new Object[] {index, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBigDecimal", new Object[] {index, x, scale});
 
         checkClosed();
         updateValue(index, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, false);
@@ -3308,8 +3361,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateBigDecimal(int index, BigDecimal x, Integer precision, Integer scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBigDecimal",
-                new Object[] {index, x, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBigDecimal",
+                    new Object[] {index, x, scale, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, forceEncrypt);
@@ -3319,7 +3373,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateString(int columnIndex, String stringValue) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateString", new Object[] {columnIndex, stringValue});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateString", new Object[] {columnIndex, stringValue});
 
         checkClosed();
         updateValue(columnIndex, JDBCType.VARCHAR, stringValue, JavaType.STRING, false);
@@ -3329,8 +3384,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateString(int columnIndex, String stringValue, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateString",
-                new Object[] {columnIndex, stringValue, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateString",
+                    new Object[] {columnIndex, stringValue, forceEncrypt});
 
         checkClosed();
         updateValue(columnIndex, JDBCType.VARCHAR, stringValue, JavaType.STRING, forceEncrypt);
@@ -3340,7 +3396,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNString(int columnIndex, String nString) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnIndex, nString});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnIndex, nString});
 
         checkClosed();
         updateValue(columnIndex, JDBCType.NVARCHAR, nString, JavaType.STRING, false);
@@ -3350,8 +3407,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNString(int columnIndex, String nString, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateNString",
-                new Object[] {columnIndex, nString, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNString",
+                    new Object[] {columnIndex, nString, forceEncrypt});
 
         checkClosed();
         updateValue(columnIndex, JDBCType.NVARCHAR, nString, JavaType.STRING, forceEncrypt);
@@ -3361,7 +3419,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNString(String columnLabel, String nString) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnLabel, nString});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNString", new Object[] {columnLabel, nString});
 
         checkClosed();
         updateValue(findColumn(columnLabel), JDBCType.NVARCHAR, nString, JavaType.STRING, false);
@@ -3371,8 +3430,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNString(String columnLabel, String nString, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateNString",
-                new Object[] {columnLabel, nString, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNString",
+                    new Object[] {columnLabel, nString, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnLabel), JDBCType.NVARCHAR, nString, JavaType.STRING, forceEncrypt);
@@ -3382,7 +3442,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBytes(int index, byte x[]) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.BINARY, x, JavaType.BYTEARRAY, false);
@@ -3392,7 +3453,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBytes(int index, byte x[], boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {index, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.BINARY, x, JavaType.BYTEARRAY, forceEncrypt);
@@ -3402,7 +3464,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDate(int index, java.sql.Date x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDate", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDate", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.DATE, x, JavaType.DATE, false);
@@ -3412,7 +3475,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDate(int index, java.sql.Date x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDate", new Object[] {index, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDate", new Object[] {index, x, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.DATE, x, JavaType.DATE, forceEncrypt);
@@ -3422,7 +3486,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateTime(int index, java.sql.Time x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateTime", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateTime", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.TIME, x, JavaType.TIME, false);
@@ -3432,7 +3497,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateTime(int index, java.sql.Time x, Integer scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateTime", new Object[] {index, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateTime", new Object[] {index, x, scale});
 
         checkClosed();
         updateValue(index, JDBCType.TIME, x, JavaType.TIME, null, scale, false);
@@ -3442,7 +3508,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateTime(int index, java.sql.Time x, Integer scale, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateTime", new Object[] {index, x, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateTime", new Object[] {index, x, scale, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.TIME, x, JavaType.TIME, null, scale, forceEncrypt);
@@ -3452,7 +3519,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateTimestamp(int index, java.sql.Timestamp x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateTimestamp", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateTimestamp", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, false);
@@ -3462,7 +3530,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateTimestamp(int index, java.sql.Timestamp x, int scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateTimestamp", new Object[] {index, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateTimestamp", new Object[] {index, x, scale});
 
         checkClosed();
         updateValue(index, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, null, scale, false);
@@ -3473,7 +3542,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateTimestamp(int index, java.sql.Timestamp x, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateTimestamp", new Object[] {index, x, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateTimestamp",
+                    new Object[] {index, x, scale, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, null, scale, forceEncrypt);
@@ -3483,7 +3554,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDateTime(int index, java.sql.Timestamp x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDateTime", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDateTime", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.DATETIME, x, JavaType.TIMESTAMP, false);
@@ -3493,7 +3565,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDateTime(int index, java.sql.Timestamp x, Integer scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDateTime", new Object[] {index, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDateTime", new Object[] {index, x, scale});
 
         checkClosed();
         updateValue(index, JDBCType.DATETIME, x, JavaType.TIMESTAMP, null, scale, false);
@@ -3504,7 +3577,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateDateTime(int index, java.sql.Timestamp x, Integer scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDateTime", new Object[] {index, x, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDateTime",
+                    new Object[] {index, x, scale, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.DATETIME, x, JavaType.TIMESTAMP, null, scale, forceEncrypt);
@@ -3514,7 +3589,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateSmallDateTime(int index, java.sql.Timestamp x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateSmallDateTime", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateSmallDateTime", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.SMALLDATETIME, x, JavaType.TIMESTAMP, false);
@@ -3524,7 +3600,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateSmallDateTime(int index, java.sql.Timestamp x, Integer scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateSmallDateTime", new Object[] {index, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateSmallDateTime", new Object[] {index, x, scale});
 
         checkClosed();
         updateValue(index, JDBCType.SMALLDATETIME, x, JavaType.TIMESTAMP, null, scale, false);
@@ -3535,8 +3612,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateSmallDateTime(int index, java.sql.Timestamp x, Integer scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateSmallDateTime",
-                new Object[] {index, x, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateSmallDateTime",
+                    new Object[] {index, x, scale, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.SMALLDATETIME, x, JavaType.TIMESTAMP, null, scale, forceEncrypt);
@@ -3546,7 +3624,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.DATETIMEOFFSET, x, JavaType.DATETIMEOFFSET, false);
@@ -3557,7 +3636,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x,
             Integer scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {index, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {index, x, scale});
 
         checkClosed();
         updateValue(index, JDBCType.DATETIMEOFFSET, x, JavaType.DATETIMEOFFSET, null, scale, false);
@@ -3568,8 +3648,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x, Integer scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset",
-                new Object[] {index, x, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset",
+                    new Object[] {index, x, scale, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.DATETIMEOFFSET, x, JavaType.DATETIMEOFFSET, null, scale, forceEncrypt);
@@ -3579,7 +3660,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateUniqueIdentifier(int index, String x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateUniqueIdentifier", new Object[] {index, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateUniqueIdentifier", new Object[] {index, x});
 
         checkClosed();
         updateValue(index, JDBCType.GUID, x, JavaType.STRING, null, false);
@@ -3589,7 +3671,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateUniqueIdentifier(int index, String x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateUniqueIdentifier", new Object[] {index, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateUniqueIdentifier",
+                    new Object[] {index, x, forceEncrypt});
 
         checkClosed();
         updateValue(index, JDBCType.GUID, x, JavaType.STRING, null, forceEncrypt);
@@ -3599,7 +3683,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateAsciiStream(int columnIndex, InputStream x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnIndex, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnIndex, x});
 
         checkClosed();
         updateStream(columnIndex, StreamType.ASCII, x, JavaType.INPUTSTREAM, DataTypes.UNKNOWN_STREAM_LENGTH);
@@ -3609,7 +3694,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateAsciiStream(int index, InputStream x, int length) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {index, x, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {index, x, length});
 
         checkClosed();
         updateStream(index, StreamType.ASCII, x, JavaType.INPUTSTREAM, length);
@@ -3629,7 +3715,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateAsciiStream(String columnLabel, InputStream x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnLabel, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnLabel, x});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.ASCII, x, JavaType.INPUTSTREAM,
@@ -3640,7 +3727,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateAsciiStream(java.lang.String columnName, InputStream x, int length) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnName, x, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateAsciiStream", new Object[] {columnName, x, length});
 
         checkClosed();
         updateStream(findColumn(columnName), StreamType.ASCII, x, JavaType.INPUTSTREAM, length);
@@ -3650,8 +3738,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateAsciiStream(String columnName, InputStream streamValue, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateAsciiStream",
-                new Object[] {columnName, streamValue, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateAsciiStream",
+                    new Object[] {columnName, streamValue, length});
 
         checkClosed();
         updateStream(findColumn(columnName), StreamType.ASCII, streamValue, JavaType.INPUTSTREAM, length);
@@ -3661,7 +3750,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBinaryStream(int columnIndex, InputStream x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnIndex, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnIndex, x});
 
         checkClosed();
         updateStream(columnIndex, StreamType.BINARY, x, JavaType.INPUTSTREAM, DataTypes.UNKNOWN_STREAM_LENGTH);
@@ -3671,8 +3761,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBinaryStream(int columnIndex, InputStream streamValue, int length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBinaryStream",
-                new Object[] {columnIndex, streamValue, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBinaryStream",
+                    new Object[] {columnIndex, streamValue, length});
 
         checkClosed();
         updateStream(columnIndex, StreamType.BINARY, streamValue, JavaType.INPUTSTREAM, length);
@@ -3682,7 +3773,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBinaryStream(int columnIndex, InputStream x, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnIndex, x, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnIndex, x, length});
 
         checkClosed();
         updateStream(columnIndex, StreamType.BINARY, x, JavaType.INPUTSTREAM, length);
@@ -3692,7 +3784,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBinaryStream(String columnLabel, InputStream x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnLabel, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnLabel, x});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.BINARY, x, JavaType.INPUTSTREAM,
@@ -3703,8 +3796,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBinaryStream(String columnName, InputStream streamValue, int length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBinaryStream",
-                new Object[] {columnName, streamValue, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBinaryStream",
+                    new Object[] {columnName, streamValue, length});
 
         checkClosed();
         updateStream(findColumn(columnName), StreamType.BINARY, streamValue, JavaType.INPUTSTREAM, length);
@@ -3714,7 +3808,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBinaryStream(String columnLabel, InputStream x, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnLabel, x, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBinaryStream", new Object[] {columnLabel, x, length});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.BINARY, x, JavaType.INPUTSTREAM, length);
@@ -3724,7 +3819,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateCharacterStream(int columnIndex, Reader x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnIndex, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnIndex, x});
 
         checkClosed();
         updateStream(columnIndex, StreamType.CHARACTER, x, JavaType.READER, DataTypes.UNKNOWN_STREAM_LENGTH);
@@ -3734,8 +3830,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateCharacterStream(int columnIndex, Reader readerValue, int length) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateCharacterStream",
-                new Object[] {columnIndex, readerValue, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateCharacterStream",
+                    new Object[] {columnIndex, readerValue, length});
 
         checkClosed();
         updateStream(columnIndex, StreamType.CHARACTER, readerValue, JavaType.READER, length);
@@ -3745,7 +3842,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateCharacterStream(int columnIndex, Reader x, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnIndex, x, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateCharacterStream",
+                    new Object[] {columnIndex, x, length});
 
         checkClosed();
         updateStream(columnIndex, StreamType.CHARACTER, x, JavaType.READER, length);
@@ -3755,7 +3854,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnLabel, reader});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateCharacterStream", new Object[] {columnLabel, reader});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.CHARACTER, reader, JavaType.READER,
@@ -3766,8 +3866,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateCharacterStream(String columnName, Reader readerValue, int length) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateCharacterStream",
-                new Object[] {columnName, readerValue, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateCharacterStream",
+                    new Object[] {columnName, readerValue, length});
 
         checkClosed();
         updateStream(findColumn(columnName), StreamType.CHARACTER, readerValue, JavaType.READER, length);
@@ -3777,8 +3878,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateCharacterStream",
-                new Object[] {columnLabel, reader, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateCharacterStream",
+                    new Object[] {columnLabel, reader, length});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.CHARACTER, reader, JavaType.READER, length);
@@ -3788,7 +3890,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNCharacterStream(int columnIndex, Reader x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream", new Object[] {columnIndex, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream", new Object[] {columnIndex, x});
 
         checkClosed();
         updateStream(columnIndex, StreamType.NCHARACTER, x, JavaType.READER, DataTypes.UNKNOWN_STREAM_LENGTH);
@@ -3798,7 +3901,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNCharacterStream(int columnIndex, Reader x, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream", new Object[] {columnIndex, x, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream",
+                    new Object[] {columnIndex, x, length});
 
         checkClosed();
         updateStream(columnIndex, StreamType.NCHARACTER, x, JavaType.READER, length);
@@ -3808,7 +3913,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream", new Object[] {columnLabel, reader});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream",
+                    new Object[] {columnLabel, reader});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.NCHARACTER, reader, JavaType.READER,
@@ -3819,8 +3926,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream",
-                new Object[] {columnLabel, reader, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNCharacterStream",
+                    new Object[] {columnLabel, reader, length});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.NCHARACTER, reader, JavaType.READER, length);
@@ -3830,7 +3938,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateObject(int index, Object obj) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, obj});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, obj});
 
         checkClosed();
         updateObject(index, obj, null, null, null, false);
@@ -3840,7 +3949,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateObject(int index, Object x, int scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, x, scale});
 
         checkClosed();
         updateObject(index, x, scale, null, null, false);
@@ -3850,7 +3960,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateObject(int index, Object x, int precision, int scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, x, scale});
 
         checkClosed();
         updateObject(index, x, scale, null, precision, false);
@@ -3861,7 +3972,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateObject(int index, Object x, int precision, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, x, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject",
+                    new Object[] {index, x, scale, forceEncrypt});
 
         checkClosed();
         updateObject(index, x, scale, null, precision, forceEncrypt);
@@ -3935,7 +4048,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBoolean(String columnName, boolean x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.BIT, x, JavaType.BOOLEAN, false);
@@ -3945,7 +4059,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBoolean(String columnName, boolean x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBoolean", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.BIT, x, JavaType.BOOLEAN, forceEncrypt);
@@ -3955,7 +4070,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateByte(String columnName, byte x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateByte", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateByte", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.BINARY, x, JavaType.BYTE, false);
@@ -3965,7 +4081,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateByte(String columnName, byte x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateByte", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateByte", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.BINARY, x, JavaType.BYTE, forceEncrypt);
@@ -3975,7 +4092,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateShort(String columnName, short x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.SMALLINT, x, JavaType.SHORT, false);
@@ -3985,7 +4103,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateShort(String columnName, short x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateShort", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.SMALLINT, x, JavaType.SHORT, forceEncrypt);
@@ -3995,7 +4114,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateInt(String columnName, int x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.INTEGER, x, JavaType.INTEGER, false);
@@ -4005,7 +4125,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateInt(String columnName, int x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateInt", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.INTEGER, x, JavaType.INTEGER, forceEncrypt);
@@ -4015,7 +4136,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateLong(String columnName, long x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.BIGINT, x, JavaType.LONG, false);
@@ -4025,7 +4147,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateLong(String columnName, long x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateLong", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.BIGINT, x, JavaType.LONG, forceEncrypt);
@@ -4035,7 +4158,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateFloat(String columnName, float x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.REAL, x, JavaType.FLOAT, false);
@@ -4045,7 +4169,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateFloat(String columnName, float x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateFloat", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.REAL, x, JavaType.FLOAT, forceEncrypt);
@@ -4055,7 +4180,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDouble(String columnName, double x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DOUBLE, x, JavaType.DOUBLE, false);
@@ -4065,7 +4191,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDouble(String columnName, double x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDouble", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DOUBLE, x, JavaType.DOUBLE, forceEncrypt);
@@ -4075,7 +4202,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBigDecimal(String columnName, BigDecimal x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBigDecimal", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBigDecimal", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, false);
@@ -4085,7 +4213,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBigDecimal(String columnName, BigDecimal x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBigDecimal", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBigDecimal",
+                    new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, forceEncrypt);
@@ -4096,8 +4226,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateBigDecimal(String columnName, BigDecimal x, Integer precision,
             Integer scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBigDecimal",
-                new Object[] {columnName, x, precision, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBigDecimal",
+                    new Object[] {columnName, x, precision, scale});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, false);
@@ -4108,8 +4239,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateBigDecimal(String columnName, BigDecimal x, Integer precision, Integer scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBigDecimal",
-                new Object[] {columnName, x, precision, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBigDecimal",
+                    new Object[] {columnName, x, precision, scale, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, forceEncrypt);
@@ -4119,7 +4251,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateString(String columnName, String x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateString", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateString", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.VARCHAR, x, JavaType.STRING, false);
@@ -4129,7 +4262,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateString(String columnName, String x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateString", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateString", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.VARCHAR, x, JavaType.STRING, forceEncrypt);
@@ -4139,7 +4273,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBytes(String columnName, byte x[]) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.BINARY, x, JavaType.BYTEARRAY, false);
@@ -4149,7 +4284,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBytes(String columnName, byte x[], boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.BINARY, x, JavaType.BYTEARRAY, forceEncrypt);
@@ -4159,7 +4295,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDate(String columnName, java.sql.Date x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDate", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDate", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DATE, x, JavaType.DATE, false);
@@ -4169,7 +4306,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDate(String columnName, java.sql.Date x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDate", new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDate", new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DATE, x, JavaType.DATE, forceEncrypt);
@@ -4179,7 +4317,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateTime(String columnName, java.sql.Time x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateTime", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateTime", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.TIME, x, JavaType.TIME, false);
@@ -4189,7 +4328,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateTime(String columnName, java.sql.Time x, int scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateTime", new Object[] {columnName, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateTime", new Object[] {columnName, x, scale});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.TIME, x, JavaType.TIME, null, scale, false);
@@ -4200,7 +4340,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateTime(String columnName, java.sql.Time x, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateTime", new Object[] {columnName, x, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateTime",
+                    new Object[] {columnName, x, scale, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.TIME, x, JavaType.TIME, null, scale, forceEncrypt);
@@ -4210,7 +4352,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateTimestamp(String columnName, java.sql.Timestamp x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateTimestamp", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateTimestamp", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, false);
@@ -4220,7 +4363,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateTimestamp(String columnName, java.sql.Timestamp x, int scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateTimestamp", new Object[] {columnName, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateTimestamp", new Object[] {columnName, x, scale});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, null, scale, false);
@@ -4231,8 +4375,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateTimestamp(String columnName, java.sql.Timestamp x, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateTimestamp",
-                new Object[] {columnName, x, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateTimestamp",
+                    new Object[] {columnName, x, scale, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, null, scale, forceEncrypt);
@@ -4242,7 +4387,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDateTime(String columnName, java.sql.Timestamp x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDateTime", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDateTime", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DATETIME, x, JavaType.TIMESTAMP, false);
@@ -4252,7 +4398,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDateTime(String columnName, java.sql.Timestamp x, int scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDateTime", new Object[] {columnName, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDateTime", new Object[] {columnName, x, scale});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DATETIME, x, JavaType.TIMESTAMP, null, scale, false);
@@ -4263,8 +4410,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateDateTime(String columnName, java.sql.Timestamp x, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDateTime",
-                new Object[] {columnName, x, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDateTime",
+                    new Object[] {columnName, x, scale, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DATETIME, x, JavaType.TIMESTAMP, null, scale, forceEncrypt);
@@ -4274,7 +4422,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateSmallDateTime(String columnName, java.sql.Timestamp x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateSmallDateTime", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateSmallDateTime", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.SMALLDATETIME, x, JavaType.TIMESTAMP, false);
@@ -4284,7 +4433,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateSmallDateTime(String columnName, java.sql.Timestamp x, int scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateSmallDateTime", new Object[] {columnName, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateSmallDateTime", new Object[] {columnName, x, scale});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.SMALLDATETIME, x, JavaType.TIMESTAMP, null, scale, false);
@@ -4295,8 +4445,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateSmallDateTime(String columnName, java.sql.Timestamp x, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateSmallDateTime",
-                new Object[] {columnName, x, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateSmallDateTime",
+                    new Object[] {columnName, x, scale, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.SMALLDATETIME, x, JavaType.TIMESTAMP, null, scale, forceEncrypt);
@@ -4306,7 +4457,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DATETIMEOFFSET, x, JavaType.DATETIMEOFFSET, false);
@@ -4317,7 +4469,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x,
             int scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {columnName, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset", new Object[] {columnName, x, scale});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DATETIMEOFFSET, x, JavaType.DATETIMEOFFSET, null, scale, false);
@@ -4328,8 +4481,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset",
-                new Object[] {columnName, x, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateDateTimeOffset",
+                    new Object[] {columnName, x, scale, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.DATETIMEOFFSET, x, JavaType.DATETIMEOFFSET, null, scale,
@@ -4340,7 +4494,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateUniqueIdentifier(String columnName, String x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateUniqueIdentifier", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateUniqueIdentifier", new Object[] {columnName, x});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.GUID, x, JavaType.STRING, null, false);
@@ -4350,8 +4505,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateUniqueIdentifier(String columnName, String x, boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateUniqueIdentifier",
-                new Object[] {columnName, x, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateUniqueIdentifier",
+                    new Object[] {columnName, x, forceEncrypt});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.GUID, x, JavaType.STRING, null, forceEncrypt);
@@ -4361,7 +4517,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateObject(String columnName, Object x, int scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, x, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, x, scale});
 
         checkClosed();
         updateObject(findColumn(columnName), x, scale, null, null, false);
@@ -4371,7 +4528,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateObject(String columnName, Object x, int precision, int scale) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, x, precision, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject",
+                    new Object[] {columnName, x, precision, scale});
 
         checkClosed();
         updateObject(findColumn(columnName), x, scale, null, precision, false);
@@ -4382,8 +4541,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateObject(String columnName, Object x, int precision, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateObject",
-                new Object[] {columnName, x, precision, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject",
+                    new Object[] {columnName, x, precision, scale, forceEncrypt});
 
         checkClosed();
         updateObject(findColumn(columnName), x, scale, null, precision, forceEncrypt);
@@ -4393,7 +4553,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateObject(String columnName, Object x) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, x});
 
         checkClosed();
         updateObject(findColumn(columnName), x, null, null, null, false);
@@ -4413,14 +4574,16 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateSQLXML", new Object[] {columnIndex, xmlObject});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateSQLXML", new Object[] {columnIndex, xmlObject});
         updateSQLXMLInternal(columnIndex, xmlObject);
         loggerExternal.exiting(getClassNameLogging(), "updateSQLXML");
     }
 
     @Override
     public void updateSQLXML(String columnLabel, SQLXML x) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateSQLXML", new Object[] {columnLabel, x});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateSQLXML", new Object[] {columnLabel, x});
         updateSQLXMLInternal(findColumn(columnLabel), x);
         loggerExternal.exiting(getClassNameLogging(), "updateSQLXML");
     }
@@ -4452,7 +4615,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void insertRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "insertRow");
-        if (Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
@@ -4470,7 +4633,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             }
         }
 
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -4554,7 +4718,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "updateRow");
-        if (Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         final class UpdateRowRPC extends TDSCommand {
@@ -4568,7 +4732,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             }
         }
 
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -4633,7 +4798,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void deleteRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "deleteRow");
-        if (Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         final class DeleteRowRPC extends TDSCommand {
@@ -4647,7 +4812,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             }
         }
 
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -4691,11 +4857,12 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void refreshRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "refreshRow");
-        if (Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -4786,7 +4953,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void moveToInsertRow() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "moveToInsertRow");
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -4802,7 +4970,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void moveToCurrentRow() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "moveToCurrentRow");
-        logger.finer(toString() + logCursorState());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + logCursorState());
 
         checkClosed();
 
@@ -4831,7 +5000,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateClob(int columnIndex, Clob clobValue) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, clobValue});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, clobValue});
 
         checkClosed();
         updateValue(columnIndex, JDBCType.CLOB, clobValue, JavaType.CLOB, false);
@@ -4841,7 +5011,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateClob(int columnIndex, Reader reader) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, reader});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, reader});
 
         checkClosed();
         updateStream(columnIndex, StreamType.CHARACTER, reader, JavaType.READER, DataTypes.UNKNOWN_STREAM_LENGTH);
@@ -4851,7 +5022,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateClob(int columnIndex, Reader reader, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, reader, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, reader, length});
 
         checkClosed();
         updateStream(columnIndex, StreamType.CHARACTER, reader, JavaType.READER, length);
@@ -4861,7 +5033,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateClob(String columnName, Clob clobValue) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnName, clobValue});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnName, clobValue});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.CLOB, clobValue, JavaType.CLOB, false);
@@ -4871,7 +5044,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateClob(String columnLabel, Reader reader) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnLabel, reader});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnLabel, reader});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.CHARACTER, reader, JavaType.READER,
@@ -4882,7 +5056,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnLabel, reader, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnLabel, reader, length});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.CHARACTER, reader, JavaType.READER, length);
@@ -4892,7 +5067,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNClob(int columnIndex, NClob nClob) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, nClob});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateClob", new Object[] {columnIndex, nClob});
 
         checkClosed();
         updateValue(columnIndex, JDBCType.NCLOB, nClob, JavaType.NCLOB, false);
@@ -4902,7 +5078,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNClob(int columnIndex, Reader reader) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnIndex, reader});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnIndex, reader});
 
         checkClosed();
         updateStream(columnIndex, StreamType.NCHARACTER, reader, JavaType.READER, DataTypes.UNKNOWN_STREAM_LENGTH);
@@ -4912,7 +5089,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnIndex, reader, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnIndex, reader, length});
 
         checkClosed();
         updateStream(columnIndex, StreamType.NCHARACTER, reader, JavaType.READER, length);
@@ -4922,7 +5100,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNClob(String columnLabel, NClob nClob) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnLabel, nClob});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnLabel, nClob});
 
         checkClosed();
         updateValue(findColumn(columnLabel), JDBCType.NCLOB, nClob, JavaType.NCLOB, false);
@@ -4932,7 +5111,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNClob(String columnLabel, Reader reader) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnLabel, reader});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnLabel, reader});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.NCHARACTER, reader, JavaType.READER,
@@ -4943,7 +5123,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateNClob(String columnLabel, Reader reader, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnLabel, reader, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateNClob", new Object[] {columnLabel, reader, length});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.NCHARACTER, reader, JavaType.READER, length);
@@ -4953,7 +5134,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBlob(int columnIndex, Blob blobValue) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnIndex, blobValue});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnIndex, blobValue});
 
         checkClosed();
         updateValue(columnIndex, JDBCType.BLOB, blobValue, JavaType.BLOB, false);
@@ -4963,7 +5145,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnIndex, inputStream});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnIndex, inputStream});
 
         checkClosed();
         updateStream(columnIndex, StreamType.BINARY, inputStream, JavaType.INPUTSTREAM,
@@ -4974,7 +5157,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBlob(int columnIndex, InputStream inputStream, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnIndex, inputStream, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBlob",
+                    new Object[] {columnIndex, inputStream, length});
 
         checkClosed();
         updateStream(columnIndex, StreamType.BINARY, inputStream, JavaType.INPUTSTREAM, length);
@@ -4984,7 +5169,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBlob(String columnName, Blob blobValue) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnName, blobValue});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnName, blobValue});
 
         checkClosed();
         updateValue(findColumn(columnName), JDBCType.BLOB, blobValue, JavaType.BLOB, false);
@@ -4994,7 +5180,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnLabel, inputStream});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnLabel, inputStream});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.BINARY, inputStream, JavaType.INPUTSTREAM,
@@ -5005,7 +5192,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public void updateBlob(String columnLabel, InputStream inputStream, long length) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "updateBlob", new Object[] {columnLabel, inputStream, length});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateBlob",
+                    new Object[] {columnLabel, inputStream, length});
 
         checkClosed();
         updateStream(findColumn(columnLabel), StreamType.BINARY, inputStream, JavaType.INPUTSTREAM, length);
@@ -5167,7 +5356,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
         final void ensureStartMark() {
             if (null == startMark && !isForwardOnly()) {
-                logger.finest(toString() + " Setting fetch buffer start mark");
+                if (logger.isLoggable(java.util.logging.Level.FINEST))
+                    logger.finest(toString() + " Setting fetch buffer start mark");
 
                 startMark = tdsReader.mark();
             }
@@ -5273,7 +5463,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
      *            The cursor was invalid.
      */
     final void doServerFetch(int fetchType, int startRow, int numRows) throws SQLServerException {
-        logger.finer(toString() + " fetchType:" + fetchType + " startRow:" + startRow + " numRows:" + numRows);
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + " fetchType:" + fetchType + " startRow:" + startRow + " numRows:" + numRows);
 
         // Discard the current fetch buffer contents
         discardFetchBuffer();
@@ -5309,8 +5500,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 // If there is a row error in the results, don't throw an exception from here.
                 // Ignore it for now and defer the exception until the app encounters the
                 // error through normal cursor movement.
-                logger.finer(
-                        toString() + " Ignored exception from row error during server cursor fixup: " + e.getMessage());
+                if (logger.isLoggable(java.util.logging.Level.FINER))
+                    logger.finer(toString() + " Ignored exception from row error during server cursor fixup: "
+                            + e.getMessage());
             }
 
             // Force the cursor to move to before the first row if necessary.
@@ -5333,12 +5525,13 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             try {
                 activeLOB.fillFromStream();
             } catch (SQLException e) {
-                logger.finer(toString() + "Filling Lobs before closing: " + e.getMessage());
+                if (logger.isLoggable(java.util.logging.Level.FINER)) {
+                    logger.finer(toString() + "Filling Lobs before closing: " + e.getMessage());
+                }
             } finally {
                 activeLOB = null;
             }
         }
-
     }
 
     /**
@@ -5369,7 +5562,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         try {
             while (fetchBufferNext());
         } catch (SQLServerException e) {
-            logger.finer(this + " Encountered exception discarding fetch buffer: " + e.getMessage());
+            if (logger.isLoggable(java.util.logging.Level.FINER))
+                logger.finer(this + " Encountered exception discarding fetch buffer: " + e.getMessage());
         }
     }
 
@@ -5385,9 +5579,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // If the connection is already closed, don't bother trying to close the server cursor.
         // We won't be able to, and it's already closed on the server anyway.
         if (stmt.connection.isSessionUnAvailable()) {
-            logger.finer(this + ": Not closing cursor:" + serverCursorId + "; connection is already closed.");
+            if (logger.isLoggable(java.util.logging.Level.FINER))
+                logger.finer(this + ": Not closing cursor:" + serverCursorId + "; connection is already closed.");
         } else {
-            logger.finer(toString() + " Closing cursor:" + serverCursorId);
+            if (logger.isLoggable(java.util.logging.Level.FINER))
+                logger.finer(toString() + " Closing cursor:" + serverCursorId);
 
             final class CloseServerCursorCommand extends UninterruptableTDSCommand {
                 CloseServerCursorCommand() {
@@ -5410,17 +5606,20 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             try {
                 stmt.executeCommand(new CloseServerCursorCommand());
             } catch (SQLServerException e) {
-                logger.finer(toString() + " Ignored error closing cursor:" + serverCursorId + " " + e.getMessage());
+                if (logger.isLoggable(java.util.logging.Level.FINER))
+                    logger.finer(toString() + " Ignored error closing cursor:" + serverCursorId + " " + e.getMessage());
             }
 
-            logger.finer(toString() + " Closed cursor:" + serverCursorId);
+            if (logger.isLoggable(java.util.logging.Level.FINER))
+                logger.finer(toString() + " Closed cursor:" + serverCursorId);
         }
     }
 
     @Override
     public void updateObject(int index, Object obj, SQLType targetSqlType) throws SQLServerException {
 
-        loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, obj, targetSqlType});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, obj, targetSqlType});
 
         checkClosed();
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
@@ -5432,7 +5631,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateObject(int index, Object obj, SQLType targetSqlType, int scale) throws SQLServerException {
 
-        loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {index, obj, targetSqlType, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject",
+                    new Object[] {index, obj, targetSqlType, scale});
 
         checkClosed();
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
@@ -5445,8 +5646,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public void updateObject(int index, Object obj, SQLType targetSqlType, int scale,
             boolean forceEncrypt) throws SQLServerException {
 
-        loggerExternal.entering(getClassNameLogging(), "updateObject",
-                new Object[] {index, obj, targetSqlType, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject",
+                    new Object[] {index, obj, targetSqlType, scale, forceEncrypt});
 
         checkClosed();
         // getVendorTypeNumber() returns the same constant integer values as in java.sql.Types
@@ -5459,8 +5661,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public void updateObject(String columnName, Object obj, SQLType targetSqlType,
             int scale) throws SQLServerException {
 
-        loggerExternal.entering(getClassNameLogging(), "updateObject",
-                new Object[] {columnName, obj, targetSqlType, scale});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject",
+                    new Object[] {columnName, obj, targetSqlType, scale});
 
         checkClosed();
 
@@ -5474,8 +5677,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public void updateObject(String columnName, Object obj, SQLType targetSqlType, int scale,
             boolean forceEncrypt) throws SQLServerException {
 
-        loggerExternal.entering(getClassNameLogging(), "updateObject",
-                new Object[] {columnName, obj, targetSqlType, scale, forceEncrypt});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject",
+                    new Object[] {columnName, obj, targetSqlType, scale, forceEncrypt});
 
         checkClosed();
 
@@ -5489,7 +5693,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateObject(String columnName, Object obj, SQLType targetSqlType) throws SQLServerException {
 
-        loggerExternal.entering(getClassNameLogging(), "updateObject", new Object[] {columnName, obj, targetSqlType});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateObject",
+                    new Object[] {columnName, obj, targetSqlType});
 
         checkClosed();
 

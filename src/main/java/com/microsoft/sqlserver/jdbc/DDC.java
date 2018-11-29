@@ -1195,7 +1195,8 @@ final class AsciiFilteredInputStream extends InputStream {
     }
 
     AsciiFilteredInputStream(BaseInputStream containedStream) throws SQLServerException {
-        BaseInputStream.logger.finer(containedStream.toString() + " wrapping in AsciiFilteredInputStream");
+        if (BaseInputStream.logger.isLoggable(java.util.logging.Level.FINER))
+            BaseInputStream.logger.finer(containedStream.toString() + " wrapping in AsciiFilteredInputStream");
         this.containedStream = containedStream;
     }
 
@@ -1264,7 +1265,8 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
 
     static AsciiFilteredUnicodeInputStream MakeAsciiFilteredUnicodeInputStream(BaseInputStream strm,
             Reader rd) throws SQLServerException {
-        BaseInputStream.logger.finer(strm.toString() + " wrapping in AsciiFilteredInputStream");
+        if (BaseInputStream.logger.isLoggable(java.util.logging.Level.FINER))
+            BaseInputStream.logger.finer(strm.toString() + " wrapping in AsciiFilteredInputStream");
         return new AsciiFilteredUnicodeInputStream(rd);
     }
 

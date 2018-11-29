@@ -95,7 +95,9 @@ class CekTableEntry {
 
         assert null != columnEncryptionKeyValues : "columnEncryptionKeyValues should already be initialized.";
 
-        aeLogger.fine("Retrieving CEK values");
+        if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
+            aeLogger.fine("Retrieving CEK values");
+        }
 
         EncryptionKeyInfo encryptionKey = new EncryptionKeyInfo(encryptedKey, dbId, keyId, keyVersion, mdVersion,
                 keyPath, keyStoreName, algorithmName);
