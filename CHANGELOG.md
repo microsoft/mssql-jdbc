@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Fixed Issues
 - Fixed an issue with Geography.point() having coordinates reversed [#853](https://github.com/Microsoft/mssql-jdbc/pull/853)
-- Fixed intermittent failures in tests [#854](https://github.com/Microsoft/mssql-jdbc/pull/854)  [#862](https://github.com/Microsoft/mssql-jdbc/pull/862) [#888](https://github.com/Microsoft/mssql-jdbc/pull/888)
+- Fixed intermittent test failures [#854](https://github.com/Microsoft/mssql-jdbc/pull/854)  [#862](https://github.com/Microsoft/mssql-jdbc/pull/862) [#888](https://github.com/Microsoft/mssql-jdbc/pull/888)
 - Fixed an issue with setAutoCommit() leaving a transaction open when running against Azure SQL Data Warehouse [#881](https://github.com/Microsoft/mssql-jdbc/pull/881)
 
 ### Changed
