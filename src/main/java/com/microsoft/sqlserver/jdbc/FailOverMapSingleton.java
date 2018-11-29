@@ -31,13 +31,12 @@ final class FailoverMapSingleton {
     static FailoverInfo getFailoverInfo(SQLServerConnection connection, String primaryServer, String instance,
             String database) {
         synchronized (FailoverMapSingleton.class) {
-            if (true == failoverMap.isEmpty()) {
+            if (failoverMap.isEmpty()) {
                 return null;
             } else {
                 String mapKey = concatPrimaryDatabase(primaryServer, instance, database);
-                if (connection.getConnectionLogger().isLoggable(Level.FINER))
-                    connection.getConnectionLogger()
-                            .finer(connection.toString() + " Looking up info in the map using key: " + mapKey);
+                connection.getConnectionLogger()
+                        .finer(connection.toString() + " Looking up info in the map using key: " + mapKey);
                 FailoverInfo fo = failoverMap.get(mapKey);
                 if (null != fo)
                     fo.log(connection);

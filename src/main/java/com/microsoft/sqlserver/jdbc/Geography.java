@@ -140,7 +140,7 @@ public class Geography extends SQLServerSpatialDatatype {
      *         if an exception occurs
      */
     public static Geography point(double lat, double lon, int srid) throws SQLServerException {
-        return new Geography("POINT (" + lat + " " + lon + ")", srid);
+        return new Geography("POINT (" + lon + " " + lat + ")", srid);
     }
 
     /**
@@ -212,8 +212,8 @@ public class Geography extends SQLServerSpatialDatatype {
      * @return double value that represents the latitude.
      */
     public Double getLatitude() {
-        if (null != internalType && internalType == InternalSpatialDatatype.POINT && xValues.length == 1) {
-            return xValues[0];
+        if (null != internalType && internalType == InternalSpatialDatatype.POINT && yValues.length == 1) {
+            return yValues[0];
         }
         return null;
     }
@@ -224,8 +224,8 @@ public class Geography extends SQLServerSpatialDatatype {
      * @return double value that represents the longitude.
      */
     public Double getLongitude() {
-        if (null != internalType && internalType == InternalSpatialDatatype.POINT && yValues.length == 1) {
-            return yValues[0];
+        if (null != internalType && internalType == InternalSpatialDatatype.POINT && xValues.length == 1) {
+            return xValues[0];
         }
         return null;
     }

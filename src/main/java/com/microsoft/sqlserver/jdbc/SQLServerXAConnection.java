@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLException;
 import java.util.Properties;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.sql.XAConnection;
@@ -40,8 +39,7 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
                 .setProperty(SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(), "true");
         controlConnectionProperties.remove(SQLServerDriverStringProperty.SELECT_METHOD.toString());
 
-        if (xaLogger.isLoggable(Level.FINER))
-            xaLogger.finer("Creating an internal control connection for" + toString());
+        xaLogger.finer("Creating an internal control connection for" + toString());
         physicalControlConnection = null;
         if (Util.use43Wrapper()) {
             physicalControlConnection = new SQLServerConnection43(toString());
@@ -49,12 +47,10 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
             physicalControlConnection = new SQLServerConnection(toString());
         }
         physicalControlConnection.connect(controlConnectionProperties, null);
-        if (xaLogger.isLoggable(Level.FINER))
-            xaLogger.finer("Created an internal control connection" + physicalControlConnection.toString() + " for "
-                    + toString() + " Physical connection:" + getPhysicalConnection().toString());
+        xaLogger.finer("Created an internal control connection" + physicalControlConnection.toString() + " for "
+                + toString() + " Physical connection:" + getPhysicalConnection().toString());
 
-        if (xaLogger.isLoggable(Level.FINER))
-            xaLogger.finer(ds.toString() + " user:" + user);
+        xaLogger.finer(ds.toString() + " user:" + user);
     }
 
     @Override

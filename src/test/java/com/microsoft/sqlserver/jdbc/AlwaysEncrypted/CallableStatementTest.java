@@ -300,7 +300,8 @@ public class CallableStatementTest extends AESetup {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(mixedProcedure), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(mixedProcedure2), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(mixedProcedure3), stmt);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale),
+                    stmt);
         }
     }
 

@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
@@ -280,16 +281,24 @@ class BulkCopyTestUtil {
             int totalColumns = destMeta.getColumnCount();
 
             // verify data from sourceType and resultSet
+            int numRows = 0;
             while (srcResultSet.next() && dstResultSet.next()) {
+                numRows++;
                 for (int i = 1; i <= totalColumns; i++) {
-                    // TODO: check row and column count in both the tables
-
                     Object srcValue, dstValue;
                     srcValue = srcResultSet.getObject(i);
                     dstValue = dstResultSet.getObject(i);
 
                     ComparisonUtil.compareExpectedAndActual(destMeta.getColumnType(i), srcValue, dstValue);
                 }
+            }
+
+            // verify number of rows and columns
+            assertTrue(((ResultSet) srcResultSet.product()).getMetaData().getColumnCount() == totalColumns);
+
+            if (numRows > 0) {
+                assertTrue(sourceTable.getTotalRows() == numRows);
+                assertTrue(destinationTable.getTotalRows() == numRows);
             }
         }
     }
