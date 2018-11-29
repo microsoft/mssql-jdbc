@@ -1356,82 +1356,70 @@ final class TDSChannel {
             return commonName;
         }
 
-        private boolean validateServerName(String nameInCert) {
+        private boolean validateServerName(String nameInCert) throws CertificateException {
             // Failed to get the common name from DN or empty CN
             if (null == nameInCert) {
                 logger.finer(logContext + " Failed to parse the name from the certificate or name is empty.");
                 return false;
             }
 
-            boolean periodFound = false;
-            boolean respectWildcard = false;
-            int j = 0;
-            // We do not allow wildcards in IDNs (xn--).
-            if (!nameInCert.startsWith("xn--") && nameInCert.contains("*")) {
-                for (int i = 0; i < nameInCert.length(); i++) {
-                    char currentNameInCertChar = nameInCert.charAt(i);
-                    char currentHostNameChar = hostName.charAt(j);
-                    if ('.' == currentNameInCertChar) {
-                        periodFound = true;
-                        respectWildcard = false;
-                    }
-                    if ('*' == currentNameInCertChar && !periodFound) {
-                        respectWildcard = true;
-                    }
-                    if (respectWildcard) {
-                        if (i + 1 >= nameInCert.length()) {
-                            logFailMessage(nameInCert);
-                            return false;
-                        }
-                        int prevJ = j;
-                        int nextPeriodIndexNameInCert = nameInCert.indexOf(".", i);
-                        int nextPeriodIndexHostName = hostName.indexOf(".", i);
-                        if (nextPeriodIndexNameInCert < 0) {
-                            logFailMessage(nameInCert);
-                            return false;
-                        }
-                        
-                        String remainingString = nameInCert.substring(i + 1, nextPeriodIndexNameInCert);
-                        j = hostName.lastIndexOf(remainingString, nextPeriodIndexHostName);
-                        
-                        // Verify that the string that's matching with wildcard doesn't contain a period.
-                        if (j < 0 || hostName.substring(prevJ, j).contains(".")) {
-                            logFailMessage(nameInCert);
-                            return false;
-                        }
-                        respectWildcard = false;
-                        continue;
-                    } else {
-                        if (currentNameInCertChar != currentHostNameChar) {
-                            logFailMessage(nameInCert);
-                            return false;
-                        } else {
-                            j++;
-                        }
+            int wildcardIndex = nameInCert.indexOf("*");
+
+            // Respect wildcard. If wildcardIndex is larger than -1, then we have a wildcard.
+            if (wildcardIndex >= 0) {
+                // We do not allow wildcards to exist past the first period.
+                if (wildcardIndex > nameInCert.indexOf(".")) {
+                    return false;
+                }
+                
+                // We do not allow wildcards in IDNs.
+                if (nameInCert.startsWith("xn--")) {
+                    return false;
+                }
+                
+                /* We do not allow * plus a top-level domain.
+                 * This if statement counts the number of .s in the nameInCert. If it's 1 or less, then reject it.
+                 * This also catches cases where nameInCert is just *
+                 */
+                if ((nameInCert.length() - nameInCert.replace(".", "").length()) <= 1) {
+                    return false;
+                }
+                
+                String certBeforeWildcard = nameInCert.substring(0, wildcardIndex);
+                int firstPeriodAfterWildcard = nameInCert.indexOf(".", wildcardIndex);
+                String certAfterWildcard;
+
+                if (firstPeriodAfterWildcard < 0) {
+                    /* if we get something like peter.database.c*, then make certAfterWildcard empty so that we accept
+                    * anything after *.
+                    * both startsWith("") and endswith("") will always resolve to "true".
+                    */
+                    certAfterWildcard = "";
+                } else {
+                    certAfterWildcard = nameInCert.substring(firstPeriodAfterWildcard);
+                }
+
+                if (hostName.startsWith(certBeforeWildcard) && hostName.endsWith(certAfterWildcard)) {
+                    // now, find the string that the wildcard covers. If it contains any periods, reject it.
+                    int wildcardCoveredStringIndexStart = hostName.indexOf(certBeforeWildcard) + certBeforeWildcard.length();
+                    int wildcardCoveredStringIndexEnd = hostName.lastIndexOf(certAfterWildcard);
+                    if (!hostName.substring(wildcardCoveredStringIndexStart, wildcardCoveredStringIndexEnd).contains(".")) {
+                        return true;
                     }
                 }
-                logSuccessMessage(nameInCert);
-                return true;
             }
 
             // Verify that the name in certificate matches exactly with the host name
             if (!nameInCert.equals(hostName)) {
-                logFailMessage(nameInCert);
+                logger.finer(logContext + " The name in certificate " + nameInCert
+                        + " does not match with the server name " + hostName + ".");
                 return false;
             }
 
-            logSuccessMessage(nameInCert);
-            return true;
-        }
-
-        private void logFailMessage(String nameInCert) {
-            logger.finer(logContext + " The name in certificate " + nameInCert + " does not match with the server name "
-                    + hostName + ".");
-        }
-
-        private void logSuccessMessage(String nameInCert) {
             logger.finer(logContext + " The name in certificate:" + nameInCert + " validated against server name "
                     + hostName + ".");
+
+            return true;
         }
 
         public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
