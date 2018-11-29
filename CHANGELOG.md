@@ -15,8 +15,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Changed
 - Changed query timeout logic to use a single thread [#842](https://github.com/Microsoft/mssql-jdbc/pull/842)
 - Code cleanup [#857](https://github.com/Microsoft/mssql-jdbc/pull/857) [#873](https://github.com/Microsoft/mssql-jdbc/pull/873)
-- Removed populating Lobs when calling wasNull() [#875](https://github.com/Microsoft/mssql-jdbc/pull/875)
-- Improved retry logic for intermittent TLS1.2 issue [#882](https://github.com/Microsoft/mssql-jdbc/pull/882)
+- Removed populating Lobs when calling ResultSet.wasNull() [#875](https://github.com/Microsoft/mssql-jdbc/pull/875)
+- Improved retry logic for intermittent TLS1.2 issue when establishing a connection [#882](https://github.com/Microsoft/mssql-jdbc/pull/882)
 
 ## [7.1.2] Preview Release
 ### Added
