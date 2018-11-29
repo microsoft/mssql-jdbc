@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
@@ -79,21 +80,25 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
 
         value = data;
 
-        logger.fine(toString() + " created by (" + ((null != connection) ? connection.toString() : "null connection")
-                + ")");
+        if (logger.isLoggable(Level.FINE)) {
+            String loggingInfo = (null != connection) ? connection.toString() : "null connection";
+            logger.fine(toString() + " created by (" + loggingInfo + ")");
+        }
     }
 
     SQLServerBlob(SQLServerConnection connection) {
         traceID = " SQLServerBlob:" + nextInstanceID();
         con = connection;
         value = new byte[0];
-        logger.fine(toString() + " created by (" + connection.toString() + ")");
+        if (logger.isLoggable(Level.FINE))
+            logger.fine(toString() + " created by (" + connection.toString() + ")");
     }
 
     SQLServerBlob(BaseInputStream stream) throws SQLServerException {
         traceID = " SQLServerBlob:" + nextInstanceID();
         activeStreams.add(stream);
-        logger.fine(toString() + " created by (null connection)");
+        if (logger.isLoggable(Level.FINE))
+            logger.fine(toString() + " created by (null connection)");
     }
 
     @Override
