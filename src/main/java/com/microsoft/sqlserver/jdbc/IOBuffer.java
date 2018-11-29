@@ -1385,7 +1385,7 @@ final class TDSChannel {
                         }
                         int prevJ = j;
                         j = hostName.indexOf(nameInCert.charAt(i + 1), j);
-                        // Verify that the string that's maching with wildcard doesn't contain a period.
+                        // Verify that the string that's matching with wildcard doesn't contain a period.
                         if (j < 0 || hostName.substring(prevJ, j).contains(".")) {
                             logFailMessage(nameInCert);
                             return false;
