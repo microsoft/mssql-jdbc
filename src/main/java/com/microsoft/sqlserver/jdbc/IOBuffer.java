@@ -1384,7 +1384,16 @@ final class TDSChannel {
                             return false;
                         }
                         int prevJ = j;
-                        j = hostName.indexOf(nameInCert.charAt(i + 1), j);
+                        int nextPeriodIndexNameInCert = nameInCert.indexOf(".", i);
+                        int nextPeriodIndexHostName = hostName.indexOf(".", i);
+                        if (nextPeriodIndexNameInCert < 0) {
+                            logFailMessage(nameInCert);
+                            return false;
+                        }
+                        
+                        String remainingString = nameInCert.substring(i + 1, nextPeriodIndexNameInCert);
+                        j = hostName.lastIndexOf(remainingString, nextPeriodIndexHostName);
+                        
                         // Verify that the string that's matching with wildcard doesn't contain a period.
                         if (j < 0 || hostName.substring(prevJ, j).contains(".")) {
                             logFailMessage(nameInCert);
