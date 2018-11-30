@@ -418,7 +418,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     /**
-     * Testing {@link SQLServerDatabaseMetaData#getFunctions(String, String, String)} with sending wrong catalog.
+     * TODO: Check JDBC Specs: Can we have any tables/functions without category?
+     * 
+     * Testing {@link SQLServerDatabaseMetaData#getFunctions(String, String, String)} with sending wrong category.
      * 
      * @throws SQLException
      */
@@ -427,7 +429,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             conn.getMetaData().getFunctions("", null, "xp_%");
             assertTrue(false, TestResource.getResource("R_noSchemaShouldFail"));
-        } catch (Exception ae) {}
+        } catch (Exception ae) {
+
+        }
     }
 
     /**
