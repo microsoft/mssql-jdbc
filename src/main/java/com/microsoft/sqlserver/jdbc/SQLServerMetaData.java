@@ -61,6 +61,23 @@ public class SQLServerMetaData {
     }
 
     /**
+     * Constructs a SQLServerMetaData with the column name, SQL type, and length (for String data).
+     * The length is used to differentiate large strings from strings with length less than 4000 characters.
+     * 
+     * @param columnName
+     *        the name of the column
+     * @param sqlType
+     *        the SQL type of the column
+     * @param length
+     *        the length of the string type
+     */
+    public SQLServerMetaData(String columnName, int sqlType, int length) {
+        this.columnName = columnName;
+        this.javaSqlType = sqlType;
+        this.precision = length;
+    }
+
+    /**
      * Constructs a SQLServerMetaData.
      * 
      * @param columnName

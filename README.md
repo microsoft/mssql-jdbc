@@ -90,7 +90,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.1.2.jre11-preview</version>
+	<version>7.1.3.jre11-preview</version>
 </dependency>
 ```
 
@@ -123,7 +123,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.1.2.jre11-preview</version>
+	<version>7.1.3.jre11-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -140,7 +140,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.1.2.jre11-preview</version>
+	<version>7.1.3.jre11-preview</version>
 	<scope>compile</scope>
 </dependency>
 
