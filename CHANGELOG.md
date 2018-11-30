@@ -57,7 +57,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added new test for validation of supported public APIs in request boundary declaration APIs [#746](https://github.com/Microsoft/mssql-jdbc/pull/746)
 
 ### Fixed Issues
-- Fixed policheck issue with a keyword [#745](https://github.com/Microsoft/mssql-jdbc/pull/745)
+- Fixed policheck issue with 'Country' keyword [#745](https://github.com/Microsoft/mssql-jdbc/pull/745)
 - Fixed issues reported by static analysis tools (SonarQube, Fortify) [#747](https://github.com/Microsoft/mssql-jdbc/pull/747)
 
 ### Changed
