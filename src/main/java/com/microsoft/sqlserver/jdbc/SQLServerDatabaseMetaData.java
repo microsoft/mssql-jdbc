@@ -521,16 +521,17 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         arguments[1] = schema;
         arguments[2] = catalog;
 
+        String tableTypes = null;
         if (types != null) {
-            final StringBuilder tableTypes = new StringBuilder("'");
+            tableTypes = "'";
             for (int i = 0; i < types.length; i++) {
                 if (i > 0)
-                    tableTypes.append(",");
-                tableTypes.append("''").append(types[i]).append("''");
+                    tableTypes += ",";
+                tableTypes += "''" + types[i] + "''";
             }
-            tableTypes.append("'");
-            arguments[3] = tableTypes.toString();
+            tableTypes += "'";
         }
+        arguments[3] = tableTypes;
         return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_TABLES, arguments, getTablesColumnNames);
     }
 

@@ -118,7 +118,7 @@ public final class SQLServerException extends java.sql.SQLException {
                     sb.append(aSt.toString());
                 Throwable t = this.getCause();
                 if (t != null) {
-                    sb.append("\n caused by ").append(t).append("\n");
+                    sb.append("\n caused by " + t + "\n");
                     StackTraceElement tst[] = t.getStackTrace();
                     for (StackTraceElement aTst : tst)
                         sb.append(aTst.toString());

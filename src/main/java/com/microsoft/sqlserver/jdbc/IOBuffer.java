@@ -2108,8 +2108,8 @@ final class TDSChannel {
         //
         // Note: the log formatter itself timestamps what we write so we don't have
         // to do it again here.
-        logMsg.append(tcpSocket.getLocalAddress().toString()).append(":").append(tcpSocket.getLocalPort())
-                .append(" SPID:").append(spid).append(" ").append(messageDetail).append("\r\n");
+        logMsg.append(tcpSocket.getLocalAddress().toString() + ":" + tcpSocket.getLocalPort() + " SPID:" + spid + " "
+                + messageDetail + "\r\n");
 
         // Fill in the body of the log message, line by line, 16 bytes per line.
         int nBytesLogged = 0;
@@ -2295,7 +2295,7 @@ final class SocketFinder {
                 loggingString.append(". They are: ");
 
                 for (InetAddress inetAddr : inetAddrs) {
-                    loggingString.append(inetAddr.toString()).append(";");
+                    loggingString.append(inetAddr.toString() + ";");
                 }
 
                 logger.finer(loggingString.toString());

@@ -1450,7 +1450,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         StringBuilder bulkCmd = new StringBuilder();
         List<String> bulkOptions = new ArrayList<>();
         String endColumn = " , ";
-        bulkCmd.append("INSERT BULK ").append(destinationTableName).append(" (");
+        bulkCmd.append("INSERT BULK " + destinationTableName + " (");
 
         for (int i = 0; i < (columnMappings.size()); ++i) {
             if (i == columnMappings.size() - 1) {
@@ -1471,11 +1471,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             }
             if (colMapping.destinationColumnName.contains("]")) {
                 String escapedColumnName = colMapping.destinationColumnName.replaceAll("]", "]]");
-                bulkCmd.append("[").append(escapedColumnName).append("] ").append(destType).append(addCollate)
-                        .append(endColumn);
+                bulkCmd.append("[" + escapedColumnName + "] " + destType + addCollate + endColumn);
             } else {
-                bulkCmd.append("[").append(colMapping.destinationColumnName).append("] ").append(destType)
-                        .append(addCollate).append(endColumn);
+                bulkCmd.append("[" + colMapping.destinationColumnName + "] " + destType + addCollate + endColumn);
             }
         }
 
