@@ -923,6 +923,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private int holdability;
 
+    private boolean isDBMirroring = false;
+
     final int getHoldabilityInternal() {
         return holdability;
     }
@@ -2023,7 +2025,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
-        final boolean isDBMirroring = null != mirror || null != foActual;
+        isDBMirroring = null != mirror || null != foActual;
         int sleepInterval = 100; // milliseconds to sleep (back off) between attempts.
         long timeoutUnitInterval;
 
@@ -2328,19 +2330,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
          * NOTE: If these conditions are modified, consider modification to conditions in SQLServerConnection::login()
          * and Reconnect::run()
          */
-        if ((SQLServerException.LOGON_FAILED == e.getErrorCode()) // actual logon failed, i.e. bad password
-                || (SQLServerException.PASSWORD_EXPIRED == e.getErrorCode()) // actual logon failed, i.e. password
-                                                                             // isExpired
-                || (SQLServerException.DRIVER_ERROR_INVALID_TDS == e.getDriverErrorCode()) // invalid TDS received from
-                                                                                           // server
-                || (SQLServerException.DRIVER_ERROR_SSL_FAILED == e.getDriverErrorCode()) // failure negotiating SSL
-                || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode()) // failure TLS1.2
-                || (SQLServerException.ERROR_SOCKET_TIMEOUT == e.getDriverErrorCode()) // socket timeout ocurred
-                || (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == e.getDriverErrorCode())) // unsupported
-                                                                                                   // configuration
-                                                                                                   // (e.g. Sphinx,
-                                                                                                   // invalid
-                                                                                                   // packet size, etc.)
+
+        // actual logon failed (e.g. bad password)
+        if ((SQLServerException.LOGON_FAILED == e.getErrorCode())
+                // actual logon failed (e.g. password expired)
+                || (SQLServerException.PASSWORD_EXPIRED == e.getErrorCode())
+                // actual logon failed  (e.g. user account locked)
+                || (SQLServerException.USER_ACCOUNT_LOCKED == e.getErrorCode())
+                // invalid TDS received from server
+                || (SQLServerException.DRIVER_ERROR_INVALID_TDS == e.getDriverErrorCode())
+                // failure negotiating SSL
+                || (SQLServerException.DRIVER_ERROR_SSL_FAILED == e.getDriverErrorCode())
+                // failure TLS1.2
+                || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode())
+                // unsupported configuration (e.g. Sphinx, invalid packet size, etc.)
+                || (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == e.getDriverErrorCode())
+                // no more time to try again
+                || (SQLServerException.ERROR_SOCKET_TIMEOUT == e.getDriverErrorCode()) || timerHasExpired(timerExpire)
+                // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
+                || (state.equals(State.Connected) && !isDBMirroring))
             return true;
         else
             return false;
