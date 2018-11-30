@@ -3042,7 +3042,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         rolledBackTransaction = false;
-        connectionCommand(sqlStatementToSetCommit(newAutoCommitMode) + commitPendingTransaction, "setAutoCommit");
+        connectionCommand(commitPendingTransaction + sqlStatementToSetCommit(newAutoCommitMode), "setAutoCommit");
         databaseAutoCommitMode = newAutoCommitMode;
         loggerExternal.exiting(getClassNameLogging(), "setAutoCommit");
     }
