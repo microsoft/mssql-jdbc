@@ -1794,40 +1794,31 @@ final class TDSChannel {
                                 + tmfDefaultAlgorithm + "\n") : "")
                         + ((null != ksProvider) ? ("KeyStore provider info: " + ksProvider.getInfo() + "\n") : "")
                         + "java.ext.dirs: " + System.getProperty("java.ext.dirs"));
-            // Retrieve the localized error message if possible.
-            String localizedMessage = e.getLocalizedMessage();
-            String errMsg = (localizedMessage != null) ? localizedMessage : e.getMessage();
-            /*
-             * Retrieve the error message of the cause too because actual error message can be wrapped into a different
-             * message when re-thrown from underlying InputStream.
-             */
-            String causeErrMsg = null;
-            Throwable cause = e.getCause();
-            if (cause != null) {
-                String causeLocalizedMessage = cause.getLocalizedMessage();
-                causeErrMsg = (causeLocalizedMessage != null) ? causeLocalizedMessage : cause.getMessage();
-            }
 
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_sslFailed"));
-            Object[] msgArgs = {errMsg};
+            Object[] msgArgs = {e.getMessage()};
 
-            /*
-             * The error message may have a connection id appended to it. Extract the message only for comparison. This
-             * client connection id is appended in method checkAndAppendClientConnId().
-             */
-            if (errMsg != null && errMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX)) {
-                errMsg = errMsg.substring(0, errMsg.indexOf(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX));
+            // It is important to get the localized message here, otherwise error messages won't match for different
+            // locales.
+            String errMsg = e.getLocalizedMessage();
+            // If the message is null replace it with the non-localized message or a dummy string. This can happen if a
+            // custom
+            // TrustManager implementation is specified that does not provide localized messages.
+            if (errMsg == null) {
+                errMsg = e.getMessage();
             }
-
-            if (causeErrMsg != null && causeErrMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX)) {
-                causeErrMsg = causeErrMsg.substring(0,
-                        causeErrMsg.indexOf(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX));
+            if (errMsg == null) {
+                errMsg = "";
+            }
+            // The error message may have a connection id appended to it. Extract the message only for comparison.
+            // This client connection id is appended in method checkAndAppendClientConnId().
+            if (errMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX)) {
+                errMsg = errMsg.substring(0, errMsg.indexOf(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX));
             }
 
             // Isolate the TLS1.2 intermittent connection error.
             if (e instanceof IOException && (SSLHandhsakeState.SSL_HANDHSAKE_STARTED == handshakeState)
-                    && (SQLServerException.getErrString("R_truncatedServerResponse").equals(errMsg)
-                            || SQLServerException.getErrString("R_truncatedServerResponse").equals(causeErrMsg))) {
+                    && (errMsg.equals(SQLServerException.getErrString("R_truncatedServerResponse")))) {
                 con.terminate(SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED, form.format(msgArgs), e);
             } else {
                 con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs), e);
