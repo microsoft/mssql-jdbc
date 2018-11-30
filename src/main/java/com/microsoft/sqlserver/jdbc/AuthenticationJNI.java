@@ -5,9 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.logging.Level;
-
-
 class FedAuthDllInfo {
     byte[] accessTokenBytes = null;
     long expiresIn = 0;
@@ -100,9 +97,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
                 null, null, authLogger);
 
         if (failure != 0) {
-            if (authLogger.isLoggable(Level.WARNING)) {
-                authLogger.warning(toString() + " Authentication failed code : " + failure);
-            }
+            authLogger.warning(toString() + " Authentication failed code : " + failure);
             con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                     SQLServerException.getErrString("R_integratedAuthenticationFailed"), linkError);
         }
