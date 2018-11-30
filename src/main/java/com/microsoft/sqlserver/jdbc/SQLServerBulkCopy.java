@@ -224,7 +224,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             this.jdbcType = bulkColumnMetaData.jdbcType;
             this.cryptoMeta = cryptoMeta;
         }
-    }
+    };
 
     /**
      * A map to store the metadata information for the destination table.

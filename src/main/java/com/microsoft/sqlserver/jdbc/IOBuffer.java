@@ -1367,7 +1367,7 @@ final class TDSChannel {
             this.logContext = tdsChannel.toString() + " (HostNameOverrideX509TrustManager):";
             defaultTrustManager = tm;
             // canonical name is in lower case so convert this to lowercase too.
-            this.hostName = hostName.toLowerCase(Locale.ENGLISH);
+            this.hostName = hostName.toLowerCase(Locale.ENGLISH);;
         }
 
         // Parse name in RFC 2253 format
@@ -1542,7 +1542,7 @@ final class TDSChannel {
         SSL_HANDHSAKE_NOT_STARTED,
         SSL_HANDHSAKE_STARTED,
         SSL_HANDHSAKE_COMPLETE
-    }
+    };
 
     /**
      * Enables SSL Handshake.
@@ -6163,7 +6163,7 @@ final class TDSPacket {
     final boolean isEOM() {
         return TDS.STATUS_BIT_EOM == (header[TDS.PACKET_HEADER_MESSAGE_STATUS] & TDS.STATUS_BIT_EOM);
     }
-}
+};
 
 
 /**
