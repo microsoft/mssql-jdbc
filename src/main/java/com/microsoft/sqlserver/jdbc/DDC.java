@@ -596,8 +596,14 @@ final class DDC {
                             if (JDBCType.GUID == jdbcType) {
                                 return Util.readGUID(byteValue);
                             } else if (JDBCType.GEOMETRY == jdbcType) {
+                                if (!typeInfo.getSSTypeName().equalsIgnoreCase(jdbcType.toString())) {
+                                    DataTypes.throwConversionError(typeInfo.getSSTypeName().toUpperCase(), jdbcType.toString());
+                                }
                                 return Geometry.STGeomFromWKB(byteValue);
                             } else if (JDBCType.GEOGRAPHY == jdbcType) {
+                                if (!typeInfo.getSSTypeName().equalsIgnoreCase(jdbcType.toString())) {
+                                    DataTypes.throwConversionError(typeInfo.getSSTypeName().toUpperCase(), jdbcType.toString());
+                                }
                                 return Geography.STGeomFromWKB(byteValue);
                             } else {
                                 String hexString = Util.bytesToHexString(byteValue, byteValue.length);

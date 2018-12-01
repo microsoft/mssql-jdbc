@@ -58,7 +58,6 @@ public class SpatialDataTypes {
             try (Connection con = ds.getConnection(); Statement stmt = con.createStatement();) {
                 dropAndCreateTable(stmt);
                 
-                // TODO: Implement Sample code
                 String geoWKT = "POINT(3 40 5 6)";
                 Geometry geomWKT = Geometry.STGeomFromText(geoWKT, 0);
                 Geography geogWKT = Geography.STGeomFromText(geoWKT, 4326);

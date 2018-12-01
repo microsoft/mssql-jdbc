@@ -353,8 +353,10 @@ public class TVPWithSqlVariantTest extends AbstractTest {
      * 
      * @throws SQLException
      * @throws SQLTimeoutException
+     * https://msdn.microsoft.com/en-ca/library/dd303302.aspx?f=255&MSPPError=-2147217396
+     * Data types cannot be NULL when inside a sql_variant
      */
-    @Test // TODO We need to check this later. Right now sending null with TVP is not supported
+    @Test       
     public void testNull() throws SQLException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
