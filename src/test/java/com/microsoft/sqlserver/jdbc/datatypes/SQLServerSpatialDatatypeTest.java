@@ -4,7 +4,6 @@
  */
 package com.microsoft.sqlserver.jdbc.datatypes;
 
-import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -813,7 +812,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         String geoWKT = "POINT(1 2)";
 
         Geometry geomWKT = Geometry.point(1, 2, 0);
-        Geography geogWKT = Geography.point(2, 1, 4326);
+        Geography geogWKT = Geography.point(1, 2, 4326);
 
         try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 Statement stmt = con.createStatement()) {
@@ -969,8 +968,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
         x = geog.getLatitude();
         y = geog.getLongitude();
-        assertEquals(x, 2);
-        assertEquals(y, 1);
+        assertEquals(x, 1);
+        assertEquals(y, 2);
     }
 
     @Test
@@ -1038,48 +1037,6 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                             assertEquals(rs.getInt(5), i2);
                         }
                     }
-                }
-            }
-        }
-    }
-    
-    @Test
-    public void testWrongtype() throws SQLException {
-        beforeEachSetup();
-
-        Geometry geomWKT = Geometry.point(1, 2, 0);
-        Geography geogWKT = Geography.point(2, 1, 4326);
-
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
-
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
-                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
-                pstmt.setGeometry(1, geomWKT);
-                pstmt.execute();
-
-                try {
-                    SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geomTableName));
-                    rs.next();
-                    rs.getGeography(1); // should fail
-                    fail();
-                } catch (SQLServerException e) {
-                    assertEquals(e.getMessage(), "The conversion from GEOMETRY to GEOGRAPHY is unsupported.");
-                }
-            }
-
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
-                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
-                pstmt.setGeography(1, geogWKT);
-                pstmt.execute();
-
-                try {
-                    SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geogTableName));
-                    rs.next();
-                    rs.getGeometry(1); // should fail
-                    fail();
-                } catch (SQLServerException e) {
-                    assertEquals(e.getMessage(), "The conversion from GEOGRAPHY to GEOMETRY is unsupported.");
                 }
             }
         }

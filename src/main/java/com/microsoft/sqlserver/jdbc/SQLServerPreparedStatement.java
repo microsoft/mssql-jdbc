@@ -925,7 +925,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // Decrypt the symmetric key.(This will also validate and throw if needed).
                     SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
                 } else {
-                    if (params[paramIndex].getForceEncryption()) {
+                    if (true == params[paramIndex].getForceEncryption()) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
                         Object[] msgArgs = {userSQL, paramIndex + 1};
@@ -1081,7 +1081,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             internalStmt = (SQLServerStatement) connection.createStatement();
             emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
         } catch (SQLException sqle) {
-            if (!sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
+            if (false == sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
                 // if the error is not no resultset then throw a processings error.
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_processingError"));
                 Object[] msgArgs = {sqle.getMessage()};
@@ -1972,7 +1972,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         stmtColumnEncriptionSetting);
                         SQLServerResultSet rs = stmt
                                 .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                        + Util.escapeSingleQuotes(tableName) + " '")) {
+                                        + Util.escapeSingleQuotes(tableName) + " '");) {
                     if (null != columnList && columnList.size() > 0) {
                         if (columnList.size() != valueList.size()) {
                             throw new IllegalArgumentException(
@@ -2129,7 +2129,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         stmtColumnEncriptionSetting);
                         SQLServerResultSet rs = stmt
                                 .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                        + Util.escapeSingleQuotes(tableName) + " '")) {
+                                        + Util.escapeSingleQuotes(tableName) + " '");) {
                     if (null != columnList && columnList.size() > 0) {
                         if (columnList.size() != valueList.size()) {
                             throw new IllegalArgumentException(

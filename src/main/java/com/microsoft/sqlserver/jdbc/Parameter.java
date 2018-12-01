@@ -296,7 +296,7 @@ final class Parameter {
         }
 
         // forceEncryption is true, shouldhonorae is false
-        if (forceEncrypt && !Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, con)) {
+        if ((true == forceEncrypt) && (false == Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, con))) {
 
             MessageFormat form = new MessageFormat(
                     SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAEFalse"));
@@ -603,9 +603,10 @@ final class Parameter {
                          */
 
                         if (userProvidesScale) {
-                            param.typeDefinition = SSType.TIME.toString() + "(" + outScale + ")";
+                            param.typeDefinition = (SSType.TIME.toString() + "(" + outScale + ")");
                         } else {
-                            param.typeDefinition = SSType.TIME.toString() + "(" + valueLength + ")";
+                            param.typeDefinition = param.typeDefinition = SSType.TIME.toString() + "(" + valueLength
+                                    + ")";
                         }
                     } else {
                         param.typeDefinition = con.getSendTimeAsDatetime() ? SSType.DATETIME.toString()

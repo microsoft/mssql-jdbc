@@ -1012,28 +1012,29 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     static String replaceMarkerWithNull(String sql) {
         if (!sql.contains("'")) {
-            return replaceParameterWithString(sql, '?', "null");
+            String retStr = replaceParameterWithString(sql, '?', "null");
+            return retStr;
         } else {
             StringTokenizer st = new StringTokenizer(sql, "'", true);
             boolean beforeColon = true;
-            final StringBuilder retSql = new StringBuilder();
+            String retSql = "";
             while (st.hasMoreTokens()) {
                 String str = st.nextToken();
                 if (str.equals("'")) {
-                    retSql.append("'");
+                    retSql += "'";
                     beforeColon = !beforeColon;
                     continue;
                 }
                 if (beforeColon) {
                     String repStr = replaceParameterWithString(str, '?', "null");
-                    retSql.append(repStr);
+                    retSql += repStr;
                     continue;
                 } else {
-                    retSql.append(str);
+                    retSql += str;
                     continue;
                 }
             }
-            return retSql.toString();
+            return retSql;
         }
     }
 
@@ -2411,7 +2412,7 @@ final class JDBCSyntaxTranslator {
         OFFSET,
         QUOTE,
         PROCESS
-    }
+    };
 
     // This pattern matches the LIMIT syntax with an OFFSET clause. The driver does not support OFFSET expression in the
     // LIMIT clause.
