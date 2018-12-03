@@ -10,7 +10,7 @@
 
 apply plugin: 'java'
 
-version = '7.1.2-SNAPSHOT'
+version = '7.1.4-SNAPSHOT'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -27,15 +27,15 @@ allprojects {
 
 if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "build43")){
 	
-	jreVersion = "jre10-preview"
+	jreVersion = "jre11-preview"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 10
-	targetCompatibility = 10
+	sourceCompatibility = 11
+	targetCompatibility = 11
 }
 
 if((hasProperty('buildProfile') && buildProfile == "build42")) {
@@ -95,5 +95,6 @@ dependencies {
 	'org.junit.jupiter:junit-jupiter-api:5.3.1',
 	'org.junit.jupiter:junit-jupiter-engine:5.3.1',
 	'com.zaxxer:HikariCP:3.2.0',
-	'org.apache.commons:commons-dbcp2:2.5.0'
+	'org.apache.commons:commons-dbcp2:2.5.0',
+	'org.slf4j:slf4j-nop:1.7.25'
 }

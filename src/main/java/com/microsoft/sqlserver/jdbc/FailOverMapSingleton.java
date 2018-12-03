@@ -31,7 +31,7 @@ final class FailoverMapSingleton {
     static FailoverInfo getFailoverInfo(SQLServerConnection connection, String primaryServer, String instance,
             String database) {
         synchronized (FailoverMapSingleton.class) {
-            if (true == failoverMap.isEmpty()) {
+            if (failoverMap.isEmpty()) {
                 return null;
             } else {
                 String mapKey = concatPrimaryDatabase(primaryServer, instance, database);

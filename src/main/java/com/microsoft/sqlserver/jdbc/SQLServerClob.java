@@ -19,6 +19,7 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.SQLException;
 import java.text.MessageFormat;
@@ -776,7 +777,7 @@ final class SQLServerClobAsciiOutputStream extends java.io.OutputStream {
             return;
         try {
             // Convert bytes to string using US-ASCII translation.
-            String s = new String(b, off, len, "US-ASCII");
+            String s = new String(b, off, len, StandardCharsets.US_ASCII);
 
             // Call parent's setString and update position.
             // setString can throw a SQLServerException, we translate

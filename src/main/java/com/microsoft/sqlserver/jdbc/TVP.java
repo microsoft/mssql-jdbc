@@ -63,7 +63,7 @@ class TVP {
         MPI_LookForNextCharOrSeparator,
         MPI_ParseQuote,
         MPI_RightQuote,
-    };
+    }
 
     void initTVP(TVPType type, String tvpPartName) throws SQLServerException {
         tvpType = type;

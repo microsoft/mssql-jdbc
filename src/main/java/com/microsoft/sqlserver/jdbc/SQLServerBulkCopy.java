@@ -224,7 +224,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             this.jdbcType = bulkColumnMetaData.jdbcType;
             this.cryptoMeta = cryptoMeta;
         }
-    };
+    }
 
     /**
      * A map to store the metadata information for the destination table.
@@ -247,56 +247,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     private int srcColumnCount;
 
     /**
-     * Timer for the bulk copy operation. The other timeout timers in the TDS layer only measure the response of the
-     * first packet from SQL Server.
+     * Timeout for the bulk copy command
      */
-    private final class BulkTimeoutTimer implements Runnable {
-        private final int timeoutSeconds;
-        private int secondsRemaining;
-        private final TDSCommand command;
-        private Thread timerThread;
-        private volatile boolean canceled = false;
-
-        BulkTimeoutTimer(int timeoutSeconds, TDSCommand command) {
-            assert timeoutSeconds > 0;
-            assert null != command;
-
-            this.timeoutSeconds = timeoutSeconds;
-            this.secondsRemaining = timeoutSeconds;
-            this.command = command;
+    private final class BulkTimeoutCommand extends TimeoutCommand<TDSCommand> {
+        public BulkTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
+            super(timeout, command, sqlServerConnection);
         }
 
-        final void start() {
-            timerThread = new Thread(this);
-            timerThread.setDaemon(true);
-            timerThread.start();
-        }
-
-        final void stop() {
-            canceled = true;
-            timerThread.interrupt();
-        }
-
-        final boolean expired() {
-            return (secondsRemaining <= 0);
-        }
-
-        public void run() {
-            try {
-                // Poll every second while time is left on the timer.
-                // Return if/when the timer is canceled.
-                do {
-                    if (canceled)
-                        return;
-
-                    Thread.sleep(1000);
-                } while (--secondsRemaining > 0);
-            } catch (InterruptedException e) {
-                // re-interrupt the current thread, in order to restore the thread's interrupt status.
-                Thread.currentThread().interrupt();
-                return;
-            }
-
+        @Override
+        public void interrupt() {
+            TDSCommand command = getCommand();
             // If the timer wasn't canceled before it ran out of
             // time then interrupt the registered command.
             try {
@@ -310,7 +270,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    private BulkTimeoutTimer timeoutTimer = null;
+    private BulkTimeoutCommand timeoutCommand;
 
     /**
      * The maximum temporal precision we can send when using varchar(precision) in bulkcommand, to send a
@@ -687,15 +647,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             InsertBulk() {
                 super("InsertBulk", 0, 0);
                 int timeoutSeconds = copyOptions.getBulkCopyTimeout();
-                timeoutTimer = (timeoutSeconds > 0) ? (new BulkTimeoutTimer(timeoutSeconds, this)) : null;
+                timeoutCommand = timeoutSeconds > 0 ? new BulkTimeoutCommand(timeoutSeconds, this, null) : null;
             }
 
             final boolean doExecute() throws SQLServerException {
-                if (null != timeoutTimer) {
+                if (null != timeoutCommand) {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(this.toString() + ": Starting bulk timer...");
 
-                    timeoutTimer.start();
+                    TimeoutPoller.getTimeoutPoller().addTimeoutCommand(timeoutCommand);
                 }
 
                 // doInsertBulk inserts the rows in one batch. It returns true if there are more rows in
@@ -712,18 +672,18 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                     // Check whether it is a timeout exception.
                     if (rootCause instanceof SQLException) {
-                        checkForTimeoutException((SQLException) rootCause, timeoutTimer);
+                        checkForTimeoutException((SQLException) rootCause, timeoutCommand);
                     }
 
                     // It is not a timeout exception. Re-throw.
                     throw topLevelException;
                 }
 
-                if (null != timeoutTimer) {
+                if (null != timeoutCommand) {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(this.toString() + ": Stopping bulk timer...");
 
-                    timeoutTimer.stop();
+                    TimeoutPoller.getTimeoutPoller().remove(timeoutCommand);
                 }
 
                 return true;
@@ -770,7 +730,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         // the driver will not sent AE information, so, we need to set Encryption bit flag to 0.
         if (null == srcColumnMetadata.get(srcColumnIndex).cryptoMeta
                 && null == destColumnMetadata.get(destColumnIndex).cryptoMeta
-                && true == copyOptions.isAllowEncryptedValueModifications()) {
+                && copyOptions.isAllowEncryptedValueModifications()) {
 
             // flags[1]>>3 & 0x01 is the encryption bit flag.
             // it is the 4th least significant bit in this byte, so minus 8 to set it to 0.
@@ -1188,9 +1148,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Helper method that throws a timeout exception if the cause of the exception was that the query was cancelled
      */
-    private void checkForTimeoutException(SQLException e, BulkTimeoutTimer timeoutTimer) throws SQLServerException {
+    private void checkForTimeoutException(SQLException e, BulkTimeoutCommand timeoutCommand) throws SQLServerException {
         if ((null != e.getSQLState()) && (e.getSQLState().equals(SQLState.STATEMENT_CANCELED.getSQLStateCode()))
-                && timeoutTimer.expired()) {
+                && timeoutCommand.canTimeout()) {
             // If SQLServerBulkCopy is managing the transaction, a rollback is needed.
             if (copyOptions.isUseInternalTransaction()) {
                 connection.rollback();
@@ -1450,7 +1410,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         StringBuilder bulkCmd = new StringBuilder();
         List<String> bulkOptions = new ArrayList<>();
         String endColumn = " , ";
-        bulkCmd.append("INSERT BULK " + destinationTableName + " (");
+        bulkCmd.append("INSERT BULK ").append(destinationTableName).append(" (");
 
         for (int i = 0; i < (columnMappings.size()); ++i) {
             if (i == columnMappings.size() - 1) {
@@ -1471,21 +1431,23 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             }
             if (colMapping.destinationColumnName.contains("]")) {
                 String escapedColumnName = colMapping.destinationColumnName.replaceAll("]", "]]");
-                bulkCmd.append("[" + escapedColumnName + "] " + destType + addCollate + endColumn);
+                bulkCmd.append("[").append(escapedColumnName).append("] ").append(destType).append(addCollate)
+                        .append(endColumn);
             } else {
-                bulkCmd.append("[" + colMapping.destinationColumnName + "] " + destType + addCollate + endColumn);
+                bulkCmd.append("[").append(colMapping.destinationColumnName).append("] ").append(destType)
+                        .append(addCollate).append(endColumn);
             }
         }
 
-        if (true == copyOptions.isCheckConstraints()) {
+        if (copyOptions.isCheckConstraints()) {
             bulkOptions.add("CHECK_CONSTRAINTS");
         }
 
-        if (true == copyOptions.isFireTriggers()) {
+        if (copyOptions.isFireTriggers()) {
             bulkOptions.add("FIRE_TRIGGERS");
         }
 
-        if (true == copyOptions.isKeepNulls()) {
+        if (copyOptions.isKeepNulls()) {
             bulkOptions.add("KEEP_NULLS");
         }
 
@@ -1493,11 +1455,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             bulkOptions.add("ROWS_PER_BATCH = " + copyOptions.getBatchSize());
         }
 
-        if (true == copyOptions.isTableLock()) {
+        if (copyOptions.isTableLock()) {
             bulkOptions.add("TABLOCK");
         }
 
-        if (true == copyOptions.isAllowEncryptedValueModifications()) {
+        if (copyOptions.isAllowEncryptedValueModifications()) {
             bulkOptions.add("ALLOW_ENCRYPTED_VALUE_MODIFICATIONS");
         }
 
@@ -1700,9 +1662,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     SQLServerException.getErrString("R_invalidDestinationTable"), null, false);
         }
 
+        String escapedDestinationTableName = Util.escapeSingleQuotes(destinationTableName);
+
         SQLServerResultSet rs = null;
-        SQLServerResultSet rsMoreMetaData = null;
         SQLServerStatement stmt = null;
+        String metaDataQuery = null;
 
         try {
             if (null != destinationTableMetadata) {
@@ -1713,7 +1677,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                 // Get destination metadata
                 rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                        + Util.escapeSingleQuotes(destinationTableName) + " '");
+                        + escapedDestinationTableName + " '");
             }
 
             destColumnCount = rs.getMetaData().getColumnCount();
@@ -1721,27 +1685,26 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             destCekTable = rs.getCekTable();
 
             if (!connection.getServerSupportsColumnEncryption()) {
-                // SQL server prior to 2016 does not support encryption_type
-                rsMoreMetaData = ((SQLServerStatement) connection.createStatement())
-                        .executeQueryInternal("select collation_name from sys.columns where " + "object_id=OBJECT_ID('"
-                                + Util.escapeSingleQuotes(destinationTableName) + "') " + "order by column_id ASC");
+                metaDataQuery = "select collation_name from sys.columns where " + "object_id=OBJECT_ID('"
+                        + escapedDestinationTableName + "') " + "order by column_id ASC";
             } else {
-                rsMoreMetaData = ((SQLServerStatement) connection.createStatement()).executeQueryInternal(
-                        "select collation_name, encryption_type from sys.columns where " + "object_id=OBJECT_ID('"
-                                + Util.escapeSingleQuotes(destinationTableName) + "') " + "order by column_id ASC");
+                metaDataQuery = "select collation_name, encryption_type from sys.columns where "
+                        + "object_id=OBJECT_ID('" + escapedDestinationTableName + "') " + "order by column_id ASC";
             }
-            for (int i = 1; i <= destColumnCount; ++i) {
-                if (rsMoreMetaData.next()) {
-                    if (!connection.getServerSupportsColumnEncryption()) {
+
+            try (SQLServerStatement statementMoreMetadata = (SQLServerStatement) connection.createStatement();
+                    SQLServerResultSet rsMoreMetaData = statementMoreMetadata.executeQueryInternal(metaDataQuery)) {
+                for (int i = 1; i <= destColumnCount; ++i) {
+                    if (rsMoreMetaData.next()) {
+                        String bulkCopyEncryptionType = null;
+                        if (connection.getServerSupportsColumnEncryption()) {
+                            bulkCopyEncryptionType = rsMoreMetaData.getString("encryption_type");
+                        }
                         destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i),
-                                rsMoreMetaData.getString("collation_name"), null));
+                                rsMoreMetaData.getString("collation_name"), bulkCopyEncryptionType));
                     } else {
-                        destColumnMetadata.put(i,
-                                new BulkColumnMetaData(rs.getColumn(i), rsMoreMetaData.getString("collation_name"),
-                                        rsMoreMetaData.getString("encryption_type")));
+                        destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));
                     }
-                } else {
-                    destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));
                 }
             }
         } catch (SQLException e) {
@@ -1752,8 +1715,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 rs.close();
             if (null != stmt)
                 stmt.close();
-            if (null != rsMoreMetaData)
-                rsMoreMetaData.close();
         }
     }
 

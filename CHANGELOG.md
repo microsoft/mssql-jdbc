@@ -3,11 +3,49 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.1.3] Preview Release
+### Added
+- Added a new SQLServerMetaData constructor for string values of length greater than 4000 [#876](https://github.com/Microsoft/mssql-jdbc/pull/876)
+
+### Fixed Issues
+- Fixed an issue with Geography.point() having coordinates reversed [#853](https://github.com/Microsoft/mssql-jdbc/pull/853)
+- Fixed intermittent test failures [#854](https://github.com/Microsoft/mssql-jdbc/pull/854)  [#862](https://github.com/Microsoft/mssql-jdbc/pull/862) [#888](https://github.com/Microsoft/mssql-jdbc/pull/888)
+- Fixed an issue with setAutoCommit() leaving a transaction open when running against Azure SQL Data Warehouse [#881](https://github.com/Microsoft/mssql-jdbc/pull/881)
+
+### Changed
+- Changed query timeout logic to use a single thread [#842](https://github.com/Microsoft/mssql-jdbc/pull/842)
+- Code cleanup [#857](https://github.com/Microsoft/mssql-jdbc/pull/857) [#873](https://github.com/Microsoft/mssql-jdbc/pull/873)
+- Removed populating Lobs when calling ResultSet.wasNull() [#875](https://github.com/Microsoft/mssql-jdbc/pull/875)
+- Improved retry logic for intermittent TLS1.2 issue when establishing a connection [#882](https://github.com/Microsoft/mssql-jdbc/pull/882)
+
+## [7.1.2] Preview Release
+### Added
+- Added support for JDK 11 [#824](https://github.com/Microsoft/mssql-jdbc/pull/824) [#837](https://github.com/Microsoft/mssql-jdbc/pull/837) [#807](https://github.com/Microsoft/mssql-jdbc/pull/807)
+- Updated SQL keywords in DatabaseMetaData [#829](https://github.com/Microsoft/mssql-jdbc/pull/829)
+- Improvements in DatabaseMetadata to prevent Statement leaks and enhance Statement caching [#806](https://github.com/Microsoft/mssql-jdbc/pull/806)
+
+### Fixed Issues
+- Fixed slf4j warning message in tests [#841](https://github.com/Microsoft/mssql-jdbc/pull/841)
+- Fixed potential NullPointerException in logException() [#844](https://github.com/Microsoft/mssql-jdbc/pull/844)
+- Fixed intermittent failures in JUnit - LobsTest [#827](https://github.com/Microsoft/mssql-jdbc/pull/827)
+- Fixed useBulkCopyForBatchInserts API to respect Statement timeout value [#817](https://github.com/Microsoft/mssql-jdbc/pull/817)
+
+### Changed
+- Updated JUnit tests to remove hard-coded names [#809](https://github.com/Microsoft/mssql-jdbc/pull/809)
+- Removed illegal reflection access in Kerberos Authentication [#839](https://github.com/Microsoft/mssql-jdbc/pull/839)
+- Enabled non-running JUnit tests [#847](https://github.com/Microsoft/mssql-jdbc/pull/847)
+- Updated Clobs to use StandardCharsets.US_ASCII instead of hard-coded string [#855](https://github.com/Microsoft/mssql-jdbc/pull/855)
+- Code cleanup [#821](https://github.com/Microsoft/mssql-jdbc/pull/821) [#825](https://github.com/Microsoft/mssql-jdbc/pull/825)
+
 ## [7.1.1] Preview Release
+### Added
+- Added streaming capabilities for Clob.getAsciiStream() [#799](https://github.com/Microsoft/mssql-jdbc/pull/799)
+
 ### Fixed Issues
 - Fixed a bug where calling length() after obtaining a stream would close the stream for Clobs/NClobs [#799](https://github.com/Microsoft/mssql-jdbc/pull/799)
+- Fixed Clob/NClob encoding issues [#799](https://github.com/Microsoft/mssql-jdbc/pull/799)
 - Fixed issues in Bulk Copy exception handling [#801](https://github.com/Microsoft/mssql-jdbc/pull/801)
-- Fixed closeable resource leaks in Junit tests [#797](https://github.com/Microsoft/mssql-jdbc/pull/797)
+- Fixed closeable resource leaks in JUnit tests [#797](https://github.com/Microsoft/mssql-jdbc/pull/797)
 - Fixed issues with apostrophe being passed in table name [#780](https://github.com/Microsoft/mssql-jdbc/pull/780)
 - Fixed statement leaks and improved exception handling in SQLServerParameterMetadata [#780](https://github.com/Microsoft/mssql-jdbc/pull/780)
 
@@ -34,7 +72,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added new test for validation of supported public APIs in request boundary declaration APIs [#746](https://github.com/Microsoft/mssql-jdbc/pull/746)
 
 ### Fixed Issues
-- Fixed policheck issue with 'Country' keyword [#745](https://github.com/Microsoft/mssql-jdbc/pull/745)
+- Fixed policheck issue with a keyword [#745](https://github.com/Microsoft/mssql-jdbc/pull/745)
 - Fixed issues reported by static analysis tools (SonarQube, Fortify) [#747](https://github.com/Microsoft/mssql-jdbc/pull/747)
 
 ### Changed
@@ -67,7 +105,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Added
 - Added removed constructor back to AKV Provider which supports authentication with a customized method to fetch accessToken [#675](https://github.com/Microsoft/mssql-jdbc/pull/675)
 - Added support for JDK 10 for both Maven and Gradle [#691](https://github.com/Microsoft/mssql-jdbc/pull/691)
-- Added a resource bundle to handle junit error strings [#698](https://github.com/Microsoft/mssql-jdbc/pull/698)
+- Added a resource bundle to handle JUnit error strings [#698](https://github.com/Microsoft/mssql-jdbc/pull/698)
 
 ### Fixed Issues
 - Fixed the driver disposing user created credentials when using Kerberos Constrained Delegation [#636](https://github.com/Microsoft/mssql-jdbc/pull/636)
@@ -202,7 +240,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ## [6.3.1] Preview Release
 ### Added
 - Added support for datetime/smallDatetime in TVP [#435](https://github.com/Microsoft/mssql-jdbc/pull/435)
-- Added more Junit tests for Always Encrypted [#432](https://github.com/Microsoft/mssql-jdbc/pull/432)
+- Added more JUnit tests for Always Encrypted [#432](https://github.com/Microsoft/mssql-jdbc/pull/432)
 
 ### Fixed Issues 
 - Fixed getString issue for uniqueIdentifier [#423](https://github.com/Microsoft/mssql-jdbc/pull/423)
@@ -214,7 +252,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ## [6.3.0] Preview Release
 ### Added
 - Added support for sql_variant datatype [#387](https://github.com/Microsoft/mssql-jdbc/pull/387)
-- Added more Junit tests for Always Encrypted [#404](https://github.com/Microsoft/mssql-jdbc/pull/404)
+- Added more JUnit tests for Always Encrypted [#404](https://github.com/Microsoft/mssql-jdbc/pull/404)
 
 ### Fixed Issues 
 - Fixed Turkey locale issue when lowercasing an "i" [#384](https://github.com/Microsoft/mssql-jdbc/pull/384)
@@ -318,7 +356,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Added
 - Added socket timeout exception as cause[#180](https://github.com/Microsoft/mssql-jdbc/pull/180)
 - Added Constrained delegation support[#178](https://github.com/Microsoft/mssql-jdbc/pull/178)
-- Added junit test for Statement test[#174](https://github.com/Microsoft/mssql-jdbc/pull/174)
+- Added JUnit test for Statement test[#174](https://github.com/Microsoft/mssql-jdbc/pull/174)
 - Added test for statement.cancel() when MultiSubnetFailover is set to true[#173](https://github.com/Microsoft/mssql-jdbc/pull/173)
 - Added tests for lobs [#168](https://github.com/Microsoft/mssql-jdbc/pull/168)
 - Added badges for License, Maven Central, JavaDocs & gitter chat room [#184](https://github.com/Microsoft/mssql-jdbc/pull/184)
