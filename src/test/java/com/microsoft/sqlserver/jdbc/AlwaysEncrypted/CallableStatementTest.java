@@ -18,7 +18,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.LinkedList;
 
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -44,6 +43,7 @@ import microsoft.sql.DateTimeOffset;
  * Test cases related to SQLServerCallableStatement.
  *
  */
+@RunWith(JUnitPlatform.class)
 public class CallableStatementTest extends AESetup {
 
     private static String multiStatementsProcedure = RandomUtil.getIdentifier("multiStatementsProcedure");

@@ -143,7 +143,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
 
-            String connectionString = getConfiguredProperty(AbstractTest.getConnectionString());
+            String connectionString = getConfiguredProperty("mssql_jdbc_test_connection_properties");
 
             connectionString = connectionString.toLowerCase();
 

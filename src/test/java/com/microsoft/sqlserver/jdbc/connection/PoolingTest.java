@@ -36,7 +36,6 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -53,7 +52,7 @@ public class PoolingTest extends AbstractTest {
 
     @Test
     public void testPooling() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
+        assumeTrue(!TestUtils.isSqlAzure(DriverManager.getConnection(connectionString)),
                 "Skipping test case on Azure SQL.");
 
         SQLServerXADataSource XADataSource1 = new SQLServerXADataSource();

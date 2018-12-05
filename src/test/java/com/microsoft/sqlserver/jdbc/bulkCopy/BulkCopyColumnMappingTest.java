@@ -27,8 +27,6 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
-import com.microsoft.sqlserver.testframework.sqlType.SqlMoney;
-import com.microsoft.sqlserver.testframework.sqlType.SqlSmallMoney;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 
@@ -172,7 +170,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test repetitive column mapping")
-    public void testRepetitiveCM() throws SQLException {
+    public void testRepetitiveCM() {
         DBTable sourceTable1 = null;
         DBTable destTable = null;
         try {
@@ -215,13 +213,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             }
 
             // add column mapping for duplicate column in destination
-            // TODO: USER STORY 5432
-            if (TestUtils.isSqlAzureDW(connection)) {
-                bulkWrapper.setColumnMapping(1, 23);
-            } else {
-                bulkWrapper.setColumnMapping(1, 25);
-            }
-            
+            bulkWrapper.setColumnMapping(1, 25);
+
             // perform bulkCopy without validating results or dropping destination table
             BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable1, destTable, false, false, false);
             try {

@@ -33,7 +33,6 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
 
 
 /**
@@ -101,7 +100,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         String error;
         String severe;
         try (Connection con = DriverManager.getConnection(connectionString)) {
-            if (DBConnection.isSqlAzure(con)) {
+            if (TestUtils.isSqlAzure(con)) {
                 // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have
                 // not
                 // "with log" option
@@ -270,7 +269,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                 // errors"
                 // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have best
                 // test coverage.
-                if (!DBConnection.isSqlAzure(conn)) {
+                if (!TestUtils.isSqlAzure(conn)) {
                     // Test Severe (connection-closing) errors
                     stmt.addBatch(error);
                     stmt.addBatch(insertStmt);
@@ -321,7 +320,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             final String warning;
             final String error;
             final String severe;
-            if (DBConnection.isSqlAzure(con)) {
+            if (TestUtils.isSqlAzure(con)) {
                 // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have
                 // not
                 // "with log" option
@@ -478,7 +477,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                     // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have
                     // best
                     // test coverage.
-                    if (!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString))) {
+                    if (!TestUtils.isSqlAzure(DriverManager.getConnection(connectionString))) {
                         // Test Severe (connection-closing) errors
                         stmt.addBatch(error);
                         stmt.addBatch(insertStmt);

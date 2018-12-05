@@ -1,5 +1,5 @@
 /*
-\ * Microsoft JDBC Driver for SQL Server Copyright(c) 2016 Microsoft Corporation All rights reserved. This program is
+ * Microsoft JDBC Driver for SQL Server Copyright(c) 2016 Microsoft Corporation All rights reserved. This program is
  * made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
@@ -51,8 +51,6 @@ public abstract class AbstractTest {
     protected static String connectionString = null;
 
     protected static Properties info = new Properties();
-    
-    public static final String CONNECTION_PROPERTIES = "mssql_jdbc_test_connection_properties";
 
     /**
      * This will take care of all initialization before running the Test Suite.
@@ -68,7 +66,7 @@ public abstract class AbstractTest {
         applicationKey = getConfiguredProperty("applicationKey");
         keyIDs = getConfiguredProperty("keyID", "").split(";");
 
-        connectionString = getConfiguredProperty(CONNECTION_PROPERTIES);
+        connectionString = getConfiguredProperty("mssql_jdbc_test_connection_properties");
 
         jksPaths = getConfiguredProperty("jksPaths", "").split(";");
         javaKeyAliases = getConfiguredProperty("javaKeyAliases", "").split(";");

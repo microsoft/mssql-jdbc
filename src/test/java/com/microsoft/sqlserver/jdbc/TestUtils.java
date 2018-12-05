@@ -743,6 +743,7 @@ public class TestUtils {
             rs.next();
             int engineEdition = rs.getInt(1);
             _determinedSqlAzureOrSqlServer = true;
+            _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
             _isSqlAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
             if (ownsCon) {
                 con.close();

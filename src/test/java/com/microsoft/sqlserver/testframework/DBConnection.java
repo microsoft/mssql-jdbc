@@ -166,45 +166,6 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
         DatabaseMetaData product = connection.getMetaData();
         return product;
     }
-
-    /**
-     * 
-     * @param con
-     * @return
-     * @throws SQLException
-     */
-    public static boolean isSqlAzure(Connection con) throws SQLException {
-        isSqlAzureDW(con);
-        return isSqlAzure;
-    }
-    
-    /**
-     * 
-     * @param con
-     * @return
-     * @throws SQLException
-     */
-    public static boolean isSqlAzureDW(Connection con) throws SQLException {
-        if (!determinedSqlAzureOrSqlServer) {
-            ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)");
-            rs.next();
-            int engineEdition = rs.getInt(1);
-            rs.close();
-            
-            if (ENGINE_EDITION_FOR_SQL_AZURE == engineEdition || ENGINE_EDITION_FOR_SQL_AZURE_DW == engineEdition) {
-                isSqlAzure = true;
-            }
-            
-            if (ENGINE_EDITION_FOR_SQL_AZURE_DW == engineEdition) {
-                isSqlAzureDW = true;
-            }
-            
-            determinedSqlAzureOrSqlServer = true;
-            return isSqlAzureDW;
-        } else {
-            return isSqlAzureDW;
-        }
-    }
     
     /**
      * @param string

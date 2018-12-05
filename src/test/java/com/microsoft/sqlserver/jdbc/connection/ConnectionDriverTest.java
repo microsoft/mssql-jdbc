@@ -40,9 +40,9 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
 
 
 @RunWith(JUnitPlatform.class)
@@ -166,7 +166,7 @@ public class ConnectionDriverTest extends AbstractTest {
      */
     @Test
     public void testConnectionEvents() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
+        assumeTrue(!TestUtils.isSqlAzure(DriverManager.getConnection(connectionString)),
                 TestResource.getResource("R_skipAzure"));
 
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
@@ -198,7 +198,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testConnectionPoolGetTwice() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
+        assumeTrue(!TestUtils.isSqlAzure(DriverManager.getConnection(connectionString)),
                 TestResource.getResource("R_skipAzure"));
 
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
@@ -226,7 +226,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testConnectionClosed() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
+        assumeTrue(!TestUtils.isSqlAzure(DriverManager.getConnection(connectionString)),
                 TestResource.getResource("R_skipAzure"));
 
         SQLServerDataSource mds = new SQLServerDataSource();
@@ -305,7 +305,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testDeadConnection() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
+        assumeTrue(!TestUtils.isSqlAzure(DriverManager.getConnection(connectionString)),
                 TestResource.getResource("R_skipAzure"));
 
         String tableName = RandomUtil.getIdentifier("ConnectionTestTable");
