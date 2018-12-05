@@ -30,6 +30,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -538,7 +539,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
-            assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
+            assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
 
         invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -560,9 +561,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
-            assertEquals(
-                    "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.",
-                    e.getMessage());
+            assertEquals(TestResource.getResource("R_incorrectColumnNumInsert"), e.getMessage());
         }
     }
 
@@ -587,7 +586,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
-            assertEquals("Incorrect syntax near the keyword 'table'.", e.getMessage());
+            assertEquals(TestResource.getResource("R_incorrectSyntaxTable"), e.getMessage());
         }
 
         invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values ('?', ?,? ,?) ";
@@ -607,7 +606,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception("Test did not throw an exception when it was expected.");
         } catch (BatchUpdateException e) {
-            assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
+            assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
     }
 
