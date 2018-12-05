@@ -280,7 +280,9 @@ enum SQLServerDriverStringProperty {
     KEY_STORE_AUTHENTICATION("keyStoreAuthentication", ""),
     KEY_STORE_SECRET("keyStoreSecret", ""),
     KEY_STORE_LOCATION("keyStoreLocation", ""),
-    SSL_PROTOCOL("sslProtocol", SSLProtocol.TLS.toString()),;
+    SSL_PROTOCOL("sslProtocol", SSLProtocol.TLS.toString()),
+    KEY_VAULT_COLUMN_ENCRYPTION_PROVIDER_CLIENT_ID("keyVaultColumnEncryptionProviderClientId", ""),
+    KEY_VAULT_COLUMN_ENCRYPTION_PROVIDER_CLIENT_KEY("keyVaultColumnEncryptionProviderClientKey", "");
 
     private final String name;
     private final String defaultValue;
@@ -504,7 +506,11 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Integer.toString(SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue()),
-                    false, TRUE_FALSE),};
+                    false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_COLUMN_ENCRYPTION_PROVIDER_CLIENT_ID.toString(),
+                    SQLServerDriverStringProperty.KEY_VAULT_COLUMN_ENCRYPTION_PROVIDER_CLIENT_ID.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_COLUMN_ENCRYPTION_PROVIDER_CLIENT_KEY.toString(),
+                    SQLServerDriverStringProperty.KEY_VAULT_COLUMN_ENCRYPTION_PROVIDER_CLIENT_KEY.getDefaultValue(), false, null)};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string

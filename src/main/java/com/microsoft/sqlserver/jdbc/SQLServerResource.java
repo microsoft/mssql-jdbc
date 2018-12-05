@@ -534,5 +534,9 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},
             {"R_illegalWKT", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
             {"R_illegalTypeForGeometry", "{0} is not supported for Geometry."},
-            {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},};
+            {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},
+            {"R_keyVaultColumnEncryptionProviderClientIdPropertyDescription",
+                    "The client ID used to access the Key Vault where the column encryption master key is stored."},
+            {"R_keyVaultColumnEncryptionProviderClientKeyPropertyDescription",
+                    "The client key used to access the Key Vault where the column encryption master key is stored."}};
 }
