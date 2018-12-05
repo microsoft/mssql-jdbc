@@ -689,10 +689,16 @@ public class TestUtils {
             return _isSqlAzure;
         }
         
+        try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+        } catch (ClassNotFoundException e) {
+            throw new SQLException(e.toString());
+        }
+        
         boolean ownsCon = false;
         
         if (null == con) {
-            con = DriverManager.getConnection(AbstractTest.CURRENT_CONNECTION_PROPERTIES);
+            con = DriverManager.getConnection(AbstractTest.getConnectionString());
             ownsCon = true;
         }
         
@@ -720,10 +726,16 @@ public class TestUtils {
             return _isSqlAzureDW;
         }
         
+        try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+        } catch (ClassNotFoundException e) {
+            throw new SQLException(e.toString());
+        }
+        
         boolean ownsCon = false;
         
         if (null == con) {
-            con = DriverManager.getConnection(AbstractTest.CURRENT_CONNECTION_PROPERTIES);
+            con = DriverManager.getConnection(AbstractTest.getConnectionString());
             ownsCon = true;
         }
         

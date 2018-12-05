@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -30,6 +31,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;;
  * @since 6.1.2
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class FipsEnvTest {
 
     protected static Logger logger = Logger.getLogger("FipsEnvTest");

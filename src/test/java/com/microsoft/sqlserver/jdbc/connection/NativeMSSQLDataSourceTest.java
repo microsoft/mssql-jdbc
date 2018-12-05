@@ -30,10 +30,10 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
-@Tag("AzureDWTest")
 public class NativeMSSQLDataSourceTest extends AbstractTest {
 
     @Test
+    @Tag("AzureDWTest")
     public void testNativeMSSQLDataSource() throws SQLException {
         SQLServerXADataSource ds = new SQLServerXADataSource();
         ds.setLastUpdateCount(true);
@@ -41,6 +41,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
+    @Tag("AzureDWTest")
     public void testSerialization() throws IOException {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
                 ObjectOutput objectOutput = new ObjectOutputStream(outputStream)) {
@@ -53,6 +54,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
+    @Tag("AzureDWTest")
     public void testDSNormal() throws ClassNotFoundException, IOException, SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
@@ -75,6 +77,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
+    @Tag("AzureDWTest")
     public void testInterfaceWrapping() throws ClassNotFoundException, SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         assertEquals(true, ds.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));

@@ -55,6 +55,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testDatabaseMetaDataWrapper() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString)) {
             DatabaseMetaData databaseMetaData = con.getMetaData();
@@ -77,6 +78,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      *         IOExcption
      */
     @Test
+    @Tag("AzureDWTest")
     public void testDriverVersion() throws SQLException, IOException {
         String manifestFile = TestUtils.getCurrentClassPath() + "META-INF/MANIFEST.MF";
         manifestFile = manifestFile.replace("test-classes", "classes");
@@ -119,6 +121,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetURL() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
@@ -140,7 +143,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
 
-            String connectionString = getConfiguredProperty(AbstractTest.CURRENT_CONNECTION_PROPERTIES);
+            String connectionString = getConfiguredProperty(AbstractTest.getConnectionString());
 
             connectionString = connectionString.toLowerCase();
 
@@ -175,6 +178,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testDBSchema() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 ResultSet rs = conn.getMetaData().getSchemas()) {
@@ -296,6 +300,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     /*
      * try (ResultSet rsCatalog = connection.getMetaData().getCatalogs(); ResultSet rs = connection.getMetaData()
      * .getTables(rsCatalog.getString("TABLE_CAT"), null, "%", new String[] {"TABLE"})) {
@@ -335,6 +340,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetDBColumn() throws SQLException {
 
         try (Connection conn = DriverManager.getConnection(connectionString)) {
@@ -424,6 +430,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetFunctionsWithWrongParams() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             conn.getMetaData().getFunctions("", null, "xp_%");
@@ -437,6 +444,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetFunctions() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString);
                 ResultSet rs = conn.getMetaData().getFunctions(null, null, "xp_%")) {
@@ -463,6 +471,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetFunctionColumns() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
 

@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -20,6 +21,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class CustomTrustManagerTest extends AbstractTest {
 
     /**

@@ -19,7 +19,6 @@ import java.sql.Timestamp;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -36,7 +35,6 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class DateAndTimeTypeTest extends AbstractTest {
 
     private static final Date DATE_TO_TEST = new java.sql.Date(61494793200000L);
@@ -204,15 +202,8 @@ public class DateAndTimeTypeTest extends AbstractTest {
         try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            String sql1;
-            if (TestUtils.isSqlAzureDW(connection)) {
-                sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                + " (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint pk_esimple)";
-            } else {
-                sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                + " (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint pk_esimple primary key (id))";
-            }
-            
+            String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint pk_esimple primary key (id))";
             stmt.execute(sql1);
 
             // add one sample data

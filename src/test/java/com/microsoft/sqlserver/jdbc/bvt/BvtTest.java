@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc.bvt;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.math.BigDecimal;
 import java.sql.DatabaseMetaData;
@@ -17,11 +18,13 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -34,6 +37,7 @@ import com.microsoft.sqlserver.testframework.DBResultSetTypes;
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("BVT Test")
+@Tag("AzureDWTest")
 public class BvtTest extends AbstractTest {
     private static String driverNamePattern = "Microsoft JDBC Driver \\d.\\d for SQL Server";
     static DBTable table1;
@@ -146,6 +150,7 @@ public class BvtTest extends AbstractTest {
      */
     @Test
     public void testStmtScrollInsensitiveReadOnly() throws SQLException, ClassNotFoundException {
+        assumeFalse(TestUtils.isSqlAzureDW(null), "Cursor support is not implemented for Azure DW.");
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_INSENSITIVE_CONCUR_READ_ONLY);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -166,6 +171,7 @@ public class BvtTest extends AbstractTest {
      */
     @Test
     public void testStmtScrollSensitiveReadOnly() throws SQLException {
+        assumeFalse(TestUtils.isSqlAzureDW(null), "Cursor support is not implemented for Azure DW.");
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_SENSITIVE_CONCUR_READ_ONLY);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -188,6 +194,7 @@ public class BvtTest extends AbstractTest {
      */
     @Test
     public void testStmtForwardOnlyUpdateable() throws SQLException {
+        assumeFalse(TestUtils.isSqlAzureDW(null), "Cursor support is not implemented for Azure DW.");
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_FORWARD_ONLY_CONCUR_UPDATABLE);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -215,6 +222,7 @@ public class BvtTest extends AbstractTest {
      */
     @Test
     public void testStmtScrollSensitiveUpdatable() throws SQLException {
+        assumeFalse(TestUtils.isSqlAzureDW(null), "Cursor support is not implemented for Azure DW.");
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_SENSITIVE_CONCUR_UPDATABLE);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -238,7 +246,7 @@ public class BvtTest extends AbstractTest {
      */
     @Test
     public void testStmtSSScrollDynamicOptimisticCC() throws SQLException {
-
+        assumeFalse(TestUtils.isSqlAzureDW(null), "Cursor support is not implemented for Azure DW.");
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_DYNAMIC_CONCUR_OPTIMISTIC);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -411,6 +419,7 @@ public class BvtTest extends AbstractTest {
      */
     @Test
     public void testResultSetSelectMethod() throws SQLException {
+        assumeFalse(TestUtils.isSqlAzureDW(null), "Cursor support is not implemented for Azure DW.");
         try (DBConnection conn = new DBConnection(connectionString + ";selectMethod=cursor;");
                 DBStatement stmt = conn.createStatement(); DBResultSet rs = stmt.selectAll(table1)) {
             rs.verify(table1);

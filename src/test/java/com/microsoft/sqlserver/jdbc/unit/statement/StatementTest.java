@@ -37,6 +37,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -81,7 +82,7 @@ public class StatementTest extends AbstractTest {
                         TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                     } catch (SQLException e) {}
                     stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                            + " (col1 INT PRIMARY KEY, col2 VARCHAR(" + TEST_STRING.length() + "))");
+                            + " (col1 INT, col2 VARCHAR(" + TEST_STRING.length() + "))");
                     for (int i = 0; i < NUM_TABLE_ROWS; i++)
                         stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                                 + " (col1, col2) VALUES (" + i + ", '" + TEST_STRING + "')");
@@ -888,6 +889,7 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
+    @Tag("AzureDWTest")
     public class TCStatement {
         private final String table1Name = RandomUtil.getIdentifier("TCStatement1");
         private final String table2Name = RandomUtil.getIdentifier("TCStatement2");
@@ -967,9 +969,9 @@ public class StatementTest extends AbstractTest {
                 } catch (SQLException e) {}
 
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table1Name)
-                        + " (col1 INT PRIMARY KEY)");
+                        + " (col1 INT)");
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table2Name)
-                        + " (col1 INT PRIMARY KEY)");
+                        + " (col1 INT)");
 
                 try (ResultSet rs = stmt.executeQuery(
                         "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(table2Name))) {} catch (Exception e) {
@@ -1359,7 +1361,7 @@ public class StatementTest extends AbstractTest {
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
+                        + " (col1 int, col2 text, col3 int identity(1,1))");
                 stmt.executeUpdate(
                         "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
                 stmt.executeUpdate(
@@ -1394,7 +1396,7 @@ public class StatementTest extends AbstractTest {
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
+                        + " (col1 int, col2 text, col3 int identity(1,1))");
                 stmt.executeUpdate(
                         "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
                 stmt.executeUpdate(
@@ -1428,7 +1430,7 @@ public class StatementTest extends AbstractTest {
                     Statement stmt = con.createStatement()) {
 
                 stmt.executeUpdate(
-                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int primary key)");
+                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(1)");
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(2)");
@@ -1460,7 +1462,7 @@ public class StatementTest extends AbstractTest {
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
+                        + " (col1 int, col2 text, col3 int identity(1,1))");
                 stmt.executeUpdate(
                         "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
                 stmt.executeUpdate(
@@ -1492,7 +1494,7 @@ public class StatementTest extends AbstractTest {
                     Statement stmt = con.createStatement()) {
 
                 stmt.executeUpdate(
-                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int primary key)");
+                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(1)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(2)");
@@ -1608,7 +1610,7 @@ public class StatementTest extends AbstractTest {
             Statement stmt = con.createStatement();
 
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + "(col1_int int PRIMARY KEY IDENTITY(1,1), col2_varchar varchar(200), col3_varchar varchar(20) SPARSE NULL, col4_smallint smallint SPARSE NULL, col5_xml XML COLUMN_SET FOR ALL_SPARSE_COLUMNS, col6_nvarcharMax NVARCHAR(MAX), col7_varcharMax VARCHAR(MAX))");
+                    + "(col1_int int IDENTITY(1,1), col2_varchar varchar(200), col3_varchar varchar(20) SPARSE NULL, col4_smallint smallint SPARSE NULL, col5_xml XML COLUMN_SET FOR ALL_SPARSE_COLUMNS, col6_nvarcharMax NVARCHAR(MAX), col7_varcharMax VARCHAR(MAX))");
             stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " DEFAULT VALUES");
 
             assertTrue(con != null, "connection is null");
@@ -1797,7 +1799,7 @@ public class StatementTest extends AbstractTest {
                 } catch (SQLException e) {}
 
                 String createTableQuery = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + "(col1 int PRIMARY KEY IDENTITY(1,1)";
+                        + "(col1 int IDENTITY(1,1)";
 
                 int noOfColumns = 128;
                 for (int i = 2; i <= noOfColumns; i++) {
@@ -1852,7 +1854,7 @@ public class StatementTest extends AbstractTest {
 
                     // construct a query to create a table with 100 columns
                     String createTableQuery = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                            + "(col1 int PRIMARY KEY IDENTITY(1,1)";
+                            + "(col1 int IDENTITY(1,1)";
 
                     for (int i = 2; i <= noOfColumns; i++) {
                         createTableQuery = createTableQuery + ", col" + i + " int";
@@ -1933,6 +1935,7 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
+    @Tag("AzureDWTest")
     public class TCStatementIsClosed {
         @Test
         public void testActiveStatement() throws Exception {
@@ -1996,6 +1999,7 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
+    @Tag("AzureDWTest")
     public class TCResultSetIsClosed {
 
         /**
@@ -2126,13 +2130,13 @@ public class StatementTest extends AbstractTest {
                         throw new SQLException(e);
                     }
                     stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                            + " (col1 INT PRIMARY KEY)");
+                            + " (col1 INT )");
                     for (int i = 0; i < NUM_ROWS; i++)
                         stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                                 + " (col1) VALUES (" + i + ")");
 
                     stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table2Name)
-                            + " (NAME VARCHAR(100), col2 int identity(1,1) primary key)");
+                            + " (NAME VARCHAR(100), col2 int identity(1,1) )");
                     stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table2Name)
                             + " (NAME) VALUES ('BLAH')");
                     stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(table2Name)
@@ -2274,7 +2278,7 @@ public class StatementTest extends AbstractTest {
                         System.out.println(e.toString());
                     }
                     stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                            + " (col1 INT primary key)");
+                            + " (col1 INT )");
                     for (int i = 0; i < NUM_ROWS; i++)
                         stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                                 + " (col1) VALUES (" + i + ")");
@@ -2489,7 +2493,7 @@ public class StatementTest extends AbstractTest {
                         throw new SQLException(TestResource.getResource("R_unexpectedException"), e);
                     }
                     stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                            + " (col1 INT primary key)");
+                            + " (col1 INT )");
                     for (int i = 0; i < NUM_ROWS; i++)
                         stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                                 + " (col1) VALUES (" + i + ")");

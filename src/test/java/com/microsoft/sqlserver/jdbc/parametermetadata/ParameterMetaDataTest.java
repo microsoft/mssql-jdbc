@@ -38,7 +38,7 @@ public class ParameterMetaDataTest extends AbstractTest {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (col1 int identity(1,1) primary key)");
+                    + " (col1 int identity(1,1))");
             try {
                 String query = "SELECT * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where col1 = ?";
 
@@ -80,10 +80,10 @@ public class ParameterMetaDataTest extends AbstractTest {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " ([c1_varchar(max)] varchar(max))");
+                    + " ([c1_varchar(8000)] varchar(8000))");
             try {
                 String query = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " ([c1_varchar(max)]) values (?)";
+                        + " ([c1_varchar(8000)]) values (?)";
 
                 try (PreparedStatement pstmt = con.prepareStatement(query)) {
                     pstmt.getParameterMetaData();
@@ -104,10 +104,10 @@ public class ParameterMetaDataTest extends AbstractTest {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " ([c1_varchar(max)] varchar(max), c2 decimal(38,5))");
+                    + " ([c1_varchar(8000)] varchar(8000), c2 decimal(38,5))");
             try {
                 String query = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " ([c1_varchar(max)], c2) values (?,?)";
+                        + " ([c1_varchar(8000)], c2) values (?,?)";
 
                 try (PreparedStatement pstmt = con.prepareStatement(query)) {
                     ParameterMetaData metadata = pstmt.getParameterMetaData();
