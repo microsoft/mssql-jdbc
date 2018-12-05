@@ -679,6 +679,7 @@ public class TestUtils {
     
     /**
      * Returns if connected to SQL Azure
+     * 
      * @param con
      *        connection to server
      * @return boolean
@@ -688,25 +689,27 @@ public class TestUtils {
         if (_determinedSqlAzureOrSqlServer) {
             return _isSqlAzure;
         }
-        
+
         try {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
         } catch (ClassNotFoundException e) {
             throw new SQLException(e.toString());
         }
-        
+
         boolean ownsCon = false;
-        
+
         if (null == con) {
             con = DriverManager.getConnection(AbstractTest.getConnectionString());
             ownsCon = true;
         }
-        
-        try (ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+
+        try (Statement stmt = con.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
             rs.next();
             int engineEdition = rs.getInt(1);
             _determinedSqlAzureOrSqlServer = true;
-            _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
+                    || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
             if (ownsCon) {
                 con.close();
             }
@@ -716,6 +719,7 @@ public class TestUtils {
     
     /**
      * Returns if connected to SQL Azure DW
+     * 
      * @param con
      *        connection to server
      * @return boolean
@@ -725,25 +729,27 @@ public class TestUtils {
         if (_determinedSqlAzureOrSqlServer) {
             return _isSqlAzureDW;
         }
-        
+
         try {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
         } catch (ClassNotFoundException e) {
             throw new SQLException(e.toString());
         }
-        
+
         boolean ownsCon = false;
-        
+
         if (null == con) {
             con = DriverManager.getConnection(AbstractTest.getConnectionString());
             ownsCon = true;
         }
-        
-        try (ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+
+        try (Statement stmt = con.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
             rs.next();
             int engineEdition = rs.getInt(1);
             _determinedSqlAzureOrSqlServer = true;
-            _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
+                    || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
             _isSqlAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
             if (ownsCon) {
                 con.close();
