@@ -3,6 +3,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.1.3] Preview Release
+### Added
+- Added a new SQLServerMetaData constructor for string values of length greater than 4000 [#876](https://github.com/Microsoft/mssql-jdbc/pull/876)
+
+### Fixed Issues
+- Fixed an issue with Geography.point() having coordinates reversed [#853](https://github.com/Microsoft/mssql-jdbc/pull/853)
+- Fixed intermittent test failures [#854](https://github.com/Microsoft/mssql-jdbc/pull/854)  [#862](https://github.com/Microsoft/mssql-jdbc/pull/862) [#888](https://github.com/Microsoft/mssql-jdbc/pull/888)
+- Fixed an issue with setAutoCommit() leaving a transaction open when running against Azure SQL Data Warehouse [#881](https://github.com/Microsoft/mssql-jdbc/pull/881)
+
+### Changed
+- Changed query timeout logic to use a single thread [#842](https://github.com/Microsoft/mssql-jdbc/pull/842)
+- Code cleanup [#857](https://github.com/Microsoft/mssql-jdbc/pull/857) [#873](https://github.com/Microsoft/mssql-jdbc/pull/873)
+- Removed populating Lobs when calling ResultSet.wasNull() [#875](https://github.com/Microsoft/mssql-jdbc/pull/875)
+- Improved retry logic for intermittent TLS1.2 issue when establishing a connection [#882](https://github.com/Microsoft/mssql-jdbc/pull/882)
+
 ## [7.1.2] Preview Release
 ### Added
 - Added support for JDK 11 [#824](https://github.com/Microsoft/mssql-jdbc/pull/824) [#837](https://github.com/Microsoft/mssql-jdbc/pull/837) [#807](https://github.com/Microsoft/mssql-jdbc/pull/807)

@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
@@ -26,6 +27,7 @@ final class TDSParser {
     }
 
     static void parse(TDSReader tdsReader, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
+        final boolean isLogging = logger.isLoggable(Level.FINEST);
 
         // Process TDS tokens from the token stream until we're told to stop.
         boolean parsing = true;
@@ -35,8 +37,10 @@ final class TDSParser {
         boolean isFeatureExtAck = false;
         while (parsing) {
             int tdsTokenType = tdsReader.peekTokenType();
-            logger.finest(tdsReader.toString() + ": " + tdsTokenHandler.logContext + ": Processing "
-                    + ((-1 == tdsTokenType) ? "EOF" : TDS.getTokenName(tdsTokenType)));
+            if (isLogging) {
+                logger.finest(tdsReader.toString() + ": " + tdsTokenHandler.logContext + ": Processing "
+                        + ((-1 == tdsTokenType) ? "EOF" : TDS.getTokenName(tdsTokenType)));
+            }
 
             switch (tdsTokenType) {
                 case TDS.TDS_SSPI:
@@ -114,8 +118,9 @@ final class TDSParser {
 
     /* Handle unexpected tokens - throw an exception */
     static void throwUnexpectedTokenException(TDSReader tdsReader, String logContext) throws SQLServerException {
-        logger.severe(tdsReader.toString() + ": " + logContext + ": Encountered unexpected "
-                + TDS.getTokenName(tdsReader.peekTokenType()));
+        if (logger.isLoggable(Level.SEVERE))
+            logger.severe(tdsReader.toString() + ": " + logContext + ": Encountered unexpected "
+                    + TDS.getTokenName(tdsReader.peekTokenType()));
         tdsReader.throwInvalidTDSToken(TDS.getTokenName(tdsReader.peekTokenType()));
     }
 
@@ -222,8 +227,9 @@ class TDSTokenHandler {
 
     boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
         // SHOWPLAN might be ON, instead of throwing an exception, ignore the column meta data
-        logger.severe(tdsReader.toString() + ": " + logContext + ": Encountered "
-                + TDS.getTokenName(tdsReader.peekTokenType()) + ". SHOWPLAN is ON, ignoring.");
+        if (logger.isLoggable(Level.SEVERE))
+            logger.severe(tdsReader.toString() + ": " + logContext + ": Encountered "
+                    + TDS.getTokenName(tdsReader.peekTokenType()) + ". SHOWPLAN is ON, ignoring.");
         return false;
     }
 

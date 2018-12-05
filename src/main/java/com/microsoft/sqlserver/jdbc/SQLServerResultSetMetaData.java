@@ -48,7 +48,9 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
         this.con = con;
         this.rs = rs;
         assert rs != null;
-        logger.fine(toString() + " created by (" + rs.toString() + ")");
+        if (logger.isLoggable(java.util.logging.Level.FINE)) {
+            logger.fine(toString() + " created by (" + rs.toString() + ")");
+        }
     }
 
     /* ------------------ JDBC API Methods --------------------- */
