@@ -350,7 +350,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If the column mapping is invalid
      */
     public void addColumnMapping(int sourceColumn, int destinationColumn) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "addColumnMapping", new Object[] {sourceColumn, destinationColumn});
+        LogUtil.entering(loggerExternal, loggerClassName, "addColumnMapping", sourceColumn, destinationColumn);
 
         if (0 >= sourceColumn) {
             throwInvalidArgument("sourceColumn");
@@ -373,7 +373,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If the column mapping is invalid
      */
     public void addColumnMapping(int sourceColumn, String destinationColumn) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "addColumnMapping", new Object[] {sourceColumn, destinationColumn});
+        LogUtil.entering(loggerExternal, loggerClassName, "addColumnMapping", sourceColumn, destinationColumn);
 
         if (0 >= sourceColumn) {
             throwInvalidArgument("sourceColumn");
@@ -397,7 +397,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If the column mapping is invalid
      */
     public void addColumnMapping(String sourceColumn, int destinationColumn) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "addColumnMapping", new Object[] {sourceColumn, destinationColumn});
+        LogUtil.entering(loggerExternal, loggerClassName, "addColumnMapping", sourceColumn, destinationColumn);
 
         if (0 >= destinationColumn) {
             throwInvalidArgument("destinationColumn");
@@ -420,7 +420,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If the column mapping is invalid
      */
     public void addColumnMapping(String sourceColumn, String destinationColumn) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "addColumnMapping", new Object[] {sourceColumn, destinationColumn});
+        LogUtil.entering(loggerExternal, loggerClassName, "addColumnMapping", sourceColumn, destinationColumn);
 
         if (null == sourceColumn || sourceColumn.isEmpty()) {
             throwInvalidArgument("sourceColumn");
@@ -1676,8 +1676,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
 
                 // Get destination metadata
-                rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                        + escapedDestinationTableName + " '");
+                rs = stmt.executeQueryInternal(
+                        "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
             }
 
             destColumnCount = rs.getMetaData().getColumnCount();

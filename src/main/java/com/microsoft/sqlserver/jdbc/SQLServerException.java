@@ -9,6 +9,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.text.MessageFormat;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 enum SQLState {
@@ -65,8 +66,7 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int LOGON_FAILED = 18456;
     static final int PASSWORD_EXPIRED = 18488;
     static final int USER_ACCOUNT_LOCKED = 18486;
-    static java.util.logging.Logger exLogger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerException");
+    static Logger exLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerException");
 
     // Facility for driver-specific error codes
     static final int DRIVER_ERROR_NONE = 0;
@@ -108,8 +108,7 @@ public final class SQLServerException extends java.sql.SQLException {
         if (o != null)
             id = o.toString();
 
-        if (exLogger.isLoggable(Level.FINE))
-            exLogger.fine("*** SQLException:" + id + " " + this.toString() + " " + errText);
+        LogUtil.fine(exLogger, "*** SQLException: {0} {1} {2}", id, this, errText);
         if (bStack) {
             if (exLogger.isLoggable(Level.FINE)) {
                 StringBuilder sb = new StringBuilder(100);

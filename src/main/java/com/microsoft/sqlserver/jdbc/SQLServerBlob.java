@@ -97,8 +97,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
     SQLServerBlob(BaseInputStream stream) throws SQLServerException {
         traceID = " SQLServerBlob:" + nextInstanceID();
         activeStreams.add(stream);
-        if (logger.isLoggable(Level.FINE))
-            logger.fine(toString() + " created by (null connection)");
+        logger.log(Level.FINE, "{0}: created by (null connection)", traceID);
     }
 
     @Override
@@ -111,8 +110,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
                     try {
                         stream.close();
                     } catch (IOException ioException) {
-                        logger.fine(toString() + " ignored IOException closing stream " + stream + ": "
-                                + ioException.getMessage());
+                        LogUtil.fine(logger, "{0}: ignored IOException closing stream {1}", traceID, ioException);
                     }
                 }
                 activeStreams = null;

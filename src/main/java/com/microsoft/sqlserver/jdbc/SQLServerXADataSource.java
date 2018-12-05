@@ -43,6 +43,7 @@ import javax.sql.XADataSource;
 public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSource implements XADataSource {
 
     static Logger xaLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.XA");
+    private final String loggingClassName = getClassNameLogging();
 
     /**
      * Returns a physical database connection to particate in an XA transaction with the specified user and password.
@@ -54,9 +55,8 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
      */
     @Override
     public XAConnection getXAConnection(String user, String password) throws SQLException {
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getXAConnection",
-                    new Object[] {user, "Password not traced"});
+        LogUtil.entering(loggerExternal, loggingClassName, "getXAConnection", user, "Password not traced");
+
         SQLServerXAConnection pooledXAConnection = new SQLServerXAConnection(this, user, password);
 
         if (xaLogger.isLoggable(Level.FINER))
@@ -72,8 +72,7 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
         SQLServerConnection physicalConnection = pooledXAConnection.getPhysicalConnection();
         if (xaLogger.isLoggable(Level.FINE))
             xaLogger.fine(toString() + " End get physical connection, " + physicalConnection.toString());
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "getXAConnection", pooledXAConnection);
+        loggerExternal.exiting(loggingClassName, "getXAConnection", pooledXAConnection);
         return pooledXAConnection;
     }
 
@@ -87,8 +86,7 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
      */
     @Override
     public XAConnection getXAConnection() throws SQLException {
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getXAConnection");
+        loggerExternal.entering(loggingClassName, "getXAConnection");
         return getXAConnection(getUser(), getPassword());
     }
 
@@ -96,11 +94,9 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
 
     @Override
     public Reference getReference() {
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getReference");
+        loggerExternal.entering(loggingClassName, "getReference");
         Reference ref = getReferenceInternal("com.microsoft.sqlserver.jdbc.SQLServerXADataSource");
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "getReference", ref);
+        loggerExternal.exiting(loggingClassName, "getReference", ref);
         return ref;
     }
 

@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 class FedAuthDllInfo {
@@ -25,8 +26,7 @@ class FedAuthDllInfo {
 final class AuthenticationJNI extends SSPIAuthentication {
     private final static int maximumpointersize = 128; // we keep the SNI_Sec pointer
     private static boolean enabled = false;
-    private static java.util.logging.Logger authLogger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.internals.AuthenticationJNI");
+    private static Logger authLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.AuthenticationJNI");
     private static int sspiBlobMaxlen = 0;
     private byte[] sniSec = new byte[maximumpointersize];
     private int sniSecLen[] = {0};
@@ -59,7 +59,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
             enabled = true;
         } catch (UnsatisfiedLinkError e) {
             temp = e;
-            authLogger.warning("Failed to load the sqljdbc_auth.dll cause : " + e.getMessage());
+            authLogger.log(Level.WARNING, "Failed to load the sqljdbc_auth.dll cause : {0}", e);
             // This is not re-thrown on purpose - the constructor will terminate the properly with the appropriate error
             // string
         } finally {
@@ -100,9 +100,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
                 null, null, authLogger);
 
         if (failure != 0) {
-            if (authLogger.isLoggable(Level.WARNING)) {
-                authLogger.warning(toString() + " Authentication failed code : " + failure);
-            }
+            authLogger.log(Level.WARNING, "Authentication failed code :{0}", failure);
             con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                     SQLServerException.getErrString("R_integratedAuthenticationFailed"), linkError);
         }
@@ -112,7 +110,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
         return output;
     }
 
-    /* L0 */ int ReleaseClientContext() {
+    int ReleaseClientContext() {
         int success = 0;
         if (sniSecLen[0] > 0) {
             success = SNISecReleaseClientContext(sniSec, sniSecLen[0], authLogger);
@@ -135,26 +133,24 @@ final class AuthenticationJNI extends SSPIAuthentication {
     // we use arrays of size one in many places to retrieve output values
     // Java Integer objects are immutable so we cant use them to get the output sizes.
     // Same for String
-    /* L0 */private native static int SNISecGenClientContext(byte[] psec, int[] secptrsize, byte[] pin, int insize,
-            byte[] pOut, int[] outsize, boolean[] done, String servername, int port, String username, String password,
-            java.util.logging.Logger log);
+    private native static int SNISecGenClientContext(byte[] psec, int[] secptrsize, byte[] pin, int insize, byte[] pOut,
+            int[] outsize, boolean[] done, String servername, int port, String username, String password, Logger log);
 
-    /* L0 */ private native static int SNISecReleaseClientContext(byte[] psec, int secptrsize,
-            java.util.logging.Logger log);
+    private native static int SNISecReleaseClientContext(byte[] psec, int secptrsize, Logger log);
 
-    private native static int SNISecInitPackage(int[] pcbMaxToken, java.util.logging.Logger log);
+    private native static int SNISecInitPackage(int[] pcbMaxToken, Logger log);
 
-    private native static int SNISecTerminatePackage(java.util.logging.Logger log);
+    private native static int SNISecTerminatePackage(Logger log);
 
-    private native static int SNIGetSID(byte[] SID, java.util.logging.Logger log);
+    private native static int SNIGetSID(byte[] SID, Logger log);
 
-    private native static boolean SNIIsEqualToCurrentSID(byte[] SID, java.util.logging.Logger log);
+    private native static boolean SNIIsEqualToCurrentSID(byte[] SID, Logger log);
 
-    private native static int GetDNSName(String address, String[] DNSName, java.util.logging.Logger log);
+    private native static int GetDNSName(String address, String[] DNSName, Logger log);
 
     private native static FedAuthDllInfo ADALGetAccessTokenForWindowsIntegrated(String stsURL,
             String servicePrincipalName, String clientConnectionId, String clientId, long expirationFileTime,
-            java.util.logging.Logger log);
+            Logger log);
 
     native static byte[] DecryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] encryptedColumnEncryptionKey) throws DLLException;

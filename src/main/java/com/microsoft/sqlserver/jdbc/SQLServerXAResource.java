@@ -194,8 +194,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     + p.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()) + "."
                     + p.getProperty(SQLServerDriverIntProperty.PORT_NUMBER.toString());
         }
-        if (xaLogger.isLoggable(Level.FINE))
-            xaLogger.fine(toString() + " created by (" + loginfo + ")");
+        LogUtil.fine(xaLogger, "{0}: created by ({1})", traceID, loginfo);
 
         // Information about the server, needed for XA timeout logic in the DLL.
         serverInfoRetrieved = false;
@@ -267,8 +266,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         try {
             closeXAStatements();
         } catch (Exception e) {
-            if (xaLogger.isLoggable(Level.WARNING))
-                xaLogger.warning(toString() + "Closing exception ignored: " + e);
+            LogUtil.warning(xaLogger, "{0}: Closing exception ignored: {1}", traceID, e);
         }
 
         if (null != controlConnection)
@@ -402,16 +400,15 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                                     controlConnection.close();
                                 } catch (SQLException e3) {
                                     // we really want to ignore this failue
-                                    if (xaLogger.isLoggable(Level.FINER))
-                                        xaLogger.finer(toString()
-                                                + " Ignoring exception when closing failed execution. exception:" + e3);
+                                    LogUtil.finer(xaLogger,
+                                            "{0}: Ignoring exception when closing failed execution. exception: {1}",
+                                            traceID, e3);
                                 }
                                 if (xaLogger.isLoggable(Level.FINER))
                                     xaLogger.finer(toString() + " exception:" + eX);
                                 throw eX;
                             } catch (SQLTimeoutException e4) {
-                                if (xaLogger.isLoggable(Level.FINER))
-                                    xaLogger.finer(toString() + " exception:" + e4);
+                                LogUtil.finer(xaLogger, "{0}: exception: {1}", traceID, e4);
                                 throw new SQLServerException(e4.getMessage(), SQLState.STATEMENT_CANCELED,
                                         DriverError.NOT_SET, null);
                             }
@@ -420,8 +417,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                             int initStatus = initCS.getInt(1);
                             String initErr = initCS.getString(2);
                             String versionNumberXADLL = initCS.getString(3);
-                            if (xaLogger.isLoggable(Level.FINE))
-                                xaLogger.fine(toString() + " Server XA DLL version:" + versionNumberXADLL);
+                            LogUtil.fine(xaLogger, "{0}: Server XA DLL version: {1}", traceID, versionNumberXADLL);
                             initCS.close();
                             if (XA_OK != initStatus) {
                                 assert null != initErr && initErr.length() > 1;
@@ -432,8 +428,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                                 Object[] msgArgs = {String.valueOf(initStatus), initErr};
                                 XAException xex = new XAException(form.format(msgArgs));
                                 xex.errorCode = initStatus;
-                                if (xaLogger.isLoggable(Level.FINER))
-                                    xaLogger.finer(toString() + " exception:" + xex);
+                                LogUtil.finer(xaLogger, "{0}: exception: {1}", traceID, xex);
                                 throw xex;
                             }
                         }
@@ -489,16 +484,13 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                         // Got caught in static analysis. Catch only the thrown exceptions, do not catch
                         // run time exceptions.
                         catch (Exception e) {
-                            if (xaLogger.isLoggable(Level.WARNING))
-                                xaLogger.warning(
-                                        toString() + " Cannot retrieve server information: :" + e.getMessage());
+                            LogUtil.warning(xaLogger, "{0}: Cannot retrieve server information: {1}", traceID, e);
                         } finally {
                             if (null != stmt)
                                 try {
                                     stmt.close();
                                 } catch (SQLException e) {
-                                    if (xaLogger.isLoggable(Level.FINER))
-                                        xaLogger.finer(toString());
+                                    xaLogger.finer(traceID);
                                 }
                         }
                     }
@@ -664,16 +656,15 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 // if the request is end make sure we delist from the DTC transaction on rm failure.
                 if (nType == XA_END && (XAException.XAER_RMFAIL == nStatus)) {
                     try {
-                        if (xaLogger.isLoggable(Level.FINER))
-                            xaLogger.finer(toString() + " Begin un-enlist, enlisted count:" + enlistedTransactionCount);
+                        LogUtil.finer(xaLogger, "{0}: Begin un-enlist, enlisted count: {1}", traceID,
+                                enlistedTransactionCount);
                         con.JTAUnenlistConnection();
                         enlistedTransactionCount--;
-                        if (xaLogger.isLoggable(Level.FINER))
-                            xaLogger.finer(toString() + " End un-enlist, enlisted count:" + enlistedTransactionCount);
+                        LogUtil.finer(xaLogger, "{0}: End un-enlist, enlisted count: {1}", traceID,
+                                enlistedTransactionCount);
                     } catch (SQLServerException e1) {
                         // ignore this message as the previous error message is more important.
-                        if (xaLogger.isLoggable(Level.FINER))
-                            xaLogger.finer(toString() + " Ignoring exception:" + e1);
+                        LogUtil.finer(xaLogger, "{0}: Ignoring exception: {1}", traceID, e1);
                     }
                 }
                 throw e;
@@ -707,12 +698,12 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 }
                 if (nType == XA_END) {
                     try {
-                        if (xaLogger.isLoggable(Level.FINER))
-                            xaLogger.finer(toString() + " Begin un-enlist, enlisted count:" + enlistedTransactionCount);
+                        LogUtil.finer(xaLogger, "{0}: Begin un-enlist, enlisted count: {1}", traceID,
+                                enlistedTransactionCount);
                         con.JTAUnenlistConnection();
                         enlistedTransactionCount--;
-                        if (xaLogger.isLoggable(Level.FINER))
-                            xaLogger.finer(toString() + " End un-enlist, enlisted count:" + enlistedTransactionCount);
+                        LogUtil.finer(xaLogger, "{0}: End un-enlist, enlisted count: {1}", traceID,
+                                enlistedTransactionCount);
                     } catch (SQLServerException e1) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToUnEnlist"));
                         Object[] msgArgs = {e1.getMessage()};
@@ -733,15 +724,13 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 }
             }
         } catch (SQLServerException | SQLTimeoutException ex) {
-            if (xaLogger.isLoggable(Level.FINER))
-                xaLogger.finer(toString() + " exception:" + ex);
+            LogUtil.finer(xaLogger, "{0}: exception: {1}", traceID, ex);
             XAException e = new XAException(ex.toString());
             e.errorCode = XAException.XAER_RMERR;
             throw e;
         }
 
-        if (xaLogger.isLoggable(Level.FINER))
-            xaLogger.finer(toString() + " Status:" + nStatus);
+        LogUtil.finer(xaLogger, "{0}: Status: {1}", traceID, nStatus);
 
         returnStatus.nStatus = nStatus;
         return returnStatus;
@@ -869,8 +858,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     public boolean isSameRM(XAResource xares) throws XAException {
         // A Resource Manager (RM) is an instance of a connection to a DB
 
-        if (xaLogger.isLoggable(Level.FINER))
-            xaLogger.finer(toString() + " xares:" + xares);
+        LogUtil.finer(xaLogger, "{0}: xares: {1}", traceID, xares);
 
         // Change to return true if its the same database physical connection
         if (!(xares instanceof SQLServerXAResource))
@@ -884,8 +872,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 
         isTransacrionTimeoutSet = 1;
         timeoutSeconds = seconds;
-        if (xaLogger.isLoggable(Level.FINER))
-            xaLogger.finer(toString() + " TransactionTimeout:" + seconds);
+        LogUtil.finer(xaLogger, "{0}: xares: {1}", traceID, seconds);
         return true;
     }
 

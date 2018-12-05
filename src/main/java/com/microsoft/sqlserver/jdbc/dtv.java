@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.microsoft.sqlserver.jdbc.JavaType.SetterConversionAE;
 
@@ -121,8 +123,7 @@ abstract class DTVExecuteOp {
  * All DTV manipulation is done through this class.
  */
 final class DTV {
-    static final private java.util.logging.Logger aeLogger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.DTV");
+    static final private Logger aeLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.DTV");
 
     /** The source (app or server) providing the data for this value. */
     private DTVImpl impl;
@@ -857,7 +858,7 @@ final class DTV {
                 // - java.sql.Types.DATE, use DATE SQL Server data type
                 // - microsoft.sql.Types.DATETIMEOFFSET, use DATETIMEOFFSET SQL Server data type
                 if (conn.isKatmaiOrLater()) {
-                    if (aeLogger.isLoggable(java.util.logging.Level.FINE) && (null != cryptoMeta)) {
+                    if (null != cryptoMeta) {
                         aeLogger.fine("Encrypting temporal data type.");
                     }
 
@@ -1592,8 +1593,8 @@ final class DTV {
             }
         } else // null != value
         {
-            if (aeLogger.isLoggable(java.util.logging.Level.FINE) && (null != cryptoMeta)) {
-                aeLogger.fine("Encrypting java data type: " + javaType);
+            if (null != cryptoMeta) {
+                aeLogger.log(Level.FINE, "Encrypting java data type: {0}", javaType);
             }
 
             switch (javaType) {
@@ -3355,8 +3356,7 @@ final class ServerDTVImpl extends DTVImpl {
 
     }
 
-    static final private java.util.logging.Logger aeLogger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.DTV");
+    static final private Logger aeLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.DTV");
 
     private void getValuePrep(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
         // If we've already seen this value before, then we shouldn't be here.
@@ -3421,7 +3421,7 @@ final class ServerDTVImpl extends DTVImpl {
             throw new SQLServerException(form.format(new Object[] {normalizeRuleVersion, 1}), null, 0, null);
         }
 
-        if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
+        if (aeLogger.isLoggable(Level.FINE)) {
             aeLogger.fine("Denormalizing decrypted data based on its SQL Server type(" + baseTypeInfo.getSSType()
                     + ") and JDBC type(" + jdbcType + ").");
         }
@@ -3659,7 +3659,7 @@ final class ServerDTVImpl extends DTVImpl {
             baseSSType = cryptoMetadata.baseTypeInfo.getSSType();
             encrypted = true;
 
-            if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
+            if (aeLogger.isLoggable(Level.FINE)) {
                 aeLogger.fine("Data is encrypted, SQL Server Data Type: " + baseSSType + ", Encryption Type: "
                         + cryptoMetadata.getEncryptionType());
             }
@@ -3715,9 +3715,7 @@ final class ServerDTVImpl extends DTVImpl {
                             JDBCType.VARBINARY, streamGetterArgs);
                 }
 
-                if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
-                    aeLogger.fine("Encrypted data is retrieved.");
-                }
+                aeLogger.fine("Encrypted data is retrieved.");
 
                 // AE does not support streaming types
                 if ((convertedValue instanceof SimpleInputStream) || (convertedValue instanceof PLPInputStream)) {

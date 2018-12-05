@@ -72,8 +72,8 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
      */
     public SQLServerBulkCSVFileRecord(String fileToParse, String encoding, String delimiter,
             boolean firstLineIsColumnNames) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "SQLServerBulkCSVFileRecord",
-                new Object[] {fileToParse, encoding, delimiter, firstLineIsColumnNames});
+        LogUtil.entering(loggerExternal, loggerClassName, "SQLServerBulkCSVFileRecord", fileToParse, encoding,
+                delimiter, firstLineIsColumnNames);
 
         if (null == fileToParse) {
             throwInvalidArgument("fileToParse");
@@ -126,8 +126,8 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
      */
     public SQLServerBulkCSVFileRecord(InputStream fileToParse, String encoding, String delimiter,
             boolean firstLineIsColumnNames) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "SQLServerBulkCSVFileRecord",
-                new Object[] {fileToParse, encoding, delimiter, firstLineIsColumnNames});
+        LogUtil.entering(loggerExternal, loggerClassName, "SQLServerBulkCSVFileRecord", fileToParse, encoding,
+                delimiter, firstLineIsColumnNames);
 
         if (null == fileToParse) {
             throwInvalidArgument("fileToParse");
@@ -471,8 +471,8 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
     @Override
     void addColumnMetadataInternal(int positionInSource, String name, int jdbcType, int precision, int scale,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "addColumnMetadata",
-                new Object[] {positionInSource, name, jdbcType, precision, scale});
+        LogUtil.entering(loggerExternal, loggerClassName, "addColumnMetadata", positionInSource, name, jdbcType,
+                precision, scale);
 
         String colName = "";
 
@@ -547,7 +547,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
 
     @Override
     public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat", new Object[] {dateTimeFormatter});
+        LogUtil.entering(loggerExternal, loggerClassName, "setTimestampWithTimezoneFormat", dateTimeFormatter);
 
         super.setTimestampWithTimezoneFormat(dateTimeFormatter);
 
@@ -565,7 +565,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
 
     @Override
     public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
+        LogUtil.entering(loggerExternal, loggerClassName, "setTimeWithTimezoneFormat", dateTimeFormatter);
 
         super.setTimeWithTimezoneFormat(dateTimeFormatter);
 

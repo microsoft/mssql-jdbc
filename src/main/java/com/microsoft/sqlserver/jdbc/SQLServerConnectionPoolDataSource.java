@@ -6,7 +6,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLException;
-import java.util.logging.Level;
 
 import javax.naming.Reference;
 import javax.sql.ConnectionPoolDataSource;
@@ -20,25 +19,24 @@ import javax.sql.PooledConnection;
  * API spec connection pooling.
  */
 public class SQLServerConnectionPoolDataSource extends SQLServerDataSource implements ConnectionPoolDataSource {
+
+    private final String className = getClassNameLogging();
+
     // Get a new physical connection that the pool manager will issue logical connections from
     @Override
     public PooledConnection getPooledConnection() throws SQLException {
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getPooledConnection");
+        loggerExternal.entering(className, "getPooledConnection");
         PooledConnection pcon = getPooledConnection(getUser(), getPassword());
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "getPooledConnection", pcon);
+        loggerExternal.exiting(className, "getPooledConnection", pcon);
         return pcon;
     }
 
     @Override
     public PooledConnection getPooledConnection(String user, String password) throws SQLException {
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getPooledConnection",
-                    new Object[] {user, "Password not traced"});
+        LogUtil.entering(loggerExternal, className, "getPooledConnection", user, "Password not traced");
+
         SQLServerPooledConnection pc = new SQLServerPooledConnection(this, user, password);
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "getPooledConnection", pc);
+        loggerExternal.exiting(className, "getPooledConnection", pc);
         return pc;
     }
 
@@ -46,11 +44,9 @@ public class SQLServerConnectionPoolDataSource extends SQLServerDataSource imple
 
     @Override
     public Reference getReference() {
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getReference");
+        loggerExternal.entering(className, "getReference");
         Reference ref = getReferenceInternal("com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource");
-        if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "getReference", ref);
+        loggerExternal.exiting(className, "getReference", ref);
         return ref;
     }
 
