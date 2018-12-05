@@ -198,6 +198,7 @@
 							<properties>
 								<excludeTags>${skipTestTag}</excludeTags>
 							</properties>
+							<groups>${testGroup}</groups>
 						</configuration>
 					</plugin>
 				</plugins>
