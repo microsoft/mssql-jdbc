@@ -5,11 +5,17 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
+
 /**
  * StreamError represents a TDS error or message event.
  */
 
-public final class SQLServerError extends StreamPacket {
+public final class SQLServerError extends StreamPacket implements Serializable {
+    /**
+     * Always update serialVersionUID when prompted
+     */
+    private static final long serialVersionUID = -7304033613218700719L;
     private String errorMessage = "";
     private int errorNumber;
     private int errorState;
