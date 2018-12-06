@@ -3755,7 +3755,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             int initialLength = 0;
             initialLength += 1 + 2 * ssTable.getOriginalCatalog().length();
             initialLength += 1 + 2 * ssTable.getOriginalLanguage().length();
-            initialLength += 1 + (databaseCollation == null ? 0 : SQLCollation.tdsLength());
+            initialLength += 1 + (ssTable.getOriginalCollation() == null ? 0 : SQLCollation.tdsLength());
             initialLength += ssTable.getInitialLength();
 
             int currentLength = 0;
@@ -3802,7 +3802,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 // collation
-                if (databaseCollation != null && databaseCollation.isEqual(ssTable.getOriginalCollation())) {
+                if (databaseCollation == null || databaseCollation.isEqual(ssTable.getOriginalCollation())) {
                     tdsWriter.writeByte((byte) 0);
                 } else {
                     tdsWriter.writeByte((byte) SQLCollation.tdsLength());
@@ -3822,11 +3822,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (ssTable.getSessionStateDelta()[i] != null
                             && ssTable.getSessionStateDelta()[i].getData() != null) {
                         tdsWriter.writeByte((byte) i); // state id
-                        if (ssTable.getSessionStateDelta()[i].getDataLengh() >= 0xFF) {
+                        if (ssTable.getSessionStateDelta()[i].getDataLength() >= 0xFF) {
                             tdsWriter.writeByte((byte) 0xFF);
-                            tdsWriter.writeShort((short) ssTable.getSessionStateDelta()[i].getDataLengh());
+                            tdsWriter.writeShort((short) ssTable.getSessionStateDelta()[i].getDataLength());
                         } else
-                            tdsWriter.writeByte((byte) (ssTable.getSessionStateDelta()[i].getDataLengh()));
+                            tdsWriter.writeByte((byte) (ssTable.getSessionStateDelta()[i].getDataLength()));
                         tdsWriter.writeBytes(ssTable.getSessionStateDelta()[i].getData()); // state value
                     }
                 }
@@ -4549,10 +4549,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private void onFeatureExtAck(byte featureId, TDSReader tdsReader) throws SQLServerException {
-        if (null != routingInfo) {
-            return;
-        }
-
         int dataLen;
         byte[] data = null;
 

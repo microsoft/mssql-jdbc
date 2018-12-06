@@ -151,7 +151,7 @@ class SessionRecoveryFeature {
 class SessionStateValue {
     private boolean isRecoverable;
     private int sequenceNumber;
-    private int dataLengh;
+    private int dataLength;
     private byte[] data;
 
     boolean isSequenceNumberGreater(int sequenceNumberToBeCompared) {
@@ -200,12 +200,12 @@ class SessionStateValue {
         this.sequenceNumber = sequenceNumber;
     }
 
-    int getDataLengh() {
-        return dataLengh;
+    int getDataLength() {
+        return dataLength;
     }
 
-    void setDataLengh(int dataLengh) {
-        this.dataLengh = dataLengh;
+    void setDataLengh(int dataLength) {
+        this.dataLength = dataLength;
     }
 
     byte[] getData() {
@@ -282,8 +282,8 @@ class SessionStateTable {
         int length = 0;
         for (int i = 0; i < SESSION_STATE_ID_MAX; i++) {
             if (sessionStateDelta[i] != null && sessionStateDelta[i].getData() != null) {
-                length += (1/* state id */ + (sessionStateDelta[i].getDataLengh() < 0xFF ? 1 : 5)/* Data length */
-                        + sessionStateDelta[i].getDataLengh());
+                length += (1/* state id */ + (sessionStateDelta[i].getDataLength() < 0xFF ? 1 : 5)/* Data length */
+                        + sessionStateDelta[i].getDataLength());
             }
         }
         return length;
