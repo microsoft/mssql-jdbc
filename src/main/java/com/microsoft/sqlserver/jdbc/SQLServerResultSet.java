@@ -68,11 +68,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return traceID;
     }
 
-    void logCursorState() {
-        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
-                numFetchedRows, rowCount);
-    }
-
     protected static final Logger loggerExternal = Logger.getLogger("com.microsoft.sqlserver.jdbc.ResultSet");
 
     final private String loggingClassName;
@@ -782,8 +777,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public boolean relative(int rows) throws SQLException {
         loggerExternal.entering(loggingClassName, "relative", rows);
 
-        LogUtil.finer(logger, "{0} rows: {1}", traceID, rows);
-        logCursorState();
+        LogUtil.finer(logger, "{0}: rows: {1} currentRow: {2} numFetchedRows: {3} rowCount: 43}", traceID, rows,
+                currentRow, numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -970,8 +965,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
-        logCursorState();
-
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
         checkClosed();
 
         moverInit();
@@ -1079,7 +1074,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean isBeforeFirst() throws SQLException {
         loggerExternal.entering(loggingClassName, "isBeforeFirst");
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -1138,7 +1134,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean isAfterLast() throws SQLException {
         loggerExternal.entering(loggingClassName, "isAfterLast");
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -1189,7 +1186,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean isFirst() throws SQLException {
         loggerExternal.entering(loggingClassName, "isFirst");
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -1238,7 +1236,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean isLast() throws SQLException {
         loggerExternal.entering(loggingClassName, "isLast");
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -1291,7 +1290,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -1322,7 +1322,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -1366,7 +1367,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean first() throws SQLException {
         loggerExternal.entering(loggingClassName, "first");
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -1422,7 +1424,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean last() throws SQLException {
         loggerExternal.entering(loggingClassName, "last");
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -1468,7 +1471,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public int getRow() throws SQLException {
         loggerExternal.entering(loggingClassName, "getRow");
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -1538,12 +1542,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean absolute(int row) throws SQLException {
         loggerExternal.entering(loggingClassName, "absolute");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
-        }
-        LogUtil.finer(logger, "{0} row: {1}", traceID, row);
-        logCursorState();
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            if (Util.IsActivityTraceOn()) {
+                loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            }
 
+            LogUtil.finer(logger, "{0}: row: {1} currentRow: {2} numFetchedRows: {3} rowCount: {4}", traceID, row,
+                    currentRow, numFetchedRows, rowCount);
+        }
         checkClosed();
 
         // From JDBC spec:
@@ -1859,7 +1865,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean previous() throws SQLException {
         loggerExternal.entering(loggingClassName, "previous");
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -4462,7 +4469,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             }
         }
 
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -4560,7 +4568,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             }
         }
 
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -4639,7 +4648,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             }
         }
 
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -4687,7 +4697,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -4778,7 +4789,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void moveToInsertRow() throws SQLServerException {
         loggerExternal.entering(loggingClassName, "moveToInsertRow");
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 
@@ -4794,7 +4806,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void moveToCurrentRow() throws SQLServerException {
         loggerExternal.entering(loggingClassName, "moveToCurrentRow");
-        logCursorState();
+        LogUtil.finer(logger, "{0}: currentRow: {1} numFetchedRows: {2} rowCount: {3}", traceID, currentRow,
+                numFetchedRows, rowCount);
 
         checkClosed();
 

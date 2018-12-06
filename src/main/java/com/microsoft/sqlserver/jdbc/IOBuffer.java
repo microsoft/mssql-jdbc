@@ -640,7 +640,7 @@ final class TDSChannel {
      */
     final void open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
             boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout) throws SQLServerException {
-        logger.log(Level.FINE, "{0}: Opening TCP socket...", traceID);
+        logger.log(Level.FINER, "{0}: Opening TCP socket...", traceID);
 
         SocketFinder socketFinder = new SocketFinder(traceID, con);
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
@@ -667,7 +667,7 @@ final class TDSChannel {
      * Disables SSL on this TDS channel.
      */
     void disableSSL() {
-        logger.log(Level.FINE, "{0}: Disabling SSL...", traceID);
+        logger.log(Level.FINER, "{0}: Disabling SSL...", traceID);
 
         /*
          * The mission: To close the SSLSocket and release everything that it is holding onto other than the TCP/IP
@@ -704,7 +704,7 @@ final class TDSChannel {
         // Now close the SSL socket. It will see that the proxy socket's streams
         // are closed and not try to do any further I/O over them.
         try {
-            logger.log(Level.FINE, "{0}: Closing SSL socket", traceID);
+            logger.log(Level.FINER, "{0}: Closing SSL socket", traceID);
             sslSocket.close();
         } catch (IOException e) {
             // Don't care if we can't close the SSL socket. We're done with it anyway.
@@ -754,7 +754,7 @@ final class TDSChannel {
          */
         private void ensureSSLPayload() throws IOException {
             if (0 == tdsReader.available()) {
-                logger.log(Level.FINE,
+                logger.log(Level.FINEST,
                         "{0}: No handshake response bytes available. Flushing SSL handshake output stream.",
                         logContext);
 
@@ -1579,7 +1579,7 @@ final class TDSChannel {
                 else {
                     // First, obtain an interface to a KeyStore that can load trust material
                     // stored in Java Key Store (JKS) format.
-                    logger.log(Level.FINER, "{0}: Finding key store interface", traceID);
+                    logger.log(Level.FINEST, "{0}: Finding key store interface", traceID);
 
                     ks = KeyStore.getInstance(trustStoreType);
                     ksProvider = ks.getProvider();
@@ -1592,7 +1592,7 @@ final class TDSChannel {
 
                     // Finally, load the KeyStore with the trust material (if any) from the
                     // InputStream and close the stream.
-                    logger.log(Level.FINER, "{0}: Loading key store", traceID);
+                    logger.log(Level.FINEST, "{0}: Loading key store", traceID);
 
                     try {
                         ks.load(is, (null == trustStorePassword) ? null : trustStorePassword.toCharArray());
@@ -1606,7 +1606,7 @@ final class TDSChannel {
                             try {
                                 is.close();
                             } catch (IOException e) {
-                                logger.log(Level.FINER, "{0}: Ignoring error closing trust material InputStream",
+                                logger.log(Level.FINE, "{0}: Ignoring error closing trust material InputStream",
                                         traceID);
                             }
                         }
@@ -2984,7 +2984,7 @@ final class TDSWriter {
     }
 
     final void endMessage() throws SQLServerException {
-        logger.log(Level.FINER, "{0}: Finishing TDS message", traceID);
+        logger.log(Level.FINEST, "{0}: Finishing TDS message", traceID);
         writePacket(TDS.STATUS_BIT_EOM);
     }
 

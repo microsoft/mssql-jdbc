@@ -39,15 +39,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     static final private Logger loggerExternal = Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.DatabaseMetaData");
 
-    static private final AtomicInteger baseID = new AtomicInteger(0); // Unique
-                                                                      // id
-                                                                      // generator
-                                                                      // for
-                                                                      // each
-                                                                      // instance
-                                                                      // (used
-                                                                      // for
-                                                                      // logging).
+    // Unique id generator for each instance (used for logging)
+    static private final AtomicInteger baseID = new AtomicInteger(0); 
 
     final private String traceID;
 
@@ -450,12 +443,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         checkClosed();
         // Return the original case instead of CAPS.removed Upper().
-        String s = "SELECT name AS TABLE_CAT FROM sys.databases order by name"; // Need
-                                                                                // to
-                                                                                // match
-                                                                                // case
-                                                                                // of
-                                                                                // connection.getCatalog
+        // Need to match case of connection.getCatalog
+        String s = "SELECT name AS TABLE_CAT FROM sys.databases order by name";
         return getResultSetFromInternalQueries(null, s);
     }
 
