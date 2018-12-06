@@ -76,8 +76,7 @@ final class SQLCollation implements java.io.Serializable {
     }
 
     boolean isEqual(SQLCollation col) {
-        return ((col != null && col.info == info && col.sortId == sortId
-                && col.encoding.getCharsetName() == encoding.getCharsetName()) ? true : false);
+        return ((col != null && col.info == info && col.sortId == sortId) ? true : false);
     }
 
     /**
