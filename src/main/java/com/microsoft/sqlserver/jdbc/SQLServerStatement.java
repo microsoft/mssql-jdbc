@@ -1572,7 +1572,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                     executedSqlDirectly = true;
 
                 SQLWarning warning = new SQLWarning(
-                        infoToken.msg.getMessage(), SQLServerException.generateStateCode(connection,
+                        infoToken.msg.getErrorMessage(), SQLServerException.generateStateCode(connection,
                                 infoToken.msg.getErrorNumber(), infoToken.msg.getErrorState()),
                         infoToken.msg.getErrorNumber());
 
@@ -1611,7 +1611,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         // Check for errors first.
         if (null != nextResult.getDatabaseError()) {
-            SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getMessage(),
+            SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getErrorMessage(),
                     nextResult.getDatabaseError(), false);
         }
 
