@@ -645,7 +645,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     StringBuilder sbColumns = new StringBuilder();
 
                     for (MetaInfo mi : metaInfoList) {
-                        sbColumns = sbColumns.append(mi.fields + ",");
+                        sbColumns = sbColumns.append(mi.fields).append(",");
                     }
                     sbColumns.deleteCharAt(sbColumns.length() - 1);
 
@@ -660,9 +660,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                                     && metaInfoList.get(i).fields.equals(metaInfoList.get(i - 1).fields)) {
                                 continue;
                             }
-                            sbTablesAndJoins = sbTablesAndJoins.append(" LEFT JOIN " + metaInfoList.get(i).table
-                                    + " ON " + metaInfoList.get(i - 1).table + "." + metaInfoList.get(i - 1).fields
-                                    + "=" + metaInfoList.get(i).table + "." + metaInfoList.get(i).fields);
+                            sbTablesAndJoins = sbTablesAndJoins.append(" LEFT JOIN ").append(metaInfoList.get(i).table)
+                                    .append(" ON ").append(metaInfoList.get(i - 1).table).append(".")
+                                    .append(metaInfoList.get(i - 1).fields).append("=")
+                                    .append(metaInfoList.get(i).table).append(".").append(metaInfoList.get(i).fields);
                         }
                     }
 

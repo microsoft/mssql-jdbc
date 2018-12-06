@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.databasemetadata;
 
+import static org.junit.Assert.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -21,6 +22,7 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -417,9 +419,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     /**
-     * TODO: Check JDBC Specs: Can we have any tables/functions without category?
-     * 
-     * Testing {@link SQLServerDatabaseMetaData#getFunctions(String, String, String)} with sending wrong category.
+     * Testing {@link SQLServerDatabaseMetaData#getFunctions(String, String, String)} with sending wrong catalog.
      * 
      * @throws SQLException
      */
@@ -428,9 +428,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             conn.getMetaData().getFunctions("", null, "xp_%");
             assertTrue(false, TestResource.getResource("R_noSchemaShouldFail"));
-        } catch (Exception ae) {
-
-        }
+        } catch (Exception ae) {}
     }
 
     /**
@@ -498,6 +496,55 @@ public class DatabaseMetaDataTest extends AbstractTest {
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+        }
+    }
+
+    @Test
+    public void testPreparedStatementMetadataCaching() throws SQLException {
+        try (Connection connection = DriverManager.getConnection(connectionString)) {
+
+            DatabaseMetaData databaseMetaData = connection.getMetaData();
+            String[] types = {"TABLE"};
+
+            Statement stmtNullCatalog;
+            Statement stmtMasterCatalog;
+
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                stmtNullCatalog = rs.getStatement();
+            }
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                assertSame(stmtNullCatalog, rs.getStatement());
+                rs.getStatement().close();
+            }
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                assertNotSame(stmtNullCatalog, rs.getStatement());
+                stmtNullCatalog = rs.getStatement();
+            }
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                assertSame(stmtNullCatalog, rs.getStatement());
+            }
+            try (ResultSet rs = databaseMetaData.getTables("master", null, "%", types)) {
+                stmtMasterCatalog = rs.getStatement();
+            }
+            try (ResultSet rs = databaseMetaData.getTables("master", null, "%", types)) {
+                assertSame(stmtMasterCatalog, rs.getStatement());
+                rs.getStatement().close();
+            }
+            try (ResultSet rs = databaseMetaData.getTables("master", null, "%", types)) {
+                assertNotSame(stmtMasterCatalog, rs.getStatement());
+                stmtMasterCatalog = rs.getStatement();
+            }
+            try (ResultSet rs = databaseMetaData.getTables("master", null, "%", types)) {
+                assertSame(stmtMasterCatalog, rs.getStatement());
+            }
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                assertSame(stmtNullCatalog, rs.getStatement());
+                rs.getStatement().close();
+            }
+            try (ResultSet rs = databaseMetaData.getTables("master", null, "%", types)) {
+                assertSame(stmtMasterCatalog, rs.getStatement());
+                rs.getStatement().close();
+            }
         }
     }
 }

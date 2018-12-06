@@ -18,7 +18,7 @@ SQL Server Team
 
 Let us know how you think we're doing.
 
-<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="67" width="156" src="https://meetsstorenew.blob.core.windows.net/contianerhd/survey.png?st=2017-02-17T22%3A03%3A00Z&se=2100-02-18T22%3A03%3A00Z&sp=rl&sv=2015-12-11&sr=b&sig=DJSFoihBptSvO%2BjvWzwpHecf8o5yfAbJoD2qW5oB8tc%3D"></a>
+<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="67" width="156" src="https://sqlchoice.blob.core.windows.net/sqlchoice/static/images/survey.png"></a>
 
 ## Status of Most Recent Builds
 | AppVeyor (Windows)       | Travis CI (Linux) |
@@ -36,26 +36,26 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 
 ## Build
 ### Prerequisites
-* Java 10
+* Java 11
 * [Maven](http://maven.apache.org/download.cgi)
 * An instance of SQL Server or Azure SQL Database that you can connect to. 
 
 ### Build the JAR files
 Maven builds automatically trigger a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://docs.microsoft.com/en-us/sql/connect/jdbc/building-the-connection-url) for your SQL Server or Azure SQL Database instance.
 
-To build the jar files, you must use Java 10 with Maven.  You can choose to build a JDBC 4.3 compliant jar file (for use with JRE 10) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
+To build the jar files, you must use Java 11 with Maven.  You can choose to build a JDBC 4.3 compliant jar file (for use with JRE 11) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the \target directory. 
-    	* Run `mvn install -Pbuild43`. This creates JDBC 4.3 compliant jar in \target directory
-    	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in \target directory
+	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the `\target` directory. 
+    	* Run `mvn install -Pbuild43`. This creates JDBC 4.3 compliant jar in `\target` directory
+    	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in `\target` directory
 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the \build\libs directory. 
-    	* Run `gradle build -PbuildProfile=build43`. This creates JDBC 4.3 compliant jar in \build\libs directory
-    	* Run `gradle build -PbuildProfile=build42`. This creates JDBC 4.2 compliant jar in \build\libs directory
+	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the `\build\libs` directory. 
+    	* Run `gradle build -PbuildProfile=build43`. This creates JDBC 4.3 compliant jar in `\build\libs` directory
+    	* Run `gradle build -PbuildProfile=build42`. This creates JDBC 4.2 compliant jar in `\build\libs` directory
 
 ## Resources
 
@@ -65,7 +65,7 @@ API reference documentation is available in [Javadocs](https://aka.ms/jdbcjavado
 This driver is documented on [Microsoft's Documentation web site](https://docs.microsoft.com/en-us/sql/connect/jdbc/getting-started-with-the-jdbc-driver).
 
 ### Sample Code
-For samples, please see the src\sample directory.
+For samples, please see the `src\sample` directory.
 
 ### Download the DLLs
 For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287)
@@ -90,7 +90,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.1.1.jre10-preview</version>
+	<version>7.1.3.jre11-preview</version>
 </dependency>
 ```
 
@@ -123,7 +123,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.1.1.jre10-preview</version>
+	<version>7.1.3.jre11-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -140,7 +140,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.1.1.jre10-preview</version>
+	<version>7.1.3.jre11-preview</version>
 	<scope>compile</scope>
 </dependency>
 

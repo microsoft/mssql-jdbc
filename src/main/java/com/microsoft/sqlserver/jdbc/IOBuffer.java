@@ -52,15 +52,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -1367,7 +1362,7 @@ final class TDSChannel {
             this.logContext = tdsChannel.toString() + " (HostNameOverrideX509TrustManager):";
             defaultTrustManager = tm;
             // canonical name is in lower case so convert this to lowercase too.
-            this.hostName = hostName.toLowerCase(Locale.ENGLISH);;
+            this.hostName = hostName.toLowerCase(Locale.ENGLISH);
         }
 
         // Parse name in RFC 2253 format
@@ -1542,7 +1537,7 @@ final class TDSChannel {
         SSL_HANDHSAKE_NOT_STARTED,
         SSL_HANDHSAKE_STARTED,
         SSL_HANDHSAKE_COMPLETE
-    };
+    }
 
     /**
      * Enables SSL Handshake.
@@ -1799,31 +1794,40 @@ final class TDSChannel {
                                 + tmfDefaultAlgorithm + "\n") : "")
                         + ((null != ksProvider) ? ("KeyStore provider info: " + ksProvider.getInfo() + "\n") : "")
                         + "java.ext.dirs: " + System.getProperty("java.ext.dirs"));
+            // Retrieve the localized error message if possible.
+            String localizedMessage = e.getLocalizedMessage();
+            String errMsg = (localizedMessage != null) ? localizedMessage : e.getMessage();
+            /*
+             * Retrieve the error message of the cause too because actual error message can be wrapped into a different
+             * message when re-thrown from underlying InputStream.
+             */
+            String causeErrMsg = null;
+            Throwable cause = e.getCause();
+            if (cause != null) {
+                String causeLocalizedMessage = cause.getLocalizedMessage();
+                causeErrMsg = (causeLocalizedMessage != null) ? causeLocalizedMessage : cause.getMessage();
+            }
 
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_sslFailed"));
-            Object[] msgArgs = {e.getMessage()};
+            Object[] msgArgs = {errMsg};
 
-            // It is important to get the localized message here, otherwise error messages won't match for different
-            // locales.
-            String errMsg = e.getLocalizedMessage();
-            // If the message is null replace it with the non-localized message or a dummy string. This can happen if a
-            // custom
-            // TrustManager implementation is specified that does not provide localized messages.
-            if (errMsg == null) {
-                errMsg = e.getMessage();
-            }
-            if (errMsg == null) {
-                errMsg = "";
-            }
-            // The error message may have a connection id appended to it. Extract the message only for comparison.
-            // This client connection id is appended in method checkAndAppendClientConnId().
-            if (errMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX)) {
+            /*
+             * The error message may have a connection id appended to it. Extract the message only for comparison. This
+             * client connection id is appended in method checkAndAppendClientConnId().
+             */
+            if (errMsg != null && errMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX)) {
                 errMsg = errMsg.substring(0, errMsg.indexOf(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX));
+            }
+
+            if (causeErrMsg != null && causeErrMsg.contains(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX)) {
+                causeErrMsg = causeErrMsg.substring(0,
+                        causeErrMsg.indexOf(SQLServerException.LOG_CLIENT_CONNECTION_ID_PREFIX));
             }
 
             // Isolate the TLS1.2 intermittent connection error.
             if (e instanceof IOException && (SSLHandhsakeState.SSL_HANDHSAKE_STARTED == handshakeState)
-                    && (errMsg.equals(SQLServerException.getErrString("R_truncatedServerResponse")))) {
+                    && (SQLServerException.getErrString("R_truncatedServerResponse").equals(errMsg)
+                            || SQLServerException.getErrString("R_truncatedServerResponse").equals(causeErrMsg))) {
                 con.terminate(SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED, form.format(msgArgs), e);
             } else {
                 con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs), e);
@@ -2108,8 +2112,8 @@ final class TDSChannel {
         //
         // Note: the log formatter itself timestamps what we write so we don't have
         // to do it again here.
-        logMsg.append(tcpSocket.getLocalAddress().toString() + ":" + tcpSocket.getLocalPort() + " SPID:" + spid + " "
-                + messageDetail + "\r\n");
+        logMsg.append(tcpSocket.getLocalAddress().toString()).append(":").append(tcpSocket.getLocalPort())
+                .append(" SPID:").append(spid).append(" ").append(messageDetail).append("\r\n");
 
         // Fill in the body of the log message, line by line, 16 bytes per line.
         int nBytesLogged = 0;
@@ -2295,7 +2299,7 @@ final class SocketFinder {
                 loggingString.append(". They are: ");
 
                 for (InetAddress inetAddr : inetAddrs) {
-                    loggingString.append(inetAddr.toString() + ";");
+                    loggingString.append(inetAddr.toString()).append(";");
                 }
 
                 logger.finer(loggingString.toString());
@@ -2473,7 +2477,7 @@ final class SocketFinder {
 
                             // ch.finishConnect should either return true or throw an exception
                             // as we have subscribed for OP_CONNECT.
-                            assert connected == true : "finishConnect on channel:" + ch + " cannot be false";
+                            assert connected : "finishConnect on channel:" + ch + " cannot be false";
 
                             selectedChannel = ch;
 
@@ -6163,7 +6167,7 @@ final class TDSPacket {
     final boolean isEOM() {
         return TDS.STATUS_BIT_EOM == (header[TDS.PACKET_HEADER_MESSAGE_STATUS] & TDS.STATUS_BIT_EOM);
     }
-};
+}
 
 
 /**
@@ -6192,7 +6196,7 @@ final class TDSReaderMark {
 final class TDSReader {
     private final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Reader");
     final private String traceID;
-    private TimeoutTimer tcpKeepAliveTimeoutTimer;
+    private TimeoutCommand<TDSCommand> timeoutCommand;
 
     final public String toString() {
         return traceID;
@@ -6236,17 +6240,6 @@ final class TDSReader {
         this.tdsChannel = tdsChannel;
         this.con = con;
         this.command = command; // may be null
-        if (null != command) {
-            // if cancelQueryTimeout is set, we should wait for the total amount of queryTimeout + cancelQueryTimeout to
-            // terminate the connection.
-            this.tcpKeepAliveTimeoutTimer = (command.getCancelQueryTimeoutSeconds() > 0
-                    && command.getQueryTimeoutSeconds() > 0)
-                                                             ? (new TimeoutTimer(
-                                                                     command.getCancelQueryTimeoutSeconds()
-                                                                             + command.getQueryTimeoutSeconds(),
-                                                                     null, con))
-                                                             : null;
-        }
         // if the logging level is not detailed than fine or more we will not have proper reader IDs.
         if (logger.isLoggable(Level.FINE))
             traceID = "TDSReader@" + nextReaderID() + " (" + con.toString() + ")";
@@ -6351,11 +6344,16 @@ final class TDSReader {
                 + " should be less than numMsgsSent:" + tdsChannel.numMsgsSent;
 
         TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
-        if (null != tcpKeepAliveTimeoutTimer) {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(this.toString() + ": starting timer...");
+        if (null != command) {
+            // if cancelQueryTimeout is set, we should wait for the total amount of
+            // queryTimeout + cancelQueryTimeout to
+            // terminate the connection.
+            if ((command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0)) {
+                // if a timeout is configured with this object, add it to the timeout poller
+                int timeout = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
+                this.timeoutCommand = new TdsTimeoutCommand(timeout, this.command, this.con);
+                TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
             }
-            tcpKeepAliveTimeoutTimer.start();
         }
         // First, read the packet header.
         for (int headerBytesRead = 0; headerBytesRead < TDS.PACKET_HEADER_SIZE;) {
@@ -6375,11 +6373,8 @@ final class TDSReader {
         }
 
         // if execution was subject to timeout then stop timing
-        if (null != tcpKeepAliveTimeoutTimer) {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(this.toString() + ":stopping timer...");
-            }
-            tcpKeepAliveTimeoutTimer.stop();
+        if (this.timeoutCommand != null) {
+            TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
         }
         // Header size is a 2 byte unsigned short integer in big-endian order.
         int packetLength = Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_MESSAGE_LENGTH);
@@ -6969,82 +6964,25 @@ final class TDSReader {
 
 
 /**
- * Timer for use with Commands that support a timeout.
- *
- * Once started, the timer runs for the prescribed number of seconds unless stopped. If the timer runs out, it
- * interrupts its associated Command with a reason like "timed out".
+ * The tds default implementation of a timeout command
  */
-final class TimeoutTimer implements Runnable {
-    private static final String threadGroupName = "mssql-jdbc-TimeoutTimer";
-    private final int timeoutSeconds;
-    private final TDSCommand command;
-    private volatile Future<?> task;
-    private final SQLServerConnection con;
-
-    private static final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
-        private final AtomicReference<ThreadGroup> tgr = new AtomicReference<>();
-        private final AtomicInteger threadNumber = new AtomicInteger(0);
-
-        @Override
-        public Thread newThread(Runnable r) {
-            ThreadGroup tg = tgr.get();
-
-            if (tg == null || tg.isDestroyed()) {
-                tg = new ThreadGroup(threadGroupName);
-                tgr.set(tg);
-            }
-
-            Thread t = new Thread(tg, r, tg.getName() + "-" + threadNumber.incrementAndGet());
-            t.setDaemon(true);
-            return t;
-        }
-    });
-
-    private volatile boolean canceled = false;
-
-    TimeoutTimer(int timeoutSeconds, TDSCommand command, SQLServerConnection con) {
-        assert timeoutSeconds > 0;
-
-        this.timeoutSeconds = timeoutSeconds;
-        this.command = command;
-        this.con = con;
+class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
+    public TdsTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
+        super(timeout, command, sqlServerConnection);
     }
 
-    final void start() {
-        task = executor.submit(this);
-    }
-
-    final void stop() {
-        task.cancel(true);
-        canceled = true;
-    }
-
-    public void run() {
-        int secondsRemaining = timeoutSeconds;
+    public void interrupt() {
+        TDSCommand command = getCommand();
+        SQLServerConnection sqlServerConnection = getSqlServerConnection();
         try {
-            // Poll every second while time is left on the timer.
-            // Return if/when the timer is canceled.
-            do {
-                if (canceled)
-                    return;
-
-                Thread.sleep(1000);
-            } while (--secondsRemaining > 0);
-        } catch (InterruptedException e) {
-            // re-interrupt the current thread, in order to restore the thread's interrupt status.
-            Thread.currentThread().interrupt();
-            return;
-        }
-
-        // If the timer wasn't canceled before it ran out of
-        // time then interrupt the registered command.
-        try {
-            // If TCP Connection to server is silently dropped, exceeding the query timeout on the same connection does
+            // If TCP Connection to server is silently dropped, exceeding the query timeout
+            // on the same connection does
             // not throw SQLTimeoutException
-            // The application stops responding instead until SocketTimeoutException is thrown. In this case, we must
+            // The application stops responding instead until SocketTimeoutException is
+            // thrown. In this case, we must
             // manually terminate the connection.
-            if (null == command && null != con) {
-                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
+            if (null == command && null != sqlServerConnection) {
+                sqlServerConnection.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
                         SQLServerException.getErrString("R_connectionIsClosed"));
             } else {
                 // If the timer wasn't canceled before it ran out of
@@ -7060,7 +6998,6 @@ final class TimeoutTimer implements Runnable {
         }
     }
 }
-
 
 /**
  * TDSCommand encapsulates an interruptable TDS conversation.
@@ -7094,10 +7031,6 @@ abstract class TDSCommand {
     final void log(Level level, String message) {
         logger.log(level, toString() + ": " + message);
     }
-
-    // Optional timer that is set if the command was created with a non-zero timeout period.
-    // When the timer expires, the command is interrupted.
-    private final TimeoutTimer timeoutTimer;
 
     // TDS channel accessors
     // These are set/reset at command execution time.
@@ -7187,6 +7120,7 @@ abstract class TDSCommand {
     private volatile boolean readingResponse;
     private int queryTimeoutSeconds;
     private int cancelQueryTimeoutSeconds;
+    private TdsTimeoutCommand timeoutCommand;
 
     protected int getQueryTimeoutSeconds() {
         return this.queryTimeoutSeconds;
@@ -7213,7 +7147,6 @@ abstract class TDSCommand {
         this.logContext = logContext;
         this.queryTimeoutSeconds = queryTimeoutSeconds;
         this.cancelQueryTimeoutSeconds = cancelQueryTimeoutSeconds;
-        this.timeoutTimer = (queryTimeoutSeconds > 0) ? (new TimeoutTimer(queryTimeoutSeconds, this, null)) : null;
     }
 
     /**
@@ -7602,11 +7535,9 @@ abstract class TDSCommand {
 
         // If command execution is subject to timeout then start timing until
         // the server returns the first response packet.
-        if (null != timeoutTimer) {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(this.toString() + ": Starting timer...");
-
-            timeoutTimer.start();
+        if (queryTimeoutSeconds > 0) {
+            this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
+            TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
         }
 
         if (logger.isLoggable(Level.FINEST))
@@ -7629,11 +7560,8 @@ abstract class TDSCommand {
         } finally {
             // If command execution was subject to timeout then stop timing as soon
             // as the server returns the first response packet or errors out.
-            if (null != timeoutTimer) {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(this.toString() + ": Stopping timer...");
-
-                timeoutTimer.stop();
+            if (this.timeoutCommand != null) {
+                TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
             }
         }
 
