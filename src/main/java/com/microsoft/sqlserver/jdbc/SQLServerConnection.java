@@ -2335,7 +2335,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if ((SQLServerException.LOGON_FAILED == e.getErrorCode())
                 // actual logon failed (e.g. password expired)
                 || (SQLServerException.PASSWORD_EXPIRED == e.getErrorCode())
-                // actual logon failed  (e.g. user account locked)
+                // actual logon failed (e.g. user account locked)
                 || (SQLServerException.USER_ACCOUNT_LOCKED == e.getErrorCode())
                 // invalid TDS received from server
                 || (SQLServerException.DRIVER_ERROR_INVALID_TDS == e.getDriverErrorCode())
@@ -2982,10 +2982,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (!(newCommand instanceof LogonCommand)) {
                 // isAlive() doesn't guarantee the thread is actually running, just that it's been requested to start
                 if (!sessionRecovery.getReconnectThread().isAlive()) {
-                    /*
-                     * TODO: add additional requirements for CR to be enabled such as unprocessed response count, is
-                     * connection recoverable, is connection recovery turned on, etc...
-                     */
                     if (this.connectRetryCount > 0 && sessionRecovery.isConnectionRecoveryNegotiated()
                             && sessionRecovery.isConnectionRecoveryPossible()
                             && sessionRecovery.getSessionStateTable().isSessionRecoverable()
@@ -3745,67 +3741,57 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     int writeSessionRecoveryFeatureRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
-        int len = 0;
         SessionStateTable ssTable = sessionRecovery.getSessionStateTable();
-        if (sessionRecovery.getReconnectThread().isAlive()) {
-            len = 4 // initial session state length
-                    + 1 // 1 byte of initial database length
-                    + toUCS16(ssTable.getOriginalCatalog()).length + 1 // 1 byte of initial collation length
-                    + (ssTable.getOriginalCollation() != null ? SQLCollation.tdsLength() : 0) + 1
-                    + toUCS16(ssTable.getOriginalLanguage()).length + ssTable.getInitialLength() + 4 + 1
-                    + (sCatalog.equals(ssTable.getOriginalCatalog()) ? 0 : sCatalog.length()) + 1
-                    + (databaseCollation != null
-                            && databaseCollation.isEqual(ssTable.getOriginalCollation()) ? 0 : SQLCollation.tdsLength())
-                    + 1 // 1 byte of current language length
-                    + (sLanguage.equals(ssTable.getOriginalLanguage()) ? 0 : sLanguage.length())
-                    + ssTable.getDeltaLength();
-        } else {
-            len = 0;
-        }
+        int len = 1;
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_SESSIONRECOVERY);
-            tdsWriter.writeInt(len);
-            if (sessionRecovery.getReconnectThread().isAlive()) {
-                tdsWriter.writeInt((int) (1 // 1 byte of initial database length
-                        + (toUCS16(ssTable.getOriginalCatalog()).length) + 1 // 1 byte of initial collation length
-                        + (ssTable.getOriginalCollation() != null ? SQLCollation.tdsLength() : 0) + 1
-                        + (toUCS16(ssTable.getOriginalLanguage()).length) + ssTable.getInitialLength()));
+        }
+        if (!sessionRecovery.getReconnectThread().isAlive()) {
+            if (write) {
+                tdsWriter.writeInt(0);
+            }
+            len += 4;
+        } else {
+            int initialLength = 0;
+            initialLength += 1 + 2 * ssTable.getOriginalCatalog().length();
+            initialLength += 1 + 2 * ssTable.getOriginalLanguage().length();
+            initialLength += 1 + (databaseCollation == null ? 0 : SQLCollation.tdsLength());
+            initialLength += ssTable.getInitialLength();
 
+            int currentLength = 0;
+            currentLength += 1 + 2 * (sCatalog.equals(ssTable.getOriginalCatalog()) ? 0 : sCatalog.length());
+            currentLength += 1 + 2 * (sLanguage.equals(ssTable.getOriginalLanguage()) ? 0 : sLanguage.length());
+            currentLength += 1 + (databaseCollation == null
+                    || databaseCollation.isEqual(ssTable.getOriginalCollation()) ? 0 : SQLCollation.tdsLength());
+            currentLength += ssTable.getDeltaLength();
+
+            if (write) {
+                // length of data w/o total length (initial + current + 2 * sizeof(DWORD))
+                tdsWriter.writeInt(8 + initialLength + currentLength);
+                tdsWriter.writeInt(initialLength);
                 tdsWriter.writeByte((byte) ssTable.getOriginalCatalog().length());
                 tdsWriter.writeBytes(toUCS16(ssTable.getOriginalCatalog()));
-
                 if (ssTable.getOriginalCollation() != null) {
                     tdsWriter.writeByte((byte) SQLCollation.tdsLength());
                     ssTable.getOriginalCollation().writeCollation(tdsWriter);
                 } else {
                     tdsWriter.writeByte((byte) 0); // collation length
                 }
-
                 tdsWriter.writeByte((byte) ssTable.getOriginalLanguage().length());
                 tdsWriter.writeBytes(toUCS16(ssTable.getOriginalLanguage()));
-
-                // Initial state
                 for (int i = 0; i < SessionStateTable.SESSION_STATE_ID_MAX; i++) {
                     if (ssTable.getSessionStateInitial()[i] != null) {
                         tdsWriter.writeByte((byte) i); // state id
                         if (ssTable.getSessionStateInitial()[i].length >= 0xFF) {
                             tdsWriter.writeByte((byte) 0xFF);
                             tdsWriter.writeShort((short) ssTable.getSessionStateInitial()[i].length);
-                        } else
+                        } else {
                             tdsWriter.writeByte((byte) (ssTable.getSessionStateInitial()[i]).length); // state length
+                        }
                         tdsWriter.writeBytes(ssTable.getSessionStateInitial()[i]); // state value
                     }
                 }
-
-                // delta data
-                tdsWriter.writeInt((int) (1// 1 byte of current database length
-                        + (sCatalog.equals(ssTable.getOriginalCatalog()) ? 0 : sCatalog.length()) + 1
-                        + (databaseCollation != null
-                                && databaseCollation.isEqual(ssTable.getOriginalCollation()) ? 0
-                                                                                             : SQLCollation.tdsLength())
-                        + 1 // 1 byte of current language length
-                        + (sLanguage.equals(ssTable.getOriginalLanguage()) ? 0 : sLanguage.length())
-                        + ssTable.getDeltaLength()));
+                tdsWriter.writeInt(currentLength);
 
                 // database/catalog
                 if (sCatalog.equals(ssTable.getOriginalCatalog())) {
@@ -3827,7 +3813,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (sLanguage.equals(ssTable.getOriginalLanguage())) {
                     tdsWriter.writeByte((byte) 0);
                 } else {
-                    // Tt's a B_VARCHAR hence number of characters should be reported and not the number of bytes.
                     tdsWriter.writeByte((byte) sLanguage.length());
                     tdsWriter.writeBytes(toUCS16(sLanguage));
                 }
@@ -3846,8 +3831,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                 }
             }
+            len += initialLength + currentLength + 12 /* length fields (initial, current, total) */;
         }
-        return (len + 1 /* feature-id length byte */ + 4 /* feature-data-length length DWORD */);
+        return len;
     }
 
     private final class LogonCommand extends UninterruptableTDSCommand {

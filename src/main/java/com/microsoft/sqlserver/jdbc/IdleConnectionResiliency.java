@@ -268,7 +268,7 @@ class SessionStateTable {
         int length = 0;
         for (int i = 0; i < SESSION_STATE_ID_MAX; i++) {
             if (sessionStateInitial[i] != null) {
-                length += (1/* state id */ + (sessionStateInitial[i].length < 0xFF ? 1 : 3)/* Data length */
+                length += (1/* state id */ + (sessionStateInitial[i].length < 0xFF ? 1 : 5)/* Data length */
                         + sessionStateInitial[i].length);
             }
         }
@@ -282,7 +282,7 @@ class SessionStateTable {
         int length = 0;
         for (int i = 0; i < SESSION_STATE_ID_MAX; i++) {
             if (sessionStateDelta[i] != null && sessionStateDelta[i].getData() != null) {
-                length += (1/* state id */ + (sessionStateDelta[i].getDataLengh() < 0xFF ? 1 : 3)/* Data length */
+                length += (1/* state id */ + (sessionStateDelta[i].getDataLengh() < 0xFF ? 1 : 5)/* Data length */
                         + sessionStateDelta[i].getDataLengh());
             }
         }
