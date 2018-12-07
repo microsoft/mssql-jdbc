@@ -871,19 +871,14 @@ public class SQLServerDataSource
      *        no property value is set.
      */
     private void setStringProperty(Properties props, String propKey, String propValue) {
-        if (loggerExternal.isLoggable(Level.FINER)) {
-            if (!propKey.contains("password") && !propKey.contains("Password")) {
-                loggerExternal.entering(loggingClassName, "set" + propKey, propValue);
-            } else {
-                loggerExternal.entering(loggingClassName, "set" + propKey);
-            }
-        }
-
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER) && !propKey.contains("password")
+                && !propKey.contains("Password")) {
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
+        } else
+            loggerExternal.entering(getClassNameLogging(), "set" + propKey);
         if (null != propValue)
             props.setProperty(propKey, propValue);
-        if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.exiting(loggingClassName, "set" + propKey);
-        }
+        loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
 
     /**

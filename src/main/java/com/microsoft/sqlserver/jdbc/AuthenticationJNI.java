@@ -100,7 +100,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
                 null, null, authLogger);
 
         if (failure != 0) {
-            authLogger.log(Level.WARNING, "Authentication failed code :{0}", failure);
+            LogUtil.warning(authLogger, "{0}: Authentication failed code :{0}", this, failure);
             con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                     SQLServerException.getErrString("R_integratedAuthenticationFailed"), linkError);
         }

@@ -72,6 +72,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     final private String loggingClassName;
 
+    String getClassNameLogging() {      
+        return loggingClassName;        
+    }   
+
     /** the statement that generated this result set */
     private final SQLServerStatement stmt;
 

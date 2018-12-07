@@ -698,7 +698,7 @@ final class TDSChannel {
         }
 
         // Rewire the proxy socket to the closed streams
-        logger.log(Level.FINE, "{0}: Rewiring proxy streams for SSL socket close", traceID);
+        logger.log(Level.FINEST, "{0}: Rewiring proxy streams for SSL socket close", traceID);
         proxySocket.setStreams(is, os);
 
         // Now close the SSL socket. It will see that the proxy socket's streams
@@ -723,7 +723,7 @@ final class TDSChannel {
         channelSocket = tcpSocket;
         sslSocket = null;
 
-        logger.log(Level.FINE, "{0}: SSL disabled", traceID);
+        logger.log(Level.FINER, "{0}: SSL disabled", traceID);
     }
 
     /**
@@ -765,7 +765,7 @@ final class TDSChannel {
                     throw new IOException(e.getMessage());
                 }
 
-                logger.log(Level.FINE, "{0}: Reading first packet of SSL handshake response", logContext);
+                logger.log(Level.FINEST, "{0}: Reading first packet of SSL handshake response", logContext);
 
                 try {
                     tdsReader.readPacket();
