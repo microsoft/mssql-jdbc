@@ -118,7 +118,7 @@ public final class SQLServerException extends java.sql.SQLException {
                     sb.append(aSt.toString());
                 Throwable t = this.getCause();
                 if (t != null) {
-                    sb.append("\n caused by " + t + "\n");
+                    sb.append("\n caused by ").append(t).append("\n");
                     StackTraceElement tst[] = t.getStackTrace();
                     for (StackTraceElement aTst : tst)
                         sb.append(aTst.toString());
@@ -126,7 +126,7 @@ public final class SQLServerException extends java.sql.SQLException {
                 exLogger.fine(sb.toString());
             }
         }
-        if (errText.equals(SQLServerException.getErrString("R_queryTimedOut"))) {
+        if (SQLServerException.getErrString("R_queryTimedOut").equals(errText)) {
             this.setDriverErrorCode(SQLServerException.ERROR_QUERY_TIMEOUT);
         }
     }
@@ -366,7 +366,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * Appends ClientConnectionId to an error message if applicable.
      * 
      * @param errMsg
-     *        - the orginal error message.
+     *        - the original error message.
      * @param conn
      *        - the SQLServerConnection object
      * @return error string concated by ClientConnectionId(in string format) if applicable, otherwise, return original

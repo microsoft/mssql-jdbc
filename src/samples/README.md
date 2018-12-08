@@ -25,7 +25,7 @@ The following samples are available:
 5. datatypes
     * **BasicDataTypes** - Demonstrates how to retrieve and update basic SQL Server data type values.
     * **SqlXmlDataType** - Demonstrates how to store and retrieve XML data as well as how to parse XML data with the SQLXML Java data type.
-    * **SpatialDatatypes** - Demonstrates how to store and retreive Spatial Data as well how to parse data using `Geometry` and `Geography` Java types defined by Microsoft JDBC Driver.
+    * **SpatialDatatypes** - Demonstrates how to store and retrieve Spatial Data as well how to parse data using `Geometry` and `Geography` Java types defined by Microsoft JDBC Driver.
 
 6. resultsets
     * **CacheRS** - Demonstrates how to retrieve a large set of data and control the amount of data that is fetched and cached on the client

@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.1.2-SNAPSHOT</version>
+	<version>7.1.4-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -130,8 +130,14 @@
 			<version>2.5.0</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-nop</artifactId>
+			<version>1.7.25</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
-	
+
 	<profiles>
 		<profile>
 			<id>build42</id>
@@ -202,7 +208,7 @@
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre10-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre11-preview</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -212,8 +218,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>10</source>
-							<target>10</target>
+							<source>11</source>
+							<target>11</target>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -316,7 +322,7 @@
 									<version>3.0.5</version>
 								</requireMavenVersion>
 								<requireJavaVersion>
-									<version>10</version>
+									<version>11</version>
 								</requireJavaVersion>
 							</rules>
 						</configuration>

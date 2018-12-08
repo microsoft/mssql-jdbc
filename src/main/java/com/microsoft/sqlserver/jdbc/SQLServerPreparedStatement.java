@@ -389,7 +389,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      *        True if renewing parameter definition, False otherwise
      * @throws SQLServerException
      *         when an error occurs.
-     * @return the required data type defintions.
+     * @return the required data type definitions.
      */
     private String buildParamTypeDefinitions(Parameter[] params, boolean renewDefinition) throws SQLServerException {
         StringBuilder sb = new StringBuilder();
@@ -543,7 +543,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
                 && !isInternalEncryptionQuery) {
 
-            // retrieve paramater encryption metadata if they are not retrieved yet
+            // retrieve parameter encryption metadata if they are not retrieved yet
             if (!encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(inOutParam);
                 encryptionMetadataIsRetrieved = true;
@@ -925,7 +925,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // Decrypt the symmetric key.(This will also validate and throw if needed).
                     SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
                 } else {
-                    if (true == params[paramIndex].getForceEncryption()) {
+                    if (params[paramIndex].getForceEncryption()) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
                         Object[] msgArgs = {userSQL, paramIndex + 1};
@@ -1081,7 +1081,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             internalStmt = (SQLServerStatement) connection.createStatement();
             emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
         } catch (SQLException sqle) {
-            if (false == sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
+            if (!sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
                 // if the error is not no resultset then throw a processings error.
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_processingError"));
                 Object[] msgArgs = {sqle.getMessage()};
@@ -1101,7 +1101,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      *        The index of the parameter to set starting at 1.
      * @return A reference the to Parameter object created or referenced.
      * @exception SQLServerException
-     *            The index specified was outside the number of paramters for the statement.
+     *            The index specified was outside the number of parameters for the statement.
      */
     final Parameter setterGetParam(int index) throws SQLServerException {
         if (index < 1 || index > inOutParam.length) {
@@ -1178,33 +1178,33 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBigDecimal(int paramterIndex, BigDecimal x) throws SQLServerException {
+    public final void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {paramterIndex, x});
+            loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {parameterIndex, x});
         checkClosed();
-        setValue(paramterIndex, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, false);
+        setValue(parameterIndex, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, false);
         loggerExternal.exiting(getClassNameLogging(), "setBigDecimal");
     }
 
     @Override
-    public final void setBigDecimal(int paramterIndex, BigDecimal x, int precision,
+    public final void setBigDecimal(int parameterIndex, BigDecimal x, int precision,
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBigDecimal",
-                    new Object[] {paramterIndex, x, precision, scale});
+                    new Object[] {parameterIndex, x, precision, scale});
         checkClosed();
-        setValue(paramterIndex, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, false);
+        setValue(parameterIndex, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, false);
         loggerExternal.exiting(getClassNameLogging(), "setBigDecimal");
     }
 
     @Override
-    public final void setBigDecimal(int paramterIndex, BigDecimal x, int precision, int scale,
+    public final void setBigDecimal(int parameterIndex, BigDecimal x, int precision, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBigDecimal",
-                    new Object[] {paramterIndex, x, precision, scale, forceEncrypt});
+                    new Object[] {parameterIndex, x, precision, scale, forceEncrypt});
         checkClosed();
-        setValue(paramterIndex, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, forceEncrypt);
+        setValue(parameterIndex, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setBigDecimal");
     }
 
@@ -1972,7 +1972,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         stmtColumnEncriptionSetting);
                         SQLServerResultSet rs = stmt
                                 .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                        + Util.escapeSingleQuotes(tableName) + " '");) {
+                                        + Util.escapeSingleQuotes(tableName) + " '")) {
                     if (null != columnList && columnList.size() > 0) {
                         if (columnList.size() != valueList.size()) {
                             throw new IllegalArgumentException(
@@ -2003,6 +2003,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
 
                     SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                    SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                    option.setBulkCopyTimeout(queryTimeout);
+                    bcOperation.setBulkCopyOptions(option);
                     bcOperation.setDestinationTableName(tableName);
                     bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                     bcOperation.setDestinationTableMetadata(rs);
@@ -2126,7 +2129,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         stmtColumnEncriptionSetting);
                         SQLServerResultSet rs = stmt
                                 .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                        + Util.escapeSingleQuotes(tableName) + " '");) {
+                                        + Util.escapeSingleQuotes(tableName) + " '")) {
                     if (null != columnList && columnList.size() > 0) {
                         if (columnList.size() != valueList.size()) {
                             throw new IllegalArgumentException(
@@ -2157,6 +2160,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
 
                     SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                    SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                    option.setBulkCopyTimeout(queryTimeout);
+                    bcOperation.setBulkCopyOptions(option);
                     bcOperation.setDestinationTableName(tableName);
                     bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                     bcOperation.setDestinationTableMetadata(rs);
