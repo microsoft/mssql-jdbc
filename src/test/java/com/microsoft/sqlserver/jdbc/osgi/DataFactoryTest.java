@@ -35,10 +35,10 @@ public class DataFactoryTest extends AbstractTest {
 
     @Test
     public void testDataFactory() throws SQLException {
-        DataSourceFactory dsFactory = new SQLServerDataSourceFactory();
+        DataSourceFactory dsf = new SQLServerDataSourceFactory();
         Properties props = new Properties();
         props.setProperty(DataSourceFactory.JDBC_URL, connectionString);
-        DataSource ds = dsFactory.createDataSource(props);
+        DataSource ds = dsf.createDataSource(props);
         try (Connection c = ds.getConnection(); Statement s = c.createStatement()) {
             try (ResultSet rs = s.executeQuery("SELECT 1")) {
                 assertTrue("Resultset is empty.", rs.next());
@@ -50,6 +50,7 @@ public class DataFactoryTest extends AbstractTest {
     public void testActivator() throws Exception {
         BundleContext bc = new MockBundleContext() {
             private ServiceReference<?> sr;
+            private DataSourceFactory dsf;
 
             @Override
             public ServiceReference<?> getServiceReference(String clazz) {
@@ -60,41 +61,65 @@ public class DataFactoryTest extends AbstractTest {
             public ServiceRegistration<?> registerService(String[] clazzes, Object service, Dictionary properties) {
                 MockServiceRegistration reg = new MockServiceRegistration(properties);
                 sr = reg.getReference();
+                if (service instanceof DataSourceFactory) {
+                    dsf = (DataSourceFactory) service;
+                }
                 return reg;
+            }
+            
+            @SuppressWarnings("unchecked")
+            @Override
+            public <S> S getService(ServiceReference<S> reference) {
+                return (S) dsf;
             }
         };
         Activator a = new com.microsoft.sqlserver.jdbc.osgi.Activator();
         a.start(bc);
-        
+
         ServiceReference<DataSourceFactory> sr = bc.getServiceReference(DataSourceFactory.class);
         String[] propertyKeys = sr.getPropertyKeys();
         boolean correctClass = false;
         boolean correctName = false;
         boolean correctVersion = false;
-        SQLServerDriver s = new SQLServerDriver();
-        
+        SQLServerDriver driver = new SQLServerDriver();
+
         for (String key : propertyKeys) {
             if (key.equals(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS)) {
                 String bundleClassName = (String) sr.getProperty(key);
-                String actualClassName = s.getClass().getName();
+                String actualClassName = driver.getClass().getName();
                 assertTrue("Driver class name mismatch. Expected: " + bundleClassName + ", Actual: " + actualClassName
                         + ".", bundleClassName.equals(actualClassName));
                 correctClass = true;
             } else if (key.equals(DataSourceFactory.OSGI_JDBC_DRIVER_NAME)) {
                 String bundleDriverName = (String) sr.getProperty(key);
                 String actualDriverName = "Microsoft JDBC Driver for SQL Server";
-                assertTrue("Driver name mismatch. Expected: " + bundleDriverName + ", Actual: " + actualDriverName
-                        + ".", bundleDriverName.equals(actualDriverName));
+                assertTrue(
+                        "Driver name mismatch. Expected: " + bundleDriverName + ", Actual: " + actualDriverName + ".",
+                        bundleDriverName.equals(actualDriverName));
                 correctName = true;
             } else if (key.equals(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION)) {
                 String bundleDriverVer = (String) sr.getProperty(key);
-                String actualDriverVer = s.getMajorVersion() + "." + s.getMinorVersion();
-                assertTrue("Driver version mismatch. Expected: " + bundleDriverVer + ", Actual: " + actualDriverVer
-                        + ".", bundleDriverVer.equals(actualDriverVer));
+                String actualDriverVer = driver.getMajorVersion() + "." + driver.getMinorVersion();
+                assertTrue(
+                        "Driver version mismatch. Expected: " + bundleDriverVer + ", Actual: " + actualDriverVer + ".",
+                        bundleDriverVer.equals(actualDriverVer));
                 correctVersion = true;
             }
         }
         assertTrue("Not all properties were checked.", correctClass && correctName && correctVersion);
+        DataSourceFactory dsf = bc.getService(sr);
+        verifyFactory(dsf);
         a.stop(bc);
+    }
+    
+    private void verifyFactory(DataSourceFactory dsFactory) throws SQLException {
+        Properties props = new Properties();
+        props.setProperty(DataSourceFactory.JDBC_URL, connectionString);
+        DataSource ds = dsFactory.createDataSource(props);
+        try (Connection c = ds.getConnection(); Statement s = c.createStatement()) {
+            try (ResultSet rs = s.executeQuery("SELECT 1")) {
+                assertTrue("Resultset is empty.", rs.next());
+            }
+        }
     }
 }
