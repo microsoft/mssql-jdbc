@@ -26,11 +26,11 @@ import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
  * 
  * see https://osgi.org/specification/osgi.cmpn/7.0.0/service.jdbc.html
  */
-public class MSSQLDataSourceFactory implements DataSourceFactory {
+public class SQLServerDataSourceFactory implements DataSourceFactory {
 
     private static java.util.logging.Logger osgiLogger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.osgi.MSSQLDataSourceFactory");
-    private static String NOT_SUPPORTED_MSG = "The Microsoft SQLServer JDBC Driver currently does not support the property: {0}";
+            .getLogger("com.microsoft.sqlserver.jdbc.osgi.SQLServerDataSourceFactory");
+    private static String NOT_SUPPORTED_MSG = "The Microsoft SQL Server JDBC Driver currently does not support the property: {0}";
 
     @Override
     public javax.sql.DataSource createDataSource(Properties props) throws SQLException {
