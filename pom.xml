@@ -153,6 +153,12 @@
 			<version>1.7.25</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+		    <groupId>org.eclipse.gemini.blueprint</groupId>
+		    <artifactId>gemini-blueprint-mock</artifactId>
+		    <version>3.0.0.M01</version>
+		    <scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<profiles>
