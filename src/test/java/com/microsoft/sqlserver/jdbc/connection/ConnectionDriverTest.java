@@ -64,6 +64,18 @@ public class ConnectionDriverTest extends AbstractTest {
         Properties info = new Properties();
         StringBuffer url = new StringBuffer();
         url.append("jdbc:sqlserver://" + randomServer + ";packetSize=512;");
+        
+        
+        System.out.println("test");
+        try {
+            int i = 1/0;
+            
+        } catch (Exception e) {
+            System.out.println("exception: "+ e);
+            System.out.println("exception msg: "+ e.getMessage());
+
+        }
+        
         // test defaults
         DriverPropertyInfo[] infoArray = d.getPropertyInfo(url.toString(), info);
         for (DriverPropertyInfo anInfoArray1 : infoArray) {

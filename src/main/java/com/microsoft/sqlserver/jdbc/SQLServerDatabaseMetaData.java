@@ -40,7 +40,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             .getLogger("com.microsoft.sqlserver.jdbc.internals.DatabaseMetaData");
 
     // Unique id generator for each instance (used for logging)
-    static private final AtomicInteger baseID = new AtomicInteger(0); 
+    static private final AtomicInteger baseID = new AtomicInteger(0);
 
     final private String traceID;
 
@@ -1268,12 +1268,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
         s += " order by 2, 1";
         LogUtil.fine(logger, "{0}: schema query ({1})", traceID, s);
-        /*
-        if (logger.isLoggable(java.util.logging.Level.FINE)) {   
-        logger.fine(toString() + " schema query (" + s + ")");      
-    }
-    */
-    
+
         SQLServerResultSet rs;
         if (null == schemaPattern) {
             catalog = null;
