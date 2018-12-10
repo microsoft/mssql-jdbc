@@ -5823,9 +5823,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     stmt.execute(sql.toString());
                 }
 
-                LogUtil.finer(loggerExternal, "{0}: Finished un-preparing handle count: {1}" + this, handlesRemoved);
+                LogUtil.finer(loggerExternal, "{0}: Finished un-preparing handle count: {1}", this, handlesRemoved);
             } catch (SQLException e) {
-                LogUtil.finer(loggerExternal, "{0}: Error batch-closing at least one prepared handle: {1}" + this, e);
+                LogUtil.finer(loggerExternal, "{0}: Error batch-closing at least one prepared handle: {1}", this, e);
             }
 
             // Decrement threshold counter
