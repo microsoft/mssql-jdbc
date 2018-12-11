@@ -222,9 +222,9 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
      */
     public java.time.OffsetDateTime getOffsetDateTime() {
         java.time.ZoneOffset zoneOffset = java.time.ZoneOffset.ofTotalSeconds(60 * minutesOffset);
-        java.time.LocalDateTime localDaetTime = java.time.LocalDateTime.ofEpochSecond(utcMillis / 1000, nanos,
+        java.time.LocalDateTime localDateTime = java.time.LocalDateTime.ofEpochSecond(utcMillis / 1000, nanos,
                 zoneOffset);
-        return java.time.OffsetDateTime.of(localDaetTime, zoneOffset);
+        return java.time.OffsetDateTime.of(localDateTime, zoneOffset);
     }
 
     /**
