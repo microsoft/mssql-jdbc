@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -21,6 +22,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -385,10 +387,10 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             int totalColumns = sourceMeta.getColumnCount();
 
             // verify data from sourceType and resultSet
+            int numRows = 0;
             while (srcResultSet.next() && dstResultSet.next()) {
+                numRows++;
                 for (int i = 1; i <= totalColumns; i++) {
-                    // TODO: check row and column count in both the tables
-
                     Object srcValue, dstValue;
                     srcValue = srcResultSet.getObject(i);
                     dstValue = dstResultSet.getObject(i);
@@ -403,6 +405,11 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                     }
                 }
             }
+
+            // verify number of rows and columns
+            assertTrue(((ResultSet) dstResultSet.product()).getMetaData().getColumnCount() == totalColumns + 1);
+            assertTrue(sourceTable.getTotalRows() == numRows);
+            assertTrue(destinationTable.getTotalRows() == numRows);
         }
     }
 

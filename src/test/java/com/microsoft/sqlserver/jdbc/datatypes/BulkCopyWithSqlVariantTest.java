@@ -609,7 +609,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      * 
      * @throws SQLException
      */
-    @Test // TODO: check bitnull
+    @Test
     public void bulkCopyTestBitNull() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
