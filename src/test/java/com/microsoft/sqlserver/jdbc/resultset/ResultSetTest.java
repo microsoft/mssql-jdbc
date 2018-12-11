@@ -25,6 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -303,21 +304,23 @@ public class ResultSetTest extends AbstractTest {
             final String testValue = "2018-01-02T11:22:33.123456700+12:34";
 
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (id INT PRIMARY KEY, dto DATETIMEOFFSET)");
+                    + " (id INT PRIMARY KEY, dto DATETIMEOFFSET, dto2 DATETIMEOFFSET)");
             stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (id, dto) VALUES (1, '" + testValue + "')");
+                    + " (id, dto, dto2) VALUES (1, '" + testValue + "', null)");
 
             try (ResultSet rs = stmt.executeQuery(
-                    "SELECT dto FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id=1")) {
+                    "SELECT dto, dto2 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id=1")) {
                 rs.next();
 
                 OffsetDateTime expected = OffsetDateTime.parse(testValue);
                 OffsetDateTime actual = rs.getObject(1, OffsetDateTime.class);
                 assertEquals(expected, actual);
+                assertNull(rs.getObject(2, OffsetDateTime.class));
 
                 OffsetTime expectedTime = OffsetTime.parse(testValue.split("T")[1]);
                 OffsetTime actualTime = rs.getObject(1, OffsetTime.class);
                 assertEquals(expectedTime, actualTime);
+                assertNull(rs.getObject(2, OffsetTime.class));
             } finally {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
