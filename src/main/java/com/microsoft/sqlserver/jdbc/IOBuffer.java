@@ -7396,12 +7396,16 @@ abstract class TDSCommand {
                 interruptReason = reason;
                 if (requestComplete)
                     attentionPending = tdsWriter.sendAttention();
-
+                if (correspondingThread != null) {
+                    this.correspondingThread.interrupt();
+                    this.correspondingThread = null;
+                }
             }
         }
     }
 
     private boolean interruptChecked = false;
+    private Thread correspondingThread = null;
 
     /**
      * Checks once whether an interrupt has occurred, and, if it has, throws an exception indicating that fact.
@@ -7641,6 +7645,15 @@ abstract class TDSCommand {
         // A new response is received hence increment unprocessed response count.
         tdsReader.getConnection().getSessionRecovery().incrementUnprocessedResponseCount();
         return tdsReader;
+    }
+
+    /*
+     * Currently only used in Connection Resiliency scenarios. This thread reference
+     * allows the current command to interrupt the thread if it's sleeping. This is useful
+     * in timeout cases.
+     */
+    void attachThread(Thread reconnectThread) {
+        this.correspondingThread  = reconnectThread;
     }
 }
 
