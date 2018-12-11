@@ -802,6 +802,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     Properties activeConnectionProperties; // the active set of connection properties
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
+    private boolean ntlmAuthentication = false;
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
     private GSSCredential ImpersonatedUserCred;
     private Boolean isUserCreatedCredential;
@@ -1308,6 +1309,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = "localhost";
             }
 
+            sPropKey = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (sPropValue == null) {
+                sPropValue = SQLServerDriverStringProperty.DOMAIN_NAME.getDefaultValue();
+            }
+            String domainName = sPropValue;
+
             String sPropKeyPort = SQLServerDriverIntProperty.PORT_NUMBER.toString();
             String sPropValuePort = activeConnectionProperties.getProperty(sPropKeyPort);
 
@@ -1537,6 +1545,29 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 throw new SQLServerException(
                         SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"), null);
+            }
+
+            // integratedSecurity and domain
+            if (integratedSecurity && !StringUtils.isEmpty(domainName)) {
+                if (connectionlogger.isLoggable(Level.SEVERE)) {
+                    connectionlogger.severe(toString() + " "
+                            + SQLServerException.getErrString("R_SetDomainWhenIntegratedSecurityTrue"));
+                }
+                throw new SQLServerException(SQLServerException.getErrString("R_SetDomainWhenIntegratedSecurityTrue"),
+                        null);
+            }
+
+            // domain and no user or password
+            if (!StringUtils.isEmpty(domainName) && ((activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
+                    || (activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
+                            .isEmpty()))) {
+
+                if (connectionlogger.isLoggable(Level.SEVERE)) {
+                    connectionlogger
+                            .severe(toString() + " " + SQLServerException.getErrString("R_NoUserPasswordForDomain"));
+                }
+                throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForDomain"), null);
             }
 
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
@@ -1886,8 +1917,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 mirror = failOverPartnerPropertyValue;
 
             long startTime = System.currentTimeMillis();
-            login(activeConnectionProperties.getProperty(serverNameProperty), instanceValue, nPort, mirror, fo,
-                    loginTimeoutSeconds, startTime);
+            login(activeConnectionProperties.getProperty(serverNameProperty), domainName, instanceValue, nPort, mirror,
+                    fo, loginTimeoutSeconds, startTime);
 
             // If SSL is to be used for the duration of the connection, then make sure
             // that the final negotiated TDS packet size is no larger than the SSL record size.
@@ -1931,8 +1962,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * provide us with its FO partner. If no FO information is available a standard connection is made. If the server
      * returns a failover upon connection, we shall store the FO in our cache.
      */
-    private void login(String primary, String primaryInstanceName, int primaryPortNumber, String mirror,
-            FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
+    private void login(String primary, String domainName, String primaryInstanceName, int primaryPortNumber,
+            String mirror, FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
         final boolean isDBMirroring = null != mirror || null != foActual;
@@ -2019,7 +2050,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         currentPrimaryPlaceHolder = routingInfo;
                         routingInfo = null;
                     } else if (null == currentPrimaryPlaceHolder) {
-                        currentPrimaryPlaceHolder = primaryPermissionCheck(primary, primaryInstanceName,
+                        currentPrimaryPlaceHolder = primaryPermissionCheck(primary, domainName, primaryInstanceName,
                                 primaryPortNumber);
                     }
                     currentConnectPlaceHolder = currentPrimaryPlaceHolder;
@@ -2277,7 +2308,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     // This code should be similar to the code in FailOverInfo class's failoverPermissionCheck
     // Only difference is that this gets the instance port if the port number is zero where as failover
     // does not have port number available.
-    ServerPortPlaceHolder primaryPermissionCheck(String primary, String primaryInstanceName,
+    ServerPortPlaceHolder primaryPermissionCheck(String primary, String domainName, String primaryInstanceName,
             int primaryPortNumber) throws SQLServerException {
         String instancePort;
         // look to see primary port number is specified
@@ -2312,7 +2343,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // now we have determined the right port set the connection property back
         activeConnectionProperties.setProperty(SQLServerDriverIntProperty.PORT_NUMBER.toString(),
                 String.valueOf(primaryPortNumber));
-        return new ServerPortPlaceHolder(primary, primaryPortNumber, primaryInstanceName, integratedSecurity);
+        return new ServerPortPlaceHolder(primary, domainName, primaryPortNumber, primaryInstanceName,
+                integratedSecurity);
     }
 
     static boolean timerHasExpired(long timerExpire) {
@@ -3545,6 +3577,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private void logon(LogonCommand command) throws SQLServerException {
         SSPIAuthentication authentication = null;
+
         if (integratedSecurity && AuthenticationScheme.nativeAuthentication == intAuthScheme)
             authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(),
                     currentConnectPlaceHolder.getPortNumber());

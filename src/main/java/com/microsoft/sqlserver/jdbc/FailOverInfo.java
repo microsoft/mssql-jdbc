@@ -115,13 +115,25 @@ final class FailoverInfo {
 //
 final class ServerPortPlaceHolder {
     private final String serverName;
+    private final String domainName;
     private final int port;
     private final String instanceName;
     private final boolean checkLink;
     private final SQLServerConnectionSecurityManager securityManager;
 
-    ServerPortPlaceHolder(String name, int conPort, String instance, boolean fLink) {
-        serverName = name;
+    ServerPortPlaceHolder(String serverName, int conPort, String instance, boolean fLink) {
+        this.serverName = serverName;
+        this.domainName = "";
+        port = conPort;
+        instanceName = instance;
+        checkLink = fLink;
+        securityManager = new SQLServerConnectionSecurityManager(serverName, port);
+        doSecurityCheck();
+    }
+
+    ServerPortPlaceHolder(String serverName, String domainName, int conPort, String instance, boolean fLink) {
+        this.serverName = serverName;
+        this.domainName = domainName;
         port = conPort;
         instanceName = instance;
         checkLink = fLink;
@@ -136,6 +148,10 @@ final class ServerPortPlaceHolder {
 
     String getServerName() {
         return serverName;
+    }
+
+    String getDomainName() {
+        return domainName;
     }
 
     String getInstanceName() {
