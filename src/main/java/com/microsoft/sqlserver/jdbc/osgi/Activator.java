@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.osgi;
 
@@ -16,6 +13,7 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.jdbc.DataSourceFactory;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
+
 
 /**
  * 
@@ -31,13 +29,13 @@ public class Activator implements BundleActivator {
         SQLServerDriver driver = new SQLServerDriver();
         properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, driver.getClass().getName());
         properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, "Microsoft JDBC Driver for SQL Server");
-        properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, driver.getMajorVersion() + "." + driver.getMinorVersion());
-        service = context.registerService(DataSourceFactory.class, new MSSQLDataSourceFactory(), properties);
+        properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION,
+                driver.getMajorVersion() + "." + driver.getMinorVersion());
+        service = context.registerService(DataSourceFactory.class, new SQLServerDataSourceFactory(), properties);
     }
 
     @Override
     public void stop(BundleContext context) throws Exception {
         service.unregister();
     }
-
 }

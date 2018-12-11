@@ -1,15 +1,13 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.osgi;
 
 import java.sql.Driver;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.logging.Level;
 
 import javax.activation.DataSource;
 import javax.sql.ConnectionPoolDataSource;
@@ -22,14 +20,17 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 
+
 /**
  * Implementation of the Data Service Specification for JDBC™ Technology
  * 
  * see https://osgi.org/specification/osgi.cmpn/7.0.0/service.jdbc.html
  */
-public class MSSQLDataSourceFactory implements DataSourceFactory {
+public class SQLServerDataSourceFactory implements DataSourceFactory {
 
-
+    private static java.util.logging.Logger osgiLogger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.osgi.SQLServerDataSourceFactory");
+    private static String NOT_SUPPORTED_MSG = "The Microsoft SQL Server JDBC Driver currently does not support the property: {0}";
 
     @Override
     public javax.sql.DataSource createDataSource(Properties props) throws SQLException {
@@ -69,13 +70,13 @@ public class MSSQLDataSourceFactory implements DataSourceFactory {
             source.setDatabaseName(props.getProperty(JDBC_DATABASE_NAME));
         }
         if (props.containsKey(JDBC_DATASOURCE_NAME)) {
-            //not supported?
+            osgiLogger.log(Level.WARNING, NOT_SUPPORTED_MSG, JDBC_DATASOURCE_NAME);
         }
         if (props.containsKey(JDBC_DESCRIPTION)) {
             source.setDescription(props.getProperty(JDBC_DESCRIPTION));
         }
         if (props.containsKey(JDBC_NETWORK_PROTOCOL)) {
-            //not supported?
+            osgiLogger.log(Level.WARNING, NOT_SUPPORTED_MSG, JDBC_NETWORK_PROTOCOL);
         }
         if (props.containsKey(JDBC_PASSWORD)) {
             source.setPassword(props.getProperty(JDBC_PASSWORD));
@@ -84,7 +85,7 @@ public class MSSQLDataSourceFactory implements DataSourceFactory {
             source.setPortNumber(Integer.parseInt(props.getProperty(JDBC_PORT_NUMBER)));
         }
         if (props.containsKey(JDBC_ROLE_NAME)) {
-            //not supported?
+            osgiLogger.log(Level.WARNING, NOT_SUPPORTED_MSG, JDBC_ROLE_NAME);
         }
         if (props.containsKey(JDBC_SERVER_NAME)) {
             source.setServerName(props.getProperty(JDBC_SERVER_NAME));
@@ -98,8 +99,7 @@ public class MSSQLDataSourceFactory implements DataSourceFactory {
     }
 
     /**
-     * Setup the basic and extended properties for {@link XADataSource}s and
-     * {@link ConnectionPoolDataSource}s
+     * Setup the basic and extended properties for {@link XADataSource}s and {@link ConnectionPoolDataSource}s
      */
     private void setupXSource(SQLServerConnectionPoolDataSource source, Properties props) {
         if (props == null) {
@@ -107,19 +107,19 @@ public class MSSQLDataSourceFactory implements DataSourceFactory {
         }
         setup(source, props);
         if (props.containsKey(JDBC_INITIAL_POOL_SIZE)) {
-            //not supported?
+            osgiLogger.log(Level.WARNING, NOT_SUPPORTED_MSG, JDBC_INITIAL_POOL_SIZE);
         }
         if (props.containsKey(JDBC_MAX_IDLE_TIME)) {
-            //not supported?
+            osgiLogger.log(Level.WARNING, NOT_SUPPORTED_MSG, JDBC_MAX_IDLE_TIME);
         }
         if (props.containsKey(JDBC_MAX_STATEMENTS)) {
-            //not supported?
+            osgiLogger.log(Level.WARNING, NOT_SUPPORTED_MSG, JDBC_MAX_STATEMENTS);
         }
         if (props.containsKey(JDBC_MAX_POOL_SIZE)) {
-            //not supported?
+            osgiLogger.log(Level.WARNING, NOT_SUPPORTED_MSG, JDBC_MAX_POOL_SIZE);
         }
         if (props.containsKey(JDBC_MIN_POOL_SIZE)) {
-            //not supported?
+            osgiLogger.log(Level.WARNING, NOT_SUPPORTED_MSG, JDBC_MIN_POOL_SIZE);
         }
     }
 
