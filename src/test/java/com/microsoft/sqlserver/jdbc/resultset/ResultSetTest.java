@@ -293,7 +293,7 @@ public class ResultSetTest extends AbstractTest {
     }
 
     /**
-     * Tests getObject(n, java.time.OffsetDateTime.class).
+     * Tests getObject(n, java.time.OffsetDateTime.class) and getObject(n, java.time.OffsetTime.class).
      * 
      * @throws SQLException
      */
@@ -314,6 +314,10 @@ public class ResultSetTest extends AbstractTest {
                 OffsetDateTime expected = OffsetDateTime.parse(testValue);
                 OffsetDateTime actual = rs.getObject(1, OffsetDateTime.class);
                 assertEquals(expected, actual);
+
+                OffsetTime expectedTime = OffsetTime.parse(testValue.split("T")[1]);
+                OffsetTime actualTime = rs.getObject(1, OffsetTime.class);
+                assertEquals(expectedTime, actualTime);
             } finally {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
