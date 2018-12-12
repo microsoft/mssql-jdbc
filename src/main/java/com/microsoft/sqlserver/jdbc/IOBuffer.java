@@ -1356,7 +1356,7 @@ final class TDSChannel {
             return commonName;
         }
 
-        private boolean validateServerName(String nameInCert) throws CertificateException {
+        private boolean validateServerName(String nameInCert) {
             // Failed to get the common name from DN or empty CN
             if (null == nameInCert) {
                 logger.finer(logContext + " Failed to parse the name from the certificate or name is empty.");
