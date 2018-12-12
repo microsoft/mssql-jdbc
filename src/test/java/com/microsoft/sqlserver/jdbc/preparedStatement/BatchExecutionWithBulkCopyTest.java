@@ -537,7 +537,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
             assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
@@ -559,7 +559,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
             assertEquals(TestResource.getResource("R_incorrectColumnNumInsert"), e.getMessage());
         }
@@ -584,7 +584,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
             assertEquals(TestResource.getResource("R_incorrectSyntaxTable"), e.getMessage());
         }
@@ -604,7 +604,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
             assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
