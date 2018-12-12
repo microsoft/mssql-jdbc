@@ -101,6 +101,14 @@ public class SQLServerPooledConnection implements PooledConnection {
             if (pcLogger.isLoggable(Level.FINE))
                 pcLogger.fine(toString() + " Physical connection, " + safeCID());
 
+            if (null != physicalConnection.getAuthenticationResult()) {
+                // Check if a new access token needs to be generated for federated authentication
+                if (Util.checkIfNeedNewAccessToken(physicalConnection)) {
+                    physicalConnection.close();
+                    physicalConnection = createNewConnection();
+                }
+            }
+
             /*
              * The last proxy connection handle returned will be invalidated (moved to closed state) when getConnection
              * is called.
@@ -108,16 +116,6 @@ public class SQLServerPooledConnection implements PooledConnection {
             if (null != lastProxyConnection) {
                 // if there was a last proxy connection send reset
                 physicalConnection.resetPooledConnection();
-
-                // Check if a new access token needs to be generated for federated authentication
-                if (physicalConnection.needsReconnect()) {
-                    /*
-                     * Closing physicalConnection before reconnecting is safe as only one active connection is
-                     * maintained here.
-                     */
-                    physicalConnection.close();
-                    physicalConnection.connect(physicalConnection.activeConnectionProperties, null);
-                }
 
                 if (!lastProxyConnection.isClosed()) {
                     if (pcLogger.isLoggable(Level.FINE)) {
