@@ -22,7 +22,6 @@ import java.nio.charset.Charset;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -629,11 +628,8 @@ final class DTV {
                                                                                                                         * 1000,
                                                                                                                 "");
 
-                        // The behavior is similar to microsoft.sql.DateTimeOffset
-                        // In Timestamp format, leading zeros for the fields can be omitted.
-                        String offsetTimeStr = conn.baseYear() + "-01-01" + ' ' + offsetTimeValue.getHour() + ':'
-                                + offsetTimeValue.getMinute() + ':' + offsetTimeValue.getSecond();
-                        utcMillis = Timestamp.valueOf(offsetTimeStr).getTime();
+                        LocalDate baseDate = LocalDate.of(conn.baseYear(), 1, 1);
+                        utcMillis = offsetTimeValue.atDate(baseDate).toEpochSecond() * 1000;
                         break;
 
                     case OFFSETDATETIME:
