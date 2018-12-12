@@ -31,6 +31,7 @@ public class SSLCertificateValidation {
 
         String serverName = "msjdbc.database.windows.net";
         String serverName2 = "bbbbuuzzuzzzzzz.example.net";
+        String serverName3 = "xn--ms.database.windows.net";
 
         // Set up the HostNameOverrideX509TrustManager object using reflection
         TDSChannel tdsc = new TDSChannel(new SQLServerConnection("someConnectionProperty"));
@@ -60,6 +61,11 @@ public class SSLCertificateValidation {
         // SAN = ms*.database.windows.net
         // Expected result: true
         assertTrue((boolean) method.invoke(hsoObject, "ms*.database.windows.net"));
+
+        // Server Name = msjdbc.database.windows.net
+        // SAN = *jd*.database.windows.net
+        // Expected result: true
+        assertTrue((boolean) method.invoke(hsoObject, "*jd*.database.windows.net"));
 
         // Server Name = msjdbc.database.windows.net
         // SAN = ms.*.net
@@ -116,5 +122,14 @@ public class SSLCertificateValidation {
         // SAN = b*zzz.example.net
         // Expected result: true
         assertTrue((boolean) method.invoke(hsoObject, "b*zzz.example.net"));
+        
+        hsoObject = constructor.newInstance(null, tdsc, null, serverName3);
+        method = hsoObject.getClass().getDeclaredMethod("validateServerName", String.class);
+        method.setAccessible(true);
+        
+        // Server Name = xn--ms.database.windows.net
+        // SAN = xn--ms.database.windows.net
+        // Expected result: true
+        assertTrue((boolean) method.invoke(hsoObject, "xn--ms.database.windows.net"));
     }
 }
