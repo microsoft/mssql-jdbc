@@ -167,12 +167,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Test
     public void testAllcolumns() throws Exception {
         // TODO: VSO-5432
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values "
-                + "("
-                + "?, "+ "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
-                + "?, "+ "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
-                + "?, "+ "?, " + "?"
-                + ")";
+        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
+                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
+                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?" + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -190,7 +187,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setBytes(2, binaryData); // binary(5)
             pstmt.setBoolean(3, true); // bit
             pstmt.setString(4, "s"); // char
-            pstmt.setDate(5, new Date(timeMilis));  // date
+            pstmt.setDate(5, new Date(timeMilis)); // date
             pstmt.setDateTime(6, testTimestamp);// datetime
             pstmt.setDateTime(7, testTimestamp); // datetime2
             pstmt.setDateTimeOffset(8, microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0)); // datetimeoffset
@@ -241,7 +238,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 expected[20] = (short) 1;
                 expected[21] = binaryData;
                 expected[22] = "somevarchar";
-                
+
                 rs.next();
                 for (int i = 0; i < expected.length; i++) {
                     if (rs.getObject(i + 1) instanceof byte[]) {
@@ -272,7 +269,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.setLong(1, 123); // bigint
             pstmt.setBoolean(2, true); // bit
-            pstmt.setDate(3, new Date(timeMilis));  // date
+            pstmt.setDate(3, new Date(timeMilis)); // date
             pstmt.setDateTimeOffset(4, microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0)); // datetimeoffset
             pstmt.addBatch();
 
@@ -288,7 +285,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 expected[2] = new Date(timeMilis);
                 expected[3] = microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0);
                 rs.next();
-                
+
                 for (int i = 0; i < expected.length; i++) {
                     if (null != rs.getObject(i + 1)) {
                         assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
@@ -316,7 +313,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setBytes(2, null); // binary(5)
             pstmt.setBoolean(3, true); // bit
             pstmt.setString(4, " "); // char
-            pstmt.setDate(5, null);  // date
+            pstmt.setDate(5, null); // date
             pstmt.setDateTime(6, null);// datetime
             pstmt.setDateTime(7, null); // datetime2
             pstmt.addBatch();
@@ -509,12 +506,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Test
     public void testAllColumnsLargeBatch() throws Exception {
         // TODO: VSO-5432
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values "
-                + "("
-                + "?, "+ "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
-                + "?, "+ "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
-                + "?, "+ "?, " + "?"
-                + ")";
+        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
+                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
+                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?" + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -532,7 +526,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setBytes(2, binaryData); // binary(5)
             pstmt.setBoolean(3, true); // bit
             pstmt.setString(4, "s"); // char
-            pstmt.setDate(5, new Date(timeMilis));  // date
+            pstmt.setDate(5, new Date(timeMilis)); // date
             pstmt.setDateTime(6, testTimestamp);// datetime
             pstmt.setDateTime(7, testTimestamp); // datetime2
             pstmt.setDateTimeOffset(8, microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0)); // datetimeoffset
@@ -551,7 +545,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setShort(21, (short) 1); // tinyint
             pstmt.setBytes(22, binaryData); // varbinary(5)
             pstmt.setString(23, "somevarchar"); // varchar(20)
-            
+
             pstmt.addBatch();
             pstmt.executeLargeBatch();
 
@@ -623,17 +617,17 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 + " (c1, c2, c3) values (?, ?,? ,?) ";
 
         String expected = "";
-        
+
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
-            
+
             if (TestUtils.isSqlAzureDW(connection)) {
                 expected = "Column name or number of supplied values does not match table definition.";
             } else {
                 expected = "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.";
             }
-            
+
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
@@ -657,17 +651,17 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 + " values ((SELECT * from table where c1=?), ?,? ,?) ";
 
         String expected = "";
-        
+
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
-            
+
             if (TestUtils.isSqlAzureDW(connection)) {
                 expected = "Parse error at line: 1, column: 106: Incorrect syntax near 'table'.";
             } else {
                 expected = "Incorrect syntax near the keyword 'table'.";
             }
-            
+
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
