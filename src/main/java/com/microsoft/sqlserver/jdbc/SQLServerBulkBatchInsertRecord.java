@@ -160,12 +160,18 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
             case Types.VARBINARY:
             case Types.LONGVARBINARY:
             case Types.BLOB: {
-                // Strip off 0x if present.
-                String binData = data.toString().trim();
-                if (binData.startsWith("0x") || binData.startsWith("0X")) {
-                    return binData.substring(2);
+                if (data instanceof byte[]) {
+                    // if the binary data comes in as a byte array through setBytes through Bulk Copy for Batch Insert API,
+                    // don't turn the binary array into a string.
+                    return data;
                 } else {
-                    return binData;
+                    // Strip off 0x if present.
+                    String binData = data.toString().trim();
+                    if (binData.startsWith("0x") || binData.startsWith("0X")) {
+                        return binData.substring(2);
+                    } else {
+                        return binData;
+                    }
                 }
             }
 
