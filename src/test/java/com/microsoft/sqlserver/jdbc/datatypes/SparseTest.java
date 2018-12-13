@@ -1,12 +1,17 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
-import java.sql.*;
+import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static org.junit.Assert.fail;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -44,6 +49,8 @@ public class SparseTest extends AbstractTest {
                 try (ResultSet rs = stmt.executeQuery("Select * from   " + escapedTableName)) {
                     rs.next();
                     assertEquals(rs.getString("col1023"), "yo", "Wrong value returned");
+                    assertEquals(rs.getInt("col1"), 1, "Wrong value returned");
+                    assertEquals(rs.getBytes("col2")[0], 0x45, "Wrong value returned");
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {

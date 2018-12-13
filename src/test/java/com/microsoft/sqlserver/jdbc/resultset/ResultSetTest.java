@@ -330,8 +330,13 @@ public class ResultSetTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests getters and setters for holdability.
+     * 
+     * @throws SQLException
+     */
     @Test
-    public void testHoldability() throws SQLException {
+    public void testGetSetHoldability() throws SQLException {
         int[] holdabilityOptions = {ResultSet.HOLD_CURSORS_OVER_COMMIT, ResultSet.CLOSE_CURSORS_AT_COMMIT};
 
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
@@ -342,7 +347,6 @@ public class ResultSetTest extends AbstractTest {
             assertEquals(rs.getHoldability(), connHold);
 
             for (int i = 0; i < holdabilityOptions.length; i++) {
-
                 if ((connHold = con.getHoldability()) != holdabilityOptions[i]) {
                     con.setHoldability(holdabilityOptions[i]);
                     assertEquals(con.getHoldability(), holdabilityOptions[i]);

@@ -1,19 +1,28 @@
 package com.microsoft.sqlserver.jdbc.unit.serial;
 
-import java.sql.*;
+
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.*;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
-import microsoft.sql.*;
-
-import java.io.*;
-
-import static org.junit.jupiter.api.Assertions.fail;
+import microsoft.sql.DateTimeOffset;
 
 
 @RunWith(JUnitPlatform.class)
