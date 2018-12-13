@@ -16,8 +16,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 
 
 /**
- * 
- * publishes the service to the OSGi Framework
+ * Allows plugins to register the driver as an OSGI Framework service.
  */
 public class Activator implements BundleActivator {
 
