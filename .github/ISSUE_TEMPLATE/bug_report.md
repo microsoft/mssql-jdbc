@@ -30,7 +30,7 @@ assignees: ''
 4. Any other details that can be helpful:
 
 ## JDBC trace logs
-<!--- Provide the JDBC trace logs. Instructions can be found here: https://docs.microsoft.com/en-us/sql/connect/jdbc/tracing-driver-operation?view=sql-server-2017 -->
+<!--- Provide the JDBC trace logs. Instructions can be found here: https://docs.microsoft.com/sql/connect/jdbc/tracing-driver-operation?view=sql-server-2017 -->
 
 ## Reproduction code
 <!--- Provide standalone JAVA code that reproduces the issue, preferably raw JDBC code. -->
