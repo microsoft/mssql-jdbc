@@ -9,7 +9,7 @@ title: "Other | "
 <!--- Briefly describe the feature introduced with the PR. --->
 
 <!--- Optional --->
-### Fixes existing GitHub issue : 
+### Fixes existing GitHub issue
 <!--- Provide link to GitHub issue above. --->
 
 ## New Public APIs
