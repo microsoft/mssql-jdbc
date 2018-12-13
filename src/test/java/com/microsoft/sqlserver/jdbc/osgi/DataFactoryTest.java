@@ -13,7 +13,11 @@ import java.sql.Statement;
 import java.util.Dictionary;
 import java.util.Properties;
 
+import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
+import javax.sql.PooledConnection;
+import javax.sql.XAConnection;
+import javax.sql.XADataSource;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -36,14 +40,9 @@ public class DataFactoryTest extends AbstractTest {
     @Test
     public void testDataFactory() throws SQLException {
         DataSourceFactory dsf = new SQLServerDataSourceFactory();
-        Properties props = new Properties();
-        props.setProperty(DataSourceFactory.JDBC_URL, connectionString);
-        DataSource ds = dsf.createDataSource(props);
-        try (Connection c = ds.getConnection(); Statement s = c.createStatement()) {
-            try (ResultSet rs = s.executeQuery("SELECT 1")) {
-                assertTrue("Resultset is empty.", rs.next());
-            }
-        }
+        verifyFactoryNormalConnection(dsf);
+        verifyFactoryPooledConnection(dsf);
+        verifyFactoryXAConnection(dsf);
     }
 
     @Test
@@ -66,7 +65,7 @@ public class DataFactoryTest extends AbstractTest {
                 }
                 return reg;
             }
-            
+
             @SuppressWarnings("unchecked")
             @Override
             public <S> S getService(ServiceReference<S> reference) {
@@ -108,11 +107,13 @@ public class DataFactoryTest extends AbstractTest {
         }
         assertTrue("Not all properties were checked.", correctClass && correctName && correctVersion);
         DataSourceFactory dsf = bc.getService(sr);
-        verifyFactory(dsf);
+        verifyFactoryNormalConnection(dsf);
+        verifyFactoryPooledConnection(dsf);
+        verifyFactoryXAConnection(dsf);
         a.stop(bc);
     }
-    
-    private void verifyFactory(DataSourceFactory dsFactory) throws SQLException {
+
+    private void verifyFactoryNormalConnection(DataSourceFactory dsFactory) throws SQLException {
         Properties props = new Properties();
         props.setProperty(DataSourceFactory.JDBC_URL, connectionString);
         DataSource ds = dsFactory.createDataSource(props);
@@ -120,6 +121,34 @@ public class DataFactoryTest extends AbstractTest {
             try (ResultSet rs = s.executeQuery("SELECT 1")) {
                 assertTrue("Resultset is empty.", rs.next());
             }
+        }
+    }
+
+    private void verifyFactoryPooledConnection(DataSourceFactory dsFactory) throws SQLException {
+        Properties props = new Properties();
+        props.setProperty(DataSourceFactory.JDBC_URL, connectionString);
+        ConnectionPoolDataSource ds = dsFactory.createConnectionPoolDataSource(props);
+        PooledConnection c = ds.getPooledConnection();
+        try (Statement s = c.getConnection().createStatement()) {
+            try (ResultSet rs = s.executeQuery("SELECT 1")) {
+                assertTrue("Resultset is empty.", rs.next());
+            }
+        } finally {
+            c.close();
+        }
+    }
+    
+    private void verifyFactoryXAConnection(DataSourceFactory dsFactory) throws SQLException {
+        Properties props = new Properties();
+        props.setProperty(DataSourceFactory.JDBC_URL, connectionString);
+        XADataSource ds = dsFactory.createXADataSource(props);
+        XAConnection c = ds.getXAConnection();
+        try (Statement s = c.getConnection().createStatement()) {
+            try (ResultSet rs = s.executeQuery("SELECT 1")) {
+                assertTrue("Resultset is empty.", rs.next());
+            }
+        } finally {
+            c.close();
         }
     }
 }
