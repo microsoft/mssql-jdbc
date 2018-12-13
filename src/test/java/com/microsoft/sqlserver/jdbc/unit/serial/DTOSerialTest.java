@@ -30,10 +30,8 @@ import microsoft.sql.DateTimeOffset;
 public class DTOSerialTest extends AbstractTest {
     private static final String dateString = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSS XXX").format(new Date());
 
-    // public static void testDSerial(String connString) throws Exception
     @Test
     public void testDSerial() throws Exception {
-        System.out.println("datString=" + dateString);
         try (Connection conn = DriverManager.getConnection(connectionString);
                 Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
@@ -46,9 +44,8 @@ public class DTOSerialTest extends AbstractTest {
         }
     }
 
+    @Test
     public void testESerial() throws Exception {
-        String connectionString = TestUtils.getConfiguredProperty("mssql_jdbc_test_connection_properties");
-
         try (Connection conn = DriverManager.getConnection(connectionString);
                 Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
@@ -57,29 +54,31 @@ public class DTOSerialTest extends AbstractTest {
 
             try {
                 stmt.executeUpdate("RAISERROR ('foo', 13,1) WITH LOG");
+
             } catch (SQLServerException x) {
                 currException = x;
             }
+
             // store the info
-            String errInfo = currException.toString();
-            String sqlState = currException.getSQLState();
-            int errCode = currException.getErrorCode();
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             ObjectOutputStream out = new ObjectOutputStream(bos);
+
             // serialize the exception;
             out.writeObject(currException);
             ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()));
             SQLServerException ex = (SQLServerException) in.readObject();
-            String newErrInfo = ex.toString();
 
-            if (!errInfo.equals(newErrInfo)) {
-                fail("Errors are different.");
+            if (!currException.toString().equals(ex.toString())) {
+                fail("Error strings are different. Expected: " + currException.toString() + " Received: "
+                        + ex.toString());
             }
-            if (sqlState != ex.getSQLState()) {
-                fail("Sql states are different.");
+            if (!currException.getSQLState().equals(ex.getSQLState())) {
+                fail("Sql states are different. Expected: " + currException.getSQLState() + " Received: "
+                        + ex.getSQLState());
             }
-            if (errCode != ex.getErrorCode()) {
-                fail("Error codes are different.");
+            if (currException.getErrorCode() != ex.getErrorCode()) {
+                fail("Error codes are different. Expected: " + currException.getErrorCode() + " Received: "
+                        + ex.getErrorCode());
             }
         }
     }
@@ -161,27 +160,31 @@ public class DTOSerialTest extends AbstractTest {
 
     // This function is used to make sure the hydrated is equal to original string and the initial DTO
     private static void verifyDTOEqual(DateTimeOffset initial, DateTimeOffset hydrated) throws Exception {
-        // check string
-        String info = initial.toString();
-        String newInfo = hydrated.toString();
-        // check timestamp
+        String initialStr = initial.toString();
+        String hydratedStr = hydrated.toString();
+
         java.sql.Timestamp originalTS = initial.getTimestamp();
         java.sql.Timestamp hydratedTS = hydrated.getTimestamp();
+
         // and offset
-        int originalOffset = initial.getMinutesOffset();
+        int initiallOffset = initial.getMinutesOffset();
         int hydratedOffset = hydrated.getMinutesOffset();
 
-        if (!info.equals(newInfo)) {
-            fail("Strings are different.");
+        if (!initialStr.equals(hydratedStr)) {
+            fail("Hydrated string is different. Expected: " + initialStr + " Received: " + hydratedStr);
         }
-        if (!info.equals(dateString)) {
-            fail("Strings are different from original.");
+        if (!initialStr.equals(dateString)) {
+            fail("String is different from original datestring. Expected: " + dateString + " Received: " + initialStr);
         }
         if (!initial.equals(hydrated)) {
-            fail("Equality test fails.");
+            fail("Hydrated datetimeoffset is different. Expected: " + initial + " Received: " + hydrated);
         }
         if (!originalTS.equals(hydratedTS)) {
-            fail("Equality test fails from original.");
+            fail("Hydrated timestamp is different. Expected: " + initial.getTimestamp() + " Received: "
+                    + hydrated.getTimestamp());
+        }
+        if (initiallOffset != hydratedOffset) {
+            fail("Hydrated offset is different. Expected: " + initiallOffset + " Received: " + hydratedOffset);
         }
     }
 }
