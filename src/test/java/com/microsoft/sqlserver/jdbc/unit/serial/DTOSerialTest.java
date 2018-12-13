@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -28,7 +29,8 @@ import microsoft.sql.DateTimeOffset;
 
 @RunWith(JUnitPlatform.class)
 public class DTOSerialTest extends AbstractTest {
-    private static final String dateString = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSS XXX").format(new Date());
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSS XXX", Locale.US);
+    private static final String dateString = sdf.format(new Date());
 
     @Test
     public void testDSerial() throws Exception {
@@ -87,11 +89,13 @@ public class DTOSerialTest extends AbstractTest {
     private static void verifyCorrectSerialization(DateTimeOffset dto) throws Exception {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutputStream out = new ObjectOutputStream(bos);
+
         // serialize the DateTimeOffset;
         out.writeObject(dto);
         ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()));
         DateTimeOffset dtn = (DateTimeOffset) in.readObject();
         verifyDTOEqual(dto, dtn);
+
         // Make sure that you can send rehydrated to server
         verifyCorrectSend(dtn);
     }
