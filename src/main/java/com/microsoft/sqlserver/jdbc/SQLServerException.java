@@ -191,7 +191,7 @@ public final class SQLServerException extends java.sql.SQLException {
     SQLServerException(Object obj, String errText, String errState, SQLServerError sqlServerError, boolean bStack) {
         super(errText, errState, sqlServerError.getErrorNumber());
         this.sqlServerError = sqlServerError;
-        // Log SQL error with info from StreamError.
+        // Log SQL error with info from SQLServerError.
         errText = "Msg " + sqlServerError.getErrorNumber() + ", Level " + sqlServerError.getErrorSeverity() + ", State "
                 + sqlServerError.getErrorState() + ", " + errText;
         logException(obj, errText, bStack);
@@ -237,7 +237,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Builds a new SQL Exception from a streamError detected by the driver.
+     * Builds a new SQL Exception from a SQLServerError detected by the driver.
      * 
      * @param con
      *        the connection

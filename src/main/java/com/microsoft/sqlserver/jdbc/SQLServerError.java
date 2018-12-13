@@ -8,9 +8,8 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.Serializable;
 
 /**
- * StreamError represents a TDS error or message event.
+ * SQLServerError represents a TDS error or message event.
  */
-
 public final class SQLServerError extends StreamPacket implements Serializable {
     /**
      * Always update serialVersionUID when prompted
@@ -107,6 +106,5 @@ public final class SQLServerError extends StreamPacket implements Serializable {
         serverName = tdsReader.readUnicodeString(tdsReader.readUnsignedByte());
         procName = tdsReader.readUnicodeString(tdsReader.readUnsignedByte());
         lineNumber = tdsReader.readUnsignedInt();
-
     }
 }
