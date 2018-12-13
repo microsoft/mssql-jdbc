@@ -137,7 +137,7 @@ public class DataFactoryTest extends AbstractTest {
             c.close();
         }
     }
-    
+
     private void verifyFactoryXAConnection(DataSourceFactory dsFactory) throws SQLException {
         Properties props = new Properties();
         props.setProperty(DataSourceFactory.JDBC_URL, connectionString);
