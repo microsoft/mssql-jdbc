@@ -6,7 +6,9 @@ package com.microsoft.sqlserver.jdbc.osgi;
 
 import java.sql.Driver;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Properties;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 
 import javax.activation.DataSource;
@@ -22,15 +24,16 @@ import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 
 
 /**
- * Implementation of the Data Service Specification for JDBC™ Technology
- * 
- * see https://osgi.org/specification/osgi.cmpn/7.0.0/service.jdbc.html
+ * Implementation of the Data Service Specification for JDBC™ Technology. Refer to the OSGI 7.0.0 specifications for
+ * more details.
  */
 public class SQLServerDataSourceFactory implements DataSourceFactory {
 
     private static java.util.logging.Logger osgiLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.osgi.SQLServerDataSourceFactory");
-    private static String NOT_SUPPORTED_MSG = "The Microsoft SQL Server JDBC Driver currently does not support the property: {0}";
+    private static final String NOT_SUPPORTED_MSG = ResourceBundle
+            .getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource", Locale.getDefault())
+            .getString("R_propertyNotSupported");
 
     @Override
     public javax.sql.DataSource createDataSource(Properties props) throws SQLException {
@@ -60,7 +63,7 @@ public class SQLServerDataSourceFactory implements DataSourceFactory {
     }
 
     /**
-     * Setups the basic properties for {@link DataSource}s
+     * Sets up the basic properties for {@link DataSource}s
      */
     private void setup(SQLServerDataSource source, Properties props) {
         if (props == null) {
@@ -99,7 +102,7 @@ public class SQLServerDataSourceFactory implements DataSourceFactory {
     }
 
     /**
-     * Setup the basic and extended properties for {@link XADataSource}s and {@link ConnectionPoolDataSource}s
+     * Sets up the basic and extended properties for {@link XADataSource}s and {@link ConnectionPoolDataSource}s
      */
     private void setupXSource(SQLServerConnectionPoolDataSource source, Properties props) {
         if (props == null) {
