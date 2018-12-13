@@ -1,6 +1,5 @@
 package com.microsoft.sqlserver.jdbc.unit.serial;
 
-
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
@@ -11,6 +10,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -27,11 +28,12 @@ import microsoft.sql.DateTimeOffset;
 
 @RunWith(JUnitPlatform.class)
 public class DTOSerialTest extends AbstractTest {
-    private static final String dateString = "2007-05-08 12:35:29.1234567 +12:15";
+    private static final String dateString = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSS XXX").format(new Date());
 
     // public static void testDSerial(String connString) throws Exception
     @Test
     public void testDSerial() throws Exception {
+        System.out.println("datString=" + dateString);
         try (Connection conn = DriverManager.getConnection(connectionString);
                 Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
@@ -137,7 +139,7 @@ public class DTOSerialTest extends AbstractTest {
         }
 
         if (!exThrown) {
-            fail("wrongnanos serialized form succeeded.");
+            fail("serialized form with wrong nano values unexpectedly succeeded");
         }
 
         exThrown = false;
@@ -148,7 +150,7 @@ public class DTOSerialTest extends AbstractTest {
         }
 
         if (!exThrown) {
-            fail("wrongnanos serialized form succeeded.");
+            fail("serialized form with wrong offset unexpectedly succeeded");
         }
     }
 
