@@ -29,7 +29,7 @@ import microsoft.sql.DateTimeOffset;
 
 @RunWith(JUnitPlatform.class)
 public class DTOSerialTest extends AbstractTest {
-    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSS XXX", Locale.US);
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSS XXX", Locale.US);
     private static final String dateString = sdf.format(new Date());
 
     @Test
@@ -177,8 +177,10 @@ public class DTOSerialTest extends AbstractTest {
         if (!initialStr.equals(hydratedStr)) {
             fail("Hydrated string is different. Expected: " + initialStr + " Received: " + hydratedStr);
         }
-        if (!initialStr.equals(dateString)) {
-            fail("String is different from original datestring. Expected: " + dateString + " Received: " + initialStr);
+        
+        String formattedDate = sdf.format(sdf.parse(initialStr));
+        if (!formattedDate.equals(dateString)) {
+            fail("String is different from original datestring. Expected: " + dateString + " Received: " + formattedDate);
         }
         if (!initial.equals(hydrated)) {
             fail("Hydrated datetimeoffset is different. Expected: " + initial + " Received: " + hydrated);
