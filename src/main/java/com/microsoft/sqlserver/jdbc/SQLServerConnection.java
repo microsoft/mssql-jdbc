@@ -1520,13 +1520,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
                 if (activeConnectionProperties.containsKey(sPropKey)) {
                     ImpersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
-                    // There might be cases where we wish to use the platform GSS credentials
-                    sPropKey = SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS.toString();
-                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                    if (sPropValue != null) {
-                        usePlatformGssCredentials = booleanPropertyOn(sPropKey, sPropValue);
-                    }
                     isUserCreatedCredential = true;
+                }
+                // There might be cases where we wish to use the platform GSS credentials
+                sPropKey = SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (sPropValue != null) {
+                    usePlatformGssCredentials = booleanPropertyOn(sPropKey, sPropValue);
                 }
             }
 
