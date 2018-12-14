@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.lang.reflect.Method;
 import java.net.IDN;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -47,6 +46,7 @@ final class KerbAuthentication extends SSPIAuthentication {
 
     private final GSSManager manager = GSSManager.getInstance();
     private LoginContext lc = null;
+    private boolean usePlatformGssCredentials = false;
     private boolean isUserCreatedCredential = false;
     private GSSCredential peerCredentials = null;
     private GSSContext peerContext = null;
@@ -70,6 +70,12 @@ final class KerbAuthentication extends SSPIAuthentication {
             if (null != peerCredentials) {
                 peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
                         GSSContext.DEFAULT_LIFETIME);
+                peerContext.requestCredDeleg(false);
+                peerContext.requestMutualAuth(true);
+                peerContext.requestInteg(true);
+            } else if (usePlatformGssCredentials) {
+                // pass myCred as null to trigger default initiator principal usage
+                peerContext = manager.createContext(remotePeerName, kerberos, null, GSSContext.DEFAULT_LIFETIME);
                 peerContext.requestCredDeleg(false);
                 peerContext.requestMutualAuth(true);
                 peerContext.requestInteg(true);
@@ -349,6 +355,14 @@ final class KerbAuthentication extends SSPIAuthentication {
         this(con, address, port);
         peerCredentials = ImpersonatedUserCred;
         this.isUserCreatedCredential = (isUserCreated == null ? false : isUserCreated);
+    }
+    
+    KerbAuthentication(SQLServerConnection con,
+            String address,
+            int port,
+            boolean usePlatformGssCredentials) throws SQLServerException {
+        this(con, address, port);
+        this.usePlatformGssCredentials = usePlatformGssCredentials;
     }
 
     byte[] GenerateClientContext(byte[] pin, boolean[] done) throws SQLServerException {

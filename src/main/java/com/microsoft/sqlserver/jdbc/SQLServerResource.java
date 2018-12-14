@@ -195,6 +195,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_lastUpdateCountPropertyDescription",
                     "Ensures that only the last update count is returned from an SQL statement passed to the server."},
             {"R_disableStatementPoolingPropertyDescription", "Disables the statement pooling feature."},
+            {"R_usePlatformGssCredentialsPropertyDescription",
+                    "Indicates whether the platform GSS credentials should be used to connect to SQL Server."},
             {"R_integratedSecurityPropertyDescription",
                     "Indicates whether Windows authentication will be used to connect to SQL Server."},
             {"R_authenticationSchemePropertyDescription",

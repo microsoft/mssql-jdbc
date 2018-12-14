@@ -801,6 +801,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     Properties activeConnectionProperties; // the active set of connection properties
+    private boolean usePlatformGssCredentials = SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS
+            .getDefaultValue();
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
     private GSSCredential ImpersonatedUserCred;
@@ -1518,6 +1520,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
                 if (activeConnectionProperties.containsKey(sPropKey)) {
                     ImpersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
+                    // There might be cases where we wish to use the platform GSS credentials
+                    sPropKey = SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (sPropValue != null) {
+                        usePlatformGssCredentials = booleanPropertyOn(sPropKey, sPropValue);
+                    }
                     isUserCreatedCredential = true;
                 }
             }
@@ -3552,9 +3560,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (null != ImpersonatedUserCred) {
                 authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                         currentConnectPlaceHolder.getPortNumber(), ImpersonatedUserCred, isUserCreatedCredential);
-            } else
+            } else if (usePlatformGssCredentials) {
+                authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
+                        currentConnectPlaceHolder.getPortNumber(), true);
+            } else {
                 authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                         currentConnectPlaceHolder.getPortNumber());
+            }
         }
 
         // If the workflow being used is Active Directory Password or Active Directory Integrated and server's prelogin
