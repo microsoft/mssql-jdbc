@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.testframework;
 
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
