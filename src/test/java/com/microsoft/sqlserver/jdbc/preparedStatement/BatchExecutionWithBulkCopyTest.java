@@ -312,46 +312,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
-    // Non-parameterized queries are not supported anymore.
-    // @Test
-    public void testAllFilledColumns() throws Exception {
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "1234, "
-                + "false, " + "a, " + "null, " + "null, " + "123.45, " + "b, " + "varc, " + "sadf, " + ")";
-
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
-                Statement stmt = (SQLServerStatement) connection.createStatement();) {
-            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
-            f1.setAccessible(true);
-            f1.set(connection, true);
-
-            pstmt.addBatch();
-
-            pstmt.executeBatch();
-
-            try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-
-                Object[] expected = new Object[9];
-
-                expected[0] = 1234;
-                expected[1] = false;
-                expected[2] = "a";
-                expected[3] = null;
-                expected[4] = null;
-                expected[5] = 123.45;
-                expected[6] = "b";
-                expected[7] = "varc";
-                expected[8] = "sadf";
-
-                rs.next();
-                for (int i = 0; i < expected.length; i++) {
-                    assertEquals(expected[i], rs.getObject(i + 1));
-                }
-            }
-        }
-    }
-
     @Test
     public void testSquareBracketAgainstDB() throws Exception {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName) + " values (?)";
