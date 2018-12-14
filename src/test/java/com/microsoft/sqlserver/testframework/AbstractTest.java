@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
@@ -46,6 +47,7 @@ public abstract class AbstractTest {
     protected static String windowsKeyPath = null;
 
     protected static SQLServerConnection connection = null;
+    protected static String hostName = null;
     protected static Connection connectionAzure = null;
 
     protected static String connectionString = null;
@@ -83,7 +85,13 @@ public abstract class AbstractTest {
         try {
             Assertions.assertNotNull(connectionString, "Connection String should not be null");
             connection = PrepUtil.getConnection(connectionString, info);
-
+            try {
+                Field f = connection.getClass().getSuperclass().getDeclaredField("hostName");
+                f.setAccessible(true);
+                hostName = (String) f.get(connection);
+            } catch (Exception e) {
+                throw e;
+            }
         } catch (Exception e) {
             throw e;
         }
