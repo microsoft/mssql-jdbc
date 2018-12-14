@@ -13,7 +13,6 @@ import java.io.CharArrayReader;
 import java.net.URI;
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,7 +24,6 @@ import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBit;
@@ -69,13 +67,6 @@ public class TestUtils {
 
     // private static SqlType types = null;
     private static ArrayList<SqlType> types = null;
-    private final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
-    private final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
-
-    // whether we determined if the target server is SQL Azure
-    private static boolean _determinedSqlAzureOrSqlServer = false;
-    private static boolean _isSqlAzure = false;
-    private static boolean _isSqlAzureDW = false;
 
     /**
      * Returns serverType
