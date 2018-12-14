@@ -1375,7 +1375,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
     @Test
     public void testWithThaiLocale() throws Exception {
         java.text.SimpleDateFormat tsFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS0000");
-        java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("K:mmaa");
+        java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("h:mmaa");
         java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
         java.text.SimpleDateFormat dtoFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS0000 XXX");
 
