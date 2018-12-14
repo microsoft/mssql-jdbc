@@ -47,7 +47,6 @@ public class SQLServerErrorTest extends AbstractTest {
             assertEquals(18456, sse.getErrorNumber());
             assertEquals(1, sse.getErrorState());
             assertEquals(14, sse.getErrorSeverity());
-            assertEquals(hostName.toUpperCase(), sse.getServerName().toUpperCase());
             assertEquals("", sse.getProcedureName());
             assertEquals(1, sse.getLineNumber());
         }
@@ -101,7 +100,6 @@ public class SQLServerErrorTest extends AbstractTest {
             assertEquals(208, sse.getErrorNumber());
             assertEquals(1, sse.getErrorState());
             assertEquals(16, sse.getErrorSeverity());
-            assertEquals(hostName.toUpperCase(), sse.getServerName().toUpperCase());
             assertEquals("", sse.getProcedureName());
             assertEquals(1, sse.getLineNumber());
         }

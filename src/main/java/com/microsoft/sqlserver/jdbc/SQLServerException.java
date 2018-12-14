@@ -206,7 +206,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * @param errText
      *        the exception message
      * @param state
-     *        he exception state
+     *        the exception state
      * @param bStack
      *        true to generate the stack trace
      * @throws SQLServerException
@@ -368,9 +368,9 @@ public final class SQLServerException extends java.sql.SQLException {
      * Appends ClientConnectionId to an error message if applicable.
      * 
      * @param errMsg
-     *        - the original error message.
+     *        the original error message
      * @param conn
-     *        - the SQLServerConnection object
+     *        the SQLServerConnection object
      * @return error string concatenated by ClientConnectionId(in string format) if applicable, otherwise, return
      *         original error string.
      */
