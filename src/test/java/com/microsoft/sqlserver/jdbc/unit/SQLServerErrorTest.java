@@ -50,9 +50,6 @@ public class SQLServerErrorTest extends AbstractTest {
             assertEquals(hostName.toUpperCase(), sse.getServerName().toUpperCase());
             assertEquals("", sse.getProcedureName());
             assertEquals(1, sse.getLineNumber());
-
-        } catch (Exception e) {
-            fail(TestResource.getResource("R_expectedFailPassed"));
         }
     }
 
