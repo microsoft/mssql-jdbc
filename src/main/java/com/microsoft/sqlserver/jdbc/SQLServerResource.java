@@ -534,5 +534,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},
             {"R_illegalWKT", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
             {"R_illegalTypeForGeometry", "{0} is not supported for Geometry."},
-            {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},};
+            {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},
+            {"R_propertyNotSupported",
+                    "The Microsoft SQL Server JDBC Driver currently does not support the property: {0}"},};
 }
