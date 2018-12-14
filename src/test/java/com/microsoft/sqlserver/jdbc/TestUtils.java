@@ -710,10 +710,12 @@ public class TestUtils {
             _determinedSqlAzureOrSqlServer = true;
             _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
                     || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+
+            return _isSqlAzure;
+        } finally {
             if (ownsCon) {
                 con.close();
             }
-            return _isSqlAzure;
         }
     }
     
@@ -751,10 +753,12 @@ public class TestUtils {
             _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
                     || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
             _isSqlAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+
+            return _isSqlAzureDW;
+        } finally {
             if (ownsCon) {
                 con.close();
             }
-            return _isSqlAzureDW;
         }
     }
 }
