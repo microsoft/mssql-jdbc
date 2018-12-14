@@ -362,12 +362,7 @@ public class DBTable extends AbstractSQLGenerator {
         StringJoiner sb = new StringJoiner(SPACE_CHAR);
 
         // Azure DW doesn't support VALUES (), (), () ... syntax
-        boolean isSqlAzureDW = false;
-        try {
-            isSqlAzureDW = TestUtils.isSqlAzureDW(null);
-        } catch (Exception e) {
-        }
-        if (isSqlAzureDW) {
+        if (AbstractTest.isSqlAzureDW()) {
             for (int i = 0; i < totalRows; i++) {
                 sb.add("INSERT");
                 sb.add("INTO");

@@ -329,7 +329,7 @@ public class StatementTest extends AbstractTest {
                         // we have to set its isolation level to REPEATABLE_READ (or SERIALIZABLE) in SQL Azure.
                         //
                         // Reference: http://msdn.microsoft.com/en-us/library/ee336245.aspx#isolevels
-                        if (_isSqlAzure) {
+                        if (AbstractTest.isSqlAzure()) {
                             con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
                         }
 
@@ -420,7 +420,7 @@ public class StatementTest extends AbstractTest {
                         // we have to set its isolation level to REPEATABLE_READ (or SERIALIZABLE) in SQL Azure.
                         //
                         // Reference: http://msdn.microsoft.com/en-us/library/ee336245.aspx#isolevels
-                        if (_isSqlAzure) {
+                        if (AbstractTest.isSqlAzure()) {
                             con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
                         }
 
@@ -516,7 +516,7 @@ public class StatementTest extends AbstractTest {
                         // we have to set its isolation level to REPEATABLE_READ (or SERIALIZABLE) in SQL Azure.
                         //
                         // Reference: http://msdn.microsoft.com/en-us/library/ee336245.aspx#isolevels
-                        if (_isSqlAzure) {
+                        if (AbstractTest.isSqlAzure()) {
                             con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
                         }
 
@@ -2287,7 +2287,7 @@ public class StatementTest extends AbstractTest {
                     // support
                     // sp_addmessage.
                     try (Connection dbConn = DriverManager.getConnection(connectionString)) {
-                        if (_isSqlAzure) {
+                        if (AbstractTest.isSqlAzure()) {
                             log.fine(
                                     "Because SQL Azure does not support sp_addmessage, 'EXEC sp_addmessage ...' is skipped.");
                         } else {
@@ -2339,7 +2339,7 @@ public class StatementTest extends AbstractTest {
                 } catch (SQLException e) {
                     String expectedMessage;
                     // SQL Azure does not support sp_addmessage, so the user-defined message cannot be added.
-                    if (_isSqlAzure) // SQL Azure
+                    if (AbstractTest.isSqlAzure()) // SQL Azure
                     {
                         expectedMessage = errorMessage50001InSqlAzure;
                     } else // SQL Server
@@ -2387,7 +2387,7 @@ public class StatementTest extends AbstractTest {
                 } catch (SQLException e) {
                     String expectedMessage;
                     // SQL Azure does not support sp_addmessage, so the user-defined message cannot be added.
-                    if (_isSqlAzure) // SQL Azure
+                    if (AbstractTest.isSqlAzure()) // SQL Azure
                     {
                         expectedMessage = errorMessage50001InSqlAzure;
                     } else // SQL Server
@@ -2430,7 +2430,7 @@ public class StatementTest extends AbstractTest {
                 } catch (SQLException e) {
                     String expectedMessage;
                     // SQL Azure does not support sp_addmessage, so the user-defined message cannot be added.
-                    if (_isSqlAzure) // SQL Azure
+                    if (AbstractTest.isSqlAzure()) // SQL Azure
                     {
                         expectedMessage = errorMessage50001InSqlAzure;
                     } else // SQL Server

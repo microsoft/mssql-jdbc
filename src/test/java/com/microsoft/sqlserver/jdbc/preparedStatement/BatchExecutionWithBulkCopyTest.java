@@ -163,7 +163,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testAllcolumns() throws Exception {
-        assumeFalse(_isSqlAzureDW, "This is a known failure in DW for now.");
+        assumeFalse(AbstractTest.isSqlAzureDW(), "This is a known failure in DW for now.");
         String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? " + ")";
 
@@ -216,7 +216,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testMixColumns() throws Exception {
-        assumeFalse(_isSqlAzureDW, "This is a known failure in DW for now.");
+        assumeFalse(AbstractTest.isSqlAzureDW(), "This is a known failure in DW for now.");
         String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1, c3, c5, c8) values "
                 + "(" + "?, " + "?, " + "?, " + "? " + ")";
 
@@ -266,7 +266,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testNullOrEmptyColumns() throws Exception {
-        assumeFalse(_isSqlAzureDW, "This is a known failure in DW for now.");
+        assumeFalse(AbstractTest.isSqlAzureDW(), "This is a known failure in DW for now.");
         String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " (c1, c2, c3, c4, c5, c6, c7) values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? "
                 + ")";
@@ -474,7 +474,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testAllColumnsLargeBatch() throws Exception {
-        assumeFalse(_isSqlAzureDW, "This is a known failure in DW for now.");
+        assumeFalse(AbstractTest.isSqlAzureDW(), "This is a known failure in DW for now.");
         String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? " + ")";
 
@@ -557,7 +557,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             
-            if (_isSqlAzureDW) {
+            if (AbstractTest.isSqlAzureDW()) {
                 expected = "Column name or number of supplied values does not match table definition.";
             } else {
                 expected = "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.";
@@ -591,7 +591,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             
-            if (_isSqlAzureDW) {
+            if (AbstractTest.isSqlAzureDW()) {
                 expected = "Parse error at line: 1, column: 106: Incorrect syntax near 'table'.";
             } else {
                 expected = "Incorrect syntax near the keyword 'table'.";
@@ -636,7 +636,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testNonSupportedColumns() throws Exception {
-        assumeFalse(_isSqlAzureDW, "Geometry/Geography is not supported for DW.");
+        assumeFalse(AbstractTest.isSqlAzureDW(), "Geometry/Geography is not supported for DW.");
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName)
                 + " values (?, ?, ?, ?)";
 

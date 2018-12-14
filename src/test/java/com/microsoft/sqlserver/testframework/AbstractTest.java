@@ -59,8 +59,8 @@ public abstract class AbstractTest {
     private final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     private final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     private static boolean _determinedSqlAzureOrSqlServer = false;
-    protected static boolean _isSqlAzure = false;
-    protected static boolean _isSqlAzureDW = false;
+    private static boolean _isSqlAzure = false;
+    private static boolean _isSqlAzureDW = false;
 
     /**
      * This will take care of all initialization before running the Test Suite.
@@ -183,6 +183,14 @@ public abstract class AbstractTest {
         } catch (Exception e) {
             System.err.println("Some how could not invoke logging: " + e.getMessage());
         }
+    }
+    
+    public static boolean isSqlAzure() {
+        return _isSqlAzure;
+    }
+    
+    public static boolean isSqlAzureDW() {
+        return _isSqlAzureDW;
     }
 
     /**

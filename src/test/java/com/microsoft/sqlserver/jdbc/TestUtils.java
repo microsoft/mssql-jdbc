@@ -66,7 +66,7 @@ public class TestUtils {
     // 'SQL' represents SQL Server, while 'SQLAzure' represents SQL Azure.
     public static final String SERVER_TYPE_SQL_SERVER = "SQL";
     public static final String SERVER_TYPE_SQL_AZURE = "SQLAzure";
-    
+
     // private static SqlType types = null;
     private static ArrayList<SqlType> types = null;
     private final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
@@ -76,7 +76,7 @@ public class TestUtils {
     private static boolean _determinedSqlAzureOrSqlServer = false;
     private static boolean _isSqlAzure = false;
     private static boolean _isSqlAzureDW = false;
-    
+
     /**
      * Returns serverType
      * 
@@ -675,90 +675,5 @@ public class TestUtils {
      */
     public static String escapeSingleQuotes(String name) {
         return name.replace("'", "''");
-    }
-    
-    /**
-     * Returns if connected to SQL Azure
-     * 
-     * @param con
-     *        connection to server
-     * @return boolean
-     * @throws SQLException
-     */
-    public static boolean isSqlAzure(Connection con) throws SQLException {
-        if (_determinedSqlAzureOrSqlServer) {
-            return _isSqlAzure;
-        }
-
-        try {
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        } catch (ClassNotFoundException e) {
-            throw new SQLException(e.toString());
-        }
-
-        boolean ownsCon = false;
-
-        if (null == con) {
-            con = DriverManager.getConnection(AbstractTest.getConnectionString());
-            ownsCon = true;
-        }
-
-        try (Statement stmt = con.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
-            rs.next();
-            int engineEdition = rs.getInt(1);
-            _determinedSqlAzureOrSqlServer = true;
-            _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
-                    || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
-
-            return _isSqlAzure;
-        } finally {
-            if (ownsCon) {
-                con.close();
-            }
-        }
-    }
-    
-    /**
-     * Returns if connected to SQL Azure DW
-     * 
-     * @param con
-     *        connection to server
-     * @return boolean
-     * @throws SQLException
-     */
-    public static boolean isSqlAzureDW(Connection con) throws SQLException {
-        if (_determinedSqlAzureOrSqlServer) {
-            return _isSqlAzureDW;
-        }
-
-        try {
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        } catch (ClassNotFoundException e) {
-            throw new SQLException(e.toString());
-        }
-
-        boolean ownsCon = false;
-
-        if (null == con) {
-            con = DriverManager.getConnection(AbstractTest.getConnectionString());
-            ownsCon = true;
-        }
-
-        try (Statement stmt = con.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
-            rs.next();
-            int engineEdition = rs.getInt(1);
-            _determinedSqlAzureOrSqlServer = true;
-            _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
-                    || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
-            _isSqlAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
-
-            return _isSqlAzureDW;
-        } finally {
-            if (ownsCon) {
-                con.close();
-            }
-        }
     }
 }
