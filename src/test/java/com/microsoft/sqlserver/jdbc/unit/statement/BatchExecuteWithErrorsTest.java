@@ -100,7 +100,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         String error;
         String severe;
         try (Connection con = DriverManager.getConnection(connectionString)) {
-            if (TestUtils.isSqlAzure(con)) {
+            if (_isSqlAzure) {
                 // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have
                 // not
                 // "with log" option
@@ -242,7 +242,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                 try {
                     stmt.executeBatch();
                 } catch (BatchUpdateException bue) {
-                    if (TestUtils.isSqlAzureDW(conn)) {
+                    if (_isSqlAzureDW) {
                         assertThat(bue.getMessage(), containsString(TestResource.getResource("R_syntaxErrorDateConvertDW")));
                     } else {
                         assertThat(bue.getMessage(), containsString(TestResource.getResource("R_syntaxErrorDateConvert")));
@@ -269,7 +269,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                 // errors"
                 // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have best
                 // test coverage.
-                if (!TestUtils.isSqlAzure(conn)) {
+                if (!_isSqlAzure) {
                     // Test Severe (connection-closing) errors
                     stmt.addBatch(error);
                     stmt.addBatch(insertStmt);
@@ -320,7 +320,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             final String warning;
             final String error;
             final String severe;
-            if (TestUtils.isSqlAzure(con)) {
+            if (_isSqlAzure) {
                 // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have
                 // not
                 // "with log" option
@@ -477,7 +477,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                     // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have
                     // best
                     // test coverage.
-                    if (!TestUtils.isSqlAzure(DriverManager.getConnection(connectionString))) {
+                    if (!_isSqlAzure) {
                         // Test Severe (connection-closing) errors
                         stmt.addBatch(error);
                         stmt.addBatch(insertStmt);

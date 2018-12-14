@@ -6,6 +6,10 @@
 package com.microsoft.sqlserver.testframework;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
@@ -52,6 +56,12 @@ public abstract class AbstractTest {
 
     protected static Properties info = new Properties();
 
+    private final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+    private final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+    private static boolean _determinedSqlAzureOrSqlServer = false;
+    protected static boolean _isSqlAzure = false;
+    protected static boolean _isSqlAzureDW = false;
+
     /**
      * This will take care of all initialization before running the Test Suite.
      * 
@@ -83,7 +93,7 @@ public abstract class AbstractTest {
         try {
             Assertions.assertNotNull(connectionString, "Connection String should not be null");
             connection = PrepUtil.getConnection(connectionString, info);
-
+            isSqlAzureOrAzureDW(connection);
         } catch (Exception e) {
             throw e;
         }
@@ -172,6 +182,30 @@ public abstract class AbstractTest {
             logger.setLevel(Level.FINEST);
         } catch (Exception e) {
             System.err.println("Some how could not invoke logging: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Determines the server's type.
+     * 
+     * @param con
+     *        connection to server
+     * @return void
+     * @throws SQLException
+     */
+    private static void isSqlAzureOrAzureDW(Connection con) throws SQLException {
+        if (_determinedSqlAzureOrSqlServer) {
+            return;
+        }
+        
+        try (Statement stmt = con.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+            rs.next();
+            int engineEdition = rs.getInt(1);
+            _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
+                    || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            _isSqlAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            _determinedSqlAzureOrSqlServer = true;
         }
     }
 }

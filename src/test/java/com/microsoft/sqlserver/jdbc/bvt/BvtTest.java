@@ -149,7 +149,7 @@ public class BvtTest extends AbstractTest {
      */
     @Test
     public void testStmtScrollInsensitiveReadOnly() throws SQLException, ClassNotFoundException {
-        assumeFalse(TestUtils.isSqlAzureDW(null), "Cursor support is not implemented for Azure DW.");
+        assumeFalse(_isSqlAzureDW, "Cursor support is not implemented for Azure DW.");
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_INSENSITIVE_CONCUR_READ_ONLY);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -170,7 +170,7 @@ public class BvtTest extends AbstractTest {
      */
     @Test
     public void testStmtScrollSensitiveReadOnly() throws SQLException {
-        assumeFalse(TestUtils.isSqlAzureDW(null), "Cursor support is not implemented for Azure DW.");
+        assumeFalse(_isSqlAzureDW, "Cursor support is not implemented for Azure DW.");
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_SENSITIVE_CONCUR_READ_ONLY);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -193,7 +193,7 @@ public class BvtTest extends AbstractTest {
      */
     @Test
     public void testStmtForwardOnlyUpdateable() throws SQLException {
-        assumeFalse(TestUtils.isSqlAzureDW(null), "Cursor support is not implemented for Azure DW.");
+        assumeFalse(_isSqlAzureDW, "Cursor support is not implemented for Azure DW.");
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_FORWARD_ONLY_CONCUR_UPDATABLE);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -221,7 +221,7 @@ public class BvtTest extends AbstractTest {
      */
     @Test
     public void testStmtScrollSensitiveUpdatable() throws SQLException {
-        assumeFalse(TestUtils.isSqlAzureDW(null), "Cursor support is not implemented for Azure DW.");
+        assumeFalse(_isSqlAzureDW, "Cursor support is not implemented for Azure DW.");
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_SENSITIVE_CONCUR_UPDATABLE);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -245,7 +245,7 @@ public class BvtTest extends AbstractTest {
      */
     @Test
     public void testStmtSSScrollDynamicOptimisticCC() throws SQLException {
-        assumeFalse(TestUtils.isSqlAzureDW(null), "Cursor support is not implemented for Azure DW.");
+        assumeFalse(_isSqlAzureDW, "Cursor support is not implemented for Azure DW.");
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_DYNAMIC_CONCUR_OPTIMISTIC);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -418,7 +418,7 @@ public class BvtTest extends AbstractTest {
      */
     @Test
     public void testResultSetSelectMethod() throws SQLException {
-        assumeFalse(TestUtils.isSqlAzureDW(null), "Cursor support is not implemented for Azure DW.");
+        assumeFalse(_isSqlAzureDW, "Cursor support is not implemented for Azure DW.");
         try (DBConnection conn = new DBConnection(connectionString + ";selectMethod=cursor;");
                 DBStatement stmt = conn.createStatement(); DBResultSet rs = stmt.selectAll(table1)) {
             rs.verify(table1);

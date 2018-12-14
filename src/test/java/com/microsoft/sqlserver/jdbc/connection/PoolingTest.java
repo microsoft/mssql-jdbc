@@ -52,8 +52,7 @@ public class PoolingTest extends AbstractTest {
 
     @Test
     public void testPooling() throws SQLException {
-        assumeTrue(!TestUtils.isSqlAzure(DriverManager.getConnection(connectionString)),
-                "Skipping test case on Azure SQL.");
+        assumeTrue(!_isSqlAzure, "Skipping test case on Azure SQL.");
 
         SQLServerXADataSource XADataSource1 = new SQLServerXADataSource();
         XADataSource1.setURL(connectionString);
