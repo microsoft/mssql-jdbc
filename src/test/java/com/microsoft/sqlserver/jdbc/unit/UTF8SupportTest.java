@@ -18,7 +18,6 @@ import java.util.Collections;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -34,7 +33,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * A class for testing the UTF8 support changes.
  */
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class UTF8SupportTest extends AbstractTest {
     private static Connection connection;
     private static String databaseName;

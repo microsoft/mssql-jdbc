@@ -100,7 +100,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         String error;
         String severe;
         try (Connection con = DriverManager.getConnection(connectionString)) {
-            if (AbstractTest.isSqlAzure()) {
+            if (isSqlAzure()) {
                 // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have
                 // not
                 // "with log" option
@@ -243,9 +243,11 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                     stmt.executeBatch();
                 } catch (BatchUpdateException bue) {
                     if (AbstractTest.isSqlAzureDW()) {
-                        assertThat(bue.getMessage(), containsString(TestResource.getResource("R_syntaxErrorDateConvertDW")));
+                        assertThat(bue.getMessage(),
+                                containsString(TestResource.getResource("R_syntaxErrorDateConvertDW")));
                     } else {
-                        assertThat(bue.getMessage(), containsString(TestResource.getResource("R_syntaxErrorDateConvert")));
+                        assertThat(bue.getMessage(),
+                                containsString(TestResource.getResource("R_syntaxErrorDateConvert")));
                     }
                     // CTestLog.CompareStartsWith(bue.getMessage(), "Syntax error converting date", "Transaction
                     // rollback with conversion error threw wrong
@@ -320,7 +322,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             final String warning;
             final String error;
             final String severe;
-            if (AbstractTest.isSqlAzure()) {
+            if (isSqlAzure()) {
                 // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have
                 // not
                 // "with log" option

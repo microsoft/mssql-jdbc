@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.testframework;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,10 +19,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
  */
 public class DBConnection extends AbstractParentWrapper implements AutoCloseable {
     private double serverversion = 0;
-    private static boolean determinedSqlAzureOrSqlServer = false;
-    private static boolean isSqlAzure = false;  // Whether the target server is SQL Azure or SQL Server
-    private static boolean isSqlAzureDW = false;  // Whether the target server is SQL Azure DW
-
     // TODO: add Isolation Level
     // TODO: add auto commit
     // TODO: add connection Savepoint and rollback
@@ -166,7 +161,7 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
         DatabaseMetaData product = connection.getMetaData();
         return product;
     }
-    
+
     /**
      * @param string
      * @return

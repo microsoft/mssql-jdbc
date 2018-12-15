@@ -40,7 +40,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
@@ -166,7 +165,7 @@ public class ConnectionDriverTest extends AbstractTest {
      */
     @Test
     public void testConnectionEvents() throws SQLException {
-        assumeTrue(!AbstractTest.isSqlAzure(), TestResource.getResource("R_skipAzure"));
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -197,7 +196,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testConnectionPoolGetTwice() throws SQLException {
-        assumeTrue(!AbstractTest.isSqlAzure(), TestResource.getResource("R_skipAzure"));
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -224,7 +223,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testConnectionClosed() throws SQLException {
-        assumeTrue(!AbstractTest.isSqlAzure(), TestResource.getResource("R_skipAzure"));
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerDataSource mds = new SQLServerDataSource();
         mds.setURL(connectionString);
@@ -302,7 +301,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testDeadConnection() throws SQLException {
-        assumeTrue(!AbstractTest.isSqlAzure(), TestResource.getResource("R_skipAzure"));
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         String tableName = RandomUtil.getIdentifier("ConnectionTestTable");
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
