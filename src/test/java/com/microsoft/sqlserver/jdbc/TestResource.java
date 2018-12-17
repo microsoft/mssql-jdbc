@@ -57,6 +57,8 @@ public final class TestResource extends ListResourceBundle {
             {"R_conversionFailed", "Conversion failed when converting {0} to {1} data type"},
             {"R_invalidQueryTimeout", "The query timeout value {0} is not valid."},
             {"R_skipAzure", "Skipping test case on Azure SQL."},
+            {"R_issueAzureDW", "This is a known failure in DW for now."},
+            {"R_spatialDWNotSupported", "Geometry/Geography is not supported for DW."},
             {"R_expectedExceptionNotThrown", "Expected exception is not thrown."},
             {"R_errorNotCalled", "Error occurred is not called."}, {"R_errorCalled", "Error occurred is called."},
             {"R_supportUnwrapping", "{0} supports unwrapping."},

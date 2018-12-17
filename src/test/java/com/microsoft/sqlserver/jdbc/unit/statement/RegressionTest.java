@@ -66,7 +66,7 @@ public class RegressionTest extends AbstractTest {
             // create stored proc
             String storedProcString;
 
-            if (AbstractTest.isSqlAzure()) {
+            if (isSqlAzure()) {
                 // On SQL Azure, 'SELECT INTO' is not supported. So do not use it.
                 storedProcString = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
                         + " @param varchar(3) AS SELECT col3 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -114,7 +114,7 @@ public class RegressionTest extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
 
             // Azure does not do SELECT INTO
-            if (!AbstractTest.isSqlAzure()) {
+            if (!isSqlAzure()) {
                 tableName = RandomUtil.getIdentifier("[#SourceTableForSelectInto]]");
 
                 try (Statement stmt = con.createStatement()) {

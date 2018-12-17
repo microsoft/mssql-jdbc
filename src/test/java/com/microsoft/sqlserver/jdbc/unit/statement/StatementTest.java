@@ -329,7 +329,7 @@ public class StatementTest extends AbstractTest {
                         // we have to set its isolation level to REPEATABLE_READ (or SERIALIZABLE) in SQL Azure.
                         //
                         // Reference: http://msdn.microsoft.com/en-us/library/ee336245.aspx#isolevels
-                        if (AbstractTest.isSqlAzure()) {
+                        if (isSqlAzure()) {
                             con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
                         }
 
@@ -420,7 +420,7 @@ public class StatementTest extends AbstractTest {
                         // we have to set its isolation level to REPEATABLE_READ (or SERIALIZABLE) in SQL Azure.
                         //
                         // Reference: http://msdn.microsoft.com/en-us/library/ee336245.aspx#isolevels
-                        if (AbstractTest.isSqlAzure()) {
+                        if (isSqlAzure()) {
                             con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
                         }
 
@@ -516,7 +516,7 @@ public class StatementTest extends AbstractTest {
                         // we have to set its isolation level to REPEATABLE_READ (or SERIALIZABLE) in SQL Azure.
                         //
                         // Reference: http://msdn.microsoft.com/en-us/library/ee336245.aspx#isolevels
-                        if (AbstractTest.isSqlAzure()) {
+                        if (isSqlAzure()) {
                             con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
                         }
 
@@ -968,10 +968,8 @@ public class StatementTest extends AbstractTest {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2Name), stmt);
                 } catch (SQLException e) {}
 
-                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table1Name)
-                        + " (col1 INT)");
-                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table2Name)
-                        + " (col1 INT)");
+                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table1Name) + " (col1 INT)");
+                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table2Name) + " (col1 INT)");
 
                 try (ResultSet rs = stmt.executeQuery(
                         "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(table2Name))) {} catch (Exception e) {
@@ -1429,8 +1427,7 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
 
-                stmt.executeUpdate(
-                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(1)");
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(2)");
@@ -1493,8 +1490,7 @@ public class StatementTest extends AbstractTest {
             try (Connection con = DriverManager.getConnection(connectionString);
                     Statement stmt = con.createStatement()) {
 
-                stmt.executeUpdate(
-                        "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(1)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(2)");
@@ -2129,8 +2125,8 @@ public class StatementTest extends AbstractTest {
                     } catch (SQLException e) {
                         throw new SQLException(e);
                     }
-                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                            + " (col1 INT )");
+                    stmt.executeUpdate(
+                            "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 INT )");
                     for (int i = 0; i < NUM_ROWS; i++)
                         stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                                 + " (col1) VALUES (" + i + ")");
@@ -2277,8 +2273,8 @@ public class StatementTest extends AbstractTest {
                     } catch (SQLException e) {
                         System.out.println(e.toString());
                     }
-                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                            + " (col1 INT )");
+                    stmt.executeUpdate(
+                            "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 INT )");
                     for (int i = 0; i < NUM_ROWS; i++)
                         stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                                 + " (col1) VALUES (" + i + ")");
@@ -2287,7 +2283,7 @@ public class StatementTest extends AbstractTest {
                     // support
                     // sp_addmessage.
                     try (Connection dbConn = DriverManager.getConnection(connectionString)) {
-                        if (AbstractTest.isSqlAzure()) {
+                        if (isSqlAzure()) {
                             log.fine(
                                     "Because SQL Azure does not support sp_addmessage, 'EXEC sp_addmessage ...' is skipped.");
                         } else {
@@ -2339,7 +2335,7 @@ public class StatementTest extends AbstractTest {
                 } catch (SQLException e) {
                     String expectedMessage;
                     // SQL Azure does not support sp_addmessage, so the user-defined message cannot be added.
-                    if (AbstractTest.isSqlAzure()) // SQL Azure
+                    if (isSqlAzure()) // SQL Azure
                     {
                         expectedMessage = errorMessage50001InSqlAzure;
                     } else // SQL Server
@@ -2387,7 +2383,7 @@ public class StatementTest extends AbstractTest {
                 } catch (SQLException e) {
                     String expectedMessage;
                     // SQL Azure does not support sp_addmessage, so the user-defined message cannot be added.
-                    if (AbstractTest.isSqlAzure()) // SQL Azure
+                    if (isSqlAzure()) // SQL Azure
                     {
                         expectedMessage = errorMessage50001InSqlAzure;
                     } else // SQL Server
@@ -2430,7 +2426,7 @@ public class StatementTest extends AbstractTest {
                 } catch (SQLException e) {
                     String expectedMessage;
                     // SQL Azure does not support sp_addmessage, so the user-defined message cannot be added.
-                    if (AbstractTest.isSqlAzure()) // SQL Azure
+                    if (isSqlAzure()) // SQL Azure
                     {
                         expectedMessage = errorMessage50001InSqlAzure;
                     } else // SQL Server
@@ -2492,8 +2488,8 @@ public class StatementTest extends AbstractTest {
                     } catch (Exception e) {
                         throw new SQLException(TestResource.getResource("R_unexpectedException"), e);
                     }
-                    stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                            + " (col1 INT )");
+                    stmt.executeUpdate(
+                            "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 INT )");
                     for (int i = 0; i < NUM_ROWS; i++)
                         stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                                 + " (col1) VALUES (" + i + ")");
