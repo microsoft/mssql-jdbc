@@ -38,6 +38,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
+
 @RunWith(JUnitPlatform.class)
 public class ResultSetTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("StatementParam");
@@ -466,7 +467,7 @@ public class ResultSetTest extends AbstractTest {
             } catch (Exception e) {
                 fail(e.toString());
             } finally {
-                stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
     }

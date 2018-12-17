@@ -1,6 +1,5 @@
 package com.microsoft.sqlserver.jdbc.callablestatement;
 
-
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.CallableStatement;
@@ -94,8 +93,6 @@ public class CallableMixedTest extends AbstractTest {
                         fail("Received data not equal to setdata");
                     }
                 }
-
-                try (ResultSet rs = cstmt.executeQuery()) {}
             }
         } finally {
             try (Connection conn = DriverManager.getConnection(connectionString);

@@ -21,7 +21,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 import microsoft.sql.DateTimeOffset;
@@ -41,11 +40,12 @@ public class DTOSerialTest extends AbstractTest {
                 Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
             // create a DTO
-            ResultSet rs = stmt.executeQuery(
-                    "SELECT CAST('" + dateString + "' AS datetimeoffset(7)) AS" + "   'datetimeoffset IS08601' ");
-            rs.next();
-            verifyCorrectSerialization(((SQLServerResultSet) rs).getDateTimeOffset(1));
-            verifyMessedSerialization();
+            try (ResultSet rs = stmt.executeQuery(
+                    "SELECT CAST('" + dateString + "' AS datetimeoffset(7)) AS" + "   'datetimeoffset IS08601' ")) {
+                rs.next();
+                verifyCorrectSerialization(((SQLServerResultSet) rs).getDateTimeOffset(1));
+                verifyMessedSerialization();
+            }
         }
     }
 
@@ -65,56 +65,59 @@ public class DTOSerialTest extends AbstractTest {
             }
 
             // store the info
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream out = new ObjectOutputStream(bos);
+            try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                    ObjectOutputStream out = new ObjectOutputStream(bos)) {
 
-            // serialize the exception;
-            out.writeObject(currException);
-            ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()));
-            SQLServerException ex = (SQLServerException) in.readObject();
+                // serialize the exception;
+                out.writeObject(currException);
+                try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()))) {
+                    SQLServerException ex = (SQLServerException) in.readObject();
 
-            if (!currException.toString().equals(ex.toString())) {
-                fail("Error strings are different. Expected: " + currException.toString() + " Received: "
-                        + ex.toString());
-            }
-            if (!currException.getSQLState().equals(ex.getSQLState())) {
-                fail("Sql states are different. Expected: " + currException.getSQLState() + " Received: "
-                        + ex.getSQLState());
-            }
-            if (currException.getErrorCode() != ex.getErrorCode()) {
-                fail("Error codes are different. Expected: " + currException.getErrorCode() + " Received: "
-                        + ex.getErrorCode());
+                    if (!currException.toString().equals(ex.toString())) {
+                        fail("Error strings are different. Expected: " + currException.toString() + " Received: "
+                                + ex.toString());
+                    }
+                    if (!currException.getSQLState().equals(ex.getSQLState())) {
+                        fail("Sql states are different. Expected: " + currException.getSQLState() + " Received: "
+                                + ex.getSQLState());
+                    }
+                    if (currException.getErrorCode() != ex.getErrorCode()) {
+                        fail("Error codes are different. Expected: " + currException.getErrorCode() + " Received: "
+                                + ex.getErrorCode());
+                    }
+                }
             }
         }
     }
 
     // Positive test case, this should succeed
     private static void verifyCorrectSerialization(DateTimeOffset dto) throws Exception {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        ObjectOutputStream out = new ObjectOutputStream(bos);
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ObjectOutputStream out = new ObjectOutputStream(bos)) {
 
-        // serialize the DateTimeOffset;
-        out.writeObject(dto);
-        ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()));
-        DateTimeOffset dtn = (DateTimeOffset) in.readObject();
-        verifyDTOEqual(dto, dtn);
+            // serialize the DateTimeOffset;
+            out.writeObject(dto);
+            try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()))) {
+                DateTimeOffset dtn = (DateTimeOffset) in.readObject();
+                verifyDTOEqual(dto, dtn);
 
-        // Make sure that you can send rehydrated to server
-        verifyCorrectSend(dtn);
+                // Make sure that you can send rehydrated to server
+                verifyCorrectSend(dtn);
+            }
+        }
     }
 
     // this is to make sure that the rehydrated date can be sent to server correctly
     private static void verifyCorrectSend(DateTimeOffset dtN) throws Exception {
-        String connectionString = TestUtils.getConfiguredProperty("mssql_jdbc_test_connection_properties");
-
         // create a DTO
         try (Connection conn = DriverManager.getConnection(connectionString);
                 SQLServerPreparedStatement ps = (SQLServerPreparedStatement) conn
                         .prepareStatement("SELECT CAST(? AS datetimeoffset(7)) AS" + "   'datetimeoffset IS08601' ")) {
             ps.setDateTimeOffset(1, dtN);
-            ResultSet rs = ps.executeQuery();
-            rs.next();
-            verifyDTOEqual(dtN, ((SQLServerResultSet) rs).getDateTimeOffset(1));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                verifyDTOEqual(dtN, ((SQLServerResultSet) rs).getDateTimeOffset(1));
+            }
         }
     }
 
@@ -161,8 +164,9 @@ public class DTOSerialTest extends AbstractTest {
     }
 
     private static void verifyMessedSerializationHelper(byte[] svalue) throws Exception {
-        ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(svalue));
-        DateTimeOffset dtn = (DateTimeOffset) in.readObject();
+        try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(svalue))) {
+            DateTimeOffset dtn = (DateTimeOffset) in.readObject();
+        }
     }
 
     // This function is used to make sure the hydrated is equal to original string and the initial DTO
@@ -180,10 +184,11 @@ public class DTOSerialTest extends AbstractTest {
         if (!initialStr.equals(hydratedStr)) {
             fail("Hydrated string is different. Expected: " + initialStr + " Received: " + hydratedStr);
         }
-        
+
         String formattedDate = sdf.format(sdf.parse(initialStr));
         if (!formattedDate.equals(dateString)) {
-            fail("String is different from original datestring. Expected: " + dateString + " Received: " + formattedDate);
+            fail("String is different from original datestring. Expected: " + dateString + " Received: "
+                    + formattedDate);
         }
         if (!initial.equals(hydrated)) {
             fail("Hydrated datetimeoffset is different. Expected: " + initial + " Received: " + hydrated);
