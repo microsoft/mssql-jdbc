@@ -504,26 +504,17 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
+            assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
 
         invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " (c1, c2, c3) values (?, ?,? ,?) ";
 
-        String expected = "";
-
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
-
-            if (AbstractTest.isSqlAzureDW()) {
-                expected = "Column name or number of supplied values does not match table definition.";
-            } else {
-                expected = "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.";
-            }
-
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
@@ -535,9 +526,13 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            assertEquals(expected, e.getMessage());
+            if (AbstractTest.isSqlAzureDW()) {
+                assertEquals(TestResource.getResource("R_incorrectColumnNumInsertDW"), e.getMessage());
+            } else {
+                assertEquals(TestResource.getResource("R_incorrectColumnNumInsert"), e.getMessage());
+            }
         }
     }
 
@@ -547,17 +542,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         String invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " values ((SELECT * from table where c1=?), ?,? ,?) ";
 
-        String expected = "";
-
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
-
-            if (AbstractTest.isSqlAzureDW()) {
-                expected = "Parse error at line: 1, column: 106: Incorrect syntax near 'table'.";
-            } else {
-                expected = "Incorrect syntax near the keyword 'table'.";
-            }
 
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
@@ -570,9 +557,13 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            assertEquals(expected, e.getMessage());
+            if (AbstractTest.isSqlAzureDW()) {
+                assertEquals(TestResource.getResource("R_incorrectSyntaxTableDW"), e.getMessage());
+            } else {
+                assertEquals(TestResource.getResource("R_incorrectSyntaxTable"), e.getMessage());
+            }
         }
 
         invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values ('?', ?,? ,?) ";
@@ -590,9 +581,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
+            assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
     }
 

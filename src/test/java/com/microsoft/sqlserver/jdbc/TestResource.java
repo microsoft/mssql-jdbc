@@ -156,5 +156,12 @@ public final class TestResource extends ListResourceBundle {
             {"R_inputParamFailed", "Test for input parameter failed."}, {"R_decryptionFailed", "Decryption failed"},
             {"R_expectedValue", "Expected value: "}, {"R_expectedValueAtIndex", "Expected value at index: "},
             {"R_switchFailed", "Switch case is not matched with data"},
-            {"R_resultsetNotInstance", "Result set is not instance of SQLServerResultSet"},};
+            {"R_resultsetNotInstance", "Result set is not instance of SQLServerResultSet"},
+            {"R_incorrectColumnNum", "Column name or number of supplied values does not match table definition."},
+            {"R_incorrectColumnNumInsert",
+                    "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement."},
+            {"R_incorrectColumnNumInsertDW",
+                    "Column name or number of supplied values does not match table definition."},
+            {"R_incorrectSyntaxTable", "Incorrect syntax near the keyword 'table'."},
+            {"R_incorrectSyntaxTableDW", "Parse error at line: 1, column: 106: Incorrect syntax near 'table'."},};
 }
