@@ -154,5 +154,8 @@ public final class TestResource extends ListResourceBundle {
             {"R_switchFailed", "Switch case is not matched with data"},
             {"R_resultsetNotInstance", "Result set is not instance of SQLServerResultSet"},
             {"R_noJRESupport", "No JRE support for {0}"},
+            {"R_incorrectColumnNum", "Column name or number of supplied values does not match table definition."},
+            {"R_incorrectColumnNumInsert", "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement."},
+            {"R_incorrectSyntaxTable", "Incorrect syntax near the keyword 'table'."},
     };
 }
