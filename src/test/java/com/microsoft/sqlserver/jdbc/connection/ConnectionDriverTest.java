@@ -7,7 +7,7 @@ package com.microsoft.sqlserver.jdbc.connection;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -165,7 +165,7 @@ public class ConnectionDriverTest extends AbstractTest {
      */
     @Test
     public void testConnectionEvents() throws SQLException {
-        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
+        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -196,7 +196,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testConnectionPoolGetTwice() throws SQLException {
-        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
+        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -223,7 +223,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testConnectionClosed() throws SQLException {
-        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
+        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerDataSource mds = new SQLServerDataSource();
         mds.setURL(connectionString);
@@ -301,7 +301,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testDeadConnection() throws SQLException {
-        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
+        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         String tableName = RandomUtil.getIdentifier("ConnectionTestTable");
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager

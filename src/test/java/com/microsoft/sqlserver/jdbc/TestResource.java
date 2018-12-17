@@ -58,6 +58,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_invalidQueryTimeout", "The query timeout value {0} is not valid."},
             {"R_skipAzure", "Skipping test case on Azure SQL."},
             {"R_issueAzureDW", "This is a known failure in DW for now."},
+            {"R_cursorAzureDW", "Cursor support is not implemented for Azure DW."},
             {"R_spatialDWNotSupported", "Geometry/Geography is not supported for DW."},
             {"R_expectedExceptionNotThrown", "Expected exception is not thrown."},
             {"R_errorNotCalled", "Error occurred is not called."}, {"R_errorCalled", "Error occurred is called."},

@@ -36,7 +36,7 @@ public class BulkCopyAllTypesTest extends AbstractTest {
      */
     @Test
     public void testTVPResultSet() throws SQLException {
-        if (AbstractTest.isSqlAzureDW()) {
+        if (isSqlAzureDW()) {
             testBulkCopyResultSet(false, null, null);
             testBulkCopyResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         } else {
