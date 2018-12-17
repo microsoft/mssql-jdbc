@@ -83,7 +83,6 @@ public abstract class AbstractTest {
         try {
             Assertions.assertNotNull(connectionString, "Connection String should not be null");
             connection = PrepUtil.getConnection(connectionString, info);
-
         } catch (Exception e) {
             throw e;
         }

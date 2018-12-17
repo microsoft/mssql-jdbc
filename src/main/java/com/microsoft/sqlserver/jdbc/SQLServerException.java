@@ -84,6 +84,7 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int DATA_CLASSIFICATION_INVALID_INFORMATION_TYPE_INDEX = 13;
 
     private int driverErrorCode = DRIVER_ERROR_NONE;
+    private SQLServerError sqlServerError;
 
     final int getDriverErrorCode() {
         return driverErrorCode;
@@ -97,9 +98,9 @@ public final class SQLServerException extends java.sql.SQLException {
      * Logs an exception to the driver log file.
      * 
      * @param o
-     *        the io buffer that generated the exception
+     *        the IO buffer that generated the exception
      * @param errText
-     *        the excception message
+     *        the exception message
      * @param bStack
      *        true to generate the stack trace
      */
@@ -181,17 +182,17 @@ public final class SQLServerException extends java.sql.SQLException {
      *        the exception message
      * @param errState
      *        the exception state
-     * @param streamError
-     *        the StreamError object
+     * @param sqlServerError
+     *        the SQLServerError object
      * @param bStack
      *        true to generate the stack trace
      */
-    SQLServerException(Object obj, String errText, String errState, StreamError streamError, boolean bStack) {
-        super(errText, errState, streamError.getErrorNumber());
-
-        // Log SQL error with info from StreamError.
-        errText = "Msg " + streamError.getErrorNumber() + ", Level " + streamError.getErrorSeverity() + ", State "
-                + streamError.getErrorState() + ", " + errText;
+    SQLServerException(Object obj, String errText, String errState, SQLServerError sqlServerError, boolean bStack) {
+        super(errText, errState, sqlServerError.getErrorNumber());
+        this.sqlServerError = sqlServerError;
+        // Log SQL error with info from SQLServerError.
+        errText = "Msg " + sqlServerError.getErrorNumber() + ", Level " + sqlServerError.getErrorSeverity() + ", State "
+                + sqlServerError.getErrorState() + ", " + errText;
         logException(obj, errText, bStack);
     }
 
@@ -202,9 +203,9 @@ public final class SQLServerException extends java.sql.SQLException {
      *        the connection
      * @param obj
      * @param errText
-     *        the excception message
+     *        the exception message
      * @param state
-     *        he excpeption state
+     *        the exception state
      * @param bStack
      *        true to generate the stack trace
      * @throws SQLServerException
@@ -235,28 +236,28 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Builds a new SQL Exception from a streamError detected by the driver.
+     * Builds a new SQL Exception from a SQLServerError detected by the driver.
      * 
      * @param con
      *        the connection
      * @param obj
      * @param errText
-     *        the excception message
-     * @param streamError
+     *        the exception message
+     * @param sqlServerError
      * @param bStack
      *        true to generate the stack trace
      * @throws SQLServerException
      */
-    static void makeFromDatabaseError(SQLServerConnection con, Object obj, String errText, StreamError streamError,
-            boolean bStack) throws SQLServerException {
-        String state = generateStateCode(con, streamError.getErrorNumber(), streamError.getErrorState());
+    static void makeFromDatabaseError(SQLServerConnection con, Object obj, String errText,
+            SQLServerError sqlServerError, boolean bStack) throws SQLServerException {
+        String state = generateStateCode(con, sqlServerError.getErrorNumber(), sqlServerError.getErrorState());
 
         SQLServerException theException = new SQLServerException(obj,
-                SQLServerException.checkAndAppendClientConnId(errText, con), state, streamError, bStack);
+                SQLServerException.checkAndAppendClientConnId(errText, con), state, sqlServerError, bStack);
         theException.setDriverErrorCode(DRIVER_ERROR_FROM_DATABASE);
 
         // Close the connection if we get a severity 20 or higher error class (nClass is severity of error).
-        if ((streamError.getErrorSeverity() >= 20) && (null != con)) {
+        if ((sqlServerError.getErrorSeverity() >= 20) && (null != con)) {
             con.notifyPooledConnection(theException);
             con.close();
         }
@@ -366,18 +367,18 @@ public final class SQLServerException extends java.sql.SQLException {
      * Appends ClientConnectionId to an error message if applicable.
      * 
      * @param errMsg
-     *        - the original error message.
+     *        the original error message
      * @param conn
-     *        - the SQLServerConnection object
-     * @return error string concated by ClientConnectionId(in string format) if applicable, otherwise, return original
-     *         error string.
+     *        the SQLServerConnection object
+     * @return error string concatenated by ClientConnectionId(in string format) if applicable, otherwise, return
+     *         original error string.
      */
     static String checkAndAppendClientConnId(String errMsg, SQLServerConnection conn) throws SQLServerException {
         if (null != conn && conn.attachConnId()) {
             UUID clientConnId = conn.getClientConIdInternal();
             assert null != clientConnId;
             StringBuilder sb = new StringBuilder(errMsg);
-            // This syntex of adding connection id is matched in a retry logic. If anything changes here, make
+            // This syntax of adding connection id is matched in a retry logic. If anything changes here, make
             // necessary changes to enableSSL() function's exception handling mechanism.
             sb.append(LOG_CLIENT_CONNECTION_ID_PREFIX);
             sb.append(clientConnId.toString());
@@ -394,5 +395,15 @@ public final class SQLServerException extends java.sql.SQLException {
 
     static void throwFeatureNotSupportedException() throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+    }
+
+    /**
+     * Returns SQLServerError object containing detailed info about exception as received from SQL Server. This API
+     * returns null if no server error has occurred.
+     * 
+     * @return SQLServerError
+     */
+    public SQLServerError getSQLServerError() {
+        return sqlServerError;
     }
 }
