@@ -284,7 +284,7 @@ enum SQLServerDriverStringProperty {
     KEY_STORE_SECRET("keyStoreSecret", ""),
     KEY_STORE_LOCATION("keyStoreLocation", ""),
     SSL_PROTOCOL("sslProtocol", SSLProtocol.TLS.toString()),
-    MSI_OBJECT_ID("msiObjectId", ""),;
+    MSI_CLIENT_ID("msiClientId", ""),;
 
     private final String name;
     private final String defaultValue;
@@ -504,8 +504,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue(), false,
                     new String[] {SSLProtocol.TLS.toString(), SSLProtocol.TLS_V10.toString(),
                             SSLProtocol.TLS_V11.toString(), SSLProtocol.TLS_V12.toString()}),
-            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_OBJECT_ID.toString(),
-                    SQLServerDriverStringProperty.MSI_OBJECT_ID.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
+                    SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString(),
                     Integer.toString(SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),

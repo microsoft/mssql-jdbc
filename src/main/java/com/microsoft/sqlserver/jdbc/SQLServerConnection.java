@@ -1876,7 +1876,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
             }
 
-            sPropKey = SQLServerDriverStringProperty.MSI_OBJECT_ID.toString();
+            sPropKey = SQLServerDriverStringProperty.MSI_CLIENT_ID.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
@@ -4089,8 +4089,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // Break out of the retry loop in successful case.
                 break;
             } else if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
-                fedAuthToken = getMSIAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_OBJECT_ID.toString()));
+                fedAuthToken = getMSIAuthToken(fedAuthInfo.spn, activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
 
                 // Break out of the retry loop in successful case.
                 break;
@@ -4192,7 +4192,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    private SqlFedAuthToken getMSIAuthToken(String resource, String objectId) throws SQLServerException {
+    private SqlFedAuthToken getMSIAuthToken(String resource, String msiClientId) throws SQLServerException {
         String urlString;
         String msiEndpoint = System.getenv("MSI_ENDPOINT");
         String msiSecret = System.getenv("MSI_SECRET");
@@ -4205,8 +4205,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             urlString = ActiveDirectoryAuthentication.AZURE_REST_MSI_URL + "&resource=" + resource;
         }
 
-        if (null != objectId && !objectId.isEmpty()) {
-            urlString += "&object_id=" + objectId;
+        if (null != msiClientId && !msiClientId.isEmpty()) {
+            if (isAzureFunction) {
+                urlString += "&clientid=" + msiClientId;
+            } else {
+                urlString += "&client_id=" + msiClientId;
+            }
         }
 
         HttpURLConnection connection = null;
