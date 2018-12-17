@@ -22,7 +22,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractTest;;
 
 
 /**
@@ -32,7 +33,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;;
  */
 @RunWith(JUnitPlatform.class)
 @Tag("AzureDWTest")
-public class FipsEnvTest {
+public class FipsEnvTest extends AbstractTest {
 
     protected static Logger logger = Logger.getLogger("FipsEnvTest");
 

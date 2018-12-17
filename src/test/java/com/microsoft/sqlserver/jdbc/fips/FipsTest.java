@@ -20,7 +20,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.PrepUtil;;
 
@@ -30,14 +29,14 @@ import com.microsoft.sqlserver.testframework.PrepUtil;;
  */
 @RunWith(JUnitPlatform.class)
 @Tag("AzureDWTest")
-public class FipsTest {
+public class FipsTest extends AbstractTest {
 
     private static String connectionString;
     private static String[] dataSourceProps;
 
     @BeforeAll
     public static void init() {
-        connectionString = AbstractTest.getConnectionString();
+        connectionString = getConnectionString();
         dataSourceProps = getDataSourceProperties();
     }
 

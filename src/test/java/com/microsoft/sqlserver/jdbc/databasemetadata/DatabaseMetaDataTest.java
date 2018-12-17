@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -144,7 +143,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
 
-            String connectionString = AbstractTest.getConnectionString();
+            String connectionString = getConnectionString();
 
             connectionString = connectionString.toLowerCase();
 

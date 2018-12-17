@@ -242,7 +242,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                 try {
                     stmt.executeBatch();
                 } catch (BatchUpdateException bue) {
-                    if (AbstractTest.isSqlAzureDW()) {
+                    if (isSqlAzureDW()) {
                         assertThat(bue.getMessage(),
                                 containsString(TestResource.getResource("R_syntaxErrorDateConvertDW")));
                     } else {
@@ -271,7 +271,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                 // errors"
                 // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have best
                 // test coverage.
-                if (!AbstractTest.isSqlAzure()) {
+                if (!isSqlAzure()) {
                     // Test Severe (connection-closing) errors
                     stmt.addBatch(error);
                     stmt.addBatch(insertStmt);
@@ -479,7 +479,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                     // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have
                     // best
                     // test coverage.
-                    if (!AbstractTest.isSqlAzure()) {
+                    if (!isSqlAzure()) {
                         // Test Severe (connection-closing) errors
                         stmt.addBatch(error);
                         stmt.addBatch(insertStmt);

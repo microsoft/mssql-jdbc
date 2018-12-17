@@ -164,7 +164,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testAllcolumns() throws Exception {
-        assumeFalse(AbstractTest.isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? " + ")";
 
@@ -217,7 +217,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testMixColumns() throws Exception {
-        assumeFalse(AbstractTest.isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1, c3, c5, c8) values "
                 + "(" + "?, " + "?, " + "?, " + "? " + ")";
 
@@ -267,7 +267,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testNullOrEmptyColumns() throws Exception {
-        assumeFalse(AbstractTest.isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " (c1, c2, c3, c4, c5, c6, c7) values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? "
                 + ")";
@@ -435,7 +435,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testAllColumnsLargeBatch() throws Exception {
-        assumeFalse(AbstractTest.isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? " + ")";
 
@@ -528,7 +528,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            if (AbstractTest.isSqlAzureDW()) {
+            if (isSqlAzureDW()) {
                 assertEquals(TestResource.getResource("R_incorrectColumnNumInsertDW"), e.getMessage());
             } else {
                 assertEquals(TestResource.getResource("R_incorrectColumnNumInsert"), e.getMessage());
@@ -538,7 +538,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testNonParameterizedQuery() throws Exception {
-        assumeFalse(AbstractTest.isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         String invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " values ((SELECT * from table where c1=?), ?,? ,?) ";
 
@@ -559,7 +559,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            if (AbstractTest.isSqlAzureDW()) {
+            if (isSqlAzureDW()) {
                 assertEquals(TestResource.getResource("R_incorrectSyntaxTableDW"), e.getMessage());
             } else {
                 assertEquals(TestResource.getResource("R_incorrectSyntaxTable"), e.getMessage());
@@ -589,7 +589,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testNonSupportedColumns() throws Exception {
-        assumeFalse(AbstractTest.isSqlAzureDW(), TestResource.getResource("R_spatialDWNotSupported"));
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_spatialDWNotSupported"));
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName)
                 + " values (?, ?, ?, ?)";
 
