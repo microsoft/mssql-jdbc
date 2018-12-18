@@ -1,6 +1,6 @@
 package com.microsoft.sqlserver.jdbc.unit.serial;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
@@ -75,9 +75,9 @@ public class DTOSerialTest extends AbstractTest {
                 try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()))) {
                     SQLServerException ex = (SQLServerException) in.readObject();
 
-                    assertTrue(currException.toString().equals(ex.toString()));
-                    assertTrue(currException.getSQLState().equals(ex.getSQLState()));
-                    assertTrue(currException.getErrorCode() == ex.getErrorCode());
+                    assertEquals(currException.toString(), ex.toString());
+                    assertEquals(currException.getSQLState(), ex.getSQLState());
+                    assertEquals(currException.getErrorCode(), ex.getErrorCode());
                 }
             }
         }
@@ -179,19 +179,19 @@ public class DTOSerialTest extends AbstractTest {
         int hydratedOffset = hydrated.getMinutesOffset();
 
         // check hydrated string
-        assertTrue(initialStr.equals(hydratedStr));
+        assertEquals(initialStr, hydratedStr);
 
         // check formatted date string
         String formattedDate = sdf.format(sdf.parse(initialStr));
-        assertTrue(formattedDate.equals(dateString));
+        assertEquals(formattedDate, dateString);
 
         // check hydrated datetimeoffset
-        assertTrue(initial.equals(hydrated));
+        assertEquals(initial, hydrated);
 
         // check hydrated timestamp
-        assertTrue(originalTS.equals(hydratedTS));
+        assertEquals(originalTS, hydratedTS);
 
         // check hydrated offset
-        assertTrue(initiallOffset == hydratedOffset);
+        assertEquals(initiallOffset, hydratedOffset);
     }
 }

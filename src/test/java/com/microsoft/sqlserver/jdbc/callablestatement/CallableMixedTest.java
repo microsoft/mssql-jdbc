@@ -1,6 +1,6 @@
 package com.microsoft.sqlserver.jdbc.callablestatement;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.CallableStatement;
@@ -60,9 +60,9 @@ public class CallableMixedTest extends AbstractTest {
                 try (ResultSet rs = cstmt.executeQuery()) {
                     rs.next();
 
-                    assertTrue(rs.getInt(1) == 0);
+                    assertEquals(rs.getInt(1), 0);
 
-                    assertTrue(cstmt.getInt((int) 5) == -5372);
+                    assertEquals(cstmt.getInt((int) 5), -5372);
                 }
 
                 // do nothing and reexecute
@@ -70,17 +70,17 @@ public class CallableMixedTest extends AbstractTest {
 
                 // get the param without getting the resultset
                 try (ResultSet rs = cstmt.executeQuery()) {
-                    assertTrue(cstmt.getInt((int) 1) == -2147483648);
+                    assertEquals(cstmt.getInt((int) 1), -2147483648);
                 }
 
                 try (ResultSet rs = cstmt.executeQuery()) {
                     rs.next();
 
-                    assertTrue(rs.getInt(1) == 0);
+                    assertEquals(rs.getInt(1), 0);
 
-                    assertTrue(cstmt.getInt((int) 1) == -2147483648);
+                    assertEquals(cstmt.getInt((int) 1), -2147483648);
 
-                    assertTrue(cstmt.getInt((int) 5) == -5372);
+                    assertEquals(cstmt.getInt((int) 5), -5372);
                 }
             }
         } finally {
