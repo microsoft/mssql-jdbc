@@ -5398,7 +5398,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN)
                     && null != fetchBufferTokenHandler.getDatabaseError()) {
                 SQLServerException.makeFromDatabaseError(stmt.connection, null,
-                        fetchBufferTokenHandler.getDatabaseError().getMessage(),
+                        fetchBufferTokenHandler.getDatabaseError().getErrorMessage(),
                         fetchBufferTokenHandler.getDatabaseError(), false);
             }
 
