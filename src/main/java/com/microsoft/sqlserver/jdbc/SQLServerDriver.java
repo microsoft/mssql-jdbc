@@ -573,7 +573,7 @@ public final class SQLServerDriver implements java.sql.Driver {
     /*
      * De-registers the driver with the DriverManager. No-op if the driver is not registered.
      */
-    public static void deRegister() throws SQLException {
+    public static void deregister() throws SQLException {
         if (mssqlDriver != null) {
             DriverManager.deregisterDriver(mssqlDriver);
             mssqlDriver = null;
