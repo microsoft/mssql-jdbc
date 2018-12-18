@@ -1,6 +1,5 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
-import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -28,7 +27,7 @@ public class SparseTest extends AbstractTest {
     @Test
     public void testSparse() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
-            assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
+            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
             try (Statement stmt = conn.createStatement()) {
 
                 // Create the test table
@@ -55,8 +54,6 @@ public class SparseTest extends AbstractTest {
             } finally {
                 try (Statement stmt = conn.createStatement()) {
                     TestUtils.dropTableIfExists(escapedTableName, stmt);
-                } catch (Exception e) {
-                    fail(TestResource.getResource("R_createDropTableFailed") + e.toString());
                 }
             }
         }

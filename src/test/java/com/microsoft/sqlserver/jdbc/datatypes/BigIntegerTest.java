@@ -1,5 +1,8 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -10,9 +13,6 @@ import java.sql.Statement;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.math.BigInteger;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -37,58 +37,63 @@ public class BigIntegerTest extends AbstractTest {
 
     @Test
     public void testJDBC41BigInteger() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (Statement stmt = conn.createStatement()) {
 
-            // Create the test table
-            TestUtils.dropTableIfExists(escapedTableName, stmt);
-
-            String query = "create table " + escapedTableName
-                    + " (col1 varchar(100), col2 bigint, col3 real, col4 float, "
-                    + "col5 numeric(38,0), col6 int, col7 smallint, col8 char(100), col9 varchar(max), "
-                    + "id int IDENTITY primary key)";
-            stmt.executeUpdate(query);
-
-            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + escapedTableName
-                    + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) SELECT * FROM " + escapedTableName + " where id = ?")) {
-
-                // test that the driver converts the BigInteger values greater than LONG.MAX_VALUE and lesser than
-                // LONG.MIN_VALUE correctly
-                // A random value that is bigger than LONG.MAX_VALUE
-                BigInteger bigIntPos = new BigInteger("922337203685477580776767676");
-                // A random value that is smaller than LONG.MIN_VALUE
-                BigInteger bigIntNeg = new BigInteger("-922337203685477580776767676");
-
-                // Test the setObject method for different types of BigInteger values. Since BigInteger is mapped to
-                // JDBC
-                // BIGINT, the max and min limits for
-                int row = 1;
-                testSetObject(escapedTableName, BigInteger.valueOf(Long.MAX_VALUE), row++, pstmt,
-                        TestType.SETOBJECT_WITHTYPE);
-
-                testSetObject(escapedTableName, BigInteger.valueOf(Long.MIN_VALUE), row++, pstmt,
-                        TestType.SETOBJECT_WITHTYPE);
-                testSetObject(escapedTableName, BigInteger.valueOf(10), row++, pstmt, TestType.SETOBJECT_WITHTYPE);
-                testSetObject(escapedTableName, BigInteger.valueOf(-10), row++, pstmt, TestType.SETOBJECT_WITHTYPE);
-                testSetObject(escapedTableName, BigInteger.ZERO, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
-                testSetObject(escapedTableName, bigIntPos, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
-                testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
-
-                // Test setObject method with SQL TYPE parameter
-                testSetObject(escapedTableName, BigInteger.valueOf(Long.MAX_VALUE), row++, pstmt,
-                        TestType.SETOBJECT_WITHOUTTYPE);
-                testSetObject(escapedTableName, BigInteger.valueOf(Long.MIN_VALUE), row++, pstmt,
-                        TestType.SETOBJECT_WITHOUTTYPE);
-                testSetObject(escapedTableName, BigInteger.valueOf(1000), row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
-                testSetObject(escapedTableName, BigInteger.valueOf(-1000), row++, pstmt,
-                        TestType.SETOBJECT_WITHOUTTYPE);
-                testSetObject(escapedTableName, BigInteger.ZERO, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
-                testSetObject(escapedTableName, bigIntPos, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
-                testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
-
-                // Test setNull
-                testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETNULL);
-
+                // Create the test table
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
+
+                String query = "create table " + escapedTableName
+                        + " (col1 varchar(100), col2 bigint, col3 real, col4 float, "
+                        + "col5 numeric(38,0), col6 int, col7 smallint, col8 char(100), col9 varchar(max), "
+                        + "id int IDENTITY primary key)";
+                stmt.executeUpdate(query);
+
+                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + escapedTableName
+                        + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) SELECT * FROM " + escapedTableName + " where id = ?")) {
+
+                    // test that the driver converts the BigInteger values greater than LONG.MAX_VALUE and lesser than
+                    // LONG.MIN_VALUE correctly
+                    // A random value that is bigger than LONG.MAX_VALUE
+                    BigInteger bigIntPos = new BigInteger("922337203685477580776767676");
+                    // A random value that is smaller than LONG.MIN_VALUE
+                    BigInteger bigIntNeg = new BigInteger("-922337203685477580776767676");
+
+                    // Test the setObject method for different types of BigInteger values. Since BigInteger is mapped to
+                    // JDBC
+                    // BIGINT, the max and min limits for
+                    int row = 1;
+                    testSetObject(escapedTableName, BigInteger.valueOf(Long.MAX_VALUE), row++, pstmt,
+                            TestType.SETOBJECT_WITHTYPE);
+
+                    testSetObject(escapedTableName, BigInteger.valueOf(Long.MIN_VALUE), row++, pstmt,
+                            TestType.SETOBJECT_WITHTYPE);
+                    testSetObject(escapedTableName, BigInteger.valueOf(10), row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                    testSetObject(escapedTableName, BigInteger.valueOf(-10), row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                    testSetObject(escapedTableName, BigInteger.ZERO, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                    testSetObject(escapedTableName, bigIntPos, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                    testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+
+                    // Test setObject method with SQL TYPE parameter
+                    testSetObject(escapedTableName, BigInteger.valueOf(Long.MAX_VALUE), row++, pstmt,
+                            TestType.SETOBJECT_WITHOUTTYPE);
+                    testSetObject(escapedTableName, BigInteger.valueOf(Long.MIN_VALUE), row++, pstmt,
+                            TestType.SETOBJECT_WITHOUTTYPE);
+                    testSetObject(escapedTableName, BigInteger.valueOf(1000), row++, pstmt,
+                            TestType.SETOBJECT_WITHOUTTYPE);
+                    testSetObject(escapedTableName, BigInteger.valueOf(-1000), row++, pstmt,
+                            TestType.SETOBJECT_WITHOUTTYPE);
+                    testSetObject(escapedTableName, BigInteger.ZERO, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
+                    testSetObject(escapedTableName, bigIntPos, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
+                    testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
+
+                    // Test setNull
+                    testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETNULL);
+                }
+            } finally {
+                try (Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(escapedTableName, stmt);
+                }
             }
         }
     }
@@ -102,7 +107,7 @@ public class BigIntegerTest extends AbstractTest {
         } else if (TestType.SETNULL == testType) {
             callSetNull(obj, pstmt);
         } else
-            assertEquals(true, false, "Invalid test type");
+            return;
 
         // The id column
         pstmt.setObject(10, id);
@@ -116,7 +121,7 @@ public class BigIntegerTest extends AbstractTest {
                 for (int i = 1; 9 >= i; ++i) {
                     // Get the data first before calling rs.wasNull()
                     rs.getString(i);
-                    assertEquals(rs.wasNull(), true, "setNull mismatch");
+                    assertEquals(rs.wasNull(), true);
                 }
                 return;
             }
@@ -126,39 +131,36 @@ public class BigIntegerTest extends AbstractTest {
                 // For the BigInteger values greater/less than Long limits test only the long data type.
                 // This test is here just to make sure the driver does not do anything wired when the value is
                 // bigger/smaller than JDBC BIGINT
-                assertEquals(rs.getString(1), Long.valueOf(obj.longValue()).toString(),
-                        "getString(greater/less than Long limits) mismatch");
+                assertEquals(rs.getString(1), Long.valueOf(obj.longValue()).toString());
                 assertEquals(rs.getLong(2), obj.longValue(), "getLong(greater/less than Long limits) mismatch");
                 // As CHAR is fixed length, rs.getString() returns a string of the size allocated in the database.
                 // Need to trim it for comparison.
-                assertEquals(rs.getString(8).trim(), Long.valueOf(obj.longValue()).toString(),
-                        "getString(greater/less than Long limits (char)) mismatch");
+                assertEquals(rs.getString(8).trim(), Long.valueOf(obj.longValue()).toString());
 
-                assertEquals(rs.getString(9), Long.valueOf(obj.longValue()).toString(),
-                        "getString(greater/less than Long limits (varchar(max)))) mismatch");
+                assertEquals(rs.getString(9), Long.valueOf(obj.longValue()).toString());
             } else {
-                assertEquals(rs.getString(1), obj.toString(), "getString mismatch");
-                assertEquals(rs.getLong(2), obj.longValue(), "getLong mismatch");
-                assertEquals(rs.getFloat(3), obj.floatValue(), "getFloat mismatch");
-                assertEquals(rs.getDouble(4), obj.doubleValue(), "getDouble(float) mismatch");
-                assertEquals(rs.getDouble(5), obj.doubleValue(), "getDouble(numeric) mismatch");
+                assertEquals(rs.getString(1), obj.toString());
+                assertEquals(rs.getLong(2), obj.longValue());
+                assertEquals(rs.getFloat(3), obj.floatValue());
+                assertEquals(rs.getDouble(4), obj.doubleValue());
+                assertEquals(rs.getDouble(5), obj.doubleValue());
                 if (obj.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) >= 0) {
-                    assertEquals(rs.getInt(6), Integer.MAX_VALUE, "getInt(numeric) mismatch");
+                    assertEquals(rs.getInt(6), Integer.MAX_VALUE);
                 } else if (obj.compareTo(BigInteger.valueOf(Integer.MIN_VALUE)) <= 0) {
-                    assertEquals(rs.getInt(6), Integer.MIN_VALUE, "getInt(numeric) mismatch");
+                    assertEquals(rs.getInt(6), Integer.MIN_VALUE);
                 } else {
-                    assertEquals(rs.getInt(6), obj.intValue(), "getInt(numeric) mismatch");
+                    assertEquals(rs.getInt(6), obj.intValue());
                 }
                 if (obj.compareTo(BigInteger.valueOf(Short.MAX_VALUE)) >= 0) {
-                    assertEquals(rs.getShort(7), Short.MAX_VALUE, "getShort(numeric) mismatch");
+                    assertEquals(rs.getShort(7), Short.MAX_VALUE);
                 } else if (obj.compareTo(BigInteger.valueOf(Short.MIN_VALUE)) <= 0) {
-                    assertEquals(rs.getShort(7), Short.MIN_VALUE, "getShort(numeric) mismatch");
+                    assertEquals(rs.getShort(7), Short.MIN_VALUE);
                 } else {
-                    assertEquals(rs.getShort(7), obj.shortValue(), "getShort(numeric) mismatch");
+                    assertEquals(rs.getShort(7), obj.shortValue());
                 }
 
-                assertEquals(rs.getString(8).trim(), obj.toString(), "getString(char) mismatch");
-                assertEquals(rs.getString(9), obj.toString(), "getString(varchar(max)) mismatch");
+                assertEquals(rs.getString(8).trim(), obj.toString());
+                assertEquals(rs.getString(9), obj.toString());
             }
         }
     }

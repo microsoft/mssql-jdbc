@@ -202,7 +202,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
 
         void verifyRSUpdaters(Connection conn) throws Exception {
-            assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
+            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
 
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
@@ -223,7 +223,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
 
         void verifySetters(Connection conn) throws Exception {
-            assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
+            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
 
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
@@ -1180,7 +1180,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
 
             // create a table with a datetimeoffset column and insert a value in it
-            assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
+            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
 
             String sql;
             try (Statement stmt = conn.createStatement()) {
@@ -1575,7 +1575,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
                 .getConnection(connectionString + ";sendTimeAsDatetime=true")) {
 
-            assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
+            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
 
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
