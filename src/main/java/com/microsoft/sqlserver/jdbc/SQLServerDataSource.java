@@ -867,12 +867,12 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setMSIObjectId(String msiObjectId) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(), msiObjectId);
+    public void setMSIClientId(String msiClientId) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(), msiClientId);
     }
 
     @Override
-    public String getMSIObjectId() {
+    public String getMSIClientId() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
                 SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue());
     }

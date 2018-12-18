@@ -807,17 +807,17 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 
     /**
-     * Sets the object id to be used to retrieve access token from MSI EndPoint.
+     * Sets the client id to be used to retrieve access token from MSI EndPoint.
      * 
-     * @param msiObjectId
-     *          Object ID of User Assigned Managed Identity
+     * @param msiClientId
+     *        Client ID of User Assigned Managed Identity
      */
-    public void setMSIObjectId(String msiObjectId);
+    public void setMSIClientId(String msiClientId);
 
     /**
-     * Returns the value for the connection property 'msiObjectId'.
+     * Returns the value for the connection property 'msiClientId'.
      * 
-     * @return msiObjectId property value
+     * @return msiClientId property value
      */
-    public String getMSIObjectId();
+    public String getMSIClientId();
 }
