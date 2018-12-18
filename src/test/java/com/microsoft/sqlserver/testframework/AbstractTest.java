@@ -62,7 +62,7 @@ public abstract class AbstractTest {
     private static boolean _determinedSqlAzureOrSqlServer = false;
     private static boolean _isSqlAzure = false;
     private static boolean _isSqlAzureDW = false;
-    
+
     /**
      * This will take care of all initialization before running the Test Suite.
      * 
