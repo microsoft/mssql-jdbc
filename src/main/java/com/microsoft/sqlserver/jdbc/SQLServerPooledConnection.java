@@ -101,12 +101,9 @@ public class SQLServerPooledConnection implements PooledConnection {
             if (pcLogger.isLoggable(Level.FINE))
                 pcLogger.fine(toString() + " Physical connection, " + safeCID());
 
-            if (null != physicalConnection.getAuthenticationResult()) {
-                // Check if a new access token needs to be generated for federated authentication
-                if (Util.checkIfNeedNewAccessToken(physicalConnection)) {
-                    physicalConnection.close();
-                    physicalConnection = createNewConnection();
-                }
+            if (physicalConnection.needsReconnect()) {
+                physicalConnection.close();
+                physicalConnection = createNewConnection();
             }
 
             /*

@@ -137,10 +137,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private String originalHostNameInCertificate = null;
 
-    SqlFedAuthToken getAuthenticationResult() {
-        return fedAuthToken;
-    }
-
     private Boolean isAzureDW = null;
 
     static class CityHash128Key implements java.io.Serializable {
@@ -1075,7 +1071,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // Check if federated Authentication is in use
         if (null != fedAuthToken) {
             // Check if access token is about to expire soon
-            if (Util.checkIfNeedNewAccessToken(this)) {
+            if (Util.checkIfNeedNewAccessToken(this, fedAuthToken.expiresOn)) {
                 return true;
             }
         }
@@ -4089,8 +4085,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // Break out of the retry loop in successful case.
                 break;
             } else if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
-                fedAuthToken = getMSIAuthToken(fedAuthInfo.spn, activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
+                fedAuthToken = getMSIAuthToken(fedAuthInfo.spn,
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
 
                 // Break out of the retry loop in successful case.
                 break;
