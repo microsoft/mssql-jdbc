@@ -348,7 +348,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             this.libraryType = libraryType;
             this.fedAuthRequiredPreLoginResponse = fedAuthRequiredPreLoginResponse;
 
-            switch (authenticationString.toUpperCase(Locale.ENGLISH).trim()) {
+            switch (authenticationString.toUpperCase(Locale.ENGLISH)) {
                 case "ACTIVEDIRECTORYPASSWORD":
                     this.authentication = SqlAuthentication.ActiveDirectoryPassword;
                     break;
@@ -1546,7 +1546,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (sPropValue == null) {
                 sPropValue = SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue();
             }
-            authenticationString = SqlAuthentication.valueOfString(sPropValue).toString();
+            authenticationString = SqlAuthentication.valueOfString(sPropValue).toString().trim();
 
             if (integratedSecurity
                     && !authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) {
@@ -2438,7 +2438,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     void Prelogin(String serverName, int portNumber) throws SQLServerException {
         // Build a TDS Pre-Login packet to send to the server.
-        if ((!authenticationString.trim().equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
+        if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
                 || (null != accessTokenInByte)) {
             fedAuthRequiredByUser = true;
         }
@@ -3603,11 +3603,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // for FEDAUTHREQUIRED option indicates Federated Authentication is required, we have to insert FedAuth Feature
         // Extension
         // in Login7, indicating the intent to use Active Directory Authentication Library for SQL Server.
-        if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
-                || ((authenticationString.trim()
-                        .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
-                        || authenticationString.trim()
-                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString()))
+        if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
+                || ((authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
+                        || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString()))
                         && fedAuthRequiredPreLoginResponse)) {
             federatedAuthenticationInfoRequested = true;
             fedAuthFeatureExtensionData = new FederatedAuthenticationFeatureExtensionData(TDS.TDS_FEDAUTH_LIBRARY_ADAL,
@@ -4047,8 +4045,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void onFedAuthInfo(SqlFedAuthInfo fedAuthInfo, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
         assert (null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                 && null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()))
-                || (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
-                        || authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
+                || (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
+                        || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
                                 && fedAuthRequiredPreLoginResponse);
 
         assert null != fedAuthInfo;
@@ -4077,21 +4075,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int sleepInterval = 100;
 
         while (true) {
-            if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
+            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
                 validateAdalLibrary("R_ADALMissing");
                 fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password,
                         authenticationString);
 
                 // Break out of the retry loop in successful case.
                 break;
-            } else if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
+            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
                 fedAuthToken = getMSIAuthToken(fedAuthInfo.spn,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
 
                 // Break out of the retry loop in successful case.
                 break;
-            } else if (authenticationString.trim()
-                    .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
+            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
 
                 // If operating system is windows and sqljdbc_auth is loaded then choose the DLL authentication.
                 if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")
@@ -4184,7 +4181,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } catch (ClassNotFoundException e) {
             // throw Exception for missing libraries
             MessageFormat form = new MessageFormat(SQLServerException.getErrString(errorMessage));
-            throw new SQLServerException(form.format(new Object[] {authenticationString.trim()}), null, 0, null);
+            throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
         }
     }
 
