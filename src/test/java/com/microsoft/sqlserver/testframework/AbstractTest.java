@@ -20,8 +20,10 @@ import java.util.logging.SimpleFormatter;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 
 
@@ -60,7 +62,7 @@ public abstract class AbstractTest {
     private static boolean _determinedSqlAzureOrSqlServer = false;
     private static boolean _isSqlAzure = false;
     private static boolean _isSqlAzureDW = false;
-
+    
     /**
      * This will take care of all initialization before running the Test Suite.
      * 
@@ -122,6 +124,13 @@ public abstract class AbstractTest {
             connection.close();
         } finally {
             connection = null;
+        }
+    }
+    
+    @BeforeEach
+    public void registerDriver() throws Exception {
+        if (!SQLServerDriver.isRegistered()) {
+            SQLServerDriver.register();
         }
     }
 
