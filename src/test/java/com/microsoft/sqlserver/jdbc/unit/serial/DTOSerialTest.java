@@ -1,5 +1,6 @@
 package com.microsoft.sqlserver.jdbc.unit.serial;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
@@ -21,6 +22,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 import microsoft.sql.DateTimeOffset;
@@ -73,18 +75,9 @@ public class DTOSerialTest extends AbstractTest {
                 try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()))) {
                     SQLServerException ex = (SQLServerException) in.readObject();
 
-                    if (!currException.toString().equals(ex.toString())) {
-                        fail("Error strings are different. Expected: " + currException.toString() + " Received: "
-                                + ex.toString());
-                    }
-                    if (!currException.getSQLState().equals(ex.getSQLState())) {
-                        fail("Sql states are different. Expected: " + currException.getSQLState() + " Received: "
-                                + ex.getSQLState());
-                    }
-                    if (currException.getErrorCode() != ex.getErrorCode()) {
-                        fail("Error codes are different. Expected: " + currException.getErrorCode() + " Received: "
-                                + ex.getErrorCode());
-                    }
+                    assertTrue(currException.toString().equals(ex.toString()));
+                    assertTrue(currException.getSQLState().equals(ex.getSQLState()));
+                    assertTrue(currException.getErrorCode() == ex.getErrorCode());
                 }
             }
         }
@@ -151,7 +144,7 @@ public class DTOSerialTest extends AbstractTest {
         }
 
         if (!exThrown) {
-            fail("serialized form with wrong nano values unexpectedly succeeded");
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
 
         exThrown = false;
@@ -162,13 +155,13 @@ public class DTOSerialTest extends AbstractTest {
         }
 
         if (!exThrown) {
-            fail("serialized form with wrong offset unexpectedly succeeded");
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         }
     }
 
     private static void verifyMessedSerializationHelper(byte[] svalue) throws Exception {
         try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(svalue))) {
-            //this will throw error for negative tests
+            // this will throw error for negative tests
             DateTimeOffset dtn = (DateTimeOffset) in.readObject();
         }
     }
@@ -185,24 +178,20 @@ public class DTOSerialTest extends AbstractTest {
         int initiallOffset = initial.getMinutesOffset();
         int hydratedOffset = hydrated.getMinutesOffset();
 
-        if (!initialStr.equals(hydratedStr)) {
-            fail("Hydrated string is different. Expected: " + initialStr + " Received: " + hydratedStr);
-        }
+        // check hydrated string
+        assertTrue(initialStr.equals(hydratedStr));
 
+        // check formatted date string
         String formattedDate = sdf.format(sdf.parse(initialStr));
-        if (!formattedDate.equals(dateString)) {
-            fail("String is different from original datestring. Expected: " + dateString + " Received: "
-                    + formattedDate);
-        }
-        if (!initial.equals(hydrated)) {
-            fail("Hydrated datetimeoffset is different. Expected: " + initial + " Received: " + hydrated);
-        }
-        if (!originalTS.equals(hydratedTS)) {
-            fail("Hydrated timestamp is different. Expected: " + initial.getTimestamp() + " Received: "
-                    + hydrated.getTimestamp());
-        }
-        if (initiallOffset != hydratedOffset) {
-            fail("Hydrated offset is different. Expected: " + initiallOffset + " Received: " + hydratedOffset);
-        }
+        assertTrue(formattedDate.equals(dateString));
+
+        // check hydrated datetimeoffset
+        assertTrue(initial.equals(hydrated));
+
+        // check hydrated timestamp
+        assertTrue(originalTS.equals(hydratedTS));
+
+        // check hydrated offset
+        assertTrue(initiallOffset == hydratedOffset);
     }
 }

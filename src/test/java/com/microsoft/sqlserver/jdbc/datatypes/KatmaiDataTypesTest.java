@@ -165,7 +165,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
 
         void verifyParameterMetaData(Connection conn) throws Exception {
-
             try (Statement stmt = conn.createStatement()) {
                 // Create the stored proc
                 stmt.executeUpdate(
@@ -203,7 +202,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
 
         void verifyRSUpdaters(Connection conn) throws Exception {
-
             assumeTrue(!TestUtils.isSqlAzureDW(conn), TestResource.getResource("R_skipAzure"));
 
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
@@ -288,21 +286,18 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
 
         void verifyRSGetters(ResultSet rs) throws Exception {
+            assertEquals(rs.getDate(1), expected);
 
-            assertEquals(rs.getDate(1), expected, "getDate mismatch");
+            assertEquals(rs.getTimestamp(1), new Timestamp(expected.getTime()));
 
-            assertEquals(rs.getTimestamp(1), new Timestamp(expected.getTime()), "getTimestamp mismatch");
-
-            assertEquals(rs.getString(1), expected.toString(), "getString mismatch");
-
-            rs.close();
+            assertEquals(rs.getString(1), expected.toString());
         }
 
         void verifyRSUpdaters(ResultSet rs) throws Exception {
             rs.updateDate(1, expected);
             rs.updateRow();
 
-            assertEquals(rs.getDate(1), expected, "updateDate mismatch");
+            assertEquals(rs.getDate(1), expected);
         }
 
         void verifySetters(PreparedStatement ps) throws Exception {
@@ -312,7 +307,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ResultSet rs = ps.getResultSet();
             rs.next();
 
-            assertEquals(rs.getDate(1), expected, "setDate mismatch");
+            assertEquals(rs.getDate(1), expected);
         }
 
         void verifySettersUtilDate(PreparedStatement ps) throws Exception {
@@ -322,8 +317,8 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.getMoreResults();
             ResultSet rs = ps.getResultSet();
             rs.next();
-            assertEquals(rs.getDate(1), expected, "getDate mismatch");
-            assertEquals((java.util.Date) rs.getObject(1), expectedUtilDate(), "getObject mismatch");
+            assertEquals(rs.getDate(1), expected);
+            assertEquals((java.util.Date) rs.getObject(1), expectedUtilDate());
 
             // Test the additional conversions introduced in JDBC41 for types setters
             // Test datetime2 column with target type TIMESTAMP
@@ -335,7 +330,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.next();
             // Go to the row just inserted
             rs.relative(++currentRow);
-            assertEquals(rs.getDate(1), expected, "getDate mismatch");
+            assertEquals(rs.getDate(1), expected);
 
             ps.setObject(1, expectedUtilDate(), java.sql.Types.TIMESTAMP);
             ps.execute();
@@ -345,7 +340,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.next();
             // Go to the row just inserted
             rs.relative(++currentRow);
-            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision(), "getTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision());
 
             // Test the setNull() methods for different data type conversions
             ps.setNull(1, java.sql.Types.DATE);
@@ -357,7 +352,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.relative(++currentRow);
             // Read the column, first before calling rs.wasNull()
             rs.getTimestamp(1);
-            assertEquals(rs.wasNull(), true, "getTimestamp mismatch");
+            assertEquals(rs.wasNull(), true);
 
             ps.setNull(1, java.sql.Types.TIMESTAMP);
             ps.execute();
@@ -368,7 +363,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.relative(++currentRow);
             // Read the column, first before calling rs.wasNull()
             rs.getTimestamp(1);
-            assertEquals(rs.wasNull(), true, "getTimestamp mismatch");
+            assertEquals(rs.wasNull(), true);
         }
 
         void verifySettersCalendar(PreparedStatement ps) throws Exception {
@@ -378,7 +373,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.getMoreResults();
             ResultSet rs = ps.getResultSet();
             rs.next();
-            assertEquals(rs.getDate(1), expected, "getDate mismatch");
+            assertEquals(rs.getDate(1), expected);
             // Cannot test rs.getObject for the Calendar object type, as none of Time, Timestamp, Date
             // or java.util.Date can be cast to a calendar
 
@@ -392,7 +387,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.next();
             // Go to the row just inserted
             rs.relative(++currentRow);
-            assertEquals(rs.getDate(1), expected, "getDate mismatch");
+            assertEquals(rs.getDate(1), expected);
 
             ps.setObject(1, expectedCalendar(), java.sql.Types.TIMESTAMP);
             ps.execute();
@@ -402,15 +397,15 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.next();
             // Go to the row just inserted
             rs.relative(++currentRow);
-            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision(), "getTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision());
         }
 
         void verifyCSGetters(CallableStatement cs) throws Exception {
             cs.setDate(1, expected);
             cs.registerOutParameter(2, java.sql.Types.DATE);
             cs.execute();
-            assertEquals(cs.getDate(2), expected, "getDate mismatch");
-            assertEquals(cs.getObject(2), expected, "getObject mismatch");
+            assertEquals(cs.getDate(2), expected);
+            assertEquals(cs.getObject(2), expected);
         }
     }
 
@@ -496,18 +491,18 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
 
         void verifyRSGetters(ResultSet rs) throws Exception {
-            assertEquals(rs.getTime(1), expectedTime(), "getTime mismatch");
+            assertEquals(rs.getTime(1), expectedTime());
 
-            assertEquals(rs.getTimestamp(1), expectedTimestamp(), "getTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1), expectedTimestamp());
 
-            assertEquals(rs.getString(1), this.getString(), "getString mismatch");
+            assertEquals(rs.getString(1), this.getString());
         }
 
         void verifyRSUpdaters(ResultSet rs) throws Exception {
             rs.updateTime(1, expectedTime());
             rs.updateRow();
 
-            assertEquals(rs.getTime(1), expectedTime(), "updateTime mismatch");
+            assertEquals(rs.getTime(1), expectedTime());
         }
 
         void verifySetters(PreparedStatement ps) throws Exception {
@@ -517,7 +512,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ResultSet rs = ps.getResultSet();
             rs.next();
 
-            assertEquals(rs.getTime(1), expectedTime(), "setTime mismatch");
+            assertEquals(rs.getTime(1), expectedTime());
         }
 
         void verifySettersUtilDate(PreparedStatement ps) throws Exception {
@@ -527,9 +522,9 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.getMoreResults();
             ResultSet rs = ps.getResultSet();
             rs.next();
-            assertEquals(rs.getTime(1), expectedTime(), "getTime mismatch");
-            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision(), "getTimestamp mismatch");
-            assertEquals((java.util.Date) rs.getObject(1), expectedUtilDate(), "getObject mismatch");
+            assertEquals(rs.getTime(1), expectedTime());
+            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision());
+            assertEquals((java.util.Date) rs.getObject(1), expectedUtilDate());
 
             // Test the additional conversions introduced in JDBC41 for types setters
             // Test datetime2 column with target type TIMESTAMP
@@ -541,7 +536,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.next();
             // Go to the row just inserted
             rs.relative(++currentRow);
-            assertEquals(rs.getTime(1), expectedTime(), "getTime mismatch");
+            assertEquals(rs.getTime(1), expectedTime());
 
             ps.setObject(1, expectedUtilDate(), java.sql.Types.TIMESTAMP);
             ps.execute();
@@ -551,7 +546,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.next();
             // Go to the row just inserted
             rs.relative(++currentRow);
-            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision(), "getTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision());
 
             // Test the setNull() methods for different data type conversions
             ps.setNull(1, java.sql.Types.TIME);
@@ -563,7 +558,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.relative(++currentRow);
             // Read the column, first before calling rs.wasNull()
             rs.getTimestamp(1);
-            assertEquals(rs.wasNull(), true, "getTimestamp mismatch");
+            assertEquals(rs.wasNull(), true);
 
             ps.setNull(1, java.sql.Types.TIMESTAMP);
             ps.execute();
@@ -574,7 +569,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.relative(++currentRow);
             // Read the column, first before calling rs.wasNull()
             rs.getTimestamp(1);
-            assertEquals(rs.wasNull(), true, "getTimestamp mismatch");
+            assertEquals(rs.wasNull(), true);
 
         }
 
@@ -585,9 +580,9 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.getMoreResults();
             ResultSet rs = ps.getResultSet();
             rs.next();
-            assertEquals(rs.getTime(1), expectedTime(), "getTime mismatch");
+            assertEquals(rs.getTime(1), expectedTime());
 
-            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision(), "getTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision());
             // Cannot test rs.getObject for the Calendar object type, as none of Time, Timestamp, Date
             // or java.util.Date can be cast to a calendar
 
@@ -601,7 +596,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.next();
             // Go to the row just inserted
             rs.relative(++currentRow);
-            assertEquals(rs.getTime(1), expectedTime(), "getTime mismatch");
+            assertEquals(rs.getTime(1), expectedTime());
 
             ps.setObject(1, expectedCalendar(), java.sql.Types.TIMESTAMP);
             ps.execute();
@@ -611,15 +606,15 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.next();
             // Go to the row just inserted
             rs.relative(++currentRow);
-            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision(), "getTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision());
         }
 
         void verifyCSGetters(CallableStatement cs) throws Exception {
             cs.setTime(1, expectedTime());
             cs.registerOutParameter(2, java.sql.Types.TIME);
             cs.execute();
-            assertEquals(cs.getTime(2), expectedTime(), "getTime mismatch");
-            assertEquals(cs.getObject(2), expectedTime(), "getObject mismatch");
+            assertEquals(cs.getTime(2), expectedTime());
+            assertEquals(cs.getObject(2), expectedTime());
         }
     }
 
@@ -722,13 +717,13 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
 
         void verifyRSGetters(ResultSet rs) throws Exception {
-            assertEquals(rs.getDate(1, Calendar.getInstance(tz)), expectedDate(), "getDate mismatch");
+            assertEquals(rs.getDate(1, Calendar.getInstance(tz)), expectedDate());
 
-            assertEquals(rs.getTime(1, Calendar.getInstance(tz)), expectedTime(), "getTime mismatch");
+            assertEquals(rs.getTime(1, Calendar.getInstance(tz)), expectedTime());
 
-            assertEquals(rs.getTimestamp(1, Calendar.getInstance(tz)), expectedTimestamp(), "getTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1, Calendar.getInstance(tz)), expectedTimestamp());
 
-            assertEquals(rs.getString(1), stringValue, "getString mismatch");
+            assertEquals(rs.getString(1), stringValue);
         }
 
         void verifyRSUpdaters(ResultSet rs) throws Exception {
@@ -745,7 +740,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 rs.updateRow();
 
                 // Verify the update (this value's time zone is still the default)
-                assertEquals(rs.getTimestamp(1), expectedTimestamp(), "updateTimestamp mismatch (default time zone)");
+                assertEquals(rs.getTimestamp(1), expectedTimestamp());
             } finally {
                 // Restore the original default time zone
                 TimeZone.setDefault(tzDefault);
@@ -753,8 +748,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
             // Verify the update (after restoring the default time zone) using the getTimestamp
             // variant that takes a time zone argument (as a Calendar)
-            assertEquals(rs.getTimestamp(1, Calendar.getInstance(tz)), expectedTimestamp(),
-                    "updateTimestamp mismatch (explicit time zone)");
+            assertEquals(rs.getTimestamp(1, Calendar.getInstance(tz)), expectedTimestamp());
         }
 
         void verifySetters(PreparedStatement ps) throws Exception {
@@ -770,7 +764,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 ResultSet rs = ps.getResultSet();
                 rs.next();
 
-                assertEquals(rs.getTimestamp(1), expectedTimestamp(), "setTimestamp mismatch (default time zone)");
+                assertEquals(rs.getTimestamp(1), expectedTimestamp());
             } finally {
                 TimeZone.setDefault(tzDefault);
             }
@@ -782,7 +776,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ResultSet rs = ps.getResultSet();
             rs.next();
 
-            assertEquals(rs.getTimestamp(1, Calendar.getInstance(tz)), expectedTimestamp(), "setTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1, Calendar.getInstance(tz)), expectedTimestamp());
         }
 
         void verifySettersUtilDate(PreparedStatement ps) throws Exception {
@@ -792,8 +786,8 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.getMoreResults();
             ResultSet rs = ps.getResultSet();
             rs.next();
-            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision(), "getTimestamp mismatch");
-            assertEquals((java.util.Date) rs.getObject(1), expectedUtilDate(), "getObject mismatch");
+            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision());
+            assertEquals((java.util.Date) rs.getObject(1), expectedUtilDate());
 
             // Test the additional conversions introduced in JDBC41 for types setters
             // Test datetime2 column with target type TIMESTAMP
@@ -804,7 +798,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             // Go to the next row
             rs.next();
             rs.relative(++currentRow);
-            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision(), "getTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision());
 
             // Test the setNull() methods for different data type conversions
             ps.setNull(1, java.sql.Types.TIME);
@@ -816,7 +810,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.relative(++currentRow);
             // Read the column, first before calling rs.wasNull()
             rs.getTimestamp(1);
-            assertEquals(rs.wasNull(), true, "getTimestamp mismatch");
+            assertEquals(rs.wasNull(), true);
 
             ps.setNull(1, java.sql.Types.DATE);
             ps.execute();
@@ -827,7 +821,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.relative(++currentRow);
             // Read the column, first before calling rs.wasNull()
             rs.getTimestamp(1);
-            assertEquals(rs.wasNull(), true, "getTimestamp mismatch");
+            assertEquals(rs.wasNull(), true);
 
             ps.setNull(1, java.sql.Types.TIMESTAMP);
             ps.execute();
@@ -838,7 +832,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             rs.relative(++currentRow);
             // Read the column, first before calling rs.wasNull()
             rs.getTimestamp(1);
-            assertEquals(rs.wasNull(), true, "getTimestamp mismatch");
+            assertEquals(rs.wasNull(), true);
         }
 
         void verifySettersCalendar(PreparedStatement ps) throws Exception {
@@ -848,7 +842,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.getMoreResults();
             ResultSet rs = ps.getResultSet();
             rs.next();
-            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision(), "getTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision());
             // Cannot test rs.getObject for the Calendar object type, as none of Time, Timestamp, Date
             // or java.util.Date can be cast to a calendar
 
@@ -861,7 +855,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             // Go to the next row
             rs.next();
             rs.relative(++currentRow);
-            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision(), "getTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision());
         }
 
         void verifyCSGetters(CallableStatement cs) throws Exception {
@@ -870,14 +864,14 @@ public class KatmaiDataTypesTest extends AbstractTest {
             cs.execute();
 
             // Verify typed getter (with time zone argument)
-            assertEquals(cs.getTimestamp(2, Calendar.getInstance(tz)), expectedTimestamp(), "getTimestamp mismatch");
+            assertEquals(cs.getTimestamp(2, Calendar.getInstance(tz)), expectedTimestamp());
 
             // Verify getObject (no provision for time zone argument - need to push/pop the default)
             TimeZone tzDefault = TimeZone.getDefault();
             try {
                 TimeZone.setDefault(tz);
 
-                assertEquals(cs.getObject(2), expectedTimestamp(), "getObject mismatch");
+                assertEquals(cs.getObject(2), expectedTimestamp());
             } finally {
                 TimeZone.setDefault(tzDefault);
             }
@@ -988,22 +982,22 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
 
         void verifyRSGetters(ResultSet rs) throws Exception {
-            assertEquals(rs.getDate(1), expectedDate(), "getDate mismatch");
+            assertEquals(rs.getDate(1), expectedDate());
 
-            assertEquals(rs.getTime(1), expectedTime(), "getTime mismatch");
+            assertEquals(rs.getTime(1), expectedTime());
 
-            assertEquals(rs.getTimestamp(1), dto.getTimestamp(), "getTimestamp mismatch");
+            assertEquals(rs.getTimestamp(1), dto.getTimestamp());
 
-            assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1), dto, "getDateTimeOffset mismatch");
+            assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1), dto);
 
-            assertEquals(rs.getString(1), this.getString(), "getString mismatch");
+            assertEquals(rs.getString(1), this.getString());
         }
 
         void verifyRSUpdaters(ResultSet rs) throws Exception {
             ((SQLServerResultSet) rs).updateDateTimeOffset(1, dto);
             rs.updateRow();
 
-            assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1), dto, "updateDateTimeOffset mismatch");
+            assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1), dto);
         }
 
         void verifySetters(PreparedStatement ps) throws Exception {
@@ -1013,7 +1007,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ResultSet rs = ps.getResultSet();
             rs.next();
 
-            assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1), dto, "setDateTimeOffset mismatch");
+            assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1), dto);
         }
 
         void verifySettersUtilDate(PreparedStatement ps) throws Exception {
@@ -1036,9 +1030,9 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ((SQLServerCallableStatement) cs).setDateTimeOffset(1, dto);
             cs.registerOutParameter(2, microsoft.sql.Types.DATETIMEOFFSET);
             cs.execute();
-            assertEquals(((SQLServerCallableStatement) cs).getDateTimeOffset(2), dto, "getDateTimeOffset mismatch");
+            assertEquals(((SQLServerCallableStatement) cs).getDateTimeOffset(2), dto);
 
-            assertEquals(cs.getObject(2), dto, "getObject mismatch");
+            assertEquals(cs.getObject(2), dto);
         }
     }
 
@@ -1102,7 +1096,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
     public void testResultSetGetters() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
-
             for (TestValue value : TestValue.values())
                 value.sqlValue.verifyRSGetters(conn);
         }
@@ -1111,14 +1104,12 @@ public class KatmaiDataTypesTest extends AbstractTest {
     public void testResultSetUpdaters() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             for (TestValue value : TestValue.values())
-
                 value.sqlValue.verifyRSUpdaters(conn);
         }
     }
 
     public void testSetters() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDateTime=true")) {
-
             for (TestValue value : TestValue.values())
                 value.sqlValue.verifySetters(conn);
         }
@@ -1133,7 +1124,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
     public void testResultSetMetaData() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
-
             for (TestValue value : TestValue.values())
                 value.sqlValue.verifyResultSetMetaData(conn);
         }
@@ -1141,7 +1131,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
     public void testParameterMetaData() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
-
             for (TestValue value : TestValue.values())
                 value.sqlValue.verifyParameterMetaData(conn);
         } ;
@@ -1174,7 +1163,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     // Fetch the OUT parameter and verify that we have a date-normalized TIME of midnight
                     java.sql.Time timeOut = cs.getTime(2);
                     Timestamp tsOut = new Timestamp(timeOut.getTime());
-                    assertEquals(tsOut.toString(), "1970-01-01 00:00:00.0", "CS.getTime() - Wrong OUT value");
+                    assertEquals(tsOut.toString(), "1970-01-01 00:00:00.0");
 
                 }
             } finally {
@@ -1204,7 +1193,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
             }
 
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
-
                 DateTimeOffset dto;
                 DateTimeOffset actualDto;
 
@@ -1238,8 +1226,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     rs.next();
                     // 3432-12-21 23:22:58.832909 +00:00
                     DateTimeOffset expectedDto = (DateTimeOffset) rs.getObject(1);
-                    assertEquals(actualDto, expectedDto,
-                            "Actual dto: " + actualDto.toString() + ";Expected dto: " + expectedDto.toString());
+                    assertEquals(actualDto, expectedDto);
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
@@ -1281,7 +1268,9 @@ public class KatmaiDataTypesTest extends AbstractTest {
             try (ResultSet rs = conn.createStatement().executeQuery("SELECT CAST('0821-01-04' AS DATE)")) {
                 rs.next();
                 Date date = rs.getDate(1, japaneseImperialCalendar);
-                assertEquals(date.toString(), "0821-01-04", "Get pre-Meiji");
+
+                // check pre-Meiji
+                assertEquals(date.toString(), "0821-01-04");
             }
 
             try (PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR(40))")) {
@@ -1297,7 +1286,8 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 ps.setTimestamp(1, ts, japaneseImperialCalendar);
                 try (ResultSet rs = ps.executeQuery()) {
                     rs.next();
-                    assertEquals(rs.getString(1), "1912-07-31 00:00:00.0000000", "Set Taisho 1");
+                    // check Taisho 1
+                    assertEquals(rs.getString(1), "1912-07-31 00:00:00.0000000");
                 }
 
                 // Set second year of Showa era (1927 Gregorian)
@@ -1314,7 +1304,8 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 ps.setTimestamp(1, ts, japaneseImperialCalendar);
                 try (ResultSet rs = ps.executeQuery()) {
                     rs.next();
-                    assertEquals(rs.getString(1), "1927-02-15 08:49:03.0870000", "Set Showa 2");
+                    // check Showa 2
+                    assertEquals(rs.getString(1), "1927-02-15 08:49:03.0870000");
                 }
             }
         } finally {
@@ -1366,7 +1357,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
                 try (ResultSet rs = stmt.executeQuery(query)) {
                     rs.next();
-                    assertEquals(rs.getString(1), rs.getString(2), "Test failed for " + testValue);
+                    assertEquals(rs.getString(1), rs.getString(2));
                 }
             }
         }
@@ -1396,7 +1387,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 ps.setTimestamp(1, ts);
                 try (ResultSet rs = ps.executeQuery()) {
                     rs.next();
-                    assertEquals(rs.getString(1), tsFormat.format(ts), "Timestamp mismatch");
+                    assertEquals(rs.getString(1), tsFormat.format(ts));
                 }
 
                 // Test PreparedStatement with Time
@@ -1407,9 +1398,9 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     rs.next();
 
                     // compare these separately since there may be an extra space between the 2
-                    assertEquals(rs.getString(1).substring(0, 11), "Jan  1 1970", "Time mismatch");
+                    assertEquals(rs.getString(1).substring(0, 11), "Jan  1 1970");
                     assertEquals(rs.getString(1).substring(rs.getString(1).length() - 7).trim(),
-                            timeFormat.format(ts.getTime()), "Time mismatch");
+                            timeFormat.format(ts.getTime()));
                 }
 
                 // Test PreparedStatement with Date
@@ -1417,7 +1408,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 ps.setDate(1, date);
                 try (ResultSet rs = ps.executeQuery()) {
                     rs.next();
-                    assertEquals(rs.getString(1), dateFormat.format(ts), "Date mismatch");
+                    assertEquals(rs.getString(1), dateFormat.format(ts));
                 }
 
                 // Test PreparedStatement with Date (using Buddhist calendar)
@@ -1425,7 +1416,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 ps.setDate(1, date, Calendar.getInstance());
                 try (ResultSet rs = ps.executeQuery()) {
                     rs.next();
-                    assertEquals(rs.getString(1), dateFormat.format(ts), "Date mismatch (w/calendar)");
+                    assertEquals(rs.getString(1), dateFormat.format(ts));
                 }
 
                 // Test PreparedStatement with DateTimeOffset (using Buddhist calendar)
@@ -1438,7 +1429,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     rs.next();
 
                     dtoFormat.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
-                    assertEquals(rs.getString(1), dtoFormat.format(ts), "DateTimeOffset mismatch");
+                    assertEquals(rs.getString(1), dtoFormat.format(ts));
                 }
             }
         } finally {
@@ -1459,7 +1450,8 @@ public class KatmaiDataTypesTest extends AbstractTest {
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 ts = rs.getTimestamp(1);
-                assertEquals(ts.toString(), "1970-01-01 12:34:56.0", "Expected Java base date");
+                // java base date
+                assertEquals(ts.toString(), "1970-01-01 12:34:56.0");
             }
         }
 
@@ -1467,10 +1459,12 @@ public class KatmaiDataTypesTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
                 PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATETIME)")) {
             ps.setTime(1, java.sql.Time.valueOf("12:34:56"));
+
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 ts = rs.getTimestamp(1);
-                assertEquals(ts.toString(), "1900-01-01 12:34:56.0", "Expected SQL Server base date");
+                // SQL Server base date
+                assertEquals(ts.toString(), "1900-01-01 12:34:56.0");
             }
         }
     }
@@ -1482,10 +1476,11 @@ public class KatmaiDataTypesTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString);
                 PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATETIMEOFFSET)")) {
             ps.setTimestamp(1, Timestamp.valueOf("2010-01-06 12:34:56"));
+
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 DateTimeOffset dto = ((SQLServerResultSet) rs).getDateTimeOffset(1);
-                assertEquals(dto.toString(), "2010-01-06 12:34:56 +00:00", "Wrong value");
+                assertEquals(dto.toString(), "2010-01-06 12:34:56 +00:00");
             }
         }
     }
@@ -1504,7 +1499,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.setDate(1, julianDate);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
-                assertEquals(rs.getString(1), "0700-03-01", "Wrong date returned");
+                assertEquals(rs.getString(1), "0700-03-01");
             }
         }
     }
@@ -1517,13 +1512,13 @@ public class KatmaiDataTypesTest extends AbstractTest {
             // Test getTime() rounding from TIME(6) SQL type
             try (ResultSet rs = stmt.executeQuery("SELECT CAST('12:34:56.999500' AS TIME)")) {
                 rs.next();
-                assertEquals(rs.getTime(1).toString(), "12:34:57", "Rounding from TIME(6) failed");
+                assertEquals(rs.getTime(1).toString(), "12:34:57");
             }
 
             // Test getTime() rounding from character data
             try (ResultSet rs = stmt.executeQuery("SELECT '12:34:56.999500'")) {
                 rs.next();
-                assertEquals(rs.getTime(1).toString(), "12:34:57", "Rounding from character data failed");
+                assertEquals(rs.getTime(1).toString(), "12:34:57");
             }
         }
     }
@@ -1539,7 +1534,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.setTimestamp(1, ts);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
-                assertEquals(rs.getString(1), "1582-10-24 15:07:09.0810000", "Wrong value");
+                assertEquals(rs.getString(1), "1582-10-24 15:07:09.0810000");
             }
 
             // Test setting value during the Gregorian cutover via Timestamp constructed from Calendar
@@ -1550,7 +1545,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.setTimestamp(1, ts);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
-                assertEquals(rs.getString(1), "1582-11-01 15:07:09.0810000", "Wrong value");
+                assertEquals(rs.getString(1), "1582-11-01 15:07:09.0810000");
             }
         }
     }
@@ -1567,7 +1562,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 .prepareStatement("SELECT 1 WHERE ?=CAST('2009-12-17 17:00:29' AS DATETIME)")) {
             ps.setTimestamp(1, Timestamp.valueOf("2009-12-17 17:00:29"));
             try (ResultSet rs = ps.executeQuery()) {
-                assertEquals(rs.next(), true, "Timestamp to DATETIME comparison failed for equal values");
+                assertEquals(rs.next(), true);
             }
         }
     }
@@ -1600,33 +1595,36 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     rs.updateDate(1, Date.valueOf("0814-02-18"));
                     rs.updateRow();
                     assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1).toString(),
-                            "0814-02-18 00:00:00 +00:00", "Update of datetimeoffset(2) from pre-Gregorian Date");
+                            "0814-02-18 00:00:00 +00:00");
 
                     // Update datetimeoffset(2) from "last" Time
                     rs.updateTime(1, new java.sql.Time(Timestamp.valueOf("1970-01-01 23:59:59.998").getTime()));
                     rs.updateRow();
                     assertEquals(((SQLServerResultSet) rs).getDateTimeOffset(1).toString(),
-                            "1970-01-02 00:00:00 +00:00", "Update datetimeoffset(2) from last Time");
+                            "1970-01-02 00:00:00 +00:00");
 
                     // Update datetimeoffset(2) from the "last" Timestamp
                     rs.updateTimestamp(1, Timestamp.valueOf("9999-12-31 23:59:59.998"));
                     rs.updateRow();
                     dto = ((SQLServerResultSet) rs).getDateTimeOffset(1);
-                    assertEquals(dto.toString(), "9999-12-31 23:59:59.99 +00:00",
-                            "Update datetimeoffset(2) from last Timestamp");
+                    assertEquals(dto.toString(), "9999-12-31 23:59:59.99 +00:00");
 
                     // Attempt to update datetimeoffset(2) from the first out of range value
                     // Verify that an exception is thrown and that the statement/connection is still usable after
+                    boolean exceptionThrown = true;
                     try {
                         Timestamp tsInvalid = Timestamp.valueOf("9999-12-31 23:59:59.999999999");
                         tsInvalid = new Timestamp(tsInvalid.getTime() + 1);
                         rs.updateTimestamp(1, tsInvalid);
                         rs.updateRow();
-                        assertEquals(false, true, "Update succeeded with out of range value");
+                        exceptionThrown = false;
                     } catch (SQLServerException e) {
-                        assertEquals(e.getSQLState(), "22008", // data exception - datetime field overflow (ISO/IEC
-                                                               // 9075-2:1999)
-                                "Wrong exception received");
+                        // data exception - datetime field overflow (ISO/IEC 9075-2:1999
+                        assertEquals(e.getSQLState(), "22008");
+                    }
+
+                    if (!exceptionThrown) {
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                     }
 
                     // Update time(5) from Timestamp with nanos more precise than 100ns
@@ -1634,8 +1632,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     ts.setNanos(987659999);
                     rs.updateTimestamp(3, ts);
                     rs.updateRow();
-                    assertEquals(rs.getTimestamp(3).toString(), "1900-01-01 11:05:23.98766",
-                            "Update time(5) from Timestamp with sub-100ns nanos");
+                    assertEquals(rs.getTimestamp(3).toString(), "1900-01-01 11:05:23.98766");
 
                     // Update time(5) from Timestamp to max value in a day. The value should not be rounded
                     ts = Timestamp.valueOf("2010-01-12 23:59:59");
@@ -1643,16 +1640,13 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     Time time = new java.sql.Time(ts.getTime());
                     rs.updateTimestamp(3, ts);
                     rs.updateRow();
-                    assertEquals(rs.getTimestamp(3).toString(), "1900-01-01 23:59:59.99999",
-                            "Update time(5) from Timestamp to max value in a day");
+                    assertEquals(rs.getTimestamp(3).toString(), "1900-01-01 23:59:59.99999");
 
                     // Update time(2) from Time to max value in a day. The value should not be rounded
                     rs.updateTime(6, time);
                     rs.updateRow();
-                    assertEquals(new Timestamp(rs.getTime(6).getTime()).toString(), // conversion to timestamp is
-                                                                                    // necessary to see fractional
-                                                                                    // secs
-                            "1970-01-01 23:59:59.99", "Update time(2) from Time to max value in a day");
+                    // conversion to timestamp is necessary to see fractional secs
+                    assertEquals(new Timestamp(rs.getTime(6).getTime()).toString(), "1970-01-01 23:59:59.99");
 
                     // Update time(5) from Timestamp to max value in a second. The value should be rounded
                     ts = Timestamp.valueOf("2010-01-12 23:59:58");
@@ -1660,31 +1654,26 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     time = new java.sql.Time(ts.getTime());
                     rs.updateTimestamp(3, ts);
                     rs.updateRow();
-                    assertEquals(rs.getTimestamp(3).toString(), "1900-01-01 23:59:59.0",
-                            "Update time(5) from Timestamp to max value in a second");
+                    assertEquals(rs.getTimestamp(3).toString(), "1900-01-01 23:59:59.0");
 
                     // Update time(2) from Time to max value in a second. The value should be rounded
                     rs.updateTime(6, time);
                     rs.updateRow();
-                    assertEquals(new Timestamp(rs.getTime(6).getTime()).toString(), // conversion to timestamp is
-                                                                                    // necessary to see fractional
-                                                                                    // secs
-                            "1970-01-01 23:59:59.0", "Update time(2) from Time to max value in a second");
+                    // conversion to timestamp is necessary to see fractional secs
+                    assertEquals(new Timestamp(rs.getTime(6).getTime()).toString(), "1970-01-01 23:59:59.0");
 
                     // Update datetime w/expected rounding of nanos to DATETIME's 1/300second resolution
                     ts = Timestamp.valueOf("6289-04-22 05:13:57.6745106");
                     rs.updateTimestamp(2, ts);
                     rs.updateRow();
-                    assertEquals(rs.getTimestamp(2).toString(), "6289-04-22 05:13:57.677",
-                            "Update datetime from Timestamp with sub-1/3second nanos");
+                    assertEquals(rs.getTimestamp(2).toString(), "6289-04-22 05:13:57.677");
 
                     // Update datetime with rounding-induced overflow from Time
                     // (should roll date part to 1/2/1970)
                     ts = Timestamp.valueOf("2010-01-18 23:59:59.999");
                     rs.updateTime(2, new java.sql.Time(ts.getTime()));
                     rs.updateRow();
-                    assertEquals(rs.getTimestamp(2).toString(), "1970-01-02 00:00:00.0",
-                            "Update datetime from Time near next day");
+                    assertEquals(rs.getTimestamp(2).toString(), "1970-01-02 00:00:00.0");
 
                 } finally {
                     TestUtils.dropTableIfExists(escapedTableName, stmt);

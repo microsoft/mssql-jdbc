@@ -57,6 +57,9 @@ public final class TestResource extends ListResourceBundle {
             {"R_conversionFailed", "Conversion failed when converting {0} to {1} data type"},
             {"R_invalidQueryTimeout", "The query timeout value {0} is not valid."},
             {"R_skipAzure", "Skipping test case on Azure SQL."},
+            {"R_issueAzureDW", "This is a known failure in DW for now."},
+            {"R_cursorAzureDW", "Cursor support is not implemented for Azure DW."},
+            {"R_spatialDWNotSupported", "Geometry/Geography is not supported for DW."},
             {"R_expectedExceptionNotThrown", "Expected exception is not thrown."},
             {"R_errorNotCalled", "Error occurred is not called."}, {"R_errorCalled", "Error occurred is called."},
             {"R_supportUnwrapping", "{0} supports unwrapping."},
@@ -127,6 +130,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_errorFollowInserts", "Test error followed by inserts"},
             {"R_errorFollow50280", "Test insert followed by non-fatal error (50280)"},
             {"R_syntaxErrorDateConvert", "Syntax error converting date"},
+            {"R_syntaxErrorDateConvertDW", "Conversion failed when converting date and/or time from character string."},
             {"R_dateConvertError", "Conversion failed when converting date"},
             {"R_incompatJDBC", "Aborting test case as JDBC version is not compatible."},
             {"R_unexpectedException", "Unexpected exception occurred"}, {"R_addBatchFailed", "addBatch failed"},
@@ -155,7 +159,10 @@ public final class TestResource extends ListResourceBundle {
             {"R_resultsetNotInstance", "Result set is not instance of SQLServerResultSet"},
             {"R_noJRESupport", "No JRE support for {0}"},
             {"R_incorrectColumnNum", "Column name or number of supplied values does not match table definition."},
-            {"R_incorrectColumnNumInsert", "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement."},
+            {"R_incorrectColumnNumInsert",
+                    "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement."},
+            {"R_incorrectColumnNumInsertDW",
+                    "Column name or number of supplied values does not match table definition."},
             {"R_incorrectSyntaxTable", "Incorrect syntax near the keyword 'table'."},
-    };
+            {"R_incorrectSyntaxTableDW", "Parse error at line: 1, column: 106: Incorrect syntax near 'table'."},};
 }

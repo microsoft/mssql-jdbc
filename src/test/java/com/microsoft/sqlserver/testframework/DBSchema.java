@@ -81,9 +81,6 @@ public class DBSchema {
             // Binary
             sqlTypes.add(new SqlBinary());
             sqlTypes.add(new SqlVarBinary());
-
-            // TODO:
-            // Other types
         }
     }
 
