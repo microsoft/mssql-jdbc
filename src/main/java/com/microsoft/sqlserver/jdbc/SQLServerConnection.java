@@ -4276,22 +4276,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Checks if access token is nearing expiry and a new token is required instead.
-     * 
-     * @return true if Access Token will expire in next 10 mins or less. false if Access Token has more than 10 mins to
-     *         expire.
-     */
-    protected boolean isAccessTokenExpired() {
-        Calendar now = new Calendar.Builder().setInstant(new Date()).build();
-        // Subtract 10 minutes to allow buffer time for reconnection
-        now.add(Calendar.MINUTE, -10);
-        if (fedAuthToken.expiresOn.before(now.getTime())) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * Send the access token to the server.
      */
     private void sendFedAuthToken(FedAuthTokenCommand fedAuthCommand, SqlFedAuthToken fedAuthToken,
