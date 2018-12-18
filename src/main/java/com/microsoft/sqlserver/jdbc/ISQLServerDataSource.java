@@ -805,4 +805,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        indicates whether Bulk Copy API should be used for Batch Insert operations.
      */
     public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
+
+    /**
+     * Sets whether the driver should allow the use of platform GSS for Kerberos Integrated Authentication.
+     * 
+     * @param usePlatformGSS
+     *        indicates whether driver should consider platform GSS when authenticating with Kerberos.
+     */
+    void setUsePlatformGSSCredentials(boolean usePlatformGSS);
+
+    /**
+     * Returns whether the driver will respect platform GSS when authenticating with Kerberos.
+     * 
+     * @return whether the driver is respecting platform GSS when authenticating with Kerberos.
+     */
+    boolean getUsePlatformGSSCredentials();
 }
