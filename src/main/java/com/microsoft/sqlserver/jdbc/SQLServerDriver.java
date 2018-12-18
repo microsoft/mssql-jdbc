@@ -548,14 +548,37 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     private final static java.util.logging.Logger drLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+    private static java.sql.Driver mssqlJdbcDriver = null;
+    
     // Register with the DriverManager
     static {
         try {
-            java.sql.DriverManager.registerDriver(new SQLServerDriver());
+            register();
         } catch (SQLException e) {
             if (drLogger.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
                 drLogger.finer("Error registering driver: " + e);
             }
+        }
+    }
+    
+    /*
+     * Registers the driver with the DriverManager. This function is a no-op if there is already an instance of the Driver registered.
+     */
+    public static void register() throws SQLException {
+        if (mssqlJdbcDriver == null) {
+            mssqlJdbcDriver = new SQLServerDriver();
+            DriverManager.registerDriver(mssqlJdbcDriver);
+        }
+    }
+    
+    /*
+     * De-registers the driver from the DriverManager. This function is a no-op if there isn't already an instance of the Driver registered.
+     */
+    public static void deRegister() throws SQLException {
+        if (mssqlJdbcDriver != null) {
+            DriverManager.deregisterDriver(mssqlJdbcDriver);
+            TimeoutPoller.getTimeoutPoller().requestStop();
+            mssqlJdbcDriver = null;
         }
     }
 

@@ -4,7 +4,6 @@
  */
 package com.microsoft.sqlserver.jdbc.osgi;
 
-import java.sql.DriverManager;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
@@ -22,12 +21,11 @@ import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 public class Activator implements BundleActivator {
 
     private ServiceRegistration<DataSourceFactory> service;
-    SQLServerDriver driver;
 
     @Override
     public void start(BundleContext context) throws Exception {
         Dictionary<String, Object> properties = new Hashtable<>();
-        driver = new SQLServerDriver();
+        java.sql.Driver driver = new SQLServerDriver();
         properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, driver.getClass().getName());
         properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, "Microsoft JDBC Driver for SQL Server");
         properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION,
@@ -40,10 +38,7 @@ public class Activator implements BundleActivator {
         if (service != null) {
             service.unregister();
         }
-        
-        if (driver != null) {
-            DriverManager.deregisterDriver(driver);
-            driver = null;
-        }
+
+        SQLServerDriver.deRegister();
     }
 }
