@@ -29,6 +29,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
+
 @RunWith(JUnitPlatform.class)
 public class NativeMSSQLDataSourceTest extends AbstractTest {
 
