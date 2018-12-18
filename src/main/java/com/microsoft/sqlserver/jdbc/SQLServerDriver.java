@@ -581,7 +581,7 @@ public final class SQLServerDriver implements java.sql.Driver {
     }
     
     /*
-     * Checks whether this instance of the driver has been registered with the driver manager.
+     * Checks whether the driver has been registered with the driver manager.
      */
     public static boolean isRegistered() {
         return mssqlDriver != null;
