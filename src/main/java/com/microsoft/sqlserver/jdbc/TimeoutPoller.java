@@ -20,7 +20,6 @@ final class TimeoutPoller implements Runnable {
     private List<TimeoutCommand<TDSCommand>> timeoutCommands = new ArrayList<>();
     final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.TimeoutPoller");
     private static volatile TimeoutPoller timeoutPoller = null;
-    private boolean requestedStop = false;
 
     static TimeoutPoller getTimeoutPoller() {
         if (timeoutPoller == null) {
@@ -36,12 +35,6 @@ final class TimeoutPoller implements Runnable {
             }
         }
         return timeoutPoller;
-    }
-
-    void requestStop() {
-        if (!requestedStop) {
-            requestedStop = true;
-        }
     }
 
     void addTimeoutCommand(TimeoutCommand<TDSCommand> timeoutCommand) {
@@ -62,7 +55,7 @@ final class TimeoutPoller implements Runnable {
         try {
             // Poll every second checking for commands that have timed out and need
             // interruption
-            while (!requestedStop) {
+            while (true) {
                 synchronized (timeoutCommands) {
                     Iterator<TimeoutCommand<TDSCommand>> timeoutCommandIterator = timeoutCommands.iterator();
                     while (timeoutCommandIterator.hasNext()) {
