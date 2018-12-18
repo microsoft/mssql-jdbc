@@ -28,7 +28,7 @@ import microsoft.sql.DateTimeOffset;
 
 @RunWith(JUnitPlatform.class)
 public class DTOSerialTest extends AbstractTest {
-    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSS XXX");
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS XXX");
     private static String dateString;
 
     @Test
@@ -91,6 +91,7 @@ public class DTOSerialTest extends AbstractTest {
     }
 
     // Positive test case, this should succeed
+    @Test
     private static void verifyCorrectSerialization(DateTimeOffset dto) throws Exception {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 ObjectOutputStream out = new ObjectOutputStream(bos)) {
@@ -108,20 +109,22 @@ public class DTOSerialTest extends AbstractTest {
     }
 
     // this is to make sure that the rehydrated date can be sent to server correctly
-    private static void verifyCorrectSend(DateTimeOffset dtN) throws Exception {
+    @Test
+    private static void verifyCorrectSend(DateTimeOffset dtn) throws Exception {
         // create a DTO
         try (Connection conn = DriverManager.getConnection(connectionString);
                 SQLServerPreparedStatement ps = (SQLServerPreparedStatement) conn
                         .prepareStatement("SELECT CAST(? AS datetimeoffset(7)) AS" + "   'datetimeoffset IS08601' ")) {
-            ps.setDateTimeOffset(1, dtN);
+            ps.setDateTimeOffset(1, dtn);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
-                verifyDTOEqual(dtN, ((SQLServerResultSet) rs).getDateTimeOffset(1));
+                verifyDTOEqual(dtn, ((SQLServerResultSet) rs).getDateTimeOffset(1));
             }
         }
     }
 
     // Negative test cases.
+    @Test
     private static void verifyMessedSerialization() throws Exception {
         // serialized DTO class with wrong nano values (-1)
         byte wrongNanos[] = {-84, -19, 0, 5, 115, 114, 0, 47, 109, 105, 99, 114, 111, 115, 111, 102, 116, 46, 115, 113,
@@ -165,6 +168,7 @@ public class DTOSerialTest extends AbstractTest {
 
     private static void verifyMessedSerializationHelper(byte[] svalue) throws Exception {
         try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(svalue))) {
+            //this will throw error for negative tests
             DateTimeOffset dtn = (DateTimeOffset) in.readObject();
         }
     }
