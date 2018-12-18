@@ -40,7 +40,7 @@ public class Activator implements BundleActivator {
         }
         
         if (SQLServerDriver.isRegistered()) {
-            SQLServerDriver.deRegister();
+            SQLServerDriver.deregister();
         }
     }
 }
