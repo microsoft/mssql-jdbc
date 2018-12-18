@@ -64,6 +64,7 @@ public class TestUtils {
     // 'SQL' represents SQL Server, while 'SQLAzure' represents SQL Azure.
     public static final String SERVER_TYPE_SQL_SERVER = "SQL";
     public static final String SERVER_TYPE_SQL_AZURE = "SQLAzure";
+
     // private static SqlType types = null;
     private static ArrayList<SqlType> types = null;
 
