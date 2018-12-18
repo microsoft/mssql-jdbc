@@ -34,6 +34,7 @@ import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -44,6 +45,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
@@ -4186,90 +4188,148 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private SqlFedAuthToken getMSIAuthToken(String resource, String msiClientId) throws SQLServerException {
-        String urlString;
-        String msiEndpoint = System.getenv("MSI_ENDPOINT");
-        String msiSecret = System.getenv("MSI_SECRET");
+        // IMDS upgrade time can take up to 70s
+        final int imdsUpgradeTimeInMs = 70 * 1000;
+        final List<Integer> retrySlots = new ArrayList<>();
+        final String msiEndpoint = System.getenv("MSI_ENDPOINT");
+        final String msiSecret = System.getenv("MSI_SECRET");
+
+        StringBuilder urlString = new StringBuilder();
+        int retry = 1, maxRetry = 1;
+
         boolean isAzureFunction = null != msiEndpoint && !msiEndpoint.isEmpty() && null != msiSecret
                 && !msiSecret.isEmpty();
 
         if (isAzureFunction) {
-            urlString = msiEndpoint + "?api-version=2017-09-01&resource=" + resource;
+            urlString.append(msiEndpoint).append("?api-version=2017-09-01&resource=").append(resource);
         } else {
-            urlString = ActiveDirectoryAuthentication.AZURE_REST_MSI_URL + "&resource=" + resource;
+            urlString.append(ActiveDirectoryAuthentication.AZURE_REST_MSI_URL).append("&resource=").append(resource);
+            // Retry acquiring access token upto 20 times due to possible IMDS upgrade (Applies to VM only)
+            maxRetry = 20;
+            // Simplified variant of Exponential BackOff
+            for (int x = 0; x < maxRetry; x++) {
+                retrySlots.add(500 * ((2 << 1) - 1) / 1000);
+            }
         }
 
+        // Append Client Id if available
         if (null != msiClientId && !msiClientId.isEmpty()) {
             if (isAzureFunction) {
-                urlString += "&clientid=" + msiClientId;
+                urlString.append("&clientid=").append(msiClientId);
             } else {
-                urlString += "&client_id=" + msiClientId;
+                urlString.append("&client_id=").append(msiClientId);
             }
         }
 
-        HttpURLConnection connection = null;
+        // Loop while maxRetry reaches its limit
+        while (retry <= maxRetry) {
+            HttpURLConnection connection = null;
 
-        try {
-            connection = (HttpURLConnection) new URL(urlString).openConnection();
-            connection.setRequestMethod("GET");
-
-            if (isAzureFunction) {
-                connection.setRequestProperty("Secret", msiSecret);
-                if (connectionlogger.isLoggable(Level.FINER)) {
-                    connectionlogger.finer(toString() + " Using Azure Function/App Service MSI auth: " + urlString);
-                }
-            } else {
-                connection.setRequestProperty("Metadata", "true");
-                if (connectionlogger.isLoggable(Level.FINER)) {
-                    connectionlogger.finer(toString() + " Using Azure MSI auth: " + urlString);
-                }
-            }
-
-            connection.connect();
-
-            try (InputStream stream = connection.getInputStream()) {
-
-                BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8), 100);
-                String result = reader.readLine();
-
-                int startIndex_AT = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER)
-                        + ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER.length();
-
-                String accessToken = result.substring(startIndex_AT, result.indexOf("\"", startIndex_AT + 1));
-
-                Calendar cal = new Calendar.Builder().setInstant(new Date()).build();
+            try {
+                connection = (HttpURLConnection) new URL(urlString.toString()).openConnection();
+                connection.setRequestMethod("GET");
 
                 if (isAzureFunction) {
-                    int startIndex_ATX = result
-                            .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER)
-                            + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER.length();
-                    String accessTokenExpiry = result.substring(startIndex_ATX,
-                            result.indexOf("\"", startIndex_ATX + 1));
+                    connection.setRequestProperty("Secret", msiSecret);
                     if (connectionlogger.isLoggable(Level.FINER)) {
-                        connectionlogger.finer(toString() + " MSI auth token expires on: " + accessTokenExpiry);
+                        connectionlogger.finer(toString() + " Using Azure Function/App Service MSI auth: " + urlString);
                     }
-
-                    DateFormat df = new SimpleDateFormat(
-                            ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_DATE_FORMAT);
-                    cal = new Calendar.Builder().setInstant(df.parse(accessTokenExpiry)).build();
                 } else {
-                    int startIndex_ATX = result
-                            .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER)
-                            + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
-                    String accessTokenExpiry = result.substring(startIndex_ATX,
-                            result.indexOf("\"", startIndex_ATX + 1));
-                    cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
+                    connection.setRequestProperty("Metadata", "true");
+                    if (connectionlogger.isLoggable(Level.FINER)) {
+                        connectionlogger.finer(toString() + " Using Azure MSI auth: " + urlString);
+                    }
                 }
 
-                return new SqlFedAuthToken(accessToken, cal.getTime());
-            }
-        } catch (Exception e) {
-            SQLServerException.makeFromDriverError(this, null, e.getMessage(), null, true);
-            return null;
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
+                connection.connect();
+
+                try (InputStream stream = connection.getInputStream()) {
+
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8), 100);
+                    String result = reader.readLine();
+
+                    int startIndex_AT = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER)
+                            + ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER.length();
+
+                    String accessToken = result.substring(startIndex_AT, result.indexOf("\"", startIndex_AT + 1));
+
+                    Calendar cal = new Calendar.Builder().setInstant(new Date()).build();
+
+                    if (isAzureFunction) {
+                        // Fetch expires_on
+                        int startIndex_ATX = result
+                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER)
+                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER.length();
+                        String accessTokenExpiry = result.substring(startIndex_ATX,
+                                result.indexOf("\"", startIndex_ATX + 1));
+                        if (connectionlogger.isLoggable(Level.FINER)) {
+                            connectionlogger.finer(toString() + " MSI auth token expires on: " + accessTokenExpiry);
+                        }
+
+                        DateFormat df = new SimpleDateFormat(
+                                ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_DATE_FORMAT);
+                        cal = new Calendar.Builder().setInstant(df.parse(accessTokenExpiry)).build();
+                    } else {
+                        // Fetch expires_in
+                        int startIndex_ATX = result
+                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER)
+                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
+                        String accessTokenExpiry = result.substring(startIndex_ATX,
+                                result.indexOf("\"", startIndex_ATX + 1));
+                        cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
+                    }
+
+                    return new SqlFedAuthToken(accessToken, cal.getTime());
+                }
+            } catch (Exception e) {
+                retry++;
+                if (retry > maxRetry) {
+                    // Do not retry if maxRetry limit has been reached.
+                    break;
+                } else {
+                    try {
+                        int responseCode = connection.getResponseCode();
+                        // Check Error Response Code from Connection
+                        if (responseCode == 410 || responseCode == 429 || responseCode == 404
+                                || (responseCode >= 500 && responseCode <= 599)) {
+                            try {
+                                int retryTimeoutInMs = retrySlots.get(new Random().nextInt(retry - 1));
+                                // Error code 410 indicates IMDS upgrade is in progress, which can take up to 70s
+                                retryTimeoutInMs = (responseCode == 410
+                                        && retryTimeoutInMs < imdsUpgradeTimeInMs) ? imdsUpgradeTimeInMs
+                                                                                   : retryTimeoutInMs;
+                                Thread.sleep(retryTimeoutInMs);
+                            } catch (InterruptedException ex) {
+                                // Throw runtime exception as driver must not be interrupted here
+                                throw new RuntimeException(ex);
+                            }
+                        } else {
+                            if (null != msiClientId && !msiClientId.isEmpty()) {
+                                SQLServerException.makeFromDriverError(this, null,
+                                        SQLServerException.getErrString("R_MSITokenFailureClientId"), null, true);
+                            } else {
+                                SQLServerException.makeFromDriverError(this, null,
+                                        SQLServerException.getErrString("R_MSITokenFailure"), null, true);
+                            }
+                        }
+                    } catch (IOException io) {
+                        // Throw error as unexpected if response code not available
+                        SQLServerException.makeFromDriverError(this, null,
+                                SQLServerException.getErrString("R_MSITokenFailureUnexpected"), null, true);
+                    }
+                }
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
             }
         }
+        if (retry > maxRetry) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSITokenAcquireFailure"));
+            Object[] msgArgs = {maxRetry};
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true);
+        }
+        return null;
     }
 
     /**
