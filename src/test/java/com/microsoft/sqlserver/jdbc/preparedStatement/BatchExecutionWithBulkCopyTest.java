@@ -178,7 +178,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Long timeMilis = 114550L;
+            Long timeMilis = 1355299200000L;
             byte[] binaryData = "11234".getBytes();
             Timestamp testTimestamp = new Timestamp(timeMilis);
             BigDecimal testBigDecimal = new BigDecimal(123.456);
@@ -202,7 +202,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setSmallDateTime(17, testTimestamp); // smalldatetime
             pstmt.setShort(18, (short) 1); // smallint
             pstmt.setSmallMoney(19, testBigDecimal); // smallmoney
-            pstmt.setTime(20, new Time(114550L)); // time
+            pstmt.setTime(20, new Time(timeMilis)); // time
             pstmt.setShort(21, (short) 1); // tinyint
             pstmt.setBytes(22, binaryData); // varbinary(5)
             pstmt.setString(23, "somevarchar"); // varchar(20)
@@ -231,10 +231,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 expected[13] = testBigDecimal.intValue();
                 expected[14] = "somenvarchar";
                 expected[15] = "1.0";
-                expected[16] = "1969-12-31 16:02:00.0";
+                expected[16] = testTimestamp.toString();
                 expected[17] = (short) 1;
                 expected[18] = "123.4560";
-                expected[19] = new Time(114550L);
+                expected[19] = new Time(timeMilis);
                 expected[20] = (short) 1;
                 expected[21] = binaryData;
                 expected[22] = "somevarchar";
@@ -474,7 +474,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Long timeMilis = 114550L;
+            Long timeMilis = 1355299200000L;
             byte[] binaryData = "11234".getBytes();
             Timestamp testTimestamp = new Timestamp(timeMilis);
             BigDecimal testBigDecimal = new BigDecimal(123.456);
@@ -498,7 +498,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setSmallDateTime(17, testTimestamp); // smalldatetime
             pstmt.setShort(18, (short) 1); // smallint
             pstmt.setSmallMoney(19, testBigDecimal); // smallmoney
-            pstmt.setTime(20, new Time(114550L)); // time
+            pstmt.setTime(20, new Time(timeMilis)); // time
             pstmt.setShort(21, (short) 1); // tinyint
             pstmt.setBytes(22, binaryData); // varbinary(5)
             pstmt.setString(23, "somevarchar"); // varchar(20)
@@ -527,10 +527,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 expected[13] = testBigDecimal.intValue();
                 expected[14] = "somenvarchar";
                 expected[15] = "1.0";
-                expected[16] = "1969-12-31 16:02:00.0";
+                expected[16] = testTimestamp.toString();
                 expected[17] = (short) 1;
                 expected[18] = "123.4560";
-                expected[19] = new Time(114550L);
+                expected[19] = new Time(timeMilis);
                 expected[20] = (short) 1;
                 expected[21] = binaryData;
                 expected[22] = "somevarchar";
