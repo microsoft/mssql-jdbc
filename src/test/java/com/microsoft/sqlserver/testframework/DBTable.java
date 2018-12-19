@@ -361,15 +361,12 @@ public class DBTable extends AbstractSQLGenerator {
     String populateTableSql() {
         StringJoiner sb = new StringJoiner(SPACE_CHAR);
 
-        sb.add("INSERT");
-        sb.add("INTO");
-        sb.add(escapedTableName);
-        sb.add("VALUES");
-
         for (int i = 0; i < totalRows; i++) {
-            if (i != 0) {
-                sb.add(COMMA);
-            }
+            sb.add("INSERT");
+            sb.add("INTO");
+            sb.add(escapedTableName);
+            sb.add("VALUES");
+
             sb.add(OPEN_BRACKET);
             for (int colNum = 0; colNum < totalColumns; colNum++) {
 
@@ -387,6 +384,7 @@ public class DBTable extends AbstractSQLGenerator {
                 }
             }
             sb.add(CLOSE_BRACKET);
+            sb.add(SEMI_COLON);
         }
 
         return (sb.toString());

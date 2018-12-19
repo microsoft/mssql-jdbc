@@ -24,7 +24,7 @@ import com.microsoft.sqlserver.testframework.DBTable;
 
 
 @RunWith(JUnitPlatform.class)
-public class BulkCopyAllTypes extends AbstractTest {
+public class BulkCopyAllTypesTest extends AbstractTest {
 
     private static DBTable tableSrc = null;
     private static DBTable tableDest = null;
@@ -36,12 +36,17 @@ public class BulkCopyAllTypes extends AbstractTest {
      */
     @Test
     public void testTVPResultSet() throws SQLException {
-        testBulkCopyResultSet(false, null, null);
-        testBulkCopyResultSet(true, null, null);
-        testBulkCopyResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        testBulkCopyResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-        testBulkCopyResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        testBulkCopyResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        if (isSqlAzureDW()) {
+            testBulkCopyResultSet(false, null, null);
+            testBulkCopyResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        } else {
+            testBulkCopyResultSet(false, null, null);
+            testBulkCopyResultSet(true, null, null);
+            testBulkCopyResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            testBulkCopyResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+            testBulkCopyResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            testBulkCopyResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        }
     }
 
     private void testBulkCopyResultSet(boolean setSelectMethod, Integer resultSetType,

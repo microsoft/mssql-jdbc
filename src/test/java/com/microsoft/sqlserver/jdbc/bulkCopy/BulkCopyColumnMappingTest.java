@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.ResultSet;
@@ -61,7 +62,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             // create dest table
             destTable = sourceTable.cloneSchema();
             stmt.createTable(destTable);
-            
+
             // set up bulkCopy without explicit column mapping
             BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
             bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
@@ -82,7 +83,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             // create dest table
             destTable = sourceTable.cloneSchema();
             stmt.createTable(destTable);
-            
+
             // set up bulkCopy with explicit column mapping
             BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
             bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
@@ -385,10 +386,10 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             int totalColumns = sourceMeta.getColumnCount();
 
             // verify data from sourceType and resultSet
+            int numRows = 0;
             while (srcResultSet.next() && dstResultSet.next()) {
+                numRows++;
                 for (int i = 1; i <= totalColumns; i++) {
-                    // TODO: check row and column count in both the tables
-
                     Object srcValue, dstValue;
                     srcValue = srcResultSet.getObject(i);
                     dstValue = dstResultSet.getObject(i);
@@ -403,6 +404,11 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                     }
                 }
             }
+
+            // verify number of rows and columns
+            assertTrue(((ResultSet) dstResultSet.product()).getMetaData().getColumnCount() == totalColumns + 1);
+            assertTrue(sourceTable.getTotalRows() == numRows);
+            assertTrue(destinationTable.getTotalRows() == numRows);
         }
     }
 

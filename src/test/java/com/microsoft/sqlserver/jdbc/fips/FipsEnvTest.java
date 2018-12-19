@@ -16,12 +16,14 @@ import java.util.logging.Logger;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 /**
@@ -30,7 +32,8 @@ import com.microsoft.sqlserver.jdbc.TestUtils;;
  * @since 6.1.2
  */
 @RunWith(JUnitPlatform.class)
-public class FipsEnvTest {
+@Tag("AzureDWTest")
+public class FipsEnvTest extends AbstractTest {
 
     protected static Logger logger = Logger.getLogger("FipsEnvTest");
 
@@ -55,16 +58,13 @@ public class FipsEnvTest {
             currentJVM = IBM_JVM;
         }
 
-        // TODO: Need to check this.
         if (p.getProperty("java.vendor").startsWith("SAP")) {
             currentJVM = SAP_JVM;
         }
     }
 
     /**
-     * After stabilizing parameterized test case TODO: Enable FIPS can be done in two ways.
-     * <LI>JVM Level - Done.
-     * <LI>Program Level - Not Done. We need to test both on different environments.
+     * Test FIPS in Oracle Env.
      * 
      * @since 6.1.2
      */
@@ -91,7 +91,7 @@ public class FipsEnvTest {
     }
 
     /**
-     * It will test FIPS on IBM Env. If JVM is not IBM test will not fail. It will simply skipped.
+     * Test FIPS in IBM Env. If JVM is not IBM test will not fail. It will simply skipped.
      * 
      * @since 6.1.2
      */

@@ -19,6 +19,7 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.SQLException;
 import java.text.MessageFormat;
@@ -588,7 +589,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
      * Writes len characters of str, starting at character offset, to the CLOB value that this Clob represents. The
      * string will overwrite the existing characters in the Clob object starting at the position pos. If the end of the
      * Clob value is reached while writing the given string, then the length of the Clob value will be increased to
-     * accomodate the extra characters.
+     * accommodate the extra characters.
      *
      * SQL Server behavior: If the value specified for pos is greater than then length+1 of the CLOB value then a
      * SQLException is thrown.
@@ -776,7 +777,7 @@ final class SQLServerClobAsciiOutputStream extends java.io.OutputStream {
             return;
         try {
             // Convert bytes to string using US-ASCII translation.
-            String s = new String(b, off, len, "US-ASCII");
+            String s = new String(b, off, len, StandardCharsets.US_ASCII);
 
             // Call parent's setString and update position.
             // setString can throw a SQLServerException, we translate

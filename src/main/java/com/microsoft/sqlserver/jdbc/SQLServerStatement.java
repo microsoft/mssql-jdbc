@@ -439,7 +439,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     int nFetchDirection;
 
     /**
-     * True is the statment is closed
+     * True is the statement is closed
      */
     boolean bIsClosed;
 
@@ -948,7 +948,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      * Determines if the SQL is a SELECT.
      * 
      * @param sql
-     *        The statment SQL.
+     *        The statement SQL.
      * @return True if the statement is a select.
      */
     final boolean isSelect(String sql) throws SQLServerException {
@@ -966,7 +966,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      * Determine if the SQL is a INSERT.
      * 
      * @param sql
-     *        The statment SQL.
+     *        The statement SQL.
      * @return True if the statement is an insert.
      */
     final boolean isInsert(String sql) throws SQLServerException {
@@ -1012,29 +1012,28 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     static String replaceMarkerWithNull(String sql) {
         if (!sql.contains("'")) {
-            String retStr = replaceParameterWithString(sql, '?', "null");
-            return retStr;
+            return replaceParameterWithString(sql, '?', "null");
         } else {
             StringTokenizer st = new StringTokenizer(sql, "'", true);
             boolean beforeColon = true;
-            String retSql = "";
+            final StringBuilder retSql = new StringBuilder();
             while (st.hasMoreTokens()) {
                 String str = st.nextToken();
                 if (str.equals("'")) {
-                    retSql += "'";
+                    retSql.append("'");
                     beforeColon = !beforeColon;
                     continue;
                 }
                 if (beforeColon) {
                     String repStr = replaceParameterWithString(str, '?', "null");
-                    retSql += repStr;
+                    retSql.append(repStr);
                     continue;
                 } else {
-                    retSql += str;
+                    retSql.append(str);
                     continue;
                 }
             }
-            return retSql;
+            return retSql.toString();
         }
     }
 
@@ -1573,7 +1572,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                     executedSqlDirectly = true;
 
                 SQLWarning warning = new SQLWarning(
-                        infoToken.msg.getMessage(), SQLServerException.generateStateCode(connection,
+                        infoToken.msg.getErrorMessage(), SQLServerException.generateStateCode(connection,
                                 infoToken.msg.getErrorNumber(), infoToken.msg.getErrorState()),
                         infoToken.msg.getErrorNumber());
 
@@ -1612,7 +1611,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         // Check for errors first.
         if (null != nextResult.getDatabaseError()) {
-            SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getMessage(),
+            SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getErrorMessage(),
                     nextResult.getDatabaseError(), false);
         }
 
@@ -2412,7 +2411,7 @@ final class JDBCSyntaxTranslator {
         OFFSET,
         QUOTE,
         PROCESS
-    };
+    }
 
     // This pattern matches the LIMIT syntax with an OFFSET clause. The driver does not support OFFSET expression in the
     // LIMIT clause.

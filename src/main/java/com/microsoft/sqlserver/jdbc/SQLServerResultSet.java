@@ -793,7 +793,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
 
         // From JDBC spec:
-        // Throws SQLException if (1) there is no curent row or (2)
+        // Throws SQLException if (1) there is no current row or (2)
         // the type of this ResultSet object is TYPE_FORWARD_ONLY.
         verifyResultSetIsScrollable();
         verifyResultSetHasCurrentRow();
@@ -1072,7 +1072,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public boolean wasNull() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "wasNull");
         checkClosed();
-        fillLOBs();
         loggerExternal.exiting(getClassNameLogging(), "wasNull", lastValueWasNull);
         return lastValueWasNull;
     }
@@ -5399,7 +5398,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN)
                     && null != fetchBufferTokenHandler.getDatabaseError()) {
                 SQLServerException.makeFromDatabaseError(stmt.connection, null,
-                        fetchBufferTokenHandler.getDatabaseError().getMessage(),
+                        fetchBufferTokenHandler.getDatabaseError().getErrorMessage(),
                         fetchBufferTokenHandler.getDatabaseError(), false);
             }
 

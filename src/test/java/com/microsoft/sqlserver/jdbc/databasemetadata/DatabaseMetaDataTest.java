@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.databasemetadata;
 
+import static org.junit.Assert.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -29,6 +30,7 @@ import java.util.UUID;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -53,6 +55,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testDatabaseMetaDataWrapper() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString)) {
             DatabaseMetaData databaseMetaData = con.getMetaData();
@@ -75,6 +78,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      *         IOExcption
      */
     @Test
+    @Tag("AzureDWTest")
     public void testDriverVersion() throws SQLException, IOException {
         String manifestFile = TestUtils.getCurrentClassPath() + "META-INF/MANIFEST.MF";
         manifestFile = manifestFile.replace("test-classes", "classes");
@@ -117,6 +121,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetURL() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
@@ -138,7 +143,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
 
-            String connectionString = getConfiguredProperty("mssql_jdbc_test_connection_properties");
+            String connectionString = getConnectionString();
 
             connectionString = connectionString.toLowerCase();
 
@@ -173,6 +178,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testDBSchema() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
                 ResultSet rs = conn.getMetaData().getSchemas()) {
@@ -294,6 +300,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     /*
      * try (ResultSet rsCatalog = connection.getMetaData().getCatalogs(); ResultSet rs = connection.getMetaData()
      * .getTables(rsCatalog.getString("TABLE_CAT"), null, "%", new String[] {"TABLE"})) {
@@ -333,6 +340,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetDBColumn() throws SQLException {
 
         try (Connection conn = DriverManager.getConnection(connectionString)) {
@@ -417,20 +425,17 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     /**
-     * TODO: Check JDBC Specs: Can we have any tables/functions without category?
-     * 
-     * Testing {@link SQLServerDatabaseMetaData#getFunctions(String, String, String)} with sending wrong category.
+     * Testing {@link SQLServerDatabaseMetaData#getFunctions(String, String, String)} with sending wrong catalog.
      * 
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetFunctionsWithWrongParams() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             conn.getMetaData().getFunctions("", null, "xp_%");
             assertTrue(false, TestResource.getResource("R_noSchemaShouldFail"));
-        } catch (Exception ae) {
-
-        }
+        } catch (Exception ae) {}
     }
 
     /**
@@ -439,13 +444,14 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetFunctions() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString);
                 ResultSet rs = conn.getMetaData().getFunctions(null, null, "xp_%")) {
 
             MessageFormat form = new MessageFormat(TestResource.getResource("R_nameNull"));
             Object[][] msgArgs = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"NUM_INPUT_PARAMS"},
-                    {"NUM_OUPUT_PARAMS"}, {"NUM_RESULT_SETS"}, {"FUNCTION_TYPE"}};
+                    {"NUM_OUTPUT_PARAMS"}, {"NUM_RESULT_SETS"}, {"FUNCTION_TYPE"}};
             while (rs.next()) {
                 assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")), form.format(msgArgs[0]));
                 assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")), form.format(msgArgs[1]));
@@ -465,6 +471,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetFunctionColumns() throws SQLException {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
 
@@ -498,6 +505,55 @@ public class DatabaseMetaDataTest extends AbstractTest {
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+        }
+    }
+
+    @Test
+    public void testPreparedStatementMetadataCaching() throws SQLException {
+        try (Connection connection = DriverManager.getConnection(connectionString)) {
+
+            DatabaseMetaData databaseMetaData = connection.getMetaData();
+            String[] types = {"TABLE"};
+
+            Statement stmtNullCatalog;
+            Statement stmtMasterCatalog;
+
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                stmtNullCatalog = rs.getStatement();
+            }
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                assertSame(stmtNullCatalog, rs.getStatement());
+                rs.getStatement().close();
+            }
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                assertNotSame(stmtNullCatalog, rs.getStatement());
+                stmtNullCatalog = rs.getStatement();
+            }
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                assertSame(stmtNullCatalog, rs.getStatement());
+            }
+            try (ResultSet rs = databaseMetaData.getTables("master", null, "%", types)) {
+                stmtMasterCatalog = rs.getStatement();
+            }
+            try (ResultSet rs = databaseMetaData.getTables("master", null, "%", types)) {
+                assertSame(stmtMasterCatalog, rs.getStatement());
+                rs.getStatement().close();
+            }
+            try (ResultSet rs = databaseMetaData.getTables("master", null, "%", types)) {
+                assertNotSame(stmtMasterCatalog, rs.getStatement());
+                stmtMasterCatalog = rs.getStatement();
+            }
+            try (ResultSet rs = databaseMetaData.getTables("master", null, "%", types)) {
+                assertSame(stmtMasterCatalog, rs.getStatement());
+            }
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                assertSame(stmtNullCatalog, rs.getStatement());
+                rs.getStatement().close();
+            }
+            try (ResultSet rs = databaseMetaData.getTables("master", null, "%", types)) {
+                assertSame(stmtMasterCatalog, rs.getStatement());
+                rs.getStatement().close();
+            }
         }
     }
 }

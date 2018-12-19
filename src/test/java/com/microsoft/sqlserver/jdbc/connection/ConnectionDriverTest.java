@@ -7,7 +7,7 @@ package com.microsoft.sqlserver.jdbc.connection;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -42,9 +42,10 @@ import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
+
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class ConnectionDriverTest extends AbstractTest {
     // If no retry is done, the function should at least exit in 5 seconds
     static int threshHoldForNoRetryInMilliseconds = 5000;
@@ -164,8 +165,7 @@ public class ConnectionDriverTest extends AbstractTest {
      */
     @Test
     public void testConnectionEvents() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
-                TestResource.getResource("R_skipAzure"));
+        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -196,8 +196,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testConnectionPoolGetTwice() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
-                TestResource.getResource("R_skipAzure"));
+        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -210,7 +209,7 @@ public class ConnectionDriverTest extends AbstractTest {
         try (Connection con = pooledConnection.getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
             // raise a non severe exception and make sure that the connection is not closed.
-            stmt.executeUpdate("RAISERROR ('foo', 3,1) WITH LOG");
+            stmt.executeUpdate("RAISERROR ('foo', 3,1)");
             // not a serious error there should not be any errors.
             assertTrue(!myE.errorOccurred, TestResource.getResource("R_errorCalled"));
             // check to make sure that connection is not closed.
@@ -224,8 +223,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testConnectionClosed() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
-                TestResource.getResource("R_skipAzure"));
+        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerDataSource mds = new SQLServerDataSource();
         mds.setURL(connectionString);
@@ -303,8 +301,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testDeadConnection() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
-                TestResource.getResource("R_skipAzure"));
+        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         String tableName = RandomUtil.getIdentifier("ConnectionTestTable");
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager

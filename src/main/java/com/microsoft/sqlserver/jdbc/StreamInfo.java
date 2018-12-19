@@ -6,7 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 final class StreamInfo extends StreamPacket {
-    final StreamError msg = new StreamError();
+    final SQLServerError msg = new SQLServerError();
 
     StreamInfo() {
         super(TDS.TDS_MSG);
