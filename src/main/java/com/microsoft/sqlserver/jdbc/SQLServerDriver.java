@@ -559,7 +559,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             }
         }
     }
-    
+
     /*
      * Registers the driver with DriverManager. No-op if driver is already registered.
      */
@@ -569,7 +569,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             DriverManager.registerDriver(mssqlDriver);
         }
     }
-    
+
     /*
      * De-registers the driver with the DriverManager. No-op if the driver is not registered.
      */
@@ -579,7 +579,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             mssqlDriver = null;
         }
     }
-    
+
     /*
      * Checks whether the driver has been registered with the driver manager.
      */

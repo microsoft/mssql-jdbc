@@ -126,7 +126,7 @@ public abstract class AbstractTest {
             connection = null;
         }
     }
-    
+
     @BeforeEach
     public void registerDriver() throws Exception {
         if (!SQLServerDriver.isRegistered()) {
@@ -192,11 +192,11 @@ public abstract class AbstractTest {
             System.err.println("Some how could not invoke logging: " + e.getMessage());
         }
     }
-    
+
     public static boolean isSqlAzure() {
         return _isSqlAzure;
     }
-    
+
     public static boolean isSqlAzureDW() {
         return _isSqlAzureDW;
     }
@@ -213,7 +213,7 @@ public abstract class AbstractTest {
         if (_determinedSqlAzureOrSqlServer) {
             return;
         }
-        
+
         try (Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
             rs.next();

@@ -38,7 +38,7 @@ public class Activator implements BundleActivator {
         if (service != null) {
             service.unregister();
         }
-        
+
         if (SQLServerDriver.isRegistered()) {
             SQLServerDriver.deregister();
         }
