@@ -45,7 +45,7 @@ import microsoft.sql.DateTimeOffset;
 
 /*
  * This test suite tests all kinds of temporal data types for Katmai or later versions. It has tests for
- * date/time/datetime2/datetimeoffset data types. Also includes tests for new data type mappings in JDBC 4.1.
+ * date/time/datetime2/datetimeoffset data types. Also includes tests for data type mappings.
  */
 @RunWith(JUnitPlatform.class)
 public class KatmaiDataTypesTest extends AbstractTest {
@@ -138,29 +138,25 @@ public class KatmaiDataTypesTest extends AbstractTest {
             try (Statement stmt = conn.createStatement();
                     ResultSet rs = stmt.executeQuery("SELECT TOP 0 " + sqlCastExpression())) {
 
-                try {
-                    ResultSetMetaData metadata = rs.getMetaData();
+                ResultSetMetaData metadata = rs.getMetaData();
 
-                    assertEquals(metadata.getColumnType(1), sqlType.jdbcType,
-                            "getColumnType() of " + sqlCastExpression());
-                    assertEquals(metadata.getColumnTypeName(1), sqlType.toString(),
-                            "getColumnTypeName() of " + sqlCastExpression());
-                    assertEquals(metadata.getPrecision(1), precision, "getPrecision() of " + sqlCastExpression());
+                assertEquals(metadata.getColumnType(1), sqlType.jdbcType, "getColumnType() of " + sqlCastExpression());
+                assertEquals(metadata.getColumnTypeName(1), sqlType.toString(),
+                        "getColumnTypeName() of " + sqlCastExpression());
+                assertEquals(metadata.getPrecision(1), precision, "getPrecision() of " + sqlCastExpression());
 
-                    // Display size of temporal types is the precision per JDBC spec
-                    assertEquals(metadata.getColumnDisplaySize(1), precision,
-                            "getColumnDisplaySize() of " + sqlCastExpression());
-                    // Scale is interpreted as number of fractional seconds precision
-                    assertEquals(metadata.getScale(1), scale, "getScale() of " + sqlCastExpression());
-                    assertEquals(metadata.getColumnClassName(1), sqlType.className,
-                            "getColumnClassName() of " + sqlCastExpression());
-                    // Katmai temporal types are not signed
-                    assertEquals(metadata.isSigned(1), false, "isSigned() of " + sqlCastExpression());
+                // Display size of temporal types is the precision per JDBC spec
+                assertEquals(metadata.getColumnDisplaySize(1), precision,
+                        "getColumnDisplaySize() of " + sqlCastExpression());
+                // Scale is interpreted as number of fractional seconds precision
+                assertEquals(metadata.getScale(1), scale, "getScale() of " + sqlCastExpression());
+                assertEquals(metadata.getColumnClassName(1), sqlType.className,
+                        "getColumnClassName() of " + sqlCastExpression());
+                // Katmai temporal types are not signed
+                assertEquals(metadata.isSigned(1), false, "isSigned() of " + sqlCastExpression());
 
-                    // Katmai temporal types are searchable (i.e. usable in a WHERE clause)
-                    assertEquals(metadata.isSearchable(1), true, "isSearchable() of " + sqlCastExpression());
-
-                } finally {}
+                // Katmai temporal types are searchable (i.e. usable in a WHERE clause)
+                assertEquals(metadata.isSearchable(1), true, "isSearchable() of " + sqlCastExpression());
             }
         }
 

@@ -21,22 +21,25 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 /*
- * This test is for testing the setObject methods for the new data type mappings in JDBC 4.1 for java.math.BigInteger
+ * This test is for testing the setObject methods for the data type mappings in JDBC for java.math.BigInteger
  */
 @RunWith(JUnitPlatform.class)
 public class BigIntegerTest extends AbstractTest {
 
     enum TestType {
-        SETOBJECT_WITHTYPE, // This is to test conversions in Table B-5
-        SETOBJECT_WITHOUTTYPE, // This is to test conversions in Table B-4
+        SETOBJECT_WITHTYPE, // This is to test conversions with type
+        SETOBJECT_WITHOUTTYPE, // This is to test conversions without type
         SETNULL // This is to test setNull method
     };
 
     final static String tableName = RandomUtil.getIdentifier("BigIntegerTestTable");
     final static String escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
 
+    /*
+     * Test BigInteger conversions
+     */
     @Test
-    public void testJDBC41BigInteger() throws Exception {
+    public void testBigInteger() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
 
@@ -52,16 +55,16 @@ public class BigIntegerTest extends AbstractTest {
                 try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + escapedTableName
                         + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) SELECT * FROM " + escapedTableName + " where id = ?")) {
 
-                    // test that the driver converts the BigInteger values greater than LONG.MAX_VALUE and lesser than
-                    // LONG.MIN_VALUE correctly
+                    /*
+                     * test conversion of BigInteger values greater than LONG.MAX_VALUE and lesser than LONG.MIN_VALUE
+                     */
+
                     // A random value that is bigger than LONG.MAX_VALUE
                     BigInteger bigIntPos = new BigInteger("922337203685477580776767676");
                     // A random value that is smaller than LONG.MIN_VALUE
                     BigInteger bigIntNeg = new BigInteger("-922337203685477580776767676");
 
-                    // Test the setObject method for different types of BigInteger values. Since BigInteger is mapped to
-                    // JDBC
-                    // BIGINT, the max and min limits for
+                    // Test the setObject method for different types of BigInteger values
                     int row = 1;
                     testSetObject(escapedTableName, BigInteger.valueOf(Long.MAX_VALUE), row++, pstmt,
                             TestType.SETOBJECT_WITHTYPE);
@@ -128,15 +131,18 @@ public class BigIntegerTest extends AbstractTest {
 
             if ((0 > obj.compareTo(BigInteger.valueOf(Long.MIN_VALUE)))
                     || (0 < obj.compareTo(BigInteger.valueOf(Long.MAX_VALUE)))) {
-                // For the BigInteger values greater/less than Long limits test only the long data type.
-                // This test is here just to make sure the driver does not do anything wired when the value is
-                // bigger/smaller than JDBC BIGINT
+                /*
+                 * For the BigInteger values greater/less than Long limits test only the long data type. This tests when
+                 * the value is bigger/smaller than JDBC BIGINT
+                 */
                 assertEquals(rs.getString(1), Long.valueOf(obj.longValue()).toString());
-                assertEquals(rs.getLong(2), obj.longValue(), "getLong(greater/less than Long limits) mismatch");
-                // As CHAR is fixed length, rs.getString() returns a string of the size allocated in the database.
-                // Need to trim it for comparison.
-                assertEquals(rs.getString(8).trim(), Long.valueOf(obj.longValue()).toString());
+                assertEquals(rs.getLong(2), obj.longValue());
 
+                /*
+                 * As CHAR is fixed length, rs.getString() returns a string of the size allocated in the database. Need
+                 * to trim it for comparison.
+                 */
+                assertEquals(rs.getString(8).trim(), Long.valueOf(obj.longValue()).toString());
                 assertEquals(rs.getString(9), Long.valueOf(obj.longValue()).toString());
             } else {
                 assertEquals(rs.getString(1), obj.toString());
@@ -144,6 +150,7 @@ public class BigIntegerTest extends AbstractTest {
                 assertEquals(rs.getFloat(3), obj.floatValue());
                 assertEquals(rs.getDouble(4), obj.doubleValue());
                 assertEquals(rs.getDouble(5), obj.doubleValue());
+
                 if (obj.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) >= 0) {
                     assertEquals(rs.getInt(6), Integer.MAX_VALUE);
                 } else if (obj.compareTo(BigInteger.valueOf(Integer.MIN_VALUE)) <= 0) {
@@ -151,6 +158,7 @@ public class BigIntegerTest extends AbstractTest {
                 } else {
                     assertEquals(rs.getInt(6), obj.intValue());
                 }
+
                 if (obj.compareTo(BigInteger.valueOf(Short.MAX_VALUE)) >= 0) {
                     assertEquals(rs.getShort(7), Short.MAX_VALUE);
                 } else if (obj.compareTo(BigInteger.valueOf(Short.MIN_VALUE)) <= 0) {
@@ -171,6 +179,7 @@ public class BigIntegerTest extends AbstractTest {
         pstmt.setObject(3, obj, java.sql.Types.FLOAT);
         pstmt.setObject(4, obj, java.sql.Types.DOUBLE);
         pstmt.setObject(5, obj, java.sql.Types.NUMERIC);
+
         // Use Integer/Short limits instead of Long limits for the int/smallint column
         if (obj.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) >= 0) {
             pstmt.setObject(6, BigInteger.valueOf(Integer.MAX_VALUE), java.sql.Types.INTEGER);
@@ -179,6 +188,7 @@ public class BigIntegerTest extends AbstractTest {
         } else {
             pstmt.setObject(6, obj, java.sql.Types.INTEGER);
         }
+
         if (obj.compareTo(BigInteger.valueOf(Short.MAX_VALUE)) >= 0) {
             pstmt.setObject(7, BigInteger.valueOf(Short.MAX_VALUE), java.sql.Types.SMALLINT);
         } else if (obj.compareTo(BigInteger.valueOf(Short.MIN_VALUE)) <= 0) {
@@ -191,13 +201,16 @@ public class BigIntegerTest extends AbstractTest {
     }
 
     static void callSetObjectWithoutType(BigInteger obj, PreparedStatement pstmt) throws SQLException {
-        // Cannot send a long value to a column of type int/smallint (even if the long value is small enough to fit in
-        // those types)
+        /*
+         * Cannot send a long value to a column of type int/smallint (even if the long value is small enough to fit in
+         * those types)
+         */
         pstmt.setObject(1, obj);
         pstmt.setObject(2, obj);
         pstmt.setObject(3, obj);
         pstmt.setObject(4, obj);
         pstmt.setObject(5, obj);
+
         // Use Integer/Short limits instead of Long limits for the int/smallint column
         if (obj.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) >= 0) {
             pstmt.setObject(6, BigInteger.valueOf(Integer.MAX_VALUE));
@@ -206,6 +219,7 @@ public class BigIntegerTest extends AbstractTest {
         } else {
             pstmt.setObject(6, obj);
         }
+
         if (obj.compareTo(BigInteger.valueOf(Short.MAX_VALUE)) >= 0) {
             pstmt.setObject(7, BigInteger.valueOf(Short.MAX_VALUE));
         } else if (obj.compareTo(BigInteger.valueOf(Short.MIN_VALUE)) <= 0) {

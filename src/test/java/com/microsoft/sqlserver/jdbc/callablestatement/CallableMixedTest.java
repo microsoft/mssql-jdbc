@@ -59,9 +59,7 @@ public class CallableMixedTest extends AbstractTest {
                 // get results and a value
                 try (ResultSet rs = cstmt.executeQuery()) {
                     rs.next();
-
                     assertEquals(rs.getInt(1), 0);
-
                     assertEquals(cstmt.getInt((int) 5), -5372);
                 }
 
@@ -75,11 +73,8 @@ public class CallableMixedTest extends AbstractTest {
 
                 try (ResultSet rs = cstmt.executeQuery()) {
                     rs.next();
-
                     assertEquals(rs.getInt(1), 0);
-
                     assertEquals(cstmt.getInt((int) 1), -2147483648);
-
                     assertEquals(cstmt.getInt((int) 5), -5372);
                 }
             }
