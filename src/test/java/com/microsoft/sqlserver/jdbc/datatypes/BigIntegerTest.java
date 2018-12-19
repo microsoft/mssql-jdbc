@@ -124,7 +124,7 @@ public class BigIntegerTest extends AbstractTest {
                 for (int i = 1; 9 >= i; ++i) {
                     // Get the data first before calling rs.wasNull()
                     rs.getString(i);
-                    assertEquals(rs.wasNull(), true);
+                    assertEquals(true, rs.wasNull());
                 }
                 return;
             }
@@ -135,40 +135,40 @@ public class BigIntegerTest extends AbstractTest {
                  * For the BigInteger values greater/less than Long limits test only the long data type. This tests when
                  * the value is bigger/smaller than JDBC BIGINT
                  */
-                assertEquals(rs.getString(1), Long.valueOf(obj.longValue()).toString());
-                assertEquals(rs.getLong(2), obj.longValue());
+                assertEquals(Long.valueOf(obj.longValue()).toString(), rs.getString(1));
+                assertEquals(obj.longValue(), rs.getLong(2));
 
                 /*
                  * As CHAR is fixed length, rs.getString() returns a string of the size allocated in the database. Need
                  * to trim it for comparison.
                  */
-                assertEquals(rs.getString(8).trim(), Long.valueOf(obj.longValue()).toString());
-                assertEquals(rs.getString(9), Long.valueOf(obj.longValue()).toString());
+                assertEquals(Long.valueOf(obj.longValue()).toString(), rs.getString(8).trim());
+                assertEquals(Long.valueOf(obj.longValue()).toString(), rs.getString(9));
             } else {
-                assertEquals(rs.getString(1), obj.toString());
-                assertEquals(rs.getLong(2), obj.longValue());
-                assertEquals(rs.getFloat(3), obj.floatValue());
-                assertEquals(rs.getDouble(4), obj.doubleValue());
-                assertEquals(rs.getDouble(5), obj.doubleValue());
+                assertEquals(obj.toString(), rs.getString(1));
+                assertEquals(obj.longValue(), rs.getLong(2));
+                assertEquals(obj.floatValue(), rs.getFloat(3));
+                assertEquals(obj.doubleValue(), rs.getDouble(4));
+                assertEquals(obj.doubleValue(), rs.getDouble(5));
 
                 if (obj.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) >= 0) {
-                    assertEquals(rs.getInt(6), Integer.MAX_VALUE);
+                    assertEquals(Integer.MAX_VALUE, rs.getInt(6));
                 } else if (obj.compareTo(BigInteger.valueOf(Integer.MIN_VALUE)) <= 0) {
-                    assertEquals(rs.getInt(6), Integer.MIN_VALUE);
+                    assertEquals(Integer.MIN_VALUE, rs.getInt(6));
                 } else {
-                    assertEquals(rs.getInt(6), obj.intValue());
+                    assertEquals(obj.intValue(), rs.getInt(6));
                 }
 
                 if (obj.compareTo(BigInteger.valueOf(Short.MAX_VALUE)) >= 0) {
-                    assertEquals(rs.getShort(7), Short.MAX_VALUE);
+                    assertEquals(Short.MAX_VALUE, rs.getShort(7));
                 } else if (obj.compareTo(BigInteger.valueOf(Short.MIN_VALUE)) <= 0) {
-                    assertEquals(rs.getShort(7), Short.MIN_VALUE);
+                    assertEquals(Short.MIN_VALUE, rs.getShort(7));
                 } else {
-                    assertEquals(rs.getShort(7), obj.shortValue());
+                    assertEquals(obj.shortValue(), rs.getShort(7));
                 }
 
-                assertEquals(rs.getString(8).trim(), obj.toString());
-                assertEquals(rs.getString(9), obj.toString());
+                assertEquals(obj.toString(), rs.getString(8).trim());
+                assertEquals(obj.toString(), rs.getString(9));
             }
         }
     }

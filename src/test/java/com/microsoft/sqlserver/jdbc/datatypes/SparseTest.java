@@ -47,9 +47,9 @@ public class SparseTest extends AbstractTest {
 
                 try (ResultSet rs = stmt.executeQuery("Select * from   " + escapedTableName)) {
                     rs.next();
-                    assertEquals(rs.getString("col1023"), "yo");
-                    assertEquals(rs.getInt("col1"), 1);
-                    assertEquals(rs.getBytes("col2")[0], 0x45);
+                    assertEquals("yo", rs.getString("col1023"));
+                    assertEquals(1, rs.getInt("col1"));
+                    assertEquals(0x45, rs.getBytes("col2")[0]);
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {

@@ -30,7 +30,7 @@ import microsoft.sql.DateTimeOffset;
 
 @RunWith(JUnitPlatform.class)
 public class DTOSerialTest extends AbstractTest {
-    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS XXX");
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss XXX");
     private static String dateString;
 
     @Test
@@ -75,9 +75,9 @@ public class DTOSerialTest extends AbstractTest {
                 try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()))) {
                     SQLServerException ex = (SQLServerException) in.readObject();
 
-                    assertEquals(currException.toString(), ex.toString());
-                    assertEquals(currException.getSQLState(), ex.getSQLState());
-                    assertEquals(currException.getErrorCode(), ex.getErrorCode());
+                    assertEquals(ex.toString(), currException.toString());
+                    assertEquals(ex.getSQLState(), currException.getSQLState());
+                    assertEquals(ex.getErrorCode(), currException.getErrorCode());
                 }
             }
         }
@@ -183,7 +183,8 @@ public class DTOSerialTest extends AbstractTest {
 
         // check formatted date string
         String formattedDate = sdf.format(sdf.parse(initialStr));
-        assertEquals(formattedDate, dateString);
+
+        assertEquals(dateString, formattedDate);
 
         // check hydrated datetimeoffset
         assertEquals(initial, hydrated);

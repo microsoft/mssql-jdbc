@@ -59,8 +59,8 @@ public class CallableMixedTest extends AbstractTest {
                 // get results and a value
                 try (ResultSet rs = cstmt.executeQuery()) {
                     rs.next();
-                    assertEquals(rs.getInt(1), 0);
-                    assertEquals(cstmt.getInt((int) 5), -5372);
+                    assertEquals(0, rs.getInt(1));
+                    assertEquals(-5372, cstmt.getInt((int) 5));
                 }
 
                 // do nothing and reexecute
@@ -68,14 +68,14 @@ public class CallableMixedTest extends AbstractTest {
 
                 // get the param without getting the resultset
                 try (ResultSet rs = cstmt.executeQuery()) {
-                    assertEquals(cstmt.getInt((int) 1), -2147483648);
+                    assertEquals(-2147483648, cstmt.getInt((int) 1));
                 }
 
                 try (ResultSet rs = cstmt.executeQuery()) {
                     rs.next();
-                    assertEquals(rs.getInt(1), 0);
-                    assertEquals(cstmt.getInt((int) 1), -2147483648);
-                    assertEquals(cstmt.getInt((int) 5), -5372);
+                    assertEquals(0, rs.getInt(1));
+                    assertEquals(-2147483648, cstmt.getInt((int) 1));
+                    assertEquals(-5372, cstmt.getInt((int) 5));
                 }
             }
         } finally {
