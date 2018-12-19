@@ -6343,7 +6343,7 @@ final class TDSReader {
                 // if a timeout is configured with this object, add it to the timeout poller
                 int timeout = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
                 this.timeoutCommand = new TdsTimeoutCommand(timeout, this.command, this.con);
-                TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
+                this.con.setTimeoutCommand(timeoutCommand);
             }
         }
         // First, read the packet header.
@@ -6365,7 +6365,7 @@ final class TDSReader {
 
         // if execution was subject to timeout then stop timing
         if (this.timeoutCommand != null) {
-            TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
+            SQLServerTimeoutManager.releaseTimeoutCommand(this.timeoutCommand);
         }
         // Header size is a 2 byte unsigned short integer in big-endian order.
         int packetLength = Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_MESSAGE_LENGTH);
@@ -6990,6 +6990,7 @@ class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
     }
 }
 
+
 /**
  * TDSCommand encapsulates an interruptable TDS conversation.
  *
@@ -7527,8 +7528,8 @@ abstract class TDSCommand {
         // If command execution is subject to timeout then start timing until
         // the server returns the first response packet.
         if (queryTimeoutSeconds > 0) {
-            this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
-            TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
+            this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, tdsReader.getConnection());
+            tdsReader.getConnection().setTimeoutCommand(this.timeoutCommand);
         }
 
         if (logger.isLoggable(Level.FINEST))
@@ -7552,7 +7553,7 @@ abstract class TDSCommand {
             // If command execution was subject to timeout then stop timing as soon
             // as the server returns the first response packet or errors out.
             if (this.timeoutCommand != null) {
-                TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
+                SQLServerTimeoutManager.releaseTimeoutCommand(this.timeoutCommand);
             }
         }
 

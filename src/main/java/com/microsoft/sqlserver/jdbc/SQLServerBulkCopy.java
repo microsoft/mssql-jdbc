@@ -644,10 +644,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
     private void sendBulkLoadBCP() throws SQLServerException {
         final class InsertBulk extends TDSCommand {
-            InsertBulk() {
+            private final SQLServerConnection connection;
+
+            InsertBulk(SQLServerConnection connection) {
                 super("InsertBulk", 0, 0);
                 int timeoutSeconds = copyOptions.getBulkCopyTimeout();
-                timeoutCommand = timeoutSeconds > 0 ? new BulkTimeoutCommand(timeoutSeconds, this, null) : null;
+                timeoutCommand = timeoutSeconds > 0 ? new BulkTimeoutCommand(timeoutSeconds, this, connection) : null;
+                this.connection = connection;
             }
 
             final boolean doExecute() throws SQLServerException {
@@ -655,7 +658,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(this.toString() + ": Starting bulk timer...");
 
-                    TimeoutPoller.getTimeoutPoller().addTimeoutCommand(timeoutCommand);
+                    this.connection.setTimeoutCommand(timeoutCommand);
                 }
 
                 // doInsertBulk inserts the rows in one batch. It returns true if there are more rows in
@@ -683,14 +686,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(this.toString() + ": Stopping bulk timer...");
 
-                    TimeoutPoller.getTimeoutPoller().remove(timeoutCommand);
+                    SQLServerTimeoutManager.releaseTimeoutCommand(timeoutCommand);
                 }
 
                 return true;
             }
         }
 
-        connection.executeCommand(new InsertBulk());
+        connection.executeCommand(new InsertBulk(connection));
     }
 
     /**
@@ -1676,8 +1679,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
 
                 // Get destination metadata
-                rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                        + escapedDestinationTableName + " '");
+                rs = stmt.executeQueryInternal(
+                        "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
             }
 
             destColumnCount = rs.getMetaData().getColumnCount();

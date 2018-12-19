@@ -5,20 +5,28 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.atomic.AtomicInteger;
+
+
 /**
- * Abstract implementation of a command that can be timed out using the {@link TimeoutPoller}
+ * Abstract implementation of a command that can be timed out using the {@link SQLServerTimeoutManager}
  */
 abstract class TimeoutCommand<T> {
     private final long startTime;
     private final int timeout;
     private final T command;
     private final SQLServerConnection sqlServerConnection;
+    private ScheduledFuture<?> timeoutTask;
+    static AtomicInteger uniqueId = new AtomicInteger();
+    private final long id;
 
     TimeoutCommand(int timeout, T command, SQLServerConnection sqlServerConnection) {
         this.timeout = timeout;
         this.command = command;
         this.sqlServerConnection = sqlServerConnection;
         this.startTime = System.currentTimeMillis();
+        this.id = uniqueId.getAndIncrement();
     }
 
     public boolean canTimeout() {
@@ -32,6 +40,44 @@ abstract class TimeoutCommand<T> {
 
     public SQLServerConnection getSqlServerConnection() {
         return sqlServerConnection;
+    }
+
+    public int getTimeout() {
+        return timeout;
+    }
+
+    public boolean isTimeoutTaskComplete() {
+        return this.timeoutTask.isCancelled() || this.timeoutTask.isDone();
+    }
+
+    public void cancelTimeoutTask() {
+        this.timeoutTask.cancel(true);
+    }
+
+    public void setTimeoutTask(ScheduledFuture<?> timeoutTask) {
+        this.timeoutTask = timeoutTask;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + (int) (id ^ (id >>> 32));
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        TimeoutCommand other = (TimeoutCommand) obj;
+        if (id != other.id)
+            return false;
+        return true;
     }
 
     /**
