@@ -24,7 +24,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 public class TimeoutTest extends AbstractTest {
     private static final String SQL_SERVER_TIMEOUT_THREAD = "com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager";
     private static final String SQL_SERVER_TIMEOUT_TASK_THREAD = "com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager.TimeoutTaskWorker";
-
     @Test
     public void testBasicQueryTimeout() {
         boolean exceptionThrown = false;

@@ -657,7 +657,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 if (null != timeoutCommand) {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(this.toString() + ": Starting bulk timer...");
-
                     this.connection.setTimeoutCommand(timeoutCommand);
                 }
 
@@ -685,7 +684,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 if (null != timeoutCommand) {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(this.toString() + ": Stopping bulk timer...");
-
                     SQLServerTimeoutManager.releaseTimeoutCommand(timeoutCommand);
                 }
 
@@ -733,7 +731,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         // the driver will not sent AE information, so, we need to set Encryption bit flag to 0.
         if (null == srcColumnMetadata.get(srcColumnIndex).cryptoMeta
                 && null == destColumnMetadata.get(destColumnIndex).cryptoMeta
-                && true == copyOptions.isAllowEncryptedValueModifications()) {
+                && copyOptions.isAllowEncryptedValueModifications()) {
 
             // flags[1]>>3 & 0x01 is the encryption bit flag.
             // it is the 4th least significant bit in this byte, so minus 8 to set it to 0.
@@ -1442,15 +1440,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             }
         }
 
-        if (true == copyOptions.isCheckConstraints()) {
+        if (copyOptions.isCheckConstraints()) {
             bulkOptions.add("CHECK_CONSTRAINTS");
         }
 
-        if (true == copyOptions.isFireTriggers()) {
+        if (copyOptions.isFireTriggers()) {
             bulkOptions.add("FIRE_TRIGGERS");
         }
 
-        if (true == copyOptions.isKeepNulls()) {
+        if (copyOptions.isKeepNulls()) {
             bulkOptions.add("KEEP_NULLS");
         }
 
@@ -1458,11 +1456,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             bulkOptions.add("ROWS_PER_BATCH = " + copyOptions.getBatchSize());
         }
 
-        if (true == copyOptions.isTableLock()) {
+        if (copyOptions.isTableLock()) {
             bulkOptions.add("TABLOCK");
         }
 
-        if (true == copyOptions.isAllowEncryptedValueModifications()) {
+        if (copyOptions.isAllowEncryptedValueModifications()) {
             bulkOptions.add("ALLOW_ENCRYPTED_VALUE_MODIFICATIONS");
         }
 
