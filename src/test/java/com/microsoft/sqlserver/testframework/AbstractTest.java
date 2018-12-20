@@ -127,7 +127,7 @@ public abstract class AbstractTest {
     }
 
     @BeforeAll
-    public void registerDriver() throws Exception {
+    public static void registerDriver() throws Exception {
         SQLServerDriver.register();
     }
 
