@@ -76,7 +76,9 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
 
         this.keyStorePath = keyStoreLocation;
 
-        javaKeyStoreLogger.fine("Path of key store provider is set.");
+        if (javaKeyStoreLogger.isLoggable(java.util.logging.Level.FINE)) {
+            javaKeyStoreLogger.fine("Path of key store provider is set.");
+        }
 
         // Password can be null or empty, PKCS12 type allows that.
         if (null == keyStoreSecret) {
@@ -86,7 +88,9 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         this.keyStorePwd = new char[keyStoreSecret.length];
         System.arraycopy(keyStoreSecret, 0, this.keyStorePwd, 0, keyStoreSecret.length);
 
-        javaKeyStoreLogger.fine("Password for key store provider is set.");
+        if (javaKeyStoreLogger.isLoggable(java.util.logging.Level.FINE)) {
+            javaKeyStoreLogger.fine("Password for key store provider is set.");
+        }
 
         javaKeyStoreLogger.exiting(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(),
                 "SQLServerColumnEncryptionJavaKeyStoreProvider");

@@ -17,6 +17,7 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -33,6 +34,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 public class NativeMSSQLDataSourceTest extends AbstractTest {
 
     @Test
+    @Tag("AzureDWTest")
     public void testNativeMSSQLDataSource() throws SQLException {
         SQLServerXADataSource ds = new SQLServerXADataSource();
         ds.setLastUpdateCount(true);
@@ -40,6 +42,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
+    @Tag("AzureDWTest")
     public void testSerialization() throws IOException {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
                 ObjectOutput objectOutput = new ObjectOutputStream(outputStream)) {
@@ -52,6 +55,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
+    @Tag("AzureDWTest")
     public void testDSNormal() throws ClassNotFoundException, IOException, SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
@@ -74,6 +78,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
+    @Tag("AzureDWTest")
     public void testInterfaceWrapping() throws ClassNotFoundException, SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         assertEquals(true, ds.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));

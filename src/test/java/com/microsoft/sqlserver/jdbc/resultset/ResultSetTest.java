@@ -27,6 +27,7 @@ import java.time.LocalTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -254,6 +255,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetObjectAsLocalDateTime() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             TimeZone prevTimeZone = TimeZone.getDefault();
@@ -265,7 +267,7 @@ public class ResultSetTest extends AbstractTest {
             final String testValueDateTime = testValueDate + "T" + testValueTime;
 
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (id INT PRIMARY KEY, dt2 DATETIME2)");
+                    + " (id INT, dt2 DATETIME2)");
             stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (id, dt2) VALUES (1, '" + testValueDateTime + "')");
 
@@ -297,11 +299,12 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testResultSetWrapper() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
+                    + " (col1 int, col2 varchar(8000), col3 int identity(1,1))");
 
             try (ResultSet rs = stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
@@ -322,6 +325,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetterOnNull() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("select null")) {

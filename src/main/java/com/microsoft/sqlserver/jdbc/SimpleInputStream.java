@@ -24,7 +24,7 @@ abstract class BaseInputStream extends InputStream {
 
     // Flag indicating whether the stream consumes and discards data as it reads it
     final boolean isStreaming;
-
+    
     // Stated length of the payload
     int payloadLength;
 
@@ -48,7 +48,8 @@ abstract class BaseInputStream extends InputStream {
 
     final void setLoggingInfo(String info) {
         parentLoggingInfo = info;
-        logger.finer(toString());
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString());
     }
 
     int streamPos = 0;
@@ -80,7 +81,8 @@ abstract class BaseInputStream extends InputStream {
 
     void closeHelper() throws IOException {
         if (isAdaptive && null != dtv) {
-            logger.finer(toString() + " closing the adaptive stream.");
+            if (logger.isLoggable(java.util.logging.Level.FINER))
+                logger.finer(toString() + " closing the adaptive stream.");
             dtv.setPositionAfterStreamed(tdsReader);
         }
         currentMark = null;
@@ -151,7 +153,8 @@ final class SimpleInputStream extends BaseInputStream {
     public void close() throws IOException {
         if (null == tdsReader)
             return;
-        logger.finer(toString() + "Enter Closing SimpleInputStream.");
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + "Enter Closing SimpleInputStream.");
 
         // Discard the remainder of the stream, positioning the TDSReader
         // at the next item in the TDS response. Once the stream is closed,
@@ -159,7 +162,8 @@ final class SimpleInputStream extends BaseInputStream {
         skip(payloadLength - streamPos);
 
         closeHelper();
-        logger.finer(toString() + "Exit Closing SimpleInputStream.");
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + "Exit Closing SimpleInputStream.");
     }
 
     /**
@@ -186,7 +190,8 @@ final class SimpleInputStream extends BaseInputStream {
      */
     public long skip(long n) throws IOException {
         checkClosed();
-        logger.finer(toString() + " Skipping :" + n);
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + " Skipping :" + n);
         if (n < 0)
             return 0L;
         if (isEOS())
@@ -277,8 +282,9 @@ final class SimpleInputStream extends BaseInputStream {
      */
     public int read(byte b[], int offset, int maxBytes) throws IOException {
         checkClosed();
-        logger.finer(toString() + " Reading " + maxBytes + " from stream offset " + streamPos + " payload length "
-                + payloadLength);
+        if (logger.isLoggable(java.util.logging.Level.FINER))
+            logger.finer(toString() + " Reading " + maxBytes + " from stream offset " + streamPos + " payload length "
+                    + payloadLength);
 
         if (offset < 0 || maxBytes < 0 || offset + maxBytes > b.length)
             throw new IndexOutOfBoundsException();
