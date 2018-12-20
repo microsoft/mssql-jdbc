@@ -127,11 +127,9 @@ public abstract class AbstractTest {
         }
     }
 
-    @BeforeEach
+    @BeforeAll
     public void registerDriver() throws Exception {
-        if (!SQLServerDriver.isRegistered()) {
-            SQLServerDriver.register();
-        }
+        SQLServerDriver.register();
     }
 
     /**
