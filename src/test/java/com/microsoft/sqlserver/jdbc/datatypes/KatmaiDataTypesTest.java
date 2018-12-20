@@ -113,7 +113,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
             this.scale = fractionalSecondsDigits;
         }
 
-        /**
+        /*
          * For testing the setObject and setNull methods in PreparedStatement, use the verifySetter* methods. These
          * methods prepare a single statement and execute it for all different data types by calling the appropriate
          * 'setObject' methods for each data type and/or type conversion.
@@ -204,7 +204,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
             assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
 
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
 
                 stmt.executeUpdate("CREATE TABLE " + escapedTableName + " (col1 " + sqlTypeExpression
@@ -233,11 +232,11 @@ public class KatmaiDataTypesTest extends AbstractTest {
                         "INSERT INTO " + escapedTableName + " VALUES (?) SELECT * FROM " + escapedTableName,
                         ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
                     verifySetters(ps);
-                    // Verify setObject function for the new mapping in JDBC41 (java.util.Date to TIMESTAMP)
+                    // Verify setObject function for the mapping java.util.Date to TIMESTAMP
                     stmt.executeUpdate("TRUNCATE TABLE " + escapedTableName);
 
                     verifySettersUtilDate(ps);
-                    // Verify setObject function for the new mapping in JDBC41 (java.util.Calendar to TIMESTAMP)
+                    // Verify setObject function for the mapping java.util.Calendar to TIMESTAMP
                     stmt.executeUpdate("TRUNCATE TABLE " + escapedTableName);
                     verifySettersCalendar(ps);
                 } finally {
@@ -301,10 +300,10 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.setDate(1, expected);
             ps.execute();
             ps.getMoreResults();
-            ResultSet rs = ps.getResultSet();
-            rs.next();
-
-            assertEquals(expected, rs.getDate(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                rs.next();
+                assertEquals(expected, rs.getDate(1));
+            }
         }
 
         void verifySettersUtilDate(PreparedStatement ps) throws Exception {
@@ -312,55 +311,59 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.setObject(1, expectedUtilDate());
             ps.execute();
             ps.getMoreResults();
-            ResultSet rs = ps.getResultSet();
-            rs.next();
-            assertEquals(expected, rs.getDate(1));
-            assertEquals(expectedUtilDate(), (java.util.Date) rs.getObject(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                rs.next();
+                assertEquals(expected, rs.getDate(1));
+                assertEquals(expectedUtilDate(), (java.util.Date) rs.getObject(1));
+            }
 
-            // Test the additional conversions introduced in JDBC41 for types setters
             // Test datetime2 column with target type TIMESTAMP
             ps.setObject(1, expectedUtilDate(), java.sql.Types.DATE);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the first row
-            rs.next();
-            // Go to the row just inserted
-            rs.relative(++currentRow);
-            assertEquals(expected, rs.getDate(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the first row
+                rs.next();
+                // Go to the row just inserted
+                rs.relative(++currentRow);
+                assertEquals(expected, rs.getDate(1));
+            }
 
             ps.setObject(1, expectedUtilDate(), java.sql.Types.TIMESTAMP);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the first row
-            rs.next();
-            // Go to the row just inserted
-            rs.relative(++currentRow);
-            assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the first row
+                rs.next();
+                // Go to the row just inserted
+                rs.relative(++currentRow);
+                assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            }
 
             // Test the setNull() methods for different data type conversions
             ps.setNull(1, java.sql.Types.DATE);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the next row
-            rs.next();
-            rs.relative(++currentRow);
-            // Read the column, first before calling rs.wasNull()
-            rs.getTimestamp(1);
-            assertEquals(true, rs.wasNull());
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the next row
+                rs.next();
+                rs.relative(++currentRow);
+                // Read the column, first before calling rs.wasNull()
+                rs.getTimestamp(1);
+                assertEquals(true, rs.wasNull());
+            }
 
             ps.setNull(1, java.sql.Types.TIMESTAMP);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the next row
-            rs.next();
-            rs.relative(++currentRow);
-            // Read the column, first before calling rs.wasNull()
-            rs.getTimestamp(1);
-            assertEquals(true, rs.wasNull());
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the next row
+                rs.next();
+                rs.relative(++currentRow);
+                // Read the column, first before calling rs.wasNull()
+                rs.getTimestamp(1);
+                assertEquals(true, rs.wasNull());
+            }
         }
 
         void verifySettersCalendar(PreparedStatement ps) throws Exception {
@@ -368,33 +371,33 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.setObject(1, expectedCalendar());
             ps.execute();
             ps.getMoreResults();
-            ResultSet rs = ps.getResultSet();
-            rs.next();
-            assertEquals(expected, rs.getDate(1));
-            // Cannot test rs.getObject for the Calendar object type, as none of Time, Timestamp, Date
-            // or java.util.Date can be cast to a calendar
+            try (ResultSet rs = ps.getResultSet()) {
+                rs.next();
+                assertEquals(expected, rs.getDate(1));
+            }
 
-            // Test the additional conversions introduced in JDBC41 for types setters
-            // Test datetime2 column with target type TIMESTAMP
+            // test datetime2 column with target type TIMESTAMP
             ps.setObject(1, expectedCalendar(), java.sql.Types.DATE);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the first row
-            rs.next();
-            // Go to the row just inserted
-            rs.relative(++currentRow);
-            assertEquals(expected, rs.getDate(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the first row
+                rs.next();
+                // Go to the row just inserted
+                rs.relative(++currentRow);
+                assertEquals(expected, rs.getDate(1));
+            }
 
             ps.setObject(1, expectedCalendar(), java.sql.Types.TIMESTAMP);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the first row
-            rs.next();
-            // Go to the row just inserted
-            rs.relative(++currentRow);
-            assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the first row
+                rs.next();
+                // Go to the row just inserted
+                rs.relative(++currentRow);
+                assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            }
         }
 
         void verifyCSGetters(CallableStatement cs) throws Exception {
@@ -463,7 +466,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
             cal.set(Calendar.MILLISECOND, (nanos + 500000) / 1000000);
 
             Timestamp timestamp = new Timestamp(cal.getTimeInMillis());
-
             return timestamp;
         }
 
@@ -504,10 +506,10 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.setTime(1, expectedTime());
             ps.execute();
             ps.getMoreResults();
-            ResultSet rs = ps.getResultSet();
-            rs.next();
-
-            assertEquals(expectedTime(), rs.getTime(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                rs.next();
+                assertEquals(expectedTime(), rs.getTime(1));
+            }
         }
 
         void verifySettersUtilDate(PreparedStatement ps) throws Exception {
@@ -515,57 +517,60 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.setObject(1, expectedUtilDate());
             ps.execute();
             ps.getMoreResults();
-            ResultSet rs = ps.getResultSet();
-            rs.next();
-            assertEquals(expectedTime(), rs.getTime(1));
-            assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
-            assertEquals(expectedUtilDate(), (java.util.Date) rs.getObject(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                rs.next();
+                assertEquals(expectedTime(), rs.getTime(1));
+                assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+                assertEquals(expectedUtilDate(), (java.util.Date) rs.getObject(1));
+            }
 
-            // Test the additional conversions introduced in JDBC41 for types setters
             // Test datetime2 column with target type TIMESTAMP
             ps.setObject(1, expectedUtilDate(), java.sql.Types.TIME);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the first row
-            rs.next();
-            // Go to the row just inserted
-            rs.relative(++currentRow);
-            assertEquals(expectedTime(), rs.getTime(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the first row
+                rs.next();
+                // Go to the row just inserted
+                rs.relative(++currentRow);
+                assertEquals(expectedTime(), rs.getTime(1));
+            }
 
             ps.setObject(1, expectedUtilDate(), java.sql.Types.TIMESTAMP);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the first row
-            rs.next();
-            // Go to the row just inserted
-            rs.relative(++currentRow);
-            assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the first row
+                rs.next();
+                // Go to the row just inserted
+                rs.relative(++currentRow);
+                assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            }
 
             // Test the setNull() methods for different data type conversions
             ps.setNull(1, java.sql.Types.TIME);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the next row
-            rs.next();
-            rs.relative(++currentRow);
-            // Read the column, first before calling rs.wasNull()
-            rs.getTimestamp(1);
-            assertEquals(true, rs.wasNull());
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the next row
+                rs.next();
+                rs.relative(++currentRow);
+                // Read the column, first before calling rs.wasNull()
+                rs.getTimestamp(1);
+                assertEquals(true, rs.wasNull());
+            }
 
             ps.setNull(1, java.sql.Types.TIMESTAMP);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the next row
-            rs.next();
-            rs.relative(++currentRow);
-            // Read the column, first before calling rs.wasNull()
-            rs.getTimestamp(1);
-            assertEquals(true, rs.wasNull());
-
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the next row
+                rs.next();
+                rs.relative(++currentRow);
+                // Read the column, first before calling rs.wasNull()
+                rs.getTimestamp(1);
+                assertEquals(true, rs.wasNull());
+            }
         }
 
         void verifySettersCalendar(PreparedStatement ps) throws Exception {
@@ -573,35 +578,34 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.setObject(1, expectedCalendar());
             ps.execute();
             ps.getMoreResults();
-            ResultSet rs = ps.getResultSet();
-            rs.next();
-            assertEquals(expectedTime(), rs.getTime(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                rs.next();
+                assertEquals(expectedTime(), rs.getTime(1));
+                assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            }
 
-            assertEquals(rs.getTimestamp(1), expectedTimestampMillisPrecision());
-            // Cannot test rs.getObject for the Calendar object type, as none of Time, Timestamp, Date
-            // or java.util.Date can be cast to a calendar
-
-            // Test the additional conversions introduced in JDBC41 for types setters
-            // Test datetime2 column with target type TIMESTAMP
+            // test datetime2 column with target type TIMESTAMP
             ps.setObject(1, expectedCalendar(), java.sql.Types.TIME);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the first row
-            rs.next();
-            // Go to the row just inserted
-            rs.relative(++currentRow);
-            assertEquals(expectedTime(), rs.getTime(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the first row
+                rs.next();
+                // Go to the row just inserted
+                rs.relative(++currentRow);
+                assertEquals(expectedTime(), rs.getTime(1));
+            }
 
             ps.setObject(1, expectedCalendar(), java.sql.Types.TIMESTAMP);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the first row
-            rs.next();
-            // Go to the row just inserted
-            rs.relative(++currentRow);
-            assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the first row
+                rs.next();
+                // Go to the row just inserted
+                rs.relative(++currentRow);
+                assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            }
         }
 
         void verifyCSGetters(CallableStatement cs) throws Exception {
@@ -695,9 +699,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
         private Timestamp expectedTimestampMillisPrecision() {
             Timestamp timestamp = new Timestamp(utcMillis);
-            // Cannot set the nanos to 0, as per doc " the fractional seconds are stored in the nanos field of the
-            // Timestamp object."
-            // timestamp.setNanos(0);
             return timestamp;
         }
 
@@ -719,12 +720,9 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
 
         void verifyRSUpdaters(ResultSet rs) throws Exception {
-            // Unlike PreparedStatement.setTimestamp(), there is no ResultSet.updateTimestamp()
-            // that takes a Calendar argument for passing in the time zone. ResultSet.updateTimestamp()
-            // always uses the VM default time zone. So we have to temporarily change it while doing
-            // the update.
             TimeZone tzDefault = TimeZone.getDefault();
             try {
+                // temporary change default time zone while doing the update
                 TimeZone.setDefault(tz);
 
                 // Update the timestamp value with this value's time zone (set as the VM default above)
@@ -738,26 +736,29 @@ public class KatmaiDataTypesTest extends AbstractTest {
                 TimeZone.setDefault(tzDefault);
             }
 
-            // Verify the update (after restoring the default time zone) using the getTimestamp
-            // variant that takes a time zone argument (as a Calendar)
+            /*
+             * Verify the update (after restoring the default time zone) using the getTimestamp variant that takes a
+             * time zone argument (as a Calendar)
+             */
             assertEquals(expectedTimestamp(), rs.getTimestamp(1, Calendar.getInstance(tz)));
         }
 
         void verifySetters(PreparedStatement ps) throws Exception {
-            // Verify PreparedStatement.setTimestamp with default time zone first.
-            // Temporarily change the VM default time zone as in the ResultSet verifier.
             TimeZone tzDefault = TimeZone.getDefault();
             try {
+                // temporary change default time zone
                 TimeZone.setDefault(tz);
 
                 ps.setTimestamp(1, expectedTimestamp());
                 ps.execute();
                 ps.getMoreResults();
-                ResultSet rs = ps.getResultSet();
-                rs.next();
+                try (ResultSet rs = ps.getResultSet()) {
+                    rs.next();
 
-                assertEquals(expectedTimestamp(), rs.getTimestamp(1));
+                    assertEquals(expectedTimestamp(), rs.getTimestamp(1));
+                }
             } finally {
+                // Restore the original default time zone
                 TimeZone.setDefault(tzDefault);
             }
 
@@ -765,10 +766,10 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.setTimestamp(1, expectedTimestamp(), Calendar.getInstance(tz));
             ps.execute();
             ps.getMoreResults();
-            ResultSet rs = ps.getResultSet();
-            rs.next();
-
-            assertEquals(expectedTimestamp(), rs.getTimestamp(1, Calendar.getInstance(tz)));
+            try (ResultSet rs = ps.getResultSet()) {
+                rs.next();
+                assertEquals(expectedTimestamp(), rs.getTimestamp(1, Calendar.getInstance(tz)));
+            }
         }
 
         void verifySettersUtilDate(PreparedStatement ps) throws Exception {
@@ -776,55 +777,59 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.setObject(1, expectedUtilDate());
             ps.execute();
             ps.getMoreResults();
-            ResultSet rs = ps.getResultSet();
-            rs.next();
-            assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
-            assertEquals(expectedUtilDate(), (java.util.Date) rs.getObject(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                rs.next();
+                assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+                assertEquals(expectedUtilDate(), (java.util.Date) rs.getObject(1));
+            }
 
-            // Test the additional conversions introduced in JDBC41 for types setters
             // Test datetime2 column with target type TIMESTAMP
             ps.setObject(1, expectedUtilDate(), java.sql.Types.TIMESTAMP);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the next row
-            rs.next();
-            rs.relative(++currentRow);
-            assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the next row
+                rs.next();
+                rs.relative(++currentRow);
+                assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            }
 
             // Test the setNull() methods for different data type conversions
             ps.setNull(1, java.sql.Types.TIME);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the next row
-            rs.next();
-            rs.relative(++currentRow);
-            // Read the column, first before calling rs.wasNull()
-            rs.getTimestamp(1);
-            assertEquals(true, rs.wasNull());
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the next row
+                rs.next();
+                rs.relative(++currentRow);
+                // Read the column, first before calling rs.wasNull()
+                rs.getTimestamp(1);
+                assertEquals(true, rs.wasNull());
+            }
 
             ps.setNull(1, java.sql.Types.DATE);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the next row
-            rs.next();
-            rs.relative(++currentRow);
-            // Read the column, first before calling rs.wasNull()
-            rs.getTimestamp(1);
-            assertEquals(true, rs.wasNull());
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the next row
+                rs.next();
+                rs.relative(++currentRow);
+                // Read the column, first before calling rs.wasNull()
+                rs.getTimestamp(1);
+                assertEquals(true, rs.wasNull());
+            }
 
             ps.setNull(1, java.sql.Types.TIMESTAMP);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the next row
-            rs.next();
-            rs.relative(++currentRow);
-            // Read the column, first before calling rs.wasNull()
-            rs.getTimestamp(1);
-            assertEquals(true, rs.wasNull());
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the next row
+                rs.next();
+                rs.relative(++currentRow);
+                // Read the column, first before calling rs.wasNull()
+                rs.getTimestamp(1);
+                assertEquals(true, rs.wasNull());
+            }
         }
 
         void verifySettersCalendar(PreparedStatement ps) throws Exception {
@@ -832,22 +837,21 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ps.setObject(1, expectedCalendar());
             ps.execute();
             ps.getMoreResults();
-            ResultSet rs = ps.getResultSet();
-            rs.next();
-            assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
-            // Cannot test rs.getObject for the Calendar object type, as none of Time, Timestamp, Date
-            // or java.util.Date can be cast to a calendar
+            try (ResultSet rs = ps.getResultSet()) {
+                rs.next();
+                assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            }
 
-            // Test the additional conversions introduced in JDBC41 for types setters
             // Test datetime2 column with target type TIMESTAMP
             ps.setObject(1, expectedCalendar(), java.sql.Types.TIMESTAMP);
             ps.execute();
             ps.getMoreResults();
-            rs = ps.getResultSet();
-            // Go to the next row
-            rs.next();
-            rs.relative(++currentRow);
-            assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                // Go to the next row
+                rs.next();
+                rs.relative(++currentRow);
+                assertEquals(expectedTimestampMillisPrecision(), rs.getTimestamp(1));
+            }
         }
 
         void verifyCSGetters(CallableStatement cs) throws Exception {
@@ -946,33 +950,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
             return new java.sql.Time(cal.getTimeInMillis());
         }
 
-        private Timestamp expectedTimestamp() {
-            Calendar cal = Calendar.getInstance(new SimpleTimeZone(1000 * 60 * dto.getMinutesOffset(), ""), Locale.US);
-            cal.set(Calendar.ZONE_OFFSET, 1000 * 60 * dto.getMinutesOffset());
-            cal.setTimeInMillis(dto.getTimestamp().getTime());
-            if (dto.getTimestamp().getNanos() % 1000000 >= 500000)
-                cal.add(Calendar.MILLISECOND, 1);
-            return new Timestamp(cal.getTimeInMillis());
-        }
-
-        private java.util.Date expectedUtilDate() {
-            Calendar cal = Calendar.getInstance(new SimpleTimeZone(1000 * 60 * dto.getMinutesOffset(), ""), Locale.US);
-            cal.set(Calendar.ZONE_OFFSET, 1000 * 60 * dto.getMinutesOffset());
-            cal.setTimeInMillis(dto.getTimestamp().getTime());
-            if (dto.getTimestamp().getNanos() % 1000000 >= 500000)
-                cal.add(Calendar.MILLISECOND, 1);
-            return new java.util.Date(cal.getTimeInMillis());
-        }
-
-        private java.util.Calendar expectedCalendar() {
-            Calendar cal = Calendar.getInstance(new SimpleTimeZone(1000 * 60 * dto.getMinutesOffset(), ""), Locale.US);
-            cal.set(Calendar.ZONE_OFFSET, 1000 * 60 * dto.getMinutesOffset());
-            cal.setTimeInMillis(dto.getTimestamp().getTime());
-            if (dto.getTimestamp().getNanos() % 1000000 >= 500000)
-                cal.add(Calendar.MILLISECOND, 1);
-            return cal;
-        }
-
         void verifyRSGetters(ResultSet rs) throws Exception {
             assertEquals(expectedDate(), rs.getDate(1));
             assertEquals(expectedTime(), rs.getTime(1));
@@ -992,10 +969,10 @@ public class KatmaiDataTypesTest extends AbstractTest {
             ((SQLServerPreparedStatement) ps).setDateTimeOffset(1, dto);
             ps.execute();
             ps.getMoreResults();
-            ResultSet rs = ps.getResultSet();
-            rs.next();
-
-            assertEquals(dto, ((SQLServerResultSet) rs).getDateTimeOffset(1));
+            try (ResultSet rs = ps.getResultSet()) {
+                rs.next();
+                assertEquals(dto, ((SQLServerResultSet) rs).getDateTimeOffset(1));
+            }
         }
 
         void verifySettersUtilDate(PreparedStatement ps) throws Exception {
@@ -1019,7 +996,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
             cs.registerOutParameter(2, microsoft.sql.Types.DATETIMEOFFSET);
             cs.execute();
             assertEquals(dto, ((SQLServerCallableStatement) cs).getDateTimeOffset(2));
-
             assertEquals(dto, cs.getObject(2));
         }
     }
@@ -1045,9 +1021,10 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
         PRE_CUTOVER(new DateValue("1582-10-04")),
 
-        // Dates in the Gregorian cutover date range appear as 10 days later than what they should.
-        // This behavior is consistent with other JDBC drivers, such as IBM's:
-        // http://publib.boulder.ibm.com/infocenter/dzichelp/v2r2/index.jsp?topic=/com.ibm.db2.doc.java/com.ibm.db2.luw.apdv.java.doc/doc/r0053436.htm
+        /*
+         * Dates in the Gregorian cutover date range appear as 10 days later than what they should. This behavior is
+         * consistent with other JDBC drivers, such as IBM
+         */
         CUTOVER_START(new DateValue("1582-10-05")),
 
         CUTOVER_END(new DateValue("1582-10-14")),
@@ -1060,9 +1037,9 @@ public class KatmaiDataTypesTest extends AbstractTest {
         // First "fast path" date
         POST_CUTOVER_PLUS_2(new DateValue("1582-10-17")),
 
-        // VSTS 403522
-        // Post-cutover date requiring preservation of "wall calendar" date
-        // in computing Calendar.DAY_OF_YEAR.
+        /*
+         * Post-cutover date requiring preservation of "wall calendar" date in computing Calendar.DAY_OF_YEAR
+         */
         POST_CUTOVER_NOVEMBER(new DateTime2Value("1582-11-15 15:07:09.0810000")),
 
         A_RECENT_DATE(new DateValue("2009-10-20")),
@@ -1124,9 +1101,8 @@ public class KatmaiDataTypesTest extends AbstractTest {
         } ;
     }
 
-    /**
-     * VSTS 411537 - CS.setObject(timestamp, TIME)/registerOutParam(TIME) on time backend type seems to ignore
-     * sendTimeAsDatetime knob.
+    /*
+     * test CS.setObject(timestamp, TIME)/registerOutParam(TIME) with sendTimeAsDatetime
      */
     public void testSendTimestampAsTimeAsDatetime() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
@@ -1137,13 +1113,14 @@ public class KatmaiDataTypesTest extends AbstractTest {
 
                 try (CallableStatement cs = conn.prepareCall("{call " + escapedProcName + "(?,?)}")) {
 
-                    // Set up a timestamp with a time component that is the last millisecond of the day...
+                    // Set up a timestamp with a time component that is the last millisecond of the day
                     Timestamp ts = Timestamp.valueOf("2010-02-15 23:59:59.999");
 
-                    // ... and send that timestamp to the server using the TIME SQL type rather than TIMESTAMP.
-                    // If the driver is doing the right thing, it strips the date portion and, because
-                    // sendTimeAsDatetime=true, rounds the resulting time value to midnight because it should
-                    // be sending a DATETIME which has only 1/300s accuracy.
+                    /*
+                     * send the timestamp to the server using the TIME SQL type rather than TIMESTAMP. The driver will
+                     * strip the date portion and, because sendTimeAsDatetime=true, round the resulting time value to
+                     * midnight because it should be sending a DATETIME which has only 1/300s accuracy
+                     */
                     cs.setObject(1, ts, java.sql.Types.TIME);
                     cs.registerOutParameter(2, java.sql.Types.TIME);
                     cs.execute();
@@ -1152,7 +1129,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     java.sql.Time timeOut = cs.getTime(2);
                     Timestamp tsOut = new Timestamp(timeOut.getTime());
                     assertEquals("1970-01-01 00:00:00.0", tsOut.toString());
-
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
@@ -1162,8 +1138,10 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
-    // 507919 - Sending Timestamp to the server via an updater does not result in the same behavior as a setter wrt
-    // double-rounding of fractional seconds
+    /*
+     * test sending Timestamp to the server via an updater does not result in the same behavior as a setter wrt
+     * double-rounding of fractional seconds
+     */
     public void testDoubleRounding() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
 
@@ -1226,20 +1204,18 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
-    /**
+    /*
      * Tests "fail fast" SQLException path when a Japanese imperial calendar is used with values representing the first
-     * year of an imperial era.
-     *
-     * See for more details: http://java.sun.com/javase/6/docs/technotes/guides/intl/calendar.doc.html
+     * year of an imperial era. See for more details:
+     * http://java.sun.com/javase/6/docs/technotes/guides/intl/calendar.doc.html
      */
     public void testWithJapaneseImperialCalendar() throws Exception {
-        // From http://java.sun.com/javase/6/docs/api/java/util/Locale.html :
-        // "Note: When you ask for a resource for a particular locale,
-        // you get back the best available match, not necessarily precisely what you asked for.
-        // For more information, look at ResourceBundle."
-        //
-        // Japanese Imperial locale does not exist with some VMs. In these VMs, Locale.US is
-        // substituted as "best available match".
+        /*
+         * From http://java.sun.com/javase/6/docs/api/java/util/Locale.html : "Note: When you ask for a resource for a
+         * particular locale, you get back the best available match, not necessarily precisely what you asked for. For
+         * more information, look at ResourceBundle." Japanese Imperial locale does not exist with some VMs. In these
+         * VMs, Locale.US is substituted as "best available match".
+         */
         Locale japaneseImperialLocale = new Locale("ja", "JP", "JP");
         Calendar japaneseImperialCalendar = Calendar.getInstance(japaneseImperialLocale);
 
@@ -1264,8 +1240,10 @@ public class KatmaiDataTypesTest extends AbstractTest {
             try (PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR(40))")) {
                 Timestamp ts;
 
-                // Set second day of first year of Taisho era (1912 Gregorian)
-                // Note: Taisho era began July 30, 1912 Gregorian; second day of that year was July 31.
+                /*
+                 * Set second day of first year of Taisho era (1912 Gregorian) Note: Taisho era began July 30, 1912
+                 * Gregorian; second day of that year was July 31.
+                 */
                 japaneseImperialCalendar.clear();
                 japaneseImperialCalendar.set(Calendar.ERA, 2); // Taisho -> ERA 2
                 japaneseImperialCalendar.set(Calendar.YEAR, 1);
@@ -1365,21 +1343,26 @@ public class KatmaiDataTypesTest extends AbstractTest {
             // Test setter conversions
             try (PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR(40))")) {
 
-                // Need to use the following constructor for running against IBM JVM. Here, year should be year-1900,
-                // month
-                // is from 0-11.
+                /*
+                 * Need to use the following constructor for running against IBM JVM. Here, year should be year-1900, //
+                 * month // is from 0-11.
+                 */
                 Timestamp ts = new Timestamp(System.currentTimeMillis());
 
-                // Test PreparedStatement with Timestamp
-                // Value sent as DATETIME2; result should have 7 digits of subsecond precision)
+                /*
+                 * Test PreparedStatement with Timestamp Value sent as DATETIME2; result should have 7 digits of
+                 * subsecond precision)
+                 */
                 ps.setTimestamp(1, ts);
                 try (ResultSet rs = ps.executeQuery()) {
                     rs.next();
                     assertEquals(tsFormat.format(ts), rs.getString(1));
                 }
 
-                // Test PreparedStatement with Time
-                // Value sent as DATETIME w/Unix Epoch as base date when sendTimeAsDatetime=true
+                /*
+                 * Test PreparedStatement with Time Value sent as DATETIME w/Unix Epoch as base date when
+                 * sendTimeAsDatetime=true
+                 */
                 Time time = new Time(ts.getTime());
                 ps.setTime(1, time);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -1425,7 +1408,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
-    // DCR 393826 - DCR Need base date compatibility for Time to DATETIMEx conversions with 2.0 driver
+    // test base date compatibility for Time to DATETIMEx conversions
     @Test
     public void testBaseDate() throws Exception {
         Timestamp ts;
@@ -1457,8 +1440,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
-    // VSTS 393831 - setTimestamp to DATETIMEOFFSET must yield a value in local time with UTC time zone offset
-    // (+00:00)
+    // test setTimestamp to DATETIMEOFFSET yields a value in local time with UTC time zone offset (+00:00)
     @Test
     public void testTimestampToDateTimeOffset() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString);
@@ -1473,9 +1455,10 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
-    // VSTS 400431 - PS.setObject() on a datetime2 with values on or after 0700-02-29 have a value one day ahead
-    // stored
-    // in the server
+    /*
+     * test PS.setObject() on a datetime2 with values on or after 0700-02-29 have a value one day ahead stored in the
+     * server
+     */
     @Test
     public void testJulianLeapYear() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
@@ -1538,12 +1521,12 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
-    // VSTS 393831 - setTimestamp to DATETIMEOFFSET must yield a value in local time with UTC time zone offset
-    // (+00:00)
-    //
-    // In this case, verify that SELECT with a WHERE clause doesn't fail due to mapping the Timestamp value to a
-    // SQL Server type that does not compare equal. For example, a DATETIMEOFFSET and DATETIME only compare equal
-    // if the DATETIMEOFFSET offset is 0 (UTC).
+    /*
+     * setTimestamp to DATETIMEOFFSET yields a value in local time with UTC time zone offset (+00:00) In this case,
+     * verify that SELECT with a WHERE clause does not fail due to mapping the Timestamp value to a SQL Server type that
+     * does not compare equal. For example, a DATETIMEOFFSET and DATETIME only compare equal if the DATETIMEOFFSET
+     * offset is 0 (UTC).
+     */
     @Test
     public void testTimestampToDateTime() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString); PreparedStatement ps = conn
@@ -1555,9 +1538,6 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
-    // testUpdateMisc
-    //
-    // Haphazard collection of bugs that popped up during unit testing (i.e. regression tests)
     @Test
     public void testUpdateMisc() throws Exception {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
@@ -1656,8 +1636,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     rs.updateRow();
                     assertEquals("6289-04-22 05:13:57.677", rs.getTimestamp(2).toString());
 
-                    // Update datetime with rounding-induced overflow from Time
-                    // (should roll date part to 1/2/1970)
+                    // Update datetime with rounding-induced overflow from Time (should roll date part to 1/2/1970)
                     ts = Timestamp.valueOf("2010-01-18 23:59:59.999");
                     rs.updateTime(2, new java.sql.Time(ts.getTime()));
                     rs.updateRow();

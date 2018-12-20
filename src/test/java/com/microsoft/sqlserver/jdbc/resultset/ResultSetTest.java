@@ -267,8 +267,8 @@ public class ResultSetTest extends AbstractTest {
             final String testValueTime = "02:00:00.1234567";
             final String testValueDateTime = testValueDate + "T" + testValueTime;
 
-            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (id INT, dt2 DATETIME2)");
+            stmt.executeUpdate(
+                    "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id INT, dt2 DATETIME2)");
             stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (id, dt2) VALUES (1, '" + testValueDateTime + "')");
 

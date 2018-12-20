@@ -52,7 +52,6 @@ public class CallableMixedTest extends AbstractTest {
 
                 // Test OUT param re-registration
                 cstmt.registerOutParameter((int) 5, java.sql.Types.BINARY);
-
                 cstmt.registerOutParameter((int) 5, (int) 5);
                 cstmt.setObject((int) 4, Short.valueOf("-5372"), (int) 5);
 
@@ -62,9 +61,6 @@ public class CallableMixedTest extends AbstractTest {
                     assertEquals(0, rs.getInt(1));
                     assertEquals(-5372, cstmt.getInt((int) 5));
                 }
-
-                // do nothing and reexecute
-                try (ResultSet rs = cstmt.executeQuery()) {}
 
                 // get the param without getting the resultset
                 try (ResultSet rs = cstmt.executeQuery()) {

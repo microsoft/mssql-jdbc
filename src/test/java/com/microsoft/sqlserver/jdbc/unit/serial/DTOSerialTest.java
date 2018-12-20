@@ -166,7 +166,7 @@ public class DTOSerialTest extends AbstractTest {
         }
     }
 
-    // This function is used to make sure the hydrated is equal to original string and the initial DTO
+    // This is used to make sure the hydrated is equal to original string and the initial DTO
     private static void verifyDTOEqual(DateTimeOffset initial, DateTimeOffset hydrated) throws Exception {
         String initialStr = initial.toString();
         String hydratedStr = hydrated.toString();
