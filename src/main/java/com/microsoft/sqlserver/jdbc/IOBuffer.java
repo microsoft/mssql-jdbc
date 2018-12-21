@@ -1407,22 +1407,21 @@ final class TDSChannel {
                 }
                 return false;
             }
-            int hostIndex = 0, certIndex = 0, match = 0, startIndex = -1;
-            boolean periodFound = false;
             // We do not allow wildcards in IDNs (xn--).
             if (!nameInCert.startsWith("xn--") && nameInCert.contains("*")) {
+                int hostIndex = 0, certIndex = 0, match = 0, startIndex = -1, periodCount = 0;
                 while (hostIndex < hostName.length()) {
                     if ('.' == hostName.charAt(hostIndex)) {
-                        periodFound = true;
+                        periodCount++;
                     }
                     if (certIndex < nameInCert.length() && hostName.charAt(hostIndex) == nameInCert.charAt(certIndex)) {
                         hostIndex++;
                         certIndex++;
-                    } else if (certIndex < nameInCert.length() && '*' == nameInCert.charAt(certIndex) && !periodFound) {
+                    } else if (certIndex < nameInCert.length() && '*' == nameInCert.charAt(certIndex)) {
                         startIndex = certIndex;
                         match = hostIndex;
                         certIndex++;
-                    } else if (startIndex != -1 && !periodFound) {
+                    } else if (startIndex != -1 && 0 == periodCount) {
                         certIndex = startIndex + 1;
                         match++;
                         hostIndex = match;
@@ -1431,7 +1430,7 @@ final class TDSChannel {
                         return false;
                     }
                 }
-                if (nameInCert.length() == certIndex) {
+                if (nameInCert.length() == certIndex && periodCount > 1) {
                     logSuccessMessage(nameInCert);
                     return true;
                 } else {
@@ -7038,7 +7037,6 @@ class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
         }
     }
 }
-
 
 /**
  * TDSCommand encapsulates an interruptable TDS conversation.
