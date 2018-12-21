@@ -3,6 +3,7 @@ package com.microsoft.sqlserver.jdbc.preparedStatement;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -30,12 +32,14 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("BulkCopyParseTest");
@@ -160,6 +164,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testAllcolumns() throws Exception {
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? " + ")";
 
@@ -212,6 +217,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testMixColumns() throws Exception {
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1, c3, c5, c8) values "
                 + "(" + "?, " + "?, " + "?, " + "? " + ")";
 
@@ -261,6 +267,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testNullOrEmptyColumns() throws Exception {
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " (c1, c2, c3, c4, c5, c6, c7) values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? "
                 + ")";
@@ -301,46 +308,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     if (null != rs.getObject(i + 1)) {
                         assertEquals(expected[i], rs.getObject(i + 1));
                     }
-                }
-            }
-        }
-    }
-
-    // Non-parameterized queries are not supported anymore.
-    // @Test
-    public void testAllFilledColumns() throws Exception {
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "1234, "
-                + "false, " + "a, " + "null, " + "null, " + "123.45, " + "b, " + "varc, " + "sadf, " + ")";
-
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
-                Statement stmt = (SQLServerStatement) connection.createStatement();) {
-            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
-            f1.setAccessible(true);
-            f1.set(connection, true);
-
-            pstmt.addBatch();
-
-            pstmt.executeBatch();
-
-            try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-
-                Object[] expected = new Object[9];
-
-                expected[0] = 1234;
-                expected[1] = false;
-                expected[2] = "a";
-                expected[3] = null;
-                expected[4] = null;
-                expected[5] = 123.45;
-                expected[6] = "b";
-                expected[7] = "varc";
-                expected[8] = "sadf";
-
-                rs.next();
-                for (int i = 0; i < expected.length; i++) {
-                    assertEquals(expected[i], rs.getObject(i + 1));
                 }
             }
         }
@@ -468,6 +435,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testAllColumnsLargeBatch() throws Exception {
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? " + ")";
 
@@ -536,9 +504,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
+            assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
 
         invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -558,22 +526,26 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            assertEquals(
-                    "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.",
-                    e.getMessage());
+            if (isSqlAzureDW()) {
+                assertEquals(TestResource.getResource("R_incorrectColumnNumInsertDW"), e.getMessage());
+            } else {
+                assertEquals(TestResource.getResource("R_incorrectColumnNumInsert"), e.getMessage());
+            }
         }
     }
 
     @Test
     public void testNonParameterizedQuery() throws Exception {
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         String invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " values ((SELECT * from table where c1=?), ?,? ,?) ";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
+
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
@@ -585,9 +557,13 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            assertEquals("Incorrect syntax near the keyword 'table'.", e.getMessage());
+            if (isSqlAzureDW()) {
+                assertEquals(TestResource.getResource("R_incorrectSyntaxTableDW"), e.getMessage());
+            } else {
+                assertEquals(TestResource.getResource("R_incorrectSyntaxTable"), e.getMessage());
+            }
         }
 
         invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values ('?', ?,? ,?) ";
@@ -605,20 +581,21 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
+            assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
     }
 
     @Test
     public void testNonSupportedColumns() throws Exception {
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_spatialDWNotSupported"));
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName)
                 + " values (?, ?, ?, ?)";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
-                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
@@ -654,16 +631,14 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
-        try (Connection connection = DriverManager
-                .getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
-            try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " " + "("
-                        + "c1 int DEFAULT 1234, " + "c2 bit, " + "c3 char DEFAULT NULL, " + "c4 date, "
-                        + "c5 datetime2, " + "c6 float, " + "c7 nchar, " + "c8 varchar(20), " + "c9 varchar(max)" + ")";
+        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " " + "("
+                    + "c1 int DEFAULT 1234, " + "c2 bit, " + "c3 char DEFAULT NULL, " + "c4 date, " + "c5 datetime2, "
+                    + "c6 float, " + "c7 nchar, " + "c8 varchar(20), " + "c9 varchar(8000)" + ")";
 
-                stmt.execute(sql1);
-            }
+            stmt.execute(sql1);
         }
     }
 

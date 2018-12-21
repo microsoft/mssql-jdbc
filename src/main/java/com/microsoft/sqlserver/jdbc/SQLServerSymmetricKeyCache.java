@@ -36,7 +36,9 @@ class CacheClear implements Runnable {
             if (instance.getCache().containsKey(keylookupValue)) {
                 instance.getCache().get(keylookupValue).zeroOutKey();
                 instance.getCache().remove(keylookupValue);
-                aeLogger.fine("Removed encryption key from cache...");
+                if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
+                    aeLogger.fine("Removed encryption key from cache...");
+                }
             }
         }
     }
@@ -49,7 +51,7 @@ class CacheClear implements Runnable {
  *
  */
 final class SQLServerSymmetricKeyCache {
-    static Object lock = new Object();
+    static final Object lock = new Object();
     private final ConcurrentHashMap<String, SQLServerSymmetricKey> cache;
     private static final SQLServerSymmetricKeyCache instance = new SQLServerSymmetricKeyCache();
     private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory() {
@@ -102,7 +104,9 @@ final class SQLServerSymmetricKeyCache {
             keyLookupValue = keyLookupValuebuffer.toString();
             keyLookupValuebuffer.setLength(0); // Get rid of the buffer, will be garbage collected.
 
-            aeLogger.fine("Checking trusted master key path...");
+            if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
+                aeLogger.fine("Checking trusted master key path...");
+            }
             Boolean[] hasEntry = new Boolean[1];
             List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
                     hasEntry);
@@ -115,7 +119,9 @@ final class SQLServerSymmetricKeyCache {
                 }
             }
 
-            aeLogger.fine("Checking Symmetric key cache...");
+            if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
+                aeLogger.fine("Checking Symmetric key cache...");
+            }
 
             // if ColumnEncryptionKeyCacheTtl is 0 no caching at all
             if (!cache.containsKey(keyLookupValue)) {
@@ -160,7 +166,9 @@ final class SQLServerSymmetricKeyCache {
                 long columnEncryptionKeyCacheTtl = SQLServerConnection.getColumnEncryptionKeyCacheTtl();
                 if (0 != columnEncryptionKeyCacheTtl) {
                     cache.putIfAbsent(keyLookupValue, encryptionKey);
-                    aeLogger.fine("Adding encryption key to cache...");
+                    if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
+                        aeLogger.fine("Adding encryption key to cache...");
+                    }
                     scheduler.schedule(new CacheClear(keyLookupValue), columnEncryptionKeyCacheTtl, SECONDS);
                 }
             } else {

@@ -285,7 +285,9 @@ final class Util {
                         result = result.trim();
                         if (result.length() > 0) {
                             p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), result);
-                            logger.fine("Property:serverName " + "Value:" + result);
+                            if (logger.isLoggable(Level.FINE)) {
+                                logger.fine("Property:serverName " + "Value:" + result);
+                            }
                         }
                         result = "";
 
@@ -308,7 +310,9 @@ final class Util {
                 case inPort: {
                     if (ch == ';') {
                         result = result.trim();
-                        logger.fine("Property:portNumber " + "Value:" + result);
+                        if (logger.isLoggable(Level.FINE)) {
+                            logger.fine("Property:portNumber " + "Value:" + result);
+                        }
                         p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), result);
                         result = "";
                         state = inName;
@@ -325,7 +329,9 @@ final class Util {
                     if (ch == ';' || ch == ':') {
                         // non escaped trim the string
                         result = result.trim();
-                        logger.fine("Property:instanceName " + "Value:" + result);
+                        if (logger.isLoggable(Level.FINE)) {
+                            logger.fine("Property:instanceName " + "Value:" + result);
+                        }
                         p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), result.toLowerCase(Locale.US));
                         result = "";
 
@@ -455,18 +461,24 @@ final class Util {
             case inServerName:
                 result = result.trim();
                 if (result.length() > 0) {
-                    logger.fine("Property:serverName " + "Value:" + result);
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.fine("Property:serverName " + "Value:" + result);
+                    }
                     p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), result);
                 }
                 break;
             case inPort:
                 result = result.trim();
-                logger.fine("Property:portNumber " + "Value:" + result);
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine("Property:portNumber " + "Value:" + result);
+                }
                 p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), result);
                 break;
             case inInstanceName:
                 result = result.trim();
-                logger.fine("Property:instanceName " + "Value:" + result);
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine("Property:instanceName " + "Value:" + result);
+                }
                 p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), result);
                 break;
             case inValue:

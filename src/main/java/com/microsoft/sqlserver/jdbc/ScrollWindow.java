@@ -89,7 +89,8 @@ final class ScrollWindow {
     }
 
     final boolean next(SQLServerResultSet rs) throws SQLServerException {
-        SQLServerResultSet.logger.finer(rs.toString() + logCursorState());
+        if (SQLServerResultSet.logger.isLoggable(java.util.logging.Level.FINER))
+            SQLServerResultSet.logger.finer(rs.toString() + logCursorState());
 
         // Precondition:
         // Current position should always be on a row in the window or
@@ -145,8 +146,9 @@ final class ScrollWindow {
             rowMark[currentRow - 1] = rs.fetchBufferMark();
             rowType[currentRow - 1] = rs.getCurrentRowType();
 
-            SQLServerResultSet.logger.finest(rs.toString() + " Set mark " + rowMark[currentRow - 1] + " for row "
-                    + currentRow + " of type " + rowType[currentRow - 1]);
+            if (SQLServerResultSet.logger.isLoggable(java.util.logging.Level.FINEST))
+                SQLServerResultSet.logger.finest(rs.toString() + " Set mark " + rowMark[currentRow - 1] + " for row "
+                        + currentRow + " of type " + rowType[currentRow - 1]);
 
             return true;
         }
@@ -159,7 +161,8 @@ final class ScrollWindow {
     }
 
     final void previous(SQLServerResultSet rs) throws SQLServerException {
-        SQLServerResultSet.logger.finer(rs.toString() + logCursorState());
+        if (SQLServerResultSet.logger.isLoggable(java.util.logging.Level.FINER))
+            SQLServerResultSet.logger.finer(rs.toString() + logCursorState());
 
         // Precondition:
         // Current position should always be on a row in the window or
