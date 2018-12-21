@@ -45,10 +45,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -4197,6 +4197,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         StringBuilder urlString = new StringBuilder();
         int retry = 1, maxRetry = 1;
 
+        /*
+         * isAzureFunction is used for identifying if the current client application is running in a Virtual Machine
+         * (without MSI environment variables) or App Service/Function (with MSI environment variables) as the APIs to
+         * be called for acquiring MSI Token are different for both cases.
+         */
         boolean isAzureFunction = null != msiEndpoint && !msiEndpoint.isEmpty() && null != msiSecret
                 && !msiSecret.isEmpty();
 
@@ -4290,10 +4295,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     try {
                         int responseCode = connection.getResponseCode();
                         // Check Error Response Code from Connection
-                        if (responseCode == 410 || responseCode == 429 || responseCode == 404
-                                || (responseCode >= 500 && responseCode <= 599)) {
+                        if (410 == responseCode || 429 == responseCode || 404 == responseCode
+                                || (500 <= responseCode && 599 >= responseCode)) {
                             try {
-                                int retryTimeoutInMs = retrySlots.get(new Random().nextInt(retry - 1));
+                                int retryTimeoutInMs = retrySlots.get(ThreadLocalRandom.current().nextInt(retry - 1));
                                 // Error code 410 indicates IMDS upgrade is in progress, which can take up to 70s
                                 retryTimeoutInMs = (responseCode == 410
                                         && retryTimeoutInMs < imdsUpgradeTimeInMs) ? imdsUpgradeTimeInMs
