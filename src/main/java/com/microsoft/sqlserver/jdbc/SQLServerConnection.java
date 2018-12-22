@@ -4288,6 +4288,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
             } catch (Exception e) {
                 retry++;
+                // Below code applicable only when !isAzureFunctcion (VM)
                 if (retry > maxRetry) {
                     // Do not retry if maxRetry limit has been reached.
                     break;
@@ -4314,7 +4315,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                         SQLServerException.getErrString("R_MSITokenFailureClientId"), null, true);
                             } else {
                                 SQLServerException.makeFromDriverError(this, null,
-                                        SQLServerException.getErrString("R_MSITokenFailure"), null, true);
+                                        SQLServerException.getErrString("R_MSITokenFailureImds"), null, true);
                             }
                         }
                     } catch (IOException io) {
@@ -4330,9 +4331,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
         if (retry > maxRetry) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSITokenAcquireFailure"));
-            Object[] msgArgs = {maxRetry};
-            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true);
+            SQLServerException.makeFromDriverError(this, null, SQLServerException
+                    .getErrString(isAzureFunction ? "R_MSITokenFailureEndpoint" : "R_MSITokenFailureImds"), null, true);
         }
         return null;
     }

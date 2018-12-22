@@ -542,8 +542,10 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_ADALMissing", "Failed to load ADAL4J Java library for performing {0} authentication."},
             {"R_DLLandADALMissing",
                     "Failed to load both sqljdbc_auth.dll and ADAL4J Java library for performing {0} authentication. Please install one of them to proceed."},
-            {"R_MSITokenFailureClientId", "Couldn't acquire access token from IMDS, verify your clientId."},
-            {"R_MSITokenFailure", "Couldn't acquire access token from IMDS"},
-            {"R_MSITokenFailureUnexpected", "Couldn't acquire access token, unexpected error occurred."},
-            {"R_MSITokenAcquireFailure", "MSI: Failed to acquire token"}};
+            {"R_MSITokenFailureImds", "MSI Token failure: Couldn't acquire access token from IMDS"},
+            {"R_MSITokenFailureImdsClientId",
+                    "MSI Token failure: Couldn't acquire access token from IMDS, verify your clientId."},
+            {"R_MSITokenFailureUnexpected",
+                    "MSI Token failure: Couldn't acquire access token from IMDS, unexpected error occurred."},
+            {"R_MSITokenFailureEndpoint", "MSI Token failure: Failed to acquire token from MSI Endpoint"}};
 }
