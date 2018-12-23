@@ -24,9 +24,12 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -254,6 +257,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetObjectAsLocalDateTime() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             TimeZone prevTimeZone = TimeZone.getDefault();
@@ -265,7 +269,7 @@ public class ResultSetTest extends AbstractTest {
             final String testValueDateTime = testValueDate + "T" + testValueTime;
 
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (id INT PRIMARY KEY, dt2 DATETIME2)");
+                    + " (id INT, dt2 DATETIME2)");
             stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (id, dt2) VALUES (1, '" + testValueDateTime + "')");
 
@@ -292,16 +296,51 @@ public class ResultSetTest extends AbstractTest {
     }
 
     /**
+     * Tests getObject(n, java.time.OffsetDateTime.class) and getObject(n, java.time.OffsetTime.class).
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testGetObjectAsOffsetDateTime() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            final String testValue = "2018-01-02T11:22:33.123456700+12:34";
+
+            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id INT PRIMARY KEY, dto DATETIMEOFFSET, dto2 DATETIMEOFFSET)");
+            stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id, dto, dto2) VALUES (1, '" + testValue + "', null)");
+
+            try (ResultSet rs = stmt.executeQuery(
+                    "SELECT dto, dto2 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id=1")) {
+                rs.next();
+
+                OffsetDateTime expected = OffsetDateTime.parse(testValue);
+                OffsetDateTime actual = rs.getObject(1, OffsetDateTime.class);
+                assertEquals(expected, actual);
+                assertNull(rs.getObject(2, OffsetDateTime.class));
+
+                OffsetTime expectedTime = OffsetTime.parse(testValue.split("T")[1]);
+                OffsetTime actualTime = rs.getObject(1, OffsetTime.class);
+                assertEquals(expectedTime, actualTime);
+                assertNull(rs.getObject(2, OffsetTime.class));
+            } finally {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    /**
      * Tests ResultSet#isWrapperFor and ResultSet#unwrap.
      * 
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testResultSetWrapper() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (col1 int, col2 text, col3 int identity(1,1) primary key)");
+                    + " (col1 int, col2 varchar(8000), col3 int identity(1,1))");
 
             try (ResultSet rs = stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
@@ -322,6 +361,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void testGetterOnNull() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("select null")) {
