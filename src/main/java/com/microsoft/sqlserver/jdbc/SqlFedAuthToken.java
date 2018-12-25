@@ -12,7 +12,7 @@ class SqlFedAuthToken {
     final Date expiresOn;
     final String accessToken;
 
-    SqlFedAuthToken(final String accessToken, final long expiresIn) {
+    SqlFedAuthToken(String accessToken, long expiresIn) {
         this.accessToken = accessToken;
 
         Date now = new Date();
@@ -20,12 +20,8 @@ class SqlFedAuthToken {
         this.expiresOn = now;
     }
 
-    SqlFedAuthToken(final String accessToken, final Date expiresOn) {
+    SqlFedAuthToken(String accessToken, Date expiresOn) {
         this.accessToken = accessToken;
         this.expiresOn = expiresOn;
-    }
-
-    Date getExpiresOnDate() {
-        return expiresOn;
     }
 }
