@@ -103,6 +103,7 @@ final class TDS {
     static final int TDS_FEDAUTH_LIBRARY_RESERVED = 0x7F;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD = 0x01;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED = 0x02;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYMSI = 0x03;
     static final byte FEDAUTH_INFO_ID_STSURL = 0x01; // FedAuthInfoData is token endpoint URL from which to acquire fed
                                                      // auth token
     static final byte FEDAUTH_INFO_ID_SPN = 0x02; // FedAuthInfoData is the SPN to use for acquiring fed auth token
@@ -4587,10 +4588,10 @@ final class TDSWriter {
                     int tokenType = tdsReader.peekTokenType();
 
                     if (TDS.TDS_ERR == tokenType) {
-                        StreamError databaseError = new StreamError();
+                        SQLServerError databaseError = new SQLServerError();
                         databaseError.setFromTDS(tdsReader);
 
-                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getMessage(), databaseError,
+                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getErrorMessage(), databaseError,
                                 false);
                     }
 
