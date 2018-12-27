@@ -37,25 +37,26 @@ class SQLServerADAL4JUtils {
                     ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, user, password, null);
 
             AuthenticationResult authenticationResult = future.get();
-            SqlFedAuthToken fedAuthToken = new SqlFedAuthToken(authenticationResult.getAccessToken(),
-                    authenticationResult.getExpiresOnDate());
 
-            return fedAuthToken;
+            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
             Object[] msgArgs = {user, authenticationString};
 
-            // the cause error message uses \\n\\r which does not give correct format
-            // change it to \r\n to provide correct format
+            /*
+             * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
+             * correct format
+             */
             String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
             AuthenticationException correctedAuthenticationException = new AuthenticationException(
                     correctedErrorMessage);
 
-            // SQLServerException is caused by ExecutionException, which is caused by
-            // AuthenticationException
-            // to match the exception tree before error message correction
+            /*
+             * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to match
+             * the exception tree before error message correction
+             */
             ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
 
             throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
@@ -69,8 +70,10 @@ class SQLServerADAL4JUtils {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
 
         try {
-            // principal name does not matter, what matters is the realm name
-            // it gets the username in principal_name@realm_name format
+            /*
+             * principal name does not matter, what matters is the realm name it gets the username in
+             * principal_name@realm_name format
+             */
             KerberosPrincipal kerberosPrincipal = new KerberosPrincipal("username");
             String username = kerberosPrincipal.getName();
 
@@ -83,10 +86,8 @@ class SQLServerADAL4JUtils {
                     ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, username, null, null);
 
             AuthenticationResult authenticationResult = future.get();
-            SqlFedAuthToken fedAuthToken = new SqlFedAuthToken(authenticationResult.getAccessToken(),
-                    authenticationResult.getExpiresOnDate());
 
-            return fedAuthToken;
+            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
@@ -97,15 +98,18 @@ class SQLServerADAL4JUtils {
                 // the case when Future's outcome has no AuthenticationResult but exception
                 throw new SQLServerException(form.format(msgArgs), null);
             } else {
-                // the cause error message uses \\n\\r which does not give correct format
-                // change it to \r\n to provide correct format
+                /*
+                 * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
+                 * correct format
+                 */
                 String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
                 AuthenticationException correctedAuthenticationException = new AuthenticationException(
                         correctedErrorMessage);
 
-                // SQLServerException is caused by ExecutionException, which is caused by
-                // AuthenticationException
-                // to match the exception tree before error message correction
+                /*
+                 * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to
+                 * match the exception tree before error message correction
+                 */
                 ExecutionException correctedExecutionException = new ExecutionException(
                         correctedAuthenticationException);
 
