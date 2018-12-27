@@ -31,6 +31,7 @@ public class Activator implements BundleActivator {
         properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION,
                 driver.getMajorVersion() + "." + driver.getMinorVersion());
         service = context.registerService(DataSourceFactory.class, new SQLServerDataSourceFactory(), properties);
+        SQLServerDriver.register();
     }
 
     @Override
