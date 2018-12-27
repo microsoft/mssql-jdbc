@@ -26,7 +26,7 @@ final class SQLServerTimeoutManager {
     static ExecutorService timeoutTaskWorker = Executors.newSingleThreadExecutor(
             createThreadFactory("com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager.TimeoutTaskWorker"));
     static List<TimeoutCommand<?>> timeoutCommands = new ArrayList<>();
-    final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.TimeoutPoller");
+    final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager");
 
     static void startTimeoutCommand(TimeoutCommand<?> timeoutCommand) {
         if (scheduledTimeoutTasks.isShutdown()) {
