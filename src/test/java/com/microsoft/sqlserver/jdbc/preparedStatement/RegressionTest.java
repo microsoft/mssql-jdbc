@@ -18,6 +18,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -60,6 +61,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void createViewTest() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
                 PreparedStatement pstmt1 = con.prepareStatement(
@@ -80,6 +82,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void createSchemaTest() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
                 PreparedStatement pstmt1 = con
@@ -100,6 +103,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void createTableTest() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
                 PreparedStatement pstmt1 = con.prepareStatement(
@@ -120,6 +124,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void alterTableTest() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
                 PreparedStatement pstmt1 = con.prepareStatement(
@@ -143,6 +148,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void grantTest() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
                 PreparedStatement pstmt1 = con.prepareStatement(

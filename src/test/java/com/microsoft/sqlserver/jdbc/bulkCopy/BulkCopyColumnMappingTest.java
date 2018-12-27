@@ -4,12 +4,13 @@
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -57,7 +58,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test no explicit column mapping")
-    public void testNoExplicitCM() {
+    public void testNoExplicitCM() throws SQLException {
         DBTable destTable = null;
         try {
             // create dest table
@@ -69,16 +70,13 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
             BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
         } finally {
-            if (null != destTable) {
-                // drop dest table
-                stmt.dropTable(destTable);
-            }
+            TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
         }
     }
 
     @Test
     @DisplayName("BulkCopy:test explicit column mapping")
-    public void testExplicitCM() {
+    public void testExplicitCM() throws SQLException {
         DBTable destTable = null;
         try {
             // create dest table
@@ -111,16 +109,13 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             }
             BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
         } finally {
-            // drop dest table
-            if (null != destTable) {
-                stmt.dropTable(destTable);
-            }
+            TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
         }
     }
 
     @Test
     @DisplayName("BulkCopy:test unicode column mapping")
-    public void testUnicodeCM() {
+    public void testUnicodeCM() throws SQLException {
         DBTable sourceTableUnicode = null;
         DBTable destTableUnicode = null;
         try {
@@ -159,18 +154,14 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             }
             BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTableUnicode, destTableUnicode);
         } finally {
-            if (null != sourceTableUnicode) {
-                dropTable(sourceTableUnicode.getEscapedTableName());
-            }
-            if (null != destTableUnicode) {
-                dropTable(destTableUnicode.getEscapedTableName());
-            }
+            TestUtils.dropTableIfExists(sourceTableUnicode.getEscapedTableName(), (Statement) stmt.product());
+            TestUtils.dropTableIfExists(destTableUnicode.getEscapedTableName(), (Statement) stmt.product());
         }
     }
 
     @Test
     @DisplayName("BulkCopy:test repetitive column mapping")
-    public void testRepetitiveCM() {
+    public void testRepetitiveCM() throws SQLException {
         DBTable sourceTable1 = null;
         DBTable destTable = null;
         try {
@@ -226,18 +217,14 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 fail(form.format(msgArgs) + "\n" + destTable.getTableName() + "\n" + e.getMessage());
             }
         } finally {
-            if (null != sourceTable1) {
-                dropTable(sourceTable1.getEscapedTableName());
-            }
-            if (null != destTable) {
-                dropTable(destTable.getEscapedTableName());
-            }
+            TestUtils.dropTableIfExists(sourceTable1.getEscapedTableName(), (Statement) stmt.product());
+            TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
         }
     }
 
     @Test
     @DisplayName("BulkCopy:test implicit mismatched column mapping")
-    public void testImplicitMismatchCM() {
+    public void testImplicitMismatchCM() throws SQLException {
         DBTable destTable = null;
         try {
             // create non unicode dest table with different schema from source table
@@ -270,15 +257,13 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             }
             BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
         } finally {
-            if (null != destTable) {
-                stmt.dropTable(destTable);
-            }
+            TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
         }
     }
 
     @Test
     @DisplayName("BulkCopy:test invalid column mapping")
-    public void testInvalidCM() {
+    public void testInvalidCM() throws SQLException {
         DBTable destTable = null;
         try {
             // create dest table
@@ -361,9 +346,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             bulkWrapper.setColumnMapping(Integer.MIN_VALUE, Integer.MAX_VALUE);
             BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
         } finally {
-            if (null != destTable) {
-                stmt.dropTable(destTable);
-            }
+            TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
         }
     }
 
@@ -412,15 +395,4 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             assertTrue(destinationTable.getTotalRows() == numRows);
         }
     }
-
-    private void dropTable(String tableName) {
-
-        String dropSQL = "DROP TABLE [dbo]." + tableName;
-        try {
-            stmt.execute(dropSQL);
-        } catch (SQLException e) {
-            fail(tableName + " " + TestResource.getResource("R_tableNotDropped") + "\n" + e.getMessage());
-        }
-    }
-
 }

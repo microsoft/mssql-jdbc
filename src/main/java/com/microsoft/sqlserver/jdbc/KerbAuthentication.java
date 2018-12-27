@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.lang.reflect.Method;
 import java.net.IDN;
 import java.net.InetAddress;
 import java.net.UnknownHostException;

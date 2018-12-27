@@ -4,11 +4,11 @@
  */
 package com.microsoft.sqlserver.jdbc.tvp;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
-import java.sql.Connection;
 import java.sql.Statement;
-import java.sql.DriverManager;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

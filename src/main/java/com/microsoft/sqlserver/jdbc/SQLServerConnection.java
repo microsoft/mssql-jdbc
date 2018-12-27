@@ -3311,7 +3311,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     volatile SQLWarning sqlWarnings; // the SQL warnings chain
-    Object warningSynchronization = new Object();
+    private final Object warningSynchronization = new Object();
 
     // Think about returning a copy when we implement additional warnings.
     @Override
