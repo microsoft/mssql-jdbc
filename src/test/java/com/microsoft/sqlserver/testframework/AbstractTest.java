@@ -180,9 +180,9 @@ public abstract class AbstractTest {
                 handler.setLevel(Level.FINEST);
                 Logger.getLogger("").addHandler(handler);
             }
-            // By default, Loggers also send their output to their parent logger.  
+            // By default, Loggers also send their output to their parent logger.
             // Typically the root Logger is configured with a set of Handlers that essentially act as default handlers
-            // for all loggers. 
+            // for all loggers.
             Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc");
             logger.setLevel(Level.FINEST);
         } catch (Exception e) {

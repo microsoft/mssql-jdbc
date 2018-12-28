@@ -216,6 +216,18 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
     }
 
     /**
+     * Returns OffsetDateTime equivalent to this DateTimeOffset object.
+     *
+     * @return OffsetDateTime equivalent to this DateTimeOffset object.
+     */
+    public java.time.OffsetDateTime getOffsetDateTime() {
+        java.time.ZoneOffset zoneOffset = java.time.ZoneOffset.ofTotalSeconds(60 * minutesOffset);
+        java.time.LocalDateTime localDateTime = java.time.LocalDateTime.ofEpochSecond(utcMillis / 1000, nanos,
+                zoneOffset);
+        return java.time.OffsetDateTime.of(localDateTime, zoneOffset);
+    }
+
+    /**
      * Returns this DateTimeOffset object's offset value.
      *
      * @return this DateTimeOffset object's minutes offset from GMT

@@ -59,7 +59,6 @@ final class AuthenticationJNI extends SSPIAuthentication {
             enabled = true;
         } catch (UnsatisfiedLinkError e) {
             temp = e;
-            authLogger.warning("Failed to load the sqljdbc_auth.dll cause : " + e.getMessage());
             // This is not re-thrown on purpose - the constructor will terminate the properly with the appropriate error
             // string
         } finally {
