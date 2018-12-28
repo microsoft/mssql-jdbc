@@ -31,10 +31,14 @@ public class Activator implements BundleActivator {
         properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION,
                 driver.getMajorVersion() + "." + driver.getMinorVersion());
         service = context.registerService(DataSourceFactory.class, new SQLServerDataSourceFactory(), properties);
+        SQLServerDriver.register();
     }
 
     @Override
     public void stop(BundleContext context) throws Exception {
-        service.unregister();
+        if (service != null) {
+            service.unregister();
+        }
+        SQLServerDriver.deregister();
     }
 }

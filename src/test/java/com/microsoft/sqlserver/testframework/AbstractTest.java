@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 
 
@@ -125,6 +126,11 @@ public abstract class AbstractTest {
         }
     }
 
+    @BeforeAll
+    public static void registerDriver() throws Exception {
+        SQLServerDriver.register();
+    }
+
     /**
      * Read variable from property files if found null try to read from env.
      * 
@@ -183,11 +189,11 @@ public abstract class AbstractTest {
             System.err.println("Some how could not invoke logging: " + e.getMessage());
         }
     }
-    
+
     public static boolean isSqlAzure() {
         return _isSqlAzure;
     }
-    
+
     public static boolean isSqlAzureDW() {
         return _isSqlAzureDW;
     }
@@ -204,7 +210,7 @@ public abstract class AbstractTest {
         if (_determinedSqlAzureOrSqlServer) {
             return;
         }
-        
+
         try (Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
             rs.next();
