@@ -23,7 +23,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -630,11 +629,8 @@ final class DTV {
                                                                                                                         * 1000,
                                                                                                                 "");
 
-                        // The behavior is similar to microsoft.sql.DateTimeOffset
-                        // In Timestamp format, leading zeros for the fields can be omitted.
-                        String offsetTimeStr = conn.baseYear() + "-01-01" + ' ' + offsetTimeValue.getHour() + ':'
-                                + offsetTimeValue.getMinute() + ':' + offsetTimeValue.getSecond();
-                        utcMillis = Timestamp.valueOf(offsetTimeStr).getTime();
+                        LocalDate baseDate = LocalDate.of(conn.baseYear(), 1, 1);
+                        utcMillis = offsetTimeValue.atDate(baseDate).toEpochSecond() * 1000;
                         break;
 
                     case OFFSETDATETIME:
@@ -679,14 +675,7 @@ final class DTV {
                                                                                                                         * 1000,
                                                                                                                 "");
 
-                        // The behavior is similar to microsoft.sql.DateTimeOffset
-                        // In Timestamp format, only YEAR needs to have 4 digits. The leading zeros for the rest of the
-                        // fields can be omitted.
-                        String offDateTimeStr = String.format("%04d", offsetDateTimeValue.getYear()) + '-'
-                                + offsetDateTimeValue.getMonthValue() + '-' + offsetDateTimeValue.getDayOfMonth() + ' '
-                                + offsetDateTimeValue.getHour() + ':' + offsetDateTimeValue.getMinute() + ':'
-                                + offsetDateTimeValue.getSecond();
-                        utcMillis = Timestamp.valueOf(offDateTimeStr).getTime();
+                        utcMillis = offsetDateTimeValue.toEpochSecond() * 1000;
                         break;
 
                     case DATETIMEOFFSET: {
