@@ -1332,8 +1332,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
-                sPropValue = SQLServerDriverStringProperty.DOMAIN_NAME.getDefaultValue();
+            if (sPropValue != null) {
+                ntlmAuthentication = true;
             }
             String domainName = sPropValue;
 
@@ -3621,18 +3621,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private void logon(LogonCommand command) throws SQLServerException {
         SSPIAuthentication authentication = null;
 
-        if (integratedSecurity && AuthenticationScheme.nativeAuthentication == intAuthScheme)
-            authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(),
-                    currentConnectPlaceHolder.getPortNumber());
-        if (integratedSecurity && AuthenticationScheme.javaKerberos == intAuthScheme) {
-            if (null != ImpersonatedUserCred) {
-                authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
-                        currentConnectPlaceHolder.getPortNumber(), ImpersonatedUserCred, isUserCreatedCredential);
-            } else
-                authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
-                        currentConnectPlaceHolder.getPortNumber());
+        if (integratedSecurity) {
+            if (AuthenticationScheme.nativeAuthentication == intAuthScheme) {
+                authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(),
+                        currentConnectPlaceHolder.getPortNumber()); 
+            } else if (AuthenticationScheme.javaKerberos == intAuthScheme) {
+                if (null != ImpersonatedUserCred) {
+                    authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
+                            currentConnectPlaceHolder.getPortNumber(), ImpersonatedUserCred, isUserCreatedCredential);
+                } else
+                    authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
+                            currentConnectPlaceHolder.getPortNumber());
+            }
+        } else if (ntlmAuthentication) {
+            authentication = new NTLMAuthentication(this, currentConnectPlaceHolder.getDomainName());
         }
-
+        
         // If the workflow being used is Active Directory Password or Active Directory Integrated and server's prelogin
         // response
         // for FEDAUTHREQUIRED option indicates Federated Authentication is required, we have to insert FedAuth Feature
@@ -4764,6 +4768,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (serverName != null && serverName.length() > 128)
             serverName = serverName.substring(0, 128);
 
+        String domainName = (null != currentConnectPlaceHolder) ? currentConnectPlaceHolder.getDomainName()
+                                                                : activeConnectionProperties.getProperty(
+                                                                        SQLServerDriverStringProperty.DOMAIN_NAME
+                                                                                .toString());
+        ntlmAuthentication = !StringUtils.isEmpty(domainName);
+
         byte[] secBlob = new byte[0];
         boolean[] done = {false};
         if (null != authentication) {
@@ -4803,12 +4813,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         TDSWriter tdsWriter = logonCommand.startRequest(TDS.PKT_LOGON70);
 
+        /* check this
+        
+       // System.out.println("secBlob: "+secBlob.length);
+        
         int len2 = TDS_LOGIN_REQUEST_BASE_LEN + hostnameBytes.length + appNameBytes.length + serverNameBytes.length
                 + interfaceLibNameBytes.length + databaseNameBytes.length + secBlob.length + 4;// AE is always on;
+*/
+        int len2 = TDS_LOGIN_REQUEST_BASE_LEN + hostnameBytes.length + appNameBytes.length + serverNameBytes.length
+                + interfaceLibNameBytes.length + databaseNameBytes.length + ((secBlob != null) ? secBlob.length : 0) + 4;// AE is always on;
 
-        // only add lengths of password and username if not using SSPI or requesting federated authentication info
-        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
-            len2 = len2 + passwordLen + userBytes.length;
+        if (ntlmAuthentication) {
+          //  len2 = len2 + writeNTLMRequest(false, tdsWriter, domainName);
+        } else {
+            // only add lengths of password and username if not using SSPI or requesting federated authentication info
+            if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+                len2 = len2 + passwordLen + userBytes.length;
+            }
         }
 
         int aeOffset = len2;
@@ -4827,6 +4848,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // Length of entire Login 7 packet
         tdsWriter.writeInt(len2);
+
         tdsWriter.writeInt(tdsVersion);
         tdsWriter.writeInt(requestedPacketSize);
         tdsWriter.writeBytes(interfaceLibVersionBytes); // writeBytes() is little endian
@@ -4847,9 +4869,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         TDS.LOGIN_OPTION2_INIT_LANG_FATAL | // Fail connection if initial language change fails
                 TDS.LOGIN_OPTION2_ODBC_ON | // Use ODBC defaults (ANSI_DEFAULTS ON, IMPLICIT_TRANSACTIONS OFF, TEXTSIZE
                                             // inf, ROWCOUNT inf)
-                (integratedSecurity ? // Use integrated security if requested
-                                    TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_ON
-                                    : TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_OFF)));
+                (integratedSecurity || ntlmAuthentication ? // integrated security if integratedSecurity or NTLM
+                                                            // requested
+                                                          TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_ON
+                                                          : TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_OFF)));
 
         // TypeFlags
         tdsWriter.writeByte((byte) (TDS.LOGIN_SQLTYPE_DEFAULT | (applicationIntent != null
@@ -4884,7 +4907,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // Only send user/password over if not fSSPI or fed auth ADAL... If both user/password and SSPI are in login
         // rec, only SSPI is used.
-        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        if (ntlmAuthentication) {
+            tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+            tdsWriter.writeShort((short) (0));
+            tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+            tdsWriter.writeShort((short) (0));
+
+        } else if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
             // User and Password
             tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
             tdsWriter.writeShort((short) (sUser == null ? 0 : sUser.length()));
@@ -4940,7 +4969,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         final int USHRT_MAX = 65535;
         // SSPI data
-        if (!integratedSecurity) {
+        if (!integratedSecurity && !ntlmAuthentication) {
             tdsWriter.writeShort((short) 0);
             tdsWriter.writeShort((short) 0);
         } else {
@@ -4961,7 +4990,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsWriter.writeShort((short) 0);
 
             // TDS 7.2: 32-bit SSPI byte count (used if 16 bits above were not sufficient)
-            if (USHRT_MAX <= secBlob.length)
+            if (secBlob != null && USHRT_MAX <= secBlob.length)
                 tdsWriter.writeInt(secBlob.length);
             else
                 tdsWriter.writeInt((short) 0);
@@ -4973,9 +5002,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.setDataLoggable(false);
 
         // if we are using SSPI or fed auth ADAL, do not send over username/password, since we will use SSPI instead
-        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        if (!integratedSecurity && !ntlmAuthentication
+                && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
             tdsWriter.writeBytes(userBytes); // Username
-            tdsWriter.writeBytes(passwordBytes); // Password (encrapted)
+            tdsWriter.writeBytes(passwordBytes); // Password (encrypted)
         }
         tdsWriter.setDataLoggable(true);
 
@@ -4992,8 +5022,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // Don't allow user credentials to be logged
         tdsWriter.setDataLoggable(false);
-        if (integratedSecurity)
+        if (integratedSecurity || ntlmAuthentication) {
             tdsWriter.writeBytes(secBlob, 0, secBlob.length);
+        } else if (ntlmAuthentication) {
+       //     writeNTLMRequest(true, tdsWriter, domainName);
+        }
 
         // AE is always ON
         {
