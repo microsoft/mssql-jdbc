@@ -1403,70 +1403,63 @@ final class TDSChannel {
         private boolean validateServerName(String nameInCert) {
             // Failed to get the common name from DN or empty CN
             if (null == nameInCert) {
-                if (logger.isLoggable(Level.FINER))
+                if (logger.isLoggable(Level.FINER)) {
                     logger.finer(logContext + " Failed to parse the name from the certificate or name is empty.");
+                }
                 return false;
             }
-
-            int wildcardIndex = nameInCert.indexOf("*");
-
-            // Respect wildcard. If wildcardIndex is larger than -1, then we have a wildcard.
-            if (wildcardIndex >= 0) {
-                // We do not allow wildcards to exist past the first period.
-                if (wildcardIndex > nameInCert.indexOf(".")) {
-                    return false;
-                }
-                
-                // We do not allow wildcards in IDNs.
-                if (nameInCert.startsWith("xn--")) {
-                    return false;
-                }
-                
-                /* We do not allow * plus a top-level domain.
-                 * This if statement counts the number of .s in the nameInCert. If it's 1 or less, then reject it.
-                 * This also catches cases where nameInCert is just *
-                 */
-                if ((nameInCert.length() - nameInCert.replace(".", "").length()) <= 1) {
-                    return false;
-                }
-                
-                String certBeforeWildcard = nameInCert.substring(0, wildcardIndex);
-                int firstPeriodAfterWildcard = nameInCert.indexOf(".", wildcardIndex);
-                String certAfterWildcard;
-
-                if (firstPeriodAfterWildcard < 0) {
-                    /* if we get something like peter.database.c*, then make certAfterWildcard empty so that we accept
-                    * anything after *.
-                    * both startsWith("") and endswith("") will always resolve to "true".
-                    */
-                    certAfterWildcard = "";
-                } else {
-                    certAfterWildcard = nameInCert.substring(firstPeriodAfterWildcard);
-                }
-
-                if (hostName.startsWith(certBeforeWildcard) && hostName.endsWith(certAfterWildcard)) {
-                    // now, find the string that the wildcard covers. If it contains any periods, reject it.
-                    int wildcardCoveredStringIndexStart = hostName.indexOf(certBeforeWildcard) + certBeforeWildcard.length();
-                    int wildcardCoveredStringIndexEnd = hostName.lastIndexOf(certAfterWildcard);
-                    if (!hostName.substring(wildcardCoveredStringIndexStart, wildcardCoveredStringIndexEnd).contains(".")) {
-                        return true;
+            // We do not allow wildcards in IDNs (xn--).
+            if (!nameInCert.startsWith("xn--") && nameInCert.contains("*")) {
+                int hostIndex = 0, certIndex = 0, match = 0, startIndex = -1, periodCount = 0;
+                while (hostIndex < hostName.length()) {
+                    if ('.' == hostName.charAt(hostIndex)) {
+                        periodCount++;
+                    }
+                    if (certIndex < nameInCert.length() && hostName.charAt(hostIndex) == nameInCert.charAt(certIndex)) {
+                        hostIndex++;
+                        certIndex++;
+                    } else if (certIndex < nameInCert.length() && '*' == nameInCert.charAt(certIndex)) {
+                        startIndex = certIndex;
+                        match = hostIndex;
+                        certIndex++;
+                    } else if (startIndex != -1 && 0 == periodCount) {
+                        certIndex = startIndex + 1;
+                        match++;
+                        hostIndex = match;
+                    } else {
+                        logFailMessage(nameInCert);
+                        return false;
                     }
                 }
+                if (nameInCert.length() == certIndex && periodCount > 1) {
+                    logSuccessMessage(nameInCert);
+                    return true;
+                } else {
+                    logFailMessage(nameInCert);
+                    return false;
+                }
             }
-
             // Verify that the name in certificate matches exactly with the host name
             if (!nameInCert.equals(hostName)) {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(logContext + " The name in certificate " + nameInCert
-                            + " does not match with the server name " + hostName + ".");
+                logFailMessage(nameInCert);
                 return false;
             }
+            logSuccessMessage(nameInCert);
+            return true;
+        }
 
-            if (logger.isLoggable(Level.FINER))
+        private void logFailMessage(String nameInCert) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(logContext + " The name in certificate " + nameInCert
+                        + " does not match with the server name " + hostName + ".");
+            }
+        }
+
+        private void logSuccessMessage(String nameInCert) {
+            if (logger.isLoggable(Level.FINER)) {
                 logger.finer(logContext + " The name in certificate:" + nameInCert + " validated against server name "
                         + hostName + ".");
-
-            return true;
+            }
         }
 
         public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
@@ -4637,8 +4630,8 @@ final class TDSWriter {
                         SQLServerError databaseError = new SQLServerError();
                         databaseError.setFromTDS(tdsReader);
 
-                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getErrorMessage(), databaseError,
-                                false);
+                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getErrorMessage(),
+                                databaseError, false);
                     }
 
                     command.setInterruptsEnabled(true);
