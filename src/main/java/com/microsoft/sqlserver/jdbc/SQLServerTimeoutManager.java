@@ -83,7 +83,7 @@ final class SQLServerTimeoutManager {
         synchronized (timeoutCommands) {
             List<TimeoutCommand<?>> timeouts = timeoutCommands.get(connectionId);
             if (timeouts != null && !timeouts.isEmpty()) {
-                for (TimeoutCommand<?> timeoutCommand : timeouts) {
+                for (TimeoutCommand<?> timeoutCommand : new ArrayList<>(timeouts)) {
                     releaseTimeoutCommand(timeoutCommand);
                 }
             }
