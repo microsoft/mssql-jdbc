@@ -174,20 +174,20 @@ public abstract class AbstractTest {
                 handler.setLevel(Level.FINEST);
                 Logger.getLogger("").addHandler(handler);
             }
-            // By default, Loggers also send their output to their parent logger.  
+            // By default, Loggers also send their output to their parent logger.
             // Typically the root Logger is configured with a set of Handlers that essentially act as default handlers
-            // for all loggers. 
+            // for all loggers.
             Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc");
             logger.setLevel(Level.FINEST);
         } catch (Exception e) {
             System.err.println("Some how could not invoke logging: " + e.getMessage());
         }
     }
-    
+
     public static boolean isSqlAzure() {
         return _isSqlAzure;
     }
-    
+
     public static boolean isSqlAzureDW() {
         return _isSqlAzureDW;
     }
@@ -204,7 +204,7 @@ public abstract class AbstractTest {
         if (_determinedSqlAzureOrSqlServer) {
             return;
         }
-        
+
         try (Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
             rs.next();
