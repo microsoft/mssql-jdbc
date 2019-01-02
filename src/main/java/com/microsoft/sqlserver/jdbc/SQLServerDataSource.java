@@ -866,6 +866,17 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
     }
 
+    @Override
+    public void setMSIClientId(String msiClientId) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(), msiClientId);
+    }
+
+    @Override
+    public String getMSIClientId() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
+                SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue());
+    }
+
     /**
      * Sets a property string value.
      * 
