@@ -6,7 +6,10 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -21,12 +24,12 @@ import java.util.logging.Logger;
  * Object that handles management of timeout tasks across all sql server connections
  */
 final class SQLServerTimeoutManager {
-    static ScheduledExecutorService scheduledTimeoutTasks = Executors.newScheduledThreadPool(1,
+    private static ScheduledExecutorService scheduledTimeoutTasks = Executors.newScheduledThreadPool(1,
             createThreadFactory("com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager"));
-    static ExecutorService timeoutTaskWorker = Executors.newSingleThreadExecutor(
+    private static ExecutorService timeoutTaskWorker = Executors.newSingleThreadExecutor(
             createThreadFactory("com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager.TimeoutTaskWorker"));
-    static List<TimeoutCommand<?>> timeoutCommands = new ArrayList<>();
-    final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager");
+    private static Map<UUID, List<TimeoutCommand<?>>> timeoutCommands = new HashMap<>();
+    private final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager");
 
     static void startTimeoutCommand(TimeoutCommand<?> timeoutCommand) {
         if (scheduledTimeoutTasks.isShutdown()) {
@@ -76,15 +79,43 @@ final class SQLServerTimeoutManager {
 
     }
 
+    static void releaseTimeoutCommands(UUID connectionId) {
+        synchronized (timeoutCommands) {
+            List<TimeoutCommand<?>> timeouts = timeoutCommands.get(connectionId);
+            if (timeouts != null && !timeouts.isEmpty()) {
+                for (TimeoutCommand<?> timeoutCommand : timeouts) {
+                    releaseTimeoutCommand(timeoutCommand);
+                }
+            }
+        }
+    }
+
     private static void addTimeoutCommand(TimeoutCommand<?> timeoutCommand) {
         synchronized (timeoutCommands) {
-            timeoutCommands.add(timeoutCommand);
+            UUID connectionId = timeoutCommand.getSqlServerConnection().getClientConIdInternal();
+            List<TimeoutCommand<?>> timeouts = timeoutCommands.get(connectionId);
+            if (timeouts == null) {
+                timeouts = new ArrayList<>();
+                timeoutCommands.put(connectionId, timeouts);
+            }
+            timeouts.add(timeoutCommand);
         }
     }
 
     private static void removeTimeoutCommand(TimeoutCommand<?> timeoutCommand) {
         synchronized (timeoutCommands) {
-            timeoutCommands.remove(timeoutCommand);
+            UUID connectionId = timeoutCommand.getSqlServerConnection().getClientConIdInternal();
+            List<TimeoutCommand<?>> timeouts = timeoutCommands.get(connectionId);
+            if (timeouts != null) {
+                if (!timeouts.isEmpty()) {
+                    timeouts.remove(timeoutCommand);
+                }
+
+                if (timeouts.isEmpty()) {
+                    // if there are no more timeouts, remove the connection from cache
+                    timeoutCommands.remove(connectionId);
+                }
+            }
         }
     }
 

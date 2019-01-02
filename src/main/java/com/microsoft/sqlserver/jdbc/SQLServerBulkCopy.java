@@ -657,7 +657,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 if (null != timeoutCommand) {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(this.toString() + ": Starting bulk timer...");
-                    this.connection.setTimeoutCommand(timeoutCommand);
+                    SQLServerTimeoutManager.startTimeoutCommand(timeoutCommand);
                 }
 
                 // doInsertBulk inserts the rows in one batch. It returns true if there are more rows in

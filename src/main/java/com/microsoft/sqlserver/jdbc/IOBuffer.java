@@ -6352,7 +6352,7 @@ final class TDSReader {
                 // if a timeout is configured with this object, add it to the timeout poller
                 int timeout = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
                 this.timeoutCommand = new TdsTimeoutCommand(timeout, this.command, this.con);
-                this.con.setTimeoutCommand(timeoutCommand);
+                SQLServerTimeoutManager.startTimeoutCommand(this.timeoutCommand);
             }
         }
         // First, read the packet header.
@@ -7538,7 +7538,7 @@ abstract class TDSCommand {
         // the server returns the first response packet.
         if (queryTimeoutSeconds > 0) {
             this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, tdsReader.getConnection());
-            tdsReader.getConnection().setTimeoutCommand(this.timeoutCommand);
+            SQLServerTimeoutManager.startTimeoutCommand(this.timeoutCommand);
         }
 
         if (logger.isLoggable(Level.FINEST))

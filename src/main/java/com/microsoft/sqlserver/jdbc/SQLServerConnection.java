@@ -80,8 +80,6 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
  */
 public class SQLServerConnection implements ISQLServerConnection, java.io.Serializable {
 
-    private TimeoutCommand<?> timeoutCommand;
-
     /**
      * Always refresh SerialVersionUID when prompted
      */
@@ -986,11 +984,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (!this.getDisableStatementPooling() && 0 < this.getStatementPoolingCacheSize()) {
             prepareCache();
         }
-    }
-
-    void setTimeoutCommand(TimeoutCommand<?> timeoutCommand) {
-        this.timeoutCommand = timeoutCommand;
-        SQLServerTimeoutManager.startTimeoutCommand(this.timeoutCommand);
     }
 
     void setFailoverPartnerServerProvided(String partner) {
@@ -3158,9 +3151,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
 
-        if (timeoutCommand != null) {
-            SQLServerTimeoutManager.releaseTimeoutCommand(timeoutCommand);
-        }
+        SQLServerTimeoutManager.releaseTimeoutCommands(this.getClientConIdInternal());
 
         ActivityCorrelator.cleanupActivityId();
 
