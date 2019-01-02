@@ -547,5 +547,7 @@ public final class SQLServerResource extends ListResourceBundle {
                     "MSI Token failure: Failed to acquire access token from IMDS, verify your clientId."},
             {"R_MSITokenFailureUnexpected",
                     "MSI Token failure: Failed to acquire access token from IMDS, unexpected error occurred."},
-            {"R_MSITokenFailureEndpoint", "MSI Token failure: Failed to acquire token from MSI Endpoint"}};
+            {"R_MSITokenFailureEndpoint", "MSI Token failure: Failed to acquire token from MSI Endpoint"},
+            {"R_propertyNotSupported",
+                    "Microsoft JDBC Driver for SQL Server currently does not support the property: {0}"}};
 }
