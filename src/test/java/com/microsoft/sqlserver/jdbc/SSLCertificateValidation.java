@@ -15,8 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-
 
 @RunWith(JUnitPlatform.class)
 public class SSLCertificateValidation {
@@ -100,9 +98,9 @@ public class SSLCertificateValidation {
         assertFalse((boolean) method.invoke(hsoObject, "*.com"));
 
         // Server Name = msjdbc.database.windows.net
-        // SAN = xn--caf-dma*.com
+        // SAN = xn--ms*.database.windows.net
         // Expected result: fail
-        assertFalse((boolean) method.invoke(hsoObject, "xn--caf-dma*.com"));
+        assertFalse((boolean) method.invoke(hsoObject, "xn--ms*.database.windows.net"));
 
         // Server Name = msjdbc.database.windows.net
         // SAN = *
