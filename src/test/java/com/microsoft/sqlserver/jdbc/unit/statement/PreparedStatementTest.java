@@ -146,7 +146,6 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("slow")
     public void testStatementPooling() throws Exception {
         testStatementPoolingInternal("batchInsert");
     }
@@ -161,7 +160,6 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws IllegalArgumentException
      */
     @Test
-    @Tag("slow")
     public void testStatementPoolingUseBulkCopyAPI() throws Exception {
         testStatementPoolingInternal("BulkCopy");
     }
