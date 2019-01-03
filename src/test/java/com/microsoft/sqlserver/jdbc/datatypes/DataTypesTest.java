@@ -48,7 +48,7 @@ import microsoft.sql.DateTimeOffset;
  * date/time/datetime2/datetimeoffset data types. Also includes tests for data type mappings.
  */
 @RunWith(JUnitPlatform.class)
-public class KatmaiDataTypesTest extends AbstractTest {
+public class DataTypesTest extends AbstractTest {
 
     final static String tableName = RandomUtil.getIdentifier("KatmaiDataTypesTable");
     final static String escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
@@ -57,7 +57,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
     final static String escapedProcName = AbstractSQLGenerator.escapeIdentifier(procName);
 
     enum SQLType {
-        date("yyyy-mm-dd", 0, java.sql.Types.DATE, "Date"),
+        date("yyyy-mm-dd", 0, java.sql.Types.DATE, "java.sql.Date"),
 
         time("hh:mm:ss", 7, java.sql.Types.TIME, "java.sql.Time"),
 
@@ -1059,6 +1059,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     };
 
+    @Test
     public void testResultSetGetters() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             for (TestValue value : TestValue.values())
@@ -1066,6 +1067,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
+    @Test
     public void testResultSetUpdaters() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             for (TestValue value : TestValue.values())
@@ -1073,6 +1075,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
+    @Test
     public void testSetters() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDateTime=true")) {
             for (TestValue value : TestValue.values())
@@ -1080,6 +1083,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
+    @Test
     public void testCallableStatementGetters() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             for (TestValue value : TestValue.values())
@@ -1087,13 +1091,16 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
+    @Test
     public void testResultSetMetaData() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
+            TestValue v[] = TestValue.values();
             for (TestValue value : TestValue.values())
                 value.sqlValue.verifyResultSetMetaData(conn);
         }
     }
 
+    @Test
     public void testParameterMetaData() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             for (TestValue value : TestValue.values())
@@ -1104,6 +1111,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
     /*
      * test CS.setObject(timestamp, TIME)/registerOutParam(TIME) with sendTimeAsDatetime
      */
+    @Test
     public void testSendTimestampAsTimeAsDatetime() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
             try (Statement stmt = conn.createStatement()) {
@@ -1142,6 +1150,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
      * test sending Timestamp to the server via an updater does not result in the same behavior as a setter wrt
      * double-rounding of fractional seconds
      */
+    @Test
     public void testDoubleRounding() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
 
@@ -1209,6 +1218,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
      * year of an imperial era. See for more details:
      * http://java.sun.com/javase/6/docs/technotes/guides/intl/calendar.doc.html
      */
+    @Test
     public void testWithJapaneseImperialCalendar() throws Exception {
         /*
          * From http://java.sun.com/javase/6/docs/api/java/util/Locale.html : "Note: When you ask for a resource for a
@@ -1218,10 +1228,9 @@ public class KatmaiDataTypesTest extends AbstractTest {
          */
         Locale japaneseImperialLocale = new Locale("ja", "JP", "JP");
         Calendar japaneseImperialCalendar = Calendar.getInstance(japaneseImperialLocale);
-
         MessageFormat cal = new MessageFormat(TestResource.getResource("R_noJRESupport"));
-        assumeTrue(GregorianCalendar.class.isInstance(japaneseImperialCalendar),
-                cal.format(japaneseImperialLocale.toString()));
+        Object[] msgsArgs = {japaneseImperialLocale.toString()};
+        assumeTrue(GregorianCalendar.class.isInstance(japaneseImperialCalendar), cal.format(msgsArgs));
 
         Locale defaultLocale = Locale.getDefault();
         Locale.setDefault(japaneseImperialLocale);
