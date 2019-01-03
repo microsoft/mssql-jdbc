@@ -180,7 +180,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            float smallNum = 1.0f;
+            float randomFloat = RandomData.generateReal(false);
             Long timeMilis = 1355299200000L;
             Timestamp testTimestamp = new Timestamp(timeMilis);
             int ramdonNum = RandomData.generateInt(false);
@@ -207,7 +207,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setString(13, randomChar); // nchar
             pstmt.setBigDecimal(14, randomBigDecimal); // numeric
             pstmt.setString(15, randomString); // nvarchar(20)
-            pstmt.setFloat(16, smallNum); // real
+            pstmt.setFloat(16, randomFloat); // real
             pstmt.setSmallDateTime(17, testTimestamp); // smalldatetime
             pstmt.setShort(18, randomShort); // smallint
             pstmt.setSmallMoney(19, randomSmallMoney); // smallmoney
@@ -239,7 +239,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 expected[12] = randomChar;
                 expected[13] = randomBigDecimal.intValue();
                 expected[14] = randomString;
-                expected[15] = smallNum;
+                expected[15] = randomFloat;
                 expected[16] = testTimestamp.toString();
                 expected[17] = randomShort;
                 expected[18] = randomSmallMoney;
@@ -483,7 +483,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            float smallNum = 1.0f;
+            float randomFloat = RandomData.generateReal(false);
             Long timeMilis = 1355299200000L;
             Timestamp testTimestamp = new Timestamp(timeMilis);
             int ramdonNum = RandomData.generateInt(false);
@@ -510,7 +510,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setString(13, randomChar); // nchar
             pstmt.setBigDecimal(14, randomBigDecimal); // numeric
             pstmt.setString(15, randomString); // nvarchar(20)
-            pstmt.setFloat(16, smallNum); // real
+            pstmt.setFloat(16, randomFloat); // real
             pstmt.setSmallDateTime(17, testTimestamp); // smalldatetime
             pstmt.setShort(18, randomShort); // smallint
             pstmt.setSmallMoney(19, randomSmallMoney); // smallmoney
@@ -542,7 +542,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 expected[12] = randomChar;
                 expected[13] = randomBigDecimal.intValue();
                 expected[14] = randomString;
-                expected[15] = smallNum;
+                expected[15] = randomFloat;
                 expected[16] = testTimestamp.toString();
                 expected[17] = randomShort;
                 expected[18] = randomSmallMoney;
