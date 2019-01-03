@@ -82,7 +82,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         Timestamp smallTimestamp = randomTimestamp;
         smallTimestamp.setNanos(0);
         smallTimestamp.setSeconds(0);
-        
+
         Object[] expected = new Object[23];
         expected[0] = ThreadLocalRandom.current().nextLong();
         expected[1] = randomBinary;
@@ -100,7 +100,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         expected[13] = BigDecimal.valueOf(ThreadLocalRandom.current().nextInt());
         expected[14] = randomString;
         expected[15] = randomFloat;
-        expected[16] = randomTimestamp;
+        expected[16] = smallTimestamp;
         expected[17] = randomShort;
         expected[18] = randomSmallMoney;
         expected[19] = randomTime;
