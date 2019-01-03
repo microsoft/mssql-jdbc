@@ -355,8 +355,8 @@ public class RandomData {
             minimumLength = 1;
         }
 
-        int length;
         if (columnLength.toLowerCase().equals("max")) {
+            int length;
             // 50% chance of return value longer than 8000/4000
             if (r.nextBoolean()) {
                 length = r.nextInt(100000) + maxBound;
@@ -371,8 +371,7 @@ public class RandomData {
             }
         } else {
             int columnLengthInt = Integer.parseInt(columnLength);
-            length = columnLengthInt;
-            byte[] bytes = new byte[length];
+            byte[] bytes = new byte[columnLengthInt];
             r.nextBytes(bytes);
             return bytes;
         }
@@ -690,8 +689,8 @@ public class RandomData {
             minimumLength = 1;
         }
 
-        int length;
         if (columnLength.toLowerCase().equals("max")) {
+            int length;
             // 50% chance of return value longer than 8000/4000
             if (r.nextBoolean()) {
                 length = r.nextInt(100000) + maxBound;
@@ -702,8 +701,7 @@ public class RandomData {
             }
         } else {
             int columnLengthInt = Integer.parseInt(columnLength);
-            length = columnLengthInt;
-            return buildRandomString(length, charSet);
+            return buildRandomString(columnLengthInt, charSet);
         }
     }
 
