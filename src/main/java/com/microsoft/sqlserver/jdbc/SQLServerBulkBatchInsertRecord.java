@@ -161,9 +161,10 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
             case Types.LONGVARBINARY:
             case Types.BLOB: {
                 if (data instanceof byte[]) {
-                    // if the binary data comes in as a byte array through setBytes through Bulk Copy for Batch Insert
-                    // API,
-                    // don't turn the binary array into a string.
+                    /*
+                     * if the binary data comes in as a byte array through setBytes through Bulk Copy for Batch Insert
+                     * API, don't turn the binary array into a string.
+                     */
                     return data;
                 } else {
                     // Strip off 0x if present.
@@ -236,8 +237,9 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
         Object rowData;
         int columnListIndex = 0;
 
-        // check if the size of the list of values = size of the list of columns
-        // (which is optional)
+        /*
+         * check if the size of the list of values = size of the list of columns (which is optional)
+         */
         if (null != columnList && columnList.size() != valueList.size()) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DataSchemaMismatch"));
             Object[] msgArgs = {};
@@ -247,50 +249,43 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
         for (Entry<Integer, ColumnMetadata> pair : columnMetadata.entrySet()) {
             int index = pair.getKey() - 1;
 
-            // To explain what each variable represents:
-            // columnMetadata = map containing the ENTIRE list of columns in the
-            // table.
-            // columnList = the *optional* list of columns the user can provide.
-            // For example, the (c1, c3) part of this query: INSERT into t1 (c1,
-            // c3) values (?, ?)
-            // valueList = the *mandatory* list of columns the user needs
-            // provide. This is the (?, ?) part of the previous query. The size
-            // of this valueList will always equal the number of
-            // the entire columns in the table IF columnList has NOT been
-            // provided. If columnList HAS been provided, then this valueList
-            // may be smaller than the list of all columns (which is
-            // columnMetadata).
-
-            // case when the user has not provided the optional list of column
-            // names.
+            /*
+             * To explain what each variable represents: columnMetadata = map containing the ENTIRE list of columns in
+             * the table. columnList = the *optional* list of columns the user can provide. For example, the (c1, c3)
+             * part of this query: INSERT into t1 (c1, c3) values (?, ?) valueList = the *mandatory* list of columns the
+             * user needs provide. This is the (?, ?) part of the previous query. The size of this valueList will always
+             * equal the number of the entire columns in the table IF columnList has NOT been provided. If columnList
+             * HAS been provided, then this valueList may be smaller than the list of all columns (which is
+             * columnMetadata).
+             */
+            // case when the user has not provided the optional list of column names.
             if (null == columnList || columnList.size() == 0) {
                 valueData = valueList.get(index);
-                // if the user has provided a wildcard for this column, fetch
-                // the set value from the batchParam.
+                /*
+                 * if the user has provided a wildcard for this column, fetch the set value from the batchParam.
+                 */
                 if (valueData.equalsIgnoreCase("?")) {
                     rowData = batchParam.get(batchParamIndex)[valueIndex++].getSetterValue();
                 } else if (valueData.equalsIgnoreCase("null")) {
                     rowData = null;
                 }
-                // if the user has provided a hardcoded value for this column,
-                // rowData is simply set to the hardcoded value.
+                /*
+                 * if the user has provided a hardcoded value for this column, rowData is simply set to the hardcoded
+                 * value.
+                 */
                 else {
                     rowData = removeSingleQuote(valueData);
                 }
             }
-            // case when the user has provided the optional list of column
-            // names.
+            // case when the user has provided the optional list of column names.
             else {
-                // columnListIndex is a separate counter we need to keep track
-                // of for each time we've processed a column
-                // that the user provided.
-                // for example, if the user provided an optional columnList of
-                // (c1, c3, c5, c7) in a table that has 8 columns (c1~c8),
-                // then the columnListIndex would increment only when we're
-                // dealing with the four columns inside columnMetadata.
-                // compare the list of the optional list of column names to the
-                // table's metadata, and match each other, so we assign the
-                // correct value to each column.
+                /*
+                 * columnListIndex is a separate counter we need to keep track of for each time we've processed a column
+                 * that the user provided. for example, if the user provided an optional columnList of (c1, c3, c5, c7)
+                 * in a table that has 8 columns (c1~c8), then the columnListIndex would increment only when we're
+                 * dealing with the four columns inside columnMetadata. compare the list of the optional list of column
+                 * names to the table's metadata, and match each other, so we assign the correct value to each column.
+                 */
                 if (columnList.size() > columnListIndex
                         && columnList.get(columnListIndex).equalsIgnoreCase(columnMetadata.get(index + 1).columnName)) {
                     valueData = valueList.get(columnListIndex);

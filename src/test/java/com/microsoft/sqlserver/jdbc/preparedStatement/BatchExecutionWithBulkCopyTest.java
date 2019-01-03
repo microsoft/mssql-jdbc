@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.Date;
@@ -31,6 +32,7 @@ import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.Geography;
 import com.microsoft.sqlserver.jdbc.Geometry;
+import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -56,11 +58,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testIsInsert() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
-            String valid1 = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " values (1, 2)";
-            String valid2 = " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " values (1, 2)";
-            String valid3 = "/* asdf */ INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk)
+            String valid1 = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " values (1, 2)";
+            String valid2 = " insert into " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " values (1, 2)";
+            String valid3 = "/* asdf */ insert into " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk)
                     + " values (1, 2)";
-            String invalid = "Select * from " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk);
+            String invalid = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk);
 
             Method method = stmt.getClass().getDeclaredMethod("isInsert", String.class);
             method.setAccessible(true);
@@ -167,7 +169,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testAllcolumns() throws Exception {
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?" + ")";
 
@@ -178,66 +180,73 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
+            float smallNum = 1.0f;
             Long timeMilis = 1355299200000L;
-            byte[] binaryData = "11234".getBytes();
             Timestamp testTimestamp = new Timestamp(timeMilis);
-            BigDecimal testBigDecimal = new BigDecimal(123.456);
+            int ramdonNum = RandomData.generateInt(false);
+            short randomShort = RandomData.generateTinyint(false);
+            String randomString = RandomData.generateCharTypes("6", false, false);
+            String randomChar = RandomData.generateCharTypes("1", false, false);
+            byte[] randomBinary = RandomData.generateBinaryTypes("5", false, false);
+            BigDecimal randomBigDecimal = new BigDecimal(ramdonNum);
+            BigDecimal randomMoney = RandomData.generateMoney(false);
+            BigDecimal randomSmallMoney = RandomData.generateSmallMoney(false);
 
-            pstmt.setLong(1, 123); // bigint
-            pstmt.setBytes(2, binaryData); // binary(5)
+            pstmt.setLong(1, ramdonNum); // bigint
+            pstmt.setBytes(2, randomBinary); // binary(5)
             pstmt.setBoolean(3, true); // bit
-            pstmt.setString(4, "s"); // char
+            pstmt.setString(4, randomChar); // char
             pstmt.setDate(5, new Date(timeMilis)); // date
             pstmt.setDateTime(6, testTimestamp);// datetime
             pstmt.setDateTime(7, testTimestamp); // datetime2
             pstmt.setDateTimeOffset(8, microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0)); // datetimeoffset
-            pstmt.setBigDecimal(9, testBigDecimal); // decimal
-            pstmt.setDouble(10, 123.45); // float
-            pstmt.setInt(11, 1); // int
-            pstmt.setMoney(12, testBigDecimal); // money
-            pstmt.setString(13, "s"); // nchar
-            pstmt.setBigDecimal(14, testBigDecimal); // numeric
-            pstmt.setString(15, "somenvarchar"); // nvarchar(20)
-            pstmt.setFloat(16, 1); // real
+            pstmt.setBigDecimal(9, randomBigDecimal.setScale(0, RoundingMode.HALF_UP)); // decimal
+            pstmt.setDouble(10, ramdonNum); // float
+            pstmt.setInt(11, ramdonNum); // int
+            pstmt.setMoney(12, randomMoney); // money
+            pstmt.setString(13, randomChar); // nchar
+            pstmt.setBigDecimal(14, randomBigDecimal); // numeric
+            pstmt.setString(15, randomString); // nvarchar(20)
+            pstmt.setFloat(16, smallNum); // real
             pstmt.setSmallDateTime(17, testTimestamp); // smalldatetime
-            pstmt.setShort(18, (short) 1); // smallint
-            pstmt.setSmallMoney(19, testBigDecimal); // smallmoney
+            pstmt.setShort(18, randomShort); // smallint
+            pstmt.setSmallMoney(19, randomSmallMoney); // smallmoney
             pstmt.setTime(20, new Time(timeMilis)); // time
-            pstmt.setShort(21, (short) 1); // tinyint
-            pstmt.setBytes(22, binaryData); // varbinary(5)
-            pstmt.setString(23, "somevarchar"); // varchar(20)
+            pstmt.setShort(21, randomShort); // tinyint
+            pstmt.setBytes(22, randomBinary); // varbinary(5)
+            pstmt.setString(23, randomString); // varchar(20)
 
             pstmt.addBatch();
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
                 Object[] expected = new Object[23];
 
-                expected[0] = 123;
-                expected[1] = binaryData;
+                expected[0] = ramdonNum;
+                expected[1] = randomBinary;
                 expected[2] = true;
-                expected[3] = "s";
+                expected[3] = randomChar;
                 expected[4] = new Date(timeMilis);
                 expected[5] = testTimestamp;
                 expected[6] = testTimestamp;
                 expected[7] = microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0);
-                expected[8] = testBigDecimal.intValue();
-                expected[9] = 123.45;
-                expected[10] = 1;
-                expected[11] = "123.4560";
-                expected[12] = "s";
-                expected[13] = testBigDecimal.intValue();
-                expected[14] = "somenvarchar";
-                expected[15] = "1.0";
+                expected[8] = randomBigDecimal.setScale(0, RoundingMode.HALF_UP);
+                expected[9] = (double) ramdonNum;
+                expected[10] = ramdonNum;
+                expected[11] = randomMoney;
+                expected[12] = randomChar;
+                expected[13] = randomBigDecimal.intValue();
+                expected[14] = randomString;
+                expected[15] = smallNum;
                 expected[16] = testTimestamp.toString();
-                expected[17] = (short) 1;
-                expected[18] = "123.4560";
+                expected[17] = randomShort;
+                expected[18] = randomSmallMoney;
                 expected[19] = new Time(timeMilis);
-                expected[20] = (short) 1;
-                expected[21] = binaryData;
-                expected[22] = "somevarchar";
+                expected[20] = randomShort;
+                expected[21] = randomBinary;
+                expected[22] = randomString;
 
                 rs.next();
                 for (int i = 0; i < expected.length; i++) {
@@ -253,7 +262,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testMixColumns() throws Exception {
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1, c3, c5, c8) values "
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1, c3, c5, c8) values "
                 + "(" + "?, " + "?, " + "?, " + "? " + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
@@ -275,7 +284,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT c1, c3, c5, c8 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    .executeQuery("select c1, c3, c5, c8 from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
                 Object[] expected = new Object[4];
 
@@ -296,7 +305,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testNullOrEmptyColumns() throws Exception {
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " (c1, c2, c3, c4, c5, c6, c7) values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? "
                 + ")";
 
@@ -319,7 +328,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
                 Object[] expected = new Object[7];
 
@@ -363,7 +372,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName))) {
                 rs.next();
 
                 assertEquals(1, rs.getObject(1));
@@ -393,7 +402,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName))) {
                 rs.next();
 
                 assertEquals(1, rs.getObject(1));
@@ -422,7 +431,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(schemaTableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(schemaTableName))) {
                 rs.next();
 
                 assertEquals(1, rs.getObject(1));
@@ -453,7 +462,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName))) {
                 rs.next();
 
                 assertEquals(1, rs.getObject(1));
@@ -463,7 +472,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testAllColumnsLargeBatch() throws Exception {
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?" + ")";
 
@@ -474,66 +483,73 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
+            float smallNum = 1.0f;
             Long timeMilis = 1355299200000L;
-            byte[] binaryData = "11234".getBytes();
             Timestamp testTimestamp = new Timestamp(timeMilis);
-            BigDecimal testBigDecimal = new BigDecimal(123.456);
+            int ramdonNum = RandomData.generateInt(false);
+            short randomShort = RandomData.generateTinyint(false);
+            String randomString = RandomData.generateCharTypes("6", false, false);
+            String randomChar = RandomData.generateCharTypes("1", false, false);
+            byte[] randomBinary = RandomData.generateBinaryTypes("5", false, false);
+            BigDecimal randomBigDecimal = new BigDecimal(ramdonNum);
+            BigDecimal randomMoney = RandomData.generateMoney(false);
+            BigDecimal randomSmallMoney = RandomData.generateSmallMoney(false);
 
-            pstmt.setLong(1, 123); // bigint
-            pstmt.setBytes(2, binaryData); // binary(5)
+            pstmt.setLong(1, ramdonNum); // bigint
+            pstmt.setBytes(2, randomBinary); // binary(5)
             pstmt.setBoolean(3, true); // bit
-            pstmt.setString(4, "s"); // char
+            pstmt.setString(4, randomChar); // char
             pstmt.setDate(5, new Date(timeMilis)); // date
             pstmt.setDateTime(6, testTimestamp);// datetime
             pstmt.setDateTime(7, testTimestamp); // datetime2
             pstmt.setDateTimeOffset(8, microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0)); // datetimeoffset
-            pstmt.setBigDecimal(9, testBigDecimal); // decimal
-            pstmt.setDouble(10, 123.45); // float
-            pstmt.setInt(11, 1); // int
-            pstmt.setMoney(12, testBigDecimal); // money
-            pstmt.setString(13, "s"); // nchar
-            pstmt.setBigDecimal(14, testBigDecimal); // numeric
-            pstmt.setString(15, "somenvarchar"); // nvarchar(20)
-            pstmt.setFloat(16, 1); // real
+            pstmt.setBigDecimal(9, randomBigDecimal.setScale(0, RoundingMode.HALF_UP)); // decimal
+            pstmt.setDouble(10, ramdonNum); // float
+            pstmt.setInt(11, ramdonNum); // int
+            pstmt.setMoney(12, randomMoney); // money
+            pstmt.setString(13, randomChar); // nchar
+            pstmt.setBigDecimal(14, randomBigDecimal); // numeric
+            pstmt.setString(15, randomString); // nvarchar(20)
+            pstmt.setFloat(16, smallNum); // real
             pstmt.setSmallDateTime(17, testTimestamp); // smalldatetime
-            pstmt.setShort(18, (short) 1); // smallint
-            pstmt.setSmallMoney(19, testBigDecimal); // smallmoney
+            pstmt.setShort(18, randomShort); // smallint
+            pstmt.setSmallMoney(19, randomSmallMoney); // smallmoney
             pstmt.setTime(20, new Time(timeMilis)); // time
-            pstmt.setShort(21, (short) 1); // tinyint
-            pstmt.setBytes(22, binaryData); // varbinary(5)
-            pstmt.setString(23, "somevarchar"); // varchar(20)
+            pstmt.setShort(21, randomShort); // tinyint
+            pstmt.setBytes(22, randomBinary); // varbinary(5)
+            pstmt.setString(23, randomString); // varchar(20)
 
             pstmt.addBatch();
             pstmt.executeLargeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
                 Object[] expected = new Object[23];
 
-                expected[0] = 123;
-                expected[1] = binaryData;
+                expected[0] = ramdonNum;
+                expected[1] = randomBinary;
                 expected[2] = true;
-                expected[3] = "s";
+                expected[3] = randomChar;
                 expected[4] = new Date(timeMilis);
                 expected[5] = testTimestamp;
                 expected[6] = testTimestamp;
                 expected[7] = microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0);
-                expected[8] = testBigDecimal.intValue();
-                expected[9] = 123.45;
-                expected[10] = 1;
-                expected[11] = "123.4560";
-                expected[12] = "s";
-                expected[13] = testBigDecimal.intValue();
-                expected[14] = "somenvarchar";
-                expected[15] = "1.0";
+                expected[8] = randomBigDecimal.setScale(0, RoundingMode.HALF_UP);
+                expected[9] = (double) ramdonNum;
+                expected[10] = ramdonNum;
+                expected[11] = randomMoney;
+                expected[12] = randomChar;
+                expected[13] = randomBigDecimal.intValue();
+                expected[14] = randomString;
+                expected[15] = smallNum;
                 expected[16] = testTimestamp.toString();
-                expected[17] = (short) 1;
-                expected[18] = "123.4560";
+                expected[17] = randomShort;
+                expected[18] = randomSmallMoney;
                 expected[19] = new Time(timeMilis);
-                expected[20] = (short) 1;
-                expected[21] = binaryData;
-                expected[22] = "somevarchar";
+                expected[20] = randomShort;
+                expected[21] = randomBinary;
+                expected[22] = randomString;
 
                 rs.next();
                 for (int i = 0; i < expected.length; i++) {
@@ -679,7 +695,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName))) {
                 rs.next();
                 assertEquals(g1.toString(), Geometry.STGeomFromWKB((byte[]) rs.getObject(1)).toString());
                 assertEquals(g2.toString(), Geography.STGeomFromWKB((byte[]) rs.getObject(2)).toString());
