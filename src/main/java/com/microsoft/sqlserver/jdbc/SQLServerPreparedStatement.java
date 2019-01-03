@@ -1936,7 +1936,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         try {
             if (this.useBulkCopyForBatchInsert && connection.isAzureDW() && isInsert(localUserSQL)) {
-                if (batchParamValues == null) {
+                if (null == batchParamValues) {
                     updateCounts = new int[0];
                     loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
                     return updateCounts;
@@ -2032,7 +2032,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
-        if (batchParamValues == null)
+        if (null == batchParamValues)
             updateCounts = new int[0];
         else
             try {
@@ -2093,7 +2093,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         try {
             if (this.useBulkCopyForBatchInsert && connection.isAzureDW() && isInsert(localUserSQL)) {
-                if (batchParamValues == null) {
+                if (null == batchParamValues) {
                     updateCounts = new long[0];
                     loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
                     return updateCounts;
@@ -2189,7 +2189,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
-        if (batchParamValues == null)
+        if (null == batchParamValues)
             updateCounts = new long[0];
         else
             try {
