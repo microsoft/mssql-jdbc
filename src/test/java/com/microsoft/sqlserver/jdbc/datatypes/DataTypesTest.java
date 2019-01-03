@@ -48,7 +48,7 @@ import microsoft.sql.DateTimeOffset;
  * date/time/datetime2/datetimeoffset data types. Also includes tests for data type mappings.
  */
 @RunWith(JUnitPlatform.class)
-public class KatmaiDataTypesTest extends AbstractTest {
+public class DataTypesTest extends AbstractTest {
 
     final static String tableName = RandomUtil.getIdentifier("KatmaiDataTypesTable");
     final static String escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
