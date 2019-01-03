@@ -6,7 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -18,7 +18,7 @@ abstract class TimeoutCommand<T> {
     private final T command;
     private final SQLServerConnection sqlServerConnection;
     private ScheduledFuture<?> timeoutTask;
-    static AtomicInteger uniqueId = new AtomicInteger();
+    static AtomicLong uniqueId = new AtomicLong();
     private final long id;
 
     TimeoutCommand(int timeout, T command, SQLServerConnection sqlServerConnection) {

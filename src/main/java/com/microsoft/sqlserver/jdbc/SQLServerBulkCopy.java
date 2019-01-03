@@ -684,7 +684,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 if (null != timeoutCommand) {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(this.toString() + ": Stopping bulk timer...");
-                    SQLServerTimeoutManager.releaseTimeoutCommand(timeoutCommand);
+                    SQLServerTimeoutManager.releaseAndRemoveTimeoutCommand(timeoutCommand);
                 }
 
                 return true;

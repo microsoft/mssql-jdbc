@@ -4591,8 +4591,8 @@ final class TDSWriter {
                         SQLServerError databaseError = new SQLServerError();
                         databaseError.setFromTDS(tdsReader);
 
-                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getErrorMessage(), databaseError,
-                                false);
+                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getErrorMessage(),
+                                databaseError, false);
                     }
 
                     command.setInterruptsEnabled(true);
@@ -6375,7 +6375,7 @@ final class TDSReader {
 
         // if execution was subject to timeout then stop timing
         if (this.timeoutCommand != null) {
-            SQLServerTimeoutManager.releaseTimeoutCommand(this.timeoutCommand);
+            SQLServerTimeoutManager.releaseAndRemoveTimeoutCommand(this.timeoutCommand);
         }
         // Header size is a 2 byte unsigned short integer in big-endian order.
         int packetLength = Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_MESSAGE_LENGTH);
@@ -7563,7 +7563,7 @@ abstract class TDSCommand {
             // If command execution was subject to timeout then stop timing as soon
             // as the server returns the first response packet or errors out.
             if (this.timeoutCommand != null) {
-                SQLServerTimeoutManager.releaseTimeoutCommand(this.timeoutCommand);
+                SQLServerTimeoutManager.releaseAndRemoveTimeoutCommand(this.timeoutCommand);
             }
         }
 
