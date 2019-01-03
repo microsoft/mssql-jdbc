@@ -19,8 +19,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +45,8 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
+import microsoft.sql.DateTimeOffset;
+
 
 @RunWith(JUnitPlatform.class)
 @Tag("AzureDWTest")
@@ -53,6 +58,58 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     static String squareBracketTableName = RandomUtil.getIdentifier("BulkCopy]]]]test'");
     static String doubleQuoteTableName = RandomUtil.getIdentifier("\"BulkCopy\"\"\"\"test\"");
     static String schemaTableName = "\"dbo\"         . /*some comment */     " + squareBracketTableName;
+    
+    private Object[] generateExpectedValues() {
+        float randomFloat = RandomData.generateReal(false);
+        int ramdonNum = RandomData.generateInt(false);
+        short randomShort = RandomData.generateTinyint(false);
+        String randomString = RandomData.generateCharTypes("6", false, false);
+        String randomChar = RandomData.generateCharTypes("1", false, false);
+        byte[] randomBinary = RandomData.generateBinaryTypes("5", false, false);
+        BigDecimal randomBigDecimal = new BigDecimal(ramdonNum);
+        BigDecimal randomMoney = RandomData.generateMoney(false);
+        BigDecimal randomSmallMoney = RandomData.generateSmallMoney(false);
+        
+        //Temporal datatypes
+        Date randomDate = Date.valueOf(LocalDateTime.now().toLocalDate());
+        Time randomTime = new Time(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        Timestamp randomTimestamp = new Timestamp(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        
+        //Datetime can only end in 0,3,7 and will be rounded to those numbers on the server. Manually set nanos
+        Timestamp roundedDatetime = randomTimestamp;
+        roundedDatetime.setNanos(0);
+        //Smalldatetime does not have seconds. Manually set nanos and seconds.
+        Timestamp smallTimestamp = randomTimestamp;
+        smallTimestamp.setNanos(0);
+        smallTimestamp.setSeconds(0);
+
+        Object[] expected = new Object[23];
+        expected[0] = ThreadLocalRandom.current().nextLong();
+        expected[1] = randomBinary;
+        expected[2] = true;
+        expected[3] = randomChar;
+        expected[4] = randomDate;
+        expected[5] = roundedDatetime;
+        expected[6] = randomTimestamp;
+        expected[7] = microsoft.sql.DateTimeOffset.valueOf(randomTimestamp, 0);
+        expected[8] = randomBigDecimal.setScale(0, RoundingMode.HALF_UP);
+        expected[9] = (double) ramdonNum;
+        expected[10] = ramdonNum;
+        expected[11] = randomMoney;
+        expected[12] = randomChar;
+        expected[13] = BigDecimal.valueOf(ThreadLocalRandom.current().nextInt());
+        expected[14] = randomString;
+        expected[15] = randomFloat;
+        expected[16] = smallTimestamp;
+        expected[17] = randomShort;
+        expected[18] = randomSmallMoney;
+        expected[19] = randomTime;
+        expected[20] = randomShort;
+        expected[21] = randomBinary;
+        expected[22] = randomString;
+        
+        return expected;
+    }
 
     @Test
     public void testIsInsert() throws Exception {
@@ -179,75 +236,38 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
-
-            float randomFloat = RandomData.generateReal(false);
-            Long timeMilis = 1355299200000L;
-            Timestamp testTimestamp = new Timestamp(timeMilis);
-            int ramdonNum = RandomData.generateInt(false);
-            short randomShort = RandomData.generateTinyint(false);
-            String randomString = RandomData.generateCharTypes("6", false, false);
-            String randomChar = RandomData.generateCharTypes("1", false, false);
-            byte[] randomBinary = RandomData.generateBinaryTypes("5", false, false);
-            BigDecimal randomBigDecimal = new BigDecimal(ramdonNum);
-            BigDecimal randomMoney = RandomData.generateMoney(false);
-            BigDecimal randomSmallMoney = RandomData.generateSmallMoney(false);
-
-            pstmt.setLong(1, ramdonNum); // bigint
-            pstmt.setBytes(2, randomBinary); // binary(5)
-            pstmt.setBoolean(3, true); // bit
-            pstmt.setString(4, randomChar); // char
-            pstmt.setDate(5, new Date(timeMilis)); // date
-            pstmt.setDateTime(6, testTimestamp);// datetime
-            pstmt.setDateTime(7, testTimestamp); // datetime2
-            pstmt.setDateTimeOffset(8, microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0)); // datetimeoffset
-            pstmt.setBigDecimal(9, randomBigDecimal.setScale(0, RoundingMode.HALF_UP)); // decimal
-            pstmt.setDouble(10, ramdonNum); // float
-            pstmt.setInt(11, ramdonNum); // int
-            pstmt.setMoney(12, randomMoney); // money
-            pstmt.setString(13, randomChar); // nchar
-            pstmt.setBigDecimal(14, randomBigDecimal); // numeric
-            pstmt.setString(15, randomString); // nvarchar(20)
-            pstmt.setFloat(16, randomFloat); // real
-            pstmt.setSmallDateTime(17, testTimestamp); // smalldatetime
-            pstmt.setShort(18, randomShort); // smallint
-            pstmt.setSmallMoney(19, randomSmallMoney); // smallmoney
-            pstmt.setTime(20, new Time(timeMilis)); // time
-            pstmt.setShort(21, randomShort); // tinyint
-            pstmt.setBytes(22, randomBinary); // varbinary(5)
-            pstmt.setString(23, randomString); // varchar(20)
+            
+            Object[] expected = generateExpectedValues();
+        
+            pstmt.setLong(1, (long) expected[0]); // bigint
+            pstmt.setBytes(2, (byte[]) expected[1]); // binary(5)
+            pstmt.setBoolean(3, (boolean) expected[2]); // bit
+            pstmt.setString(4, (String) expected[3]); // char
+            pstmt.setDate(5, (Date) expected[4]); // date
+            pstmt.setDateTime(6, (Timestamp) expected[5]);// datetime
+            pstmt.setDateTime(7, (Timestamp) expected[6]); // datetime2
+            pstmt.setDateTimeOffset(8, (DateTimeOffset) expected[7]); // datetimeoffset
+            pstmt.setBigDecimal(9, (BigDecimal) expected[8]); // decimal
+            pstmt.setDouble(10, (double) expected[9]); // float
+            pstmt.setInt(11, (int) expected[10]); // int
+            pstmt.setMoney(12, (BigDecimal) expected[11]); // money
+            pstmt.setString(13, (String) expected[12]); // nchar
+            pstmt.setBigDecimal(14, (BigDecimal) expected[13]); // numeric
+            pstmt.setString(15, (String) expected[14]); // nvarchar(20)
+            pstmt.setFloat(16, (float) expected[15]); // real
+            pstmt.setSmallDateTime(17, (Timestamp) expected[16]); // smalldatetime
+            pstmt.setShort(18, (short) expected[17]); // smallint
+            pstmt.setSmallMoney(19, (BigDecimal) expected[18]); // smallmoney
+            pstmt.setTime(20, (Time) expected[19]); // time
+            pstmt.setShort(21, (short) expected[20]); // tinyint
+            pstmt.setBytes(22, (byte[]) expected[21]); // varbinary(5)
+            pstmt.setString(23, (String) expected[22]); // varchar(20)
 
             pstmt.addBatch();
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-
-                Object[] expected = new Object[23];
-
-                expected[0] = ramdonNum;
-                expected[1] = randomBinary;
-                expected[2] = true;
-                expected[3] = randomChar;
-                expected[4] = new Date(timeMilis);
-                expected[5] = testTimestamp;
-                expected[6] = testTimestamp;
-                expected[7] = microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0);
-                expected[8] = randomBigDecimal.setScale(0, RoundingMode.HALF_UP);
-                expected[9] = (double) ramdonNum;
-                expected[10] = ramdonNum;
-                expected[11] = randomMoney;
-                expected[12] = randomChar;
-                expected[13] = randomBigDecimal.intValue();
-                expected[14] = randomString;
-                expected[15] = randomFloat;
-                expected[16] = testTimestamp.toString();
-                expected[17] = randomShort;
-                expected[18] = randomSmallMoney;
-                expected[19] = new Time(timeMilis);
-                expected[20] = randomShort;
-                expected[21] = randomBinary;
-                expected[22] = randomString;
-
                 rs.next();
                 for (int i = 0; i < expected.length; i++) {
                     if (rs.getObject(i + 1) instanceof byte[]) {
@@ -483,74 +503,38 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            float randomFloat = RandomData.generateReal(false);
-            Long timeMilis = 1355299200000L;
-            Timestamp testTimestamp = new Timestamp(timeMilis);
-            int ramdonNum = RandomData.generateInt(false);
-            short randomShort = RandomData.generateTinyint(false);
-            String randomString = RandomData.generateCharTypes("6", false, false);
-            String randomChar = RandomData.generateCharTypes("1", false, false);
-            byte[] randomBinary = RandomData.generateBinaryTypes("5", false, false);
-            BigDecimal randomBigDecimal = new BigDecimal(ramdonNum);
-            BigDecimal randomMoney = RandomData.generateMoney(false);
-            BigDecimal randomSmallMoney = RandomData.generateSmallMoney(false);
 
-            pstmt.setLong(1, ramdonNum); // bigint
-            pstmt.setBytes(2, randomBinary); // binary(5)
-            pstmt.setBoolean(3, true); // bit
-            pstmt.setString(4, randomChar); // char
-            pstmt.setDate(5, new Date(timeMilis)); // date
-            pstmt.setDateTime(6, testTimestamp);// datetime
-            pstmt.setDateTime(7, testTimestamp); // datetime2
-            pstmt.setDateTimeOffset(8, microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0)); // datetimeoffset
-            pstmt.setBigDecimal(9, randomBigDecimal.setScale(0, RoundingMode.HALF_UP)); // decimal
-            pstmt.setDouble(10, ramdonNum); // float
-            pstmt.setInt(11, ramdonNum); // int
-            pstmt.setMoney(12, randomMoney); // money
-            pstmt.setString(13, randomChar); // nchar
-            pstmt.setBigDecimal(14, randomBigDecimal); // numeric
-            pstmt.setString(15, randomString); // nvarchar(20)
-            pstmt.setFloat(16, randomFloat); // real
-            pstmt.setSmallDateTime(17, testTimestamp); // smalldatetime
-            pstmt.setShort(18, randomShort); // smallint
-            pstmt.setSmallMoney(19, randomSmallMoney); // smallmoney
-            pstmt.setTime(20, new Time(timeMilis)); // time
-            pstmt.setShort(21, randomShort); // tinyint
-            pstmt.setBytes(22, randomBinary); // varbinary(5)
-            pstmt.setString(23, randomString); // varchar(20)
+            Object[] expected = generateExpectedValues();
+
+            pstmt.setLong(1, (long) expected[0]); // bigint
+            pstmt.setBytes(2, (byte[]) expected[1]); // binary(5)
+            pstmt.setBoolean(3, (boolean) expected[2]); // bit
+            pstmt.setString(4, (String) expected[3]); // char
+            pstmt.setDate(5, (Date) expected[4]); // date
+            pstmt.setDateTime(6, (Timestamp) expected[5]);// datetime
+            pstmt.setDateTime(7, (Timestamp) expected[6]); // datetime2
+            pstmt.setDateTimeOffset(8, (DateTimeOffset) expected[7]); // datetimeoffset
+            pstmt.setBigDecimal(9, (BigDecimal) expected[8]); // decimal
+            pstmt.setDouble(10, (double) expected[9]); // float
+            pstmt.setInt(11, (int) expected[10]); // int
+            pstmt.setMoney(12, (BigDecimal) expected[11]); // money
+            pstmt.setString(13, (String) expected[12]); // nchar
+            pstmt.setBigDecimal(14, (BigDecimal) expected[13]); // numeric
+            pstmt.setString(15, (String) expected[14]); // nvarchar(20)
+            pstmt.setFloat(16, (float) expected[15]); // real
+            pstmt.setSmallDateTime(17, (Timestamp) expected[16]); // smalldatetime
+            pstmt.setShort(18, (short) expected[17]); // smallint
+            pstmt.setSmallMoney(19, (BigDecimal) expected[18]); // smallmoney
+            pstmt.setTime(20, (Time) expected[19]); // time
+            pstmt.setShort(21, (short) expected[20]); // tinyint
+            pstmt.setBytes(22, (byte[]) expected[21]); // varbinary(5)
+            pstmt.setString(23, (String) expected[22]); // varchar(20)
 
             pstmt.addBatch();
             pstmt.executeLargeBatch();
 
             try (ResultSet rs = stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-
-                Object[] expected = new Object[23];
-
-                expected[0] = ramdonNum;
-                expected[1] = randomBinary;
-                expected[2] = true;
-                expected[3] = randomChar;
-                expected[4] = new Date(timeMilis);
-                expected[5] = testTimestamp;
-                expected[6] = testTimestamp;
-                expected[7] = microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0);
-                expected[8] = randomBigDecimal.setScale(0, RoundingMode.HALF_UP);
-                expected[9] = (double) ramdonNum;
-                expected[10] = ramdonNum;
-                expected[11] = randomMoney;
-                expected[12] = randomChar;
-                expected[13] = randomBigDecimal.intValue();
-                expected[14] = randomString;
-                expected[15] = randomFloat;
-                expected[16] = testTimestamp.toString();
-                expected[17] = randomShort;
-                expected[18] = randomSmallMoney;
-                expected[19] = new Time(timeMilis);
-                expected[20] = randomShort;
-                expected[21] = randomBinary;
-                expected[22] = randomString;
-
                 rs.next();
                 for (int i = 0; i < expected.length; i++) {
                     if (rs.getObject(i + 1) instanceof byte[]) {
