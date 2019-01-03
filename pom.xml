@@ -64,8 +64,14 @@
 			<version>1.6.2</version>
 			<optional>true</optional>
 		</dependency>
+		<dependency>
+			<groupId>com.microsoft.rest</groupId>
+			<artifactId>client-runtime</artifactId>
+			<version>1.6.2</version>
+			<optional>true</optional>
+		</dependency>
     
-		<!-- dependecies provided by an OSGi-Framework -->
+		<!-- dependencies provided by an OSGi-Framework -->
 		<dependency>
 		    <groupId>org.osgi</groupId>
 		    <artifactId>org.osgi.core</artifactId>
@@ -77,14 +83,6 @@
 		    <artifactId>org.osgi.compendium</artifactId>
 		    <version>${osgi.version}</version>
 		    <scope>provided</scope>
-		</dependency>
-
-		<!-- dependencies for running tests -->
-		<dependency>
-			<groupId>com.microsoft.rest</groupId>
-			<artifactId>client-runtime</artifactId>
-			<version>1.6.2</version>
-			<optional>true</optional>
 		</dependency>
 
 		<!-- dependencies for running tests -->

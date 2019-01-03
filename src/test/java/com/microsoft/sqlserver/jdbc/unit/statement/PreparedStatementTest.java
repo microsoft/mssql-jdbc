@@ -80,9 +80,9 @@ public class PreparedStatementTest extends AbstractTest {
 
             String lookupUniqueifier = UUID.randomUUID().toString();
 
-            String queryCacheLookup = String.format("%%/*unpreparetest_%s%%*/SELECT * FROM sys.tables;",
+            String queryCacheLookup = String.format("%%/*unpreparetest_%s%%*/SELECT 1;",
                     lookupUniqueifier);
-            String query = String.format("/*unpreparetest_%s only sp_executesql*/SELECT * FROM sys.tables;",
+            String query = String.format("/*unpreparetest_%s only sp_executesql*/SELECT 1;",
                     lookupUniqueifier);
 
             // Verify nothing in cache.
@@ -95,7 +95,7 @@ public class PreparedStatementTest extends AbstractTest {
             int iterations = 25;
 
             query = String.format(
-                    "/*unpreparetest_%s, sp_executesql->sp_prepexec->sp_execute- batched sp_unprepare*/SELECT * FROM sys.tables;",
+                    "/*unpreparetest_%s, sp_executesql->sp_prepexec->sp_execute- batched sp_unprepare*/SELECT 1;",
                     lookupUniqueifier);
             int prevDiscardActionCount = 0;
 
@@ -185,7 +185,7 @@ public class PreparedStatementTest extends AbstractTest {
                 con.setServerPreparedStatementDiscardThreshold(discardedStatementCount);
 
                 String lookupUniqueifier = UUID.randomUUID().toString();
-                String query = String.format("/*statementpoolingevictiontest_%s*/SELECT * FROM sys.tables; -- ",
+                String query = String.format("/*statementpoolingevictiontest_%s*/SELECT 1; -- ",
                         lookupUniqueifier);
 
                 // Add new statements to fill up the statement pool.
@@ -290,9 +290,9 @@ public class PreparedStatementTest extends AbstractTest {
     public void testPrepareRace() throws Exception {
 
         String[] queries = new String[3];
-        queries[0] = String.format("SELECT * FROM sys.tables -- %s", UUID.randomUUID());
-        queries[1] = String.format("SELECT * FROM sys.tables -- %s", UUID.randomUUID());
-        queries[2] = String.format("SELECT * FROM sys.tables -- %s", UUID.randomUUID());
+        queries[0] = String.format("SELECT 1 -- %s", UUID.randomUUID());
+        queries[1] = String.format("SELECT 1 -- %s", UUID.randomUUID());
+        queries[2] = String.format("SELECT 1 -- %s", UUID.randomUUID());
 
         ExecutorService threadPool = Executors.newFixedThreadPool(4);
         AtomicReference<Exception> exception = new AtomicReference<>();
@@ -469,7 +469,7 @@ public class PreparedStatementTest extends AbstractTest {
             // Turn off use of prepared statement cache.
             con.setStatementPoolingCacheSize(0);
 
-            String query = "/*unprepSettingsTest*/SELECT * FROM sys.objects;";
+            String query = "/*unprepSettingsTest*/SELECT 1;";
 
             // Verify initial default is not serial:
             assertTrue(1 < con.getServerPreparedStatementDiscardThreshold());
@@ -506,7 +506,7 @@ public class PreparedStatementTest extends AbstractTest {
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI(con);
             }
-            String query = String.format("/*statementpoolingtest_re-use_%s*/SELECT TOP(1) * FROM sys.tables;",
+            String query = String.format("/*statementpoolingtest_re-use_%s*/SELECT 1;",
                     UUID.randomUUID().toString());
 
             con.setStatementPoolingCacheSize(10);
@@ -525,7 +525,7 @@ public class PreparedStatementTest extends AbstractTest {
                     }
 
                     int testsWithHandleReuse = 0;
-                    final int testCount = 500;
+                    final int testCount = 50;
                     for (int i = 0; i < testCount; ++i) {
                         Random random = new Random();
                         int queryNumber = random.nextInt(queries.length);
@@ -548,7 +548,7 @@ public class PreparedStatementTest extends AbstractTest {
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI(con);
             }
-            // Test behvaior with statement pooling.
+            // Test behavior with statement pooling.
             con.setStatementPoolingCacheSize(10);
             this.executeSQL(con,
                     "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
@@ -576,7 +576,7 @@ public class PreparedStatementTest extends AbstractTest {
 
             // test updated value, should be 1 + 100 = 101
             // although executeUpdate() throws exception, update operation should be executed successfully.
-            try (ResultSet rs = con.createStatement()
+            try (Statement stmt = con.createStatement(); ResultSet rs = stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + "")) {
                 rs.next();
                 assertSame(101, rs.getInt(1));
@@ -613,24 +613,18 @@ public class PreparedStatementTest extends AbstractTest {
 
                 // test updated value, should be 1 + 100 = 101
                 // although executeBatch() throws exception, update operation should be executed successfully.
-                try (ResultSet rs = con.createStatement()
+                try (Statement stmt = con.createStatement(); ResultSet rs = stmt
                         .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName2) + "")) {
                     rs.next();
                     assertSame(101, rs.getInt(1));
                 }
             }
-        }
-
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-            if (mode.equalsIgnoreCase("bulkcopy")) {
-                modifyConnectionForBulkCopyAPI(con);
-            }
-            // Test behvaior with statement pooling.
+            
+            // Test behavior with statement pooling enabled
             con.setDisableStatementPooling(false);
-            con.setStatementPoolingCacheSize(10);
 
             String lookupUniqueifier = UUID.randomUUID().toString();
-            String query = String.format("/*statementpoolingtest_%s*/SELECT * FROM sys.tables;", lookupUniqueifier);
+            String query = String.format("/*statementpoolingtest_%s*/SELECT 1;", lookupUniqueifier);
 
             // Execute statement first, should create cache entry WITHOUT handle (since sp_executesql was used).
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query)) {
