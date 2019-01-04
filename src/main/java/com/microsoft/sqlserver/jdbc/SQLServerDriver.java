@@ -11,8 +11,11 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.text.MessageFormat;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -374,6 +377,7 @@ public final class SQLServerDriver implements java.sql.Driver {
     static final String PRODUCT_NAME = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor
             + " for SQL Server";
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
+    static final Set<UUID> connRef = new HashSet<>();
 
     private static final String[] TRUE_FALSE = {"true", "false"};
     private static final SQLServerDriverPropertyInfo[] DRIVER_PROPERTIES = {
@@ -736,6 +740,25 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
         loggerExternal.exiting(getClassNameLogging(), "connect", result);
         return result;
+    }
+
+    static synchronized void addConnRef(UUID clientConnectionId) {
+        synchronized (connRef) {
+            if (!connRef.contains(clientConnectionId)) {
+                connRef.add(clientConnectionId);
+            }
+        }
+    }
+
+    static synchronized void removeConnRef(UUID clientConnectionId) {
+        synchronized (connRef) {
+            if (connRef.contains(clientConnectionId)) {
+                connRef.remove(clientConnectionId);
+                if (0 == connRef.size()) {
+                    SQLServerTimeoutManager.releaseAll();
+                }
+            }
+        }
     }
 
     private Properties parseAndMergeProperties(String Url, Properties suppliedProperties) throws SQLServerException {

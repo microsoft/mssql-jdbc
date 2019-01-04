@@ -52,6 +52,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
+import java.util.concurrent.Callable;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -6236,7 +6237,6 @@ final class TDSReaderMark {
 final class TDSReader {
     private final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Reader");
     final private String traceID;
-    private TimeoutCommand<TDSCommand> timeoutCommand;
 
     final public String toString() {
         return traceID;
@@ -6391,8 +6391,7 @@ final class TDSReader {
             if ((command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0)) {
                 // if a timeout is configured with this object, add it to the timeout poller
                 int timeout = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
-                this.timeoutCommand = new TdsTimeoutCommand(timeout, this.command, this.con);
-                SQLServerTimeoutManager.startTimeoutCommand(this.timeoutCommand);
+                SQLServerTimeoutManager.startTimeoutCommand(new TimeoutCallable(this.command, this.con), timeout);
             }
         }
         // First, read the packet header.
@@ -6410,11 +6409,6 @@ final class TDSReader {
             }
 
             headerBytesRead += bytesRead;
-        }
-
-        // if execution was subject to timeout then stop timing
-        if (this.timeoutCommand != null) {
-            SQLServerTimeoutManager.releaseAndRemoveTimeoutCommand(this.timeoutCommand);
         }
         // Header size is a 2 byte unsigned short integer in big-endian order.
         int packetLength = Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_MESSAGE_LENGTH);
@@ -7004,43 +6998,6 @@ final class TDSReader {
 
 
 /**
- * The tds default implementation of a timeout command
- */
-class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
-    public TdsTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
-        super(timeout, command, sqlServerConnection);
-    }
-
-    public void interrupt() {
-        TDSCommand command = getCommand();
-        SQLServerConnection sqlServerConnection = getSqlServerConnection();
-        try {
-            // If TCP Connection to server is silently dropped, exceeding the query timeout
-            // on the same connection does
-            // not throw SQLTimeoutException
-            // The application stops responding instead until SocketTimeoutException is
-            // thrown. In this case, we must
-            // manually terminate the connection.
-            if (null == command && null != sqlServerConnection) {
-                sqlServerConnection.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
-                        SQLServerException.getErrString("R_connectionIsClosed"));
-            } else {
-                // If the timer wasn't canceled before it ran out of
-                // time then interrupt the registered command.
-                command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
-            }
-        } catch (SQLServerException e) {
-            // Unfortunately, there's nothing we can do if we
-            // fail to time out the request. There is no way
-            // to report back what happened.
-            assert null != command;
-            command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
-        }
-    }
-}
-
-
-/**
  * TDSCommand encapsulates an interruptable TDS conversation.
  *
  * A conversation may consist of one or more TDS request and response messages. A command may be interrupted at any
@@ -7161,7 +7118,6 @@ abstract class TDSCommand {
     private volatile boolean readingResponse;
     private int queryTimeoutSeconds;
     private int cancelQueryTimeoutSeconds;
-    private TdsTimeoutCommand timeoutCommand;
 
     protected int getQueryTimeoutSeconds() {
         return this.queryTimeoutSeconds;
@@ -7577,8 +7533,8 @@ abstract class TDSCommand {
         // If command execution is subject to timeout then start timing until
         // the server returns the first response packet.
         if (queryTimeoutSeconds > 0) {
-            this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, tdsReader.getConnection());
-            SQLServerTimeoutManager.startTimeoutCommand(this.timeoutCommand);
+            SQLServerTimeoutManager.startTimeoutCommand(new TimeoutCallable(this, tdsReader.getConnection()),
+                    queryTimeoutSeconds);
         }
 
         if (logger.isLoggable(Level.FINEST))
@@ -7598,12 +7554,6 @@ abstract class TDSCommand {
                 logger.finest(this.toString() + ": Exception reading response: " + e.getMessage());
 
             throw e;
-        } finally {
-            // If command execution was subject to timeout then stop timing as soon
-            // as the server returns the first response packet or errors out.
-            if (this.timeoutCommand != null) {
-                SQLServerTimeoutManager.releaseAndRemoveTimeoutCommand(this.timeoutCommand);
-            }
         }
 
         return tdsReader;
@@ -7630,4 +7580,43 @@ abstract class UninterruptableTDSCommand extends TDSCommand {
             logger.finest(toString() + " Ignoring interrupt of uninterruptable TDS command; Reason:" + reason);
         }
     }
+}
+
+
+class TimeoutCallable implements Callable<Object> {
+    private TDSCommand command;
+    private SQLServerConnection connection;
+
+    public TimeoutCallable(TDSCommand command, SQLServerConnection connection) {
+        this.command = command;
+        this.connection = connection;
+    }
+
+    @Override
+    public Object call() throws Exception {
+        try {
+            // If TCP Connection to server is silently dropped, exceeding the query timeout
+            // on the same connection does
+            // not throw SQLTimeoutException
+            // The application stops responding instead until SocketTimeoutException is
+            // thrown. In this case, we must
+            // manually terminate the connection.
+            if (null == command && null != connection) {
+                connection.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
+                        SQLServerException.getErrString("R_connectionIsClosed"));
+            } else {
+                // If the timer wasn't canceled before it ran out of
+                // time then interrupt the registered command.
+                command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
+            }
+        } catch (SQLServerException e) {
+            // Unfortunately, there's nothing we can do if we
+            // fail to time out the request. There is no way
+            // to report back what happened.
+            assert null != command;
+            command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
+        }
+        return null;
+    }
+
 }

@@ -56,7 +56,8 @@ public class TimeoutTest extends AbstractTest {
         Assert.assertTrue("A SQLTimeoutException was expected", exceptionThrown);
     }
 
-    @Test
+    // @Test
+    // TODO: cannot be enabled till connection leaks are addressed in test cases
     public void testSqlTimeoutThreadsStopAfterConnectionCloses() throws InterruptedException {
         testQueryTimeoutValid();
         // wait 5 seconds if the cpu is taking longer than normal to stop the timeout threads
@@ -65,7 +66,8 @@ public class TimeoutTest extends AbstractTest {
         Assert.assertFalse(isThreadStillRunning(SQL_SERVER_TIMEOUT_TASK_THREAD));
     }
 
-    @Test
+    // @Test
+    // TODO: cannot be enabled till connection leaks are addressed in test cases
     public void testSqlTimeoutThreadsRestartAfterNewConnectionsAreMade() throws InterruptedException {
         testQueryTimeoutValid();
 
@@ -82,7 +84,8 @@ public class TimeoutTest extends AbstractTest {
         Assert.assertFalse(isThreadStillRunning(SQL_SERVER_TIMEOUT_TASK_THREAD));
     }
 
-    @Test
+    // @Test
+    // TODO: cannot be enabled till connection leaks are addressed in test cases
     public void testTimeoutThreadsStillRunningDuringMultipleStatements() throws InterruptedException, SQLException {
         try (Connection con = DriverManager.getConnection(connectionString)) {
             boolean exceptionThrown = false;

@@ -5,12 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,13 +26,10 @@ final class SQLServerTimeoutManager {
             createThreadFactory("com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager"));
     private static ExecutorService timeoutTaskWorker = Executors.newSingleThreadExecutor(
             createThreadFactory("com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager.TimeoutTaskWorker"));
-    private static Map<UUID, List<TimeoutCommand<?>>> timeoutCommands = new HashMap<>();
     private final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager");
 
-    static void startTimeoutCommand(TimeoutCommand<?> timeoutCommand) {
+    static void startTimeoutCommand(Callable<?> timeoutCommand, int timeout) {
         if (scheduledTimeoutTasks.isShutdown()) {
-            // reset id counter for timeout commands
-            TimeoutCommand.uniqueId.set(0);
             scheduledTimeoutTasks = Executors.newScheduledThreadPool(1,
                     createThreadFactory("com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager"));
             timeoutTaskWorker = Executors.newSingleThreadExecutor(
@@ -45,7 +37,7 @@ final class SQLServerTimeoutManager {
         }
 
         Runnable timeoutTaskRunnable = () -> {
-            Future<?> timeoutTask = timeoutTaskWorker.submit(timeoutCommand::interrupt);
+            Future<?> timeoutTask = timeoutTaskWorker.submit(timeoutCommand);
             try {
                 // if the timeout command takes too long to interrupt, cancel it and release
                 timeoutTask.get(10, TimeUnit.SECONDS);
@@ -54,87 +46,18 @@ final class SQLServerTimeoutManager {
             } catch (InterruptedException | ExecutionException e) {
                 logger.log(Level.FINE, "Unexpected Exception occured in timeout thread.", e);
             } finally {
-                releaseAndRemoveTimeoutCommand(timeoutCommand);
+                if (!(timeoutTask.isCancelled() || timeoutTask.isDone())) {
+                    timeoutTask.cancel(true);
+                }
             }
         };
 
-        timeoutCommand.setTimeoutTask(
-                scheduledTimeoutTasks.schedule(timeoutTaskRunnable, timeoutCommand.getTimeout(), TimeUnit.SECONDS));
-        addTimeoutCommand(timeoutCommand);
+        scheduledTimeoutTasks.schedule(timeoutTaskRunnable, timeout, TimeUnit.SECONDS);
     }
 
-    static void releaseAndRemoveTimeoutCommand(TimeoutCommand<?> timeoutCommand) {
-        releaseTimeoutCommand(timeoutCommand);
-        removeTimeoutCommand(timeoutCommand);
-    }
-
-    static void releaseTimeoutCommands(UUID connectionId) {
-        synchronized (timeoutCommands) {
-            List<TimeoutCommand<?>> timeouts = timeoutCommands.get(connectionId);
-            if (timeouts != null) {
-                Iterator<TimeoutCommand<?>> iterator = timeouts.iterator();
-                while (iterator.hasNext()) {
-                    TimeoutCommand<?> timeoutCommand = iterator.next();
-                    iterator.remove();
-                    releaseTimeoutCommand(timeoutCommand);
-                }
-
-                checkIfConnectionIsValid(connectionId, timeouts);
-            }
-            if (!areTimeoutCommandsAvailable()) {
-                scheduledTimeoutTasks.shutdownNow();
-                timeoutTaskWorker.shutdownNow();
-            }
-        }
-    }
-
-    private static void checkIfConnectionIsValid(UUID connectionId, List<TimeoutCommand<?>> timeouts) {
-        if (timeouts.isEmpty()) {
-            // if there are no more timeouts, remove the connection from cache
-            timeoutCommands.remove(connectionId);
-        }
-    }
-
-    private static void releaseTimeoutCommand(TimeoutCommand<?> timeoutCommand) {
-        try {
-            if (!timeoutCommand.isTimeoutTaskComplete()) {
-                timeoutCommand.cancelTimeoutTask();
-            }
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Could not cancel timeout task", e);
-        }
-    }
-
-    private static void addTimeoutCommand(TimeoutCommand<?> timeoutCommand) {
-        synchronized (timeoutCommands) {
-            UUID connectionId = timeoutCommand.getSqlServerConnection().getClientConIdInternal();
-            List<TimeoutCommand<?>> timeouts = timeoutCommands.get(connectionId);
-            if (timeouts == null) {
-                timeouts = new LinkedList<>();
-                timeoutCommands.put(connectionId, timeouts);
-            }
-            timeouts.add(timeoutCommand);
-        }
-    }
-
-    private static void removeTimeoutCommand(TimeoutCommand<?> timeoutCommand) {
-        synchronized (timeoutCommands) {
-            UUID connectionId = timeoutCommand.getSqlServerConnection().getClientConIdInternal();
-            List<TimeoutCommand<?>> timeouts = timeoutCommands.get(connectionId);
-            if (timeouts != null) {
-                if (!timeouts.isEmpty()) {
-                    timeouts.remove(timeoutCommand);
-                }
-
-                checkIfConnectionIsValid(connectionId, timeouts);
-            }
-        }
-    }
-
-    private static boolean areTimeoutCommandsAvailable() {
-        synchronized (timeoutCommands) {
-            return !timeoutCommands.isEmpty();
-        }
+    static void releaseAll() {
+        scheduledTimeoutTasks.shutdownNow();
+        timeoutTaskWorker.shutdownNow();
     }
 
     private static ThreadFactory createThreadFactory(String name) {
