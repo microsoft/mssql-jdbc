@@ -132,13 +132,13 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.6.2</version>
+	<version>1.6.3</version>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.rest</groupId>
 	<artifactId>client-runtime</artifactId>
-	<version>1.6.2</version>
+	<version>1.6.5</version>
 </dependency>
 ```
 
@@ -155,25 +155,25 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.6.2</version>
+	<version>1.6.3</version>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.rest</groupId>
 	<artifactId>client-runtime</artifactId>
-	<version>1.6.2</version>
+	<version>1.6.5</version>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>azure-keyvault</artifactId>
-	<version>1.1.1</version>
+	<version>1.2.0</version>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>zure-keyvault-webkey</artifactId>
-	<version>1.1.1</version>
+	<version>1.2.0</version>
 </dependency>
 ```
 
