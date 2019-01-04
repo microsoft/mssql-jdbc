@@ -82,6 +82,39 @@ public class TimeoutTest extends AbstractTest {
         Assert.assertFalse(isThreadStillRunning(SQL_SERVER_TIMEOUT_TASK_THREAD));
     }
 
+    @Test
+    public void testTimeoutThreadsStillRunningDuringMultipleStatements() throws InterruptedException, SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString)) {
+            boolean exceptionThrown = false;
+            try (PreparedStatement preparedStatement = con.prepareStatement("WAITFOR DELAY '00:01'")) {
+                preparedStatement.setQueryTimeout(10);
+                preparedStatement.execute();
+            } catch (SQLException e) {
+                Assert.assertTrue("Timeout exception not thrown", e.getClass().equals(SQLTimeoutException.class));
+                exceptionThrown = true;
+            }
+            Assert.assertTrue("A SQLTimeoutException was expected", exceptionThrown);
+            Assert.assertTrue(isThreadStillRunning(SQL_SERVER_TIMEOUT_THREAD));
+            Assert.assertTrue(isThreadStillRunning(SQL_SERVER_TIMEOUT_TASK_THREAD));
+
+            exceptionThrown = false;
+            try (PreparedStatement preparedStatement = con.prepareStatement("WAITFOR DELAY '00:01'")) {
+                preparedStatement.setQueryTimeout(10);
+                preparedStatement.execute();
+            } catch (SQLException e) {
+                Assert.assertTrue("Timeout exception not thrown", e.getClass().equals(SQLTimeoutException.class));
+                exceptionThrown = true;
+            }
+            Assert.assertTrue("A SQLTimeoutException was expected", exceptionThrown);
+            Assert.assertTrue(isThreadStillRunning(SQL_SERVER_TIMEOUT_THREAD));
+            Assert.assertTrue(isThreadStillRunning(SQL_SERVER_TIMEOUT_TASK_THREAD));
+        }
+        // wait 5 seconds if the cpu is taking longer than normal to stop the timeout threads
+        Thread.sleep(5000);
+        Assert.assertFalse(isThreadStillRunning(SQL_SERVER_TIMEOUT_THREAD));
+        Assert.assertFalse(isThreadStillRunning(SQL_SERVER_TIMEOUT_TASK_THREAD));
+    }
+
     private boolean isThreadStillRunning(String threadName) {
         Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
         for (Thread thread : threadSet) {

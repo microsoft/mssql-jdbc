@@ -38,8 +38,10 @@ final class SQLServerTimeoutManager {
         if (scheduledTimeoutTasks.isShutdown()) {
             // reset id counter for timeout commands
             TimeoutCommand.uniqueId.set(0);
-            scheduledTimeoutTasks = Executors.newScheduledThreadPool(1);
-            timeoutTaskWorker = Executors.newSingleThreadExecutor();
+            scheduledTimeoutTasks = Executors.newScheduledThreadPool(1,
+                    createThreadFactory("com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager"));
+            timeoutTaskWorker = Executors.newSingleThreadExecutor(
+                    createThreadFactory("com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager.TimeoutTaskWorker"));
         }
 
         Runnable timeoutTaskRunnable = () -> {
@@ -52,7 +54,7 @@ final class SQLServerTimeoutManager {
             } catch (InterruptedException | ExecutionException e) {
                 logger.log(Level.FINE, "Unexpected Exception occured in timeout thread.", e);
             } finally {
-                releaseTimeoutCommand(timeoutCommand);
+                releaseAndRemoveTimeoutCommand(timeoutCommand);
             }
         };
 
@@ -64,7 +66,6 @@ final class SQLServerTimeoutManager {
     static void releaseAndRemoveTimeoutCommand(TimeoutCommand<?> timeoutCommand) {
         releaseTimeoutCommand(timeoutCommand);
         removeTimeoutCommand(timeoutCommand);
-        checkForTimeoutThreadsShutdown();
     }
 
     static void releaseTimeoutCommands(UUID connectionId) {
@@ -79,7 +80,10 @@ final class SQLServerTimeoutManager {
                 }
 
                 checkIfConnectionIsValid(connectionId, timeouts);
-                checkForTimeoutThreadsShutdown();
+            }
+            if (!areTimeoutCommandsAvailable()) {
+                scheduledTimeoutTasks.shutdownNow();
+                timeoutTaskWorker.shutdownNow();
             }
         }
     }
@@ -88,13 +92,6 @@ final class SQLServerTimeoutManager {
         if (timeouts.isEmpty()) {
             // if there are no more timeouts, remove the connection from cache
             timeoutCommands.remove(connectionId);
-        }
-    }
-
-    private static void checkForTimeoutThreadsShutdown() {
-        if (!areTimeoutCommandsAvailable()) {
-            scheduledTimeoutTasks.shutdownNow();
-            timeoutTaskWorker.shutdownNow();
         }
     }
 
