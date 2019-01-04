@@ -4,7 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.preparedStatement;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

@@ -141,18 +141,18 @@ public class JDBC43Test extends AbstractTest {
     @Test
     public void setShardingKeyIfValidTest() throws TestAbortedException, SQLException {
         assumeTrue(TestUtils.supportJDBC43(connection));
-        SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString);
-        try {
-            connection43.setShardingKeyIfValid(shardingKey, 10);
-        } catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
+        try (SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString)) {
+            try {
+                connection43.setShardingKeyIfValid(shardingKey, 10);
+            } catch (SQLException e) {
+                assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
+            }
+            try {
+                connection43.setShardingKeyIfValid(shardingKey, superShardingKey, 10);
+            } catch (SQLException e) {
+                assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
+            }
         }
-        try {
-            connection43.setShardingKeyIfValid(shardingKey, superShardingKey, 10);
-        } catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
-        }
-
     }
 
     /**
@@ -165,18 +165,18 @@ public class JDBC43Test extends AbstractTest {
     @Test
     public void setShardingKeyTest() throws TestAbortedException, SQLException {
         assumeTrue(TestUtils.supportJDBC43(connection));
-        SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString);
-        try {
-            connection43.setShardingKey(shardingKey);
-        } catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
+        try (SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString)) {
+            try {
+                connection43.setShardingKey(shardingKey);
+            } catch (SQLException e) {
+                assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
+            }
+            try {
+                connection43.setShardingKey(shardingKey, superShardingKey);
+            } catch (SQLException e) {
+                assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
+            }
         }
-        try {
-            connection43.setShardingKey(shardingKey, superShardingKey);
-        } catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_operationNotSupported")));
-        }
-
     }
 
     /**
