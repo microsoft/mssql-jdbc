@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.testframework;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -34,6 +35,12 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
     public DBConnection(String connectionString) {
         super(null, null, "connection");
         getConnection(connectionString);
+    }
+    
+    public DBConnection(Connection connection) {
+        super(null, null, "connection");
+        this.connection = (SQLServerConnection) connection;
+        setInternal(connection);
     }
 
     /**

@@ -14,7 +14,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -322,7 +321,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     }
 
     /**
-     * Test ith datetime
+     * Test with datetime
      * 
      * @throws SQLException
      * @throws SQLTimeoutException
@@ -509,19 +508,9 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
         TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTable), stmt);
         dropTVPS();
-    }
-
-    /**
-     * drop the tables
-     * 
-     * @throws SQLException
-     */
-    @AfterAll
-    public static void afterAll() throws SQLException {
         if (null != stmt) {
             stmt.close();
         }
-
         if (null != conn) {
             conn.close();
         }

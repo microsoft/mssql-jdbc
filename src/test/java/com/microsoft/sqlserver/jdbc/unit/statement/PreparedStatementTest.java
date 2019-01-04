@@ -43,8 +43,9 @@ public class PreparedStatementTest extends AbstractTest {
     final String tableName2 = RandomUtil.getIdentifier("#update2");
 
     private void executeSQL(SQLServerConnection conn, String sql) throws SQLException {
-        Statement stmt = conn.createStatement();
-        stmt.execute(sql);
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private int executeSQLReturnFirstInt(SQLServerConnection conn, String sql) throws SQLException {
@@ -551,7 +552,7 @@ public class PreparedStatementTest extends AbstractTest {
 
             // test updated value, should be 1 + 100 = 101
             // although executeUpdate() throws exception, update operation should be executed successfully.
-            try (Statement stmt = con.createStatement(); ResultSet rs = stmt
+            try (Statement stmt = con.createStatement();ResultSet rs = stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + "")) {
                 rs.next();
                 assertSame(101, rs.getInt(1));
