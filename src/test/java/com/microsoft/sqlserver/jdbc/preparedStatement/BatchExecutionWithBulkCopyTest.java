@@ -58,7 +58,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     static String squareBracketTableName = RandomUtil.getIdentifier("BulkCopy]]]]test'");
     static String doubleQuoteTableName = RandomUtil.getIdentifier("\"BulkCopy\"\"\"\"test\"");
     static String schemaTableName = "\"dbo\"         . /*some comment */     " + squareBracketTableName;
-    
+
     private Object[] generateExpectedValues() {
         float randomFloat = RandomData.generateReal(false);
         int ramdonNum = RandomData.generateInt(false);
@@ -69,16 +69,17 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         BigDecimal randomBigDecimal = new BigDecimal(ramdonNum);
         BigDecimal randomMoney = RandomData.generateMoney(false);
         BigDecimal randomSmallMoney = RandomData.generateSmallMoney(false);
-        
-        //Temporal datatypes
+
+        // Temporal datatypes
         Date randomDate = Date.valueOf(LocalDateTime.now().toLocalDate());
         Time randomTime = new Time(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        Timestamp randomTimestamp = new Timestamp(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        
-        //Datetime can only end in 0,3,7 and will be rounded to those numbers on the server. Manually set nanos
+        Timestamp randomTimestamp = new Timestamp(
+                LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+
+        // Datetime can only end in 0,3,7 and will be rounded to those numbers on the server. Manually set nanos
         Timestamp roundedDatetime = randomTimestamp;
         roundedDatetime.setNanos(0);
-        //Smalldatetime does not have seconds. Manually set nanos and seconds.
+        // Smalldatetime does not have seconds. Manually set nanos and seconds.
         Timestamp smallTimestamp = randomTimestamp;
         smallTimestamp.setNanos(0);
         smallTimestamp.setSeconds(0);
@@ -107,7 +108,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         expected[20] = randomShort;
         expected[21] = randomBinary;
         expected[22] = randomString;
-        
+
         return expected;
     }
 
@@ -236,9 +237,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
-            
+
             Object[] expected = generateExpectedValues();
-        
+
             pstmt.setLong(1, (long) expected[0]); // bigint
             pstmt.setBytes(2, (byte[]) expected[1]); // binary(5)
             pstmt.setBoolean(3, (boolean) expected[2]); // bit
@@ -336,10 +337,13 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            pstmt.setLong(1, 123); // bigint
+            long randomLong = ThreadLocalRandom.current().nextLong();
+            String randomChar = RandomData.generateCharTypes("1", false, false);
+
+            pstmt.setLong(1, randomLong); // bigint
             pstmt.setBytes(2, null); // binary(5)
             pstmt.setBoolean(3, true); // bit
-            pstmt.setString(4, " "); // char
+            pstmt.setString(4, randomChar); // char
             pstmt.setDate(5, null); // date
             pstmt.setDateTime(6, null);// datetime
             pstmt.setDateTime(7, null); // datetime2
@@ -352,10 +356,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
                 Object[] expected = new Object[7];
 
-                expected[0] = 123L;
+                expected[0] = randomLong;
                 expected[1] = null;
                 expected[2] = true;
-                expected[3] = " ";
+                expected[3] = randomChar;
                 expected[4] = null;
                 expected[5] = null;
                 expected[6] = null;
@@ -502,7 +506,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
-
 
             Object[] expected = generateExpectedValues();
 
