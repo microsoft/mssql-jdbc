@@ -4,7 +4,6 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -19,11 +18,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -80,10 +79,8 @@ public class PreparedStatementTest extends AbstractTest {
 
             String lookupUniqueifier = UUID.randomUUID().toString();
 
-            String queryCacheLookup = String.format("%%/*unpreparetest_%s%%*/SELECT 1;",
-                    lookupUniqueifier);
-            String query = String.format("/*unpreparetest_%s only sp_executesql*/SELECT 1;",
-                    lookupUniqueifier);
+            String queryCacheLookup = String.format("%%/*unpreparetest_%s%%*/SELECT 1;", lookupUniqueifier);
+            String query = String.format("/*unpreparetest_%s only sp_executesql*/SELECT 1;", lookupUniqueifier);
 
             // Verify nothing in cache.
             String verifyTotalCacheUsesQuery = String.format(
@@ -183,8 +180,7 @@ public class PreparedStatementTest extends AbstractTest {
                 con.setServerPreparedStatementDiscardThreshold(discardedStatementCount);
 
                 String lookupUniqueifier = UUID.randomUUID().toString();
-                String query = String.format("/*statementpoolingevictiontest_%s*/SELECT 1; -- ",
-                        lookupUniqueifier);
+                String query = String.format("/*statementpoolingevictiontest_%s*/SELECT 1; -- ", lookupUniqueifier);
 
                 // Add new statements to fill up the statement pool.
                 for (int i = 0; i < cacheSize; ++i) {
@@ -258,32 +254,6 @@ public class PreparedStatementTest extends AbstractTest {
         }
     }
 
-    final class TestPrepareRace implements Runnable {
-
-        SQLServerConnection con;
-        String[] queries;
-        AtomicReference<Exception> exception;
-
-        TestPrepareRace(SQLServerConnection con, String[] queries, AtomicReference<Exception> exception) {
-            this.con = con;
-            this.queries = queries;
-            this.exception = exception;
-        }
-
-        @Override
-        public void run() {
-            for (int j = 0; j < 500000; j++) {
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                        .prepareStatement(queries[j % 3])) {
-                    pstmt.execute();
-                } catch (SQLException e) {
-                    exception.set(e);
-                    break;
-                }
-            }
-        }
-    }
-
     @Test
     public void testPrepareRace() throws Exception {
 
@@ -292,16 +262,26 @@ public class PreparedStatementTest extends AbstractTest {
         queries[1] = String.format("SELECT 1 -- %s", UUID.randomUUID());
         queries[2] = String.format("SELECT 1 -- %s", UUID.randomUUID());
 
-        ExecutorService threadPool = Executors.newFixedThreadPool(4);
+        ExecutorService WORKER_THREAD_POOL = Executors.newFixedThreadPool(10);
+        CountDownLatch latch = new CountDownLatch(3);
         AtomicReference<Exception> exception = new AtomicReference<>();
+
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-
-            for (int i = 0; i < 4; i++) {
-                threadPool.execute(new TestPrepareRace(con, queries, exception));
+            for (int i = 0; i < 3; i++) {
+                WORKER_THREAD_POOL.submit(() -> {
+                    for (int j = 0; j < 500; j++) {
+                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                                .prepareStatement(queries[j % 3])) {
+                            pstmt.execute();
+                        } catch (SQLException e) {
+                            exception.set(e);
+                            break;
+                        }
+                    }
+                    latch.countDown();
+                });
             }
-
-            threadPool.shutdown();
-            threadPool.awaitTermination(10, SECONDS);
+            latch.await();
 
             assertNull(exception.get());
 
@@ -443,22 +423,26 @@ public class PreparedStatementTest extends AbstractTest {
             assertSame(3, connectionThresholdAndNoExecuteSQL.getServerPreparedStatementDiscardThreshold());
         }
 
+        String invalidValue = "hello";
         // Test that an error is thrown for invalid connection string property values (non int/bool).
-        String connectionStringThresholdError = connectionString + ";ServerPreparedStatementDiscardThreshold=hej;";
+        String connectionStringThresholdError = connectionString + ";ServerPreparedStatementDiscardThreshold="
+                + invalidValue;
         try (SQLServerConnection con = (SQLServerConnection) DriverManager
                 .getConnection(connectionStringThresholdError)) {
             fail("Error for invalid ServerPreparedStatementDiscardThresholdexpected.");
         } catch (SQLException e) {
-            // Good!
+            assert (e.getMessage().equalsIgnoreCase(String.format(
+                    TestResource.getResource("R_invalidserverPreparedStatementDiscardThreshold"), invalidValue)));
         }
 
-        String connectionStringNoExecuteSQLError = connectionString
-                + ";enablePrepareOnFirstPreparedStatementCall=dobidoo;";
+        String connectionStringNoExecuteSQLError = connectionString + ";enablePrepareOnFirstPreparedStatementCall="
+                + invalidValue;
         try (SQLServerConnection con = (SQLServerConnection) DriverManager
                 .getConnection(connectionStringNoExecuteSQLError)) {
             fail("Error for invalid enablePrepareOnFirstPreparedStatementCall expected.");
         } catch (SQLException e) {
-            // Good!
+            assert (e.getMessage()
+                    .equalsIgnoreCase(TestResource.getResource("R_invalidenablePrepareOnFirstPreparedStatementCall")));
         }
 
         // Verify instance setting is followed.
@@ -504,8 +488,7 @@ public class PreparedStatementTest extends AbstractTest {
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI(con);
             }
-            String query = String.format("/*statementpoolingtest_re-use_%s*/SELECT 1;",
-                    UUID.randomUUID().toString());
+            String query = String.format("/*statementpoolingtest_re-use_%s*/SELECT 1;", UUID.randomUUID().toString());
 
             con.setStatementPoolingCacheSize(10);
 
@@ -522,19 +505,13 @@ public class PreparedStatementTest extends AbstractTest {
                         queries[i] = String.format("%s--%s--%s--%s", query, i, queryCount, prepOnFirstCall);
                     }
 
-                    int testsWithHandleReuse = 0;
-                    final int testCount = 50;
+                    final int testCount = 500;
                     for (int i = 0; i < testCount; ++i) {
                         Random random = new Random();
                         int queryNumber = random.nextInt(queries.length);
                         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
                                 .prepareStatement(queries[queryNumber])) {
                             pstmt.execute();
-
-                            // Grab handle-reuse before it would be populated if initially created.
-                            if (0 < pstmt.getPreparedStatementHandle())
-                                testsWithHandleReuse++;
-
                             pstmt.getMoreResults(); // Make sure handle is updated.
                         }
                     }
@@ -617,7 +594,7 @@ public class PreparedStatementTest extends AbstractTest {
                     assertSame(101, rs.getInt(1));
                 }
             }
-            
+
             // Test behavior with statement pooling enabled
             con.setDisableStatementPooling(false);
 
@@ -663,10 +640,10 @@ public class PreparedStatementTest extends AbstractTest {
                 assertNotSame(handle, pstmt.getPreparedStatementHandle());
             }
             try {
-                System.out.println(outer.getPreparedStatementHandle());
+                outer.getPreparedStatementHandle();
                 fail(TestResource.getResource("R_invalidGetPreparedStatementHandle"));
             } catch (Exception e) {
-                // Good!
+                assert (e.getMessage().equalsIgnoreCase(TestResource.getResource("R_statementClosed")));
             } finally {
                 if (null != outer) {
                     outer.close();

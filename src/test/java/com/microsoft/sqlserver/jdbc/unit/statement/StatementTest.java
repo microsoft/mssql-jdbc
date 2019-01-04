@@ -29,7 +29,6 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -686,7 +685,6 @@ public class StatementTest extends AbstractTest {
                 int numCancelSuccesses = 0;
                 int numCancelExceptions = 0;
                 int numCancellations = 0;
-                int numExecuteTries = 0;
                 int numExecuteSuccesses = 0;
                 int numExecuteExceptions = 0;
                 int numCloseExceptions = 0;
@@ -717,8 +715,6 @@ public class StatementTest extends AbstractTest {
 
                     final Runnable runner = new Runnable() {
                         public void run() {
-                            ++numExecuteTries;
-
                             try (ResultSet rs = stmt.executeQuery(
                                     "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
@@ -751,11 +747,10 @@ public class StatementTest extends AbstractTest {
                         }
                     };
 
-                    final ScheduledFuture<?> runnerHandle = executionScheduler.scheduleAtFixedRate(runner, startDelay,
-                            1, TimeUnit.MILLISECONDS);
+                    executionScheduler.scheduleAtFixedRate(runner, startDelay, 1, TimeUnit.MILLISECONDS);
 
-                    final ScheduledFuture<?> cancelHandle = cancelScheduler.scheduleAtFixedRate(canceller,
-                            cancelInterval, cancelInterval, TimeUnit.MILLISECONDS);
+                    cancelScheduler.scheduleAtFixedRate(canceller, cancelInterval, cancelInterval,
+                            TimeUnit.MILLISECONDS);
                 }
 
                 void stop() {
