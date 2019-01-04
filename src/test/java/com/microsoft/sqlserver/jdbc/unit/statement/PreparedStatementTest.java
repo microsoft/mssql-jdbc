@@ -324,7 +324,7 @@ public class PreparedStatementTest extends AbstractTest {
         }
         // Test connection string properties.
 
-        // Test disableStatementPooling
+        // Test disableStatementPooling=true
         String connectionStringDisableStatementPooling = connectionString + ";disableStatementPooling=true;";
         try (SQLServerConnection connectionDisableStatementPooling = (SQLServerConnection) DriverManager
                 .getConnection(connectionStringDisableStatementPooling)) {
@@ -333,9 +333,12 @@ public class PreparedStatementTest extends AbstractTest {
             connectionDisableStatementPooling.setStatementPoolingCacheSize(10);
             assertSame(10, connectionDisableStatementPooling.getStatementPoolingCacheSize());
             assertTrue(!connectionDisableStatementPooling.isStatementPoolingEnabled());
-            String connectionStringEnableStatementPooling = connectionString + ";disableStatementPooling=false;";
-            SQLServerConnection connectionEnableStatementPooling = (SQLServerConnection) DriverManager
-                    .getConnection(connectionStringEnableStatementPooling);
+        }
+
+        // Test disableStatementPooling=false
+        String connectionStringEnableStatementPooling = connectionString + ";disableStatementPooling=false;";
+        try (SQLServerConnection connectionEnableStatementPooling = (SQLServerConnection) DriverManager
+                .getConnection(connectionStringEnableStatementPooling)) {
             connectionEnableStatementPooling.setStatementPoolingCacheSize(10); // to turn on caching.
 
             // for now, it won't affect if disable is false or true. Since statementPoolingCacheSize is set to 0 as
@@ -552,7 +555,7 @@ public class PreparedStatementTest extends AbstractTest {
 
             // test updated value, should be 1 + 100 = 101
             // although executeUpdate() throws exception, update operation should be executed successfully.
-            try (Statement stmt = con.createStatement();ResultSet rs = stmt
+            try (Statement stmt = con.createStatement(); ResultSet rs = stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + "")) {
                 rs.next();
                 assertSame(101, rs.getInt(1));
