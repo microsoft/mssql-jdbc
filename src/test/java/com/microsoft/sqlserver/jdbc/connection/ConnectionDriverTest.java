@@ -190,8 +190,11 @@ public class ConnectionDriverTest extends AbstractTest {
 
             // Check to see if error occurred.
             assertTrue(myE.errorOccurred, TestResource.getResource("R_errorNotCalled"));
+        } finally {
+            // make sure that connection is closed.
+            if (null != pooledConnection)
+                pooledConnection.close();
         }
-        // make sure that connection is closed.
     }
 
     @Test
@@ -218,6 +221,10 @@ public class ConnectionDriverTest extends AbstractTest {
             con.close();
             // check to make sure that connection is closed.
             assertTrue(con.isClosed(), TestResource.getResource("R_connectionIsNotClosed"));
+        } finally {
+            // make sure that connection is closed.
+            if (null != pooledConnection)
+                pooledConnection.close();
         }
     }
 
@@ -254,7 +261,7 @@ public class ConnectionDriverTest extends AbstractTest {
             Object[] msgArgs1 = {"SQLServerConnection"};
 
             assertTrue(isWrapper, form.format(msgArgs1));
-            assertEquals(ssconn.TRANSACTION_SNAPSHOT, ssconn.TRANSACTION_SNAPSHOT,
+            assertEquals(ISQLServerConnection.TRANSACTION_SNAPSHOT, ISQLServerConnection.TRANSACTION_SNAPSHOT,
                     TestResource.getResource("R_cantAccessSnapshot"));
 
             isWrapper = ssconn.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
@@ -262,7 +269,7 @@ public class ConnectionDriverTest extends AbstractTest {
             assertTrue(isWrapper, form.format(msgArgs2));
             ISQLServerConnection iSql = (ISQLServerConnection) ssconn
                     .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
-            assertEquals(iSql.TRANSACTION_SNAPSHOT, iSql.TRANSACTION_SNAPSHOT,
+            assertEquals(ISQLServerConnection.TRANSACTION_SNAPSHOT, ISQLServerConnection.TRANSACTION_SNAPSHOT,
                     TestResource.getResource("R_cantAccessSnapshot"));
 
             ssconn.unwrap(Class.forName("java.sql.Connection"));
@@ -462,7 +469,6 @@ public class ConnectionDriverTest extends AbstractTest {
             ds.setFailoverPartner(RandomUtil.getIdentifier("FailoverPartner"));
             timerStart = System.currentTimeMillis();
             try (Connection con = ds.getConnection()) {
-
                 long timeDiff = timerEnd - timerStart;
                 assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
                 MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
@@ -488,7 +494,6 @@ public class ConnectionDriverTest extends AbstractTest {
             ds.setFailoverPartner(RandomUtil.getIdentifier("FailoverPartner"));
             timerStart = System.currentTimeMillis();
             try (Connection con = ds.getConnection()) {
-
                 long timeDiff = timerEnd - timerStart;
                 assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
                 MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedLessSeconds"));
