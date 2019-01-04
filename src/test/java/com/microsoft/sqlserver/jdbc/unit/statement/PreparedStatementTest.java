@@ -263,13 +263,13 @@ public class PreparedStatementTest extends AbstractTest {
         queries[1] = String.format("SELECT 1 -- %s", UUID.randomUUID());
         queries[2] = String.format("SELECT 1 -- %s", UUID.randomUUID());
 
-        ExecutorService WORKER_THREAD_POOL = Executors.newFixedThreadPool(10);
+        ExecutorService execServiceThread = Executors.newFixedThreadPool(10);
         CountDownLatch latch = new CountDownLatch(3);
         AtomicReference<Exception> exception = new AtomicReference<>();
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
             for (int i = 0; i < 3; i++) {
-                WORKER_THREAD_POOL.submit(() -> {
+                execServiceThread.submit(() -> {
                     for (int j = 0; j < 500; j++) {
                         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
                                 .prepareStatement(queries[j % 3])) {
