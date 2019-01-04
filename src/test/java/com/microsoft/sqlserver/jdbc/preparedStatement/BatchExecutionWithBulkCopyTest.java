@@ -293,13 +293,14 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Long timeMilis = 114550L;
-            Timestamp testTimestamp = new Timestamp(timeMilis);
-
-            pstmt.setLong(1, 123); // bigint
+            Timestamp randomTimestamp = new Timestamp(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            Date randomDate = Date.valueOf(LocalDateTime.now().toLocalDate());
+            long randomLong = ThreadLocalRandom.current().nextLong();
+            
+            pstmt.setLong(1, randomLong); // bigint
             pstmt.setBoolean(2, true); // bit
-            pstmt.setDate(3, new Date(timeMilis)); // date
-            pstmt.setDateTimeOffset(4, microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0)); // datetimeoffset
+            pstmt.setDate(3, randomDate); // date
+            pstmt.setDateTimeOffset(4, microsoft.sql.DateTimeOffset.valueOf(randomTimestamp, 0)); // datetimeoffset
             pstmt.addBatch();
 
             pstmt.executeBatch();
@@ -309,10 +310,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
                 Object[] expected = new Object[4];
 
-                expected[0] = 123;
+                expected[0] = randomLong;
                 expected[1] = true;
-                expected[2] = new Date(timeMilis);
-                expected[3] = microsoft.sql.DateTimeOffset.valueOf(testTimestamp, 0);
+                expected[2] = randomDate;
+                expected[3] = microsoft.sql.DateTimeOffset.valueOf(randomTimestamp, 0);
                 rs.next();
 
                 for (int i = 0; i < expected.length; i++) {
