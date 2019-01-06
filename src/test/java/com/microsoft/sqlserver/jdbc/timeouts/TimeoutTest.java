@@ -13,6 +13,7 @@ import java.sql.SQLTimeoutException;
 import java.util.Set;
 
 import org.junit.Assert;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -24,6 +25,15 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 public class TimeoutTest extends AbstractTest {
     private static final String SQL_SERVER_TIMEOUT_THREAD = "com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager";
     private static final String SQL_SERVER_TIMEOUT_TASK_THREAD = "com.microsoft.sqlserver.jdbc.SQLServerTimeoutManager.TimeoutTaskWorker";
+
+    @BeforeAll
+    public static void setup() throws Exception {
+        AbstractTest.setup();
+        if (connection != null) {
+            // we don't need this internal connection for the timeout tests
+            connection.close();
+        }
+    }
 
     @Test
     public void testBasicQueryTimeout() {
@@ -56,8 +66,7 @@ public class TimeoutTest extends AbstractTest {
         Assert.assertTrue("A SQLTimeoutException was expected", exceptionThrown);
     }
 
-    // @Test
-    // TODO: cannot be enabled till connection leaks are addressed in test cases
+    @Test
     public void testSqlTimeoutThreadsStopAfterConnectionCloses() throws InterruptedException {
         testQueryTimeoutValid();
         // wait 5 seconds if the cpu is taking longer than normal to stop the timeout threads
@@ -66,8 +75,7 @@ public class TimeoutTest extends AbstractTest {
         Assert.assertFalse(isThreadStillRunning(SQL_SERVER_TIMEOUT_TASK_THREAD));
     }
 
-    // @Test
-    // TODO: cannot be enabled till connection leaks are addressed in test cases
+    @Test
     public void testSqlTimeoutThreadsRestartAfterNewConnectionsAreMade() throws InterruptedException {
         testQueryTimeoutValid();
 
@@ -84,8 +92,7 @@ public class TimeoutTest extends AbstractTest {
         Assert.assertFalse(isThreadStillRunning(SQL_SERVER_TIMEOUT_TASK_THREAD));
     }
 
-    // @Test
-    // TODO: cannot be enabled till connection leaks are addressed in test cases
+    @Test
     public void testTimeoutThreadsStillRunningDuringMultipleStatements() throws InterruptedException, SQLException {
         try (Connection con = DriverManager.getConnection(connectionString)) {
             boolean exceptionThrown = false;
