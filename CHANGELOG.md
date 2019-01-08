@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added APIs for DataSourceFactory and OSGI Framework [#700](https://github.com/Microsoft/mssql-jdbc/pull/700)
 - Added support for OffsetDateTime to be passed as 'type' in ResultSet.getObject() [#830](https://github.com/Microsoft/mssql-jdbc/pull/830)
 - Added support for Active Directory MSI Authentication [#838](https://github.com/Microsoft/mssql-jdbc/pull/838)
-- Added more datatype tests to increase code coverage [#878](https://github.com/Microsoft/mssql-jdbc/pull/878)
+- Added more datatype tests to JUnit test suite [#878](https://github.com/Microsoft/mssql-jdbc/pull/878) [#916](https://github.com/Microsoft/mssql-jdbc/pull/916)
 - Added an option to perform JUnit testing against Azure Data Warehouse [#903](https://github.com/Microsoft/mssql-jdbc/pull/903)
 - Added new APIs to retrieve SQL Server error information received with SQLServerException [#905](https://github.com/Microsoft/mssql-jdbc/pull/905)
 
@@ -21,8 +21,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed synchronization on a non-final field [#860](https://github.com/Microsoft/mssql-jdbc/pull/860)
 - Removed hardcoded error messages from test file [#904](https://github.com/Microsoft/mssql-jdbc/pull/904)
 - Updated Issue and Pull Request templates [#906](https://github.com/Microsoft/mssql-jdbc/pull/906)
-- Enabled all tests in newly added datatype test [#916](https://github.com/Microsoft/mssql-jdbc/pull/916)
-- Made test improvements and README changes [#919](https://github.com/Microsoft/mssql-jdbc/pull/919)
+- Updated JUnit tests by closing all resources consistently and updated Maven dependency versions to latest [#919](https://github.com/Microsoft/mssql-jdbc/pull/919)
 
 ## [7.1.3] Preview Release
 ### Added
