@@ -3,9 +3,12 @@ package com.microsoft.sqlserver.jdbc.preparedStatement;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.Date;
@@ -14,11 +17,17 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -26,16 +35,21 @@ import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.Geography;
 import com.microsoft.sqlserver.jdbc.Geometry;
+import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
+import microsoft.sql.DateTimeOffset;
+
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("BulkCopyParseTest");
@@ -45,15 +59,68 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     static String doubleQuoteTableName = RandomUtil.getIdentifier("\"BulkCopy\"\"\"\"test\"");
     static String schemaTableName = "\"dbo\"         . /*some comment */     " + squareBracketTableName;
 
+    private Object[] generateExpectedValues() {
+        float randomFloat = RandomData.generateReal(false);
+        int ramdonNum = RandomData.generateInt(false);
+        short randomShort = RandomData.generateTinyint(false);
+        String randomString = RandomData.generateCharTypes("6", false, false);
+        String randomChar = RandomData.generateCharTypes("1", false, false);
+        byte[] randomBinary = RandomData.generateBinaryTypes("5", false, false);
+        BigDecimal randomBigDecimal = new BigDecimal(ramdonNum);
+        BigDecimal randomMoney = RandomData.generateMoney(false);
+        BigDecimal randomSmallMoney = RandomData.generateSmallMoney(false);
+
+        // Temporal datatypes
+        Date randomDate = Date.valueOf(LocalDateTime.now().toLocalDate());
+        Time randomTime = new Time(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        Timestamp randomTimestamp = new Timestamp(
+                LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+
+        // Datetime can only end in 0,3,7 and will be rounded to those numbers on the server. Manually set nanos
+        Timestamp roundedDatetime = randomTimestamp;
+        roundedDatetime.setNanos(0);
+        // Smalldatetime does not have seconds. Manually set nanos and seconds.
+        Timestamp smallTimestamp = randomTimestamp;
+        smallTimestamp.setNanos(0);
+        smallTimestamp.setSeconds(0);
+
+        Object[] expected = new Object[23];
+        expected[0] = ThreadLocalRandom.current().nextLong();
+        expected[1] = randomBinary;
+        expected[2] = true;
+        expected[3] = randomChar;
+        expected[4] = randomDate;
+        expected[5] = roundedDatetime;
+        expected[6] = randomTimestamp;
+        expected[7] = microsoft.sql.DateTimeOffset.valueOf(randomTimestamp, 0);
+        expected[8] = randomBigDecimal.setScale(0, RoundingMode.HALF_UP);
+        expected[9] = (double) ramdonNum;
+        expected[10] = ramdonNum;
+        expected[11] = randomMoney;
+        expected[12] = randomChar;
+        expected[13] = BigDecimal.valueOf(ThreadLocalRandom.current().nextInt());
+        expected[14] = randomString;
+        expected[15] = randomFloat;
+        expected[16] = smallTimestamp;
+        expected[17] = randomShort;
+        expected[18] = randomSmallMoney;
+        expected[19] = randomTime;
+        expected[20] = randomShort;
+        expected[21] = randomBinary;
+        expected[22] = randomString;
+
+        return expected;
+    }
+
     @Test
     public void testIsInsert() throws Exception {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
-            String valid1 = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " values (1, 2)";
-            String valid2 = " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " values (1, 2)";
-            String valid3 = "/* asdf */ INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk)
+            String valid1 = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " values (1, 2)";
+            String valid2 = " insert into " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " values (1, 2)";
+            String valid3 = "/* asdf */ insert into " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk)
                     + " values (1, 2)";
-            String invalid = "Select * from " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk);
+            String invalid = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk);
 
             Method method = stmt.getClass().getDeclaredMethod("isInsert", String.class);
             method.setAccessible(true);
@@ -160,8 +227,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testAllcolumns() throws Exception {
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
-                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? " + ")";
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
+                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
+                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?" + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -170,41 +238,44 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Timestamp myTimestamp = new Timestamp(114550L);
+            Object[] expected = generateExpectedValues();
 
-            Date d = new Date(114550L);
+            pstmt.setLong(1, (long) expected[0]); // bigint
+            pstmt.setBytes(2, (byte[]) expected[1]); // binary(5)
+            pstmt.setBoolean(3, (boolean) expected[2]); // bit
+            pstmt.setString(4, (String) expected[3]); // char
+            pstmt.setDate(5, (Date) expected[4]); // date
+            pstmt.setDateTime(6, (Timestamp) expected[5]);// datetime
+            pstmt.setDateTime(7, (Timestamp) expected[6]); // datetime2
+            pstmt.setDateTimeOffset(8, (DateTimeOffset) expected[7]); // datetimeoffset
+            pstmt.setBigDecimal(9, (BigDecimal) expected[8]); // decimal
+            pstmt.setDouble(10, (double) expected[9]); // float
+            pstmt.setInt(11, (int) expected[10]); // int
+            pstmt.setMoney(12, (BigDecimal) expected[11]); // money
+            pstmt.setString(13, (String) expected[12]); // nchar
+            pstmt.setBigDecimal(14, (BigDecimal) expected[13]); // numeric
+            pstmt.setString(15, (String) expected[14]); // nvarchar(20)
+            pstmt.setFloat(16, (float) expected[15]); // real
+            pstmt.setSmallDateTime(17, (Timestamp) expected[16]); // smalldatetime
+            pstmt.setShort(18, (short) expected[17]); // smallint
+            pstmt.setSmallMoney(19, (BigDecimal) expected[18]); // smallmoney
+            pstmt.setTime(20, (Time) expected[19]); // time
+            pstmt.setShort(21, (short) expected[20]); // tinyint
+            pstmt.setBytes(22, (byte[]) expected[21]); // varbinary(5)
+            pstmt.setString(23, (String) expected[22]); // varchar(20)
 
-            pstmt.setInt(1, 1234);
-            pstmt.setBoolean(2, false);
-            pstmt.setString(3, "a");
-            pstmt.setDate(4, d);
-            pstmt.setDateTime(5, myTimestamp);
-            pstmt.setFloat(6, (float) 123.45);
-            pstmt.setString(7, "b");
-            pstmt.setString(8, "varc");
-            pstmt.setString(9, "''");
             pstmt.addBatch();
-
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-
-                Object[] expected = new Object[9];
-
-                expected[0] = 1234;
-                expected[1] = false;
-                expected[2] = "a";
-                expected[3] = d;
-                expected[4] = myTimestamp;
-                expected[5] = 123.45;
-                expected[6] = "b";
-                expected[7] = "varc";
-                expected[8] = "''";
-
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
                 for (int i = 0; i < expected.length; i++) {
-                    assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                    if (rs.getObject(i + 1) instanceof byte[]) {
+                        assertTrue(Arrays.equals((byte[]) expected[i], (byte[]) rs.getObject(i + 1)));
+                    } else {
+                        assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                    }
                 }
             }
         }
@@ -212,7 +283,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testMixColumns() throws Exception {
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1, c3, c5, c8) values "
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1, c3, c5, c8) values "
                 + "(" + "?, " + "?, " + "?, " + "? " + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
@@ -222,34 +293,29 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Timestamp myTimestamp = new Timestamp(114550L);
-
-            Date d = new Date(114550L);
-
-            pstmt.setInt(1, 1234);
-            pstmt.setString(2, "a");
-            pstmt.setDateTime(3, myTimestamp);
-            pstmt.setString(4, "varc");
+            Timestamp randomTimestamp = new Timestamp(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            Date randomDate = Date.valueOf(LocalDateTime.now().toLocalDate());
+            long randomLong = ThreadLocalRandom.current().nextLong();
+            
+            pstmt.setLong(1, randomLong); // bigint
+            pstmt.setBoolean(2, true); // bit
+            pstmt.setDate(3, randomDate); // date
+            pstmt.setDateTimeOffset(4, microsoft.sql.DateTimeOffset.valueOf(randomTimestamp, 0)); // datetimeoffset
             pstmt.addBatch();
 
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    .executeQuery("select c1, c3, c5, c8 from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
-                Object[] expected = new Object[9];
+                Object[] expected = new Object[4];
 
-                expected[0] = 1234;
-                expected[1] = false;
-                expected[2] = "a";
-                expected[3] = d;
-                expected[4] = myTimestamp;
-                expected[5] = 123.45;
-                expected[6] = "b";
-                expected[7] = "varc";
-                expected[8] = "varcmax";
-
+                expected[0] = randomLong;
+                expected[1] = true;
+                expected[2] = randomDate;
+                expected[3] = microsoft.sql.DateTimeOffset.valueOf(randomTimestamp, 0);
                 rs.next();
+
                 for (int i = 0; i < expected.length; i++) {
                     if (null != rs.getObject(i + 1)) {
                         assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
@@ -261,7 +327,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testNullOrEmptyColumns() throws Exception {
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " (c1, c2, c3, c4, c5, c6, c7) values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? "
                 + ")";
 
@@ -272,75 +338,38 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            pstmt.setInt(1, 1234);
-            pstmt.setBoolean(2, false);
-            pstmt.setString(3, null);
-            pstmt.setDate(4, null);
-            pstmt.setDateTime(5, null);
-            pstmt.setFloat(6, (float) 123.45);
-            pstmt.setString(7, "");
+            long randomLong = ThreadLocalRandom.current().nextLong();
+            String randomChar = RandomData.generateCharTypes("1", false, false);
+
+            pstmt.setLong(1, randomLong); // bigint
+            pstmt.setBytes(2, null); // binary(5)
+            pstmt.setBoolean(3, true); // bit
+            pstmt.setString(4, randomChar); // char
+            pstmt.setDate(5, null); // date
+            pstmt.setDateTime(6, null);// datetime
+            pstmt.setDateTime(7, null); // datetime2
             pstmt.addBatch();
 
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
-                Object[] expected = new Object[9];
+                Object[] expected = new Object[7];
 
-                expected[0] = 1234;
-                expected[1] = false;
-                expected[2] = null;
-                expected[3] = null;
+                expected[0] = randomLong;
+                expected[1] = null;
+                expected[2] = true;
+                expected[3] = randomChar;
                 expected[4] = null;
-                expected[5] = 123.45;
-                expected[6] = " ";
+                expected[5] = null;
+                expected[6] = null;
 
                 rs.next();
                 for (int i = 0; i < expected.length; i++) {
                     if (null != rs.getObject(i + 1)) {
                         assertEquals(expected[i], rs.getObject(i + 1));
                     }
-                }
-            }
-        }
-    }
-
-    // Non-parameterized queries are not supported anymore.
-    // @Test
-    public void testAllFilledColumns() throws Exception {
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "1234, "
-                + "false, " + "a, " + "null, " + "null, " + "123.45, " + "b, " + "varc, " + "sadf, " + ")";
-
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
-                Statement stmt = (SQLServerStatement) connection.createStatement();) {
-            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
-            f1.setAccessible(true);
-            f1.set(connection, true);
-
-            pstmt.addBatch();
-
-            pstmt.executeBatch();
-
-            try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-
-                Object[] expected = new Object[9];
-
-                expected[0] = 1234;
-                expected[1] = false;
-                expected[2] = "a";
-                expected[3] = null;
-                expected[4] = null;
-                expected[5] = 123.45;
-                expected[6] = "b";
-                expected[7] = "varc";
-                expected[8] = "sadf";
-
-                rs.next();
-                for (int i = 0; i < expected.length; i++) {
-                    assertEquals(expected[i], rs.getObject(i + 1));
                 }
             }
         }
@@ -368,7 +397,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName))) {
                 rs.next();
 
                 assertEquals(1, rs.getObject(1));
@@ -398,7 +427,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName))) {
                 rs.next();
 
                 assertEquals(1, rs.getObject(1));
@@ -427,7 +456,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(schemaTableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(schemaTableName))) {
                 rs.next();
 
                 assertEquals(1, rs.getObject(1));
@@ -458,7 +487,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName))) {
                 rs.next();
 
                 assertEquals(1, rs.getObject(1));
@@ -468,8 +497,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testAllColumnsLargeBatch() throws Exception {
-        String valid = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
-                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? " + ")";
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
+                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
+                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?" + ")";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -478,41 +508,44 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Timestamp myTimestamp = new Timestamp(114550L);
+            Object[] expected = generateExpectedValues();
 
-            Date d = new Date(114550L);
+            pstmt.setLong(1, (long) expected[0]); // bigint
+            pstmt.setBytes(2, (byte[]) expected[1]); // binary(5)
+            pstmt.setBoolean(3, (boolean) expected[2]); // bit
+            pstmt.setString(4, (String) expected[3]); // char
+            pstmt.setDate(5, (Date) expected[4]); // date
+            pstmt.setDateTime(6, (Timestamp) expected[5]);// datetime
+            pstmt.setDateTime(7, (Timestamp) expected[6]); // datetime2
+            pstmt.setDateTimeOffset(8, (DateTimeOffset) expected[7]); // datetimeoffset
+            pstmt.setBigDecimal(9, (BigDecimal) expected[8]); // decimal
+            pstmt.setDouble(10, (double) expected[9]); // float
+            pstmt.setInt(11, (int) expected[10]); // int
+            pstmt.setMoney(12, (BigDecimal) expected[11]); // money
+            pstmt.setString(13, (String) expected[12]); // nchar
+            pstmt.setBigDecimal(14, (BigDecimal) expected[13]); // numeric
+            pstmt.setString(15, (String) expected[14]); // nvarchar(20)
+            pstmt.setFloat(16, (float) expected[15]); // real
+            pstmt.setSmallDateTime(17, (Timestamp) expected[16]); // smalldatetime
+            pstmt.setShort(18, (short) expected[17]); // smallint
+            pstmt.setSmallMoney(19, (BigDecimal) expected[18]); // smallmoney
+            pstmt.setTime(20, (Time) expected[19]); // time
+            pstmt.setShort(21, (short) expected[20]); // tinyint
+            pstmt.setBytes(22, (byte[]) expected[21]); // varbinary(5)
+            pstmt.setString(23, (String) expected[22]); // varchar(20)
 
-            pstmt.setInt(1, 1234);
-            pstmt.setBoolean(2, false);
-            pstmt.setString(3, "a");
-            pstmt.setDate(4, d);
-            pstmt.setDateTime(5, myTimestamp);
-            pstmt.setFloat(6, (float) 123.45);
-            pstmt.setString(7, "b");
-            pstmt.setString(8, "varc");
-            pstmt.setString(9, "''");
             pstmt.addBatch();
-
             pstmt.executeLargeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-
-                Object[] expected = new Object[9];
-
-                expected[0] = 1234;
-                expected[1] = false;
-                expected[2] = "a";
-                expected[3] = d;
-                expected[4] = myTimestamp;
-                expected[5] = 123.45;
-                expected[6] = "b";
-                expected[7] = "varc";
-                expected[8] = "''";
-
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
                 for (int i = 0; i < expected.length; i++) {
-                    assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                    if (rs.getObject(i + 1) instanceof byte[]) {
+                        assertTrue(Arrays.equals((byte[]) expected[i], (byte[]) rs.getObject(i + 1)));
+                    } else {
+                        assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
+                    }
                 }
             }
         }
@@ -536,9 +569,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
+            assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
 
         invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -558,11 +591,13 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            assertEquals(
-                    "There are fewer columns in the INSERT statement than values specified in the VALUES clause. The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.",
-                    e.getMessage());
+            if (isSqlAzureDW()) {
+                assertEquals(TestResource.getResource("R_incorrectColumnNumInsertDW"), e.getMessage());
+            } else {
+                assertEquals(TestResource.getResource("R_incorrectColumnNumInsert"), e.getMessage());
+            }
         }
     }
 
@@ -574,6 +609,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
+
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
@@ -585,9 +621,13 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            assertEquals("Incorrect syntax near the keyword 'table'.", e.getMessage());
+            if (isSqlAzureDW()) {
+                assertEquals(TestResource.getResource("R_incorrectSyntaxTableDW"), e.getMessage());
+            } else {
+                assertEquals(TestResource.getResource("R_incorrectSyntaxTable"), e.getMessage());
+            }
         }
 
         invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values ('?', ?,? ,?) ";
@@ -605,20 +645,21 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception("Test did not throw an exception when it was expected.");
+            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
-            assertEquals("Column name or number of supplied values does not match table definition.", e.getMessage());
+            assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
     }
 
     @Test
     public void testNonSupportedColumns() throws Exception {
+        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_spatialDWNotSupported"));
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName)
                 + " values (?, ?, ?, ?)";
 
         try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
-                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
@@ -642,7 +683,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
 
             try (ResultSet rs = stmt
-                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName))) {
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName))) {
                 rs.next();
                 assertEquals(g1.toString(), Geometry.STGeomFromWKB((byte[]) rs.getObject(1)).toString());
                 assertEquals(g2.toString(), Geography.STGeomFromWKB((byte[]) rs.getObject(2)).toString());
@@ -659,8 +700,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " " + "("
-                        + "c1 int DEFAULT 1234, " + "c2 bit, " + "c3 char DEFAULT NULL, " + "c4 date, "
-                        + "c5 datetime2, " + "c6 float, " + "c7 nchar, " + "c8 varchar(20), " + "c9 varchar(max)" + ")";
+                        + "c1 bigint, " + "c2 binary(5), " + "c3 bit, " + "c4 char, " + "c5 date, " + "c6 datetime, "
+                        + "c7 datetime2, " + "c8 datetimeoffset, " + "c9 decimal, " + "c10 float, " + "c11 int, "
+                        + "c12 money, " + "c13 nchar, " + "c14 numeric, " + "c15 nvarchar(20), " + "c16 real, "
+                        + "c17 smalldatetime, " + "c18 smallint, " + "c19 smallmoney, " + "c20 time, " + "c21 tinyint, "
+                        + "c22 varbinary(5), " + "c23 varchar(20) " + ")";
 
                 stmt.execute(sql1);
             }

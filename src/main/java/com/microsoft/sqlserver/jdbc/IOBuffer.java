@@ -103,6 +103,7 @@ final class TDS {
     static final int TDS_FEDAUTH_LIBRARY_RESERVED = 0x7F;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD = 0x01;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED = 0x02;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYMSI = 0x03;
     static final byte FEDAUTH_INFO_ID_STSURL = 0x01; // FedAuthInfoData is token endpoint URL from which to acquire fed
                                                      // auth token
     static final byte FEDAUTH_INFO_ID_SPN = 0x02; // FedAuthInfoData is the SPN to use for acquiring fed auth token
@@ -1399,27 +1400,66 @@ final class TDSChannel {
             return commonName;
         }
 
-        private boolean validateServerName(String nameInCert) throws CertificateException {
+        private boolean validateServerName(String nameInCert) {
             // Failed to get the common name from DN or empty CN
             if (null == nameInCert) {
-                if (logger.isLoggable(Level.FINER))
+                if (logger.isLoggable(Level.FINER)) {
                     logger.finer(logContext + " Failed to parse the name from the certificate or name is empty.");
+                }
                 return false;
             }
-
+            // We do not allow wildcards in IDNs (xn--).
+            if (!nameInCert.startsWith("xn--") && nameInCert.contains("*")) {
+                int hostIndex = 0, certIndex = 0, match = 0, startIndex = -1, periodCount = 0;
+                while (hostIndex < hostName.length()) {
+                    if ('.' == hostName.charAt(hostIndex)) {
+                        periodCount++;
+                    }
+                    if (certIndex < nameInCert.length() && hostName.charAt(hostIndex) == nameInCert.charAt(certIndex)) {
+                        hostIndex++;
+                        certIndex++;
+                    } else if (certIndex < nameInCert.length() && '*' == nameInCert.charAt(certIndex)) {
+                        startIndex = certIndex;
+                        match = hostIndex;
+                        certIndex++;
+                    } else if (startIndex != -1 && 0 == periodCount) {
+                        certIndex = startIndex + 1;
+                        match++;
+                        hostIndex = match;
+                    } else {
+                        logFailMessage(nameInCert);
+                        return false;
+                    }
+                }
+                if (nameInCert.length() == certIndex && periodCount > 1) {
+                    logSuccessMessage(nameInCert);
+                    return true;
+                } else {
+                    logFailMessage(nameInCert);
+                    return false;
+                }
+            }
             // Verify that the name in certificate matches exactly with the host name
             if (!nameInCert.equals(hostName)) {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(logContext + " The name in certificate " + nameInCert
-                            + " does not match with the server name " + hostName + ".");
+                logFailMessage(nameInCert);
                 return false;
             }
+            logSuccessMessage(nameInCert);
+            return true;
+        }
 
-            if (logger.isLoggable(Level.FINER))
+        private void logFailMessage(String nameInCert) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(logContext + " The name in certificate " + nameInCert
+                        + " does not match with the server name " + hostName + ".");
+            }
+        }
+
+        private void logSuccessMessage(String nameInCert) {
+            if (logger.isLoggable(Level.FINER)) {
                 logger.finer(logContext + " The name in certificate:" + nameInCert + " validated against server name "
                         + hostName + ".");
-
-            return true;
+            }
         }
 
         public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
@@ -4587,11 +4627,11 @@ final class TDSWriter {
                     int tokenType = tdsReader.peekTokenType();
 
                     if (TDS.TDS_ERR == tokenType) {
-                        StreamError databaseError = new StreamError();
+                        SQLServerError databaseError = new SQLServerError();
                         databaseError.setFromTDS(tdsReader);
 
-                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getMessage(), databaseError,
-                                false);
+                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getErrorMessage(),
+                                databaseError, false);
                     }
 
                     command.setInterruptsEnabled(true);

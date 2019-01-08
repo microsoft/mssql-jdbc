@@ -25,8 +25,6 @@ public class RandomData {
     private static Random r = new Random();
 
     public static boolean returnNull = (0 == r.nextInt(5)); // 20% chance of return null
-    public static boolean returnFullLength = (0 == r.nextInt(2)); // 50% chance of return full length for char/nchar and
-                                                                  // binary types
     public static boolean returnMinMax = (0 == r.nextInt(5)); // 20% chance of return Min/Max value
     public static boolean returnZero = (0 == r.nextInt(10)); // 10% chance of return zero
 
@@ -357,8 +355,8 @@ public class RandomData {
             minimumLength = 1;
         }
 
-        int length;
         if (columnLength.toLowerCase().equals("max")) {
+            int length;
             // 50% chance of return value longer than 8000/4000
             if (r.nextBoolean()) {
                 length = r.nextInt(100000) + maxBound;
@@ -373,17 +371,9 @@ public class RandomData {
             }
         } else {
             int columnLengthInt = Integer.parseInt(columnLength);
-            if (returnFullLength) {
-                length = columnLengthInt;
-                byte[] bytes = new byte[length];
-                r.nextBytes(bytes);
-                return bytes;
-            } else {
-                length = r.nextInt(columnLengthInt - minimumLength) + minimumLength;
-                byte[] bytes = new byte[length];
-                r.nextBytes(bytes);
-                return bytes;
-            }
+            byte[] bytes = new byte[columnLengthInt];
+            r.nextBytes(bytes);
+            return bytes;
         }
     }
 
@@ -699,8 +689,8 @@ public class RandomData {
             minimumLength = 1;
         }
 
-        int length;
         if (columnLength.toLowerCase().equals("max")) {
+            int length;
             // 50% chance of return value longer than 8000/4000
             if (r.nextBoolean()) {
                 length = r.nextInt(100000) + maxBound;
@@ -711,13 +701,7 @@ public class RandomData {
             }
         } else {
             int columnLengthInt = Integer.parseInt(columnLength);
-            if (returnFullLength) {
-                length = columnLengthInt;
-                return buildRandomString(length, charSet);
-            } else {
-                length = r.nextInt(columnLengthInt - minimumLength) + minimumLength;
-                return buildRandomString(length, charSet);
-            }
+            return buildRandomString(columnLengthInt, charSet);
         }
     }
 

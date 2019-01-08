@@ -65,7 +65,8 @@ enum SqlAuthentication {
     NotSpecified,
     SqlPassword,
     ActiveDirectoryPassword,
-    ActiveDirectoryIntegrated;
+    ActiveDirectoryIntegrated,
+    ActiveDirectoryMSI;
 
     static SqlAuthentication valueOfString(String value) throws SQLServerException {
         SqlAuthentication method = null;
@@ -80,6 +81,8 @@ enum SqlAuthentication {
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
             method = SqlAuthentication.ActiveDirectoryIntegrated;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
+            method = SqlAuthentication.ActiveDirectoryMSI;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"authentication", value};
@@ -280,7 +283,8 @@ enum SQLServerDriverStringProperty {
     KEY_STORE_AUTHENTICATION("keyStoreAuthentication", ""),
     KEY_STORE_SECRET("keyStoreSecret", ""),
     KEY_STORE_LOCATION("keyStoreLocation", ""),
-    SSL_PROTOCOL("sslProtocol", SSLProtocol.TLS.toString()),;
+    SSL_PROTOCOL("sslProtocol", SSLProtocol.TLS.toString()),
+    MSI_CLIENT_ID("msiClientId", ""),;
 
     private final String name;
     private final String defaultValue;
@@ -476,7 +480,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(), false,
                     new String[] {SqlAuthentication.NotSpecified.toString(), SqlAuthentication.SqlPassword.toString(),
                             SqlAuthentication.ActiveDirectoryPassword.toString(),
-                            SqlAuthentication.ActiveDirectoryIntegrated.toString()}),
+                            SqlAuthentication.ActiveDirectoryIntegrated.toString(),
+                            SqlAuthentication.ActiveDirectoryMSI.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),
                     Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),
@@ -504,7 +509,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Integer.toString(SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue()),
-                    false, TRUE_FALSE),};
+                    false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
+                    SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue(), false, null),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string
@@ -548,15 +555,43 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     private final static java.util.logging.Logger drLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+    private static java.sql.Driver mssqlDriver = null;
     // Register with the DriverManager
     static {
         try {
-            java.sql.DriverManager.registerDriver(new SQLServerDriver());
+            register();
         } catch (SQLException e) {
             if (drLogger.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
                 drLogger.finer("Error registering driver: " + e);
             }
         }
+    }
+
+    /*
+     * Registers the driver with DriverManager. No-op if driver is already registered.
+     */
+    public static void register() throws SQLException {
+        if (!isRegistered()) {
+            mssqlDriver = new SQLServerDriver();
+            DriverManager.registerDriver(mssqlDriver);
+        }
+    }
+
+    /*
+     * De-registers the driver with the DriverManager. No-op if the driver is not registered.
+     */
+    public static void deregister() throws SQLException {
+        if (isRegistered()) {
+            DriverManager.deregisterDriver(mssqlDriver);
+            mssqlDriver = null;
+        }
+    }
+
+    /*
+     * Checks whether the driver has been registered with the driver manager.
+     */
+    public static boolean isRegistered() {
+        return mssqlDriver != null;
     }
 
     public SQLServerDriver() {

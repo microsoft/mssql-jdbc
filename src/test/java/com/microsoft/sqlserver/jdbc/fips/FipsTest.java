@@ -12,6 +12,7 @@ import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -19,7 +20,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.PrepUtil;;
 
 
@@ -27,14 +28,15 @@ import com.microsoft.sqlserver.testframework.PrepUtil;;
  * Test class for testing FIPS property settings.
  */
 @RunWith(JUnitPlatform.class)
-public class FipsTest {
+@Tag("AzureDWTest")
+public class FipsTest extends AbstractTest {
 
     private static String connectionString;
     private static String[] dataSourceProps;
 
     @BeforeAll
     public static void init() {
-        connectionString = TestUtils.getConfiguredProperty("mssql_jdbc_test_connection_properties");
+        connectionString = getConnectionString();
         dataSourceProps = getDataSourceProperties();
     }
 

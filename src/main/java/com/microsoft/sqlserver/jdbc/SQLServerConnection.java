@@ -6,12 +6,18 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -25,8 +31,13 @@ import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
+import java.text.DateFormat;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -37,6 +48,7 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -324,10 +336,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return parameterPositions.stream().mapToInt(Integer::valueOf).toArray();
     }
 
-    SqlFedAuthToken getAuthenticationResult() {
-        return fedAuthToken;
-    }
-
     /**
      * Encapsulates the data to be sent to the server as part of Federated Authentication Feature Extension.
      */
@@ -342,12 +350,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             this.libraryType = libraryType;
             this.fedAuthRequiredPreLoginResponse = fedAuthRequiredPreLoginResponse;
 
-            switch (authenticationString.toUpperCase(Locale.ENGLISH).trim()) {
+            switch (authenticationString.toUpperCase(Locale.ENGLISH)) {
                 case "ACTIVEDIRECTORYPASSWORD":
                     this.authentication = SqlAuthentication.ActiveDirectoryPassword;
                     break;
                 case "ACTIVEDIRECTORYINTEGRATED":
                     this.authentication = SqlAuthentication.ActiveDirectoryIntegrated;
+                    break;
+                case "ACTIVEDIRECTORYMSI":
+                    this.authentication = SqlAuthentication.ActiveDirectoryMSI;
                     break;
                 default:
                     assert (false);
@@ -378,7 +389,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     class ActiveDirectoryAuthentication {
         static final String JDBC_FEDAUTH_CLIENT_ID = "7f98cb04-cd1e-40df-9140-3bf7e2cea4db";
+        static final String AZURE_REST_MSI_URL = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01";
         static final String ADAL_GET_ACCESS_TOKEN_FUNCTION_NAME = "ADALGetAccessToken";
+        static final String ACCESS_TOKEN_IDENTIFIER = "\"access_token\":\"";
+        static final String ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER = "\"expires_in\":\"";
+        static final String ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER = "\"expires_on\":\"";
+        static final String ACCESS_TOKEN_EXPIRES_ON_DATE_FORMAT = "M/d/yyyy h:mm:ss a X";
         static final int GET_ACCESS_TOKEN_SUCCESS = 0;
         static final int GET_ACCESS_TOKEN_INVALID_GRANT = 1;
         static final int GET_ACCESS_TOKEN_TANSISENT_ERROR = 2;
@@ -1051,12 +1067,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
                     null, false);
         }
+    }
 
+    protected boolean needsReconnect() throws SQLServerException {
+        // Check if federated Authentication is in use
         if (null != fedAuthToken) {
-            if (Util.checkIfNeedNewAccessToken(this)) {
-                connect(this.activeConnectionProperties, null);
+            // Check if access token is about to expire soon
+            if (Util.checkIfNeedNewAccessToken(this, fedAuthToken.expiresOn)) {
+                return true;
             }
         }
+        return false;
     }
 
     /**
@@ -1527,7 +1548,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (sPropValue == null) {
                 sPropValue = SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue();
             }
-            authenticationString = SqlAuthentication.valueOfString(sPropValue).toString();
+            authenticationString = SqlAuthentication.valueOfString(sPropValue).toString().trim();
 
             if (integratedSecurity
                     && !authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) {
@@ -1562,6 +1583,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             toString() + " " + SQLServerException.getErrString("R_NoUserPasswordForActivePassword"));
                 }
                 throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForActivePassword"),
+                        null);
+            }
+
+            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
+                    && ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
+                            .isEmpty())
+                            || (!activeConnectionProperties
+                                    .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
+                if (connectionlogger.isLoggable(Level.SEVERE)) {
+                    connectionlogger.severe(
+                            toString() + " " + SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"));
+                }
+                throw new SQLServerException(SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"),
                         null);
             }
 
@@ -1838,6 +1872,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             } else {
                 activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
+            }
+
+            sPropKey = SQLServerDriverStringProperty.MSI_CLIENT_ID.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
 
             FailoverInfo fo = null;
@@ -2400,7 +2440,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     void Prelogin(String serverName, int portNumber) throws SQLServerException {
         // Build a TDS Pre-Login packet to send to the server.
-        if ((!authenticationString.trim().equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
+        if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
                 || (null != accessTokenInByte)) {
             fedAuthRequiredByUser = true;
         }
@@ -3271,7 +3311,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     volatile SQLWarning sqlWarnings; // the SQL warnings chain
-    Object warningSynchronization = new Object();
+    private final Object warningSynchronization = new Object();
 
     // Think about returning a copy when we implement additional warnings.
     @Override
@@ -3490,6 +3530,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         case ActiveDirectoryIntegrated:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED;
                             break;
+                        case ActiveDirectoryMSI:
+                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYMSI;
+                            break;
                         default:
                             assert (false); // Unrecognized Authentication type for fedauth ADAL request
                             break;
@@ -3562,8 +3605,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // for FEDAUTHREQUIRED option indicates Federated Authentication is required, we have to insert FedAuth Feature
         // Extension
         // in Login7, indicating the intent to use Active Directory Authentication Library for SQL Server.
-        if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
-                || (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
+        if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
+                || ((authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
+                        || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString()))
                         && fedAuthRequiredPreLoginResponse)) {
             federatedAuthenticationInfoRequested = true;
             fedAuthFeatureExtensionData = new FederatedAuthenticationFeatureExtensionData(TDS.TDS_FEDAUTH_LIBRARY_ADAL,
@@ -3982,16 +4026,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     final class FedAuthTokenCommand extends UninterruptableTDSCommand {
         TDSTokenHandler tdsTokenHandler = null;
-        SqlFedAuthToken fedAuthToken = null;
+        SqlFedAuthToken sqlFedAuthToken = null;
 
-        FedAuthTokenCommand(SqlFedAuthToken fedAuthToken, TDSTokenHandler tdsTokenHandler) {
+        FedAuthTokenCommand(SqlFedAuthToken sqlFedAuthToken, TDSTokenHandler tdsTokenHandler) {
             super("FedAuth");
             this.tdsTokenHandler = tdsTokenHandler;
-            this.fedAuthToken = fedAuthToken;
+            this.sqlFedAuthToken = sqlFedAuthToken;
         }
 
         final boolean doExecute() throws SQLServerException {
-            sendFedAuthToken(this, fedAuthToken, tdsTokenHandler);
+            sendFedAuthToken(this, sqlFedAuthToken, tdsTokenHandler);
             return true;
         }
     }
@@ -4003,8 +4047,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void onFedAuthInfo(SqlFedAuthInfo fedAuthInfo, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
         assert (null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                 && null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()))
-                || ((authenticationString.trim().equalsIgnoreCase(
-                        SqlAuthentication.ActiveDirectoryIntegrated.toString()) && fedAuthRequiredPreLoginResponse));
+                || (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
+                        || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
+                                && fedAuthRequiredPreLoginResponse);
+
         assert null != fedAuthInfo;
 
         attemptRefreshTokenLocked = true;
@@ -4031,14 +4077,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int sleepInterval = 100;
 
         while (true) {
-            if (authenticationString.trim().equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
+            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
+                validateAdalLibrary("R_ADALMissing");
                 fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user, password,
                         authenticationString);
 
                 // Break out of the retry loop in successful case.
                 break;
-            } else if (authenticationString.trim()
-                    .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
+            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
+                fedAuthToken = getMSIAuthToken(fedAuthInfo.spn,
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
+
+                // Break out of the retry loop in successful case.
+                break;
+            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
 
                 // If operating system is windows and sqljdbc_auth is loaded then choose the DLL authentication.
                 if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")
@@ -4051,11 +4103,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                         // AccessToken should not be null.
                         assert null != dllInfo.accessTokenBytes;
-
                         byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
 
                         String accessToken = new String(accessTokenFromDLL, UTF_16LE);
-
                         fedAuthToken = new SqlFedAuthToken(accessToken, dllInfo.expiresIn);
 
                         // Break out of the retry loop in successful case.
@@ -4115,6 +4165,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // so we don't need to check the
                 // OS version here.
                 else {
+                    // Check if ADAL4J library is available
+                    validateAdalLibrary("R_DLLandADALMissing");
                     fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
                 }
                 // Break out of the retry loop in successful case.
@@ -4123,6 +4175,166 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         return fedAuthToken;
+    }
+
+    private void validateAdalLibrary(String errorMessage) throws SQLServerException {
+        try {
+            Class.forName("com.microsoft.aad.adal4j.AuthenticationContext");
+        } catch (ClassNotFoundException e) {
+            // throw Exception for missing libraries
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(errorMessage));
+            throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
+        }
+    }
+
+    private SqlFedAuthToken getMSIAuthToken(String resource, String msiClientId) throws SQLServerException {
+        // IMDS upgrade time can take up to 70s
+        final int imdsUpgradeTimeInMs = 70 * 1000;
+        final List<Integer> retrySlots = new ArrayList<>();
+        final String msiEndpoint = System.getenv("MSI_ENDPOINT");
+        final String msiSecret = System.getenv("MSI_SECRET");
+
+        StringBuilder urlString = new StringBuilder();
+        int retry = 1, maxRetry = 1;
+
+        /*
+         * isAzureFunction is used for identifying if the current client application is running in a Virtual Machine
+         * (without MSI environment variables) or App Service/Function (with MSI environment variables) as the APIs to
+         * be called for acquiring MSI Token are different for both cases.
+         */
+        boolean isAzureFunction = null != msiEndpoint && !msiEndpoint.isEmpty() && null != msiSecret
+                && !msiSecret.isEmpty();
+
+        if (isAzureFunction) {
+            urlString.append(msiEndpoint).append("?api-version=2017-09-01&resource=").append(resource);
+        } else {
+            urlString.append(ActiveDirectoryAuthentication.AZURE_REST_MSI_URL).append("&resource=").append(resource);
+            // Retry acquiring access token upto 20 times due to possible IMDS upgrade (Applies to VM only)
+            maxRetry = 20;
+            // Simplified variant of Exponential BackOff
+            for (int x = 0; x < maxRetry; x++) {
+                retrySlots.add(500 * ((2 << 1) - 1) / 1000);
+            }
+        }
+
+        // Append Client Id if available
+        if (null != msiClientId && !msiClientId.isEmpty()) {
+            if (isAzureFunction) {
+                urlString.append("&clientid=").append(msiClientId);
+            } else {
+                urlString.append("&client_id=").append(msiClientId);
+            }
+        }
+
+        // Loop while maxRetry reaches its limit
+        while (retry <= maxRetry) {
+            HttpURLConnection connection = null;
+
+            try {
+                connection = (HttpURLConnection) new URL(urlString.toString()).openConnection();
+                connection.setRequestMethod("GET");
+
+                if (isAzureFunction) {
+                    connection.setRequestProperty("Secret", msiSecret);
+                    if (connectionlogger.isLoggable(Level.FINER)) {
+                        connectionlogger.finer(toString() + " Using Azure Function/App Service MSI auth: " + urlString);
+                    }
+                } else {
+                    connection.setRequestProperty("Metadata", "true");
+                    if (connectionlogger.isLoggable(Level.FINER)) {
+                        connectionlogger.finer(toString() + " Using Azure MSI auth: " + urlString);
+                    }
+                }
+
+                connection.connect();
+
+                try (InputStream stream = connection.getInputStream()) {
+
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8), 100);
+                    String result = reader.readLine();
+
+                    int startIndex_AT = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER)
+                            + ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER.length();
+
+                    String accessToken = result.substring(startIndex_AT, result.indexOf("\"", startIndex_AT + 1));
+
+                    Calendar cal = new Calendar.Builder().setInstant(new Date()).build();
+
+                    if (isAzureFunction) {
+                        // Fetch expires_on
+                        int startIndex_ATX = result
+                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER)
+                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER.length();
+                        String accessTokenExpiry = result.substring(startIndex_ATX,
+                                result.indexOf("\"", startIndex_ATX + 1));
+                        if (connectionlogger.isLoggable(Level.FINER)) {
+                            connectionlogger.finer(toString() + " MSI auth token expires on: " + accessTokenExpiry);
+                        }
+
+                        DateFormat df = new SimpleDateFormat(
+                                ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_DATE_FORMAT);
+                        cal = new Calendar.Builder().setInstant(df.parse(accessTokenExpiry)).build();
+                    } else {
+                        // Fetch expires_in
+                        int startIndex_ATX = result
+                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER)
+                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
+                        String accessTokenExpiry = result.substring(startIndex_ATX,
+                                result.indexOf("\"", startIndex_ATX + 1));
+                        cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
+                    }
+
+                    return new SqlFedAuthToken(accessToken, cal.getTime());
+                }
+            } catch (Exception e) {
+                retry++;
+                // Below code applicable only when !isAzureFunctcion (VM)
+                if (retry > maxRetry) {
+                    // Do not retry if maxRetry limit has been reached.
+                    break;
+                } else {
+                    try {
+                        int responseCode = connection.getResponseCode();
+                        // Check Error Response Code from Connection
+                        if (410 == responseCode || 429 == responseCode || 404 == responseCode
+                                || (500 <= responseCode && 599 >= responseCode)) {
+                            try {
+                                int retryTimeoutInMs = retrySlots.get(ThreadLocalRandom.current().nextInt(retry - 1));
+                                // Error code 410 indicates IMDS upgrade is in progress, which can take up to 70s
+                                retryTimeoutInMs = (responseCode == 410
+                                        && retryTimeoutInMs < imdsUpgradeTimeInMs) ? imdsUpgradeTimeInMs
+                                                                                   : retryTimeoutInMs;
+                                Thread.sleep(retryTimeoutInMs);
+                            } catch (InterruptedException ex) {
+                                // Throw runtime exception as driver must not be interrupted here
+                                throw new RuntimeException(ex);
+                            }
+                        } else {
+                            if (null != msiClientId && !msiClientId.isEmpty()) {
+                                SQLServerException.makeFromDriverError(this, null,
+                                        SQLServerException.getErrString("R_MSITokenFailureClientId"), null, true);
+                            } else {
+                                SQLServerException.makeFromDriverError(this, null,
+                                        SQLServerException.getErrString("R_MSITokenFailureImds"), null, true);
+                            }
+                        }
+                    } catch (IOException io) {
+                        // Throw error as unexpected if response code not available
+                        SQLServerException.makeFromDriverError(this, null,
+                                SQLServerException.getErrString("R_MSITokenFailureUnexpected"), null, true);
+                    }
+                }
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+        }
+        if (retry > maxRetry) {
+            SQLServerException.makeFromDriverError(this, null, SQLServerException
+                    .getErrString(isAzureFunction ? "R_MSITokenFailureEndpoint" : "R_MSITokenFailureImds"), null, true);
+        }
+        return null;
     }
 
     /**
