@@ -823,12 +823,12 @@ final class Util {
 
         switch (jdbcType) {
             case MONEY:
-                if ((bd.compareTo(SSType.MAX_VALUE_MONEY) >= 0) && (bd.compareTo(SSType.MIN_VALUE_MONEY) >= 0)) {
+                if ((bd.compareTo(SSType.MAX_VALUE_MONEY) <= 0) && (bd.compareTo(SSType.MIN_VALUE_MONEY) >= 0)) {
                     return;
                 }
                 break;
             case SMALLMONEY:
-                if ((bd.compareTo(SSType.MAX_VALUE_SMALLMONEY) >= 0)
+                if ((bd.compareTo(SSType.MAX_VALUE_SMALLMONEY) <= 0)
                         && (bd.compareTo(SSType.MIN_VALUE_SMALLMONEY) >= 0)) {
                     return;
                 }
