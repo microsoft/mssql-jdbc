@@ -3944,7 +3944,7 @@ final class TDSWriter {
             // call to (new String(streamCharBuffer)).getBytes("UTF-16LE") because it
             // saves a conversion to String and use of Charset in that conversion.
             for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied) {
-                streamByteBuffer[2 * charsCopied] = (byte) ((streamCharBuffer[charsCopied] >> 0) & 0xFF);
+                streamByteBuffer[2 * charsCopied] = (byte) (streamCharBuffer[charsCopied] & 0xFF);
                 streamByteBuffer[2 * charsCopied + 1] = (byte) ((streamCharBuffer[charsCopied] >> 8) & 0xFF);
             }
 
@@ -4068,12 +4068,12 @@ final class TDSWriter {
         stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH, (byte) ((tdsMessageLength >> 8) & 0xFF)); // Note: message
                                                                                                       // length is 16
                                                                                                       // bits,
-        stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) ((tdsMessageLength >> 0) & 0xFF)); // written BIG
-                                                                                                          // ENDIAN
+        stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) (tdsMessageLength & 0xFF)); // written BIG
+                                                                                                   // ENDIAN
         stagingBuffer.put(TDS.PACKET_HEADER_SPID, (byte) ((tdsChannel.getSPID() >> 8) & 0xFF)); // Note: SPID is 16
                                                                                                 // bits,
-        stagingBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) ((tdsChannel.getSPID() >> 0) & 0xFF)); // written BIG
-                                                                                                    // ENDIAN
+        stagingBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) (tdsChannel.getSPID() & 0xFF)); // written BIG
+                                                                                             // ENDIAN
         stagingBuffer.put(TDS.PACKET_HEADER_SEQUENCE_NUM, (byte) (packetNum % 256));
         stagingBuffer.put(TDS.PACKET_HEADER_WINDOW, (byte) 0); // Window (Reserved/Not used)
 
@@ -4084,12 +4084,12 @@ final class TDSWriter {
             logBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH, (byte) ((tdsMessageLength >> 8) & 0xFF)); // Note: message
                                                                                                       // length is 16
                                                                                                       // bits,
-            logBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) ((tdsMessageLength >> 0) & 0xFF)); // written BIG
-                                                                                                          // ENDIAN
+            logBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) (tdsMessageLength & 0xFF)); // written BIG
+                                                                                                   // ENDIAN
             logBuffer.put(TDS.PACKET_HEADER_SPID, (byte) ((tdsChannel.getSPID() >> 8) & 0xFF)); // Note: SPID is 16
                                                                                                 // bits,
-            logBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) ((tdsChannel.getSPID() >> 0) & 0xFF)); // written BIG
-                                                                                                    // ENDIAN
+            logBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) (tdsChannel.getSPID() & 0xFF)); // written BIG
+                                                                                             // ENDIAN
             logBuffer.put(TDS.PACKET_HEADER_SEQUENCE_NUM, (byte) (packetNum % 256));
             logBuffer.put(TDS.PACKET_HEADER_WINDOW, (byte) 0); // Window (Reserved/Not used);
         }
@@ -5647,7 +5647,8 @@ final class TDSWriter {
                     + 60 * 60 * cal.get(Calendar.HOUR_OF_DAY);
 
             // Scale nanos since midnight to the desired scale, rounding the value as necessary
-            long divisor = Nanos.PER_MAX_SCALE_INTERVAL * (long) Math.pow(10, TDS.MAX_FRACTIONAL_SECONDS_SCALE - scale);
+            long divisor = Nanos.PER_MAX_SCALE_INTERVAL
+                    * (long) Math.pow(10.0, TDS.MAX_FRACTIONAL_SECONDS_SCALE - (double) scale);
 
             // The scaledNanos variable represents the fractional seconds of the value at the scale
             // indicated by the scale variable. So, for example, scaledNanos = 3 means 300 nanoseconds
@@ -5787,7 +5788,8 @@ final class TDSWriter {
                     + 60 * 60 * cal.get(Calendar.HOUR_OF_DAY);
 
             // Scale nanos since midnight to the desired scale, rounding the value as necessary
-            divisor = Nanos.PER_MAX_SCALE_INTERVAL * (long) Math.pow(10, TDS.MAX_FRACTIONAL_SECONDS_SCALE - scale);
+            divisor = Nanos.PER_MAX_SCALE_INTERVAL
+                    * (long) Math.pow(10.0, TDS.MAX_FRACTIONAL_SECONDS_SCALE - (double) scale);
 
             // The scaledNanos variable represents the fractional seconds of the value at the scale
             // indicated by the scale variable. So, for example, scaledNanos = 3 means 300 nanoseconds
@@ -7038,6 +7040,7 @@ class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
         }
     }
 }
+
 
 /**
  * TDSCommand encapsulates an interruptable TDS conversation.
