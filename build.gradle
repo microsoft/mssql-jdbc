@@ -10,7 +10,7 @@
 
 apply plugin: 'java'
 
-version = '7.1.4'
+version = '7.2.0-SNAPSHOT'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -27,7 +27,7 @@ allprojects {
 
 if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "build43")){
 	
-	jreVersion = "jre11-preview"
+	jreVersion = "jre11"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
@@ -40,7 +40,7 @@ if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile
 
 if((hasProperty('buildProfile') && buildProfile == "build42")) {
 	
-	jreVersion = "jre8-preview"
+	jreVersion = "jre8"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java'
 	
 	sourceCompatibility = 1.8
