@@ -849,7 +849,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             } else {
                 Map<?, ?> info = getParameterInfo(param);
                 if (null != info) {
-                    return getParameterInfo(param).get(TYPE_NAME).toString();
+                    return info.get(TYPE_NAME).toString();
                 }
             }
         } catch (SQLException e) {
@@ -870,7 +870,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             } else {
                 Map<?, ?> info = getParameterInfo(param);
                 if (null != info) {
-                    return (int) getParameterInfo(param).get(PRECISION);
+                    return (int) info.get(PRECISION);
                 }
             }
         } catch (SQLException e) {
@@ -891,7 +891,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             } else {
                 Map<?, ?> info = getParameterInfo(param);
                 if (null != info) {
-                    return (int) getParameterInfo(param).get(SCALE);
+                    return (int) info.get(SCALE);
                 }
             }
         } catch (SQLException e) {
@@ -912,7 +912,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             } else {
                 Map<?, ?> info = getParameterInfo(param);
                 if (null != info) {
-                    int nNull = (int) getParameterInfo(param).get(NULLABLE);
+                    int nNull = (int) info.get(NULLABLE);
                     if (nNull == 1)
                         return parameterNullable;
                     if (nNull == 0)
@@ -947,7 +947,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             } else {
                 Map<?, ?> info = getParameterInfo(param);
                 if (null != info) {
-                    return JDBCType.of((short) getParameterInfo(param).get(DATA_TYPE)).isSigned();
+                    return JDBCType.of((short) info.get(DATA_TYPE)).isSigned();
                 }
             }
         } catch (SQLException e) {
@@ -961,7 +961,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         checkClosed();
         Map<?, ?> info = getParameterInfo(param);
         if (null != info) {
-            return (String) getParameterInfo(param).get(SS_TYPE_SCHEMA_NAME);
+            return (String) info.get(SS_TYPE_SCHEMA_NAME);
         }
         return null;
     }
