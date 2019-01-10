@@ -29,6 +29,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class TimeoutTest extends AbstractTest {
     private static final int TIMEOUT_SECONDS = 2;
+    private static final String WAIT_FOR_ONE_MINUTE_SQL = "WAITFOR DELAY '00:01:00'";
 
     @BeforeAll
     public static void beforeAll() throws SQLException, InterruptedException {
@@ -53,7 +54,7 @@ public class TimeoutTest extends AbstractTest {
     public void testBasicQueryTimeout() {
         boolean exceptionThrown = false;
         try {
-            Assert.assertTrue("Select succeeded", runQuery("WAITFOR DELAY '00:01'", TIMEOUT_SECONDS));
+            Assert.assertTrue("Select succeeded", runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS));
         } catch (SQLException e) {
             exceptionThrown = true;
             Assert.assertTrue("Timeout exception not thrown", e.getClass().equals(SQLTimeoutException.class));
@@ -67,7 +68,7 @@ public class TimeoutTest extends AbstractTest {
         long start = System.currentTimeMillis();
         try {
             // wait 1 minute but timeout well before that
-            Assert.assertTrue("Select succeeded", runQuery("WAITFOR DELAY '00:01'", TIMEOUT_SECONDS));
+            Assert.assertTrue("Select succeeded", runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS));
         } catch (SQLException e) {
             int secondsElapsed = (int) ((System.currentTimeMillis() - start) / 1000);
             Assert.assertTrue("Query did not timeout expected, elapsedTime=" + secondsElapsed,
