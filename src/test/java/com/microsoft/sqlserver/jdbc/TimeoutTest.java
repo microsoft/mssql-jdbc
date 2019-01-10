@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.sql.Connection;
@@ -70,6 +71,60 @@ public class TimeoutTest extends AbstractTest {
                 elapsedSeconds >= TIMEOUT_SECONDS);
     }
 
+    @Test
+    public void testZeroTimeoutShouldNotStartTimerThread() throws SQLException {
+        try (Connection conn = getConnection()) {
+            // Connection is open but we have not used a timeout so it should be running
+            assertSharedTimerNotRunning();
+            runQuery(conn, "SELECT 1", 0);
+            // Our statement does not have a timeout so the timer should not be started yet
+            assertSharedTimerNotRunning();
+        }
+    }
+
+    @Test
+    public void testNoTimeoutShouldNotStartTimerThread() throws SQLException {
+        try (Connection conn = getConnection()) {
+            // Connection is open but we have not used a timeout so it should not be running
+            assertSharedTimerNotRunning();
+            runQuery(conn, "SELECT 1", 0);
+            // Ran a query but our statement does not have a timeout so the timer should not be running
+            assertSharedTimerNotRunning();
+        }
+    }
+
+    @Test
+    public void testPositiveTimeoutShouldStartTimerThread() throws SQLException {
+        try (Connection conn = getConnection()) {
+            // Connection is open but we have not used a timeout so it should not be running
+            assertSharedTimerNotRunning();
+            runQuery(conn, "SELECT 1", TIMEOUT_SECONDS);
+            // Ran a query with a timeout so the thread should continue running
+            assertSharedTimerIsRunning();
+        }
+    }
+
+    @Test
+    public void testNestedTimeoutShouldKeepTimerThreadRunning() throws SQLException {
+        try (Connection conn = getConnection()) {
+            // Connection is open but we have not used a timeout so it should not be running
+            assertSharedTimerNotRunning();
+            runQuery(conn, "SELECT 1", TIMEOUT_SECONDS);
+            // Ran a query with a timeout so the thread should continue running
+            assertSharedTimerIsRunning();
+
+            // Open a new connection
+            try (Connection otherConn = getConnection()) {
+                assertSharedTimerIsRunning();
+                runQuery(otherConn, "SELECT 1", TIMEOUT_SECONDS);
+                assertSharedTimerIsRunning();
+            }
+
+            // Timer should still be running because our original connection is still open
+            assertSharedTimerIsRunning();
+        }
+    }
+
     private static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(connectionString);
     }
@@ -119,6 +174,14 @@ public class TimeoutTest extends AbstractTest {
             // Timer thread is still running so wait a bit for it to stop
             Thread.sleep(500);
         }
-        assertFalse("SharedTimer thread should not be running", isSharedTimerThreadRunning());
+        assertSharedTimerNotRunning();
+    }
+
+    private static void assertSharedTimerNotRunning() {
+        assertFalse("SharedTimer should not be running", isSharedTimerThreadRunning());
+    }
+
+    private static void assertSharedTimerIsRunning() {
+        assertTrue("SharedTimer should be running", isSharedTimerThreadRunning());
     }
 }
