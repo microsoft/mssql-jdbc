@@ -6,7 +6,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -21,12 +20,7 @@ class SharedTimer {
     private ScheduledThreadPoolExecutor executor;
 
     private SharedTimer() {
-        executor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable task) {
-                return new Thread(task, CORE_THREAD_PREFIX + id);
-            }
-        });
+        executor = new ScheduledThreadPoolExecutor(1, task -> new Thread(task, CORE_THREAD_PREFIX + id));
         executor.setRemoveOnCancelPolicy(true);
     }
 
