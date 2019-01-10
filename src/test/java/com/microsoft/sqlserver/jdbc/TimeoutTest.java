@@ -3,15 +3,21 @@
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package com.microsoft.sqlserver.jdbc.timeouts;
+package com.microsoft.sqlserver.jdbc;
+
+import static org.junit.Assert.assertFalse;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
+import java.util.Set;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -21,6 +27,25 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
 public class TimeoutTest extends AbstractTest {
+    @BeforeAll
+    public static void beforeAll() throws SQLException, InterruptedException {
+        if (connection != null) {
+            connection.close();
+            connection = null;
+        }
+        waitForSharedTimerThreadToStop();
+    }
+
+    @Before
+    public void before() throws InterruptedException {
+        waitForSharedTimerThreadToStop();
+    }
+
+    @After
+    public void after() throws InterruptedException {
+        waitForSharedTimerThreadToStop();
+    }
+
     @Test
     public void testBasicQueryTimeout() {
         boolean exceptionThrown = false;
@@ -59,5 +84,23 @@ public class TimeoutTest extends AbstractTest {
             preparedStatement.setQueryTimeout(timeout);
             return preparedStatement.execute();
         }
+    }
+
+    private static boolean isSharedTimerThreadRunning() {
+        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+        for (Thread thread : threadSet) {
+            if (thread.getName().startsWith(SharedTimer.CORE_THREAD_PREFIX)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void waitForSharedTimerThreadToStop() throws InterruptedException {
+        if (isSharedTimerThreadRunning()) {
+            // Timer thread is still running so wait a bit for it to stop
+            Thread.sleep(500);
+        }
+        assertFalse("SharedTimer thread should not be running", isSharedTimerThreadRunning());
     }
 }

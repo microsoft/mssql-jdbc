@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 class SharedTimer {
-    private static final String CORE_THREAD_PREFIX = "mssql-jdbc-shared-timer-core-";
+    static final String CORE_THREAD_PREFIX = "mssql-jdbc-shared-timer-core-";
     private static final AtomicLong CORE_THREAD_COUNTER = new AtomicLong();
     private static SharedTimer INSTANCE;
 
@@ -28,6 +28,14 @@ class SharedTimer {
             }
         });
         executor.setRemoveOnCancelPolicy(true);
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    static synchronized boolean isRunning() {
+        return INSTANCE != null;
     }
 
     public synchronized void removeRef() {
