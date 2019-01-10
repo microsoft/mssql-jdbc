@@ -143,6 +143,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private SharedTimer sharedTimer;
 
+    /**
+     * Return an existing cached SharedTimer associated with this Connection or create a new one.
+     *
+     * The SharedTimer will be released when the Connection is closed.
+     */
     SharedTimer getSharedTimer() {
         if (state == State.Closed) {
             throw new IllegalStateException("Connection is closed");
