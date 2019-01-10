@@ -12,14 +12,14 @@ import java.util.logging.Level;
 /**
  * The TDS default implementation of a timeout command
  */
-class TdsTimeoutTask implements Runnable {
+class TDSTimeoutTask implements Runnable {
     private static final AtomicLong COUNTER = new AtomicLong(0);
 
     private final UUID connectionId;
     private final TDSCommand command;
     private final SQLServerConnection sqlServerConnection;
 
-    public TdsTimeoutTask(TDSCommand command, SQLServerConnection sqlServerConnection) {
+    public TDSTimeoutTask(TDSCommand command, SQLServerConnection sqlServerConnection) {
         this.connectionId = sqlServerConnection == null ? null : sqlServerConnection.getClientConIdInternal();
         this.command = command;
         this.sqlServerConnection = sqlServerConnection;

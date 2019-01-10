@@ -78,14 +78,14 @@ class SharedTimer {
     /**
      * Schedule a task to execute in the future using this SharedTimer's internal executor.
      */
-    public ScheduledFuture<?> schedule(TdsTimeoutTask task, long delaySeconds) {
+    public ScheduledFuture<?> schedule(TDSTimeoutTask task, long delaySeconds) {
         return schedule(task, delaySeconds, TimeUnit.SECONDS);
     }
 
     /**
      * Schedule a task to execute in the future using this SharedTimer's internal executor.
      */
-    public ScheduledFuture<?> schedule(TdsTimeoutTask task, long delay, TimeUnit unit) {
+    public ScheduledFuture<?> schedule(TDSTimeoutTask task, long delay, TimeUnit unit) {
         if (executor == null) {
             throw new IllegalStateException("Cannot schedule tasks after shutdown");
         }
