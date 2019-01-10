@@ -56,7 +56,6 @@ class TdsTimeoutTask implements Runnable {
             // is no way to report back what happened.
             assert null != command;
             command.log(Level.WARNING, "Command could not be timed out. Reason: " + e.getMessage());
-            System.err.println(e.getMessage());
         }
     }
 }
