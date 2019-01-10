@@ -220,25 +220,27 @@ class CryptoMetadata {
         encryptionKeyInfo = null;
     }
 
-    boolean IsAlgorithmInitialized() {
+    boolean isAlgorithmInitialized() {
         return null != cipherAlgorithm;
     }
 }
 
 
-// Fields in the first resultset of "sp_describe_parameter_encryption"
-// We expect the server to return the fields in the resultset in the same order as mentioned below.
-// If the server changes the below order, then transparent parameter encryption will break.
+/**
+ * Fields in the first resultset of "sp_describe_parameter_encryption" We expect the server to return the fields in the
+ * resultset in the same order as mentioned below. If the server changes the below order, then transparent parameter
+ * encryption will break.
+ */
 enum DescribeParameterEncryptionResultSet1 {
-    KeyOrdinal,
-    DbId,
-    KeyId,
-    KeyVersion,
-    KeyMdVersion,
-    EncryptedKey,
-    ProviderName,
-    KeyPath,
-    KeyEncryptionAlgorithm;
+    KEYORDINAL,
+    DBID,
+    KEYID,
+    KEYVERSION,
+    KEYMDVERSION,
+    ENCRYPTEDKEY,
+    PROVIDERNAME,
+    KEYPATH,
+    KEYENCRYPTIONALGORITHM;
 
     int value() {
         // Column indexing starts from 1;
@@ -247,16 +249,18 @@ enum DescribeParameterEncryptionResultSet1 {
 }
 
 
-// Fields in the second resultset of "sp_describe_parameter_encryption"
-// We expect the server to return the fields in the resultset in the same order as mentioned below.
-// If the server changes the below order, then transparent parameter encryption will break.
+/**
+ * Fields in the second resultset of "sp_describe_parameter_encryption" We expect the server to return the fields in the
+ * resultset in the same order as mentioned below. If the server changes the below order, then transparent parameter
+ * encryption will break.
+ */
 enum DescribeParameterEncryptionResultSet2 {
-    ParameterOrdinal,
-    ParameterName,
-    ColumnEncryptionAlgorithm,
-    ColumnEncrytionType,
-    ColumnEncryptionKeyOrdinal,
-    NormalizationRuleVersion;
+    PARAMETERORDINAL,
+    PARAMETERNAME,
+    COLUMNENCRYPTIONALGORITHM,
+    COLUMNENCRYPTIONTYPE,
+    COLUMNENCXRYPTIONKEYORDINAL,
+    NORMALIZATIONRULEVERSION;
 
     int value() {
         // Column indexing starts from 1;
