@@ -2835,7 +2835,7 @@ final class SocketFinder {
                             logger.finer("The following child thread acquired parentThreadLock:" + threadId);
                         }
 
-                        parentThreadLock.notify();
+                        parentThreadLock.notifyAll();
                     }
 
                     if (logger.isLoggable(Level.FINER)) {
@@ -4875,7 +4875,7 @@ final class TDSWriter {
                 isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                 isNull = (null == currentObject);
                 if (currentObject instanceof String)
-                    dataLength = isNull ? 0 : (ParameterUtils.HexToBin(currentObject.toString())).length;
+                    dataLength = ParameterUtils.HexToBin(currentObject.toString()).length;
                 else
                     dataLength = isNull ? 0 : ((byte[]) currentObject).length;
                 if (!isShortValue) {
@@ -7027,7 +7027,9 @@ class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
             } else {
                 // If the timer wasn't canceled before it ran out of
                 // time then interrupt the registered command.
-                command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
+                if (null != command) {
+                    command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
+                }
             }
         } catch (SQLServerException e) {
             // Unfortunately, there's nothing we can do if we

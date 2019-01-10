@@ -2461,6 +2461,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
         SqlVariant variantType = ((SQLServerResultSet) sourceResultSet).getVariantInternalType(srcColOrdinal);
         int baseType = variantType.getBaseType();
+        byte[] srcBytes;
         // for sql variant we normally should return the colvalue for time as time string. but for
         // bulkcopy we need it to be timestamp. so we have to retrieve it again once we are in bulkcopy
         // and make sure that the base type is time.
@@ -2649,22 +2650,17 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 length = b.length;
                 writeBulkCopySqlVariantHeader(4 + length, TDSType.BIGVARBINARY.byteValue(), (byte) 2, tdsWriter);
                 tdsWriter.writeShort((short) (variantType.getMaxLength())); // length
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                if (colValue instanceof byte[]) {
+                    srcBytes = (byte[]) colValue;
                 } else {
-                    byte[] srcBytes;
-                    if (colValue instanceof byte[]) {
-                        srcBytes = (byte[]) colValue;
-                    } else {
-                        try {
-                            srcBytes = ParameterUtils.HexToBin(colValue.toString());
-                        } catch (SQLServerException e) {
-                            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"),
-                                    e);
-                        }
+                    try {
+                        srcBytes = ParameterUtils.HexToBin(colValue.toString());
+                    } catch (SQLServerException e) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"),
+                                e);
                     }
-                    tdsWriter.writeBytes(srcBytes);
                 }
+                tdsWriter.writeBytes(srcBytes);
                 break;
 
             case BIGVARBINARY:
@@ -2672,22 +2668,17 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 length = b.length;
                 writeBulkCopySqlVariantHeader(4 + length, TDSType.BIGVARBINARY.byteValue(), (byte) 2, tdsWriter);
                 tdsWriter.writeShort((short) (variantType.getMaxLength())); // length
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                if (colValue instanceof byte[]) {
+                    srcBytes = (byte[]) colValue;
                 } else {
-                    byte[] srcBytes;
-                    if (colValue instanceof byte[]) {
-                        srcBytes = (byte[]) colValue;
-                    } else {
-                        try {
-                            srcBytes = ParameterUtils.HexToBin(colValue.toString());
-                        } catch (SQLServerException e) {
-                            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"),
-                                    e);
-                        }
+                    try {
+                        srcBytes = ParameterUtils.HexToBin(colValue.toString());
+                    } catch (SQLServerException e) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"),
+                                e);
                     }
-                    tdsWriter.writeBytes(srcBytes);
                 }
+                tdsWriter.writeBytes(srcBytes);
                 break;
 
             default:

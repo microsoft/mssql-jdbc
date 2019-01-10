@@ -293,7 +293,9 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
             }
             getterStream = new BufferedInputStream(inputStream);
         } else {
-            getterStream = new ByteArrayInputStream(value.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+            if (null != value) {
+                getterStream = new ByteArrayInputStream(value.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+            }
         }
         activeStreams.add(getterStream);
         return getterStream;
@@ -400,6 +402,8 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
         checkClosed();
         if (null == value && activeStreams.get(0) instanceof BaseInputStream) {
             return (long) ((BaseInputStream) activeStreams.get(0)).payloadLength;
+        } else if (null == value) {
+            return 0;
         }
         return value.length();
     }

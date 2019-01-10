@@ -62,7 +62,9 @@ class KeyVaultCredential extends KeyVaultCredentials {
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
-            service.shutdown();
+            if (null != service) {
+                service.shutdown();
+            }
         }
 
         if (null == result) {
