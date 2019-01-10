@@ -7,10 +7,12 @@ package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.util.Set;
@@ -52,39 +54,38 @@ public class TimeoutTest extends AbstractTest {
 
     @Test
     public void testBasicQueryTimeout() {
-        boolean exceptionThrown = false;
-        try {
-            Assert.assertTrue("Select succeeded", runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS));
-        } catch (SQLException e) {
-            exceptionThrown = true;
-            Assert.assertTrue("Timeout exception not thrown", e.getClass().equals(SQLTimeoutException.class));
-        }
-        Assert.assertTrue("A SQLTimeoutException was expected", exceptionThrown);
+        assertThrows(SQLTimeoutException.class, () -> {
+            runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS);
+        });
     }
 
     @Test
     public void testQueryTimeoutValid() {
-        boolean exceptionThrown = false;
         long start = System.currentTimeMillis();
-        try {
-            // wait 1 minute but timeout well before that
-            Assert.assertTrue("Select succeeded", runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS));
-        } catch (SQLException e) {
-            int secondsElapsed = (int) ((System.currentTimeMillis() - start) / 1000);
-            Assert.assertTrue("Query did not timeout expected, elapsedTime=" + secondsElapsed,
-                    secondsElapsed >= TIMEOUT_SECONDS);
-            exceptionThrown = true;
-            Assert.assertTrue("Timeout exception not thrown", e.getClass().equals(SQLTimeoutException.class));
-        }
-        Assert.assertTrue("A SQLTimeoutException was expected", exceptionThrown);
+        assertThrows(SQLTimeoutException.class, () -> {
+            runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS);
+        });
+        long elapsedSeconds = (System.currentTimeMillis() - start) / 1000;
+        Assert.assertTrue("Query duration must be at least timeout amount, elapsed=" + elapsedSeconds,
+                elapsedSeconds >= TIMEOUT_SECONDS);
     }
 
-    private boolean runQuery(String query, int timeout) throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
-                PreparedStatement preparedStatement = con.prepareStatement(query)) {
-            // set provided timeout
-            preparedStatement.setQueryTimeout(timeout);
-            return preparedStatement.execute();
+    private static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(connectionString);
+    }
+
+    private static void runQuery(String query, int timeout) throws SQLException {
+        try (Connection conn = getConnection()) {
+            runQuery(conn, query, timeout);
+        }
+    }
+
+    private static void runQuery(Connection conn, String query, int timeout) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            if (timeout > 0) {
+                stmt.setQueryTimeout(timeout);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {}
         }
     }
 
