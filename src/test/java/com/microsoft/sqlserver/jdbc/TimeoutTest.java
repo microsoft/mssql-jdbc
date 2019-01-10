@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import java.sql.Connection;
@@ -27,6 +28,8 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
 public class TimeoutTest extends AbstractTest {
+    private static final int TIMEOUT_SECONDS = 2;
+
     @BeforeAll
     public static void beforeAll() throws SQLException, InterruptedException {
         if (connection != null) {
@@ -50,8 +53,7 @@ public class TimeoutTest extends AbstractTest {
     public void testBasicQueryTimeout() {
         boolean exceptionThrown = false;
         try {
-            // wait 1 minute and timeout after 10 seconds
-            Assert.assertTrue("Select succeeded", runQuery("WAITFOR DELAY '00:01'", 10));
+            Assert.assertTrue("Select succeeded", runQuery("WAITFOR DELAY '00:01'", TIMEOUT_SECONDS));
         } catch (SQLException e) {
             exceptionThrown = true;
             Assert.assertTrue("Timeout exception not thrown", e.getClass().equals(SQLTimeoutException.class));
@@ -62,15 +64,14 @@ public class TimeoutTest extends AbstractTest {
     @Test
     public void testQueryTimeoutValid() {
         boolean exceptionThrown = false;
-        int timeoutInSeconds = 10;
         long start = System.currentTimeMillis();
         try {
-            // wait 1 minute and timeout after 10 seconds
-            Assert.assertTrue("Select succeeded", runQuery("WAITFOR DELAY '00:01'", timeoutInSeconds));
+            // wait 1 minute but timeout well before that
+            Assert.assertTrue("Select succeeded", runQuery("WAITFOR DELAY '00:01'", TIMEOUT_SECONDS));
         } catch (SQLException e) {
             int secondsElapsed = (int) ((System.currentTimeMillis() - start) / 1000);
             Assert.assertTrue("Query did not timeout expected, elapsedTime=" + secondsElapsed,
-                    secondsElapsed >= timeoutInSeconds);
+                    secondsElapsed >= TIMEOUT_SECONDS);
             exceptionThrown = true;
             Assert.assertTrue("Timeout exception not thrown", e.getClass().equals(SQLTimeoutException.class));
         }
@@ -83,6 +84,21 @@ public class TimeoutTest extends AbstractTest {
             // set provided timeout
             preparedStatement.setQueryTimeout(timeout);
             return preparedStatement.execute();
+        }
+    }
+
+    @Test
+    public void testSameSharedTimerRetrieved() {
+        SharedTimer timer = SharedTimer.getTimer();
+        try {
+            SharedTimer otherTimer = SharedTimer.getTimer();
+            try {
+                assertEquals("The same SharedTimer should be returned", timer.getId(), otherTimer.getId());
+            } finally {
+                otherTimer.removeRef();
+            }
+        } finally {
+            timer.removeRef();
         }
     }
 
