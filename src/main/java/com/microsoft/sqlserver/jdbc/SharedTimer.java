@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 class SharedTimer {
     static final String CORE_THREAD_PREFIX = "mssql-jdbc-shared-timer-core-";
     private static final AtomicLong CORE_THREAD_COUNTER = new AtomicLong();
-    private static SharedTimer INSTANCE;
+    private static SharedTimer instance;
 
     private final long id = CORE_THREAD_COUNTER.getAndIncrement();
     private int refCount = 0;
@@ -35,7 +35,7 @@ class SharedTimer {
     }
 
     static synchronized boolean isRunning() {
-        return INSTANCE != null;
+        return instance != null;
     }
 
     public synchronized void removeRef() {
@@ -47,17 +47,17 @@ class SharedTimer {
             // Removed last reference so perform cleanup
             executor.shutdownNow();
             executor = null;
-            INSTANCE = null;
+            instance = null;
         }
     }
 
     public static synchronized SharedTimer getTimer() {
-        if (INSTANCE == null) {
+        if (instance == null) {
             // No shared object exists so create a new one
-            INSTANCE = new SharedTimer();
+            instance = new SharedTimer();
         }
-        INSTANCE.refCount += 1;
-        return INSTANCE;
+        instance.refCount += 1;
+        return instance;
     }
 
     public ScheduledFuture<?> schedule(TdsTimeoutTask task, long delaySeconds) {
