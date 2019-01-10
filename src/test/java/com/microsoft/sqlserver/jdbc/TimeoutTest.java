@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.sql.Connection;
@@ -170,9 +171,15 @@ public class TimeoutTest extends AbstractTest {
     }
 
     private static void waitForSharedTimerThreadToStop() throws InterruptedException {
-        if (isSharedTimerThreadRunning()) {
-            // Timer thread is still running so wait a bit for it to stop
-            Thread.sleep(500);
+        long started = System.currentTimeMillis();
+        long MAX_WAIT_FOR_STOP_SECONDS = 10;
+        while (isSharedTimerThreadRunning()) {
+            long elapsed = System.currentTimeMillis() - started;
+            if (elapsed > MAX_WAIT_FOR_STOP_SECONDS * 1000) {
+                fail("SharedTimer thread did not stop within " + MAX_WAIT_FOR_STOP_SECONDS + " seconds");
+            }
+            // Sleep a bit and try again
+            Thread.sleep(100);
         }
         assertSharedTimerNotRunning();
     }
