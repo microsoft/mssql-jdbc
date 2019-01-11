@@ -23,7 +23,6 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SelectionKey;
@@ -1281,25 +1280,30 @@ final class TDSChannel {
             return false;
         }
 
+        @Override
         public String toString() {
             return tdsChannel.tcpSocket.toString();
         }
 
+        @Override
         public SocketChannel getChannel() {
             return null;
         }
 
         // Disallow calls to methods that would change the underlying TCP socket
+        @Override
         public void bind(SocketAddress bindPoint) throws IOException {
             logger.finer(logContext + " Disallowed call to bind.  Throwing IOException.");
             throw new IOException();
         }
 
+        @Override
         public void connect(SocketAddress endpoint) throws IOException {
             logger.finer(logContext + " Disallowed call to connect (without timeout).  Throwing IOException.");
             throw new IOException();
         }
 
+        @Override
         public void connect(SocketAddress endpoint, int timeout) throws IOException {
             logger.finer(logContext + " Disallowed call to connect (with timeout).  Throwing IOException.");
             throw new IOException();
@@ -4259,13 +4263,13 @@ final class TDSWriter {
     void flush(boolean atEOM) throws SQLServerException {
         // First, flush any data left in the socket buffer.
         tdsChannel.write(socketBuffer.array(), socketBuffer.position(), socketBuffer.remaining());
-        socketBuffer.position(((Buffer) socketBuffer).limit());
+        socketBuffer.position(socketBuffer.limit());
 
         /*
          * If there is data in the staging buffer that needs to be written to the socket, the socket buffer is now
          * empty, so swap buffers and start writing data from the staging buffer.
          */
-        if (((Buffer) stagingBuffer).position() >= TDS_PACKET_HEADER_SIZE) {
+        if (stagingBuffer.position() >= TDS_PACKET_HEADER_SIZE) {
             // Swap the packet buffers ...
             ByteBuffer swapBuffer = stagingBuffer;
             stagingBuffer = socketBuffer;
@@ -4276,8 +4280,8 @@ final class TDSWriter {
              * flip() rather than rewind() here so that the socket buffer's limit is properly set for the last packet,
              * which may be shorter than the other packets.
              */
-            ((Buffer) socketBuffer).flip();
-            ((Buffer) stagingBuffer).clear();
+            socketBuffer.flip();
+            stagingBuffer.clear();
 
             /*
              * If we are logging TDS packets then log the packet we're about to send over the wire now.
@@ -4712,98 +4716,96 @@ final class TDSWriter {
              * SQLServerResultSet#next() method when fetching new rows. Therefore, we need to send TVP data row by row
              * before fetching new row.
              */
-            if (TVPType.ResultSet == value.tvpType) {
-                if ((null != value.sourceResultSet) && (value.sourceResultSet instanceof SQLServerResultSet)) {
-                    SQLServerResultSet sourceResultSet = (SQLServerResultSet) value.sourceResultSet;
-                    SQLServerStatement src_stmt = (SQLServerStatement) sourceResultSet.getStatement();
-                    int resultSetServerCursorId = sourceResultSet.getServerCursorId();
+            if (TVPType.ResultSet == value.tvpType && (value.sourceResultSet instanceof SQLServerResultSet)) {
+                SQLServerResultSet sourceResultSet = (SQLServerResultSet) value.sourceResultSet;
+                SQLServerStatement srcStmt = (SQLServerStatement) sourceResultSet.getStatement();
+                int resultSetServerCursorId = sourceResultSet.getServerCursorId();
 
-                    if (con.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
-                        cachedTVPHeaders = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
-                        cachedTVPHeaders.put(stagingBuffer.array(), 0, stagingBuffer.position());
+                if (con.equals(srcStmt.getConnection()) && 0 != resultSetServerCursorId) {
+                    cachedTVPHeaders = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
+                    cachedTVPHeaders.put(stagingBuffer.array(), 0, stagingBuffer.position());
 
-                        cachedCommand = this.command;
+                    cachedCommand = this.command;
 
-                        cachedRequestComplete = command.getRequestComplete();
-                        cachedInterruptsEnabled = command.getInterruptsEnabled();
-                        cachedProcessedResponse = command.getProcessedResponse();
+                    cachedRequestComplete = command.getRequestComplete();
+                    cachedInterruptsEnabled = command.getInterruptsEnabled();
+                    cachedProcessedResponse = command.getProcessedResponse();
 
-                        tdsWritterCached = true;
+                    tdsWritterCached = true;
 
-                        if (sourceResultSet.isForwardOnly()) {
-                            sourceResultSet.setFetchSize(1);
-                        }
+                    if (sourceResultSet.isForwardOnly()) {
+                        sourceResultSet.setFetchSize(1);
                     }
                 }
             }
+        }
 
-            Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
-            Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator;
+        Map<Integer, SQLServerMetaData> columnMetadata = value.getColumnMetadata();
+        Iterator<Entry<Integer, SQLServerMetaData>> columnsIterator;
 
-            while (value.next()) {
+        while (value.next()) {
 
-                // restore command and TDS header, which have been overwritten by value.next()
-                if (tdsWritterCached) {
-                    command = cachedCommand;
+            // restore command and TDS header, which have been overwritten by value.next()
+            if (tdsWritterCached) {
+                command = cachedCommand;
 
-                    stagingBuffer.clear();
-                    logBuffer.clear();
-                    writeBytes(cachedTVPHeaders.array(), 0, cachedTVPHeaders.position());
-                }
+                stagingBuffer.clear();
+                logBuffer.clear();
+                writeBytes(cachedTVPHeaders.array(), 0, cachedTVPHeaders.position());
+            }
 
-                Object[] rowData = value.getRowData();
+            Object[] rowData = value.getRowData();
 
-                // ROW
-                writeByte((byte) TDS.TVP_ROW);
-                columnsIterator = columnMetadata.entrySet().iterator();
-                int currentColumn = 0;
-                while (columnsIterator.hasNext()) {
-                    Map.Entry<Integer, SQLServerMetaData> columnPair = columnsIterator.next();
+            // ROW
+            writeByte((byte) TDS.TVP_ROW);
+            columnsIterator = columnMetadata.entrySet().iterator();
+            int currentColumn = 0;
+            while (columnsIterator.hasNext()) {
+                Map.Entry<Integer, SQLServerMetaData> columnPair = columnsIterator.next();
 
-                    // If useServerDefault is set, client MUST NOT emit TvpColumnData for the associated column
-                    if (columnPair.getValue().useServerDefault) {
-                        currentColumn++;
-                        continue;
-                    }
-
-                    JDBCType jdbcType = JDBCType.of(columnPair.getValue().javaSqlType);
-                    String currentColumnStringValue = null;
-
-                    Object currentObject = null;
-                    /*
-                     * if rowData has value for the current column, retrieve it. If not, current column will stay null.
-                     */
-                    if (null != rowData && rowData.length > currentColumn) {
-                        currentObject = rowData[currentColumn];
-                        if (null != currentObject) {
-                            currentColumnStringValue = String.valueOf(currentObject);
-                        }
-                    }
-                    writeInternalTVPRowValues(jdbcType, currentColumnStringValue, currentObject, columnPair, false);
+                // If useServerDefault is set, client MUST NOT emit TvpColumnData for the associated column
+                if (columnPair.getValue().useServerDefault) {
                     currentColumn++;
+                    continue;
                 }
 
-                // send this row, read its response (throw exception in case of errors) and reset command status
-                if (tdsWritterCached) {
-                    // TVP_END_TOKEN
-                    writeByte((byte) 0x00);
+                JDBCType jdbcType = JDBCType.of(columnPair.getValue().javaSqlType);
+                String currentColumnStringValue = null;
 
-                    writePacket(TDS.STATUS_BIT_EOM);
-
-                    TDSReader tdsReader = tdsChannel.getReader(command);
-                    int tokenType = tdsReader.peekTokenType();
-
-                    if (TDS.TDS_ERR == tokenType) {
-                        SQLServerError databaseError = new SQLServerError();
-                        databaseError.setFromTDS(tdsReader);
-
-                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getErrorMessage(),
-                                databaseError, false);
+                Object currentObject = null;
+                /*
+                 * if rowData has value for the current column, retrieve it. If not, current column will stay null.
+                 */
+                if (null != rowData && rowData.length > currentColumn) {
+                    currentObject = rowData[currentColumn];
+                    if (null != currentObject) {
+                        currentColumnStringValue = String.valueOf(currentObject);
                     }
-
-                    command.setInterruptsEnabled(true);
-                    command.setRequestComplete(false);
                 }
+                writeInternalTVPRowValues(jdbcType, currentColumnStringValue, currentObject, columnPair, false);
+                currentColumn++;
+            }
+
+            // send this row, read its response (throw exception in case of errors) and reset command status
+            if (tdsWritterCached) {
+                // TVP_END_TOKEN
+                writeByte((byte) 0x00);
+
+                writePacket(TDS.STATUS_BIT_EOM);
+
+                TDSReader tdsReader = tdsChannel.getReader(command);
+                int tokenType = tdsReader.peekTokenType();
+
+                if (TDS.TDS_ERR == tokenType) {
+                    SQLServerError databaseError = new SQLServerError();
+                    databaseError.setFromTDS(tdsReader);
+
+                    SQLServerException.makeFromDatabaseError(con, null, databaseError.getErrorMessage(), databaseError,
+                            false);
+                }
+
+                command.setInterruptsEnabled(true);
+                command.setRequestComplete(false);
             }
         }
 
@@ -7068,7 +7070,7 @@ final class TDSReader {
         return 100 * hundredNanosSinceMidnight;
     }
 
-    static final String guidTemplate = "NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN";
+    static final String GUIDTEMPLATE = "NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN";
 
     final Object readGUID(int valueLength, JDBCType jdbcType, StreamType streamType) throws SQLServerException {
         // GUIDs must be exactly 16 bytes
@@ -7084,7 +7086,7 @@ final class TDSReader {
             case VARCHAR:
             case LONGVARCHAR:
             case GUID: {
-                StringBuilder sb = new StringBuilder(guidTemplate.length());
+                StringBuilder sb = new StringBuilder(GUIDTEMPLATE.length());
                 for (int i = 0; i < 4; i++) {
                     sb.append(Util.hexChars[(guid[3 - i] & 0xF0) >> 4]);
                     sb.append(Util.hexChars[guid[3 - i] & 0x0F]);
