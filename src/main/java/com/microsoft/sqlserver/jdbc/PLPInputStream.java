@@ -15,7 +15,7 @@ import java.io.IOException;
  * Note PLP stands for Partially Length-prefixed Bytes. TDS 7.2 introduced this new streaming format for streaming of
  * large types such as varchar(max), nvarchar(max), varbinary(max) and XML.
  * 
- * See TDS specification, 6.3.3 Datatype Dependant Data Streams: Partially Length-prefixed Bytes for more details on the
+ * See TDS specification, 6.3.3 Datatype Dependent Data Streams: Partially Length-prefixed Bytes for more details on the
  * PLP format.
  */
 
@@ -291,9 +291,8 @@ class PLPInputStream extends BaseInputStream {
 
     private int readBytesInternal(byte[] b, int offset, int maxBytes) throws SQLServerException {
         /*
-         * If we're at EOS, say so.
-         * Note: For back compat, this special case needs to always be handled
-         * before checking user-supplied arguments below.
+         * If we're at EOS, say so. Note: For back compat, this special case needs to always be handled before checking
+         * user-supplied arguments below.
          */
         if (PLP_EOS == currentChunkRemain)
             return -1;
@@ -304,9 +303,8 @@ class PLPInputStream extends BaseInputStream {
         int bytesRead = 0;
         while (true) {
             /*
-             * Check that we have bytes left to read from the current chunk.
-             * If not then figure out the size of the next chunk or
-             * determine that we have reached the end of the stream.
+             * Check that we have bytes left to read from the current chunk. If not then figure out the size of the next
+             * chunk or determine that we have reached the end of the stream.
              */
             if (0 == currentChunkRemain) {
                 currentChunkRemain = (int) tdsReader.readUnsignedInt();
@@ -320,10 +318,9 @@ class PLPInputStream extends BaseInputStream {
             if (bytesRead == maxBytes)
                 break;
 
-            /* 
-             * Now we know there are bytes to be read in the current chunk.
-             * Further limit the max number of bytes we can read to whatever
-             * remains in the current chunk.
+            /*
+             * Now we know there are bytes to be read in the current chunk. Further limit the max number of bytes we can
+             * read to whatever remains in the current chunk.
              */
             int bytesToRead = maxBytes - bytesRead;
             if (bytesToRead > currentChunkRemain)
@@ -491,6 +488,8 @@ final class PLPXMLInputStream extends PLPInputStream {
     byte[] getBytes() throws SQLServerException {
         // Look to see if the BOM has been read
         byte[] bom = new byte[2];
+        byte[] bytesToReturn = null;
+
         try {
             int bytesread = bomStream.read(bom);
             byte[] valueWithoutBOM = super.getBytes();
@@ -500,13 +499,13 @@ final class PLPXMLInputStream extends PLPInputStream {
                 byte[] valueWithBOM = new byte[valueWithoutBOM.length + bytesread];
                 System.arraycopy(bom, 0, valueWithBOM, 0, bytesread);
                 System.arraycopy(valueWithoutBOM, 0, valueWithBOM, bytesread, valueWithoutBOM.length);
-                return valueWithBOM;
+                bytesToReturn = valueWithBOM;
             } else
-                return valueWithoutBOM;
+                bytesToReturn = valueWithoutBOM;
         } catch (IOException e) {
             SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
         }
 
-        return new byte[0];
+        return bytesToReturn;
     }
 }
