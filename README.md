@@ -172,7 +172,7 @@ Projects that require either of the two features need to explicitly declare the 
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
-	<artifactId>zure-keyvault-webkey</artifactId>
+	<artifactId>azure-keyvault-webkey</artifactId>
 	<version>1.2.0</version>
 </dependency>
 ```
