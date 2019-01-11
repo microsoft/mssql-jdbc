@@ -18,7 +18,7 @@ final class ParameterUtils {
                     null, false);
         byte[] bin = new byte[len / 2];
         for (int i = 0; i < len / 2; i++) {
-            bin[i] = (byte) ((CharToHex(orig[2 * i]) << 4) + CharToHex(orig[2 * i + 1]));
+            bin[i] = (byte) ((CharToHex(orig[2 * i]) << 4) + (CharToHex(orig[2 * i + 1]) & 0xff));
         }
         return bin;
     }
