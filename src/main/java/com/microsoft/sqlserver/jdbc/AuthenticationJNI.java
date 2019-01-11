@@ -32,7 +32,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
     private static Logger authLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.AuthenticationJNI");
     private static int sspiBlobMaxlen = 0;
     private static final UnsatisfiedLinkError linkError;
-    private final static int MAXIMUMPOINTERSIZE = 128; // we keep the SNI_Sec pointer
+    private static final int MAXIMUMPOINTERSIZE = 128; // we keep the SNI_Sec pointer
     private final String dnsName;
     private final int port;
 
@@ -72,8 +72,14 @@ final class AuthenticationJNI extends SSPIAuthentication {
             con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                     SQLServerException.getErrString("R_notConfiguredForIntegrated"), linkError);
 
+        String[] dns = new String[1];
+        if (GetDNSName(address, dns, authLogger) != 0) {
+            // Simply initialize the DNS to address
+            dns[0] = address;
+        }
+
         this.con = con;
-        dnsName = getDNSName(address);
+        dnsName = dns[0];
         port = serverport;
     }
 
@@ -122,21 +128,9 @@ final class AuthenticationJNI extends SSPIAuthentication {
     }
 
     /*
-     * note we handle the failures of the GetDNSName in this function, this function will return an empty string if the
-     * underlying call fails
+     * we use arrays of size one in many places to retrieve output values Java Integer objects are immutable so we cant
+     * use them to get the output sizes. Same for String
      */
-    private static String getDNSName(String address) {
-        String[] dns = new String[1];
-        if (GetDNSName(address, dns, authLogger) != 0) {
-            // Simply initialize the DNS to address
-            dns[0] = address;
-        }
-        return dns[0];
-    }
-
-    // we use arrays of size one in many places to retrieve output values
-    // Java Integer objects are immutable so we cant use them to get the output sizes.
-    // Same for String
     native static byte[] DecryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] encryptedColumnEncryptionKey) throws DLLException;
 
@@ -146,10 +140,6 @@ final class AuthenticationJNI extends SSPIAuthentication {
     private native static int SNISecReleaseClientContext(byte[] psec, int secptrsize, Logger log);
 
     private native static int SNISecInitPackage(int[] pcbMaxToken, Logger log);
-
-    private native static int SNIGetSID(byte[] SID, Logger log);
-
-    private native static boolean SNIIsEqualToCurrentSID(byte[] SID, Logger log);
 
     private native static int GetDNSName(String address, String[] DNSName, Logger log);
 
