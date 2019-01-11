@@ -141,6 +141,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private Boolean isAzureDW = null;
 
+    private SharedTimer sharedTimer;
+
+    /**
+     * Return an existing cached SharedTimer associated with this Connection or create a new one.
+     *
+     * The SharedTimer will be released when the Connection is closed.
+     */
+    SharedTimer getSharedTimer() {
+        if (state == State.Closed) {
+            throw new IllegalStateException("Connection is closed");
+        }
+        if (sharedTimer == null) {
+            this.sharedTimer = SharedTimer.getTimer();
+        }
+        return this.sharedTimer;
+    }
+
     static class CityHash128Key implements java.io.Serializable {
 
         /**
@@ -3173,6 +3190,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // what happens when we try to clean up the physical resources associated
         // with the connection.
         setState(State.Closed);
+
+        if (sharedTimer != null) {
+            sharedTimer.removeRef();
+            sharedTimer = null;
+        }
 
         // Close the TDS channel. When the channel is closed, the server automatically
         // rolls back any pending transactions and closes associated resources like
