@@ -3225,7 +3225,7 @@ final class TDSWriter {
         if ((TDS.PKT_QUERY == tdsMessageType || TDS.PKT_DTC == tdsMessageType || TDS.PKT_RPC == tdsMessageType)) {
             boolean includeTraceHeader = false;
             int totalHeaderLength = TDS.MESSAGE_HEADER_LENGTH;
-            if (TDS.PKT_QUERY == tdsMessageType || TDS.PKT_RPC == tdsMessageType && (con.isDenaliOrLater()
+            if ((TDS.PKT_QUERY == tdsMessageType || TDS.PKT_RPC == tdsMessageType) && (con.isDenaliOrLater()
                     && !ActivityCorrelator.getCurrent().isSentToServer() && Util.IsActivityTraceOn())) {
                 includeTraceHeader = true;
                 totalHeaderLength += TDS.TRACE_HEADER_LENGTH;
