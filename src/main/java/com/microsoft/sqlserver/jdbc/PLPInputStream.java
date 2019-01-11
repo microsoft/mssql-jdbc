@@ -22,12 +22,11 @@ import java.io.IOException;
 class PLPInputStream extends BaseInputStream {
     static final long PLP_NULL = 0xFFFFFFFFFFFFFFFFL;
     static final long UNKNOWN_PLP_LEN = 0xFFFFFFFFFFFFFFFEL;
-    static final int PLP_TERMINATOR = 0x00000000;
+
     private static final byte[] EMPTY_PLP_BYTES = new byte[0];
-
     private static final int PLP_EOS = -1;
-    private int currentChunkRemain;
 
+    private int currentChunkRemain;
     private int markedChunkRemain;
     private int leftOverReadLimit = 0;
 
