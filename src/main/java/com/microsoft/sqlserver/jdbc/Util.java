@@ -150,7 +150,7 @@ final class Util {
     }
 
     static int readIntBigEndian(byte data[], int nOffset) {
-        return (data[nOffset + 3] & 0xFF) | ((data[nOffset + 2] & 0xFF) << 8) | ((data[nOffset + 1] & 0xFF) << 16)
+        return ((data[nOffset + 3] & 0xFF) << 0) | ((data[nOffset + 2] & 0xFF) << 8) | ((data[nOffset + 1] & 0xFF) << 16)
                 | ((data[nOffset + 0] & 0xFF) << 24);
     }
 

@@ -30,7 +30,7 @@ import java.util.logging.Level;
 public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaData {
     private SQLServerConnection connection;
 
-    static final String URLPREFIX = "jdbc:sqlserver://";
+    static final String URL_PREFIX = "jdbc:sqlserver://";
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDatabaseMetaData");
@@ -1438,7 +1438,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         url.insert(0, serverName);
 
-        url.insert(0, URLPREFIX); // insert the prefix at the front.
+        url.insert(0, URL_PREFIX); // insert the prefix at the front.
         return (url.toString());
     }
 

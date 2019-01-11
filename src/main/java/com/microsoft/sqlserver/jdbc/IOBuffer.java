@@ -2345,7 +2345,7 @@ final class SocketFinder {
             TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
 
     // When parallel connections are to be used, use minimum timeout slice of 1500 milliseconds.
-    private static final int MINTIMEOUTFORPARALLELCONNECTIONS = 1500;
+    private static final int MIN_TIMEOUT_FOR_PARALLEL_CONNECTIONS = 1500;
 
     /*
      * lock used for synchronization while updating data within a socketFinder object
@@ -2388,7 +2388,7 @@ final class SocketFinder {
     private final String traceID;
 
     // maximum number of IP Addresses supported
-    private static final int IPADDRESSLIMIT = 64;
+    private static final int IP_ADDRESS_LIMIT = 64;
 
     // necessary for raising exceptions so that the connection pool can be notified
     private final SQLServerConnection conn;
@@ -2430,7 +2430,7 @@ final class SocketFinder {
                 // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using original timeout for this.
                 inetAddrs = InetAddress.getAllByName(hostName);
 
-                if ((useTnir) && (inetAddrs.length > IPADDRESSLIMIT)) {
+                if ((useTnir) && (inetAddrs.length > IP_ADDRESS_LIMIT)) {
                     useTnir = false;
                     timeoutInMilliSeconds = timeoutInMilliSecondsForFullTimeout;
                 }
@@ -2463,10 +2463,10 @@ final class SocketFinder {
                 logger.finer(loggingString.toString());
             }
 
-            if (inetAddrs.length > IPADDRESSLIMIT) {
+            if (inetAddrs.length > IP_ADDRESS_LIMIT) {
                 MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_IPADDRESSLIMITWithMultiSubnetFailover"));
-                Object[] msgArgs = {Integer.toString(IPADDRESSLIMIT)};
+                        SQLServerException.getErrString("R_ipAddressLimitWithMultiSubnetFailover"));
+                Object[] msgArgs = {Integer.toString(IP_ADDRESS_LIMIT)};
                 String errorStr = form.format(msgArgs);
                 /*
                  * we do not want any retry to happen here. So, terminate the connection as the config is unsupported.
@@ -2478,7 +2478,7 @@ final class SocketFinder {
                 // Single address so do not start any threads
                 return getConnectedSocket(inetAddrs[0], portNumber, timeoutInMilliSeconds);
             }
-            timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, MINTIMEOUTFORPARALLELCONNECTIONS);
+            timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, MIN_TIMEOUT_FOR_PARALLEL_CONNECTIONS);
             if (Util.isIBM()) {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer(this.toString() + "Using Java NIO with timeout:" + timeoutInMilliSeconds);
@@ -3225,8 +3225,8 @@ final class TDSWriter {
         if ((TDS.PKT_QUERY == tdsMessageType || TDS.PKT_DTC == tdsMessageType || TDS.PKT_RPC == tdsMessageType)) {
             boolean includeTraceHeader = false;
             int totalHeaderLength = TDS.MESSAGE_HEADER_LENGTH;
-            if (TDS.PKT_QUERY == tdsMessageType || TDS.PKT_RPC == tdsMessageType && con.isDenaliOrLater()
-                    && !ActivityCorrelator.getCurrent().IsSentToServer() && Util.IsActivityTraceOn()) {
+            if (TDS.PKT_QUERY == tdsMessageType || TDS.PKT_RPC == tdsMessageType && (con.isDenaliOrLater()
+                    && !ActivityCorrelator.getCurrent().IsSentToServer() && Util.IsActivityTraceOn())) {
                 includeTraceHeader = true;
                 totalHeaderLength += TDS.TRACE_HEADER_LENGTH;
             }
@@ -4233,11 +4233,11 @@ final class TDSWriter {
         stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH, (byte) ((tdsMessageLength >> 8) & 0xFF)); // Note: message
                                                                                                       // length is 16
                                                                                                       // bits,
-        stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) (tdsMessageLength & 0xFF)); // written BIG
+        stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) ((tdsMessageLength >> 0) & 0xFF)); // written BIG
                                                                                                    // ENDIAN
         stagingBuffer.put(TDS.PACKET_HEADER_SPID, (byte) ((tdsChannel.getSPID() >> 8) & 0xFF)); // Note: SPID is 16
                                                                                                 // bits,
-        stagingBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) (tdsChannel.getSPID() & 0xFF)); // written BIG
+        stagingBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) ((tdsChannel.getSPID() >> 0) & 0xFF)); // written BIG
                                                                                              // ENDIAN
         stagingBuffer.put(TDS.PACKET_HEADER_SEQUENCE_NUM, (byte) (packetNum % 256));
         stagingBuffer.put(TDS.PACKET_HEADER_WINDOW, (byte) 0); // Window (Reserved/Not used)
@@ -4249,11 +4249,11 @@ final class TDSWriter {
             logBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH, (byte) ((tdsMessageLength >> 8) & 0xFF)); // Note: message
                                                                                                       // length is 16
                                                                                                       // bits,
-            logBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) (tdsMessageLength & 0xFF)); // written BIG
+            logBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) ((tdsMessageLength >> 0) & 0xFF)); // written BIG
                                                                                                    // ENDIAN
             logBuffer.put(TDS.PACKET_HEADER_SPID, (byte) ((tdsChannel.getSPID() >> 8) & 0xFF)); // Note: SPID is 16
                                                                                                 // bits,
-            logBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) (tdsChannel.getSPID() & 0xFF)); // written BIG
+            logBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) ((tdsChannel.getSPID() >> 0) & 0xFF)); // written BIG
                                                                                              // ENDIAN
             logBuffer.put(TDS.PACKET_HEADER_SEQUENCE_NUM, (byte) (packetNum % 256));
             logBuffer.put(TDS.PACKET_HEADER_WINDOW, (byte) 0); // Window (Reserved/Not used);
@@ -7070,7 +7070,7 @@ final class TDSReader {
         return 100 * hundredNanosSinceMidnight;
     }
 
-    static final String GUIDTEMPLATE = "NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN";
+    static final String GUID_TEMPLATE = "NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN";
 
     final Object readGUID(int valueLength, JDBCType jdbcType, StreamType streamType) throws SQLServerException {
         // GUIDs must be exactly 16 bytes
@@ -7086,7 +7086,7 @@ final class TDSReader {
             case VARCHAR:
             case LONGVARCHAR:
             case GUID: {
-                StringBuilder sb = new StringBuilder(GUIDTEMPLATE.length());
+                StringBuilder sb = new StringBuilder(GUID_TEMPLATE.length());
                 for (int i = 0; i < 4; i++) {
                     sb.append(Util.hexChars[(guid[3 - i] & 0xF0) >> 4]);
                     sb.append(Util.hexChars[guid[3 - i] & 0x0F]);

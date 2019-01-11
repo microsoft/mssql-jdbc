@@ -3659,7 +3659,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } finally {
             if (integratedSecurity) {
                 if (null != authentication) {
-                    authentication.ReleaseClientContext();
+                    authentication.releaseClientContext();
                     authentication = null;
                 }
                 if (null != ImpersonatedUserCred) {

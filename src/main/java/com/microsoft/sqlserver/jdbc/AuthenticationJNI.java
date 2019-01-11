@@ -1,6 +1,5 @@
 /*
- * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
- * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -25,14 +24,15 @@ class FedAuthDllInfo {
  */
 final class AuthenticationJNI extends SSPIAuthentication {
 
-    private byte[] sniSec = new byte[MAXIMUMPOINTERSIZE];
-    private int[] sniSecLen = {0};
+    private byte[] sniSec = new byte[MAXIMUM_POINTER_SIZE];
+    private int[] sniSecLen =
+    {0};
     private SQLServerConnection con;
     private static boolean enabled = false;
     private static Logger authLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.AuthenticationJNI");
     private static int sspiBlobMaxlen = 0;
-    private static final UnsatisfiedLinkError linkError;
-    private static final int MAXIMUMPOINTERSIZE = 128; // we keep the SNI_Sec pointer
+    private static final UnsatisfiedLinkError LINK_ERROR;
+    private static final int MAXIMUM_POINTER_SIZE = 128; // we keep the SNI_Sec pointer
     private final String dnsName;
     private final int port;
 
@@ -62,15 +62,14 @@ final class AuthenticationJNI extends SSPIAuthentication {
             // This is not re-thrown on purpose - the constructor will terminate the properly with the appropriate error
             // string
         } finally {
-            linkError = temp;
+            LINK_ERROR = temp;
         }
 
     }
 
     AuthenticationJNI(SQLServerConnection con, String address, int serverport) throws SQLServerException {
         if (!enabled)
-            con.terminate(SQLServerException.DRIVER_ERROR_NONE,
-                    SQLServerException.getErrString("R_notConfiguredForIntegrated"), linkError);
+            con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_notConfiguredForIntegrated"), LINK_ERROR);
 
         String[] dns = new String[1];
         if (GetDNSName(address, dns, authLogger) != 0) {
@@ -83,10 +82,8 @@ final class AuthenticationJNI extends SSPIAuthentication {
         port = serverport;
     }
 
-    static FedAuthDllInfo getAccessTokenForWindowsIntegrated(String stsURL, String servicePrincipalName,
-            String clientConnectionId, String clientId, long expirationFileTime) throws DLLException {
-        FedAuthDllInfo dllInfo = ADALGetAccessTokenForWindowsIntegrated(stsURL, servicePrincipalName,
-                clientConnectionId, clientId, expirationFileTime, authLogger);
+    static FedAuthDllInfo getAccessTokenForWindowsIntegrated(String stsURL, String servicePrincipalName, String clientConnectionId, String clientId, long expirationFileTime) throws DLLException {
+        FedAuthDllInfo dllInfo = ADALGetAccessTokenForWindowsIntegrated(stsURL, servicePrincipalName, clientConnectionId, clientId, expirationFileTime, authLogger);
         return dllInfo;
     }
 
@@ -101,15 +98,13 @@ final class AuthenticationJNI extends SSPIAuthentication {
         // assert dnsName cant be null
         assert dnsName != null;
 
-        int failure = SNISecGenClientContext(sniSec, sniSecLen, pin, pin.length, pOut, outsize, done, dnsName, port,
-                null, null, authLogger);
+        int failure = SNISecGenClientContext(sniSec, sniSecLen, pin, pin.length, pOut, outsize, done, dnsName, port, null, null, authLogger);
 
         if (failure != 0) {
             if (authLogger.isLoggable(Level.WARNING)) {
                 authLogger.warning(toString() + " Authentication failed code : " + failure);
             }
-            con.terminate(SQLServerException.DRIVER_ERROR_NONE,
-                    SQLServerException.getErrString("R_integratedAuthenticationFailed"), linkError);
+            con.terminate(SQLServerException.DRIVER_ERROR_NONE, SQLServerException.getErrString("R_integratedAuthenticationFailed"), LINK_ERROR);
         }
         // allocate space based on the size returned
         byte[] output = new byte[outsize[0]];
@@ -118,7 +113,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
         return output;
     }
 
-    int ReleaseClientContext() {
+    int releaseClientContext() {
         int success = 0;
         if (sniSecLen[0] > 0) {
             success = SNISecReleaseClientContext(sniSec, sniSecLen[0], authLogger);
@@ -128,14 +123,11 @@ final class AuthenticationJNI extends SSPIAuthentication {
     }
 
     /*
-     * we use arrays of size one in many places to retrieve output values Java Integer objects are immutable so we cant
-     * use them to get the output sizes. Same for String
+     * we use arrays of size one in many places to retrieve output values Java Integer objects are immutable so we cant use them to get the output sizes. Same for String
      */
-    native static byte[] DecryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
-            byte[] encryptedColumnEncryptionKey) throws DLLException;
+    native static byte[] DecryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm, byte[] encryptedColumnEncryptionKey) throws DLLException;
 
-    private native static int SNISecGenClientContext(byte[] psec, int[] secptrsize, byte[] pin, int insize, byte[] pOut,
-            int[] outsize, boolean[] done, String servername, int port, String username, String password, Logger log);
+    private native static int SNISecGenClientContext(byte[] psec, int[] secptrsize, byte[] pin, int insize, byte[] pOut, int[] outsize, boolean[] done, String servername, int port, String username, String password, Logger log);
 
     private native static int SNISecReleaseClientContext(byte[] psec, int secptrsize, Logger log);
 
@@ -143,7 +135,5 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
     private native static int GetDNSName(String address, String[] DNSName, Logger log);
 
-    private native static FedAuthDllInfo ADALGetAccessTokenForWindowsIntegrated(String stsURL,
-            String servicePrincipalName, String clientConnectionId, String clientId, long expirationFileTime,
-            Logger log);
+    private native static FedAuthDllInfo ADALGetAccessTokenForWindowsIntegrated(String stsURL, String servicePrincipalName, String clientConnectionId, String clientId, long expirationFileTime, Logger log);
 }

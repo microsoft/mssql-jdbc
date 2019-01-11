@@ -748,7 +748,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 checkParam(param);
                 return queryMetaMap.get(param).parameterClassName;
             } else {
-                Map<?, ?> info = getParameterInfo(param);
+                Map<String, Object> info = getParameterInfo(param);
                 if (null != info) {
                     JDBCType jdbcType = JDBCType.of((short) info.get(DATA_TYPE));
                     return jdbcType.className();
@@ -782,7 +782,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 // if it is not a stored proc, the param can only be input.
                 return parameterModeIn;
             } else {
-                Map<?, ?> info = getParameterInfo(param);
+                Map<String, Object> info = getParameterInfo(param);
                 if (null != info) {
                     int n = (int) info.get(COLUMN_TYPE);
                     switch (n) {
@@ -813,7 +813,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 checkParam(param);
                 parameterType = queryMetaMap.get(param).parameterType;
             } else {
-                Map<?, ?> info = getParameterInfo(param);
+                Map<String, Object> info = getParameterInfo(param);
                 parameterType = (null != info) ? (short) info.get(DATA_TYPE) : null;
             }
 
@@ -847,7 +847,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 checkParam(param);
                 return queryMetaMap.get(param).parameterTypeName;
             } else {
-                Map<?, ?> info = getParameterInfo(param);
+                Map<String, Object> info = getParameterInfo(param);
                 if (null != info) {
                     return info.get(TYPE_NAME).toString();
                 }
@@ -868,7 +868,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 checkParam(param);
                 return queryMetaMap.get(param).precision;
             } else {
-                Map<?, ?> info = getParameterInfo(param);
+                Map<String, Object> info = getParameterInfo(param);
                 if (null != info) {
                     return (int) info.get(PRECISION);
                 }
@@ -889,7 +889,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 checkParam(param);
                 return queryMetaMap.get(param).scale;
             } else {
-                Map<?, ?> info = getParameterInfo(param);
+                Map<String, Object> info = getParameterInfo(param);
                 if (null != info) {
                     return (int) info.get(SCALE);
                 }
@@ -910,7 +910,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 checkParam(param);
                 return queryMetaMap.get(param).isNullable;
             } else {
-                Map<?, ?> info = getParameterInfo(param);
+                Map<String, Object> info = getParameterInfo(param);
                 if (null != info) {
                     int nNull = (int) info.get(NULLABLE);
                     if (nNull == 1)
@@ -945,7 +945,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 checkParam(param);
                 return queryMetaMap.get(param).isSigned;
             } else {
-                Map<?, ?> info = getParameterInfo(param);
+                Map<String, Object> info = getParameterInfo(param);
                 if (null != info) {
                     return JDBCType.of((short) info.get(DATA_TYPE)).isSigned();
                 }
@@ -959,7 +959,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
     String getTVPSchemaFromStoredProcedure(int param) throws SQLServerException {
         checkClosed();
-        Map<?, ?> info = getParameterInfo(param);
+        Map<String, Object> info = getParameterInfo(param);
         if (null != info) {
             return (String) info.get(SS_TYPE_SCHEMA_NAME);
         }
