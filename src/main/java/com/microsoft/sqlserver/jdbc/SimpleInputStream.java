@@ -159,7 +159,7 @@ final class SimpleInputStream extends BaseInputStream {
         // Discard the remainder of the stream, positioning the TDSReader
         // at the next item in the TDS response. Once the stream is closed,
         // it can no longer access the discarded response data.
-        skip(payloadLength - streamPos);
+        skip((long)(payloadLength) - (long)(streamPos));
 
         closeHelper();
         if (logger.isLoggable(java.util.logging.Level.FINER))

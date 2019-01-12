@@ -357,7 +357,7 @@ final class KerbAuthentication extends SSPIAuthentication {
         return intAuthHandShake(pin, done);
     }
 
-    int ReleaseClientContext() throws SQLServerException {
+    int releaseClientContext() throws SQLServerException {
         try {
             if (null != peerCredentials && !isUserCreatedCredential) {
                 peerCredentials.dispose();

@@ -863,21 +863,21 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         CekTableEntry cekEntry = null;
         try {
             while (rs.next()) {
-                int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
+                int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KEYORDINAL.value());
                 if (!cekList.containsKey(currentOrdinal)) {
                     cekEntry = new CekTableEntry(currentOrdinal);
                     cekList.put(cekEntry.ordinal, cekEntry);
                 } else {
                     cekEntry = cekList.get(currentOrdinal);
                 }
-                cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
-                        rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
+                cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.ENCRYPTEDKEY.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.DBID.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.KEYID.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.KEYVERSION.value()),
+                        rs.getBytes(DescribeParameterEncryptionResultSet1.KEYMDVERSION.value()),
+                        rs.getString(DescribeParameterEncryptionResultSet1.KEYPATH.value()),
+                        rs.getString(DescribeParameterEncryptionResultSet1.PROVIDERNAME.value()),
+                        rs.getString(DescribeParameterEncryptionResultSet1.KEYENCRYPTIONALGORITHM.value()));
             }
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Matadata of CEKs is retrieved.");
@@ -903,9 +903,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             rs = (SQLServerResultSet) stmt.getResultSet();
             while (rs.next()) {
                 paramCount++;
-                String paramName = rs.getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
+                String paramName = rs.getString(DescribeParameterEncryptionResultSet2.PARAMETERNAME.value());
                 int paramIndex = parameterNames.indexOf(paramName);
-                int cekOrdinal = rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionKeyOrdinal.value());
+                int cekOrdinal = rs.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCXRYPTIONKEYORDINAL.value());
                 cekEntry = cekList.get(cekOrdinal);
 
                 // cekEntry will be null if none of the parameters are encrypted.
@@ -916,12 +916,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                 }
                 SQLServerEncryptionType encType = SQLServerEncryptionType
-                        .of((byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
+                        .of((byte) rs.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONTYPE.value()));
                 if (SQLServerEncryptionType.PlainText != encType) {
                     params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
-                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
+                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONALGORITHM.value()),
                             null, encType.value,
-                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
+                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.NORMALIZATIONRULEVERSION.value()));
                     // Decrypt the symmetric key.(This will also validate and throw if needed).
                     SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
                 } else {
