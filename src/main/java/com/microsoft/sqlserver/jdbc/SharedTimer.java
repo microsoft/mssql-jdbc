@@ -4,13 +4,19 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 
-class SharedTimer {
+class SharedTimer implements Serializable {
+    /**
+     * Always update serialVersionUID when prompted
+     */
+    private static final long serialVersionUID = -4069361613863955760L;
+    
     static final String CORE_THREAD_PREFIX = "mssql-jdbc-shared-timer-core-";
     private static final AtomicLong CORE_THREAD_COUNTER = new AtomicLong();
     private static SharedTimer instance;

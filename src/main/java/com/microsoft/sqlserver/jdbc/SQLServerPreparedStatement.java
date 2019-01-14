@@ -47,6 +47,11 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
  * interfaces javadoc for those details.
  */
 public class SQLServerPreparedStatement extends SQLServerStatement implements ISQLServerPreparedStatement {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -6292257029445685221L;
+
     /** Flag to indicate that it is an internal query to retrieve encryption metadata. */
     boolean isInternalEncryptionQuery = false;
 
@@ -269,6 +274,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     loggerExternal.finer(this + ": Closing PreparedHandle:" + handleToClose);
 
                 final class PreparedHandleClose extends UninterruptableTDSCommand {
+                    /**
+                     * Always update serialVersionUID when prompted.
+                     */
+                    private static final long serialVersionUID = -8944096664249990764L;
+
                     PreparedHandleClose() {
                         super("closePreparedHandle");
                     }
@@ -496,6 +506,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private final class PrepStmtExecCmd extends TDSCommand {
+        /**
+         * Always update serialVersionUID when prompted.
+         */
+        private static final long serialVersionUID = 4098801171124750861L;
         private final SQLServerPreparedStatement stmt;
 
         PrepStmtExecCmd(SQLServerPreparedStatement stmt, int executeMethod) {
@@ -2642,6 +2656,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private final class PrepStmtBatchExecCmd extends TDSCommand {
+        /**
+         * Always update serialVersionUID when prompted.
+         */
+        private static final long serialVersionUID = 5225705304799552318L;
         private final SQLServerPreparedStatement stmt;
         SQLServerException batchException;
         long updateCounts[];

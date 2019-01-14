@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
 import java.text.MessageFormat;
 
 
@@ -12,7 +13,12 @@ import java.text.MessageFormat;
  * Provides a collection of settings that control how an instance of SQLServerBulkCopy behaves. Used when constructing a
  * SQLServerBulkCopy instance to change how the writeToServer methods for that instance behave.
  */
-public class SQLServerBulkCopyOptions {
+public class SQLServerBulkCopyOptions implements Serializable {
+    /**
+     * Update serialVersionUID when making changes to this file
+     */
+    private static final long serialVersionUID = 711570696894155194L;
+
     /**
      * Number of rows in each batch.
      * 

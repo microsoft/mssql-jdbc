@@ -40,6 +40,11 @@ import java.util.UUID;
 
 public class SQLServerCallableStatement extends SQLServerPreparedStatement implements ISQLServerCallableStatement {
 
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = 5044984771674532350L;
+
     /** the call param names */
     private ArrayList<String> parameterNames;
 

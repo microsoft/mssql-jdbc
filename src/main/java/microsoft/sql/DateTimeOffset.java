@@ -25,7 +25,6 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
 
     private static final int NANOS_MIN = 0;
     private static final int NANOS_MAX = 999999999;
-    private static final int SS_NANOS_MAX = 9999999;
     private static final int MINUTES_OFFSET_MIN = -14 * 60;
     private static final int MINUTES_OFFSET_MAX = 14 * 60;
     private static final int HUNDRED_NANOS_PER_SECOND = 10000000;

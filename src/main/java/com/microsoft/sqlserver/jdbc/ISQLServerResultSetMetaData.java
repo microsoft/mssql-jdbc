@@ -5,13 +5,14 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
 import java.sql.ResultSetMetaData;
 
 
 /**
  * Provides an interface to the{@link SQLServerResultSetMetaData} class.
  */
-public interface ISQLServerResultSetMetaData extends ResultSetMetaData {
+public interface ISQLServerResultSetMetaData extends ResultSetMetaData, Serializable {
 
     /**
      * Returns if the column is a SQLServer SparseColumnSet.

@@ -207,7 +207,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     boolean.class, boolean.class, boolean.class);
             method.setAccessible(true);
 
-            assertEquals((String) method.invoke(pstmt, false, false, false, false), "\"Bulk\"\"\"\"Table\"");
+            assertEquals("\"Bulk\"\"\"\"Table\"", (String) method.invoke(pstmt, false, false, false, false));
 
             method = pstmt.getClass().getDeclaredMethod("parseUserSQLForColumnListDW");
             method.setAccessible(true);
@@ -293,10 +293,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            Timestamp randomTimestamp = new Timestamp(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            Timestamp randomTimestamp = new Timestamp(
+                    LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             Date randomDate = Date.valueOf(LocalDateTime.now().toLocalDate());
             long randomLong = ThreadLocalRandom.current().nextLong();
-            
+
             pstmt.setLong(1, randomLong); // bigint
             pstmt.setBoolean(2, true); // bit
             pstmt.setDate(3, randomDate); // date

@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
@@ -27,7 +28,12 @@ import java.util.logging.Level;
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
  */
-public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaData {
+public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaData, Serializable {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -116977606028371577L;
+
     private SQLServerConnection connection;
 
     static final String URL_PREFIX = "jdbc:sqlserver://";

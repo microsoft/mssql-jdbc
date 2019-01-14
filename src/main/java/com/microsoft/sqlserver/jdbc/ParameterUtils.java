@@ -75,10 +75,8 @@ final class ParameterUtils {
 
                     if (sql.charAt(offset) == '*') { // If '/* ... */' comment
                         while (++offset < len) { // Go thru comment.
-                            if (sql.charAt(offset) == '*' && offset + 1 < len && sql.charAt(offset + 1) == '/') { // If
-                                                                                                                  // end
-                                                                                                                  // of
-                                                                                                                  // comment
+                            if (sql.charAt(offset) == '*' && offset + 1 < len && sql.charAt(offset + 1) == '/') {
+                                // If end of comment
                                 offset += 2;
                                 break;
                             }
@@ -91,7 +89,8 @@ final class ParameterUtils {
                 case '-':
                     if (sql.charAt(offset) == '-') { // If '-- ... \n' comment
                         while (++offset < len) { // Go thru comment.
-                            if (sql.charAt(offset) == '\n' || sql.charAt(offset) == '\r') { // If end of comment
+                            if (sql.charAt(offset) == '\n' || sql.charAt(offset) == '\r') {
+                                // If end of comment
                                 offset++;
                                 break;
                             }
@@ -99,11 +98,6 @@ final class ParameterUtils {
                         break;
                     }
                     // Fall through to test character
-                default:
-                    if (ch == chTmp)
-                        return offset - 1;
-                    break;
-
                 case '[':
                     chTmp = ']';
                 case '\'':
@@ -117,6 +111,10 @@ final class ParameterUtils {
                             ++offset;
                         }
                     }
+                    break;
+                default:
+                    if (ch == chTmp)
+                        return offset - 1;
                     break;
             }
         }

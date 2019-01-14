@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.Serializable;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -72,7 +71,7 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
 }
 
 
-abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
+abstract class SQLServerClobBase extends SQLServerLob {
     /**
      * Always refresh SerialVersionUID when prompted
      */

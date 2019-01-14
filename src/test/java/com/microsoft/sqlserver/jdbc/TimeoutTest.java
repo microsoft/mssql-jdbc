@@ -179,7 +179,7 @@ public class TimeoutTest extends AbstractTest {
                 fail("SharedTimer thread did not stop within " + MAX_WAIT_FOR_STOP_SECONDS + " seconds");
             }
             // Sleep a bit and try again
-            Thread.sleep(100);
+            Thread.sleep(1000);
         }
         assertSharedTimerNotRunning();
     }

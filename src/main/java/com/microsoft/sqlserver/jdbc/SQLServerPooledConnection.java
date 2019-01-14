@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Vector;
@@ -22,7 +23,12 @@ import javax.sql.StatementEventListener;
  * to manage the connection pool. Applications typically do not instantiate these connections directly.
  */
 
-public class SQLServerPooledConnection implements PooledConnection {
+public class SQLServerPooledConnection implements PooledConnection, Serializable {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = 3492921646187451164L;
+
     private final Vector<ConnectionEventListener> listeners;
     private SQLServerDataSource factoryDataSource;
     private SQLServerConnection physicalConnection;
