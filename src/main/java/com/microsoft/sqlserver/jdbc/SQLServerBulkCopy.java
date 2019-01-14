@@ -756,7 +756,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         CryptoMetadata destCryptoMeta = destColumnMetadata.get(destColumnIndex).cryptoMeta;
 
         /*
-         * if source is encrypted and destination is unenecrypted, use destination's sql type to send since there is no
+         * if source is encrypted and destination is unencrypted, use destination's sql type to send since there is no
          * way of finding if source is encrypted without accessing the resultset. Send destination type if source
          * resultset set is of type SQLServer, encryption is enabled and destination column is not encrypted
          */
@@ -1180,7 +1180,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             tdsWriter.setCryptoMetaData(destColumnMetadata.get(destColIndx).cryptoMeta);
 
             /*
-             * if source is encrypted and destination is unenecrypted, use destination's sql type to send since there is
+             * if source is encrypted and destination is unencrypted, use destination's sql type to send since there is
              * no way of finding if source is encrypted without accessing the resultset. Send destination type if source
              * resultset set is of type SQLServer, encryption is enabled and destination column is not encrypted
              */
@@ -1962,7 +1962,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             bulkJdbcType = java.sql.Types.VARBINARY;
         }
         /*
-         * if source is encrypted and destination is unenecrypted, use destination sql type to send since there is no
+         * if source is encrypted and destination is unencrypted, use destination sql type to send since there is no
          * way of finding if source is encrypted without accessing the resultset, send destination type if source
          * resultset set is of type SQLServer and encryption is enabled
          */
