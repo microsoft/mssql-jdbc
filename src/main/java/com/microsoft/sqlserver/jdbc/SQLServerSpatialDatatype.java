@@ -1092,7 +1092,7 @@ abstract class SQLServerSpatialDatatype {
         if (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
             if (segmentType == SEGMENT_FIRST_ARC || segmentType == SEGMENT_ARC) {
                 readSegmentWkt(SEGMENT_ARC, false);
-            } else if (segmentType == SEGMENT_FIRST_LINE | segmentType == SEGMENT_LINE) {
+            } else if (segmentType == SEGMENT_FIRST_LINE || segmentType == SEGMENT_LINE) {
                 readSegmentWkt(SEGMENT_LINE, false);
             }
         }

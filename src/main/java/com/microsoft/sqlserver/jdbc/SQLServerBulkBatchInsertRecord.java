@@ -26,6 +26,11 @@ import java.util.Set;
  */
 public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
 
+    /**
+     * Update serialVersionUID when making changes to this file
+     */
+    private static final long serialVersionUID = -955998113956445541L;
+    
     private List<Parameter[]> batchParam;
     private int batchParamIndex = -1;
     private List<String> columnList;

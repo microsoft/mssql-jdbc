@@ -6,11 +6,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.io.Writer;
-import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
 import java.util.logging.Logger;
