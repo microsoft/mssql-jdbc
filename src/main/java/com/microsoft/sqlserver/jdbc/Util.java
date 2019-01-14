@@ -834,10 +834,11 @@ final class Util {
                 }
                 break;
             default:
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
-                Object[] msgArgs = {jdbcType};
-                throw new SQLServerException(form.format(msgArgs), null);
+                break;
         }
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
+        Object[] msgArgs = {jdbcType};
+        throw new SQLServerException(form.format(msgArgs), null);
     }
 
     static int getValueLengthBaseOnJavaType(Object value, JavaType javaType, Integer precision, Integer scale,
@@ -863,6 +864,7 @@ final class Util {
                     default:
                         break;
                 }
+                break;
             default:
                 break;
         }
