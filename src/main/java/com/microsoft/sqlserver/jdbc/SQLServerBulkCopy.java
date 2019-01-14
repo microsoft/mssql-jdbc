@@ -73,7 +73,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      */
     private class ColumnMapping implements Serializable {
         /**
-         * 
+         * Always update serialVersionUID when prompted.
          */
         private static final long serialVersionUID = 6428337550654423919L;
 

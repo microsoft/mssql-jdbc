@@ -1009,7 +1009,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return state.equals(State.Connected);
     }
 
-    @SuppressWarnings("unused")
     SQLServerConnection(String parentInfo) throws SQLServerException {
         int connectionID = nextConnectionID(); // sequential connection id
         traceID = "ConnectionID:" + connectionID;
@@ -3384,7 +3383,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             loggerExternal.entering(getClassNameLogging(), "createStatement",
                     new Object[] {resultSetType, resultSetConcurrency});
         checkClosed();
-        ISQLServerStatement st = new SQLServerStatement(this, resultSetType, resultSetConcurrency,
+        SQLServerStatement st = new SQLServerStatement(this, resultSetType, resultSetConcurrency,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         if (requestStarted) {
             addOpenStatement(st);
@@ -3401,11 +3400,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     new Object[] {sql, resultSetType, resultSetConcurrency});
         checkClosed();
 
-        PreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
+        SQLServerPreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 
         if (requestStarted) {
-            addOpenStatement((ISQLServerStatement) st);
+            addOpenStatement(st);
         }
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
         return st;
@@ -3418,11 +3417,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     new Object[] {sql, resultSetType, resultSetConcurrency, stmtColEncSetting});
         checkClosed();
 
-        PreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
+        SQLServerPreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
                 stmtColEncSetting);
 
         if (requestStarted) {
-            addOpenStatement((ISQLServerStatement) st);
+            addOpenStatement(st);
         }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
@@ -3437,11 +3436,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     new Object[] {sql, resultSetType, resultSetConcurrency});
         checkClosed();
 
-        CallableStatement st = new SQLServerCallableStatement(this, sql, resultSetType, resultSetConcurrency,
+        SQLServerCallableStatement st = new SQLServerCallableStatement(this, sql, resultSetType, resultSetConcurrency,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 
         if (requestStarted) {
-            addOpenStatement((ISQLServerStatement) st);
+            addOpenStatement(st);
         }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);

@@ -812,7 +812,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 parameterType = queryMetaMap.get(param).parameterType;
             } else {
                 Map<String, Object> info = getParameterInfo(param);
-                parameterType = (null != info) ? (short) info.get(DATA_TYPE) : 0;
+                if (null != info) {
+                    parameterType = (short) info.get(DATA_TYPE);
+                }
             }
             if (0 != parameterType) {
                 switch (parameterType) {

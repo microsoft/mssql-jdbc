@@ -7820,7 +7820,7 @@ abstract class TDSCommand implements Serializable {
  */
 abstract class UninterruptableTDSCommand extends TDSCommand {
     /**
-     * 
+     * Always update serialVersionUID when prompted.
      */
     private static final long serialVersionUID = -6457195977162963793L;
 
