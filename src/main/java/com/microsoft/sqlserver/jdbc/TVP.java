@@ -89,7 +89,7 @@ class TVP {
     TVP(String tvpPartName, ResultSet tvpResultSet) throws SQLServerException {
         initTVP(TVPType.ResultSet, tvpPartName);
         sourceResultSet = tvpResultSet;
-        // Populate TVP metdata from ResultSetMetadta.
+        // Populate TVP metadata from ResultSetMetadta.
         populateMetadataFromResultSet();
     }
 
@@ -97,10 +97,10 @@ class TVP {
         initTVP(TVPType.ISQLServerDataRecord, tvpPartName);
         sourceRecord = tvpRecord;
         columnNames = new HashSet<>();
-        // Populate TVP metdata from ISQLServerDataRecord.
+        // Populate TVP metadata from ISQLServerDataRecord.
         populateMetadataFromDataRecord();
 
-        // validate sortOrdinal and throw all relavent exceptions before proceeding
+        // validate sortOrdinal and throw all relevant exceptions before proceeding
         validateOrderProperty();
     }
 
@@ -143,49 +143,53 @@ class TVP {
             }
         } else if (TVPType.SQLServerDataTable == tvpType) {
             return sourceDataTableRowIterator.hasNext();
-        } else
+        } else if (null != sourceRecord) {
             return sourceRecord.next();
+        }
+        return false;
     }
 
     void populateMetadataFromDataTable() throws SQLServerException {
-        assert null != sourceDataTable;
-
-        Map<Integer, SQLServerDataColumn> dataTableMetaData = sourceDataTable.getColumnMetadata();
-        if (null == dataTableMetaData || dataTableMetaData.isEmpty()) {
-            throw new SQLServerException(SQLServerException.getErrString("R_TVPEmptyMetadata"), null);
-        }
-        for (Entry<Integer, SQLServerDataColumn> pair : dataTableMetaData.entrySet()) {
-            // duplicate column names for the dataTable will be checked in the SQLServerDataTable.
-            columnMetadata.put(pair.getKey(), new SQLServerMetaData(pair.getValue().columnName,
-                    pair.getValue().javaSqlType, pair.getValue().precision, pair.getValue().scale));
+        if (null != sourceDataTable) {
+            Map<Integer, SQLServerDataColumn> dataTableMetaData = sourceDataTable.getColumnMetadata();
+            if (null == dataTableMetaData || dataTableMetaData.isEmpty()) {
+                throw new SQLServerException(SQLServerException.getErrString("R_TVPEmptyMetadata"), null);
+            }
+            for (Entry<Integer, SQLServerDataColumn> pair : dataTableMetaData.entrySet()) {
+                // duplicate column names for the dataTable will be checked in the SQLServerDataTable.
+                columnMetadata.put(pair.getKey(), new SQLServerMetaData(pair.getValue().columnName,
+                        pair.getValue().javaSqlType, pair.getValue().precision, pair.getValue().scale));
+            }
         }
     }
 
     void populateMetadataFromResultSet() throws SQLServerException {
-        assert null != sourceResultSet;
-        try {
-            ResultSetMetaData rsmd = sourceResultSet.getMetaData();
-            for (int i = 0; i < rsmd.getColumnCount(); i++) {
-                SQLServerMetaData columnMetaData = new SQLServerMetaData(rsmd.getColumnName(i + 1),
-                        rsmd.getColumnType(i + 1), rsmd.getPrecision(i + 1), rsmd.getScale(i + 1));
-                columnMetadata.put(i, columnMetaData);
+        if (null != sourceResultSet) {
+            try {
+                ResultSetMetaData rsmd = sourceResultSet.getMetaData();
+                for (int i = 0; i < rsmd.getColumnCount(); i++) {
+                    SQLServerMetaData columnMetaData = new SQLServerMetaData(rsmd.getColumnName(i + 1),
+                            rsmd.getColumnType(i + 1), rsmd.getPrecision(i + 1), rsmd.getScale(i + 1));
+                    columnMetadata.put(i, columnMetaData);
+                }
+            } catch (SQLException e) {
+                throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
             }
-        } catch (SQLException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
         }
     }
 
     void populateMetadataFromDataRecord() throws SQLServerException {
-        assert null != sourceRecord;
-        if (0 >= sourceRecord.getColumnCount()) {
-            throw new SQLServerException(SQLServerException.getErrString("R_TVPEmptyMetadata"), null);
-        }
-        for (int i = 0; i < sourceRecord.getColumnCount(); i++) {
-            Util.checkDuplicateColumnName(sourceRecord.getColumnMetaData(i + 1).columnName, columnNames);
+        if (null != sourceRecord) {
+            if (0 >= sourceRecord.getColumnCount()) {
+                throw new SQLServerException(SQLServerException.getErrString("R_TVPEmptyMetadata"), null);
+            }
+            for (int i = 0; i < sourceRecord.getColumnCount(); i++) {
+                Util.checkDuplicateColumnName(sourceRecord.getColumnMetaData(i + 1).columnName, columnNames);
 
-            // Make a copy here as we do not want to change user's metadata.
-            SQLServerMetaData metaData = new SQLServerMetaData(sourceRecord.getColumnMetaData(i + 1));
-            columnMetadata.put(i, metaData);
+                // Make a copy here as we do not want to change user's metadata.
+                SQLServerMetaData metaData = new SQLServerMetaData(sourceRecord.getColumnMetaData(i + 1));
+                columnMetadata.put(i, metaData);
+            }
         }
     }
 
