@@ -89,7 +89,7 @@ class TVP {
     TVP(String tvpPartName, ResultSet tvpResultSet) throws SQLServerException {
         initTVP(TVPType.ResultSet, tvpPartName);
         sourceResultSet = tvpResultSet;
-        // Populate TVP metadata from ResultSetMetadta.
+        // Populate TVP metadata from ResultSetMetadata.
         populateMetadataFromResultSet();
     }
 
@@ -97,6 +97,7 @@ class TVP {
         initTVP(TVPType.ISQLServerDataRecord, tvpPartName);
         sourceRecord = tvpRecord;
         columnNames = new HashSet<>();
+
         // Populate TVP metadata from ISQLServerDataRecord.
         populateMetadataFromDataRecord();
 
@@ -114,9 +115,10 @@ class TVP {
             Object[] rowData = new Object[colCount];
             for (int i = 0; i < colCount; i++) {
                 try {
-                    // for Time types, getting Timestamp instead of Time, because this value will be converted to String
-                    // later on. If the value is a
-                    // time object, the millisecond would be removed.
+                    /*
+                     * for Time types, getting TimeStamp instead of Time, because this value will be converted to String
+                     * later on. If the value is a time object, the millisecond would be removed.
+                     */
                     if (java.sql.Types.TIME == sourceResultSet.getMetaData().getColumnType(i + 1)) {
                         rowData[i] = sourceResultSet.getTimestamp(i + 1);
                     } else {
@@ -155,11 +157,9 @@ class TVP {
             if (null == dataTableMetaData || dataTableMetaData.isEmpty()) {
                 throw new SQLServerException(SQLServerException.getErrString("R_TVPEmptyMetadata"), null);
             }
-            for (Entry<Integer, SQLServerDataColumn> pair : dataTableMetaData.entrySet()) {
-                // duplicate column names for the dataTable will be checked in the SQLServerDataTable.
-                columnMetadata.put(pair.getKey(), new SQLServerMetaData(pair.getValue().columnName,
-                        pair.getValue().javaSqlType, pair.getValue().precision, pair.getValue().scale));
-            }
+            dataTableMetaData.entrySet()
+                    .forEach(E -> columnMetadata.put(E.getKey(), new SQLServerMetaData(E.getValue().columnName,
+                            E.getValue().javaSqlType, E.getValue().precision, E.getValue().scale)));
         }
     }
 
@@ -258,7 +258,7 @@ class TVP {
 
         StringBuilder sb = new StringBuilder(name.length());
 
-        // String buffer to hold white space used when parsing nonquoted strings 'a b . c d' = 'a b' and 'c d'
+        // String buffer to hold white space used when parsing non-quoted strings 'a b . c d' = 'a b' and 'c d'
         StringBuilder whitespaceSB = null;
 
         // Right quote character to use given the left quote character found.
@@ -273,14 +273,13 @@ class TVP {
                     if (Character.isWhitespace(testchar)) // skip the whitespace
                         continue;
                     else if (testchar == separator) {
-                        // If separator was found,but no string was found, initialize the string we are parsing to
+                        // If separator was found, but no string was found, initialize the string we are parsing to
                         // Empty.
                         parsedNames[stringCount] = "";
                         stringCount++;
                     } else if (-1 != (quoteIndex = leftQuote.indexOf(testchar))) {
-                        // If we are at left quote
-                        rightQuoteChar = rightQuote.charAt(quoteIndex); // record the corresponding right quote for the
-                                                                        // left quote
+                        // If we are at left quote, record the corresponding right quote for the left quote
+                        rightQuoteChar = rightQuote.charAt(quoteIndex);
                         sb.setLength(0);
                         state = MPIState.MPI_ParseQuote;
                     } else if (-1 != rightQuote.indexOf(testchar)) {
@@ -331,8 +330,8 @@ class TVP {
                             // If its not a separator and not whitespace
                             sb.append(whitespaceSB);
                             sb.append(testchar);
-                            parsedNames[stringCount] = sb.toString(); // Need to set the name here in case the string
-                                                                      // ends here.
+                            // Need to set the name here in case the string ends here.
+                            parsedNames[stringCount] = sb.toString();
                             state = MPIState.MPI_ParseNonQuote;
                         }
                     } else {
@@ -344,7 +343,7 @@ class TVP {
                     break;
 
                 case MPI_ParseQuote:
-                    // if are on a right quote see if we are escapeing the right quote or ending the quoted string
+                    // if are on a right quote see if we are escaping the right quote or ending the quoted string
                     if (testchar == rightQuoteChar)
                         state = MPIState.MPI_RightQuote;
                     else
@@ -353,7 +352,7 @@ class TVP {
 
                 case MPI_RightQuote:
                     if (testchar == rightQuoteChar) {
-                        // If the next char is a another right quote then we were escapeing the right quote
+                        // If the next char is a another right quote then we were escaping the right quote
                         sb.append(testchar);
                         state = MPIState.MPI_ParseQuote;
                     } else if (testchar == separator) {
@@ -419,7 +418,7 @@ class TVP {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidThreePartName"));
             throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
         } else {
-            // Shuffle the parsed name, from left justification to right justification, ie [a][b][null][null] goes to
+            // Shuffle the parsed name, from left justification to right justification, i.e. [a][b][null][null] goes to
             // [null][null][a][b]
             int offset = limit - stringCount - 1;
             if (offset > 0) {
@@ -435,9 +434,9 @@ class TVP {
     }
 
     /*
-     * parsing the multipart identifer string. parameters: name - string to parse leftquote: set of characters which are
-     * valid quoteing characters to initiate a quote rightquote: set of characters which are valid to stop a quote,
-     * array index's correspond to the the leftquote array. separator: separator to use limit: number of names to parse
+     * Parsing the multi-part identifier string. parameters: name - string to parse left-quote: set of characters which
+     * are valid quoting characters to initiate a quote right-quote: set of characters which are valid to stop a quote,
+     * array index's correspond to the the left-quote array. separator: separator to use limit: number of names to parse
      * out removequote:to remove the quotes on the returned string
      */
     private int incrementStringCount(String[] ary, int position) throws SQLServerException {
