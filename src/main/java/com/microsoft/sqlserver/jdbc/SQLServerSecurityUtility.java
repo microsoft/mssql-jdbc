@@ -80,11 +80,11 @@ class SQLServerSecurityUtility {
         assert serverName != null : "Server name should npt be null in EncryptWithKey";
 
         // Initialize cipherAlgo if not already done.
-        if (!md.isAlgorithmInitialized()) {
+        if (!md.IsAlgorithmInitialized()) {
             SQLServerSecurityUtility.decryptSymmetricKey(md, connection);
         }
 
-        assert md.isAlgorithmInitialized();
+        assert md.IsAlgorithmInitialized();
         byte[] cipherText = md.cipherAlgorithm.encryptData(plainText); // this call succeeds or throws.
         if (null == cipherText || 0 == cipherText.length) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_NullCipherTextAE"), null, 0, false);
@@ -177,11 +177,11 @@ class SQLServerSecurityUtility {
         assert null != serverName : "serverName should not be null in DecryptWithKey.";
 
         // Initialize cipherAlgo if not already done.
-        if (!md.isAlgorithmInitialized()) {
+        if (!md.IsAlgorithmInitialized()) {
             SQLServerSecurityUtility.decryptSymmetricKey(md, connection);
         }
 
-        assert md.isAlgorithmInitialized() : "Decryption Algorithm is not initialized";
+        assert md.IsAlgorithmInitialized() : "Decryption Algorithm is not initialized";
         byte[] plainText = md.cipherAlgorithm.decryptData(cipherText); // this call succeeds or throws.
         if (null == plainText) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_PlainTextNullAE"), null, 0, false);
