@@ -195,10 +195,6 @@ public class FipsTest extends AbstractTest {
     /**
      * It will return String array. [dbServer,username,password,dbname/database]
      * 
-     * -ea
-     * -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://SQL-2K16-01.galaxy.ad;userName=sa;password=Moonshine4me;database=test;
-     * -Djava.library.path=C:\Downloads\sqljdbc_6.0.7728.100_enu.tar\sqljdbc_6.0\enu\auth\x64
-     * 
      * @param connectionProperty
      * @return
      */
