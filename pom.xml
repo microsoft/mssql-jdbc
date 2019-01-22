@@ -153,10 +153,10 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-		    <groupId>org.eclipse.gemini.blueprint</groupId>
-		    <artifactId>gemini-blueprint-mock</artifactId>
-		    <version>2.0.0.RELEASE</version>
-		    <scope>test</scope>
+			<groupId>org.eclipse.gemini.blueprint</groupId>
+			<artifactId>gemini-blueprint-mock</artifactId>
+			<version>2.0.0.RELEASE</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
@@ -176,6 +176,13 @@
 							</excludes>
 							<source>1.8</source>
 							<target>1.8</target>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<configuration>
+							<source>8</source>
 						</configuration>
 					</plugin>
 					<plugin>
