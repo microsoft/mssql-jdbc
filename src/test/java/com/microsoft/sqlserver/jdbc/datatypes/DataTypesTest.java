@@ -1,5 +1,6 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -1378,9 +1379,12 @@ public class DataTypesTest extends AbstractTest {
                     rs.next();
 
                     // compare these separately since there may be an extra space between the 2
-                    assertEquals("Jan  1 1970", rs.getString(1).substring(0, 11));
-                    assertEquals(timeFormat.format(ts.getTime()),
-                            rs.getString(1).substring(rs.getString(1).length() - 7).trim());
+                    assertTrue(rs.getString(1).substring(0, 11).startsWith("Jan  1 1970"));
+
+                    String recievedTimePortion = rs.getString(1).substring(rs.getString(1).length() - 7).trim()
+                            .replaceAll("\\.", "");
+                    String expectedTimePortion = timeFormat.format(ts.getTime()).trim().replaceAll("\\.", "");
+                    assertTrue(expectedTimePortion.equalsIgnoreCase(recievedTimePortion));
                 }
 
                 // Test PreparedStatement with Date
