@@ -2,7 +2,7 @@
 #   - SQL Server 2017
 #   - SQL Server 2008 R2
 jobs:
-- job: "1"
+- job: "CI_Build"
   pool:
     pool: jdbc-build-pool
   strategy:
