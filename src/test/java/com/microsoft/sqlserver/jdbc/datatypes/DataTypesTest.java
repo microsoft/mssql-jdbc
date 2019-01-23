@@ -1379,7 +1379,7 @@ public class DataTypesTest extends AbstractTest {
                     rs.next();
 
                     // compare these separately since there may be an extra space between the 2
-                    assertTrue(rs.getString(1).substring(0, 11).startsWith("Jan  1 1970"));
+                    assertTrue(rs.getString(1).startsWith("Jan  1 1970"));
 
                     String recievedTimePortion = rs.getString(1).substring(rs.getString(1).length() - 7).trim()
                             .replaceAll("\\.", "");
