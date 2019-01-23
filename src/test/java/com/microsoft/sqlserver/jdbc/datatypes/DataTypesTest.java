@@ -1384,7 +1384,9 @@ public class DataTypesTest extends AbstractTest {
                     String recievedTimePortion = rs.getString(1).substring(rs.getString(1).length() - 7).trim()
                             .replaceAll("\\.", "");
                     String expectedTimePortion = timeFormat.format(ts.getTime()).trim().replaceAll("\\.", "");
-                    assertTrue(expectedTimePortion.equalsIgnoreCase(recievedTimePortion));
+                    assertTrue("Timestamp mismatch, expected: " + expectedTimePortion + " but recieved: "
+                                    + recievedTimePortion + ".",
+                            expectedTimePortion.equalsIgnoreCase(recievedTimePortion));
                 }
 
                 // Test PreparedStatement with Date
