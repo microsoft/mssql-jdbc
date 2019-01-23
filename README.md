@@ -21,9 +21,9 @@ Let us know how you think we're doing.
 <a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="67" width="156" src="https://sqlchoice.blob.core.windows.net/sqlchoice/static/images/survey.png"></a>
 
 ## Status of Most Recent Builds
-| AppVeyor (Windows)       | Travis CI (Linux) |
+| Azure Pipelines (Windows)       | Travis CI (Linux) |
 |--------------------------|--------------------------|
-| [![AppVeyor ](https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true "Windows")](https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc) | [![Travis CI](https://travis-ci.org/Microsoft/mssql-jdbc.svg? "Linux")](https://travis-ci.org/Microsoft/mssql-jdbc ) |vg? "Linux"
+| [![Build Status](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_apis/build/status/Microsoft.mssql-jdbc?branchName=dev)](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_build/latest?definitionId=1&branchName=dev) | [![Travis CI](https://travis-ci.org/Microsoft/mssql-jdbc.svg? "Linux")](https://travis-ci.org/Microsoft/mssql-jdbc ) |vg? "Linux"
 
 ## Announcements
 What's coming next?  We will look into adding a more comprehensive set of tests, improving our javadocs, and start developing the next set of features.
