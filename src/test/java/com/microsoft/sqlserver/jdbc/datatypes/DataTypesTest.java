@@ -1381,10 +1381,15 @@ public class DataTypesTest extends AbstractTest {
                     // compare these separately since there may be an extra space between the 2
                     assertTrue(rs.getString(1).startsWith("Jan  1 1970"));
 
+                    /*
+                     * Timestamp returned from varchar column may be wrongly formatted. E.g: 12:12PM will not pass if
+                     * compared to 12:12p.m.
+                     */
                     String recievedTimePortion = rs.getString(1).substring(rs.getString(1).length() - 7).trim()
                             .replaceAll("\\.", "");
                     String expectedTimePortion = timeFormat.format(ts.getTime()).trim().replaceAll("\\.", "");
-                    assertTrue("Timestamp mismatch, expected: " + expectedTimePortion + " but recieved: "
+                    assertTrue(
+                            "Timestamp mismatch, expected: " + expectedTimePortion + " but recieved: "
                                     + recievedTimePortion + ".",
                             expectedTimePortion.equalsIgnoreCase(recievedTimePortion));
                 }
