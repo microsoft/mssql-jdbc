@@ -4,7 +4,7 @@
 jobs:
 - job: "CI_Build"
   pool:
-    pool: "JDBC Build Pool"
+    pool: JDBC Build Pool
   strategy:
     matrix:
       SQL-2017:
