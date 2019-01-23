@@ -18,6 +18,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.text.DateFormatSymbols;
 import java.text.MessageFormat;
 import java.util.Calendar;
 import java.util.EnumSet;
@@ -1095,7 +1096,6 @@ public class DataTypesTest extends AbstractTest {
     @Test
     public void testResultSetMetaData() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
-            TestValue v[] = TestValue.values();
             for (TestValue value : TestValue.values())
                 value.sqlValue.verifyResultSetMetaData(conn);
         }
@@ -1385,9 +1385,11 @@ public class DataTypesTest extends AbstractTest {
                      * Timestamp returned from varchar column may be wrongly formatted. E.g: 12:12PM will not pass if
                      * compared to 12:12p.m.
                      */
-                    String recievedTimePortion = rs.getString(1).substring(rs.getString(1).length() - 7).trim()
-                            .replaceAll("\\.", "");
-                    String expectedTimePortion = timeFormat.format(ts.getTime()).trim().replaceAll("\\.", "");
+                    DateFormatSymbols symbols = new DateFormatSymbols(Locale.getDefault());
+                    symbols.setAmPmStrings(new String[] {"am", "pm"});
+                    timeFormat.setDateFormatSymbols(symbols);
+                    String expectedTimePortion = timeFormat.format(ts);
+                    String recievedTimePortion = rs.getString(1).substring(rs.getString(1).length() - 7).trim();
                     assertTrue(
                             "Timestamp mismatch, expected: " + expectedTimePortion + " but recieved: "
                                     + recievedTimePortion + ".",
