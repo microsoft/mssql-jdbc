@@ -8,8 +8,7 @@ services:
   - docker
 
 env:
- global:	
-  - mssql_jdbc_test_connection_properties='jdbc:sqlserver://localhost:1433;databaseName=master;username=sa;password=<YourStrong!Passw0rd>;'
+ global:
   - mssql_jdbc_logging='true'
   # Enabling logging with console / file handler for JUnit Test Framework. 
   #- mssql_jdbc_logging_handler='console'|'file'
@@ -34,11 +33,12 @@ install:
 
 before_script:
   - docker pull microsoft/mssql-server-linux:2017-latest
-  - docker run -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=<YourStrong!Passw0rd>' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest
+  - $env:SQLPWD = -join ((49..57) + (65..90) + (97..122) | Get-Random -Count 15 | % {[char]$_}) + "$"
+  - $env:mssql_jdbc_test_connection_properties='jdbc:sqlserver://localhost:1433;databaseName=master;username=sa;password=' + $SQLPWD
+  - docker run -e 'ACCEPT_EULA=Y' -e "SA_PASSWORD=$env:SQLPWD" -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest
 
 script: 
   - docker ps -a
-  
 ##Test for JDBC Specification 43 & 42 and submit coverage report.
   - mvn test -B -Pbuild43 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC43
   - mvn test -B -Pbuild42 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC42
