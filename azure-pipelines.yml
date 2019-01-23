@@ -12,7 +12,7 @@ jobs:
         Target_SQL: 'SQL-2k17-03'
       SQL-2008R2:
         Target_SQL: 'SQL-2k8R2-SP3-1'
-    maxParallel: 1
+    maxParallel: 2
   steps:
   - powershell: |
       mkdir AE_Certificates
