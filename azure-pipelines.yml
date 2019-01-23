@@ -3,6 +3,9 @@
 #   - SQL Server 2008 R2
 jobs:
 - job: "CI_Build"
+  pool:
+    name: 'JDBC Build Pool'
+    demands: maven
   strategy:
     matrix:
       SQL-2017:
