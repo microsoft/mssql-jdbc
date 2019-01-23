@@ -3,8 +3,6 @@
 #   - SQL Server 2008 R2
 jobs:
 - job: "CI_Build"
-  pool:
-    pool: JDBC Build Pool
   strategy:
     matrix:
       SQL-2017:
