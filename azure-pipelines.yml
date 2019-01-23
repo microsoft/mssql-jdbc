@@ -17,12 +17,12 @@ jobs:
       mkdir AE_Certificates
       cd AE_Certificates
       $cert = New-SelfSignedCertificate -dns "AlwaysEncryptedCert" -CertStoreLocation Cert:CurrentUser\My
-      $pwd = ConvertTo-SecureString -String $(password) -Force -AsPlainText
+      $pwd = ConvertTo-SecureString -String "password" -Force -AsPlainText
       $path = 'cert:\CurrentUser\My\' + $cert.thumbprint
       $certificate = Export-PfxCertificate -cert $path -FilePath cert.pfx -Password $pwd
       Get-ChildItem -path cert:\CurrentUser\My > certificate.txt
       keytool -importkeystore -srckeystore cert.pfx -srcstoretype pkcs12 -destkeystore clientcert.jks -deststoretype JKS -srcstorepass password -deststorepass password
-      keytool -list -v -keystore clientcert.jks -storepass $(password)> JavaKeyStoreBase.txt
+      keytool -list -v -keystore clientcert.jks -storepass "password"> JavaKeyStoreBase.txt
       Get-Content .\JavaKeyStoreBase.txt | Set-Content -Encoding utf8 JavaKeyStore.txt
       Remove-Item –path .\JavaKeyStoreBase.txt
     displayName: 'PowerShell Script'
@@ -31,11 +31,11 @@ jobs:
     inputs:
       mavenPomFile: 'pom.xml'
       mavenOptions: '-Xmx3072m'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);database=test;user=$(user);password=$(password); install -Pbuild43'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pbuild43'
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build 43'
       javaHomeOption: Path
-      jdkDirectory: 'C:\\Program Files\\Java\\jdk-11.0.2'
+      jdkDirectory: $(JDK11)
       mavenAuthenticateFeed: true
       checkStyleRunAnalysis: true
       pmdRunAnalysis: true
@@ -44,9 +44,9 @@ jobs:
     inputs:
       mavenPomFile: 'pom.xml'
       mavenOptions: '-Xmx3072m'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);database=test;user=$(user);password=$(password); install -Pbuild42'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pbuild42'
       testRunTitle: 'Maven build 42'
       javaHomeOption: Path
-      jdkDirectory: 'C:\\Program Files\\Java\\jdk-11.0.2'
+      jdkDirectory: $(JDK11)
       checkStyleRunAnalysis: true
       pmdRunAnalysis: true
