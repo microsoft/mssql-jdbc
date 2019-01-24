@@ -14,12 +14,12 @@ steps:
     keytool -importkeystore -destkeystore clientcert.jks -deststorepass password -srckeystore identity.p12 -srcstoretype PKCS12 -srcstorepass password
     keytool -list -v -keystore clientcert.jks -storepass "password" > JavaKeyStore.txt
   displayName: 'Setup AE Certificates'
-- script: |
+- powershell: |
     docker pull mcr.microsoft.com/mssql/server:latest
     export mssql_jdbc_logging='true'
-    export SQLPWD=$(</dev/urandom tr -dc 'A-Za-z0-9#!' | head -c 15;)
-    export mssql_jdbc_test_connection_properties="jdbc:sqlserver://localhost:1433;databaseName=master;username=sa;password=$SQLPWD"
-    docker run -e 'ACCEPT_EULA=Y' -e "SA_PASSWORD=$SQLPWD" -p 1433:1433 -d mcr.microsoft.com/mssql/server:latest
+    Write-Host $env:SQLPWD=$(</dev/urandom tr -dc 'A-Za-z0-9#!' | head -c 15;)
+    Write-Host $env:mssql_jdbc_test_connection_properties="jdbc:sqlserver://localhost:1433;databaseName=master;username=sa;password=$env:SQLPWD"
+    docker run -e 'ACCEPT_EULA=Y' -e "SA_PASSWORD=$env:SQLPWD" -p 1433:1433 -d mcr.microsoft.com/mssql/server:latest
   displayName: 'Setup SQL Server Container'
 - task: Maven@3
   displayName: 'Maven build 43'
