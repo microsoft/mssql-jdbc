@@ -4,7 +4,7 @@
 trigger:
 - dev
 pool:
-  vmImage: "Hosted Ubuntu 1604"
+  vmImage: 'Ubuntu-16.04'
 steps:
 - script: |
     mkdir AE_Certificates
