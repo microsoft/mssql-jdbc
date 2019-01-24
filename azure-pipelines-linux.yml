@@ -4,9 +4,9 @@
 trigger:
 - dev
 pool:
-  vmImage: 'Ubuntu-16.04'
+  vmImage: "Hosted Ubuntu 1604"
 steps:
-- script:
+- script: |
     mkdir AE_Certificates
     cd AE_Certificates
     openssl req -newkey rsa:2048 -x509 -keyout cakey.pem -out cacert.pem -days 1 -subj "/C=US/ST=WA/L=Redmond/O=Microsoft Corporation/OU=SQL Server/CN=JDBC Driver" -nodes
@@ -14,10 +14,7 @@ steps:
     keytool -importkeystore -destkeystore clientcert.jks -deststorepass password -srckeystore identity.p12 -srcstoretype PKCS12 -srcstorepass password
     keytool -list -v -keystore clientcert.jks -storepass "password" > JavaKeyStore.txt
   displayName: 'Setup AE Certificates'
-- script:
-    mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild43
-    mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild42
-- script:
+- script: |
     docker pull mcr.microsoft.com/mssql/server:latest
     export mssql_jdbc_logging='true'
     export SQLPWD=$(</dev/urandom tr -dc 'A-Za-z0-9#!' | head -c 15;)
@@ -33,7 +30,7 @@ steps:
     jdkArchitectureOption: 'x64'
     publishJUnitResults: false
     testResultsFiles: '**/surefire-reports/TEST-*.xml'
-    goals: 'test -B -Pbuild43 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC43'
+    goals: 'install -B -Pbuild43 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC43'
 - task: Maven@3
   displayName: 'Maven build 42'
   inputs:
@@ -43,4 +40,4 @@ steps:
     jdkArchitectureOption: 'x64'
     publishJUnitResults: false
     testResultsFiles: '**/surefire-reports/TEST-*.xml'
-    goals: 'test -B -Pbuild42 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC42'
+    goals: 'clean install -B -Pbuild42 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC42'
