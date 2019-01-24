@@ -23,7 +23,7 @@ before_install:
   
 install: 
   - cd AE_Certificates
-  - openssl req -newkey rsa:2048 -x509 -keyout cakey.pem -out cacert.pem -days 3650 -subj "/C=US/ST=WA/L=Redmond/O=Microsoft Corporation/OU=SQL Server/CN=JDBC Driver" -nodes
+  - openssl req -newkey rsa:2048 -x509 -keyout cakey.pem -out cacert.pem -days 1 -subj "/C=US/ST=WA/L=Redmond/O=Microsoft Corporation/OU=SQL Server/CN=JDBC Driver" -nodes
   - openssl pkcs12 -export -in cacert.pem -inkey cakey.pem -out identity.p12 -password pass:password
   - keytool -importkeystore -destkeystore clientcert.jks -deststorepass password -srckeystore identity.p12 -srcstoretype PKCS12 -srcstorepass password
   - keytool -list -v -keystore clientcert.jks -storepass "password" > JavaKeyStore.txt
@@ -32,10 +32,10 @@ install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pbuild42
 
 before_script:
-  - docker pull microsoft/mssql-server-linux:2017-latest
+  - docker pull mcr.microsoft.com/mssql/server:latest
   - export SQLPWD=$(</dev/urandom tr -dc 'A-Za-z0-9#!' | head -c 15;)
   - export mssql_jdbc_test_connection_properties="jdbc:sqlserver://localhost:1433;databaseName=master;username=sa;password=$SQLPWD"
-  - docker run -e 'ACCEPT_EULA=Y' -e "SA_PASSWORD=$SQLPWD" -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest
+  - docker run -e 'ACCEPT_EULA=Y' -e "SA_PASSWORD=$SQLPWD" -p 1433:1433 -d mcr.microsoft.com/mssql/server:latest
 
 script: 
   - docker ps -a
