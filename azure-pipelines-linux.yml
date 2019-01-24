@@ -11,16 +11,17 @@ steps:
     cd AE_Certificates
     openssl req -newkey rsa:2048 -x509 -keyout cakey.pem -out cacert.pem -days 1 -subj "/C=US/ST=WA/L=Redmond/O=Microsoft Corporation/OU=SQL Server/CN=JDBC Driver" -nodes
     openssl pkcs12 -export -in cacert.pem -inkey cakey.pem -out identity.p12 -password pass:password
-    keytool -importkeystore -destkeystore clientcert.jks -deststorepass password -srckeystore identity.p12 -srcstoretype PKCS12 -srcstorepass password
+    keytool -importkeystore -destkeystore clientcert.jks -deststorepass password -srckeystore identity.p12 -deststoretype PKCS12 -srcstorepass password
     keytool -list -v -keystore clientcert.jks -storepass "password" > JavaKeyStore.txt
   displayName: 'Setup AE Certificates'
 - powershell: |
     docker pull mcr.microsoft.com/mssql/server:latest
-    export mssql_jdbc_logging='true'
-    Write-Host $env:SQLPWD=$(</dev/urandom tr -dc 'A-Za-z0-9#!' | head -c 15;)
-    Write-Host $env:mssql_jdbc_test_connection_properties="jdbc:sqlserver://localhost:1433;databaseName=master;username=sa;password=$env:SQLPWD"
+    $env:SQLPWD=-join ((49..57) + (65..90) + (97..122) | Get-Random -Count 15 | % {[char]$_}) + "$"
+    Write-Host "##vso[task.setvariable variable=conn_string;isOutput=true]jdbc:sqlserver://localhost:1433;user=sa;password=$env:SQLPWD"
     docker run -e 'ACCEPT_EULA=Y' -e "SA_PASSWORD=$env:SQLPWD" -p 1433:1433 -d mcr.microsoft.com/mssql/server:latest
   displayName: 'Setup SQL Server Container'
+env:
+  mssql_jdbc_test_connection_properties: $(conn_string)
 - task: Maven@3
   displayName: 'Maven build 43'
   inputs:
