@@ -6,7 +6,7 @@ trigger:
 pool:
   vmImage: 'Ubuntu-16.04'
 steps:
-- powershell:
+- script:
     mkdir AE_Certificates
     cd AE_Certificates
     openssl req -newkey rsa:2048 -x509 -keyout cakey.pem -out cacert.pem -days 1 -subj "/C=US/ST=WA/L=Redmond/O=Microsoft Corporation/OU=SQL Server/CN=JDBC Driver" -nodes
