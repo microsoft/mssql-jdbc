@@ -49,3 +49,4 @@ jobs:
       jdkDirectory: $(JDK11)
       checkStyleRunAnalysis: true
       pmdRunAnalysis: true
+      
