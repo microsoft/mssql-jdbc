@@ -20,8 +20,8 @@ steps:
     Write-Host "##vso[task.setvariable variable=conn_string;isOutput=true]jdbc:sqlserver://localhost:1433;user=sa;password=$env:SQLPWD"
     docker run -e 'ACCEPT_EULA=Y' -e "SA_PASSWORD=$env:SQLPWD" -p 1433:1433 -d mcr.microsoft.com/mssql/server:latest
   displayName: 'Setup SQL Server Container'
-env:
-  mssql_jdbc_test_connection_properties: $(conn_string)
+  env:
+    mssql_jdbc_test_connection_properties: $(conn_string)
 - task: Maven@3
   displayName: 'Maven build 43'
   inputs:
