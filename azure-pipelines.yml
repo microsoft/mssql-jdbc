@@ -18,7 +18,6 @@ jobs:
       mkdir AE_Certificates
       cd AE_Certificates
       $cert = New-SelfSignedCertificate -dns "AlwaysEncryptedCert" -CertStoreLocation Cert:CurrentUser\My
-      $pwd = ConvertTo-SecureString -String $(certPass) -Force -AsPlainText
       $path = 'cert:\CurrentUser\My\' + $cert.thumbprint
       $certificate = Export-PfxCertificate -cert $path -FilePath cert.pfx -Password $(certPass)
       Get-ChildItem -path cert:\CurrentUser\My > certificate.txt
