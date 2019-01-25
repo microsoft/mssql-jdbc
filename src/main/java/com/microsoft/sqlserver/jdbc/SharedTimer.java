@@ -32,7 +32,11 @@ class SharedTimer implements Serializable {
     private ScheduledThreadPoolExecutor executor;
 
     private SharedTimer() {
-        executor = new ScheduledThreadPoolExecutor(1, task -> new Thread(task, CORE_THREAD_PREFIX + id));
+        executor = new ScheduledThreadPoolExecutor(1, task -> {
+            Thread t = new Thread(task, CORE_THREAD_PREFIX + id);
+            t.setDaemon(true);
+            return t;
+        });
         executor.setRemoveOnCancelPolicy(true);
     }
 
