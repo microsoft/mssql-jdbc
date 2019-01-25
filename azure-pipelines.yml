@@ -19,7 +19,8 @@ jobs:
       cd AE_Certificates
       $cert = New-SelfSignedCertificate -dns "AlwaysEncryptedCert" -CertStoreLocation Cert:CurrentUser\My
       $path = 'cert:\CurrentUser\My\' + $cert.thumbprint
-      $certificate = Export-PfxCertificate -cert $path -FilePath cert.pfx -Password $(certPass)
+      $pwd = ConvertTo-SecureString -String $(password) -Force -AsPlainText
+      $certificate = Export-PfxCertificate -cert $path -FilePath cert.pfx -Password $pwd
       Get-ChildItem -path cert:\CurrentUser\My > certificate.txt
       keytool -importkeystore -srckeystore cert.pfx -srcstoretype pkcs12 -destkeystore clientcert.jks -deststoretype JKS -srcstorepass $(certPass) -deststorepass $(certPass)
       keytool -list -v -keystore clientcert.jks -storepass $(certPass)> JavaKeyStoreBase.txt
