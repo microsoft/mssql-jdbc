@@ -107,7 +107,7 @@ public class UTF8SupportTest extends AbstractTest {
 
     @BeforeAll
     public static void setUp() throws ClassNotFoundException, SQLException {
-        connection = PrepUtil.getConnection(getConfiguredProperty("mssql_jdbc_test_connection_properties"));
+        connection = PrepUtil.getConnection(getConnectionString());
         if (TestUtils.serverSupportsUTF8(connection)) {
             databaseName = RandomUtil.getIdentifier("UTF8Database");
             tableName = RandomUtil.getIdentifier("RequestBoundaryTable");

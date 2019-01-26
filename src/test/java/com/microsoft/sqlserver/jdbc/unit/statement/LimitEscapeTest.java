@@ -109,7 +109,7 @@ public class LimitEscapeTest extends AbstractTest {
         }
 
         public void verifyTranslation() throws Exception {
-            Class[] cArg = new Class[1];
+            Class<?>[] cArg = new Class<?>[1];
             cArg[0] = String.class;
             Class<?> innerClass = Class.forName("com.microsoft.sqlserver.jdbc.JDBCSyntaxTranslator");
             Constructor<?> ctor = innerClass.getDeclaredConstructor();
@@ -804,7 +804,7 @@ public class LimitEscapeTest extends AbstractTest {
         qry.setExceptionMsg("Incorrect syntax near '{'.");
         qry.execute(conn);
 
-        log.fine("Tranlsation verified for " + qry.queryCount + " queries");
+        log.fine("Tranlsation verified for " + Query.queryCount + " queries");
     }
 
     /**
@@ -836,7 +836,7 @@ public class LimitEscapeTest extends AbstractTest {
         for (i = 0; i < offsetQuery.size(); ++i) {
             try {
                 // Do not execute query. Exception will be thrown when verifying translation.
-                Query qry = new Query(offsetQuery.elementAt(i), "", 0, // # of rows
+                new Query(offsetQuery.elementAt(i), "", 0, // # of rows
                         0, // # of columns
                         null, // id column values
                         null, // int column values
@@ -851,7 +851,7 @@ public class LimitEscapeTest extends AbstractTest {
         // Test the parsing error with unmatched braces in limit clause
         try {
             // Do not execute query. Exception will be thrown when verifying translation.
-            Query qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit (2))}",
+            new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit (2))}",
                     "", 0, // # of rows
                     0, // # of columns
                     null, // id column values

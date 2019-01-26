@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -121,7 +122,12 @@ class CekTableEntry {
 /**
  * Contains all CEKs, each row represents one unique CEK (represented by CekTableEntry).
  */
-class CekTable {
+class CekTable implements Serializable {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -4568542970907052239L;
+
     CekTableEntry[] keyList;
 
     CekTable(int tableSize) {

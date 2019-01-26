@@ -1152,7 +1152,7 @@ final class Parameter {
 
         try {
             inputDTV.sendCryptoMetaData(this.cryptoMeta, tdsWriter);
-            inputDTV.jdbcTypeSetByUser(getJdbcTypeSetByUser(), getValueLength());
+            inputDTV.setJdbcTypeSetByUser(getJdbcTypeSetByUser(), getValueLength());
             inputDTV.sendByRPC(name, null, conn.getDatabaseCollation(), valueLength, isOutput() ? outScale : scale,
                     isOutput(), tdsWriter, conn);
         } finally {

@@ -3,6 +3,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.1.4] Preview Release
+### Added
+- Added APIs for DataSourceFactory and OSGI Framework [#700](https://github.com/Microsoft/mssql-jdbc/pull/700)
+- Added support for OffsetDateTime to be passed as 'type' in ResultSet.getObject() [#830](https://github.com/Microsoft/mssql-jdbc/pull/830)
+- Added support for Active Directory MSI Authentication [#838](https://github.com/Microsoft/mssql-jdbc/pull/838)
+- Added more datatype tests to JUnit test suite [#878](https://github.com/Microsoft/mssql-jdbc/pull/878) [#916](https://github.com/Microsoft/mssql-jdbc/pull/916)
+- Added an option to perform JUnit testing against Azure Data Warehouse [#903](https://github.com/Microsoft/mssql-jdbc/pull/903)
+- Added new APIs to retrieve SQL Server error information received with SQLServerException [#905](https://github.com/Microsoft/mssql-jdbc/pull/905)
+
+### Fixed Issues
+- Fixed issue with java.time.OffsetDateTime value sent to the server being affected by the default timezone [#831](https://github.com/Microsoft/mssql-jdbc/pull/831)
+- Fixed SSL certificate validation to respect wildcards [#836](https://github.com/Microsoft/mssql-jdbc/pull/836)
+- Fixed Bulk Copy for batch insert operation to not error out against specific datatypes [#912](https://github.com/Microsoft/mssql-jdbc/pull/912)
+
+### Changed
+- Fixed synchronization on a non-final field [#860](https://github.com/Microsoft/mssql-jdbc/pull/860)
+- Removed hardcoded error messages from test file [#904](https://github.com/Microsoft/mssql-jdbc/pull/904)
+- Updated Issue and Pull Request templates [#906](https://github.com/Microsoft/mssql-jdbc/pull/906)
+- Updated JUnit tests by closing all resources consistently and updated Maven dependency versions to latest [#919](https://github.com/Microsoft/mssql-jdbc/pull/919)
+
 ## [7.1.3] Preview Release
 ### Added
 - Added a new SQLServerMetaData constructor for string values of length greater than 4000 [#876](https://github.com/Microsoft/mssql-jdbc/pull/876)

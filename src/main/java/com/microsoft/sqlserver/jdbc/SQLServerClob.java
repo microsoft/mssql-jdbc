@@ -12,12 +12,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.Reader;
-import java.io.Serializable;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
-import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
@@ -68,83 +65,13 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
     }
 
     @Override
-    public void free() throws SQLException {
-        super.free();
-    }
-
-    @Override
-    public InputStream getAsciiStream() throws SQLException {
-        return super.getAsciiStream();
-    }
-
-    @Override
-    public Reader getCharacterStream() throws SQLException {
-        return super.getCharacterStream();
-    }
-
-    @Override
-    public Reader getCharacterStream(long pos, long length) throws SQLException {
-        return super.getCharacterStream(pos, length);
-    }
-
-    @Override
-    public String getSubString(long pos, int length) throws SQLException {
-        return super.getSubString(pos, length);
-    }
-
-    @Override
-    public long length() throws SQLException {
-        return super.length();
-    }
-
-    @Override
-    void fillFromStream() throws SQLException {
-        super.fillFromStream();
-    }
-
-    @Override
-    public long position(Clob searchstr, long start) throws SQLException {
-        return super.position(searchstr, start);
-    }
-
-    @Override
-    public long position(String searchstr, long start) throws SQLException {
-        return super.position(searchstr, start);
-    }
-
-    @Override
-    public void truncate(long len) throws SQLException {
-        super.truncate(len);
-    }
-
-    @Override
-    public OutputStream setAsciiStream(long pos) throws SQLException {
-        return super.setAsciiStream(pos);
-    }
-
-    @Override
-    public Writer setCharacterStream(long pos) throws SQLException {
-        return super.setCharacterStream(pos);
-    }
-
-    @Override
-    public int setString(long pos, String s) throws SQLException {
-        return super.setString(pos, s);
-    }
-
-    @Override
-    public int setString(long pos, String str, int offset, int len) throws SQLException {
-        return super.setString(pos, str, offset, len);
-    }
-
-    @Override
     final JDBCType getJdbcType() {
         return JDBCType.CLOB;
     }
 }
 
 
-abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
+abstract class SQLServerClobBase extends SQLServerLob {
     /**
      * Always refresh SerialVersionUID when prompted
      */
@@ -179,13 +106,13 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
     }
 
     // Unique id generator for each instance (used for logging).
-    static private final AtomicInteger baseID = new AtomicInteger(0);
+    static private final AtomicInteger BASE_ID = new AtomicInteger(0);
 
     private Charset defaultCharset = null;
-    
+
     // Returns unique id for each instance.
     private static int nextInstanceID() {
-        return baseID.incrementAndGet();
+        return BASE_ID.incrementAndGet();
     }
 
     abstract JDBCType getJdbcType();
@@ -293,7 +220,9 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
             }
             getterStream = new BufferedInputStream(inputStream);
         } else {
-            getterStream = new ByteArrayInputStream(value.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+            if (null != value) {
+                getterStream = new ByteArrayInputStream(value.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+            }
         }
         activeStreams.add(getterStream);
         return getterStream;
@@ -400,6 +329,8 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
         checkClosed();
         if (null == value && activeStreams.get(0) instanceof BaseInputStream) {
             return (long) ((BaseInputStream) activeStreams.get(0)).payloadLength;
+        } else if (null == value) {
+            return 0;
         }
         return value.length();
     }
@@ -678,7 +609,7 @@ abstract class SQLServerClobBase extends SQLServerLob implements Serializable {
 
         return len;
     }
-    
+
     protected void setDefaultCharset(Charset c) {
         this.defaultCharset = c;
     }

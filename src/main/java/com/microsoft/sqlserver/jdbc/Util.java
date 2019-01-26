@@ -833,6 +833,8 @@ final class Util {
                     return;
                 }
                 break;
+            default:
+                break;
         }
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
         Object[] msgArgs = {jdbcType};
@@ -863,6 +865,8 @@ final class Util {
                         break;
                 }
                 break;
+            default:
+                break;
         }
 
         switch (javaType) {
@@ -878,13 +882,10 @@ final class Util {
                 } else {
                     return ((null == value) ? 0 : ((String) value).length());
                 }
-
             case BYTEARRAY:
                 return ((null == value) ? 0 : ((byte[]) value).length);
-
             case BIGDECIMAL:
                 int length;
-
                 if (null == precision) {
                     if (null == value) {
                         length = 0;
@@ -914,30 +915,26 @@ final class Util {
                 } else {
                     length = precision;
                 }
-
                 return length;
-
             case TIMESTAMP:
             case TIME:
             case DATETIMEOFFSET:
                 return ((null == scale) ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : scale);
-
             case CLOB:
                 return ((null == value) ? 0 : (DataTypes.NTEXT_MAX_CHARS * 2));
-
             case NCLOB:
             case READER:
                 return ((null == value) ? 0 : DataTypes.NTEXT_MAX_CHARS);
+            default:
+                return 0;
         }
-        return 0;
     }
 
     // If the access token is expiring within next 10 minutes, lets just re-create a token for this connection attempt.
     // If the token is expiring within the next 45 mins, try to fetch a new token if there is no thread already doing
     // it.
     // If a thread is already doing the refresh, just use the existing token and proceed.
-    static synchronized boolean checkIfNeedNewAccessToken(SQLServerConnection connection) {
-        Date accessTokenExpireDate = connection.getAuthenticationResult().getExpiresOnDate();
+    static synchronized boolean checkIfNeedNewAccessToken(SQLServerConnection connection, Date accessTokenExpireDate) {
         Date now = new Date();
 
         // if the token's expiration is within the next 45 mins
@@ -957,7 +954,6 @@ final class Util {
                 }
             }
         }
-
         return false;
     }
 

@@ -807,6 +807,21 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 
     /**
+     * Sets the client id to be used to retrieve access token from MSI EndPoint.
+     * 
+     * @param msiClientId
+     *        Client ID of User Assigned Managed Identity
+     */
+    public void setMSIClientId(String msiClientId);
+
+    /**
+     * Returns the value for the connection property 'msiClientId'.
+     * 
+     * @return msiClientId property value
+     */
+    public String getMSIClientId();
+  
+    /**
      * Sets whether the driver should allow the use of platform GSS for Kerberos Integrated Authentication.
      * 
      * @param usePlatformGSS

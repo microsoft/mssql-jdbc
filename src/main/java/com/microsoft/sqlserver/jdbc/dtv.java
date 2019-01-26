@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -23,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -630,11 +630,8 @@ final class DTV {
                                                                                                                         * 1000,
                                                                                                                 "");
 
-                        // The behavior is similar to microsoft.sql.DateTimeOffset
-                        // In Timestamp format, leading zeros for the fields can be omitted.
-                        String offsetTimeStr = conn.baseYear() + "-01-01" + ' ' + offsetTimeValue.getHour() + ':'
-                                + offsetTimeValue.getMinute() + ':' + offsetTimeValue.getSecond();
-                        utcMillis = Timestamp.valueOf(offsetTimeStr).getTime();
+                        LocalDate baseDate = LocalDate.of(conn.baseYear(), 1, 1);
+                        utcMillis = offsetTimeValue.atDate(baseDate).toEpochSecond() * 1000;
                         break;
 
                     case OFFSETDATETIME:
@@ -679,14 +676,7 @@ final class DTV {
                                                                                                                         * 1000,
                                                                                                                 "");
 
-                        // The behavior is similar to microsoft.sql.DateTimeOffset
-                        // In Timestamp format, only YEAR needs to have 4 digits. The leading zeros for the rest of the
-                        // fields can be omitted.
-                        String offDateTimeStr = String.format("%04d", offsetDateTimeValue.getYear()) + '-'
-                                + offsetDateTimeValue.getMonthValue() + '-' + offsetDateTimeValue.getDayOfMonth() + ' '
-                                + offsetDateTimeValue.getHour() + ':' + offsetDateTimeValue.getMinute() + ':'
-                                + offsetDateTimeValue.getSecond();
-                        utcMillis = Timestamp.valueOf(offDateTimeStr).getTime();
+                        utcMillis = offsetDateTimeValue.toEpochSecond() * 1000;
                         break;
 
                     case DATETIMEOFFSET: {
@@ -1897,7 +1887,7 @@ final class DTV {
         tdsWriter.setCryptoMetaData(cryptoMeta);
     }
 
-    void jdbcTypeSetByUser(JDBCType jdbcTypeSetByUser, int valueLength) {
+    void setJdbcTypeSetByUser(JDBCType jdbcTypeSetByUser, int valueLength) {
         this.jdbcTypeSetByUser = jdbcTypeSetByUser;
         this.valueLength = valueLength;
     }
@@ -1971,6 +1961,7 @@ final class AppDTVImpl extends DTVImpl {
     private StreamSetterArgs streamSetterArgs;
     private Calendar cal;
     private Integer scale;
+    @SuppressWarnings("unused")
     private boolean forceEncrypt;
     private SqlVariant internalVariant;
 
@@ -2363,7 +2354,12 @@ final class AppDTVImpl extends DTVImpl {
  *
  * CallableStatement output parameters have their type info returned in a RETURNVALUE response stream.
  */
-final class TypeInfo {
+final class TypeInfo implements Serializable {
+    /**
+     * Always refresh SerialVersionUID when prompted
+     */
+    private static final long serialVersionUID = 6641910171379986768L;
+
     private int maxLength; // Max length of data
     private SSLenType ssLenType; // Length type (FIXEDLENTYPE, PARTLENTYPE, etc.)
     private int precision;
@@ -2947,7 +2943,7 @@ final class TypeInfo {
              *         when an error occurs
              */
             public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
-                XMLTDSHeader xmlTDSHeader = new XMLTDSHeader(tdsReader);
+                new XMLTDSHeader(tdsReader);
                 typeInfo.ssLenType = SSLenType.PARTLENTYPE;
                 typeInfo.ssType = SSType.XML;
                 typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE / 2;
