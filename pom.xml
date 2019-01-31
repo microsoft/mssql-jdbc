@@ -70,19 +70,19 @@
 			<version>1.6.5</version>
 			<optional>true</optional>
 		</dependency>
-    
+
 		<!-- dependencies provided by an OSGi-Framework -->
 		<dependency>
-		    <groupId>org.osgi</groupId>
-		    <artifactId>org.osgi.core</artifactId>
-		    <version>${osgi.version}</version>
-		    <scope>provided</scope>
+			<groupId>org.osgi</groupId>
+			<artifactId>org.osgi.core</artifactId>
+			<version>${osgi.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
-		    <groupId>org.osgi</groupId>
-		    <artifactId>org.osgi.compendium</artifactId>
-		    <version>${osgi.version}</version>
-		    <scope>provided</scope>
+			<groupId>org.osgi</groupId>
+			<artifactId>org.osgi.compendium</artifactId>
+			<version>${osgi.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<!-- dependencies for running tests -->
@@ -381,10 +381,12 @@
 				<extensions>true</extensions>
 				<configuration>
 					<instructions>
-						<_exportcontents>export com.microsoft.sqlserver.jdbc</_exportcontents>
-						<_exportcontents>export microsoft.sql</_exportcontents>
-						<_exportcontents>export
-							com.microsoft.sqlserver.jdbc.dataclassification</_exportcontents>
+						<_exportcontents>
+							com.microsoft.sqlserver.jdbc,
+							com.microsoft.sqlserver.jdbc.osgi,
+							com.microsoft.sqlserver.jdbc.dataclassification,
+							microsoft.sql
+						</_exportcontents>
 						<Import-Package>!microsoft.sql,*</Import-Package>
 						<Bundle-Activator>com.microsoft.sqlserver.jdbc.osgi.Activator</Bundle-Activator>
 					</instructions>
