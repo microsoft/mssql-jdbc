@@ -98,6 +98,10 @@ final class ParameterUtils {
                         break;
                     }
                     // Fall through to test character
+                default:
+                    if (ch == chTmp)
+                        return offset - 1;
+                    break;
                 case '[':
                     chTmp = ']';
                 case '\'':
@@ -111,10 +115,6 @@ final class ParameterUtils {
                             ++offset;
                         }
                     }
-                    break;
-                default:
-                    if (ch == chTmp)
-                        return offset - 1;
                     break;
             }
         }
