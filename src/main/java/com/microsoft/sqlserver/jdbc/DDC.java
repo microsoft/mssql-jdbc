@@ -573,6 +573,22 @@ final class DDC {
 
         try {
             switch (jdbcType) {
+                case CLOB:
+                    return new SQLServerClob(stream, typeInfo);
+                case NCLOB:
+                    return new SQLServerNClob(stream, typeInfo);
+                case SQLXML:
+                    return new SQLServerSQLXML(stream, getterArgs, typeInfo);
+                case BINARY:
+                case VARBINARY:
+                case LONGVARBINARY:
+                case BLOB:
+                    // Where allowed, streams convert directly to binary representation
+                    if (StreamType.BINARY == getterArgs.streamType)
+                        return stream;
+                    if (JDBCType.BLOB == jdbcType)
+                        return new SQLServerBlob(stream);
+                    return stream.getBytes();
                 case CHAR:
                 case VARCHAR:
                 case LONGVARCHAR:
@@ -580,7 +596,6 @@ final class DDC {
                 case NVARCHAR:
                 case LONGNVARCHAR:
                 default:
-
                     // Binary streams to character types:
                     // - Direct conversion to ASCII stream
                     // - Convert as hexized value to other character types
@@ -597,12 +612,14 @@ final class DDC {
                                 return Util.readGUID(byteValue);
                             } else if (JDBCType.GEOMETRY == jdbcType) {
                                 if (!typeInfo.getSSTypeName().equalsIgnoreCase(jdbcType.toString())) {
-                                    DataTypes.throwConversionError(typeInfo.getSSTypeName().toUpperCase(), jdbcType.toString());
+                                    DataTypes.throwConversionError(typeInfo.getSSTypeName().toUpperCase(),
+                                            jdbcType.toString());
                                 }
                                 return Geometry.STGeomFromWKB(byteValue);
                             } else if (JDBCType.GEOGRAPHY == jdbcType) {
                                 if (!typeInfo.getSSTypeName().equalsIgnoreCase(jdbcType.toString())) {
-                                    DataTypes.throwConversionError(typeInfo.getSSTypeName().toUpperCase(), jdbcType.toString());
+                                    DataTypes.throwConversionError(typeInfo.getSSTypeName().toUpperCase(),
+                                            jdbcType.toString());
                                 }
                                 return Geography.STGeomFromWKB(byteValue);
                             } else {
@@ -643,28 +660,6 @@ final class DDC {
                     return convertStringToObject(new String(stream.getBytes(), typeInfo.getCharset()),
                             typeInfo.getCharset(), jdbcType, getterArgs.streamType);
 
-                case CLOB:
-                    return new SQLServerClob(stream, typeInfo);
-
-                case NCLOB:
-                    return new SQLServerNClob(stream, typeInfo);
-                case SQLXML:
-                    return new SQLServerSQLXML(stream, getterArgs, typeInfo);
-
-                case BINARY:
-                case VARBINARY:
-                case LONGVARBINARY:
-                case BLOB:
-
-                    // Where allowed, streams convert directly to binary representation
-
-                    if (StreamType.BINARY == getterArgs.streamType)
-                        return stream;
-
-                    if (JDBCType.BLOB == jdbcType)
-                        return new SQLServerBlob(stream);
-
-                    return stream.getBytes();
             }
         }
 

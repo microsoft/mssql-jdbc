@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 
 
@@ -123,6 +124,11 @@ public abstract class AbstractTest {
         } finally {
             connection = null;
         }
+    }
+
+    @BeforeAll
+    public static void registerDriver() throws Exception {
+        SQLServerDriver.register();
     }
 
     /**

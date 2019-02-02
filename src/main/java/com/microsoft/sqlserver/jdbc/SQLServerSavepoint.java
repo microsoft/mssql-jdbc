@@ -17,6 +17,11 @@ import java.text.MessageFormat;
  */
 
 public final class SQLServerSavepoint implements ISQLServerSavepoint {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = 1857415943191289598L;
+    
     private final String sName;
     private final int nId;
     private final SQLServerConnection con;

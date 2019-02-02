@@ -293,21 +293,23 @@ public final class SQLServerException extends java.sql.SQLException {
         // since the SQL99 states cant be located on the web (must pay) and the XOPEN states appear to
         // be specific. Therefore if the driver is in SQL 99 mode we must map to SQL 99 state codes.
         // SQL99 values based on previous SQLServerConnect code and some inet values..
-        if (state == null)
-            return null;
-        if (state.equals("07009"))
-            return "S1093";
+        if (null != state) {
+            switch (state) {
+                case "07009":
+                    return "S1093";
 
-        // Connection (network) failure after connection made
-        if (state.equals(SQLServerException.EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH))
-            return "08S01";
-        if (state.equals(SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE))
-            return "08S01";
-
-        // if (state.equals(SQLServerException.EXCEPTION_XOPEN_NETWORK_ERROR))
-        // return "S0022"; //Previous SQL99 state code for bad column name
-
-        return "";
+                // Connection (network) failure after connection made
+                case SQLServerException.EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH:
+                    return "08S01";
+                case SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE:
+                    return "08S01";
+                default:
+                    return "";
+            }
+            // if (state.equals(SQLServerException.EXCEPTION_XOPEN_NETWORK_ERROR))
+            // return "S0022"; //Previous SQL99 state code for bad column name
+        }
+        return null;
     }
 
     /**
@@ -336,9 +338,9 @@ public final class SQLServerException extends java.sql.SQLException {
                     return "42S02"; // Table not found
                 case 207:
                     return "42S22"; // Column not found
-                // case 156: return "42000"; //Invalid syntax
+                default:
+                    return "42000"; // Use XOPEN 'Syntax error or access violation'
             }
-            return "42000"; // Use XOPEN 'Syntax error or access violation'
             // The error code came from the db but XOPEN does not have a specific case for it.
         } else {
             switch (errNum) {
@@ -358,8 +360,9 @@ public final class SQLServerException extends java.sql.SQLException {
                     return "40001"; // deadlock detected
                 case 2627:
                     return "23000"; // DPM 4.04. Primary key violation
+                default:
+                    return "S000" + databaseState;
             }
-            return "S000" + databaseState;
         }
     }
 

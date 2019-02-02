@@ -74,6 +74,10 @@ public class PoolingTest extends AbstractTest {
             if (e.getMessage().startsWith(TestResource.getResource("R_invalidObjectName"))) {
                 tempTableFileRemoved = true;
             }
+        } finally {
+            if (null != pc) {
+                pc.close();
+            }
         }
         assertTrue(tempTableFileRemoved, TestResource.getResource("R_tempTAbleNotRemoved"));
     }

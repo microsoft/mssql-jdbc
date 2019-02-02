@@ -547,7 +547,6 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *        the procedure name
      * @throws SQLServerException
      */
-    @SuppressWarnings("serial")
     SQLServerParameterMetaData(SQLServerPreparedStatement st, String sProcString) throws SQLServerException {
 
         assert null != st;
@@ -791,31 +790,35 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     @Override
     public int getParameterType(int param) throws SQLServerException {
         checkClosed();
-
-        int parameterType;
+        int parameterType = 0;
         try {
             if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
                 parameterType = queryMetaMap.get(param).parameterType;
             } else {
-                parameterType = (short) getParameterInfo(param).get("DATA_TYPE");
+                Map<String, Object> info = getParameterInfo(param);
+                if (null != info) {
+                    parameterType = (short) info.get("DATA_TYPE");
+                }
             }
-
-            switch (parameterType) {
-                case microsoft.sql.Types.DATETIME:
-                case microsoft.sql.Types.SMALLDATETIME:
-                    parameterType = SSType.DATETIME2.getJDBCType().asJavaSqlType();
-                    break;
-                case microsoft.sql.Types.MONEY:
-                case microsoft.sql.Types.SMALLMONEY:
-                    parameterType = SSType.DECIMAL.getJDBCType().asJavaSqlType();
-                    break;
-                case microsoft.sql.Types.GUID:
-                    parameterType = SSType.CHAR.getJDBCType().asJavaSqlType();
-                    break;
+            if (0 != parameterType) {
+                switch (parameterType) {
+                    case microsoft.sql.Types.DATETIME:
+                    case microsoft.sql.Types.SMALLDATETIME:
+                        parameterType = SSType.DATETIME2.getJDBCType().asJavaSqlType();
+                        break;
+                    case microsoft.sql.Types.MONEY:
+                    case microsoft.sql.Types.SMALLMONEY:
+                        parameterType = SSType.DECIMAL.getJDBCType().asJavaSqlType();
+                        break;
+                    case microsoft.sql.Types.GUID:
+                        parameterType = SSType.CHAR.getJDBCType().asJavaSqlType();
+                        break;
+                    default:
+                        break;
+                }
             }
-
             return parameterType;
         } catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);

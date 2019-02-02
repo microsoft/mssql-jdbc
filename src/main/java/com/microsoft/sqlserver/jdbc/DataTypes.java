@@ -612,55 +612,56 @@ enum JavaType {
 
 
 enum JDBCType {
-    UNKNOWN(Category.UNKNOWN, 999, "java.lang.Object"),
-    ARRAY(Category.UNKNOWN, java.sql.Types.ARRAY, "java.lang.Object"),
-    BIGINT(Category.NUMERIC, java.sql.Types.BIGINT, "java.lang.Long"),
+    UNKNOWN(Category.UNKNOWN, 999, Object.class.getName()),
+    ARRAY(Category.UNKNOWN, java.sql.Types.ARRAY, Object.class.getName()),
+    BIGINT(Category.NUMERIC, java.sql.Types.BIGINT, Long.class.getName()),
     BINARY(Category.BINARY, java.sql.Types.BINARY, "[B"),
-    BIT(Category.NUMERIC, java.sql.Types.BIT, "java.lang.Boolean"),
-    BLOB(Category.BLOB, java.sql.Types.BLOB, "java.sql.Blob"),
-    BOOLEAN(Category.NUMERIC, java.sql.Types.BOOLEAN, "java.lang.Boolean"),
-    CHAR(Category.CHARACTER, java.sql.Types.CHAR, "java.lang.String"),
-    CLOB(Category.CLOB, java.sql.Types.CLOB, "java.sql.Clob"),
-    DATALINK(Category.UNKNOWN, java.sql.Types.DATALINK, "java.lang.Object"),
-    DATE(Category.DATE, java.sql.Types.DATE, "java.sql.Date"),
-    DATETIMEOFFSET(Category.DATETIMEOFFSET, microsoft.sql.Types.DATETIMEOFFSET, "microsoft.sql.DateTimeOffset"),
-    DECIMAL(Category.NUMERIC, java.sql.Types.DECIMAL, "java.math.BigDecimal"),
-    DISTINCT(Category.UNKNOWN, java.sql.Types.DISTINCT, "java.lang.Object"),
-    DOUBLE(Category.NUMERIC, java.sql.Types.DOUBLE, "java.lang.Double"),
-    FLOAT(Category.NUMERIC, java.sql.Types.FLOAT, "java.lang.Double"),
-    INTEGER(Category.NUMERIC, java.sql.Types.INTEGER, "java.lang.Integer"),
-    JAVA_OBJECT(Category.UNKNOWN, java.sql.Types.JAVA_OBJECT, "java.lang.Object"),
-    LONGNVARCHAR(Category.LONG_NCHARACTER, -16, "java.lang.String"),
+    BIT(Category.NUMERIC, java.sql.Types.BIT, Boolean.class.getName()),
+    BLOB(Category.BLOB, java.sql.Types.BLOB, java.sql.Blob.class.getName()),
+    BOOLEAN(Category.NUMERIC, java.sql.Types.BOOLEAN, Boolean.class.getName()),
+    CHAR(Category.CHARACTER, java.sql.Types.CHAR, String.class.getName()),
+    CLOB(Category.CLOB, java.sql.Types.CLOB, java.sql.Clob.class.getName()),
+    DATALINK(Category.UNKNOWN, java.sql.Types.DATALINK, Object.class.getName()),
+    DATE(Category.DATE, java.sql.Types.DATE, java.sql.Date.class.getName()),
+    DATETIMEOFFSET(Category.DATETIMEOFFSET, microsoft.sql.Types.DATETIMEOFFSET, microsoft.sql.DateTimeOffset.class
+            .getName()),
+    DECIMAL(Category.NUMERIC, java.sql.Types.DECIMAL, BigDecimal.class.getName()),
+    DISTINCT(Category.UNKNOWN, java.sql.Types.DISTINCT, Object.class.getName()),
+    DOUBLE(Category.NUMERIC, java.sql.Types.DOUBLE, Double.class.getName()),
+    FLOAT(Category.NUMERIC, java.sql.Types.FLOAT, Double.class.getName()),
+    INTEGER(Category.NUMERIC, java.sql.Types.INTEGER, Integer.class.getName()),
+    JAVA_OBJECT(Category.UNKNOWN, java.sql.Types.JAVA_OBJECT, Object.class.getName()),
+    LONGNVARCHAR(Category.LONG_NCHARACTER, -16, String.class.getName()),
     LONGVARBINARY(Category.LONG_BINARY, java.sql.Types.LONGVARBINARY, "[B"),
-    LONGVARCHAR(Category.LONG_CHARACTER, java.sql.Types.LONGVARCHAR, "java.lang.String"),
-    NCHAR(Category.NCHARACTER, -15, "java.lang.String"),
-    NCLOB(Category.NCLOB, 2011, "java.sql.NClob"),
-    NULL(Category.UNKNOWN, java.sql.Types.NULL, "java.lang.Object"),
-    NUMERIC(Category.NUMERIC, java.sql.Types.NUMERIC, "java.math.BigDecimal"),
-    NVARCHAR(Category.NCHARACTER, -9, "java.lang.String"),
-    OTHER(Category.UNKNOWN, java.sql.Types.OTHER, "java.lang.Object"),
-    REAL(Category.NUMERIC, java.sql.Types.REAL, "java.lang.Float"),
-    REF(Category.UNKNOWN, java.sql.Types.REF, "java.lang.Object"),
-    ROWID(Category.UNKNOWN, -8, "java.lang.Object"),
-    SMALLINT(Category.NUMERIC, java.sql.Types.SMALLINT, "java.lang.Short"),
-    SQLXML(Category.SQLXML, 2009, "java.lang.Object"),
-    STRUCT(Category.UNKNOWN, java.sql.Types.STRUCT, "java.lang.Object"),
-    TIME(Category.TIME, java.sql.Types.TIME, "java.sql.Time"),
-    TIME_WITH_TIMEZONE(Category.TIME_WITH_TIMEZONE, 2013, "java.time.OffsetTime"),
-    TIMESTAMP(Category.TIMESTAMP, java.sql.Types.TIMESTAMP, "java.sql.Timestamp"),
-    TIMESTAMP_WITH_TIMEZONE(Category.TIMESTAMP_WITH_TIMEZONE, 2014, "java.time.OffsetDateTime"),
-    TINYINT(Category.NUMERIC, java.sql.Types.TINYINT, "java.lang.Short"),
+    LONGVARCHAR(Category.LONG_CHARACTER, java.sql.Types.LONGVARCHAR, String.class.getName()),
+    NCHAR(Category.NCHARACTER, -15, String.class.getName()),
+    NCLOB(Category.NCLOB, 2011, java.sql.NClob.class.getName()),
+    NULL(Category.UNKNOWN, java.sql.Types.NULL, Object.class.getName()),
+    NUMERIC(Category.NUMERIC, java.sql.Types.NUMERIC, BigDecimal.class.getName()),
+    NVARCHAR(Category.NCHARACTER, -9, String.class.getName()),
+    OTHER(Category.UNKNOWN, java.sql.Types.OTHER, Object.class.getName()),
+    REAL(Category.NUMERIC, java.sql.Types.REAL, Float.class.getName()),
+    REF(Category.UNKNOWN, java.sql.Types.REF, Object.class.getName()),
+    ROWID(Category.UNKNOWN, -8, Object.class.getName()),
+    SMALLINT(Category.NUMERIC, java.sql.Types.SMALLINT, Short.class.getName()),
+    SQLXML(Category.SQLXML, 2009, Object.class.getName()),
+    STRUCT(Category.UNKNOWN, java.sql.Types.STRUCT, Object.class.getName()),
+    TIME(Category.TIME, java.sql.Types.TIME, java.sql.Time.class.getName()),
+    TIME_WITH_TIMEZONE(Category.TIME_WITH_TIMEZONE, 2013, java.time.OffsetTime.class.getName()),
+    TIMESTAMP(Category.TIMESTAMP, java.sql.Types.TIMESTAMP, java.sql.Timestamp.class.getName()),
+    TIMESTAMP_WITH_TIMEZONE(Category.TIMESTAMP_WITH_TIMEZONE, 2014, java.time.OffsetDateTime.class.getName()),
+    TINYINT(Category.NUMERIC, java.sql.Types.TINYINT, Short.class.getName()),
     VARBINARY(Category.BINARY, java.sql.Types.VARBINARY, "[B"),
-    VARCHAR(Category.CHARACTER, java.sql.Types.VARCHAR, "java.lang.String"),
-    MONEY(Category.NUMERIC, microsoft.sql.Types.MONEY, "java.math.BigDecimal"),
-    SMALLMONEY(Category.NUMERIC, microsoft.sql.Types.SMALLMONEY, "java.math.BigDecimal"),
-    TVP(Category.TVP, microsoft.sql.Types.STRUCTURED, "java.lang.Object"),
-    DATETIME(Category.TIMESTAMP, microsoft.sql.Types.DATETIME, "java.sql.Timestamp"),
-    SMALLDATETIME(Category.TIMESTAMP, microsoft.sql.Types.SMALLDATETIME, "java.sql.Timestamp"),
-    GUID(Category.CHARACTER, microsoft.sql.Types.GUID, "java.lang.String"),
-    SQL_VARIANT(Category.SQL_VARIANT, microsoft.sql.Types.SQL_VARIANT, "java.lang.Object"),
-    GEOMETRY(Category.GEOMETRY, microsoft.sql.Types.GEOMETRY, "java.lang.Object"),
-    GEOGRAPHY(Category.GEOGRAPHY, microsoft.sql.Types.GEOGRAPHY, "java.lang.Object");
+    VARCHAR(Category.CHARACTER, java.sql.Types.VARCHAR, String.class.getName()),
+    MONEY(Category.NUMERIC, microsoft.sql.Types.MONEY, BigDecimal.class.getName()),
+    SMALLMONEY(Category.NUMERIC, microsoft.sql.Types.SMALLMONEY, BigDecimal.class.getName()),
+    TVP(Category.TVP, microsoft.sql.Types.STRUCTURED, Object.class.getName()),
+    DATETIME(Category.TIMESTAMP, microsoft.sql.Types.DATETIME, java.sql.Timestamp.class.getName()),
+    SMALLDATETIME(Category.TIMESTAMP, microsoft.sql.Types.SMALLDATETIME, java.sql.Timestamp.class.getName()),
+    GUID(Category.CHARACTER, microsoft.sql.Types.GUID, String.class.getName()),
+    SQL_VARIANT(Category.SQL_VARIANT, microsoft.sql.Types.SQL_VARIANT, Object.class.getName()),
+    GEOMETRY(Category.GEOMETRY, microsoft.sql.Types.GEOMETRY, Object.class.getName()),
+    GEOGRAPHY(Category.GEOGRAPHY, microsoft.sql.Types.GEOGRAPHY, Object.class.getName());
 
     final Category category;
     private final int intValue;
@@ -1143,8 +1144,6 @@ final class DataTypes {
     final static int MAX_VARTYPE_MAX_CHARS = 0x3FFFFFFF;
     final static int MAX_VARTYPE_MAX_BYTES = 0x7FFFFFFF;
 
-    static private java.util.logging.Logger stmtDT;
-
     // Special length indicator for varchar(max), nvarchar(max) and varbinary(max).
     static final int MAXTYPE_LENGTH = 0xFFFF;
 
@@ -1160,12 +1159,12 @@ final class DataTypes {
             case NVARCHAR:
             case LONGNVARCHAR:
             case NCLOB:
-                assert MAX_VARTYPE_MAX_CHARS == NTEXT_MAX_CHARS;
+                // assert MAX_VARTYPE_MAX_CHARS == NTEXT_MAX_CHARS;
                 maxLength = DataTypes.MAX_VARTYPE_MAX_CHARS;
                 break;
 
             default:
-                assert MAX_VARTYPE_MAX_BYTES == IMAGE_TEXT_MAX_BYTES;
+                // assert MAX_VARTYPE_MAX_BYTES == IMAGE_TEXT_MAX_BYTES;
                 maxLength = DataTypes.MAX_VARTYPE_MAX_BYTES;
                 break;
         }

@@ -1,5 +1,6 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -17,6 +18,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.text.DateFormatSymbols;
 import java.text.MessageFormat;
 import java.util.Calendar;
 import java.util.EnumSet;
@@ -48,7 +50,7 @@ import microsoft.sql.DateTimeOffset;
  * date/time/datetime2/datetimeoffset data types. Also includes tests for data type mappings.
  */
 @RunWith(JUnitPlatform.class)
-public class KatmaiDataTypesTest extends AbstractTest {
+public class DataTypesTest extends AbstractTest {
 
     final static String tableName = RandomUtil.getIdentifier("KatmaiDataTypesTable");
     final static String escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
@@ -57,7 +59,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
     final static String escapedProcName = AbstractSQLGenerator.escapeIdentifier(procName);
 
     enum SQLType {
-        date("yyyy-mm-dd", 0, java.sql.Types.DATE, "Date"),
+        date("yyyy-mm-dd", 0, java.sql.Types.DATE, "java.sql.Date"),
 
         time("hh:mm:ss", 7, java.sql.Types.TIME, "java.sql.Time"),
 
@@ -1059,6 +1061,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     };
 
+    @Test
     public void testResultSetGetters() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             for (TestValue value : TestValue.values())
@@ -1066,6 +1069,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
+    @Test
     public void testResultSetUpdaters() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             for (TestValue value : TestValue.values())
@@ -1073,6 +1077,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
+    @Test
     public void testSetters() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDateTime=true")) {
             for (TestValue value : TestValue.values())
@@ -1080,6 +1085,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
+    @Test
     public void testCallableStatementGetters() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             for (TestValue value : TestValue.values())
@@ -1087,6 +1093,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
+    @Test
     public void testResultSetMetaData() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             for (TestValue value : TestValue.values())
@@ -1094,6 +1101,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
         }
     }
 
+    @Test
     public void testParameterMetaData() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             for (TestValue value : TestValue.values())
@@ -1104,6 +1112,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
     /*
      * test CS.setObject(timestamp, TIME)/registerOutParam(TIME) with sendTimeAsDatetime
      */
+    @Test
     public void testSendTimestampAsTimeAsDatetime() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
             try (Statement stmt = conn.createStatement()) {
@@ -1142,6 +1151,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
      * test sending Timestamp to the server via an updater does not result in the same behavior as a setter wrt
      * double-rounding of fractional seconds
      */
+    @Test
     public void testDoubleRounding() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
 
@@ -1209,6 +1219,7 @@ public class KatmaiDataTypesTest extends AbstractTest {
      * year of an imperial era. See for more details:
      * http://java.sun.com/javase/6/docs/technotes/guides/intl/calendar.doc.html
      */
+    @Test
     public void testWithJapaneseImperialCalendar() throws Exception {
         /*
          * From http://java.sun.com/javase/6/docs/api/java/util/Locale.html : "Note: When you ask for a resource for a
@@ -1218,10 +1229,9 @@ public class KatmaiDataTypesTest extends AbstractTest {
          */
         Locale japaneseImperialLocale = new Locale("ja", "JP", "JP");
         Calendar japaneseImperialCalendar = Calendar.getInstance(japaneseImperialLocale);
-
         MessageFormat cal = new MessageFormat(TestResource.getResource("R_noJRESupport"));
-        assumeTrue(GregorianCalendar.class.isInstance(japaneseImperialCalendar),
-                cal.format(japaneseImperialLocale.toString()));
+        Object[] msgsArgs = {japaneseImperialLocale.toString()};
+        assumeTrue(GregorianCalendar.class.isInstance(japaneseImperialCalendar), cal.format(msgsArgs));
 
         Locale defaultLocale = Locale.getDefault();
         Locale.setDefault(japaneseImperialLocale);
@@ -1369,9 +1379,21 @@ public class KatmaiDataTypesTest extends AbstractTest {
                     rs.next();
 
                     // compare these separately since there may be an extra space between the 2
-                    assertEquals("Jan  1 1970", rs.getString(1).substring(0, 11));
-                    assertEquals(timeFormat.format(ts.getTime()),
-                            rs.getString(1).substring(rs.getString(1).length() - 7).trim());
+                    assertTrue(rs.getString(1).startsWith("Jan  1 1970"));
+
+                    /*
+                     * Timestamp returned from varchar column may be wrongly formatted. E.g: 12:12PM will not pass if
+                     * compared to 12:12p.m.
+                     */
+                    DateFormatSymbols symbols = new DateFormatSymbols(Locale.getDefault());
+                    symbols.setAmPmStrings(new String[] {"am", "pm"});
+                    timeFormat.setDateFormatSymbols(symbols);
+                    String expectedTimePortion = timeFormat.format(ts);
+                    String recievedTimePortion = rs.getString(1).substring(rs.getString(1).length() - 7).trim();
+                    assertTrue(
+                            "Timestamp mismatch, expected: " + expectedTimePortion + " but recieved: "
+                                    + recievedTimePortion + ".",
+                            expectedTimePortion.equalsIgnoreCase(recievedTimePortion));
                 }
 
                 // Test PreparedStatement with Date

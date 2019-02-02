@@ -22,7 +22,7 @@ public class ColumnSensitivity {
      *        List of sensitivity properties as received from SQL Server
      */
     public ColumnSensitivity(List<SensitivityProperty> sensitivityProperties) {
-        this.sensitivityProperties = new ArrayList<SensitivityProperty>(sensitivityProperties);
+        this.sensitivityProperties = new ArrayList<>(sensitivityProperties);
     }
 
     /**

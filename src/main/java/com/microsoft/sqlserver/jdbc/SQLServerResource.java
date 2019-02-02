@@ -280,6 +280,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_unableRetrieveSourceData", "Unable to retrieve data from the source."},
             {"R_ParsingError", "Failed to parse data for the {0} type."},
             {"R_BulkTypeNotSupported", "Data type {0} is not supported in bulk copy."},
+            {"R_BulkTypeNotSupportedDW", "Data type {0} is not supported in bulk copy against Azure Data Warehouse."},
             {"R_invalidTransactionOption",
                     "UseInternalTransaction option cannot be set to TRUE when used with a Connection object."},
             {"R_invalidNegativeArg", "The {0} argument cannot be negative."},
@@ -552,5 +553,7 @@ public final class SQLServerResource extends ListResourceBundle {
                     "MSI Token failure: Failed to acquire access token from IMDS, verify your clientId."},
             {"R_MSITokenFailureUnexpected",
                     "MSI Token failure: Failed to acquire access token from IMDS, unexpected error occurred."},
-            {"R_MSITokenFailureEndpoint", "MSI Token failure: Failed to acquire token from MSI Endpoint"}};
+            {"R_MSITokenFailureEndpoint", "MSI Token failure: Failed to acquire token from MSI Endpoint"},
+            {"R_propertyNotSupported",
+                    "Microsoft JDBC Driver for SQL Server currently does not support the property: {0}"}};
 }
