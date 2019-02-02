@@ -1351,12 +1351,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = "localhost";
             }
 
-            sPropKey = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue != null) {
+            String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
+            String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
+            if (sPropValueDomain != null) {
                 ntlmAuthentication = true;
             }
-            String domainName = sPropValue;
+            String domainName = sPropValueDomain;
 
             String sPropKeyPort = SQLServerDriverIntProperty.PORT_NUMBER.toString();
             String sPropValuePort = activeConnectionProperties.getProperty(sPropKeyPort);
