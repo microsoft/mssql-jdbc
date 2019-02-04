@@ -1,21 +1,27 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
+
+
 /**
- * ScrollWindow provides an efficient way to scroll around within a limited number of rows, typically the ResultSet fetch size, by saving and
- * restoring row state, such as starting point in the response and updated/deleted status, on movement within the window.
+ * ScrollWindow provides an efficient way to scroll around within a limited number of rows, typically the ResultSet
+ * fetch size, by saving and restoring row state, such as starting point in the response and updated/deleted status, on
+ * movement within the window.
  *
- * Without a scroll window, scrolling backward through a result set would be very costly, requiring reindexing the fetch buffer up to row N-1 for each
- * move to the previous row.
+ * Without a scroll window, scrolling backward through a result set would be very costly, requiring reindexing the fetch
+ * buffer up to row N-1 for each move to the previous row.
  */
-final class ScrollWindow {
+final class ScrollWindow implements Serializable {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = 3028807583846251111L;
+
     /** Set of marks for the rows in the window */
     private TDSReaderMark[] rowMark;
 
@@ -149,8 +155,8 @@ final class ScrollWindow {
             rowType[currentRow - 1] = rs.getCurrentRowType();
 
             if (SQLServerResultSet.logger.isLoggable(java.util.logging.Level.FINEST))
-                SQLServerResultSet.logger.finest(
-                        rs.toString() + " Set mark " + rowMark[currentRow - 1] + " for row " + currentRow + " of type " + rowType[currentRow - 1]);
+                SQLServerResultSet.logger.finest(rs.toString() + " Set mark " + rowMark[currentRow - 1] + " for row "
+                        + currentRow + " of type " + rowType[currentRow - 1]);
 
             return true;
         }

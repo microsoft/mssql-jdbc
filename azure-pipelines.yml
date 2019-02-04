@@ -1,0 +1,51 @@
+# Microsoft JDBC Driver for SQL Server CI Build triggers tests against below SQL Servers:
+#   - SQL Server 2017
+#   - SQL Server 2008 R2
+jobs:
+- job: "CI_Build"
+  pool:
+    name: 'JDBC Build Pool'
+    demands: maven
+  strategy:
+    matrix:
+      SQL-2017:
+        Target_SQL: 'SQL-2k17-03'
+      SQL-2008R2:
+        Target_SQL: 'SQL-2k8R2-SP3-1'
+    maxParallel: 2
+  steps:
+  - powershell: |
+      mkdir AE_Certificates
+      cd AE_Certificates
+      $cert = New-SelfSignedCertificate -dns "AlwaysEncryptedCert" -CertStoreLocation Cert:CurrentUser\My
+      $pwd = ConvertTo-SecureString -String $(certPass) -Force -AsPlainText
+      $path = 'cert:\CurrentUser\My\' + $cert.thumbprint
+      $certificate = Export-PfxCertificate -cert $path -FilePath cert.pfx -Password $pwd 
+      Get-ChildItem -path cert:\CurrentUser\My > certificate.txt
+      keytool -importkeystore -srckeystore cert.pfx -srcstoretype pkcs12 -destkeystore clientcert.jks -deststoretype pkcs12 -srcstorepass $(certPass) -deststorepass $(certPass)
+      keytool -list -v -keystore clientcert.jks -storepass $(certPass) > JavaKeyStoreBase.txt
+      Get-Content .\JavaKeyStoreBase.txt | Set-Content -Encoding utf8 JavaKeyStore.txt
+      Remove-Item –path .\JavaKeyStoreBase.txt
+    displayName: 'PowerShell Script'
+  - task: Maven@3
+    displayName: 'Maven build 43'
+    inputs:
+      mavenPomFile: 'pom.xml'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pbuild43'
+      testResultsFiles: '**/TEST-*.xml'
+      testRunTitle: 'Maven build 43'
+      javaHomeOption: Path
+      jdkDirectory: $(JDK11)
+      mavenAuthenticateFeed: true
+      checkStyleRunAnalysis: true
+      pmdRunAnalysis: true
+  - task: Maven@3
+    displayName: 'Maven build 42'
+    inputs:
+      mavenPomFile: 'pom.xml'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pbuild42'
+      testRunTitle: 'Maven build 42'
+      javaHomeOption: Path
+      jdkDirectory: $(JDK11)
+      checkStyleRunAnalysis: true
+      pmdRunAnalysis: true

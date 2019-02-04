@@ -1,77 +1,83 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	
 	<groupId>com.microsoft.sqlserver.jdbc</groupId>
 	<artifactId>datatypes</artifactId>
 	<version>0.0.1</version>
-	
 	<packaging>jar</packaging>
-	
 	<name>${project.artifactId}</name>
 	<url>https://github.com/Microsoft/mssql-jdbc/tree/master/src/samples</url>
-	
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
-
 	<dependencies>
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>
 			<artifactId>mssql-jdbc</artifactId>
-			<version>6.4.0.jre9</version>
+			<version>7.0.0.jre10</version>
 		</dependency>
 	</dependencies>
-	
 	<profiles>
 		<profile>
-			<id>basicDT</id>
+			<id>BasicDataTypes</id>
 			<build>
-				<finalName>basicDT</finalName>
-				
+				<finalName>BasicDataTypes</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
 						<version>1.2.1</version>
 						<configuration>
-							<mainClass>datatypes.src.main.java.basicDT</mainClass>
+							<mainClass>datatypes.src.main.java.BasicDataTypes</mainClass>
 						</configuration>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
-		
 		<profile>
-			<id>sqlxmlExample</id>
+			<id>SqlXmlDataType</id>
 			<build>
-				<finalName>sqlxmlExample</finalName>
-				
+				<finalName>SqlXmlDataType</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
 						<version>1.2.1</version>
 						<configuration>
-							<mainClass>datatypes.src.main.java.sqlxmlExample</mainClass>
+							<mainClass>datatypes.src.main.java.SqlXmlDataType</mainClass>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>SpatialDataTypes</id>
+			<build>
+				<finalName>SpatialDataTypes</finalName>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>1.2.1</version>
+						<configuration>
+							<mainClass>datatypes.src.main.java.SpatialDataTypes</mainClass>
 						</configuration>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
 	</profiles>
-
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>9</source>
-					<target>9</target>
+					<source>10</source>
+					<target>10</target>
 				</configuration>
 			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
@@ -79,5 +85,4 @@
 			</plugin>
 		</plugins>
 	</build>
-
 </project>

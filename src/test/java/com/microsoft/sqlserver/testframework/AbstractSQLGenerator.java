@@ -1,12 +1,12 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
+
+import com.microsoft.sqlserver.jdbc.TestUtils;
+
 
 /**
  * Common methods needed for any implementation for {@link SQLGeneratorIF}
@@ -23,6 +23,7 @@ public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
     protected static final String DEFAULT = "DEFAULT";
     protected static final String COMMA = ",";
     protected static final String QUESTION_MARK = "?";
+    protected static final String SEMI_COLON = ";";
 
     // FIXME: Find good word for '. Better replaced by wrapIdentifier.
     protected static final String TICK = "'";
@@ -44,7 +45,7 @@ public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
 
     /**
      * @param wrapIdentifier
-     *            the wrapIdentifier to set
+     *        the wrapIdentifier to set
      */
     public static void setWrapIdentifier(String wrapIdentifier) {
         AbstractSQLGenerator.wrapIdentifier = wrapIdentifier;
@@ -61,7 +62,7 @@ public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
     public String wrapName(String name) {
         StringBuffer wrap = new StringBuffer();
         wrap.append(getWrapIdentifier());
-        wrap.append(name);
+        wrap.append(TestUtils.escapeSingleQuotes(name));
         wrap.append(getWrapIdentifier());
         return wrap.toString();
     }
@@ -72,8 +73,7 @@ public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
      * @param openIdentifier
      * @param closeIdentifier
      */
-    public static void setEscapeIdentifier(String openIdentifier,
-            String closeIdentifier) {
+    public static void setEscapeIdentifier(String openIdentifier, String closeIdentifier) {
         AbstractSQLGenerator.openEscapeIdentifier = openIdentifier;
         AbstractSQLGenerator.closeEscapeIdentifier = closeIdentifier;
     }
@@ -81,7 +81,7 @@ public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
     /**
      * 
      * @param value
-     *            to escape
+     *        to escape
      * @return escaped literal
      */
     public static String escapeIdentifier(String value) {

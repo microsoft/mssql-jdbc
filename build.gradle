@@ -10,7 +10,7 @@
 
 apply plugin: 'java'
 
-version = '6.5.4-SNAPSHOT'
+version = '7.2.0'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -27,11 +27,15 @@ allprojects {
 
 if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "build43")){
 	
-	jreVersion = "jre10"
+	jreVersion = "jre11"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
-	
-	sourceCompatibility = 10
-	targetCompatibility = 10
+	jar {
+		manifest {
+			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
+		}
+	}
+	sourceCompatibility = 11
+	targetCompatibility = 11
 }
 
 if((hasProperty('buildProfile') && buildProfile == "build42")) {
@@ -43,7 +47,7 @@ if((hasProperty('buildProfile') && buildProfile == "build42")) {
 	targetCompatibility = 1.8
 }
 
-jar.archiveName = "${archivesBaseName}-${version}.${jreVersion}-preview.jar"
+jar.archiveName = "${archivesBaseName}-${version}.${jreVersion}.jar"
 jar {
 	manifest {
         attributes 'Title': "Microsoft JDBC Driver ${version} for SQL Server",
@@ -78,17 +82,22 @@ repositories {
 }
 
 dependencies {
-	compile 'com.microsoft.azure:azure-keyvault:1.0.0',
-	'com.microsoft.azure:adal4j:1.5.0'
-	testCompile 'junit:junit:4.12',
-	'org.junit.platform:junit-platform-console:1.2.0',
-	'org.junit.platform:junit-platform-commons:1.2.0',
-	'org.junit.platform:junit-platform-engine:1.2.0',
-	'org.junit.platform:junit-platform-launcher:1.2.0',
-	'org.junit.platform:junit-platform-runner:1.2.0',
-	'org.junit.platform:junit-platform-surefire-provider:1.2.0',
-	'org.junit.jupiter:junit-jupiter-api:5.2.0',
-	'org.junit.jupiter:junit-jupiter-engine:5.2.0',
-	'com.zaxxer:HikariCP:3.1.0',
-	'org.apache.commons:commons-dbcp2:2.0'
+	compile 'org.osgi:org.osgi.core:4.3.1',
+			'org.osgi:org.osgi.compendium:4.3.1'
+	compileOnly 'com.microsoft.azure:azure-keyvault:1.2.0',
+			'com.microsoft.azure:azure-keyvault-webkey:1.2.0',
+			'com.microsoft.rest:client-runtime:1.6.5',
+			'com.microsoft.azure:adal4j:1.6.3'
+	testCompile 'org.junit.platform:junit-platform-console:1.3.2', 
+			'org.junit.platform:junit-platform-commons:1.3.2', 
+			'org.junit.platform:junit-platform-engine:1.3.2', 
+			'org.junit.platform:junit-platform-launcher:1.3.2', 
+			'org.junit.platform:junit-platform-runner:1.3.2', 
+			'org.junit.platform:junit-platform-surefire-provider:1.3.2', 
+			'org.junit.jupiter:junit-jupiter-api:5.3.2', 
+			'org.junit.jupiter:junit-jupiter-engine:5.3.2', 
+			'com.zaxxer:HikariCP:3.2.0', 
+			'org.apache.commons:commons-dbcp2:2.5.0', 
+			'org.slf4j:slf4j-nop:1.7.25',
+			'org.eclipse.gemini.blueprint:gemini-blueprint-mock:2.0.0.RELEASE'
 }

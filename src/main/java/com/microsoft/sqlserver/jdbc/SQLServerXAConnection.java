@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -16,10 +13,16 @@ import java.util.logging.Logger;
 import javax.sql.XAConnection;
 import javax.transaction.xa.XAResource;
 
+
 /**
- * SQLServerXAConnection provides JDBC connections that can participate in distributed (XA) transactions.
+ * Provides JDBC connections that can participate in distributed (XA) transactions.
  */
 public final class SQLServerXAConnection extends SQLServerPooledConnection implements XAConnection {
+
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -8154621218821899459L;
 
     // NB These instances are not used by applications, only by the app server who is
     // providing the connection pool and transactional processing to the application.
@@ -29,17 +32,17 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
     private SQLServerConnection physicalControlConnection;
     private Logger xaLogger;
 
-    /* L0 */ SQLServerXAConnection(SQLServerDataSource ds,
-            String user,
-            String pwd) throws java.sql.SQLException {
+    SQLServerXAConnection(SQLServerDataSource ds, String user, String pwd) throws java.sql.SQLException {
         super(ds, user, pwd);
         // Grab SQLServerXADataSource's static XA logger instance.
         xaLogger = SQLServerXADataSource.xaLogger;
         SQLServerConnection con = getPhysicalConnection();
 
         Properties controlConnectionProperties = (Properties) con.activeConnectionProperties.clone();
-        // Arguments to be sent as unicode always to the server, as the stored procs always write unicode chars as out param.
-        controlConnectionProperties.setProperty(SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(), "true");
+        // Arguments to be sent as unicode always to the server, as the stored procs always write unicode chars as out
+        // param.
+        controlConnectionProperties
+                .setProperty(SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(), "true");
         controlConnectionProperties.remove(SQLServerDriverStringProperty.SELECT_METHOD.toString());
 
         if (xaLogger.isLoggable(Level.FINER))
@@ -47,20 +50,20 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
         physicalControlConnection = null;
         if (Util.use43Wrapper()) {
             physicalControlConnection = new SQLServerConnection43(toString());
-        }
-        else {
+        } else {
             physicalControlConnection = new SQLServerConnection(toString());
         }
         physicalControlConnection.connect(controlConnectionProperties, null);
         if (xaLogger.isLoggable(Level.FINER))
-            xaLogger.finer("Created an internal control connection" + physicalControlConnection.toString() + " for " + toString()
-                    + " Physical connection:" + getPhysicalConnection().toString());
+            xaLogger.finer("Created an internal control connection" + physicalControlConnection.toString() + " for "
+                    + toString() + " Physical connection:" + getPhysicalConnection().toString());
 
         if (xaLogger.isLoggable(Level.FINER))
             xaLogger.finer(ds.toString() + " user:" + user);
     }
 
-    /* L0 */ public synchronized XAResource getXAResource() throws java.sql.SQLException {
+    @Override
+    public synchronized XAResource getXAResource() throws java.sql.SQLException {
         // All connections handed out from this physical connection have a common XAResource
         // for transaction control. IE the XAResource is one to one with the physical connection.
 
@@ -72,6 +75,7 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
     /**
      * Closes the physical connection that this PooledConnection object represents.
      */
+    @Override
     public void close() throws SQLException {
         synchronized (this) {
             if (XAResource != null) {
@@ -85,5 +89,4 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
         }
         super.close();
     }
-
 }

@@ -1,12 +1,9 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package com.microsoft.sqlserver.jdbc; 
+package com.microsoft.sqlserver.jdbc;
 
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQL;
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
@@ -20,8 +17,8 @@ import java.sql.ParameterMetaData;
 import java.sql.ResultSet;
 import java.sql.RowId;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLTimeoutException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Statement;
 import java.text.MessageFormat;
@@ -32,28 +29,34 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Level;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection.Sha1HashKey;
+
 
 /**
- * SQLServerPreparedStatement provides JDBC prepared statement functionality. SQLServerPreparedStatement provides methods for the user to supply
- * parameters as any native Java type and many Java object types.
+ * Provides an implementation of java.sql.PreparedStatement interface that assists in preparing Statements for SQL
+ * Server.
  * <p>
- * SQLServerPreparedStatement prepares a statement using SQL Server's sp_prepexec and re-uses the returned statement handle for each subsequent
- * execution of the statement (typically using different parameters provided by the user)
+ * SQLServerPreparedStatement prepares a statement using SQL Server's sp_prepexec and re-uses the returned statement
+ * handle for each subsequent execution of the statement (typically using different parameters provided by the user)
  * <p>
- * SQLServerPreparedStatement supports batching whereby a set of prepared statements are executed in a single database round trip to improve runtime
- * performance.
+ * SQLServerPreparedStatement supports batching whereby a set of prepared statements are executed in a single database
+ * round trip to improve runtime performance.
  * <p>
- * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API interfaces javadoc for those
- * details.
+ * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
+ * interfaces javadoc for those details.
  */
-
 public class SQLServerPreparedStatement extends SQLServerStatement implements ISQLServerPreparedStatement {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -6292257029445685221L;
+
     /** Flag to indicate that it is an internal query to retrieve encryption metadata. */
     boolean isInternalEncryptionQuery = false;
 
     /** delimiter for multiple statements in a single batch */
+    @SuppressWarnings("unused")
     private static final int BATCH_STATEMENT_DELIMITER_TDS_71 = 0x80;
     private static final int BATCH_STATEMENT_DELIMITER_TDS_72 = 0xFF;
     final int nBatchStatementDelimiter = BATCH_STATEMENT_DELIMITER_TDS_72;
@@ -64,6 +67,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
 
+    /** Parameter positions in processed SQL statement text. */
+    final int[] userSQLParamPositions;
+
     /** SQL statement with expanded parameter tokens */
     private String preparedSQL;
 
@@ -71,14 +77,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean isExecutedAtLeastOnce = false;
 
     /** Reference to cache item for statement handle pooling. Only used to decrement ref count on statement close. */
-    private PreparedStatementHandle cachedPreparedStatementHandle; 
+    private PreparedStatementHandle cachedPreparedStatementHandle;
 
     /** Hash of user supplied SQL statement used for various cache lookups */
-    private Sha1HashKey sqlTextCacheKey;
+    private CityHash128Key sqlTextCacheKey;
 
     /**
-     * Array with parameter names generated in buildParamTypeDefinitions For mapping encryption information to parameters, as the second result set
-     * returned by sp_describe_parameter_encryption doesn't depend on order of input parameter
+     * Array with parameter names generated in buildParamTypeDefinitions For mapping encryption information to
+     * parameters, as the second result set returned by sp_describe_parameter_encryption doesn't depend on order of
+     * input parameter
      **/
     private ArrayList<String> parameterNames;
 
@@ -92,9 +99,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * The number of OUT parameters to skip in the response to get to the first app-declared OUT parameter.
      *
-     * When executing prepared and callable statements and/or statements that produce cursored results, the first OUT parameters returned by the
-     * server contain the internal values like the prepared statement handle and the cursor ID and row count. This value indicates how many of those
-     * internal OUT parameters were in the response.
+     * When executing prepared and callable statements and/or statements that produce cursored results, the first OUT
+     * parameters returned by the server contain the internal values like the prepared statement handle and the cursor
+     * ID and row count. This value indicates how many of those internal OUT parameters were in the response.
      */
     int outParamIndexAdjustment;
 
@@ -103,7 +110,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** The prepared statement handle returned by the server */
     private int prepStmtHandle = 0;
-    
+
     /** Statement used for getMetadata(). Declared as a field to facilitate closing the statement. */
     private SQLServerStatement internalStmt = null;
 
@@ -111,22 +118,49 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         this.prepStmtHandle = handle;
     }   
 
-    /** The server handle for this prepared statement. If a value {@literal <} 1 is returned no handle has been created. 
+    /**
+     * boolean value for deciding if the driver should use bulk copy API for batch inserts
+     */
+    private boolean useBulkCopyForBatchInsert;
+
+    /**
+     * Returns the prepared statement's useBulkCopyForBatchInsert value.
      * 
-     * @return 
-     *      Per the description.
-     * @throws SQLServerException when an error occurs
-    */
+     * @return Per the description.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    @SuppressWarnings("unused")
+    private boolean getUseBulkCopyForBatchInsert() throws SQLServerException {
+        checkClosed();
+        return useBulkCopyForBatchInsert;
+    }
+
+    /**
+     * Sets the prepared statement's useBulkCopyForBatchInsert value.
+     * 
+     * @param useBulkCopyForBatchInsert
+     *        the boolean value
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    @SuppressWarnings("unused")
+    private void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) throws SQLServerException {
+        checkClosed();
+        this.useBulkCopyForBatchInsert = useBulkCopyForBatchInsert;
+    }
+
+    @Override
     public int getPreparedStatementHandle() throws SQLServerException {
-        checkClosed();        
+        checkClosed();
         return prepStmtHandle;
     }
 
-    /** Returns true if this statement has a server handle. 
-     *  
-     * @return 
-     *      Per the description.
-    */
+    /**
+     * Returns true if this statement has a server handle.
+     * 
+     * @return Per the description.
+     */
     private boolean hasPreparedStatementHandle() {
         return 0 < prepStmtHandle;
     }
@@ -145,14 +179,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         prepStmtHandle = 0;
         return statementPoolingUsed;
     }
-    
+
     /** Flag set to true when statement execution is expected to return the prepared statement handle */
     private boolean expectPrepStmtHandle = false;
-    
+
     /**
      * Flag set to true when all encryption metadata of inOutParam is retrieved
      */
     private boolean encryptionMetadataIsRetrieved = false;
+
+    private String localUserSQL;
 
     // Internal function used in tracing
     String getClassNameInternal() {
@@ -160,25 +196,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Create a new prepaed statement.
+     * Constructs a SQLServerPreparedStatement.
      * 
      * @param conn
-     *            the connection
+     *        the connection
      * @param sql
-     *            the user's sql
+     *        the user's sql
      * @param nRSType
-     *            the result set type
+     *        the result set type
      * @param nRSConcur
-     *            the result set concurrency
+     *        the result set concurrency
      * @param stmtColEncSetting
-     *            the statement column encryption setting
+     *        the statement column encryption setting
      * @throws SQLServerException
-     *             when an error occurs
+     *         when an error occurs
      */
-    SQLServerPreparedStatement(SQLServerConnection conn,
-            String sql,
-            int nRSType,
-            int nRSConcur,
+    SQLServerPreparedStatement(SQLServerConnection conn, String sql, int nRSType, int nRSConcur,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         super(conn, nRSType, nRSConcur, stmtColEncSetting);
 
@@ -191,16 +224,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         stmtPoolable = true;
 
         // Create a cache key for this statement.
-        sqlTextCacheKey = new Sha1HashKey(sql);
+        sqlTextCacheKey = new CityHash128Key(sql);
 
         // Parse or fetch SQL metadata from cache.
         ParsedSQLCacheItem parsedSQL = getCachedParsedSQL(sqlTextCacheKey);
-        if(null != parsedSQL) {
-            if(null != connection && connection.isStatementPoolingEnabled()) {
+        if (null != parsedSQL) {
+            if (null != connection && connection.isStatementPoolingEnabled()) {
                 isExecutedAtLeastOnce = true;
             }
-        }
-        else {
+        } else {
             parsedSQL = parseAndCacheSQL(sqlTextCacheKey, sql);
         }
 
@@ -208,12 +240,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         procedureName = parsedSQL.procedureName;
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
-        initParams(parsedSQL.parameterCount);
         isTVPType = false;
+        userSQLParamPositions = parsedSQL.parameterPositions;
+        initParams(userSQLParamPositions.length);
+        useBulkCopyForBatchInsert = conn.getUseBulkCopyForBatchInsert();
     }
 
     /**
-     * Close the prepared statement's prepared handle.
+     * Closes the prepared statement's prepared handle.
      */
     private void closePreparedHandle() {
         if (!hasPreparedStatementHandle())
@@ -224,27 +258,32 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // on the server anyway.
         if (connection.isSessionUnAvailable()) {
             if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-                loggerExternal.finer(this + ": Not closing PreparedHandle:" + prepStmtHandle + "; connection is already closed.");
-        }
-        else {
+                loggerExternal.finer(
+                        this + ": Not closing PreparedHandle:" + prepStmtHandle + "; connection is already closed.");
+        } else {
             isExecutedAtLeastOnce = false;
             final int handleToClose = prepStmtHandle;
-            
 
             // Handle unprepare actions through statement pooling.
             if (resetPrepStmtHandle(false)) {
                 connection.returnCachedPreparedStatementHandle(cachedPreparedStatementHandle);
             }
-            // If no reference to a statement pool cache item is found handle unprepare actions through batching @ connection level. 
-            else if(connection.isPreparedStatementUnprepareBatchingEnabled()) {
-                connection.enqueueUnprepareStatementHandle(connection.new PreparedStatementHandle(null, handleToClose, executedSqlDirectly, true));
-            }
-            else {
+            // If no reference to a statement pool cache item is found handle unprepare actions through batching @
+            // connection level.
+            else if (connection.isPreparedStatementUnprepareBatchingEnabled()) {
+                connection.enqueueUnprepareStatementHandle(
+                        connection.new PreparedStatementHandle(null, handleToClose, executedSqlDirectly, true));
+            } else {
                 // Non batched behavior (same as pre batch clean-up implementation)
                 if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
                     loggerExternal.finer(this + ": Closing PreparedHandle:" + handleToClose);
 
                 final class PreparedHandleClose extends UninterruptableTDSCommand {
+                    /**
+                     * Always update serialVersionUID when prompted.
+                     */
+                    private static final long serialVersionUID = -8944096664249990764L;
+
                     PreparedHandleClose() {
                         super("closePreparedHandle");
                     }
@@ -252,9 +291,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     final boolean doExecute() throws SQLServerException {
                         TDSWriter tdsWriter = startRequest(TDS.PKT_RPC);
                         tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
-                        tdsWriter.writeShort(executedSqlDirectly ? TDS.PROCID_SP_UNPREPARE : TDS.PROCID_SP_CURSORUNPREPARE);
-                        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-                        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
+                        tdsWriter.writeShort(
+                                executedSqlDirectly ? TDS.PROCID_SP_UNPREPARE : TDS.PROCID_SP_CURSORUNPREPARE);
+                        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+                        tdsWriter.writeByte((byte) 0); // RPC procedure option 2
                         tdsWriter.writeRPCInt(null, handleToClose, false);
                         TDSParser.parse(startResponse(), getLogContext());
                         return true;
@@ -264,10 +304,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // Try to close the server cursor. Any failure is caught, logged, and ignored.
                 try {
                     executeCommand(new PreparedHandleClose());
-                }
-                catch (SQLServerException e) {
+                } catch (SQLServerException e) {
                     if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-                        loggerExternal.log(Level.FINER, this + ": Error (ignored) closing PreparedHandle:" + handleToClose, e);
+                        loggerExternal.log(Level.FINER,
+                                this + ": Error (ignored) closing PreparedHandle:" + handleToClose, e);
                 }
 
                 if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -282,25 +322,26 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Closes this prepared statement.
      *
-     * Note that the public Statement.close() method performs all of the cleanup work through this internal method which cannot throw any exceptions.
-     * This is done deliberately to ensure that ALL of the object's client-side and server-side state is cleaned up as best as possible, even under
-     * conditions which would normally result in exceptions being thrown.
+     * Note that the public Statement.close() method performs all of the cleanup work through this internal method which
+     * cannot throw any exceptions. This is done deliberately to ensure that ALL of the object's client-side and
+     * server-side state is cleaned up as best as possible, even under conditions which would normally result in
+     * exceptions being thrown.
      */
     final void closeInternal() {
         super.closeInternal();
 
         // If we have a prepared statement handle, close it.
         closePreparedHandle();
-        
+
         // Close the statement that was used to generate empty statement from getMetadata().
         try {
             if (null != internalStmt)
                 internalStmt.close();
         } catch (SQLServerException e) {
             if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-                loggerExternal.finer("Ignored error closing internal statement: " + e.getErrorCode() + " " + e.getMessage());
-        }
-        finally {
+                loggerExternal
+                        .finer("Ignored error closing internal statement: " + e.getErrorCode() + " " + e.getMessage());
+        } finally {
             internalStmt = null;
         }
 
@@ -308,13 +349,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         batchParamValues = null;
     }
 
-   /**
-     * Intialize the statement parameters.
+    /**
+     * Initializes the statement parameters.
      * 
-     * @param nParams 
-     *          Number of parameters to Intialize.
+     * @param nParams
+     *        Number of parameters to initialize.
      */
-    /* L0 */ final void initParams(int nParams) {
+    final void initParams(int nParams) {
         inOutParam = new Parameter[nParams];
         for (int i = 0; i < nParams; i++) {
             inOutParam[i] = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
@@ -324,7 +365,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
-    /* L0 */ public final void clearParameters() throws SQLServerException {
+    @Override
+    public final void clearParameters() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "clearParameters");
         checkClosed();
         encryptionMetadataIsRetrieved = false;
@@ -338,19 +380,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Determines whether the statement needs to be reprepared based on a change in any of the type definitions of any of the parameters due to
-     * changes in scale, length, etc., and, if so, sets the new type definition string.
+     * Determines whether the statement needs to be reprepared based on a change in any of the type definitions of any
+     * of the parameters due to changes in scale, length, etc., and, if so, sets the new type definition string.
      */
-    private boolean buildPreparedStrings(Parameter[] params,
-            boolean renewDefinition) throws SQLServerException {
+    private boolean buildPreparedStrings(Parameter[] params, boolean renewDefinition) throws SQLServerException {
         String newTypeDefinitions = buildParamTypeDefinitions(params, renewDefinition);
         if (null != preparedTypeDefinitions && newTypeDefinitions.equalsIgnoreCase(preparedTypeDefinitions))
-            return false;   
+            return false;
 
         preparedTypeDefinitions = newTypeDefinitions;
 
         /* Replace the parameter marker '?' with the param numbers @p1, @p2 etc */
-        preparedSQL = connection.replaceParameterMarkers(userSQL, params, bReturnValueSyntax);
+        preparedSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, bReturnValueSyntax);
         if (bRequestedGeneratedKeys)
             preparedSQL = preparedSQL + identityQuery;
 
@@ -358,18 +399,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Build the parameter type definitons for a JDBC prepared statement that will be used to prepare the statement.
+     * Builds the parameter type definitons for a JDBC prepared statement that will be used to prepare the statement.
      * 
      * @param params
-     *            the statement parameters
+     *        the statement parameters
      * @param renewDefinition
-     *            True if renewing parameter definition, False otherwise
+     *        True if renewing parameter definition, False otherwise
      * @throws SQLServerException
-     *             when an error occurs.
-     * @return the required data type defintions.
+     *         when an error occurs.
+     * @return the required data type definitions.
      */
-    private String buildParamTypeDefinitions(Parameter[] params,
-            boolean renewDefinition) throws SQLServerException {
+    private String buildParamTypeDefinitions(Parameter[] params, boolean renewDefinition) throws SQLServerException {
         StringBuilder sb = new StringBuilder();
         int nCols = params.length;
         char cParamName[] = new char[10];
@@ -402,15 +442,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return sb.toString();
     }
 
-    /**
-     * Execute a query.
-     *
-     * @throws SQLServerException
-     *             when an error occurs
-     * @throws SQLTimeoutException 
-     * 			   when the query times out
-     * @return ResultSet
-     */
+    @Override
     public java.sql.ResultSet executeQuery() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -423,11 +455,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Execute a query without cursoring for metadata.
+     * Executes a query without cursoring for metadata.
      *
      * @throws SQLServerException
      * @return ResultSet
-     * @throws SQLTimeoutException 
+     * @throws SQLTimeoutException
      */
     final java.sql.ResultSet executeQueryInternal() throws SQLServerException, SQLTimeoutException {
         checkClosed();
@@ -435,6 +467,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return resultSet;
     }
 
+    @Override
     public int executeUpdate() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -447,15 +480,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // this shouldn't happen, caller probably meant to call executeLargeUpdate
         if (updateCount < Integer.MIN_VALUE || updateCount > Integer.MAX_VALUE)
-            SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_updateCountOutofRange"), null, true);
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_updateCountOutofRange"), null, true);
 
         loggerExternal.exiting(getClassNameLogging(), "executeUpdate", updateCount);
 
         return (int) updateCount;
     }
 
+    @Override
     public long executeLargeUpdate() throws SQLServerException, SQLTimeoutException {
-        DriverJDBCVersion.checkSupportsJDBC42();
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -467,15 +501,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return updateCount;
     }
 
-    /**
-     * Execute a query or non query statement.
-     * 
-     * @throws SQLServerException
-     *             when an error occurs
-     * @throws SQLTimeoutException 
-     * 			   when the query times out
-     * @return true if the statement returned a result set
-     */
+    @Override
     public boolean execute() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "execute");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -488,10 +514,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private final class PrepStmtExecCmd extends TDSCommand {
+        /**
+         * Always update serialVersionUID when prompted.
+         */
+        private static final long serialVersionUID = 4098801171124750861L;
         private final SQLServerPreparedStatement stmt;
 
-        PrepStmtExecCmd(SQLServerPreparedStatement stmt,
-                int executeMethod) {
+        PrepStmtExecCmd(SQLServerPreparedStatement stmt, int executeMethod) {
             super(stmt.toString() + " executeXXX", queryTimeout, cancelQueryTimeoutSeconds);
             this.stmt = stmt;
             stmt.executeMethod = executeMethod;
@@ -533,9 +562,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
 
-        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length) && !isInternalEncryptionQuery) {
+        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
+                && !isInternalEncryptionQuery) {
 
-            // retrieve paramater encryption metadata if they are not retrieved yet
+            // retrieve parameter encryption metadata if they are not retrieved yet
             if (!encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(inOutParam);
                 encryptionMetadataIsRetrieved = true;
@@ -545,7 +575,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 setMaxRowsAndMaxFieldSize();
             }
 
-            // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on Connection
+            // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
+            // Connection
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
@@ -566,44 +597,47 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
                 startResults();
-                getNextResult();
-            }
-            catch (SQLException e) {
+                getNextResult(true);
+            } catch (SQLException e) {
                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false))
                     continue;
                 else
                     throw e;
             }
             break;
-        }       
+        }
 
         if (EXECUTE_QUERY == executeMethod && null == resultSet) {
-            SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_noResultset"), null, true);
-        }
-        else if (EXECUTE_UPDATE == executeMethod && null != resultSet) {
-            SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
+            SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_noResultset"),
+                    null, true);
+        } else if (EXECUTE_UPDATE == executeMethod && null != resultSet) {
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
         }
     }
-    
-    /** Should the execution be retried because the re-used cached handle could not be re-used due to server side state changes? */
-    private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e,
-            int attempt,
-            boolean needsPrepare,
+
+    /**
+     * Returns if the execution should be retried because the re-used cached handle could not be re-used due to server
+     * side state changes.
+     */
+    private boolean retryBasedOnFailedReuseOfCachedHandle(SQLException e, int attempt, boolean needsPrepare,
             boolean isBatch) {
         // Only retry based on these error codes and if statementPooling is enabled:
-        // 586: The prepared statement handle %d is not valid in this context. Please verify that current database, user default schema, and
+        // 586: The prepared statement handle %d is not valid in this context. Please verify that current database, user
+        // default schema, and
         // ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
         // 8179: Could not find prepared statement with handle %d.
         if (needsPrepare && !isBatch)
             return false;
-        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode()) && connection.isStatementPoolingEnabled();
+        return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode())
+                && connection.isStatementPoolingEnabled();
     }
 
     /**
-     * Consume the OUT parameter for the statement object itself.
+     * Consumes the OUT parameter for the statement object itself.
      *
-     * When a prepared statement handle is expected as the first OUT parameter from PreparedStatement or CallableStatement execution, then it gets
-     * consumed here.
+     * When a prepared statement handle is expected as the first OUT parameter from PreparedStatement or
+     * CallableStatement execution, then it gets consumed here.
      */
     boolean consumeExecOutParam(TDSReader tdsReader) throws SQLServerException {
         final class PrepStmtExecOutParamHandler extends StmtExecOutParamHandler {
@@ -617,7 +651,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // If a prepared statement handle is expected then consume it
                 // and continue processing.
                 expectPrepStmtHandle = false;
-                Parameter param = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
+                Parameter param = new Parameter(
+                        Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                 param.skipRetValStatus(tdsReader);
 
                 setPreparedStatementHandle(param.getInt(tdsReader));
@@ -625,9 +660,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // Cache the reference to the newly created handle, NOT for cursorable handles.
                 if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {
                     cachedPreparedStatementHandle = connection.registerCachedPreparedStatementHandle(
-                            new Sha1HashKey(preparedSQL, preparedTypeDefinitions), prepStmtHandle, executedSqlDirectly);
+                            new CityHash128Key(preparedSQL, preparedTypeDefinitions), prepStmtHandle,
+                            executedSqlDirectly);
                 }
-                
+
                 param.skipValue(tdsReader, true);
                 if (getStatementLogger().isLoggable(java.util.logging.Level.FINER))
                     getStatementLogger().finer(toString() + ": Setting PreparedHandle:" + prepStmtHandle);
@@ -645,7 +681,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Send the statement parameters by RPC
+     * Sends the statement parameters by RPC.
      */
     void sendParamsByRPC(TDSWriter tdsWriter,
             Parameter[] params, boolean bReturnValueSyntax) throws SQLServerException {
@@ -669,7 +705,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void buildServerCursorPrepExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_cursorprepexec: PreparedHandle:" + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_cursorprepexec: PreparedHandle:"
+                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = true;
         executedSqlDirectly = false;
@@ -678,8 +715,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
         tdsWriter.writeShort(TDS.PROCID_SP_CURSORPREPEXEC);
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 2
 
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
@@ -699,8 +736,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // <scrollopt> IN
         // Note: we must strip out SCROLLOPT_PARAMETERIZED_STMT if we don't
         // actually have any parameters.
-        tdsWriter.writeRPCInt(null,
-                getResultSetScrollOpt() & ~((0 == preparedTypeDefinitions.length()) ? TDS.SCROLLOPT_PARAMETERIZED_STMT : 0), false);
+        tdsWriter.writeRPCInt(null, getResultSetScrollOpt()
+                & ~((0 == preparedTypeDefinitions.length()) ? TDS.SCROLLOPT_PARAMETERIZED_STMT : 0), false);
 
         // <ccopt> IN
         tdsWriter.writeRPCInt(null, getResultSetCCOpt(), false);
@@ -711,7 +748,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void buildPrepExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_prepexec: PreparedHandle:" + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_prepexec: PreparedHandle:"
+                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = true;
         executedSqlDirectly = true;
@@ -720,8 +758,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
         tdsWriter.writeShort(TDS.PROCID_SP_PREPEXEC);
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 2
 
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
@@ -747,8 +785,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTESQL);
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 2
 
         // No handle used.
         resetPrepStmtHandle(false);
@@ -757,13 +795,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeRPCStringUnicode(preparedSQL);
 
         // <formal parameter defn> IN
-        if (preparedTypeDefinitions.length() > 0) 
+        if (preparedTypeDefinitions.length() > 0)
             tdsWriter.writeRPCStringUnicode(preparedTypeDefinitions);
     }
 
     private void buildServerCursorExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_cursorexecute: PreparedHandle:" + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_cursorexecute: PreparedHandle:"
+                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = false;
         executedSqlDirectly = false;
@@ -772,8 +811,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOREXECUTE);
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2 */
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
 
         // <handle> IN
         assert hasPreparedStatementHandle();
@@ -794,7 +833,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void buildExecParams(TDSWriter tdsWriter) throws SQLServerException {
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_execute: PreparedHandle:" + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_execute: PreparedHandle:"
+                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
 
         expectPrepStmtHandle = false;
         executedSqlDirectly = true;
@@ -803,8 +843,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTE);
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 1
-        tdsWriter.writeByte((byte) 0);  // RPC procedure option 2 */
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
 
         // <handle> IN
         assert hasPreparedStatementHandle();
@@ -829,9 +869,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void getParameterEncryptionMetadata(Parameter[] params) throws SQLServerException {
         /*
-         * The parameter list is created from the data types provided by the user for the parameters. the data types do not need to be the same as in
-         * the table definition. Also, when string is sent to an int field, the parameter is defined as nvarchar(<size of string>). Same for varchar
-         * datatypes, exact length is used.
+         * The parameter list is created from the data types provided by the user for the parameters. the data types do
+         * not need to be the same as in the table definition. Also, when string is sent to an int field, the parameter
+         * is defined as nvarchar(<size of string>). Same for varchar datatypes, exact length is used.
          */
         SQLServerResultSet rs = null;
         SQLServerCallableStatement stmt = null;
@@ -840,7 +880,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         try {
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
+                getStatementLogger().fine(
+                        "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
             }
 
             stmt = (SQLServerCallableStatement) connection.prepareCall("exec sp_describe_parameter_encryption ?,?");
@@ -848,13 +889,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             stmt.setNString(1, preparedSQL);
             stmt.setNString(2, preparedTypeDefinitions);
             rs = (SQLServerResultSet) stmt.executeQueryInternal();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             if (e instanceof SQLServerException) {
                 throw (SQLServerException) e;
-            }
-            else {
-                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null, 0, e);
+            } else {
+                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
+                        0, e);
             }
         }
 
@@ -872,12 +912,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (!cekList.containsKey(currentOrdinal)) {
                     cekEntry = new CekTableEntry(currentOrdinal);
                     cekList.put(cekEntry.ordinal, cekEntry);
-                }
-                else {
+                } else {
                     cekEntry = cekList.get(currentOrdinal);
                 }
                 cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()), rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
                         rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
                         rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
                         rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
@@ -887,19 +927,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Matadata of CEKs is retrieved.");
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             if (e instanceof SQLServerException) {
                 throw (SQLServerException) e;
-            }
-            else {
-                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null, 0, e);
+            } else {
+                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
+                        0, e);
             }
         }
 
         // Process the second resultset.
         if (!stmt.getMoreResults()) {
-            throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null, 0, false);
+            throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null,
+                    0, false);
         }
 
         // Parameter count in the result set.
@@ -915,7 +955,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // cekEntry will be null if none of the parameters are encrypted.
                 if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidEncryptionKeyOridnal"));
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_InvalidEncryptionKeyOridnal"));
                     Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
                     throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                 }
@@ -923,13 +964,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         .of((byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
                 if (SQLServerEncryptionType.PlainText != encType) {
                     params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
-                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()), null, encType.value,
+                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
+                            null, encType.value,
                             (byte) rs.getInt(DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
                     // Decrypt the symmetric key.(This will also validate and throw if needed).
                     SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
-                }
-                else {
-                    if (true == params[paramIndex].getForceEncryption()) {
+                } else {
+                    if (params[paramIndex].getForceEncryption()) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
                         Object[] msgArgs = {userSQL, paramIndex + 1};
@@ -940,19 +981,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Parameter encryption metadata is set.");
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             if (e instanceof SQLServerException) {
                 throw (SQLServerException) e;
-            }
-            else {
-                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null, 0, e);
+            } else {
+                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
+                        0, e);
             }
         }
 
         if (paramCount != params.length) {
             // Encryption metadata wasn't sent by the server.
-            // We expect the metadata to be sent for all the parameters in the original sp_describe_parameter_encryption.
+            // We expect the metadata to be sent for all the parameters in the original
+            // sp_describe_parameter_encryption.
             // For parameters that don't need encryption, the encryption type is set to plaintext.
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MissingParamEncryptionMetadata"));
             Object[] msgArgs = {userSQL};
@@ -968,18 +1009,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         connection.resetCurrentCommand();
     }
 
-    /** Manage re-using cached handles */
-    private boolean reuseCachedHandle(boolean hasNewTypeDefinitions,
-            boolean discardCurrentCacheItem) {
+    /**
+     * Manages re-using cached handles.
+     */
+    private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem) {
         // No re-use of caching for cursorable statements (statements that WILL use sp_cursor*)
         if (isCursorable(executeMethod))
             return false;
 
-        // If current cache items needs to be discarded or New type definitions found with existing cached handle reference then deregister cached
+        // If current cache items needs to be discarded or New type definitions found with existing cached handle
+        // reference then deregister cached
         // handle.
         if (discardCurrentCacheItem || hasNewTypeDefinitions) {
-            if (null != cachedPreparedStatementHandle
-                    && (discardCurrentCacheItem || (hasPreparedStatementHandle() && prepStmtHandle == cachedPreparedStatementHandle.getHandle()))) {
+            if (null != cachedPreparedStatementHandle && (discardCurrentCacheItem
+                    || (hasPreparedStatementHandle() && prepStmtHandle == cachedPreparedStatementHandle.getHandle()))) {
                 cachedPreparedStatementHandle.removeReference();
             }
 
@@ -992,9 +1035,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Check for new cache reference.
         if (null == cachedPreparedStatementHandle) {
-            PreparedStatementHandle cachedHandle = connection.getCachedPreparedStatementHandle(new Sha1HashKey(preparedSQL, preparedTypeDefinitions));
-            // If handle was found then re-use, only if AE is not on and is not a batch query with new type definitions (We shouldn't reuse handle
-            // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved is retrieved.
+            PreparedStatementHandle cachedHandle = connection
+                    .getCachedPreparedStatementHandle(new CityHash128Key(preparedSQL, preparedTypeDefinitions));
+            // If handle was found then re-use, only if AE is not on and is not a batch query with new type definitions
+            // (We shouldn't reuse handle
+            // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved
+            // is retrieved.
             if (null != cachedHandle) {
                 if (!connection.isColumnEncryptionSettingEnabled()
                         || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved)) {
@@ -1009,9 +1055,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
-    private boolean doPrepExec(TDSWriter tdsWriter,
-            Parameter[] params,
-            boolean hasNewTypeDefinitions,
+    private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions) throws SQLServerException {
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
@@ -1024,8 +1068,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 buildServerCursorExecParams(tdsWriter);
         }
         else {
-           
-
             if (needsPrepare && callRPCDirectly(params, bReturnValueSyntax)) { 
                 // if it is a parameterized stored procedure call and is not TVP, use sp_execute directly. 
                 buildRPCExecParams(tdsWriter);
@@ -1078,7 +1120,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
-    /* L0 */ public final java.sql.ResultSetMetaData getMetaData() throws SQLServerException {
+    @Override
+    public final java.sql.ResultSetMetaData getMetaData() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getMetaData");
         checkClosed();
         boolean rsclosed = false;
@@ -1087,16 +1130,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // if the result is closed, cant get the metadata from it.
             if (resultSet != null)
                 resultSet.checkClosed();
-        }
-        catch (SQLServerException e) {
+        } catch (SQLServerException e) {
             rsclosed = true;
         }
         if (resultSet == null || rsclosed) {
             SQLServerResultSet emptyResultSet = (SQLServerResultSet) buildExecuteMetaData();
             if (null != emptyResultSet)
                 rsmd = emptyResultSet.getMetaData();
-        }
-        else if (resultSet != null) {
+        } else if (resultSet != null) {
             rsmd = resultSet.getMetaData();
         }
         loggerExternal.exiting(getClassNameLogging(), "getMetaData", rsmd);
@@ -1104,13 +1145,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Retreive meta data for the statement before executing it. This is called in cases where the driver needs the meta data prior to executing the
-     * statement.
+     * Returns meta data for the statement before executing it. This is called in cases where the driver needs the meta
+     * data prior to executing the statement.
      * 
      * @throws SQLServerException
      * @return the result set containing the meta data
      */
-    /* L0 */ private ResultSet buildExecuteMetaData() throws SQLServerException {
+    private ResultSet buildExecuteMetaData() throws SQLServerException {
         String fmtSQL = userSQL;
 
         ResultSet emptyResultSet = null;
@@ -1118,9 +1159,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             fmtSQL = replaceMarkerWithNull(fmtSQL);
             internalStmt = (SQLServerStatement) connection.createStatement();
             emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
-        }
-        catch (SQLException sqle) {
-            if (false == sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
+        } catch (SQLException sqle) {
+            if (!sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
                 // if the error is not no resultset then throw a processings error.
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_processingError"));
                 Object[] msgArgs = {sqle.getMessage()};
@@ -1134,15 +1174,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /* -------------- JDBC API Implementation ------------------ */
 
     /**
-     * Set the parameter value for a statement.
+     * Sets the parameter value for a statement.
      *
      * @param index
-     *            The index of the parameter to set starting at 1.
+     *        The index of the parameter to set starting at 1.
      * @return A reference the to Parameter object created or referenced.
      * @exception SQLServerException
-     *                The index specified was outside the number of paramters for the statement.
+     *            The index specified was outside the number of parameters for the statement.
      */
-    /* L0 */ final Parameter setterGetParam(int index) throws SQLServerException {
+    final Parameter setterGetParam(int index) throws SQLServerException {
         if (index < 1 || index > inOutParam.length) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
             Object[] msgArgs = {index};
@@ -1152,63 +1192,45 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return inOutParam[index - 1];
     }
 
-    final void setValue(int parameterIndex,
-            JDBCType jdbcType,
-            Object value,
-            JavaType javaType,
+    final void setValue(int parameterIndex, JDBCType jdbcType, Object value, JavaType javaType,
             String tvpName) throws SQLServerException {
-        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, null, null, connection, false, stmtColumnEncriptionSetting,
-                parameterIndex, userSQL, tvpName);
+        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, null, null, connection, false,
+                stmtColumnEncriptionSetting, parameterIndex, userSQL, tvpName);
     }
 
-    final void setValue(int parameterIndex,
-            JDBCType jdbcType,
-            Object value,
-            JavaType javaType,
+    final void setValue(int parameterIndex, JDBCType jdbcType, Object value, JavaType javaType,
             boolean forceEncrypt) throws SQLServerException {
-        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, null, null, connection, forceEncrypt,
-                stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, null, null, connection,
+                forceEncrypt, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
     }
 
-    final void setValue(int parameterIndex,
-            JDBCType jdbcType,
-            Object value,
-            JavaType javaType,
-            Integer precision,
-            Integer scale,
+    final void setValue(int parameterIndex, JDBCType jdbcType, Object value, JavaType javaType, Integer precision,
+            Integer scale, boolean forceEncrypt) throws SQLServerException {
+        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, precision, scale, connection,
+                forceEncrypt, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+    }
+
+    final void setValue(int parameterIndex, JDBCType jdbcType, Object value, JavaType javaType, Calendar cal,
             boolean forceEncrypt) throws SQLServerException {
-        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, precision, scale, connection, forceEncrypt,
-                stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, cal, null, null, connection,
+                forceEncrypt, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
     }
 
-    final void setValue(int parameterIndex,
-            JDBCType jdbcType,
-            Object value,
-            JavaType javaType,
-            Calendar cal,
-            boolean forceEncrypt) throws SQLServerException {
-        setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, cal, null, null, connection, forceEncrypt,
-                stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
-    }
-
-    final void setStream(int parameterIndex,
-            StreamType streamType,
-            Object streamValue,
-            JavaType javaType,
+    final void setStream(int parameterIndex, StreamType streamType, Object streamValue, JavaType javaType,
             long length) throws SQLServerException {
-        setterGetParam(parameterIndex).setValue(streamType.getJDBCType(), streamValue, javaType, new StreamSetterArgs(streamType, length), null, null,
-                null, connection, false, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
-    }
-
-    final void setSQLXMLInternal(int parameterIndex,
-            SQLXML value) throws SQLServerException {
-        setterGetParam(parameterIndex).setValue(JDBCType.SQLXML, value, JavaType.SQLXML,
-                new StreamSetterArgs(StreamType.SQLXML, DataTypes.UNKNOWN_STREAM_LENGTH), null, null, null, connection, false,
+        setterGetParam(parameterIndex).setValue(streamType.getJDBCType(), streamValue, javaType,
+                new StreamSetterArgs(streamType, length), null, null, null, connection, false,
                 stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
     }
 
-    public final void setAsciiStream(int parameterIndex,
-            InputStream x) throws SQLException {
+    final void setSQLXMLInternal(int parameterIndex, SQLXML value) throws SQLServerException {
+        setterGetParam(parameterIndex).setValue(JDBCType.SQLXML, value, JavaType.SQLXML,
+                new StreamSetterArgs(StreamType.SQLXML, DataTypes.UNKNOWN_STREAM_LENGTH), null, null, null, connection,
+                false, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+    }
+
+    @Override
+    public final void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {parameterIndex, x});
         checkClosed();
@@ -1216,9 +1238,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setAsciiStream");
     }
 
-    public final void setAsciiStream(int n,
-            java.io.InputStream x,
-            int length) throws SQLServerException {
+    @Override
+    public final void setAsciiStream(int n, java.io.InputStream x, int length) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {n, x, length});
         checkClosed();
@@ -1226,9 +1247,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setAsciiStream");
     }
 
-    public final void setAsciiStream(int parameterIndex,
-            InputStream x,
-            long length) throws SQLException {
+    @Override
+    public final void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {parameterIndex, x, length});
         checkClosed();
@@ -1236,95 +1256,39 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setAsciiStream");
     }
 
-    private Parameter getParam(int index) throws SQLServerException {
-        index--;
-        if (index < 0 || index >= inOutParam.length) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
-            Object[] msgArgs = {index + 1};
-            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "07009", false);
-        }
-        return inOutParam[index];
-    }
-
-    public final void setBigDecimal(int n,
-            BigDecimal x) throws SQLServerException {
+    @Override
+    public final void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {n, x});
+            loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {parameterIndex, x});
         checkClosed();
-        setValue(n, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, false);
+        setValue(parameterIndex, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, false);
         loggerExternal.exiting(getClassNameLogging(), "setBigDecimal");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to an SQL <code>NUMERIC</code>
-     * value when it sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param precision
-     *            the precision of the column
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setBigDecimal(int n,
-            BigDecimal x,
-            int precision,
+    @Override
+    public final void setBigDecimal(int parameterIndex, BigDecimal x, int precision,
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {n, x, precision, scale});
+            loggerExternal.entering(getClassNameLogging(), "setBigDecimal",
+                    new Object[] {parameterIndex, x, precision, scale});
         checkClosed();
-        setValue(n, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, false);
+        setValue(parameterIndex, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, false);
         loggerExternal.exiting(getClassNameLogging(), "setBigDecimal");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to an SQL <code>NUMERIC</code>
-     * value when it sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param precision
-     *            the precision of the column
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setBigDecimal(int n,
-            BigDecimal x,
-            int precision,
-            int scale,
+    @Override
+    public final void setBigDecimal(int parameterIndex, BigDecimal x, int precision, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {n, x, precision, scale, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setBigDecimal",
+                    new Object[] {parameterIndex, x, precision, scale, forceEncrypt});
         checkClosed();
-        setValue(n, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, forceEncrypt);
+        setValue(parameterIndex, JDBCType.DECIMAL, x, JavaType.BIGDECIMAL, precision, scale, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setBigDecimal");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to an SQL <code>NUMERIC</code>
-     * value when it sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setMoney(int n,
-            BigDecimal x) throws SQLServerException {
+    @Override
+    public final void setMoney(int n, BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setMoney", new Object[] {n, x});
         checkClosed();
@@ -1332,24 +1296,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setMoney");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to an SQL <code>NUMERIC</code>
-     * value when it sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setMoney(int n,
-            BigDecimal x,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setMoney(int n, BigDecimal x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setMoney", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1357,19 +1305,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setMoney");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to an SQL <code>NUMERIC</code>
-     * value when it sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setSmallMoney(int n,
-            BigDecimal x) throws SQLServerException {
+    @Override
+    public final void setSmallMoney(int n, BigDecimal x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallMoney", new Object[] {n, x});
         checkClosed();
@@ -1377,24 +1314,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setSmallMoney");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to an SQL <code>NUMERIC</code>
-     * value when it sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setSmallMoney(int n,
-            BigDecimal x,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setSmallMoney(int n, BigDecimal x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallMoney", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1402,8 +1323,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setSmallMoney");
     }
 
-    public final void setBinaryStream(int parameterIndex,
-            InputStream x) throws SQLException {
+    @Override
+    public final void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStreaml", new Object[] {parameterIndex, x});
         checkClosed();
@@ -1411,9 +1332,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setBinaryStream");
     }
 
-    public final void setBinaryStream(int n,
-            java.io.InputStream x,
-            int length) throws SQLServerException {
+    @Override
+    public final void setBinaryStream(int n, java.io.InputStream x, int length) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {n, x, length});
         checkClosed();
@@ -1421,9 +1341,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setBinaryStream");
     }
 
-    public final void setBinaryStream(int parameterIndex,
-            InputStream x,
-            long length) throws SQLException {
+    @Override
+    public final void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {parameterIndex, x, length});
         checkClosed();
@@ -1431,8 +1350,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setBinaryStream");
     }
 
-    public final void setBoolean(int n,
-            boolean x) throws SQLServerException {
+    @Override
+    public final void setBoolean(int n, boolean x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBoolean", new Object[] {n, x});
         checkClosed();
@@ -1440,24 +1359,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setBoolean");
     }
 
-    /**
-     * Sets the designated parameter to the given Java <code>boolean</code> value. The driver converts this to an SQL <code>BIT</code> or
-     * <code>BOOLEAN</code> value when it sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setBoolean(int n,
-            boolean x,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setBoolean(int n, boolean x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBoolean", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1465,8 +1368,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setBoolean");
     }
 
-    public final void setByte(int n,
-            byte x) throws SQLServerException {
+    @Override
+    public final void setByte(int n, byte x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setByte", new Object[] {n, x});
         checkClosed();
@@ -1474,24 +1377,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setByte");
     }
 
-    /**
-     * Sets the designated parameter to the given Java <code>byte</code> value. The driver converts this to an SQL <code>TINYINT</code> value when it
-     * sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setByte(int n,
-            byte x,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setByte(int n, byte x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setByte", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1499,8 +1386,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setByte");
     }
 
-    public final void setBytes(int n,
-            byte x[]) throws SQLServerException {
+    @Override
+    public final void setBytes(int n, byte x[]) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBytes", new Object[] {n, x});
         checkClosed();
@@ -1508,25 +1395,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setBytes");
     }
 
-    /**
-     * Sets the designated parameter to the given Java array of bytes. The driver converts this to an SQL <code>VARBINARY</code> or
-     * <code>LONGVARBINARY</code> (depending on the argument's size relative to the driver's limits on <code>VARBINARY</code> values) when it sends it
-     * to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setBytes(int n,
-            byte x[],
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setBytes(int n, byte x[], boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBytes", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1534,18 +1404,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setBytes");
     }
 
-    /**
-     * Sets the designated parameter to the given String. The driver converts this to an SQL <code>GUID</code>
-     * 
-     * @param index
-     *            the first parameter is 1, the second is 2, ...
-     * @param guid
-     *            string representation of the uniqueIdentifier value
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setUniqueIdentifier(int index,
-            String guid) throws SQLServerException {
+    @Override
+    public final void setUniqueIdentifier(int index, String guid) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setUniqueIdentifier", new Object[] {index, guid});
         checkClosed();
@@ -1553,32 +1413,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setUniqueIdentifier");
     }
 
-    /**
-     * Sets the designated parameter to the given String. The driver converts this to an SQL <code>GUID</code>
-     * 
-     * @param index
-     *            the first parameter is 1, the second is 2, ...
-     * @param guid
-     *            string representation of the uniqueIdentifier value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setUniqueIdentifier(int index,
-            String guid,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setUniqueIdentifier(int index, String guid, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setUniqueIdentifier", new Object[] {index, guid, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setUniqueIdentifier",
+                    new Object[] {index, guid, forceEncrypt});
         checkClosed();
         setValue(index, JDBCType.GUID, guid, JavaType.STRING, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setUniqueIdentifier");
     }
 
-    public final void setDouble(int n,
-            double x) throws SQLServerException {
+    @Override
+    public final void setDouble(int n, double x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDouble", new Object[] {n, x});
         checkClosed();
@@ -1586,24 +1432,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setDouble");
     }
 
-    /**
-     * Sets the designated parameter to the given Java <code>double</code> value. The driver converts this to an SQL <code>DOUBLE</code> value when it
-     * sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setDouble(int n,
-            double x,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setDouble(int n, double x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDouble", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1611,8 +1441,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setDouble");
     }
 
-    public final void setFloat(int n,
-            float x) throws SQLServerException {
+    @Override
+    public final void setFloat(int n, float x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setFloat", new Object[] {n, x});
         checkClosed();
@@ -1620,42 +1450,26 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setFloat");
     }
 
-    /**
-     * Sets the designated parameter to the given Java <code>float</code> value. The driver converts this to an SQL <code>REAL</code> value when it
-     * sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setFloat(int n,
-            float x,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setFloat(int n, float x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setFloat", new Object[] {n, x, forceEncrypt});
         checkClosed();
         setValue(n, JDBCType.REAL, x, JavaType.FLOAT, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setFloat");
     }
-    
-    public final void setGeometry(int n,
-            Geometry x) throws SQLServerException {
+
+    @Override
+    public final void setGeometry(int n, Geometry x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setGeometry", new Object[] {n, x});
         checkClosed();
         setValue(n, JDBCType.GEOMETRY, x, JavaType.STRING, false);
         loggerExternal.exiting(getClassNameLogging(), "setGeometry");
     }
-    
-    public final void setGeography(int n,
-            Geography x) throws SQLServerException {
+
+    @Override
+    public final void setGeography(int n, Geography x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setGeography", new Object[] {n, x});
         checkClosed();
@@ -1663,8 +1477,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setGeography");
     }
 
-    public final void setInt(int n,
-            int value) throws SQLServerException {
+    @Override
+    public final void setInt(int n, int value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setInt", new Object[] {n, value});
         checkClosed();
@@ -1672,24 +1486,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setInt");
     }
 
-    /**
-     * Sets the designated parameter to the given Java <code>int</code> value. The driver converts this to an SQL <code>INTEGER</code> value when it
-     * sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param value
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setInt(int n,
-            int value,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setInt(int n, int value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setInt", new Object[] {n, value, forceEncrypt});
         checkClosed();
@@ -1697,8 +1495,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setInt");
     }
 
-    public final void setLong(int n,
-            long x) throws SQLServerException {
+    @Override
+    public final void setLong(int n, long x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setLong", new Object[] {n, x});
         checkClosed();
@@ -1706,24 +1504,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setLong");
     }
 
-    /**
-     * Sets the designated parameter to the given Java <code>long</code> value. The driver converts this to an SQL <code>BIGINT</code> value when it
-     * sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setLong(int n,
-            long x,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setLong(int n, long x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setLong", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1731,8 +1513,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setLong");
     }
 
-    public final void setNull(int index,
-            int jdbcType) throws SQLServerException {
+    @Override
+    public final void setNull(int index, int jdbcType) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNull", new Object[] {index, jdbcType});
         checkClosed();
@@ -1740,9 +1522,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setNull");
     }
 
-    final void setObjectNoType(int index,
-            Object obj,
-            boolean forceEncrypt) throws SQLServerException {
+    final void setObjectNoType(int index, Object obj, boolean forceEncrypt) throws SQLServerException {
         // Default to the JDBC type of the parameter, determined by a previous setter call or through registerOutParam.
         // This avoids repreparing unnecessarily for null values.
         Parameter param = setterGetParam(index);
@@ -1756,14 +1536,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 targetJDBCType = JDBCType.CHAR;
 
             setObject(param, null, JavaType.OBJECT, targetJDBCType, null, null, forceEncrypt, index, null);
-        }
-        else {
+        } else {
             JavaType javaType = JavaType.of(obj);
             if (JavaType.TVP == javaType) {
-                tvpName = getTVPNameIfNull(index, null);   // will return null if called from preparedStatement
+                tvpName = getTVPNameIfNull(index, null); // will return null if called from preparedStatement
 
                 if ((null == tvpName) && (obj instanceof ResultSet)) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_TVPnotWorkWithSetObjectResultSet"), null);
+                    throw new SQLServerException(SQLServerException.getErrString("R_TVPnotWorkWithSetObjectResultSet"),
+                            null);
                 }
             }
             targetJDBCType = javaType.getJDBCType(SSType.UNKNOWN, targetJDBCType);
@@ -1779,8 +1559,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
-    public final void setObject(int index,
-            Object obj) throws SQLServerException {
+    @Override
+    public final void setObject(int index, Object obj) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {index, obj});
         checkClosed();
@@ -1788,9 +1568,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
-    public final void setObject(int n,
-            Object obj,
-            int jdbcType) throws SQLServerException {
+    @Override
+    public final void setObject(int n, Object obj, int jdbcType) throws SQLServerException {
         String tvpName = null;
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {n, obj, jdbcType});
@@ -1801,12 +1580,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
-    public final void setObject(int parameterIndex,
-            Object x,
-            int targetSqlType,
+    @Override
+    public final void setObject(int parameterIndex, Object x, int targetSqlType,
             int scaleOrLength) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterIndex, x, targetSqlType, scaleOrLength});
+            loggerExternal.entering(getClassNameLogging(), "setObject",
+                    new Object[] {parameterIndex, x, targetSqlType, scaleOrLength});
         checkClosed();
 
         // scaleOrLength - for java.sql.Types.DECIMAL, java.sql.Types.NUMERIC or temporal types,
@@ -1815,49 +1594,21 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // For all other types, this value will be ignored.
 
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
-                (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType || java.sql.Types.TIMESTAMP == targetSqlType
-                        || java.sql.Types.TIME == targetSqlType || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType
-                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scaleOrLength : null,
+                (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
+                        || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
+                        || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
+                        || Reader.class.isInstance(x)) ? scaleOrLength : null,
                 null, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
-    /**
-     * <p>
-     * Sets the value of the designated parameter with the given object.
-     *
-     * <p>
-     * The given Java object will be converted to the given targetSqlType before being sent to the database.
-     *
-     * If the object has a custom mapping (is of a class implementing the interface <code>SQLData</code>), the JDBC driver should call the method
-     * <code>SQLData.writeSQL</code> to write it to the SQL data stream. If, on the other hand, the object is of a class implementing
-     * <code>Ref</code>, <code>Blob</code>, <code>Clob</code>, <code>NClob</code>, <code>Struct</code>, <code>java.net.URL</code>, or
-     * <code>Array</code>, the driver should pass it to the database as a value of the corresponding SQL type.
-     *
-     * <p>
-     * Note that this method may be used to pass database-specific abstract data types.
-     *
-     * @param parameterIndex
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the object containing the input parameter value
-     * @param targetSqlType
-     *            the SQL type (as defined in java.sql.Types) to be sent to the database. The scale argument may further qualify this type.
-     * @param precision
-     *            the precision of the column
-     * @param scale
-     *            scale of the column
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setObject(int parameterIndex,
-            Object x,
-            int targetSqlType,
-            Integer precision,
+    @Override
+    public final void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision,
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterIndex, x, targetSqlType, precision, scale});
+            loggerExternal.entering(getClassNameLogging(), "setObject",
+                    new Object[] {parameterIndex, x, targetSqlType, precision, scale});
         checkClosed();
 
         // scale - for java.sql.Types.DECIMAL or java.sql.Types.NUMERIC types,
@@ -1865,51 +1616,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For all other types, this value will be ignored.
 
-        setObject(setterGetParam(parameterIndex), x, JavaType.of(x),
-                JDBCType.of(targetSqlType), (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
+        setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
+                (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
                         || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
                 precision, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
-    /**
-     * <p>
-     * Sets the value of the designated parameter with the given object.
-     *
-     * <p>
-     * The given Java object will be converted to the given targetSqlType before being sent to the database.
-     *
-     * If the object has a custom mapping (is of a class implementing the interface <code>SQLData</code>), the JDBC driver should call the method
-     * <code>SQLData.writeSQL</code> to write it to the SQL data stream. If, on the other hand, the object is of a class implementing
-     * <code>Ref</code>, <code>Blob</code>, <code>Clob</code>, <code>NClob</code>, <code>Struct</code>, <code>java.net.URL</code>, or
-     * <code>Array</code>, the driver should pass it to the database as a value of the corresponding SQL type.
-     *
-     * <p>
-     * Note that this method may be used to pass database-specific abstract data types.
-     *
-     * @param parameterIndex
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the object containing the input parameter value
-     * @param targetSqlType
-     *            the SQL type (as defined in java.sql.Types) to be sent to the database. The scale argument may further qualify this type.
-     * @param precision
-     *            the precision of the column
-     * @param scale
-     *            scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setObject(int parameterIndex,
-            Object x,
-            int targetSqlType,
-            Integer precision,
-            int scale,
+    @Override
+    public final void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject",
@@ -1921,23 +1637,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For all other types, this value will be ignored.
 
-        setObject(setterGetParam(parameterIndex), x, JavaType.of(x),
-                JDBCType.of(targetSqlType), (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
+        setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
+                (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
                         || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
                 precision, forceEncrypt, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
-    final void setObject(Parameter param,
-            Object obj,
-            JavaType javaType,
-            JDBCType jdbcType,
-            Integer scale,
-            Integer precision,
-            boolean forceEncrypt,
-            int parameterIndex,
-            String tvpName) throws SQLServerException {
+    final void setObject(Parameter param, Object obj, JavaType javaType, JDBCType jdbcType, Integer scale,
+            Integer precision, boolean forceEncrypt, int parameterIndex, String tvpName) throws SQLServerException {
         assert JDBCType.UNKNOWN != jdbcType;
 
         // For non-null values, infer the object's JDBC type from its Java type
@@ -1958,7 +1667,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     break;
 
                 case INPUTSTREAM:
-                    streamSetterArgs = new StreamSetterArgs(jdbcType.isTextual() ? StreamType.CHARACTER : StreamType.BINARY,
+                    streamSetterArgs = new StreamSetterArgs(
+                            jdbcType.isTextual() ? StreamType.CHARACTER : StreamType.BINARY,
                             DataTypes.UNKNOWN_STREAM_LENGTH);
                     break;
 
@@ -1971,8 +1681,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
 
             // typeInfo is set as null
-            param.setValue(jdbcType, obj, javaType, streamSetterArgs, null, precision, scale, connection, forceEncrypt, stmtColumnEncriptionSetting,
-                    parameterIndex, userSQL, tvpName);
+            param.setValue(jdbcType, obj, javaType, streamSetterArgs, null, precision, scale, connection, forceEncrypt,
+                    stmtColumnEncriptionSetting, parameterIndex, userSQL, tvpName);
         }
 
         // For null values, use the specified JDBC type directly, with the exception
@@ -1984,13 +1694,36 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 jdbcType = JDBCType.BINARY;
 
             // typeInfo is set as null
-            param.setValue(jdbcType, null, JavaType.OBJECT, null, null, precision, scale, connection, false, stmtColumnEncriptionSetting,
-                    parameterIndex, userSQL, tvpName);
+            param.setValue(jdbcType, null, JavaType.OBJECT, null, null, precision, scale, connection, false,
+                    stmtColumnEncriptionSetting, parameterIndex, userSQL, tvpName);
         }
     }
 
-    public final void setShort(int index,
-            short x) throws SQLServerException {
+    @Override
+    public final void setObject(int index, Object obj, SQLType jdbcType) throws SQLServerException {
+        setObject(index, obj, jdbcType.getVendorTypeNumber());
+    }
+
+    @Override
+    public final void setObject(int parameterIndex, Object x, SQLType targetSqlType,
+            int scaleOrLength) throws SQLServerException {
+        setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), scaleOrLength);
+    }
+
+    @Override
+    public final void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision,
+            Integer scale) throws SQLServerException {
+        setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), precision, scale);
+    }
+
+    @Override
+    public final void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale,
+            boolean forceEncrypt) throws SQLServerException {
+        setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), precision, scale, forceEncrypt);
+    }
+
+    @Override
+    public final void setShort(int index, short x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setShort", new Object[] {index, x});
         checkClosed();
@@ -1998,24 +1731,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setShort");
     }
 
-    /**
-     * Sets the designated parameter to the given Java <code>short</code> value. The driver converts this to an SQL <code>SMALLINT</code> value when
-     * it sends it to the database.
-     *
-     * @param index
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setShort(int index,
-            short x,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setShort(int index, short x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setShort", new Object[] {index, x, forceEncrypt});
         checkClosed();
@@ -2023,8 +1740,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setShort");
     }
 
-    public final void setString(int index,
-            String str) throws SQLServerException {
+    @Override
+    public final void setString(int index, String str) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setString", new Object[] {index, str});
         checkClosed();
@@ -2032,25 +1749,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setString");
     }
 
-    /**
-     * Sets the designated parameter to the given Java <code>String</code> value. The driver converts this to an SQL <code>VARCHAR</code> or
-     * <code>LONGVARCHAR</code> value (depending on the argument's size relative to the driver's limits on <code>VARCHAR</code> values) when it sends
-     * it to the database.
-     *
-     * @param index
-     *            the first parameter is 1, the second is 2, ...
-     * @param str
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setString(int index,
-            String str,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setString(int index, String str, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setString", new Object[] {index, str, forceEncrypt});
         checkClosed();
@@ -2058,8 +1758,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setString");
     }
 
-    public final void setNString(int parameterIndex,
-            String value) throws SQLException {
+    @Override
+    public final void setNString(int parameterIndex, String value) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNString", new Object[] {parameterIndex, value});
         checkClosed();
@@ -2067,34 +1767,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setNString");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>String</code> object. The driver converts this to a SQL <code>NCHAR</code> or
-     * <code>NVARCHAR</code> or <code>LONGNVARCHAR</code> value (depending on the argument's size relative to the driver's limits on
-     * <code>NVARCHAR</code> values) when it sends it to the database.
-     *
-     * @param parameterIndex
-     *            of the first parameter is 1, the second is 2, ...
-     * @param value
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLException
-     *             when an error occurs
-     */
-    public final void setNString(int parameterIndex,
-            String value,
-            boolean forceEncrypt) throws SQLException {
+    @Override
+    public final void setNString(int parameterIndex, String value, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setNString", new Object[] {parameterIndex, value, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setNString",
+                    new Object[] {parameterIndex, value, forceEncrypt});
         checkClosed();
         setValue(parameterIndex, JDBCType.NVARCHAR, value, JavaType.STRING, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setNString");
     }
 
-    public final void setTime(int n,
-            java.sql.Time x) throws SQLServerException {
+    @Override
+    public final void setTime(int n, java.sql.Time x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x});
         checkClosed();
@@ -2102,21 +1786,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setTime");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.sql.Time</code> value
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setTime(int n,
-            java.sql.Time x,
-            int scale) throws SQLServerException {
+    @Override
+    public final void setTime(int n, java.sql.Time x, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x, scale});
         checkClosed();
@@ -2124,26 +1795,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setTime");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.sql.Time</code> value
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setTime(int n,
-            java.sql.Time x,
-            int scale,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setTime(int n, java.sql.Time x, int scale, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x, scale, forceEncrypt});
         checkClosed();
@@ -2151,8 +1804,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setTime");
     }
 
-    public final void setTimestamp(int n,
-            java.sql.Timestamp x) throws SQLServerException {
+    @Override
+    public final void setTimestamp(int n, java.sql.Timestamp x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x});
         checkClosed();
@@ -2160,21 +1813,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param scale
-     *            the scale of the column
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setTimestamp(int n,
-            java.sql.Timestamp x,
-            int scale) throws SQLServerException {
+    @Override
+    public final void setTimestamp(int n, java.sql.Timestamp x, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, scale});
         checkClosed();
@@ -2182,25 +1822,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setTimestamp(int n,
-            java.sql.Timestamp x,
-            int scale,
+    @Override
+    public final void setTimestamp(int n, java.sql.Timestamp x, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, scale, forceEncrypt});
@@ -2209,18 +1832,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>microsoft.sql.DatetimeOffset</code> value
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @throws SQLException
-     *             if an error occurs.
-     */
-    public final void setDateTimeOffset(int n,
-            microsoft.sql.DateTimeOffset x) throws SQLException {
+    @Override
+    public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {n, x});
         checkClosed();
@@ -2228,21 +1841,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>microsoft.sql.DatetimeOffset</code> value
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param scale
-     *            the scale of the column
-     * @throws SQLException
-     *             when an error occurs
-     */
-    public final void setDateTimeOffset(int n,
-            microsoft.sql.DateTimeOffset x,
-            int scale) throws SQLException {
+    @Override
+    public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {n, x, scale});
         checkClosed();
@@ -2250,35 +1850,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>microsoft.sql.DatetimeOffset</code> value
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param scale
-     *            the scale of the column
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLException
-     *             when an error occurs
-     */
-    public final void setDateTimeOffset(int n,
-            microsoft.sql.DateTimeOffset x,
-            int scale,
-            boolean forceEncrypt) throws SQLException {
+    @Override
+    public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x, int scale,
+            boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {n, x, scale, forceEncrypt});
+            loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset",
+                    new Object[] {n, x, scale, forceEncrypt});
         checkClosed();
         setValue(n, JDBCType.DATETIMEOFFSET, x, JavaType.DATETIMEOFFSET, null, scale, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
     }
 
-    public final void setDate(int n,
-            java.sql.Date x) throws SQLServerException {
+    @Override
+    public final void setDate(int n, java.sql.Date x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDate", new Object[] {n, x});
         checkClosed();
@@ -2286,18 +1870,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setDate");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setDateTime(int n,
-            java.sql.Timestamp x) throws SQLServerException {
+    @Override
+    public final void setDateTime(int n, java.sql.Timestamp x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {n, x});
         checkClosed();
@@ -2305,23 +1879,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setDateTime");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setDateTime(int n,
-            java.sql.Timestamp x,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setDateTime(int n, java.sql.Timestamp x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -2329,18 +1888,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setDateTime");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setSmallDateTime(int n,
-            java.sql.Timestamp x) throws SQLServerException {
+    @Override
+    public final void setSmallDateTime(int n, java.sql.Timestamp x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallDateTime", new Object[] {n, x});
         checkClosed();
@@ -2348,23 +1897,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setSmallDateTime");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setSmallDateTime(int n,
-            java.sql.Timestamp x,
-            boolean forceEncrypt) throws SQLServerException {
+    @Override
+    public final void setSmallDateTime(int n, java.sql.Timestamp x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallDateTime", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -2372,21 +1906,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setSmallDateTime");
     }
 
-    /**
-     * Populates a table valued parameter with a data table
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param tvpName
-     *            the name of the table valued parameter
-     * @param tvpDataTable
-     *            the source datatable object
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setStructured(int n,
-            String tvpName,
-            SQLServerDataTable tvpDataTable) throws SQLServerException {
+    @Override
+    public final void setStructured(int n, String tvpName, SQLServerDataTable tvpDataTable) throws SQLServerException {
         tvpName = getTVPNameIfNull(n, tvpName);
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setStructured", new Object[] {n, tvpName, tvpDataTable});
@@ -2395,21 +1916,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setStructured");
     }
 
-    /**
-     * Populates a table valued parameter with a data table
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param tvpName
-     *            the name of the table valued parameter
-     * @param tvpResultSet
-     *            the source resultset object
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setStructured(int n,
-            String tvpName,
-            ResultSet tvpResultSet) throws SQLServerException {
+    @Override
+    public final void setStructured(int n, String tvpName, ResultSet tvpResultSet) throws SQLServerException {
         tvpName = getTVPNameIfNull(n, tvpName);
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setStructured", new Object[] {n, tvpName, tvpResultSet});
@@ -2418,20 +1926,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setStructured");
     }
 
-    /**
-     * Populates a table valued parameter with a data table
-     * 
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param tvpName
-     *            the name of the table valued parameter
-     * @param tvpBulkRecord
-     *            an ISQLServerDataRecord object
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setStructured(int n,
-            String tvpName,
+    @Override
+    public final void setStructured(int n, String tvpName,
             ISQLServerDataRecord tvpBulkRecord) throws SQLServerException {
         tvpName = getTVPNameIfNull(n, tvpName);
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2441,33 +1937,32 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setStructured");
     }
 
-    String getTVPNameIfNull(int n,
-            String tvpName) throws SQLServerException {
+    String getTVPNameIfNull(int n, String tvpName) throws SQLServerException {
         if ((null == tvpName) || (0 == tvpName.length())) {
             // Check if the CallableStatement/PreparedStatement is a stored procedure call
-            if(null != this.procedureName) {
+            if (null != this.procedureName) {
                 SQLServerParameterMetaData pmd = (SQLServerParameterMetaData) this.getParameterMetaData();
                 pmd.isTVP = true;
-                
+
                 if (!pmd.procedureIsFound) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_StoredProcedureNotFound"));
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_StoredProcedureNotFound"));
                     Object[] msgArgs = {this.procedureName};
                     SQLServerException.makeFromDriverError(connection, pmd, form.format(msgArgs), null, false);
                 }
-                
+
                 try {
                     String tvpNameWithoutSchema = pmd.getParameterTypeName(n);
                     String tvpSchema = pmd.getTVPSchemaFromStoredProcedure(n);
 
                     if (null != tvpSchema) {
                         tvpName = "[" + tvpSchema + "].[" + tvpNameWithoutSchema + "]";
-                    }
-                    else {
+                    } else {
                         tvpName = tvpNameWithoutSchema;
                     }
-                }
-                catch (SQLException e) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), null, 0, e);
+                } catch (SQLException e) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), null,
+                            0, e);
                 }
             }
         }
@@ -2475,12 +1970,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Deprecated
-    public final void setUnicodeStream(int n,
-            java.io.InputStream x,
-            int length) throws SQLException {
-        NotImplemented();
+    @Override
+    public final void setUnicodeStream(int n, java.io.InputStream x, int length) throws SQLException {
+        SQLServerException.throwNotSupportedException(connection, this);
     }
 
+    @Override
     public final void addBatch() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "addBatch");
         checkClosed();
@@ -2497,13 +1992,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "addBatch");
     }
 
-    /* L0 */ public final void clearBatch() throws SQLServerException {
+    @Override
+    public final void clearBatch() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "clearBatch");
         checkClosed();
         batchParamValues = null;
         loggerExternal.exiting(getClassNameLogging(), "clearBatch");
     }
 
+    @Override
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeBatch");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
@@ -2514,7 +2011,107 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int updateCounts[];
 
-        if (batchParamValues == null)
+        localUserSQL = userSQL;
+
+        try {
+            if (this.useBulkCopyForBatchInsert && connection.isAzureDW() && isInsert(localUserSQL)) {
+                if (null == batchParamValues) {
+                    updateCounts = new int[0];
+                    loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                    return updateCounts;
+                }
+
+                // From the JDBC spec, section 9.1.4 - Making Batch Updates:
+                // The CallableStatement.executeBatch method (inherited from PreparedStatement) will
+                // throw a BatchUpdateException if the stored procedure returns anything other than an
+                // update count or takes OUT or INOUT parameters.
+                //
+                // Non-update count results (e.g. ResultSets) are treated as individual batch errors
+                // when they are encountered in the response.
+                //
+                // OUT and INOUT parameter checking is done here, before executing the batch. If any
+                // OUT or INOUT are present, the entire batch fails.
+                for (Parameter[] paramValues : batchParamValues) {
+                    for (Parameter paramValue : paramValues) {
+                        if (paramValue.isOutput()) {
+                            throw new BatchUpdateException(
+                                    SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                        }
+                    }
+                }
+
+                String tableName = parseUserSQLForTableNameDW(false, false, false, false);
+                ArrayList<String> columnList = parseUserSQLForColumnListDW();
+                ArrayList<String> valueList = parseUserSQLForValueListDW(false);
+
+                checkAdditionalQuery();
+
+                try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
+                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
+                        stmtColumnEncriptionSetting);
+                        SQLServerResultSet rs = stmt
+                                .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
+                                        + Util.escapeSingleQuotes(tableName) + " '")) {
+                    if (null != columnList && columnList.size() > 0) {
+                        if (columnList.size() != valueList.size()) {
+                            throw new IllegalArgumentException(
+                                    "Number of provided columns does not match the table definition.");
+                        }
+                    } else {
+                        if (rs.getColumnCount() != valueList.size()) {
+                            throw new IllegalArgumentException(
+                                    "Number of provided columns does not match the table definition.");
+                        }
+                    }
+
+                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
+                            columnList, valueList, null);
+
+                    for (int i = 1; i <= rs.getColumnCount(); i++) {
+                        Column c = rs.getColumn(i);
+                        CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
+                        int jdbctype;
+                        TypeInfo ti = c.getTypeInfo();
+                        checkValidColumns(ti);
+                        if (null != cryptoMetadata) {
+                            jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
+                        } else {
+                            jdbctype = ti.getSSType().getJDBCType().getIntValue();
+                        }
+                        batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                    }
+
+                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                    SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                    option.setBulkCopyTimeout(queryTimeout);
+                    bcOperation.setBulkCopyOptions(option);
+                    bcOperation.setDestinationTableName(tableName);
+                    bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                    bcOperation.setDestinationTableMetadata(rs);
+                    bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
+                    bcOperation.close();
+                    updateCounts = new int[batchParamValues.size()];
+                    for (int i = 0; i < batchParamValues.size(); ++i) {
+                        updateCounts[i] = 1;
+                    }
+
+                    batchParamValues = null;
+                    loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                    return updateCounts;
+                }
+            }
+        } catch (SQLException e) {
+            // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
+            throw new BatchUpdateException(e.getMessage(), null, 0, null);
+        } catch (IllegalArgumentException e) {
+            // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
+            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
+                getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
+            }
+        }
+
+        if (null == batchParamValues)
             updateCounts = new int[0];
         else
             try {
@@ -2531,7 +2128,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 for (Parameter[] paramValues : batchParamValues) {
                     for (Parameter paramValue : paramValues) {
                         if (paramValue.isOutput()) {
-                            throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                            throw new BatchUpdateException(
+                                    SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
                 }
@@ -2546,12 +2144,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // Transform the SQLException into a BatchUpdateException with the update counts.
                 if (null != batchCommand.batchException) {
-                    throw new BatchUpdateException(batchCommand.batchException.getMessage(), batchCommand.batchException.getSQLState(),
-                            batchCommand.batchException.getErrorCode(), updateCounts);
+                    throw new BatchUpdateException(batchCommand.batchException.getMessage(),
+                            batchCommand.batchException.getSQLState(), batchCommand.batchException.getErrorCode(),
+                            updateCounts);
 
                 }
-            }
-            finally {
+            } finally {
                 batchParamValues = null;
             }
 
@@ -2559,9 +2157,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return updateCounts;
     }
 
+    @Override
     public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
-        DriverJDBCVersion.checkSupportsJDBC42();
-
         loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -2571,7 +2168,107 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         long updateCounts[];
 
-        if (batchParamValues == null)
+        localUserSQL = userSQL;
+
+        try {
+            if (this.useBulkCopyForBatchInsert && connection.isAzureDW() && isInsert(localUserSQL)) {
+                if (null == batchParamValues) {
+                    updateCounts = new long[0];
+                    loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
+                    return updateCounts;
+                }
+
+                // From the JDBC spec, section 9.1.4 - Making Batch Updates:
+                // The CallableStatement.executeBatch method (inherited from PreparedStatement) will
+                // throw a BatchUpdateException if the stored procedure returns anything other than an
+                // update count or takes OUT or INOUT parameters.
+                //
+                // Non-update count results (e.g. ResultSets) are treated as individual batch errors
+                // when they are encountered in the response.
+                //
+                // OUT and INOUT parameter checking is done here, before executing the batch. If any
+                // OUT or INOUT are present, the entire batch fails.
+                for (Parameter[] paramValues : batchParamValues) {
+                    for (Parameter paramValue : paramValues) {
+                        if (paramValue.isOutput()) {
+                            throw new BatchUpdateException(
+                                    SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                        }
+                    }
+                }
+
+                String tableName = parseUserSQLForTableNameDW(false, false, false, false);
+                ArrayList<String> columnList = parseUserSQLForColumnListDW();
+                ArrayList<String> valueList = parseUserSQLForValueListDW(false);
+
+                checkAdditionalQuery();
+
+                try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
+                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
+                        stmtColumnEncriptionSetting);
+                        SQLServerResultSet rs = stmt
+                                .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
+                                        + Util.escapeSingleQuotes(tableName) + " '")) {
+                    if (null != columnList && columnList.size() > 0) {
+                        if (columnList.size() != valueList.size()) {
+                            throw new IllegalArgumentException(
+                                    "Number of provided columns does not match the table definition.");
+                        }
+                    } else {
+                        if (rs.getColumnCount() != valueList.size()) {
+                            throw new IllegalArgumentException(
+                                    "Number of provided columns does not match the table definition.");
+                        }
+                    }
+
+                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
+                            columnList, valueList, null);
+
+                    for (int i = 1; i <= rs.getColumnCount(); i++) {
+                        Column c = rs.getColumn(i);
+                        CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
+                        int jdbctype;
+                        TypeInfo ti = c.getTypeInfo();
+                        checkValidColumns(ti);
+                        if (null != cryptoMetadata) {
+                            jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
+                        } else {
+                            jdbctype = ti.getSSType().getJDBCType().getIntValue();
+                        }
+                        batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                    }
+
+                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                    SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                    option.setBulkCopyTimeout(queryTimeout);
+                    bcOperation.setBulkCopyOptions(option);
+                    bcOperation.setDestinationTableName(tableName);
+                    bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                    bcOperation.setDestinationTableMetadata(rs);
+                    bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
+                    bcOperation.close();
+                    updateCounts = new long[batchParamValues.size()];
+                    for (int i = 0; i < batchParamValues.size(); ++i) {
+                        updateCounts[i] = 1;
+                    }
+
+                    batchParamValues = null;
+                    loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
+                    return updateCounts;
+                }
+            }
+        } catch (SQLException e) {
+            // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
+            throw new BatchUpdateException(e.getMessage(), null, 0, null);
+        } catch (IllegalArgumentException e) {
+            // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
+            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
+                getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
+            }
+        }
+
+        if (null == batchParamValues)
             updateCounts = new long[0];
         else
             try {
@@ -2588,7 +2285,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 for (Parameter[] paramValues : batchParamValues) {
                     for (Parameter paramValue : paramValues) {
                         if (paramValue.isOutput()) {
-                            throw new BatchUpdateException(SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                            throw new BatchUpdateException(
+                                    SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
                 }
@@ -2606,21 +2304,433 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     DriverJDBCVersion.throwBatchUpdateException(batchCommand.batchException, updateCounts);
                 }
 
-            }
-            finally {
+            } finally {
                 batchParamValues = null;
             }
         loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
         return updateCounts;
     }
 
+    private void checkValidColumns(TypeInfo ti) throws SQLServerException {
+        int jdbctype = ti.getSSType().getJDBCType().getIntValue();
+        String typeName;
+        MessageFormat form;
+        switch (jdbctype) {
+            case microsoft.sql.Types.MONEY:
+            case microsoft.sql.Types.SMALLMONEY:
+            case java.sql.Types.DATE:
+            case microsoft.sql.Types.DATETIME:
+            case microsoft.sql.Types.DATETIMEOFFSET:
+            case microsoft.sql.Types.SMALLDATETIME:
+            case java.sql.Types.TIME:
+                typeName = ti.getSSTypeName();
+                form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupportedDW"));
+                throw new IllegalArgumentException(form.format(new Object[] {typeName}));
+            case java.sql.Types.INTEGER:
+            case java.sql.Types.SMALLINT:
+            case java.sql.Types.BIGINT:
+            case java.sql.Types.BIT:
+            case java.sql.Types.TINYINT:
+            case java.sql.Types.DOUBLE:
+            case java.sql.Types.REAL:
+            case java.sql.Types.DECIMAL:
+            case java.sql.Types.NUMERIC:
+            case microsoft.sql.Types.GUID:
+            case java.sql.Types.CHAR:
+            case java.sql.Types.NCHAR:
+            case java.sql.Types.LONGVARCHAR:
+            case java.sql.Types.VARCHAR:
+            case java.sql.Types.LONGNVARCHAR:
+            case java.sql.Types.NVARCHAR:
+            case java.sql.Types.BINARY:
+            case java.sql.Types.LONGVARBINARY:
+            case java.sql.Types.VARBINARY:
+                // Spatial datatypes fall under Varbinary, check if the UDT is geometry/geography.
+                typeName = ti.getSSTypeName();
+                if (typeName.equalsIgnoreCase("geometry") || typeName.equalsIgnoreCase("geography")) {
+                    form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
+                    throw new IllegalArgumentException(form.format(new Object[] {typeName}));
+                }
+            case java.sql.Types.TIMESTAMP:
+            case 2013: // java.sql.Types.TIME_WITH_TIMEZONE
+            case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
+            case microsoft.sql.Types.SQL_VARIANT:
+                return;
+            default: {
+                form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
+                String unsupportedDataType = JDBCType.of(jdbctype).toString();
+                throw new IllegalArgumentException(form.format(new Object[] {unsupportedDataType}));
+            }
+        }
+    }
+
+    private void checkAdditionalQuery() {
+        while (checkAndRemoveCommentsAndSpace(true)) {}
+
+        // At this point, if localUserSQL is not empty (after removing all whitespaces, semicolons and comments), we
+        // have a
+        // new query. reject this.
+        if (localUserSQL.length() > 0) {
+            throw new IllegalArgumentException("Multiple queries are not allowed.");
+        }
+    }
+
+    private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound,
+            boolean hasTableBeenFound, boolean isExpectingTableName) {
+        // As far as finding the table name goes, There are two cases:
+        // Insert into <tableName> and Insert <tableName>
+        // And there could be in-line comments (with /* and */) in between.
+        // This method assumes the localUserSQL string starts with "insert".
+        while (checkAndRemoveCommentsAndSpace(false)) {}
+
+        StringBuilder sb = new StringBuilder();
+
+        // If table has been found and the next character is not a . at this point, we've finished parsing the table
+        // name.
+        // This if statement is needed to handle the case where the user has something like:
+        // [dbo] . /* random comment */ [tableName]
+        if (hasTableBeenFound && !isExpectingTableName) {
+            if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase(".")) {
+                sb.append(".");
+                localUserSQL = localUserSQL.substring(1);
+                return sb.toString() + parseUserSQLForTableNameDW(true, true, true, true);
+            } else {
+                return "";
+            }
+        }
+
+        if (!hasInsertBeenFound && checkSQLLength(6) && localUserSQL.substring(0, 6).equalsIgnoreCase("insert")) {
+            localUserSQL = localUserSQL.substring(6);
+            return parseUserSQLForTableNameDW(true, hasIntoBeenFound, hasTableBeenFound, isExpectingTableName);
+        }
+
+        if (!hasIntoBeenFound && checkSQLLength(6) && localUserSQL.substring(0, 4).equalsIgnoreCase("into")) {
+            // is it really "into"?
+            // if the "into" is followed by a blank space or /*, then yes.
+            if (Character.isWhitespace(localUserSQL.charAt(4))
+                    || (localUserSQL.charAt(4) == '/' && localUserSQL.charAt(5) == '*')) {
+                localUserSQL = localUserSQL.substring(4);
+                return parseUserSQLForTableNameDW(hasInsertBeenFound, true, hasTableBeenFound, isExpectingTableName);
+            }
+
+            // otherwise, we found the token that either contains the databasename.tablename or tablename.
+            // Recursively handle this, but into has been found. (or rather, it's absent in the query - the "into"
+            // keyword is optional)
+            return parseUserSQLForTableNameDW(hasInsertBeenFound, true, hasTableBeenFound, isExpectingTableName);
+        }
+
+        // At this point, the next token has to be the table name.
+        // It could be encapsulated in [], "", or have a database name preceding the table name.
+        // If it's encapsulated in [] or "", we need be more careful with parsing as anything could go into []/"".
+        // For ] or ", they can be escaped by ]] or "", watch out for this too.
+        if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("[")) {
+            int tempint = localUserSQL.indexOf("]", 1);
+
+            // ] has not been found, this is wrong.
+            if (tempint < 0) {
+                throw new IllegalArgumentException("Invalid SQL Query.");
+            }
+
+            // keep checking if it's escaped
+            while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == ']') {
+                tempint = localUserSQL.indexOf("]", tempint + 2);
+            }
+
+            // we've found a ] that is actually trying to close the square bracket.
+            // return tablename + potentially more that's part of the table name
+            sb.append(localUserSQL.substring(0, tempint + 1));
+            localUserSQL = localUserSQL.substring(tempint + 1);
+            return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
+        }
+
+        // do the same for ""
+        if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("\"")) {
+            int tempint = localUserSQL.indexOf("\"", 1);
+
+            // \" has not been found, this is wrong.
+            if (tempint < 0) {
+                throw new IllegalArgumentException("Invalid SQL Query.");
+            }
+
+            // keep checking if it's escaped
+            while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\"') {
+                tempint = localUserSQL.indexOf("\"", tempint + 2);
+            }
+
+            // we've found a " that is actually trying to close the quote.
+            // return tablename + potentially more that's part of the table name
+            sb.append(localUserSQL.substring(0, tempint + 1));
+            localUserSQL = localUserSQL.substring(tempint + 1);
+            return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
+        }
+
+        // At this point, the next chunk of string is the table name, without starting with [ or ".
+        while (localUserSQL.length() > 0) {
+            // Keep going until the end of the table name is signalled - either a ., whitespace, ; or comment is
+            // encountered.
+            if (localUserSQL.charAt(0) == '.' || Character.isWhitespace(localUserSQL.charAt(0))
+                    || checkAndRemoveCommentsAndSpace(false)) {
+                return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
+            } else if (localUserSQL.charAt(0) == ';') {
+                throw new IllegalArgumentException("End of query detected before VALUES have been found.");
+            } else {
+                sb.append(localUserSQL.charAt(0));
+                localUserSQL = localUserSQL.substring(1);
+            }
+        }
+
+        // It shouldn't come here. If we did, something is wrong.
+        throw new IllegalArgumentException("Invalid SQL Query.");
+    }
+
+    private ArrayList<String> parseUserSQLForColumnListDW() {
+        // ignore all comments
+        while (checkAndRemoveCommentsAndSpace(false)) {}
+
+        // check if optional column list was provided
+        // Columns can have the form of c1, [c1] or "c1". It can escape ] or " by ]] or "".
+        if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
+            localUserSQL = localUserSQL.substring(1);
+            return parseUserSQLForColumnListDWHelper(new ArrayList<String>());
+        }
+        return null;
+    }
+
+    private ArrayList<String> parseUserSQLForColumnListDWHelper(ArrayList<String> listOfColumns) {
+        // ignore all comments
+        while (checkAndRemoveCommentsAndSpace(false)) {}
+
+        StringBuilder sb = new StringBuilder();
+        while (localUserSQL.length() > 0) {
+            while (checkAndRemoveCommentsAndSpace(false)) {}
+
+            // exit condition
+            if (checkSQLLength(1) && localUserSQL.charAt(0) == ')') {
+                localUserSQL = localUserSQL.substring(1);
+                return listOfColumns;
+            }
+
+            // ignore ,
+            // we've confirmed length is more than 0.
+            if (localUserSQL.charAt(0) == ',') {
+                localUserSQL = localUserSQL.substring(1);
+                while (checkAndRemoveCommentsAndSpace(false)) {}
+            }
+
+            // handle [] case
+            if (localUserSQL.charAt(0) == '[') {
+                int tempint = localUserSQL.indexOf("]", 1);
+
+                // ] has not been found, this is wrong.
+                if (tempint < 0) {
+                    throw new IllegalArgumentException("Invalid SQL Query.");
+                }
+
+                // keep checking if it's escaped
+                while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == ']') {
+                    localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
+                    tempint = localUserSQL.indexOf("]", tempint + 1);
+                }
+
+                // we've found a ] that is actually trying to close the square bracket.
+                String tempstr = localUserSQL.substring(1, tempint);
+                localUserSQL = localUserSQL.substring(tempint + 1);
+                listOfColumns.add(tempstr);
+                continue; // proceed with the rest of the string
+            }
+
+            // handle "" case
+            if (localUserSQL.charAt(0) == '\"') {
+                int tempint = localUserSQL.indexOf("\"", 1);
+
+                // \" has not been found, this is wrong.
+                if (tempint < 0) {
+                    throw new IllegalArgumentException("Invalid SQL Query.");
+                }
+
+                // keep checking if it's escaped
+                while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\"') {
+                    localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
+                    tempint = localUserSQL.indexOf("\"", tempint + 1);
+                }
+
+                // we've found a " that is actually trying to close the quote.
+                String tempstr = localUserSQL.substring(1, tempint);
+                localUserSQL = localUserSQL.substring(tempint + 1);
+                listOfColumns.add(tempstr);
+                continue; // proceed with the rest of the string
+            }
+
+            // At this point, the next chunk of string is the column name, without starting with [ or ".
+            while (localUserSQL.length() > 0) {
+                if (checkAndRemoveCommentsAndSpace(false)) {
+                    continue;
+                }
+                if (localUserSQL.charAt(0) == ',') {
+                    localUserSQL = localUserSQL.substring(1);
+                    listOfColumns.add(sb.toString());
+                    sb.setLength(0);
+                    break; // exit this while loop, but continue parsing.
+                } else if (localUserSQL.charAt(0) == ')') {
+                    localUserSQL = localUserSQL.substring(1);
+                    listOfColumns.add(sb.toString());
+                    return listOfColumns; // reached exit condition.
+                } else {
+                    sb.append(localUserSQL.charAt(0));
+                    localUserSQL = localUserSQL.substring(1);
+                    localUserSQL = localUserSQL.trim(); // add an entry.
+                }
+            }
+        }
+
+        // It shouldn't come here. If we did, something is wrong.
+        // most likely we couldn't hit the exit condition and just parsed until the end of the string.
+        throw new IllegalArgumentException("Invalid SQL Query.");
+    }
+
+    private ArrayList<String> parseUserSQLForValueListDW(boolean hasValuesBeenFound) {
+        // ignore all comments
+        if (checkAndRemoveCommentsAndSpace(false)) {}
+
+        if (!hasValuesBeenFound) {
+            // look for keyword "VALUES"
+            if (checkSQLLength(6) && localUserSQL.substring(0, 6).equalsIgnoreCase("VALUES")) {
+                localUserSQL = localUserSQL.substring(6);
+
+                // ignore all comments
+                while (checkAndRemoveCommentsAndSpace(false)) {}
+
+                if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
+                    localUserSQL = localUserSQL.substring(1);
+                    return parseUserSQLForValueListDWHelper(new ArrayList<String>());
+                }
+            }
+        } else {
+            // ignore all comments
+            while (checkAndRemoveCommentsAndSpace(false)) {}
+
+            if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
+                localUserSQL = localUserSQL.substring(1);
+                return parseUserSQLForValueListDWHelper(new ArrayList<String>());
+            }
+        }
+
+        // shouldn't come here, as the list of values is mandatory.
+        throw new IllegalArgumentException("Invalid SQL Query.");
+    }
+
+    private ArrayList<String> parseUserSQLForValueListDWHelper(ArrayList<String> listOfValues) {
+        // ignore all comments
+        while (checkAndRemoveCommentsAndSpace(false)) {}
+
+        // At this point, the next chunk of string is the value, without starting with ' (most likely a ?).
+        StringBuilder sb = new StringBuilder();
+        while (localUserSQL.length() > 0) {
+            if (checkAndRemoveCommentsAndSpace(false)) {
+                continue;
+            }
+            if (localUserSQL.charAt(0) == ',' || localUserSQL.charAt(0) == ')') {
+                if (localUserSQL.charAt(0) == ',') {
+                    localUserSQL = localUserSQL.substring(1);
+                    if (!sb.toString().equals("?")) {
+                        // throw IllegalArgumentException and fallback to original logic for batch insert
+                        throw new IllegalArgumentException(
+                                "Only fully parameterized queries are allowed for using Bulk Copy API for batch insert at the moment.");
+                    }
+                    listOfValues.add(sb.toString());
+                    sb.setLength(0);
+                } else {
+                    localUserSQL = localUserSQL.substring(1);
+                    listOfValues.add(sb.toString());
+                    return listOfValues; // reached exit condition.
+                }
+            } else {
+                sb.append(localUserSQL.charAt(0));
+                localUserSQL = localUserSQL.substring(1);
+                localUserSQL = localUserSQL.trim(); // add entry.
+            }
+        }
+
+        // Don't need this anymore since we removed support for non-parameterized query.
+        // if (localUserSQL.charAt(0) == '\'') {
+        // int tempint = localUserSQL.indexOf("\'", 1);
+        //
+        // // \' has not been found, this is wrong.
+        // if (tempint < 0) {
+        // throw new IllegalArgumentException("Invalid SQL Query.");
+        // }
+        //
+        // // keep checking if it's escaped
+        // while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\'') {
+        // localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
+        // tempint = localUserSQL.indexOf("\'", tempint + 1);
+        // }
+        //
+        // // we've found a ' that is actually trying to close the quote.
+        // // Include 's around the string as well, so we can distinguish '?' and ? later on.
+        // String tempstr = localUserSQL.substring(0, tempint + 1);
+        // localUserSQL = localUserSQL.substring(tempint + 1);
+        // listOfValues.add(tempstr);
+        // return parseUserSQLForValueListDWHelper(listOfValues);
+        // }
+
+        // It shouldn't come here. If we did, something is wrong.
+        throw new IllegalArgumentException("Invalid SQL Query.");
+    }
+
+    private boolean checkAndRemoveCommentsAndSpace(boolean checkForSemicolon) {
+        localUserSQL = localUserSQL.trim();
+
+        while (checkForSemicolon && null != localUserSQL && localUserSQL.length() > 0
+                && localUserSQL.charAt(0) == ';') {
+            localUserSQL = localUserSQL.substring(1);
+        }
+
+        if (null == localUserSQL || localUserSQL.length() < 2) {
+            return false;
+        }
+
+        if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
+            int temp = localUserSQL.indexOf("*/") + 2;
+            if (temp <= 0) {
+                localUserSQL = "";
+                return false;
+            }
+            localUserSQL = localUserSQL.substring(temp);
+            return true;
+        }
+
+        if (localUserSQL.substring(0, 2).equalsIgnoreCase("--")) {
+            int temp = localUserSQL.indexOf("\n") + 1;
+            if (temp <= 0) {
+                localUserSQL = "";
+                return false;
+            }
+            localUserSQL = localUserSQL.substring(temp);
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean checkSQLLength(int length) {
+        if (null == localUserSQL || localUserSQL.length() < length) {
+            throw new IllegalArgumentException("Invalid SQL Query.");
+        }
+        return true;
+    }
+
     private final class PrepStmtBatchExecCmd extends TDSCommand {
+        /**
+         * Always update serialVersionUID when prompted.
+         */
+        private static final long serialVersionUID = 5225705304799552318L;
         private final SQLServerPreparedStatement stmt;
         SQLServerException batchException;
         long updateCounts[];
 
         PrepStmtBatchExecCmd(SQLServerPreparedStatement stmt) {
-             super(stmt.toString() + " executeBatch", queryTimeout, cancelQueryTimeoutSeconds);
+            super(stmt.toString() + " executeBatch", queryTimeout, cancelQueryTimeoutSeconds);
             this.stmt = stmt;
         }
 
@@ -2649,7 +2759,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
 
         if (isSelect(userSQL)) {
-            SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_selectNotPermittedinBatch"), null, true);
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_selectNotPermittedinBatch"), null, true);
         }
 
         // Make sure any previous maxRows limitation on the connection is removed.
@@ -2661,23 +2772,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Create the parameter array that we'll use for all the items in this batch.
         Parameter[] batchParam = new Parameter[inOutParam.length];
 
-
-/* 
-        TDSWriter tdsWriter = null;
-        while (numBatchesExecuted < numBatches) {
-            // Fill in the parameter values for this batch
-            Parameter paramValues[] = batchParamValues.get(numBatchesPrepared);
-            assert paramValues.length == batchParam.length;
-            System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
-            
-            boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
-            boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
-
-            // Get the encryption metadata for the first batch only.
-            if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < batchParam.length)
-                    && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
-                getParameterEncryptionMetadata(batchParam);
-*/
+        /*
+         * TDSWriter tdsWriter = null; while (numBatchesExecuted < numBatches) { // Fill in the parameter values for
+         * this batch Parameter paramValues[] = batchParamValues.get(numBatchesPrepared); assert paramValues.length ==
+         * batchParam.length; System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length); boolean
+         * hasExistingTypeDefinitions = preparedTypeDefinitions != null; boolean hasNewTypeDefinitions =
+         * buildPreparedStrings(batchParam, false); // Get the encryption metadata for the first batch only. if ((0 ==
+         * numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 <
+         * batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
+         * getParameterEncryptionMetadata(batchParam);
+         */
 
         TDSWriter tdsWriter = null;
         while (numBatchesExecuted < numBatches) {
@@ -2690,14 +2794,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
 
             // Get the encryption metadata for the first batch only.
-            if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < batchParam.length)
-                    && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
+            if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection))
+                    && (0 < batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(batchParam);
 
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on Connection
+                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
+                // Connection
                 buildPreparedStrings(batchParam, true);
 
-                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the batches.
+                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                // batches.
                 for (Parameter aBatchParam : batchParam) {
                     cryptoMetaBatch.add(aBatchParam.cryptoMeta);
                 }
@@ -2724,8 +2830,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     if (numBatchesExecuted < numBatchesPrepared) {
                         // assert null != tdsWriter;
                         tdsWriter.writeByte((byte) nBatchStatementDelimiter);
-                    }
-                    else {
+                    } else {
                         resetForReexecute();
                         tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
                     }
@@ -2740,7 +2845,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // that repreparation is necessary.
                     ++numBatchesPrepared;
                     needsPrepare = doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
-                    if ( needsPrepare || numBatchesPrepared == numBatches) {
+                    if (needsPrepare || numBatchesPrepared == numBatches) {
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
                         boolean retry = false;
@@ -2755,7 +2860,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 // Get the first result from the batch. If there is no result for this batch
                                 // then bail, leaving EXECUTE_FAILED in the current and remaining slots of
                                 // the update count array.
-                                if (!getNextResult())
+                                if (!getNextResult(true))
                                     return;
 
                                 // If the result is a ResultSet (rather than an update count) then throw an
@@ -2763,10 +2868,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 // translated into (or added to) a BatchUpdateException.
                                 if (null != resultSet) {
                                     SQLServerException.makeFromDriverError(connection, this,
-                                            SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
+                                            SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null,
+                                            false);
                                 }
-                            }
-                            catch (SQLServerException e) {
+                            } catch (SQLServerException e) {
                                 // If the failure was severe enough to close the connection or roll back a
                                 // manual transaction, then propagate the error up as a SQLServerException
                                 // now, rather than continue with the batch.
@@ -2785,13 +2890,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 // so just record the failure for the particular batch item.
                                 updateCount = Statement.EXECUTE_FAILED;
                                 if (null == batchCommand.batchException)
-                                    batchCommand.batchException = e;                               
-                                
+                                    batchCommand.batchException = e;
+
                             }
 
                             // In batch execution, we have a special update count
                             // to indicate that no information was returned
-                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO : updateCount;
+                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
+                                                                                                : updateCount;
                             processBatch();
 
                             numBatchesExecuted++;
@@ -2803,20 +2909,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         // we successfully executed the previously prepared set.
                         assert numBatchesExecuted == numBatchesPrepared;
                     }
-                }
-                catch (SQLException e) {
-                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, true) && connection.isStatementPoolingEnabled()) {
+                } catch (SQLException e) {
+                    if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, true)
+                            && connection.isStatementPoolingEnabled()) {
                         // Reset number of batches prepared.
                         numBatchesPrepared = numBatchesExecuted;
                         continue;
-                    }
-                    else if (null != batchCommand.batchException) {
+                    } else if (null != batchCommand.batchException) {
                         // if batch exception occurred, loop out to throw the initial batchException
                         numBatchesExecuted = numBatchesPrepared;
                         attempt++;
                         continue;
-                    }
-                    else {
+                    } else {
                         throw e;
                     }
                 }
@@ -2825,8 +2929,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
-    public final void setCharacterStream(int parameterIndex,
-            Reader reader) throws SQLException {
+    @Override
+    public final void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {parameterIndex, reader});
         checkClosed();
@@ -2834,9 +2938,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setCharacterStream");
     }
 
-    public final void setCharacterStream(int n,
-            java.io.Reader reader,
-            int length) throws SQLServerException {
+    @Override
+    public final void setCharacterStream(int n, java.io.Reader reader, int length) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {n, reader, length});
         checkClosed();
@@ -2844,18 +2947,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setCharacterStream");
     }
 
-    public final void setCharacterStream(int parameterIndex,
-            Reader reader,
-            long length) throws SQLException {
+    @Override
+    public final void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {parameterIndex, reader, length});
+            loggerExternal.entering(getClassNameLogging(), "setCharacterStream",
+                    new Object[] {parameterIndex, reader, length});
         checkClosed();
         setStream(parameterIndex, StreamType.CHARACTER, reader, JavaType.READER, length);
         loggerExternal.exiting(getClassNameLogging(), "setCharacterStream");
     }
 
-    public final void setNCharacterStream(int parameterIndex,
-            Reader value) throws SQLException {
+    @Override
+    public final void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNCharacterStream", new Object[] {parameterIndex, value});
         checkClosed();
@@ -2863,23 +2966,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setNCharacterStream");
     }
 
-    public final void setNCharacterStream(int parameterIndex,
-            Reader value,
-            long length) throws SQLException {
+    @Override
+    public final void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setNCharacterStream", new Object[] {parameterIndex, value, length});
+            loggerExternal.entering(getClassNameLogging(), "setNCharacterStream",
+                    new Object[] {parameterIndex, value, length});
         checkClosed();
         setStream(parameterIndex, StreamType.NCHARACTER, value, JavaType.READER, length);
         loggerExternal.exiting(getClassNameLogging(), "setNCharacterStream");
     }
 
-    /* L0 */ public final void setRef(int i,
-            java.sql.Ref x) throws SQLServerException {
-        NotImplemented();
+    @Override
+    public final void setRef(int i, java.sql.Ref x) throws SQLException {
+        SQLServerException.throwNotSupportedException(connection, this);
     }
 
-    public final void setBlob(int i,
-            java.sql.Blob x) throws SQLException {
+    @Override
+    public final void setBlob(int i, java.sql.Blob x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {i, x});
         checkClosed();
@@ -2887,27 +2990,28 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setBlob");
     }
 
-    public final void setBlob(int parameterIndex,
-            InputStream inputStream) throws SQLException {
+    @Override
+    public final void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {parameterIndex, inputStream});
         checkClosed();
-        setStream(parameterIndex, StreamType.BINARY, inputStream, JavaType.INPUTSTREAM, DataTypes.UNKNOWN_STREAM_LENGTH);
+        setStream(parameterIndex, StreamType.BINARY, inputStream, JavaType.INPUTSTREAM,
+                DataTypes.UNKNOWN_STREAM_LENGTH);
         loggerExternal.exiting(getClassNameLogging(), "setBlob");
     }
 
-    public final void setBlob(int parameterIndex,
-            InputStream inputStream,
-            long length) throws SQLException {
+    @Override
+    public final void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {parameterIndex, inputStream, length});
+            loggerExternal.entering(getClassNameLogging(), "setBlob",
+                    new Object[] {parameterIndex, inputStream, length});
         checkClosed();
         setStream(parameterIndex, StreamType.BINARY, inputStream, JavaType.INPUTSTREAM, length);
         loggerExternal.exiting(getClassNameLogging(), "setBlob");
     }
 
-    public final void setClob(int parameterIndex,
-            java.sql.Clob clobValue) throws SQLException {
+    @Override
+    public final void setClob(int parameterIndex, java.sql.Clob clobValue) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterIndex, clobValue});
         checkClosed();
@@ -2915,8 +3019,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setClob");
     }
 
-    public final void setClob(int parameterIndex,
-            Reader reader) throws SQLException {
+    @Override
+    public final void setClob(int parameterIndex, Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterIndex, reader});
         checkClosed();
@@ -2924,9 +3028,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setClob");
     }
 
-    public final void setClob(int parameterIndex,
-            Reader reader,
-            long length) throws SQLException {
+    @Override
+    public final void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterIndex, reader, length});
         checkClosed();
@@ -2934,8 +3037,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setClob");
     }
 
-    public final void setNClob(int parameterIndex,
-            NClob value) throws SQLException {
+    @Override
+    public final void setNClob(int parameterIndex, NClob value) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterIndex, value});
         checkClosed();
@@ -2943,8 +3046,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setNClob");
     }
 
-    public final void setNClob(int parameterIndex,
-            Reader reader) throws SQLException {
+    @Override
+    public final void setNClob(int parameterIndex, Reader reader) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterIndex, reader});
         checkClosed();
@@ -2952,9 +3055,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setNClob");
     }
 
-    public final void setNClob(int parameterIndex,
-            Reader reader,
-            long length) throws SQLException {
+    @Override
+    public final void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterIndex, reader, length});
         checkClosed();
@@ -2962,14 +3064,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setNClob");
     }
 
-    /* L0 */ public final void setArray(int i,
-            java.sql.Array x) throws SQLServerException {
-        NotImplemented();
+    @Override
+    public final void setArray(int i, java.sql.Array x) throws SQLException {
+        SQLServerException.throwNotSupportedException(connection, this);
     }
 
-    public final void setDate(int n,
-            java.sql.Date x,
-            java.util.Calendar cal) throws SQLServerException {
+    @Override
+    public final void setDate(int n, java.sql.Date x, java.util.Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDate", new Object[] {n, x, cal});
         checkClosed();
@@ -2977,28 +3078,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setDate");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.sql.Date</code> value, using the given <code>Calendar</code> object. The driver uses the
-     * <code>Calendar</code> object to construct an SQL <code>DATE</code> value, which the driver then sends to the database. With a
-     * <code>Calendar</code> object, the driver can calculate the date taking into account a custom timezone. If no <code>Calendar</code> object is
-     * specified, the driver uses the default timezone, which is that of the virtual machine running the application.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param cal
-     *            the <code>Calendar</code> object the driver will use to construct the date
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setDate(int n,
-            java.sql.Date x,
-            java.util.Calendar cal,
+    @Override
+    public final void setDate(int n, java.sql.Date x, java.util.Calendar cal,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDate", new Object[] {n, x, cal, forceEncrypt});
@@ -3007,9 +3088,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setDate");
     }
 
-    public final void setTime(int n,
-            java.sql.Time x,
-            java.util.Calendar cal) throws SQLServerException {
+    @Override
+    public final void setTime(int n, java.sql.Time x, java.util.Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x, cal});
         checkClosed();
@@ -3017,26 +3097,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setTime");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.sql.Time</code> value. The driver converts this to an SQL <code>TIME</code> value when it
-     * sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param cal
-     *            the <code>Calendar</code> object the driver will use to construct the date
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setTime(int n,
-            java.sql.Time x,
-            java.util.Calendar cal,
+    @Override
+    public final void setTime(int n, java.sql.Time x, java.util.Calendar cal,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x, cal, forceEncrypt});
@@ -3045,9 +3107,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setTime");
     }
 
-    public final void setTimestamp(int n,
-            java.sql.Timestamp x,
-            java.util.Calendar cal) throws SQLServerException {
+    @Override
+    public final void setTimestamp(int n, java.sql.Timestamp x, java.util.Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal});
         checkClosed();
@@ -3055,26 +3116,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
-    /**
-     * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value. The driver converts this to an SQL <code>TIMESTAMP</code>
-     * value when it sends it to the database.
-     *
-     * @param n
-     *            the first parameter is 1, the second is 2, ...
-     * @param x
-     *            the parameter value
-     * @param cal
-     *            the <code>Calendar</code> object the driver will use to construct the date
-     * @param forceEncrypt
-     *            If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column is encrypted and Always
-     *            Encrypted is enabled on the connection or on the statement. If the boolean forceEncrypt is set to false, the driver will not force
-     *            encryption on parameters.
-     * @throws SQLServerException
-     *             when an error occurs
-     */
-    public final void setTimestamp(int n,
-            java.sql.Timestamp x,
-            java.util.Calendar cal,
+    @Override
+    public final void setTimestamp(int n, java.sql.Timestamp x, java.util.Calendar cal,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal, forceEncrypt});
@@ -3083,71 +3126,57 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
-    public final void setNull(int paramIndex,
-            int sqlType,
-            String typeName) throws SQLServerException {
+    @Override
+    public final void setNull(int paramIndex, int sqlType, String typeName) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNull", new Object[] {paramIndex, sqlType, typeName});
         checkClosed();
         if (microsoft.sql.Types.STRUCTURED == sqlType) {
-            setObject(setterGetParam(paramIndex), null, JavaType.TVP, JDBCType.of(sqlType), null, null, false, paramIndex, typeName);
-        }
-        else {
-            setObject(setterGetParam(paramIndex), null, JavaType.OBJECT, JDBCType.of(sqlType), null, null, false, paramIndex, typeName);
+            setObject(setterGetParam(paramIndex), null, JavaType.TVP, JDBCType.of(sqlType), null, null, false,
+                    paramIndex, typeName);
+        } else {
+            setObject(setterGetParam(paramIndex), null, JavaType.OBJECT, JDBCType.of(sqlType), null, null, false,
+                    paramIndex, typeName);
         }
         loggerExternal.exiting(getClassNameLogging(), "setNull");
     }
 
-    /**
-     * Returns parameter metadata for the prepared statement.
-     * 
-     * @param forceRefresh:
-     *               If true the cache will not be used to retrieve the metadata.
-     * 
-     * @return 
-     *              Per the description.
-     * 
-     * @throws SQLServerException when an error occurs
-     */
+    @Override
     public final ParameterMetaData getParameterMetaData(boolean forceRefresh) throws SQLServerException {
 
         SQLServerParameterMetaData pmd = this.connection.getCachedParameterMetadata(sqlTextCacheKey);
 
         if (!forceRefresh && null != pmd) {
             return pmd;
-        }
-        else {
+        } else {
             loggerExternal.entering(getClassNameLogging(), "getParameterMetaData");
             checkClosed();
             pmd = new SQLServerParameterMetaData(this, userSQL);
-
             connection.registerCachedParameterMetadata(sqlTextCacheKey, pmd);
-
             loggerExternal.exiting(getClassNameLogging(), "getParameterMetaData", pmd);
- 
             return pmd;
         }
     }
 
     /* JDBC 3.0 */
 
-    /* L3 */ public final ParameterMetaData getParameterMetaData() throws SQLServerException {
-            return getParameterMetaData(false);
+    @Override
+    public final ParameterMetaData getParameterMetaData() throws SQLServerException {
+        return getParameterMetaData(false);
     }
 
-    /* L3 */ public final void setURL(int parameterIndex,
-            java.net.URL x) throws SQLServerException {
-        NotImplemented();
+    @Override
+    public final void setURL(int parameterIndex, java.net.URL x) throws SQLException {
+        SQLServerException.throwNotSupportedException(connection, this);
     }
 
-    public final void setRowId(int parameterIndex,
-            RowId x) throws SQLException {
-        // Not implemented
-        throw new SQLFeatureNotSupportedException(SQLServerException.getErrString("R_notSupported"));
+    @Override
+    public final void setRowId(int parameterIndex, RowId x) throws SQLException {
+        SQLServerException.throwNotSupportedException(connection, this);
     }
 
-    public final void setSQLXML(int parameterIndex,
-            SQLXML xmlObject) throws SQLException {
+    @Override
+    public final void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSQLXML", new Object[] {parameterIndex, xmlObject});
         checkClosed();
@@ -3155,31 +3184,38 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setSQLXML");
     }
 
-    /* make sure we throw here */
-    /* L0 */ public final int executeUpdate(String sql) throws SQLServerException {
+    @Override
+    public final int executeUpdate(String sql) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate", sql);
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
+        MessageFormat form = new MessageFormat(
+                SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
         Object[] msgArgs = {"executeUpdate()"};
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
 
-    /* L0 */ public final boolean execute(String sql) throws SQLServerException {
+    @Override
+    public final boolean execute(String sql) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "execute", sql);
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
+        MessageFormat form = new MessageFormat(
+                SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
         Object[] msgArgs = {"execute()"};
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
 
-    /* L0 */ public final java.sql.ResultSet executeQuery(String sql) throws SQLServerException {
+    @Override
+    public final java.sql.ResultSet executeQuery(String sql) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery", sql);
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
+        MessageFormat form = new MessageFormat(
+                SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
         Object[] msgArgs = {"executeQuery()"};
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
 
-    /* L0 */ public void addBatch(String sql) throws SQLServerException {
+    @Override
+    public void addBatch(String sql) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "addBatch", sql);
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
+        MessageFormat form = new MessageFormat(
+                SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
         Object[] msgArgs = {"addBatch()"};
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }

@@ -1,14 +1,14 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) 2016 Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) 2016 Microsoft Corporation All rights reserved. This program is
+ * made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
@@ -22,6 +22,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerDriver;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+
 
 /**
  * Think about following things:
@@ -53,6 +56,12 @@ public abstract class AbstractTest {
 
     protected static Properties info = new Properties();
 
+    private final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+    private final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+    private static boolean _determinedSqlAzureOrSqlServer = false;
+    private static boolean _isSqlAzure = false;
+    private static boolean _isSqlAzureDW = false;
+
     /**
      * This will take care of all initialization before running the Test Suite.
      * 
@@ -80,14 +89,12 @@ public abstract class AbstractTest {
             info.setProperty("keyStoreLocation", jksPaths[0]);
             info.setProperty("keyStoreSecret", secretstrJks);
         }
-        logger.info("In AbstractTest:setup");
 
         try {
             Assertions.assertNotNull(connectionString, "Connection String should not be null");
             connection = PrepUtil.getConnection(connectionString, info);
-
-        }
-        catch (Exception e) {
+            isSqlAzureOrAzureDW(connection);
+        } catch (Exception e) {
             throw e;
         }
     }
@@ -112,13 +119,16 @@ public abstract class AbstractTest {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             connection.close();
-        }
-        finally {
+        } finally {
             connection = null;
         }
+    }
+
+    @BeforeAll
+    public static void registerDriver() throws Exception {
+        SQLServerDriver.register();
     }
 
     /**
@@ -128,7 +138,7 @@ public abstract class AbstractTest {
      * @return Value
      */
     public static String getConfiguredProperty(String key) {
-        return Utils.getConfiguredProperty(key);
+        return TestUtils.getConfiguredProperty(key);
     }
 
     /**
@@ -137,9 +147,8 @@ public abstract class AbstractTest {
      * @param key
      * @return Value
      */
-    public static String getConfiguredProperty(String key,
-            String defaultValue) {
-        return Utils.getConfiguredProperty(key, defaultValue);
+    public static String getConfiguredProperty(String key, String defaultValue) {
+        return TestUtils.getConfiguredProperty(key, defaultValue);
     }
 
     /**
@@ -161,8 +170,7 @@ public abstract class AbstractTest {
             // handler = new FileHandler("Driver.log");
             if ("console".equalsIgnoreCase(loggingHandler)) {
                 handler = new ConsoleHandler();
-            }
-            else if ("file".equalsIgnoreCase(loggingHandler)) {
+            } else if ("file".equalsIgnoreCase(loggingHandler)) {
                 handler = new FileHandler("Driver.log");
                 System.out.println("Look for Driver.log file in your classpath for detail logs");
             }
@@ -172,13 +180,45 @@ public abstract class AbstractTest {
                 handler.setLevel(Level.FINEST);
                 Logger.getLogger("").addHandler(handler);
             }
-            // By default, Loggers also send their output to their parent logger.  
-            // Typically the root Logger is configured with a set of Handlers that essentially act as default handlers for all loggers. 
+            // By default, Loggers also send their output to their parent logger.
+            // Typically the root Logger is configured with a set of Handlers that essentially act as default handlers
+            // for all loggers.
             Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc");
             logger.setLevel(Level.FINEST);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             System.err.println("Some how could not invoke logging: " + e.getMessage());
+        }
+    }
+
+    public static boolean isSqlAzure() {
+        return _isSqlAzure;
+    }
+
+    public static boolean isSqlAzureDW() {
+        return _isSqlAzureDW;
+    }
+
+    /**
+     * Determines the server's type.
+     * 
+     * @param con
+     *        connection to server
+     * @return void
+     * @throws SQLException
+     */
+    private static void isSqlAzureOrAzureDW(Connection con) throws SQLException {
+        if (_determinedSqlAzureOrSqlServer) {
+            return;
+        }
+
+        try (Statement stmt = con.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+            rs.next();
+            int engineEdition = rs.getInt(1);
+            _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
+                    || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            _isSqlAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            _determinedSqlAzureOrSqlServer = true;
         }
     }
 }

@@ -1,11 +1,11 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more AEInformation.
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
+
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -20,7 +20,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.Properties;
-
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,6 +28,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.RandomData;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
@@ -35,21 +37,18 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
-import com.microsoft.sqlserver.testframework.Utils;
-import com.microsoft.sqlserver.testframework.util.RandomData;
-import com.microsoft.sqlserver.testframework.util.Util;
 
 import microsoft.sql.DateTimeOffset;
 
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * Setup for Always Encrypted test This test will work on Appveyor and Travis-ci as java key store gets created from the .yml scripts. Users on their
- * local machine should create the keystore manually and save the alias name in JavaKeyStore.txt file. For local test purposes, put this in the
- * target/test-classes directory
+ * Setup for Always Encrypted test This test will work on Appveyor and Travis-ci as java key store gets created from the
+ * .yml scripts. Users on their local machine should create the keystore manually and save the alias name in
+ * JavaKeyStore.txt file. For local test purposes, put this in the target/test-classes directory
  *
  */
 @RunWith(JUnitPlatform.class)
@@ -61,23 +60,25 @@ public class AESetup extends AbstractTest {
     static final String cmkName = "JDBC_CMK";
     static final String cekName = "JDBC_CEK";
     static final String secretstrJks = "password";
-    static final String charTable = "JDBCEncryptedCharTable";
-    static final String binaryTable = "JDBCEncryptedBinaryTable";
-    static final String dateTable = "JDBCEncryptedDateTable";
-    static final String numericTable = "JDBCEncryptedNumericTable";
-    static final String scaleDateTable = "JDBCEncryptedScaleDateTable";
 
-    static final String uid = "171fbe25-4331-4765-a838-b2e3eea3e7ea";
+    static String charTable = RandomUtil.getIdentifier("JDBCEncryptedChar");
+    static String binaryTable = RandomUtil.getIdentifier("JDBCEncryptedBinary");
+    static String dateTable = RandomUtil.getIdentifier("JDBCEncryptedDate");
+    static String numericTable = RandomUtil.getIdentifier("JDBCEncryptedNumeric");
+    static String scaleDateTable = RandomUtil.getIdentifier("JDBCEncryptedScaleDate");
+
+    static final String uid = UUID.randomUUID().toString();
 
     static String filePath = null;
     static String thumbprint = null;
-    static SQLServerConnection con = null;
-    static SQLServerStatement stmt = null;
     static String keyPath = null;
     static String javaKeyAliases = null;
     static String OS = System.getProperty("os.name").toLowerCase();
     static SQLServerColumnEncryptionKeyStoreProvider storeProvider = null;
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
+    static String AETestConnectionString;
+
+    static Properties AEInfo;
 
     /**
      * Create connection, statement and generate path of resource file
@@ -86,76 +87,79 @@ public class AESetup extends AbstractTest {
      * @throws TestAbortedException
      */
     @BeforeAll
-    static void setUpConnection() throws TestAbortedException, Exception {
-        assumeTrue(13 <= new DBConnection(connectionString).getServerVersion(),
-                TestResource.getResource("R_Incompat_SQLServerVersion"));
-
-        String AETestConenctionString = connectionString + ";sendTimeAsDateTime=false";
-        readFromFile(javaKeyStoreInputFile, "Alias name");
-        
-        try(SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConenctionString);
-        	SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-	        dropCEK(stmt);
-	        dropCMK(stmt);
+    public static void setUpConnection() throws TestAbortedException, Exception {
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
         }
-        
-        keyPath = Utils.getCurrentClassPath() + jksName;
+
+        AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
+        readFromFile(javaKeyStoreInputFile, "Alias name");
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            dropCEK(stmt);
+            dropCMK(stmt);
+        }
+
+        keyPath = TestUtils.getCurrentClassPath() + jksName;
         storeProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(keyPath, secretstrJks.toCharArray());
         stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;
-        
-        Properties info = new Properties();
-        info.setProperty("ColumnEncryptionSetting", "Enabled");
-        info.setProperty("keyStoreAuthentication", "JavaKeyStorePassword");
-        info.setProperty("keyStoreLocation", keyPath);
-        info.setProperty("keyStoreSecret", secretstrJks);
-        
-        con = (SQLServerConnection) DriverManager.getConnection(AETestConenctionString, info);
-        stmt = (SQLServerStatement) con.createStatement();
+
+        AEInfo = new Properties();
+        AEInfo.setProperty("ColumnEncryptionSetting", "Enabled");
+        AEInfo.setProperty("keyStoreAuthentication", "JavaKeyStorePassword");
+        AEInfo.setProperty("keyStoreLocation", keyPath);
+        AEInfo.setProperty("keyStoreSecret", secretstrJks);
+
         createCMK(keyStoreName, javaKeyAliases);
-	    createCEK(storeProvider);
+        createCEK(storeProvider);
     }
 
     /**
-     * Dropping all CMKs and CEKs and any open resources. Technically, dropAll depends on the state of the class so it shouldn't be static, but the
-     * AfterAll annotation requires it to be static.
+     * Dropping all CMKs and CEKs and any open resources. Technically, dropAll depends on the state of the class so it
+     * shouldn't be static, but the AfterAll annotation requires it to be static.
      * 
      * @throws SQLException
      */
     @AfterAll
-    private static void dropAll() throws SQLException {
-        dropTables(stmt);
-        dropCEK(stmt);
-        dropCMK(stmt);
-        Util.close(null, stmt, con);
+    public static void dropAll() throws Exception {
+        try (DBConnection con = new DBConnection(connectionString)) {
+            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
+        }
+
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            dropTables(stmt);
+            dropCEK(stmt);
+            dropCMK(stmt);
+        }
     }
 
     /**
-     * Read the alias from file which is created during creating jks If the jks and alias name in JavaKeyStore.txt does not exists, will not run!
+     * Read the alias from file which is created during creating jks If the jks and alias name in JavaKeyStore.txt does
+     * not exists, will not run!
      * 
      * @param inputFile
      * @param lookupValue
      * @throws IOException
      */
-    private static void readFromFile(String inputFile,
-            String lookupValue) throws IOException {
-        filePath = Utils.getCurrentClassPath();
+    private static void readFromFile(String inputFile, String lookupValue) throws IOException {
+        filePath = TestUtils.getCurrentClassPath();
         try {
             File f = new File(filePath + inputFile);
             assumeTrue(f.exists(), TestResource.getResource("R_noKeyStore"));
-            try(BufferedReader buffer = new BufferedReader(new FileReader(f))) {
-	            String readLine = "";
-	            String[] linecontents;
-	
-	            while ((readLine = buffer.readLine()) != null) {
-	                if (readLine.trim().contains(lookupValue)) {
-	                    linecontents = readLine.split(" ");
-	                    javaKeyAliases = linecontents[2];
-	                    break;
-	                }
-	            }
+            try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
+                String readLine = "";
+                String[] linecontents;
+
+                while ((readLine = buffer.readLine()) != null) {
+                    if (readLine.trim().contains(lookupValue)) {
+                        linecontents = readLine.split(" ");
+                        javaKeyAliases = linecontents[2];
+                        break;
+                    }
+                }
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             fail(e.toString());
         }
     }
@@ -166,7 +170,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createBinaryTable() throws SQLException {
-        String sql = "create table " + binaryTable + " (" + "PlainBinary binary(20) null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " ("
+                + "PlainBinary binary(20) null,"
                 + "RandomizedBinary binary(20) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicBinary binary(20) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -198,11 +203,11 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             fail(e.toString());
         }
     }
@@ -213,7 +218,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createCharTable() throws SQLException {
-        String sql = "create table " + charTable + " (" + "PlainChar char(20) null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(charTable) + " ("
+                + "PlainChar char(20) null,"
                 + "RandomizedChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -269,11 +275,11 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             fail(e.toString());
         }
     }
@@ -284,7 +290,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected void createDateTable() throws SQLException {
-        String sql = "create table " + dateTable + " (" + "PlainDate date null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " (" + "PlainDate date null,"
                 + "RandomizedDate date ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicDate date ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -322,11 +328,11 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             fail(e.toString());
         }
     }
@@ -337,13 +343,13 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected void createDatePrecisionTable(int scale) throws SQLException {
-        String sql = "create table " + dateTable + " ("
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " ("
         // 1
                 + "PlainDatetime2 datetime2(" + scale + ") null," + "RandomizedDatetime2 datetime2(" + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekName
-                + ") NULL," + "DeterministicDatetime2 datetime2(" + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekName
-                + ") NULL,"
+                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                + cekName + ") NULL," + "DeterministicDatetime2 datetime2(" + scale
+                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                + cekName + ") NULL,"
 
                 // 4
                 + "PlainDatetime2Default datetime2 null,"
@@ -368,25 +374,26 @@ public class AESetup extends AbstractTest {
 
                 // 13
                 + "PlainTime time(" + scale + ") null," + "RandomizedTime time(" + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekName
-                + ") NULL," + "DeterministicTime time(" + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekName
-                + ") NULL,"
+                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                + cekName + ") NULL," + "DeterministicTime time(" + scale
+                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                + cekName + ") NULL,"
 
                 // 16
-                + "PlainDatetimeoffset datetimeoffset(" + scale + ") null," + "RandomizedDatetimeoffset datetimeoffset(" + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekName
-                + ") NULL," + "DeterministicDatetimeoffset datetimeoffset(" + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekName
-                + ") NULL,"
+                + "PlainDatetimeoffset datetimeoffset(" + scale + ") null," + "RandomizedDatetimeoffset datetimeoffset("
+                + scale
+                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                + cekName + ") NULL," + "DeterministicDatetimeoffset datetimeoffset(" + scale
+                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                + cekName + ") NULL,"
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             fail(e.toString());
         }
     }
@@ -397,7 +404,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createDateScaleTable() throws SQLException {
-        String sql = "create table " + scaleDateTable + " ("
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(scaleDateTable) + " ("
 
                 + "PlainDatetime2 datetime2(2) null,"
                 + "RandomizedDatetime2 datetime2(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -419,11 +426,11 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             fail(e.toString());
         }
     }
@@ -434,7 +441,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void createNumericTable() throws SQLException {
-        String sql = "create table " + numericTable + " (" + "PlainBit bit null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " (" + "PlainBit bit null,"
                 + "RandomizedBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
@@ -532,11 +539,11 @@ public class AESetup extends AbstractTest {
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             fail(e.toString());
         }
     }
@@ -546,35 +553,35 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    protected void createNumericPrecisionTable(int floatPrecision,
-            int precision,
-            int scale) throws SQLException {
-        String sql = "create table " + numericTable + " (" + "PlainFloat float(" + floatPrecision + ") null," + "RandomizedFloat float("
-                + floatPrecision
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekName
-                + ") NULL," + "DeterministicFloat float(" + floatPrecision
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekName
-                + ") NULL,"
+    protected void createNumericPrecisionTable(int floatPrecision, int precision, int scale) throws SQLException {
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " (" + "PlainFloat float("
+                + floatPrecision + ") null," + "RandomizedFloat float(" + floatPrecision
+                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                + cekName + ") NULL," + "DeterministicFloat float(" + floatPrecision
+                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                + cekName + ") NULL,"
 
-                + "PlainDecimal decimal(" + precision + "," + scale + ") null," + "RandomizedDecimal decimal(" + precision + "," + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekName
-                + ") NULL," + "DeterministicDecimal decimal(" + precision + "," + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekName
-                + ") NULL,"
+                + "PlainDecimal decimal(" + precision + "," + scale + ") null," + "RandomizedDecimal decimal("
+                + precision + "," + scale
+                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                + cekName + ") NULL," + "DeterministicDecimal decimal(" + precision + "," + scale
+                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                + cekName + ") NULL,"
 
-                + "PlainNumeric numeric(" + precision + "," + scale + ") null," + "RandomizedNumeric numeric(" + precision + "," + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekName
-                + ") NULL," + "DeterministicNumeric numeric(" + precision + "," + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekName
-                + ") NULL"
+                + "PlainNumeric numeric(" + precision + "," + scale + ") null," + "RandomizedNumeric numeric("
+                + precision + "," + scale
+                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                + cekName + ") NULL," + "DeterministicNumeric numeric(" + precision + "," + scale
+                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                + cekName + ") NULL"
 
                 + ");";
 
-        try {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             fail(e.toString());
         }
     }
@@ -622,7 +629,8 @@ public class AESetup extends AbstractTest {
         String varchar8000 = RandomData.generateCharTypes("8000", nullable, encrypted);
         String nvarchar4000 = RandomData.generateNCharTypes("4000", nullable, encrypted);
 
-        String[] values = {char20.trim(), varchar50, varcharmax, nchar30, nvarchar60, nvarcharmax, uid, varchar8000, nvarchar4000};
+        String[] values = {char20.trim(), varchar50, varcharmax, nchar30, nvarchar60, nvarcharmax, uid, varchar8000,
+                nvarchar4000};
 
         return values;
     }
@@ -651,9 +659,10 @@ public class AESetup extends AbstractTest {
         BigDecimal decimalPrecisionScale2 = RandomData.generateDecimalNumeric(28, 4, nullable);
         BigDecimal numericPrecisionScale2 = RandomData.generateDecimalNumeric(28, 4, nullable);
 
-        String[] numericValues = {"" + boolValue, "" + tinyIntValue, "" + smallIntValue, "" + intValue, "" + bigintValue, "" + floatValue,
-                "" + floatValuewithPrecision, "" + realValue, "" + decimal, "" + decimalPrecisionScale, "" + numeric, "" + numericPrecisionScale,
-                "" + smallMoney, "" + money, "" + decimalPrecisionScale2, "" + numericPrecisionScale2};
+        String[] numericValues = {"" + boolValue, "" + tinyIntValue, "" + smallIntValue, "" + intValue,
+                "" + bigintValue, "" + floatValue, "" + floatValuewithPrecision, "" + realValue, "" + decimal,
+                "" + decimalPrecisionScale, "" + numeric, "" + numericPrecisionScale, "" + smallMoney, "" + money,
+                "" + decimalPrecisionScale2, "" + numericPrecisionScale2};
 
         return numericValues;
     }
@@ -690,11 +699,15 @@ public class AESetup extends AbstractTest {
      * @param keyPath
      * @throws SQLException
      */
-    private static void createCMK(String keyStoreName,
-            String keyPath) throws SQLException {
-        String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin" + " CREATE COLUMN MASTER KEY "
-                + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '" + keyStoreName + "', KEY_PATH = '" + keyPath + "')" + " end";
-        stmt.execute(sql);
+    private static void createCMK(String keyStoreName, String keyPath) throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager
+                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
+                    + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
+                    + keyStoreName + "', KEY_PATH = '" + keyPath + "')" + " end";
+            stmt.execute(sql);
+        }
     }
 
     /**
@@ -705,13 +718,18 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     private static void createCEK(SQLServerColumnEncryptionKeyStoreProvider storeProvider) throws SQLException {
-        String letters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-        byte[] valuesDefault = letters.getBytes();
-        String cekSql = null;
-        byte[] key = storeProvider.encryptColumnEncryptionKey(javaKeyAliases, "RSA_OAEP", valuesDefault);
-        cekSql = "CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES " + "(COLUMN_MASTER_KEY = " + cmkName
-                + ", ALGORITHM = 'RSA_OAEP', ENCRYPTED_VALUE = 0x" + Util.bytesToHexString(key, key.length) + ")" + ";";
-        stmt.execute(cekSql);
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager
+                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String letters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            byte[] valuesDefault = letters.getBytes();
+            String cekSql = null;
+            byte[] key = storeProvider.encryptColumnEncryptionKey(javaKeyAliases, "RSA_OAEP", valuesDefault);
+            cekSql = "CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES " + "(COLUMN_MASTER_KEY = " + cmkName
+                    + ", ALGORITHM = 'RSA_OAEP', ENCRYPTED_VALUE = 0x" + TestUtils.bytesToHexString(key, key.length)
+                    + ")" + ";";
+            stmt.execute(cekSql);
+        }
     }
 
     /**
@@ -720,10 +738,10 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void dropTables(SQLServerStatement statement) throws SQLException {
-        Utils.dropTableIfExists(numericTable, statement);
-        Utils.dropTableIfExists(charTable, statement);
-        Utils.dropTableIfExists(binaryTable, statement);
-        Utils.dropTableIfExists(dateTable, statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(numericTable), statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(charTable), statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(binaryTable), statement);
+        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(dateTable), statement);
     }
 
     /**
@@ -733,61 +751,60 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinaryNormalCase(LinkedList<byte[]> byteValues) throws SQLException {
-        String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager
+                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // binary20
-	        for (int i = 1; i <= 3; i++) {
-	            if (null == byteValues) {
-	                pstmt.setBytes(i, null);
-	            }
-	            else {
-	                pstmt.setBytes(i, byteValues.get(0));
-	            }
-	        }
-	
-	        // varbinary50
-	        for (int i = 4; i <= 6; i++) {
-	            if (null == byteValues) {
-	                pstmt.setBytes(i, null);
-	            }
-	            else {
-	                pstmt.setBytes(i, byteValues.get(1));
-	            }
-	        }
-	
-	        // varbinary(max)
-	        for (int i = 7; i <= 9; i++) {
-	            if (null == byteValues) {
-	                pstmt.setBytes(i, null);
-	            }
-	            else {
-	                pstmt.setBytes(i, byteValues.get(2));
-	            }
-	        }
-	
-	        // binary(512)
-	        for (int i = 10; i <= 12; i++) {
-	            if (null == byteValues) {
-	                pstmt.setBytes(i, null);
-	            }
-	            else {
-	                pstmt.setBytes(i, byteValues.get(3));
-	            }
-	        }
-	
-	        // varbinary(8000)
-	        for (int i = 13; i <= 15; i++) {
-	            if (null == byteValues) {
-	                pstmt.setBytes(i, null);
-	            }
-	            else {
-	                pstmt.setBytes(i, byteValues.get(4));
-	            }
-	        }
-	
-	        pstmt.execute();
+            // binary20
+            for (int i = 1; i <= 3; i++) {
+                if (null == byteValues) {
+                    pstmt.setBytes(i, null);
+                } else {
+                    pstmt.setBytes(i, byteValues.get(0));
+                }
+            }
+
+            // varbinary50
+            for (int i = 4; i <= 6; i++) {
+                if (null == byteValues) {
+                    pstmt.setBytes(i, null);
+                } else {
+                    pstmt.setBytes(i, byteValues.get(1));
+                }
+            }
+
+            // varbinary(max)
+            for (int i = 7; i <= 9; i++) {
+                if (null == byteValues) {
+                    pstmt.setBytes(i, null);
+                } else {
+                    pstmt.setBytes(i, byteValues.get(2));
+                }
+            }
+
+            // binary(512)
+            for (int i = 10; i <= 12; i++) {
+                if (null == byteValues) {
+                    pstmt.setBytes(i, null);
+                } else {
+                    pstmt.setBytes(i, byteValues.get(3));
+                }
+            }
+
+            // varbinary(8000)
+            for (int i = 13; i <= 15; i++) {
+                if (null == byteValues) {
+                    pstmt.setBytes(i, null);
+                } else {
+                    pstmt.setBytes(i, byteValues.get(4));
+                }
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -798,61 +815,59 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinarySetObject(LinkedList<byte[]> byteValues) throws SQLException {
-        String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+            // binary(20)
+            for (int i = 1; i <= 3; i++) {
+                if (null == byteValues) {
+                    pstmt.setObject(i, null, java.sql.Types.BINARY);
+                } else {
+                    pstmt.setObject(i, byteValues.get(0));
+                }
+            }
 
-	        // binary(20)
-	        for (int i = 1; i <= 3; i++) {
-	            if (null == byteValues) {
-	                pstmt.setObject(i, null, java.sql.Types.BINARY);
-	            }
-	            else {
-	                pstmt.setObject(i, byteValues.get(0));
-	            }
-	        }
-	
-	        // varbinary(50)
-	        for (int i = 4; i <= 6; i++) {
-	            if (null == byteValues) {
-	                pstmt.setObject(i, null, java.sql.Types.BINARY);
-	            }
-	            else {
-	                pstmt.setObject(i, byteValues.get(1));
-	            }
-	        }
-	
-	        // varbinary(max)
-	        for (int i = 7; i <= 9; i++) {
-	            if (null == byteValues) {
-	                pstmt.setObject(i, null, java.sql.Types.BINARY);
-	            }
-	            else {
-	                pstmt.setObject(i, byteValues.get(2));
-	            }
-	        }
-	
-	        // binary(512)
-	        for (int i = 10; i <= 12; i++) {
-	            if (null == byteValues) {
-	                pstmt.setObject(i, null, java.sql.Types.BINARY);
-	            }
-	            else {
-	                pstmt.setObject(i, byteValues.get(3));
-	            }
-	        }
-	
-	        // varbinary(8000)
-	        for (int i = 13; i <= 15; i++) {
-	            if (null == byteValues) {
-	                pstmt.setObject(i, null, java.sql.Types.BINARY);
-	            }
-	            else {
-	                pstmt.setObject(i, byteValues.get(4));
-	            }
-	        }
-	
-	        pstmt.execute();
+            // varbinary(50)
+            for (int i = 4; i <= 6; i++) {
+                if (null == byteValues) {
+                    pstmt.setObject(i, null, java.sql.Types.BINARY);
+                } else {
+                    pstmt.setObject(i, byteValues.get(1));
+                }
+            }
+
+            // varbinary(max)
+            for (int i = 7; i <= 9; i++) {
+                if (null == byteValues) {
+                    pstmt.setObject(i, null, java.sql.Types.BINARY);
+                } else {
+                    pstmt.setObject(i, byteValues.get(2));
+                }
+            }
+
+            // binary(512)
+            for (int i = 10; i <= 12; i++) {
+                if (null == byteValues) {
+                    pstmt.setObject(i, null, java.sql.Types.BINARY);
+                } else {
+                    pstmt.setObject(i, byteValues.get(3));
+                }
+            }
+
+            // varbinary(8000)
+            for (int i = 13; i <= 15; i++) {
+                if (null == byteValues) {
+                    pstmt.setObject(i, null, java.sql.Types.BINARY);
+                } else {
+                    pstmt.setObject(i, byteValues.get(4));
+                }
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -863,61 +878,60 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinarySetObjectWithJDBCType(LinkedList<byte[]> byteValues) throws SQLException {
-        String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // binary(20)
-	        for (int i = 1; i <= 3; i++) {
-	            if (null == byteValues) {
-	                pstmt.setObject(i, null, JDBCType.BINARY);
-	            }
-	            else {
-	                pstmt.setObject(i, byteValues.get(0), JDBCType.BINARY);
-	            }
-	        }
-	
-	        // varbinary(50)
-	        for (int i = 4; i <= 6; i++) {
-	            if (null == byteValues) {
-	                pstmt.setObject(i, null, JDBCType.VARBINARY);
-	            }
-	            else {
-	                pstmt.setObject(i, byteValues.get(1), JDBCType.VARBINARY);
-	            }
-	        }
-	
-	        // varbinary(max)
-	        for (int i = 7; i <= 9; i++) {
-	            if (null == byteValues) {
-	                pstmt.setObject(i, null, JDBCType.VARBINARY);
-	            }
-	            else {
-	                pstmt.setObject(i, byteValues.get(2), JDBCType.VARBINARY);
-	            }
-	        }
-	
-	        // binary(512)
-	        for (int i = 10; i <= 12; i++) {
-	            if (null == byteValues) {
-	                pstmt.setObject(i, null, JDBCType.BINARY);
-	            }
-	            else {
-	                pstmt.setObject(i, byteValues.get(3), JDBCType.BINARY);
-	            }
-	        }
-	
-	        // varbinary(8000)
-	        for (int i = 13; i <= 15; i++) {
-	            if (null == byteValues) {
-	                pstmt.setObject(i, null, JDBCType.VARBINARY);
-	            }
-	            else {
-	                pstmt.setObject(i, byteValues.get(4), JDBCType.VARBINARY);
-	            }
-	        }
-	
-	        pstmt.execute();
+            // binary(20)
+            for (int i = 1; i <= 3; i++) {
+                if (null == byteValues) {
+                    pstmt.setObject(i, null, JDBCType.BINARY);
+                } else {
+                    pstmt.setObject(i, byteValues.get(0), JDBCType.BINARY);
+                }
+            }
+
+            // varbinary(50)
+            for (int i = 4; i <= 6; i++) {
+                if (null == byteValues) {
+                    pstmt.setObject(i, null, JDBCType.VARBINARY);
+                } else {
+                    pstmt.setObject(i, byteValues.get(1), JDBCType.VARBINARY);
+                }
+            }
+
+            // varbinary(max)
+            for (int i = 7; i <= 9; i++) {
+                if (null == byteValues) {
+                    pstmt.setObject(i, null, JDBCType.VARBINARY);
+                } else {
+                    pstmt.setObject(i, byteValues.get(2), JDBCType.VARBINARY);
+                }
+            }
+
+            // binary(512)
+            for (int i = 10; i <= 12; i++) {
+                if (null == byteValues) {
+                    pstmt.setObject(i, null, JDBCType.BINARY);
+                } else {
+                    pstmt.setObject(i, byteValues.get(3), JDBCType.BINARY);
+                }
+            }
+
+            // varbinary(8000)
+            for (int i = 13; i <= 15; i++) {
+                if (null == byteValues) {
+                    pstmt.setObject(i, null, JDBCType.VARBINARY);
+                } else {
+                    pstmt.setObject(i, byteValues.get(4), JDBCType.VARBINARY);
+                }
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -927,31 +941,35 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinaryNullCase() throws SQLException {
-        String sql = "insert into " + binaryTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // binary
-	        for (int i = 1; i <= 3; i++) {
-	            pstmt.setNull(i, java.sql.Types.BINARY);
-	        }
-	
-	        // varbinary, varbinary(max)
-	        for (int i = 4; i <= 9; i++) {
-	            pstmt.setNull(i, java.sql.Types.VARBINARY);
-	        }
-	
-	        // binary512
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setNull(i, java.sql.Types.BINARY);
-	        }
-	
-	        // varbinary(8000)
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setNull(i, java.sql.Types.VARBINARY);
-	        }
-	
-	        pstmt.execute();
+            // binary
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setNull(i, java.sql.Types.BINARY);
+            }
+
+            // varbinary, varbinary(max)
+            for (int i = 4; i <= 9; i++) {
+                pstmt.setNull(i, java.sql.Types.VARBINARY);
+            }
+
+            // binary512
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setNull(i, java.sql.Types.BINARY);
+            }
+
+            // varbinary(8000)
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setNull(i, java.sql.Types.VARBINARY);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -962,62 +980,64 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharNormalCase(String[] charValues) throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // char
-	        for (int i = 1; i <= 3; i++) {
-	            pstmt.setString(i, charValues[0]);
-	        }
-	
-	        // varchar
-	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setString(i, charValues[1]);
-	        }
-	
-	        // varchar(max)
-	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setString(i, charValues[2]);
-	        }
-	
-	        // nchar
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setNString(i, charValues[3]);
-	        }
-	
-	        // nvarchar
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setNString(i, charValues[4]);
-	        }
-	
-	        // varchar(max)
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setNString(i, charValues[5]);
-	        }
-	
-	        // uniqueidentifier
-	        for (int i = 19; i <= 21; i++) {
-	            if (null == charValues[6]) {
-	                pstmt.setUniqueIdentifier(i, null);
-	            }
-	            else {
-	                pstmt.setUniqueIdentifier(i, uid);
-	            }
-	        }
-	
-	        // varchar8000
-	        for (int i = 22; i <= 24; i++) {
-	            pstmt.setString(i, charValues[7]);
-	        }
-	
-	        // nvarchar4000
-	        for (int i = 25; i <= 27; i++) {
-	            pstmt.setNString(i, charValues[8]);
-	        }
-	
-	        pstmt.execute();
+            // char
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setString(i, charValues[0]);
+            }
+
+            // varchar
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setString(i, charValues[1]);
+            }
+
+            // varchar(max)
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setString(i, charValues[2]);
+            }
+
+            // nchar
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setNString(i, charValues[3]);
+            }
+
+            // nvarchar
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setNString(i, charValues[4]);
+            }
+
+            // varchar(max)
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setNString(i, charValues[5]);
+            }
+
+            // uniqueidentifier
+            for (int i = 19; i <= 21; i++) {
+                if (null == charValues[6]) {
+                    pstmt.setUniqueIdentifier(i, null);
+                } else {
+                    pstmt.setUniqueIdentifier(i, uid);
+                }
+            }
+
+            // varchar8000
+            for (int i = 22; i <= 24; i++) {
+                pstmt.setString(i, charValues[7]);
+            }
+
+            // nvarchar4000
+            for (int i = 25; i <= 27; i++) {
+                pstmt.setNString(i, charValues[8]);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1028,57 +1048,60 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharSetObject(String[] charValues) throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // char
-	        for (int i = 1; i <= 3; i++) {
-	            pstmt.setObject(i, charValues[0]);
-	        }
-	
-	        // varchar
-	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setObject(i, charValues[1]);
-	        }
-	
-	        // varchar(max)
-	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setObject(i, charValues[2], java.sql.Types.LONGVARCHAR);
-	        }
-	
-	        // nchar
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setObject(i, charValues[3], java.sql.Types.NCHAR);
-	        }
-	
-	        // nvarchar
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setObject(i, charValues[4], java.sql.Types.NCHAR);
-	        }
-	
-	        // nvarchar(max)
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setObject(i, charValues[5], java.sql.Types.LONGNVARCHAR);
-	        }
-	
-	        // uniqueidentifier
-	        for (int i = 19; i <= 21; i++) {
-	            pstmt.setObject(i, charValues[6], microsoft.sql.Types.GUID);
-	        }
-	
-	        // varchar8000
-	        for (int i = 22; i <= 24; i++) {
-	            pstmt.setObject(i, charValues[7]);
-	        }
-	
-	        // nvarchar4000
-	        for (int i = 25; i <= 27; i++) {
-	            pstmt.setObject(i, charValues[8], java.sql.Types.NCHAR);
-	        }
-	
-	        pstmt.execute();
+            // char
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setObject(i, charValues[0]);
+            }
+
+            // varchar
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setObject(i, charValues[1]);
+            }
+
+            // varchar(max)
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setObject(i, charValues[2], java.sql.Types.LONGVARCHAR);
+            }
+
+            // nchar
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setObject(i, charValues[3], java.sql.Types.NCHAR);
+            }
+
+            // nvarchar
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setObject(i, charValues[4], java.sql.Types.NCHAR);
+            }
+
+            // nvarchar(max)
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setObject(i, charValues[5], java.sql.Types.LONGNVARCHAR);
+            }
+
+            // uniqueidentifier
+            for (int i = 19; i <= 21; i++) {
+                pstmt.setObject(i, charValues[6], microsoft.sql.Types.GUID);
+            }
+
+            // varchar8000
+            for (int i = 22; i <= 24; i++) {
+                pstmt.setObject(i, charValues[7]);
+            }
+
+            // nvarchar4000
+            for (int i = 25; i <= 27; i++) {
+                pstmt.setObject(i, charValues[8], java.sql.Types.NCHAR);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1089,57 +1112,60 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharSetObjectWithJDBCTypes(String[] charValues) throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // char
-	        for (int i = 1; i <= 3; i++) {
-	            pstmt.setObject(i, charValues[0], JDBCType.CHAR);
-	        }
-	
-	        // varchar
-	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setObject(i, charValues[1], JDBCType.VARCHAR);
-	        }
-	
-	        // varchar(max)
-	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setObject(i, charValues[2], JDBCType.LONGVARCHAR);
-	        }
-	
-	        // nchar
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setObject(i, charValues[3], JDBCType.NCHAR);
-	        }
-	
-	        // nvarchar
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setObject(i, charValues[4], JDBCType.NVARCHAR);
-	        }
-	
-	        // nvarchar(max)
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setObject(i, charValues[5], JDBCType.LONGNVARCHAR);
-	        }
-	
-	        // uniqueidentifier
-	        for (int i = 19; i <= 21; i++) {
-	            pstmt.setObject(i, charValues[6], microsoft.sql.Types.GUID);
-	        }
-	
-	        // varchar8000
-	        for (int i = 22; i <= 24; i++) {
-	            pstmt.setObject(i, charValues[7], JDBCType.VARCHAR);
-	        }
-	
-	        // vnarchar4000
-	        for (int i = 25; i <= 27; i++) {
-	            pstmt.setObject(i, charValues[8], JDBCType.NVARCHAR);
-	        }
-	
-	        pstmt.execute();
+            // char
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setObject(i, charValues[0], JDBCType.CHAR);
+            }
+
+            // varchar
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setObject(i, charValues[1], JDBCType.VARCHAR);
+            }
+
+            // varchar(max)
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setObject(i, charValues[2], JDBCType.LONGVARCHAR);
+            }
+
+            // nchar
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setObject(i, charValues[3], JDBCType.NCHAR);
+            }
+
+            // nvarchar
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setObject(i, charValues[4], JDBCType.NVARCHAR);
+            }
+
+            // nvarchar(max)
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setObject(i, charValues[5], JDBCType.LONGNVARCHAR);
+            }
+
+            // uniqueidentifier
+            for (int i = 19; i <= 21; i++) {
+                pstmt.setObject(i, charValues[6], microsoft.sql.Types.GUID);
+            }
+
+            // varchar8000
+            for (int i = 22; i <= 24; i++) {
+                pstmt.setObject(i, charValues[7], JDBCType.VARCHAR);
+            }
+
+            // vnarchar4000
+            for (int i = 25; i <= 27; i++) {
+                pstmt.setObject(i, charValues[8], JDBCType.NVARCHAR);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1149,48 +1175,51 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharNullCase() throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // char
-	        for (int i = 1; i <= 3; i++) {
-	            pstmt.setNull(i, java.sql.Types.CHAR);
-	        }
-	
-	        // varchar, varchar(max)
-	        for (int i = 4; i <= 9; i++) {
-	            pstmt.setNull(i, java.sql.Types.VARCHAR);
-	        }
-	
-	        // nchar
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setNull(i, java.sql.Types.NCHAR);
-	        }
-	
-	        // nvarchar, varchar(max)
-	        for (int i = 13; i <= 18; i++) {
-	            pstmt.setNull(i, java.sql.Types.NVARCHAR);
-	        }
-	
-	        // uniqueidentifier
-	        for (int i = 19; i <= 21; i++) {
-	            pstmt.setNull(i, microsoft.sql.Types.GUID);
-	
-	        }
-	
-	        // varchar8000
-	        for (int i = 22; i <= 24; i++) {
-	            pstmt.setNull(i, java.sql.Types.VARCHAR);
-	        }
-	
-	        // nvarchar4000
-	        for (int i = 25; i <= 27; i++) {
-	            pstmt.setNull(i, java.sql.Types.NVARCHAR);
-	        }
-	
-	        pstmt.execute();
+            // char
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setNull(i, java.sql.Types.CHAR);
+            }
+
+            // varchar, varchar(max)
+            for (int i = 4; i <= 9; i++) {
+                pstmt.setNull(i, java.sql.Types.VARCHAR);
+            }
+
+            // nchar
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setNull(i, java.sql.Types.NCHAR);
+            }
+
+            // nvarchar, varchar(max)
+            for (int i = 13; i <= 18; i++) {
+                pstmt.setNull(i, java.sql.Types.NVARCHAR);
+            }
+
+            // uniqueidentifier
+            for (int i = 19; i <= 21; i++) {
+                pstmt.setNull(i, microsoft.sql.Types.GUID);
+
+            }
+
+            // varchar8000
+            for (int i = 22; i <= 24; i++) {
+                pstmt.setNull(i, java.sql.Types.VARCHAR);
+            }
+
+            // nvarchar4000
+            for (int i = 25; i <= 27; i++) {
+                pstmt.setNull(i, java.sql.Types.NVARCHAR);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1201,41 +1230,45 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateNormalCase(LinkedList<Object> dateValues) throws SQLException {
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // date
-	        for (int i = 1; i <= 3; i++) {
-	            pstmt.setDate(i, (Date) dateValues.get(0));
-	        }
-	
-	        // datetime2 default
-	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setTimestamp(i, (Timestamp) dateValues.get(1));
-	        }
-	
-	        // datetimeoffset default
-	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setDateTimeOffset(i, (DateTimeOffset) dateValues.get(2));
-	        }
-	
-	        // time default
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setTime(i, (Time) dateValues.get(3));
-	        }
-	
-	        // datetime
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setDateTime(i, (Timestamp) dateValues.get(4));
-	        }
-	
-	        // smalldatetime
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setSmallDateTime(i, (Timestamp) dateValues.get(5));
-	        }
-	
-	        pstmt.execute();
+            // date
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setDate(i, (Date) dateValues.get(0));
+            }
+
+            // datetime2 default
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setTimestamp(i, (Timestamp) dateValues.get(1));
+            }
+
+            // datetimeoffset default
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setDateTimeOffset(i, (DateTimeOffset) dateValues.get(2));
+            }
+
+            // time default
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setTime(i, (Time) dateValues.get(3));
+            }
+
+            // datetime
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setDateTime(i, (Timestamp) dateValues.get(4));
+            }
+
+            // smalldatetime
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setSmallDateTime(i, (Timestamp) dateValues.get(5));
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1246,26 +1279,30 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateScaleNormalCase(LinkedList<Object> dateValues) throws SQLException {
-        String sql = "insert into " + scaleDateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(scaleDateTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // datetime2(2)
-	        for (int i = 1; i <= 3; i++) {
-	            pstmt.setTimestamp(i, (Timestamp) dateValues.get(4), 2);
-	        }
-	
-	        // time(2)
-	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setTime(i, (Time) dateValues.get(5), 2);
-	        }
-	
-	        // datetimeoffset(2)
-	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setDateTimeOffset(i, (DateTimeOffset) dateValues.get(6), 2);
-	        }
-	
-	        pstmt.execute();
+            // datetime2(2)
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setTimestamp(i, (Timestamp) dateValues.get(4), 2);
+            }
+
+            // time(2)
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setTime(i, (Time) dateValues.get(5), 2);
+            }
+
+            // datetimeoffset(2)
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setDateTimeOffset(i, (DateTimeOffset) dateValues.get(6), 2);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1276,67 +1313,67 @@ public class AESetup extends AbstractTest {
      * @param setter
      * @throws SQLException
      */
-    protected static void populateDateSetObject(LinkedList<Object> dateValues,
-            String setter) throws SQLException {
-        if (setter.equalsIgnoreCase("setwithJDBCType")) {
-            skipTestForJava7();
-        }
+    protected static void populateDateSetObject(LinkedList<Object> dateValues, String setter) throws SQLException {
 
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // date
-	        for (int i = 1; i <= 3; i++) {
-	            if (setter.equalsIgnoreCase("setwithJavaType"))
-	                pstmt.setObject(i, (Date) dateValues.get(0), java.sql.Types.DATE);
-	            else if (setter.equalsIgnoreCase("setwithJDBCType"))
-	                pstmt.setObject(i, (Date) dateValues.get(0), JDBCType.DATE);
-	            else
-	                pstmt.setObject(i, (Date) dateValues.get(0));
-	        }
-	
-	        // datetime2 default
-	        for (int i = 4; i <= 6; i++) {
-	            if (setter.equalsIgnoreCase("setwithJavaType"))
-	                pstmt.setObject(i, (Timestamp) dateValues.get(1), java.sql.Types.TIMESTAMP);
-	            else if (setter.equalsIgnoreCase("setwithJDBCType"))
-	                pstmt.setObject(i, (Timestamp) dateValues.get(1), JDBCType.TIMESTAMP);
-	            else
-	                pstmt.setObject(i, (Timestamp) dateValues.get(1));
-	        }
-	
-	        // datetimeoffset default
-	        for (int i = 7; i <= 9; i++) {
-	            if (setter.equalsIgnoreCase("setwithJavaType"))
-	                pstmt.setObject(i, (DateTimeOffset) dateValues.get(2), microsoft.sql.Types.DATETIMEOFFSET);
-	            else if (setter.equalsIgnoreCase("setwithJDBCType"))
-	                pstmt.setObject(i, (DateTimeOffset) dateValues.get(2), microsoft.sql.Types.DATETIMEOFFSET);
-	            else
-	                pstmt.setObject(i, (DateTimeOffset) dateValues.get(2));
-	        }
-	
-	        // time default
-	        for (int i = 10; i <= 12; i++) {
-	            if (setter.equalsIgnoreCase("setwithJavaType"))
-	                pstmt.setObject(i, (Time) dateValues.get(3), java.sql.Types.TIME);
-	            else if (setter.equalsIgnoreCase("setwithJDBCType"))
-	                pstmt.setObject(i, (Time) dateValues.get(3), JDBCType.TIME);
-	            else
-	                pstmt.setObject(i, (Time) dateValues.get(3));
-	        }
-	
-	        // datetime
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setObject(i, (Timestamp) dateValues.get(4), microsoft.sql.Types.DATETIME);
-	        }
-	
-	        // smalldatetime
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setObject(i, (Timestamp) dateValues.get(5), microsoft.sql.Types.SMALLDATETIME);
-	        }
-	
-	        pstmt.execute();
+            // date
+            for (int i = 1; i <= 3; i++) {
+                if (setter.equalsIgnoreCase("setwithJavaType"))
+                    pstmt.setObject(i, (Date) dateValues.get(0), java.sql.Types.DATE);
+                else if (setter.equalsIgnoreCase("setwithJDBCType"))
+                    pstmt.setObject(i, (Date) dateValues.get(0), JDBCType.DATE);
+                else
+                    pstmt.setObject(i, (Date) dateValues.get(0));
+            }
+
+            // datetime2 default
+            for (int i = 4; i <= 6; i++) {
+                if (setter.equalsIgnoreCase("setwithJavaType"))
+                    pstmt.setObject(i, (Timestamp) dateValues.get(1), java.sql.Types.TIMESTAMP);
+                else if (setter.equalsIgnoreCase("setwithJDBCType"))
+                    pstmt.setObject(i, (Timestamp) dateValues.get(1), JDBCType.TIMESTAMP);
+                else
+                    pstmt.setObject(i, (Timestamp) dateValues.get(1));
+            }
+
+            // datetimeoffset default
+            for (int i = 7; i <= 9; i++) {
+                if (setter.equalsIgnoreCase("setwithJavaType"))
+                    pstmt.setObject(i, (DateTimeOffset) dateValues.get(2), microsoft.sql.Types.DATETIMEOFFSET);
+                else if (setter.equalsIgnoreCase("setwithJDBCType"))
+                    pstmt.setObject(i, (DateTimeOffset) dateValues.get(2), microsoft.sql.Types.DATETIMEOFFSET);
+                else
+                    pstmt.setObject(i, (DateTimeOffset) dateValues.get(2));
+            }
+
+            // time default
+            for (int i = 10; i <= 12; i++) {
+                if (setter.equalsIgnoreCase("setwithJavaType"))
+                    pstmt.setObject(i, (Time) dateValues.get(3), java.sql.Types.TIME);
+                else if (setter.equalsIgnoreCase("setwithJDBCType"))
+                    pstmt.setObject(i, (Time) dateValues.get(3), JDBCType.TIME);
+                else
+                    pstmt.setObject(i, (Time) dateValues.get(3));
+            }
+
+            // datetime
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setObject(i, (Timestamp) dateValues.get(4), microsoft.sql.Types.DATETIME);
+            }
+
+            // smalldatetime
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setObject(i, (Timestamp) dateValues.get(5), microsoft.sql.Types.SMALLDATETIME);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1346,41 +1383,45 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected void populateDateSetObjectNull() throws SQLException {
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // date
-	        for (int i = 1; i <= 3; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.DATE);
-	        }
-	
-	        // datetime2 default
-	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.TIMESTAMP);
-	        }
-	
-	        // datetimeoffset default
-	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setObject(i, null, microsoft.sql.Types.DATETIMEOFFSET);
-	        }
-	
-	        // time default
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.TIME);
-	        }
-	
-	        // datetime
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setObject(i, null, microsoft.sql.Types.DATETIME);
-	        }
-	
-	        // smalldatetime
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setObject(i, null, microsoft.sql.Types.SMALLDATETIME);
-	        }
-	
-	        pstmt.execute();
+            // date
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setObject(i, null, java.sql.Types.DATE);
+            }
+
+            // datetime2 default
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setObject(i, null, java.sql.Types.TIMESTAMP);
+            }
+
+            // datetimeoffset default
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setObject(i, null, microsoft.sql.Types.DATETIMEOFFSET);
+            }
+
+            // time default
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setObject(i, null, java.sql.Types.TIME);
+            }
+
+            // datetime
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setObject(i, null, microsoft.sql.Types.DATETIME);
+            }
+
+            // smalldatetime
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setObject(i, null, microsoft.sql.Types.SMALLDATETIME);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1390,41 +1431,45 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateNullCase() throws SQLException {
-        String sql = "insert into " + dateTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // date
-	        for (int i = 1; i <= 3; i++) {
-	            pstmt.setNull(i, java.sql.Types.DATE);
-	        }
-	
-	        // datetime2 default
-	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setNull(i, java.sql.Types.TIMESTAMP);
-	        }
-	
-	        // datetimeoffset default
-	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setNull(i, microsoft.sql.Types.DATETIMEOFFSET);
-	        }
-	
-	        // time default
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setNull(i, java.sql.Types.TIME);
-	        }
-	
-	        // datetime
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setNull(i, microsoft.sql.Types.DATETIME);
-	        }
-	
-	        // smalldatetime
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setNull(i, microsoft.sql.Types.SMALLDATETIME);
-	        }
-	
-	        pstmt.execute();
+            // date
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setNull(i, java.sql.Types.DATE);
+            }
+
+            // datetime2 default
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setNull(i, java.sql.Types.TIMESTAMP);
+            }
+
+            // datetimeoffset default
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setNull(i, microsoft.sql.Types.DATETIMEOFFSET);
+            }
+
+            // time default
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setNull(i, java.sql.Types.TIME);
+            }
+
+            // datetime
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setNull(i, microsoft.sql.Types.DATETIME);
+            }
+
+            // smalldatetime
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setNull(i, microsoft.sql.Types.SMALLDATETIME);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1435,103 +1480,106 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumeric(String[] values) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // bit
-	        for (int i = 1; i <= 3; i++) {
-	            if (values[0].equalsIgnoreCase("true")) {
-	                pstmt.setBoolean(i, true);
-	            }
-	            else {
-	                pstmt.setBoolean(i, false);
-	            }
-	        }
-	
-	        // tinyint
-	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setShort(i, Short.valueOf(values[1]));
-	        }
-	
-	        // smallint
-	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setShort(i, Short.valueOf(values[2]));
-	        }
-	
-	        // int
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setInt(i, Integer.valueOf(values[3]));
-	        }
-	
-	        // bigint
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setLong(i, Long.valueOf(values[4]));
-	        }
-	
-	        // float default
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setDouble(i, Double.valueOf(values[5]));
-	        }
-	
-	        // float(30)
-	        for (int i = 19; i <= 21; i++) {
-	            pstmt.setDouble(i, Double.valueOf(values[6]));
-	        }
-	
-	        // real
-	        for (int i = 22; i <= 24; i++) {
-	            pstmt.setFloat(i, Float.valueOf(values[7]));
-	        }
-	
-	        // decimal default
-	        for (int i = 25; i <= 27; i++) {
-	            if (values[8].equalsIgnoreCase("0"))
-	                pstmt.setBigDecimal(i, new BigDecimal(values[8]), 18, 0);
-	            else
-	                pstmt.setBigDecimal(i, new BigDecimal(values[8]));
-	        }
-	
-	        // decimal(10,5)
-	        for (int i = 28; i <= 30; i++) {
-	            pstmt.setBigDecimal(i, new BigDecimal(values[9]), 10, 5);
-	        }
-	
-	        // numeric
-	        for (int i = 31; i <= 33; i++) {
-	            if (values[10].equalsIgnoreCase("0"))
-	                pstmt.setBigDecimal(i, new BigDecimal(values[10]), 18, 0);
-	            else
-	                pstmt.setBigDecimal(i, new BigDecimal(values[10]));
-	        }
-	
-	        // numeric(8,2)
-	        for (int i = 34; i <= 36; i++) {
-	            pstmt.setBigDecimal(i, new BigDecimal(values[11]), 8, 2);
-	        }
-	
-	        // small money
-	        for (int i = 37; i <= 39; i++) {
-	            pstmt.setSmallMoney(i, new BigDecimal(values[12]));
-	        }
-	
-	        // money
-	        for (int i = 40; i <= 42; i++) {
-	            pstmt.setMoney(i, new BigDecimal(values[13]));
-	        }
-	
-	        // decimal(28,4)
-	        for (int i = 43; i <= 45; i++) {
-	            pstmt.setBigDecimal(i, new BigDecimal(values[14]), 28, 4);
-	        }
-	
-	        // numeric(28,4)
-	        for (int i = 46; i <= 48; i++) {
-	            pstmt.setBigDecimal(i, new BigDecimal(values[15]), 28, 4);
-	        }
-	
-	        pstmt.execute();
+            // bit
+            for (int i = 1; i <= 3; i++) {
+                if (values[0].equalsIgnoreCase("true")) {
+                    pstmt.setBoolean(i, true);
+                } else {
+                    pstmt.setBoolean(i, false);
+                }
+            }
+
+            // tinyint
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setShort(i, Short.valueOf(values[1]));
+            }
+
+            // smallint
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setShort(i, Short.valueOf(values[2]));
+            }
+
+            // int
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setInt(i, Integer.valueOf(values[3]));
+            }
+
+            // bigint
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setLong(i, Long.valueOf(values[4]));
+            }
+
+            // float default
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setDouble(i, Double.valueOf(values[5]));
+            }
+
+            // float(30)
+            for (int i = 19; i <= 21; i++) {
+                pstmt.setDouble(i, Double.valueOf(values[6]));
+            }
+
+            // real
+            for (int i = 22; i <= 24; i++) {
+                pstmt.setFloat(i, Float.valueOf(values[7]));
+            }
+
+            // decimal default
+            for (int i = 25; i <= 27; i++) {
+                if (values[8].equalsIgnoreCase("0"))
+                    pstmt.setBigDecimal(i, new BigDecimal(values[8]), 18, 0);
+                else
+                    pstmt.setBigDecimal(i, new BigDecimal(values[8]));
+            }
+
+            // decimal(10,5)
+            for (int i = 28; i <= 30; i++) {
+                pstmt.setBigDecimal(i, new BigDecimal(values[9]), 10, 5);
+            }
+
+            // numeric
+            for (int i = 31; i <= 33; i++) {
+                if (values[10].equalsIgnoreCase("0"))
+                    pstmt.setBigDecimal(i, new BigDecimal(values[10]), 18, 0);
+                else
+                    pstmt.setBigDecimal(i, new BigDecimal(values[10]));
+            }
+
+            // numeric(8,2)
+            for (int i = 34; i <= 36; i++) {
+                pstmt.setBigDecimal(i, new BigDecimal(values[11]), 8, 2);
+            }
+
+            // small money
+            for (int i = 37; i <= 39; i++) {
+                pstmt.setSmallMoney(i, new BigDecimal(values[12]));
+            }
+
+            // money
+            for (int i = 40; i <= 42; i++) {
+                pstmt.setMoney(i, new BigDecimal(values[13]));
+            }
+
+            // decimal(28,4)
+            for (int i = 43; i <= 45; i++) {
+                pstmt.setBigDecimal(i, new BigDecimal(values[14]), 28, 4);
+            }
+
+            // numeric(28,4)
+            for (int i = 46; i <= 48; i++) {
+                pstmt.setBigDecimal(i, new BigDecimal(values[15]), 28, 4);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1542,103 +1590,106 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericSetObject(String[] values) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // bit
-	        for (int i = 1; i <= 3; i++) {
-	            if (values[0].equalsIgnoreCase("true")) {
-	                pstmt.setObject(i, true);
-	            }
-	            else {
-	                pstmt.setObject(i, false);
-	            }
-	        }
-	
-	        // tinyint
-	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setObject(i, Short.valueOf(values[1]));
-	        }
-	
-	        // smallint
-	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setObject(i, Short.valueOf(values[2]));
-	        }
-	
-	        // int
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setObject(i, Integer.valueOf(values[3]));
-	        }
-	
-	        // bigint
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setObject(i, Long.valueOf(values[4]));
-	        }
-	
-	        // float default
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setObject(i, Double.valueOf(values[5]));
-	        }
-	
-	        // float(30)
-	        for (int i = 19; i <= 21; i++) {
-	            pstmt.setObject(i, Double.valueOf(values[6]));
-	        }
-	
-	        // real
-	        for (int i = 22; i <= 24; i++) {
-	            pstmt.setObject(i, Float.valueOf(values[7]));
-	        }
-	
-	        // decimal default
-	        for (int i = 25; i <= 27; i++) {
-	            if (RandomData.returnZero)
-	                pstmt.setObject(i, new BigDecimal(values[8]), java.sql.Types.DECIMAL, 18, 0);
-	            else
-	                pstmt.setObject(i, new BigDecimal(values[8]));
-	        }
-	
-	        // decimal(10,5)
-	        for (int i = 28; i <= 30; i++) {
-	            pstmt.setObject(i, new BigDecimal(values[9]), java.sql.Types.DECIMAL, 10, 5);
-	        }
-	
-	        // numeric
-	        for (int i = 31; i <= 33; i++) {
-	            if (RandomData.returnZero)
-	                pstmt.setObject(i, new BigDecimal(values[10]), java.sql.Types.NUMERIC, 18, 0);
-	            else
-	                pstmt.setObject(i, new BigDecimal(values[10]));
-	        }
-	
-	        // numeric(8,2)
-	        for (int i = 34; i <= 36; i++) {
-	            pstmt.setObject(i, new BigDecimal(values[11]), java.sql.Types.NUMERIC, 8, 2);
-	        }
-	
-	        // small money
-	        for (int i = 37; i <= 39; i++) {
-	            pstmt.setObject(i, new BigDecimal(values[12]), microsoft.sql.Types.SMALLMONEY);
-	        }
-	
-	        // money
-	        for (int i = 40; i <= 42; i++) {
-	            pstmt.setObject(i, new BigDecimal(values[13]), microsoft.sql.Types.MONEY);
-	        }
-	
-	        // decimal(28,4)
-	        for (int i = 43; i <= 45; i++) {
-	            pstmt.setObject(i, new BigDecimal(values[14]), java.sql.Types.DECIMAL, 28, 4);
-	        }
-	
-	        // numeric
-	        for (int i = 46; i <= 48; i++) {
-	            pstmt.setObject(i, new BigDecimal(values[15]), java.sql.Types.NUMERIC, 28, 4);
-	        }
-	
-	        pstmt.execute();
+            // bit
+            for (int i = 1; i <= 3; i++) {
+                if (values[0].equalsIgnoreCase("true")) {
+                    pstmt.setObject(i, true);
+                } else {
+                    pstmt.setObject(i, false);
+                }
+            }
+
+            // tinyint
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setObject(i, Short.valueOf(values[1]));
+            }
+
+            // smallint
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setObject(i, Short.valueOf(values[2]));
+            }
+
+            // int
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setObject(i, Integer.valueOf(values[3]));
+            }
+
+            // bigint
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setObject(i, Long.valueOf(values[4]));
+            }
+
+            // float default
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setObject(i, Double.valueOf(values[5]));
+            }
+
+            // float(30)
+            for (int i = 19; i <= 21; i++) {
+                pstmt.setObject(i, Double.valueOf(values[6]));
+            }
+
+            // real
+            for (int i = 22; i <= 24; i++) {
+                pstmt.setObject(i, Float.valueOf(values[7]));
+            }
+
+            // decimal default
+            for (int i = 25; i <= 27; i++) {
+                if (RandomData.returnZero)
+                    pstmt.setObject(i, new BigDecimal(values[8]), java.sql.Types.DECIMAL, 18, 0);
+                else
+                    pstmt.setObject(i, new BigDecimal(values[8]));
+            }
+
+            // decimal(10,5)
+            for (int i = 28; i <= 30; i++) {
+                pstmt.setObject(i, new BigDecimal(values[9]), java.sql.Types.DECIMAL, 10, 5);
+            }
+
+            // numeric
+            for (int i = 31; i <= 33; i++) {
+                if (RandomData.returnZero)
+                    pstmt.setObject(i, new BigDecimal(values[10]), java.sql.Types.NUMERIC, 18, 0);
+                else
+                    pstmt.setObject(i, new BigDecimal(values[10]));
+            }
+
+            // numeric(8,2)
+            for (int i = 34; i <= 36; i++) {
+                pstmt.setObject(i, new BigDecimal(values[11]), java.sql.Types.NUMERIC, 8, 2);
+            }
+
+            // small money
+            for (int i = 37; i <= 39; i++) {
+                pstmt.setObject(i, new BigDecimal(values[12]), microsoft.sql.Types.SMALLMONEY);
+            }
+
+            // money
+            for (int i = 40; i <= 42; i++) {
+                pstmt.setObject(i, new BigDecimal(values[13]), microsoft.sql.Types.MONEY);
+            }
+
+            // decimal(28,4)
+            for (int i = 43; i <= 45; i++) {
+                pstmt.setObject(i, new BigDecimal(values[14]), java.sql.Types.DECIMAL, 28, 4);
+            }
+
+            // numeric
+            for (int i = 46; i <= 48; i++) {
+                pstmt.setObject(i, new BigDecimal(values[15]), java.sql.Types.NUMERIC, 28, 4);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1649,103 +1700,106 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericSetObjectWithJDBCTypes(String[] values) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // bit
-	        for (int i = 1; i <= 3; i++) {
-	            if (values[0].equalsIgnoreCase("true")) {
-	                pstmt.setObject(i, true);
-	            }
-	            else {
-	                pstmt.setObject(i, false);
-	            }
-	        }
-	
-	        // tinyint
-	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setObject(i, Short.valueOf(values[1]), JDBCType.TINYINT);
-	        }
-	
-	        // smallint
-	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setObject(i, Short.valueOf(values[2]), JDBCType.SMALLINT);
-	        }
-	
-	        // int
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setObject(i, Integer.valueOf(values[3]), JDBCType.INTEGER);
-	        }
-	
-	        // bigint
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setObject(i, Long.valueOf(values[4]), JDBCType.BIGINT);
-	        }
-	
-	        // float default
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setObject(i, Double.valueOf(values[5]), JDBCType.DOUBLE);
-	        }
-	
-	        // float(30)
-	        for (int i = 19; i <= 21; i++) {
-	            pstmt.setObject(i, Double.valueOf(values[6]), JDBCType.DOUBLE);
-	        }
-	
-	        // real
-	        for (int i = 22; i <= 24; i++) {
-	            pstmt.setObject(i, Float.valueOf(values[7]), JDBCType.REAL);
-	        }
-	
-	        // decimal default
-	        for (int i = 25; i <= 27; i++) {
-	            if (RandomData.returnZero)
-	                pstmt.setObject(i, new BigDecimal(values[8]), java.sql.Types.DECIMAL, 18, 0);
-	            else
-	                pstmt.setObject(i, new BigDecimal(values[8]));
-	        }
-	
-	        // decimal(10,5)
-	        for (int i = 28; i <= 30; i++) {
-	            pstmt.setObject(i, new BigDecimal(values[9]), java.sql.Types.DECIMAL, 10, 5);
-	        }
-	
-	        // numeric
-	        for (int i = 31; i <= 33; i++) {
-	            if (RandomData.returnZero)
-	                pstmt.setObject(i, new BigDecimal(values[10]), java.sql.Types.NUMERIC, 18, 0);
-	            else
-	                pstmt.setObject(i, new BigDecimal(values[10]));
-	        }
-	
-	        // numeric(8,2)
-	        for (int i = 34; i <= 36; i++) {
-	            pstmt.setObject(i, new BigDecimal(values[11]), java.sql.Types.NUMERIC, 8, 2);
-	        }
-	
-	        // small money
-	        for (int i = 37; i <= 39; i++) {
-	            pstmt.setObject(i, new BigDecimal(values[12]), microsoft.sql.Types.SMALLMONEY);
-	        }
-	
-	        // money
-	        for (int i = 40; i <= 42; i++) {
-	            pstmt.setObject(i, new BigDecimal(values[13]), microsoft.sql.Types.MONEY);
-	        }
-	
-	        // decimal(28,4)
-	        for (int i = 43; i <= 45; i++) {
-	            pstmt.setObject(i, new BigDecimal(values[14]), java.sql.Types.DECIMAL, 28, 4);
-	        }
-	
-	        // numeric
-	        for (int i = 46; i <= 48; i++) {
-	            pstmt.setObject(i, new BigDecimal(values[15]), java.sql.Types.NUMERIC, 28, 4);
-	        }
-	
-	        pstmt.execute();
+            // bit
+            for (int i = 1; i <= 3; i++) {
+                if (values[0].equalsIgnoreCase("true")) {
+                    pstmt.setObject(i, true);
+                } else {
+                    pstmt.setObject(i, false);
+                }
+            }
+
+            // tinyint
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setObject(i, Short.valueOf(values[1]), JDBCType.TINYINT);
+            }
+
+            // smallint
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setObject(i, Short.valueOf(values[2]), JDBCType.SMALLINT);
+            }
+
+            // int
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setObject(i, Integer.valueOf(values[3]), JDBCType.INTEGER);
+            }
+
+            // bigint
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setObject(i, Long.valueOf(values[4]), JDBCType.BIGINT);
+            }
+
+            // float default
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setObject(i, Double.valueOf(values[5]), JDBCType.DOUBLE);
+            }
+
+            // float(30)
+            for (int i = 19; i <= 21; i++) {
+                pstmt.setObject(i, Double.valueOf(values[6]), JDBCType.DOUBLE);
+            }
+
+            // real
+            for (int i = 22; i <= 24; i++) {
+                pstmt.setObject(i, Float.valueOf(values[7]), JDBCType.REAL);
+            }
+
+            // decimal default
+            for (int i = 25; i <= 27; i++) {
+                if (RandomData.returnZero)
+                    pstmt.setObject(i, new BigDecimal(values[8]), java.sql.Types.DECIMAL, 18, 0);
+                else
+                    pstmt.setObject(i, new BigDecimal(values[8]));
+            }
+
+            // decimal(10,5)
+            for (int i = 28; i <= 30; i++) {
+                pstmt.setObject(i, new BigDecimal(values[9]), java.sql.Types.DECIMAL, 10, 5);
+            }
+
+            // numeric
+            for (int i = 31; i <= 33; i++) {
+                if (RandomData.returnZero)
+                    pstmt.setObject(i, new BigDecimal(values[10]), java.sql.Types.NUMERIC, 18, 0);
+                else
+                    pstmt.setObject(i, new BigDecimal(values[10]));
+            }
+
+            // numeric(8,2)
+            for (int i = 34; i <= 36; i++) {
+                pstmt.setObject(i, new BigDecimal(values[11]), java.sql.Types.NUMERIC, 8, 2);
+            }
+
+            // small money
+            for (int i = 37; i <= 39; i++) {
+                pstmt.setObject(i, new BigDecimal(values[12]), microsoft.sql.Types.SMALLMONEY);
+            }
+
+            // money
+            for (int i = 40; i <= 42; i++) {
+                pstmt.setObject(i, new BigDecimal(values[13]), microsoft.sql.Types.MONEY);
+            }
+
+            // decimal(28,4)
+            for (int i = 43; i <= 45; i++) {
+                pstmt.setObject(i, new BigDecimal(values[14]), java.sql.Types.DECIMAL, 28, 4);
+            }
+
+            // numeric
+            for (int i = 46; i <= 48; i++) {
+                pstmt.setObject(i, new BigDecimal(values[15]), java.sql.Types.NUMERIC, 28, 4);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1755,92 +1809,96 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericSetObjectNull() throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // bit
-	        for (int i = 1; i <= 3; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.BIT);
-	        }
-	
-	        // tinyint
-	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.TINYINT);
-	        }
-	
-	        // smallint
-	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.SMALLINT);
-	        }
-	
-	        // int
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.INTEGER);
-	        }
-	
-	        // bigint
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.BIGINT);
-	        }
-	
-	        // float default
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.DOUBLE);
-	        }
-	
-	        // float(30)
-	        for (int i = 19; i <= 21; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.DOUBLE);
-	        }
-	
-	        // real
-	        for (int i = 22; i <= 24; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.REAL);
-	        }
-	
-	        // decimal default
-	        for (int i = 25; i <= 27; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.DECIMAL);
-	        }
-	
-	        // decimal(10,5)
-	        for (int i = 28; i <= 30; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.DECIMAL, 10, 5);
-	        }
-	
-	        // numeric
-	        for (int i = 31; i <= 33; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.NUMERIC);
-	        }
-	
-	        // numeric(8,2)
-	        for (int i = 34; i <= 36; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.NUMERIC, 8, 2);
-	        }
-	
-	        // small money
-	        for (int i = 37; i <= 39; i++) {
-	            pstmt.setObject(i, null, microsoft.sql.Types.SMALLMONEY);
-	        }
-	
-	        // money
-	        for (int i = 40; i <= 42; i++) {
-	            pstmt.setObject(i, null, microsoft.sql.Types.MONEY);
-	        }
-	
-	        // decimal(28,4)
-	        for (int i = 43; i <= 45; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.DECIMAL, 28, 4);
-	        }
-	
-	        // numeric
-	        for (int i = 46; i <= 48; i++) {
-	            pstmt.setObject(i, null, java.sql.Types.NUMERIC, 28, 4);
-	        }
-	
-	        pstmt.execute();
+            // bit
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setObject(i, null, java.sql.Types.BIT);
+            }
+
+            // tinyint
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setObject(i, null, java.sql.Types.TINYINT);
+            }
+
+            // smallint
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setObject(i, null, java.sql.Types.SMALLINT);
+            }
+
+            // int
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setObject(i, null, java.sql.Types.INTEGER);
+            }
+
+            // bigint
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setObject(i, null, java.sql.Types.BIGINT);
+            }
+
+            // float default
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setObject(i, null, java.sql.Types.DOUBLE);
+            }
+
+            // float(30)
+            for (int i = 19; i <= 21; i++) {
+                pstmt.setObject(i, null, java.sql.Types.DOUBLE);
+            }
+
+            // real
+            for (int i = 22; i <= 24; i++) {
+                pstmt.setObject(i, null, java.sql.Types.REAL);
+            }
+
+            // decimal default
+            for (int i = 25; i <= 27; i++) {
+                pstmt.setObject(i, null, java.sql.Types.DECIMAL);
+            }
+
+            // decimal(10,5)
+            for (int i = 28; i <= 30; i++) {
+                pstmt.setObject(i, null, java.sql.Types.DECIMAL, 10, 5);
+            }
+
+            // numeric
+            for (int i = 31; i <= 33; i++) {
+                pstmt.setObject(i, null, java.sql.Types.NUMERIC);
+            }
+
+            // numeric(8,2)
+            for (int i = 34; i <= 36; i++) {
+                pstmt.setObject(i, null, java.sql.Types.NUMERIC, 8, 2);
+            }
+
+            // small money
+            for (int i = 37; i <= 39; i++) {
+                pstmt.setObject(i, null, microsoft.sql.Types.SMALLMONEY);
+            }
+
+            // money
+            for (int i = 40; i <= 42; i++) {
+                pstmt.setObject(i, null, microsoft.sql.Types.MONEY);
+            }
+
+            // decimal(28,4)
+            for (int i = 43; i <= 45; i++) {
+                pstmt.setObject(i, null, java.sql.Types.DECIMAL, 28, 4);
+            }
+
+            // numeric
+            for (int i = 46; i <= 48; i++) {
+                pstmt.setObject(i, null, java.sql.Types.NUMERIC, 28, 4);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -1851,93 +1909,97 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericNullCase(String[] values) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
 
                 + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // bit
-	        for (int i = 1; i <= 3; i++) {
-	            pstmt.setNull(i, java.sql.Types.BIT);
-	        }
-	
-	        // tinyint
-	        for (int i = 4; i <= 6; i++) {
-	            pstmt.setNull(i, java.sql.Types.TINYINT);
-	        }
-	
-	        // smallint
-	        for (int i = 7; i <= 9; i++) {
-	            pstmt.setNull(i, java.sql.Types.SMALLINT);
-	        }
-	
-	        // int
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setNull(i, java.sql.Types.INTEGER);
-	        }
-	
-	        // bigint
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setNull(i, java.sql.Types.BIGINT);
-	        }
-	
-	        // float default
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setNull(i, java.sql.Types.DOUBLE);
-	        }
-	
-	        // float(30)
-	        for (int i = 19; i <= 21; i++) {
-	            pstmt.setNull(i, java.sql.Types.DOUBLE);
-	        }
-	
-	        // real
-	        for (int i = 22; i <= 24; i++) {
-	            pstmt.setNull(i, java.sql.Types.REAL);
-	        }
-	
-	        // decimal default
-	        for (int i = 25; i <= 27; i++) {
-	            pstmt.setBigDecimal(i, null);
-	        }
-	
-	        // decimal(10,5)
-	        for (int i = 28; i <= 30; i++) {
-	            pstmt.setBigDecimal(i, null, 10, 5);
-	        }
-	
-	        // numeric
-	        for (int i = 31; i <= 33; i++) {
-	            pstmt.setBigDecimal(i, null);
-	        }
-	
-	        // numeric(8,2)
-	        for (int i = 34; i <= 36; i++) {
-	            pstmt.setBigDecimal(i, null, 8, 2);
-	        }
-	
-	        // small money
-	        for (int i = 37; i <= 39; i++) {
-	            pstmt.setSmallMoney(i, null);
-	        }
-	
-	        // money
-	        for (int i = 40; i <= 42; i++) {
-	            pstmt.setMoney(i, null);
-	        }
-	
-	        // decimal(28,4)
-	        for (int i = 43; i <= 45; i++) {
-	            pstmt.setBigDecimal(i, null, 28, 4);
-	        }
-	
-	        // decimal(28,4)
-	        for (int i = 46; i <= 48; i++) {
-	            pstmt.setBigDecimal(i, null, 28, 4);
-	        }
-	        pstmt.execute();
+            // bit
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setNull(i, java.sql.Types.BIT);
+            }
+
+            // tinyint
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setNull(i, java.sql.Types.TINYINT);
+            }
+
+            // smallint
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setNull(i, java.sql.Types.SMALLINT);
+            }
+
+            // int
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setNull(i, java.sql.Types.INTEGER);
+            }
+
+            // bigint
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setNull(i, java.sql.Types.BIGINT);
+            }
+
+            // float default
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setNull(i, java.sql.Types.DOUBLE);
+            }
+
+            // float(30)
+            for (int i = 19; i <= 21; i++) {
+                pstmt.setNull(i, java.sql.Types.DOUBLE);
+            }
+
+            // real
+            for (int i = 22; i <= 24; i++) {
+                pstmt.setNull(i, java.sql.Types.REAL);
+            }
+
+            // decimal default
+            for (int i = 25; i <= 27; i++) {
+                pstmt.setBigDecimal(i, null);
+            }
+
+            // decimal(10,5)
+            for (int i = 28; i <= 30; i++) {
+                pstmt.setBigDecimal(i, null, 10, 5);
+            }
+
+            // numeric
+            for (int i = 31; i <= 33; i++) {
+                pstmt.setBigDecimal(i, null);
+            }
+
+            // numeric(8,2)
+            for (int i = 34; i <= 36; i++) {
+                pstmt.setBigDecimal(i, null, 8, 2);
+            }
+
+            // small money
+            for (int i = 37; i <= 39; i++) {
+                pstmt.setSmallMoney(i, null);
+            }
+
+            // money
+            for (int i = 40; i <= 42; i++) {
+                pstmt.setMoney(i, null);
+            }
+
+            // decimal(28,4)
+            for (int i = 43; i <= 45; i++) {
+                pstmt.setBigDecimal(i, null, 28, 4);
+            }
+
+            // decimal(28,4)
+            for (int i = 46; i <= 48; i++) {
+                pstmt.setBigDecimal(i, null, 28, 4);
+            }
+            pstmt.execute();
         }
     }
 
@@ -1948,109 +2010,110 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericNormalCase(String[] numericValues) throws SQLException {
-        String sql = "insert into " + numericTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
 
                 + ")";
 
-        try(SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) Util.getPreparedStmt(con, sql, stmtColEncSetting)) {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
+                AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
 
-	        // bit
-	        for (int i = 1; i <= 3; i++) {
-	            if (numericValues[0].equalsIgnoreCase("true")) {
-	                pstmt.setBoolean(i, true);
-	            }
-	            else {
-	                pstmt.setBoolean(i, false);
-	            }
-	        }
-	
-	        // tinyint
-	        for (int i = 4; i <= 6; i++) {
-	            if (1 == Integer.valueOf(numericValues[1])) {
-	                pstmt.setBoolean(i, true);
-	            }
-	            else {
-	                pstmt.setBoolean(i, false);
-	            }
-	        }
-	
-	        // smallint
-	        for (int i = 7; i <= 9; i++) {
-	            if (numericValues[2].equalsIgnoreCase("255")) {
-	                pstmt.setByte(i, (byte) 255);
-	            }
-	            else {
-	                pstmt.setByte(i, Byte.valueOf(numericValues[2]));
-	            }
-	        }
-	
-	        // int
-	        for (int i = 10; i <= 12; i++) {
-	            pstmt.setShort(i, Short.valueOf(numericValues[3]));
-	        }
-	
-	        // bigint
-	        for (int i = 13; i <= 15; i++) {
-	            pstmt.setInt(i, Integer.valueOf(numericValues[4]));
-	        }
-	
-	        // float default
-	        for (int i = 16; i <= 18; i++) {
-	            pstmt.setDouble(i, Double.valueOf(numericValues[5]));
-	        }
-	
-	        // float(30)
-	        for (int i = 19; i <= 21; i++) {
-	            pstmt.setDouble(i, Double.valueOf(numericValues[6]));
-	        }
-	
-	        // real
-	        for (int i = 22; i <= 24; i++) {
-	            pstmt.setFloat(i, Float.valueOf(numericValues[7]));
-	        }
-	
-	        // decimal default
-	        for (int i = 25; i <= 27; i++) {
-	            pstmt.setBigDecimal(i, new BigDecimal(numericValues[8]));
-	        }
-	
-	        // decimal(10,5)
-	        for (int i = 28; i <= 30; i++) {
-	            pstmt.setBigDecimal(i, new BigDecimal(numericValues[9]), 10, 5);
-	        }
-	
-	        // numeric
-	        for (int i = 31; i <= 33; i++) {
-	            pstmt.setBigDecimal(i, new BigDecimal(numericValues[10]));
-	        }
-	
-	        // numeric(8,2)
-	        for (int i = 34; i <= 36; i++) {
-	            pstmt.setBigDecimal(i, new BigDecimal(numericValues[11]), 8, 2);
-	        }
-	
-	        // small money
-	        for (int i = 37; i <= 39; i++) {
-	            pstmt.setSmallMoney(i, new BigDecimal(numericValues[12]));
-	        }
-	
-	        // money
-	        for (int i = 40; i <= 42; i++) {
-	            pstmt.setSmallMoney(i, new BigDecimal(numericValues[13]));
-	        }
-	
-	        // decimal(28,4)
-	        for (int i = 43; i <= 45; i++) {
-	            pstmt.setBigDecimal(i, new BigDecimal(numericValues[14]), 28, 4);
-	        }
-	
-	        // numeric
-	        for (int i = 46; i <= 48; i++) {
-	            pstmt.setBigDecimal(i, new BigDecimal(numericValues[15]), 28, 4);
-	        }
-	
-	        pstmt.execute();
+            // bit
+            for (int i = 1; i <= 3; i++) {
+                if (numericValues[0].equalsIgnoreCase("true")) {
+                    pstmt.setBoolean(i, true);
+                } else {
+                    pstmt.setBoolean(i, false);
+                }
+            }
+
+            // tinyint
+            for (int i = 4; i <= 6; i++) {
+                if (1 == Integer.valueOf(numericValues[1])) {
+                    pstmt.setBoolean(i, true);
+                } else {
+                    pstmt.setBoolean(i, false);
+                }
+            }
+
+            // smallint
+            for (int i = 7; i <= 9; i++) {
+                if (numericValues[2].equalsIgnoreCase("255")) {
+                    pstmt.setByte(i, (byte) 255);
+                } else {
+                    pstmt.setByte(i, Byte.valueOf(numericValues[2]));
+                }
+            }
+
+            // int
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setShort(i, Short.valueOf(numericValues[3]));
+            }
+
+            // bigint
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setInt(i, Integer.valueOf(numericValues[4]));
+            }
+
+            // float default
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setDouble(i, Double.valueOf(numericValues[5]));
+            }
+
+            // float(30)
+            for (int i = 19; i <= 21; i++) {
+                pstmt.setDouble(i, Double.valueOf(numericValues[6]));
+            }
+
+            // real
+            for (int i = 22; i <= 24; i++) {
+                pstmt.setFloat(i, Float.valueOf(numericValues[7]));
+            }
+
+            // decimal default
+            for (int i = 25; i <= 27; i++) {
+                pstmt.setBigDecimal(i, new BigDecimal(numericValues[8]));
+            }
+
+            // decimal(10,5)
+            for (int i = 28; i <= 30; i++) {
+                pstmt.setBigDecimal(i, new BigDecimal(numericValues[9]), 10, 5);
+            }
+
+            // numeric
+            for (int i = 31; i <= 33; i++) {
+                pstmt.setBigDecimal(i, new BigDecimal(numericValues[10]));
+            }
+
+            // numeric(8,2)
+            for (int i = 34; i <= 36; i++) {
+                pstmt.setBigDecimal(i, new BigDecimal(numericValues[11]), 8, 2);
+            }
+
+            // small money
+            for (int i = 37; i <= 39; i++) {
+                pstmt.setSmallMoney(i, new BigDecimal(numericValues[12]));
+            }
+
+            // money
+            for (int i = 40; i <= 42; i++) {
+                pstmt.setSmallMoney(i, new BigDecimal(numericValues[13]));
+            }
+
+            // decimal(28,4)
+            for (int i = 43; i <= 45; i++) {
+                pstmt.setBigDecimal(i, new BigDecimal(numericValues[14]), 28, 4);
+            }
+
+            // numeric
+            for (int i = 46; i <= 48; i++) {
+                pstmt.setBigDecimal(i, new BigDecimal(numericValues[15]), 28, 4);
+            }
+
+            pstmt.execute();
         }
     }
 
@@ -2060,8 +2123,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     private static void dropCEK(SQLServerStatement stmt) throws SQLException {
-        String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')" + " begin"
-                + " drop column encryption key " + cekName + " end";
+        String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
+                + " begin" + " drop column encryption key " + cekName + " end";
         stmt.execute(cekSql);
     }
 
@@ -2071,18 +2134,9 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     private static void dropCMK(SQLServerStatement stmt) throws SQLException {
-        String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin" + " drop column master key "
-                + cmkName + " end";
+        String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin"
+                + " drop column master key " + cmkName + " end";
         stmt.execute(cekSql);
     }
 
-    /**
-     * Skip test if the client is using Java 7 or does not support JDBC 4.2.
-     * 
-     * @throws SQLException
-     * @throws TestAbortedException
-     */
-    protected static void skipTestForJava7() throws TestAbortedException, SQLException {
-        assumeTrue(Util.supportJDBC42(con)); // With Java 7, skip tests for JDBCType.
-    }
 }

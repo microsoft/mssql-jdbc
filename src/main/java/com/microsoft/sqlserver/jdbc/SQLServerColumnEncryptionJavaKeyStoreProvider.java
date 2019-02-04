@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -33,10 +30,11 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
+
 /**
  * 
- * The implementation of the key store provider for Java Key Store. This class enables using certificates stored in the Java keystore as column master
- * keys.
+ * Provides the implementation of the key store provider for Java Key Store. This class enables using certificates
+ * stored in the Java keystore as column master keys.
  *
  */
 public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColumnEncryptionKeyStoreProvider {
@@ -56,18 +54,19 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
     }
 
     /**
-     * Key store provider for the Java Key Store.
+     * Constructs a SQLServerColumnEncryptionJavaKeyStoreProvider for the Java Key Store.
      * 
      * @param keyStoreLocation
-     *            specifies the location of the keystore
+     *        specifies the location of the keystore
      * @param keyStoreSecret
-     *            specifies the secret used for keystore
+     *        specifies the secret used for keystore
      * @throws SQLServerException
-     *             when an error occurs
+     *         when an error occurs
      */
     public SQLServerColumnEncryptionJavaKeyStoreProvider(String keyStoreLocation,
             char[] keyStoreSecret) throws SQLServerException {
-        javaKeyStoreLogger.entering(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(), "SQLServerColumnEncryptionJavaKeyStoreProvider");
+        javaKeyStoreLogger.entering(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(),
+                "SQLServerColumnEncryptionJavaKeyStoreProvider");
 
         if ((null == keyStoreLocation) || (0 == keyStoreLocation.length())) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
@@ -93,23 +92,23 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             javaKeyStoreLogger.fine("Password for key store provider is set.");
         }
 
-        javaKeyStoreLogger.exiting(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(), "SQLServerColumnEncryptionJavaKeyStoreProvider");
+        javaKeyStoreLogger.exiting(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(),
+                "SQLServerColumnEncryptionJavaKeyStoreProvider");
     }
 
     @Override
-    public byte[] decryptColumnEncryptionKey(String masterKeyPath,
-            String encryptionAlgorithm,
+    public byte[] decryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] encryptedColumnEncryptionKey) throws SQLServerException {
-        javaKeyStoreLogger.entering(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(), "decryptColumnEncryptionKey",
-                "Decrypting Column Encryption Key.");
+        javaKeyStoreLogger.entering(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(),
+                "decryptColumnEncryptionKey", "Decrypting Column Encryption Key.");
 
         KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
         CertificateDetails certificateDetails = getCertificateDetails(masterKeyPath);
-        byte[] plainCEK = KeyStoreProviderCommon.decryptColumnEncryptionKey(masterKeyPath, encryptionAlgorithm, encryptedColumnEncryptionKey,
-                certificateDetails);
+        byte[] plainCEK = KeyStoreProviderCommon.decryptColumnEncryptionKey(masterKeyPath, encryptionAlgorithm,
+                encryptedColumnEncryptionKey, certificateDetails);
 
-        javaKeyStoreLogger.exiting(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(), "decryptColumnEncryptionKey",
-                "Finished decrypting Column Encryption Key.");
+        javaKeyStoreLogger.exiting(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(),
+                "decryptColumnEncryptionKey", "Finished decrypting Column Encryption Key.");
         return plainCEK;
     }
 
@@ -120,7 +119,8 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
 
         try {
             if (null == masterKeyPath || 0 == masterKeyPath.length()) {
-                throw new SQLServerException(null, SQLServerException.getErrString("R_InvalidMasterKeyDetails"), null, 0, false);
+                throw new SQLServerException(null, SQLServerException.getErrString("R_InvalidMasterKeyDetails"), null,
+                        0, false);
             }
 
             try {
@@ -128,8 +128,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
                 keyStore = KeyStore.getInstance("JKS");
                 fis = new FileInputStream(keyStorePath);
                 keyStore.load(fis, keyStorePwd);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 if (null != fis)
                     fis.close();
 
@@ -140,36 +139,32 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             }
 
             certificateDetails = getCertificateDetailsByAlias(keyStore, masterKeyPath);
-        }
-        catch (FileNotFoundException fileNotFound) {
+        } catch (FileNotFoundException fileNotFound) {
             throw new SQLServerException(this, SQLServerException.getErrString("R_KeyStoreNotFound"), null, 0, false);
-        }
-        catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException e) {
+        } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidKeyStoreFile"));
             Object[] msgArgs = {keyStorePath};
             throw new SQLServerException(form.format(msgArgs), e);
-        }
-        finally {
+        } finally {
             try {
                 if (null != fis)
                     fis.close();
             }
             // Ignore the exception as we are cleaning up.
-            catch (IOException e) {
-            }
+            catch (IOException e) {}
         }
 
         return certificateDetails;
     }
 
-    private CertificateDetails getCertificateDetailsByAlias(KeyStore keyStore,
-            String alias) throws SQLServerException {
+    private CertificateDetails getCertificateDetailsByAlias(KeyStore keyStore, String alias) throws SQLServerException {
         try {
             X509Certificate publicCertificate = (X509Certificate) keyStore.getCertificate(alias);
             Key keyPrivate = keyStore.getKey(alias, keyStorePwd);
             if (null == publicCertificate) {
                 // Certificate not found. Throw an exception.
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CertificateNotFoundForAlias"));
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_CertificateNotFoundForAlias"));
                 Object[] msgArgs = {alias, "MSSQL_JAVA_KEYSTORE"};
                 throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
             }
@@ -180,14 +175,12 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             }
 
             return new CertificateDetails(publicCertificate, keyPrivate);
-        }
-        catch (UnrecoverableKeyException unrecoverableKeyException) {
+        } catch (UnrecoverableKeyException unrecoverableKeyException) {
 
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnrecoverableKeyAE"));
             Object[] msgArgs = {alias};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-        }
-        catch (NoSuchAlgorithmException | KeyStoreException e) {
+        } catch (NoSuchAlgorithmException | KeyStoreException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CertificateError"));
             Object[] msgArgs = {alias, name};
             throw new SQLServerException(form.format(msgArgs), e);
@@ -195,23 +188,23 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
     }
 
     @Override
-    public byte[] encryptColumnEncryptionKey(String masterKeyPath,
-            String encryptionAlgorithm,
+    public byte[] encryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] plainTextColumnEncryptionKey) throws SQLServerException {
         javaKeyStoreLogger.entering(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(),
-                Thread.currentThread().getStackTrace()[1].getMethodName(), "Encrypting Column Encryption Key.");
+                "encryptColumnEncryptionKey", "Encrypting Column Encryption Key.");
 
         byte[] version = KeyStoreProviderCommon.version;
         KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
 
         if (null == plainTextColumnEncryptionKey) {
 
-            throw new SQLServerException(null, SQLServerException.getErrString("R_NullColumnEncryptionKey"), null, 0, false);
+            throw new SQLServerException(null, SQLServerException.getErrString("R_NullColumnEncryptionKey"), null, 0,
+                    false);
 
-        }
-        else if (0 == plainTextColumnEncryptionKey.length) {
+        } else if (0 == plainTextColumnEncryptionKey.length) {
 
-            throw new SQLServerException(null, SQLServerException.getErrString("R_EmptyColumnEncryptionKey"), null, 0, false);
+            throw new SQLServerException(null, SQLServerException.getErrString("R_EmptyColumnEncryptionKey"), null, 0,
+                    false);
 
         }
 
@@ -224,7 +217,8 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
 
         byte[] keyPathLength = getLittleEndianBytesFromShort((short) masterKeyPathBytes.length);
 
-        byte[] dataToSign = new byte[version.length + keyPathLength.length + cipherTextLength.length + masterKeyPathBytes.length + cipherText.length];
+        byte[] dataToSign = new byte[version.length + keyPathLength.length + cipherTextLength.length
+                + masterKeyPathBytes.length + cipherText.length];
         int destinationPosition = version.length;
         System.arraycopy(version, 0, dataToSign, 0, version.length);
 
@@ -240,8 +234,8 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         System.arraycopy(cipherText, 0, dataToSign, destinationPosition, cipherText.length);
         byte[] signedHash = rsaSignHashedData(dataToSign, certificateDetails);
 
-        int encryptedColumnEncryptionKeyLength = version.length + cipherTextLength.length + keyPathLength.length + cipherText.length
-                + masterKeyPathBytes.length + signedHash.length;
+        int encryptedColumnEncryptionKeyLength = version.length + cipherTextLength.length + keyPathLength.length
+                + cipherText.length + masterKeyPathBytes.length + signedHash.length;
         byte[] encryptedColumnEncryptionKey = new byte[encryptedColumnEncryptionKeyLength];
 
         int currentIndex = 0;
@@ -263,30 +257,29 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         System.arraycopy(signedHash, 0, encryptedColumnEncryptionKey, currentIndex, signedHash.length);
 
         javaKeyStoreLogger.exiting(SQLServerColumnEncryptionJavaKeyStoreProvider.class.getName(),
-                Thread.currentThread().getStackTrace()[1].getMethodName(), "Finished encrypting Column Encryption Key.");
+                "encryptColumnEncryptionKey", "Finished encrypting Column Encryption Key.");
         return encryptedColumnEncryptionKey;
 
     }
 
     /**
-     * Encrypt plainText with the certificate provided
+     * Encrypt plainText with the certificate provided.
      * 
      * @param plainText
-     *            plain CEK to be encrypted
+     *        plain CEK to be encrypted
      * @param certificateDetails
      * @return encrypted CEK
      * @throws SQLServerException
      */
-    private byte[] encryptRSAOAEP(byte[] plainText,
-            CertificateDetails certificateDetails) throws SQLServerException {
+    private byte[] encryptRSAOAEP(byte[] plainText, CertificateDetails certificateDetails) throws SQLServerException {
         byte[] cipherText = null;
         try {
             Cipher rsa = Cipher.getInstance("RSA/ECB/OAEPWithSHA-1AndMGF1Padding");
             rsa.init(Cipher.ENCRYPT_MODE, certificateDetails.certificate.getPublicKey());
             rsa.update(plainText);
             cipherText = rsa.doFinal();
-        }
-        catch (InvalidKeyException | NoSuchAlgorithmException | IllegalBlockSizeException | NoSuchPaddingException | BadPaddingException e) {
+        } catch (InvalidKeyException | NoSuchAlgorithmException | IllegalBlockSizeException | NoSuchPaddingException
+                | BadPaddingException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_EncryptionFailed"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
@@ -306,8 +299,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             signature.initSign((PrivateKey) certificateDetails.privateKey);
             signature.update(dataToSign);
             signedHash = signature.sign();
-        }
-        catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
+        } catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_EncryptionFailed"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);

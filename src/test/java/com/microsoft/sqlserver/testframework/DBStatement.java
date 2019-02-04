@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
@@ -14,13 +11,14 @@ import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 
+
 /**
  * wrapper method for Statement object
  * 
  * @author Microsoft
  *
  */
-public class DBStatement extends AbstractParentWrapper implements AutoCloseable{
+public class DBStatement extends AbstractParentWrapper implements AutoCloseable {
 
     // TODO: support PreparedStatement and CallableStatement
     // TODO: add stmt level holdability
@@ -51,8 +49,7 @@ public class DBStatement extends AbstractParentWrapper implements AutoCloseable{
         return this;
     }
 
-    DBStatement createStatement(int type,
-            int concurrency) throws SQLException {
+    DBStatement createStatement(int type, int concurrency) throws SQLException {
         // TODO: add cursor and holdability
         statement = ((SQLServerConnection) parent().product()).createStatement(type, concurrency);
         setInternal(statement);
@@ -62,7 +59,7 @@ public class DBStatement extends AbstractParentWrapper implements AutoCloseable{
     /**
      * 
      * @param sql
-     *            query to execute
+     *        query to execute
      * @return DBResultSet
      * @throws SQLException
      */
@@ -81,7 +78,7 @@ public class DBStatement extends AbstractParentWrapper implements AutoCloseable{
      * @throws SQLException
      */
     public DBResultSet selectAll(DBTable table) throws SQLException {
-        String sql = "SELECT * FROM " + table.getEscapedTableName();
+        String sql = "SELECT * FROM " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0);
         ResultSet rs = statement.executeQuery(sql);
         dbresultSet = new DBResultSet(this, rs, table);
         return dbresultSet;
@@ -90,7 +87,7 @@ public class DBStatement extends AbstractParentWrapper implements AutoCloseable{
     /**
      * 
      * @param sql
-     *            query to execute
+     *        query to execute
      * @return <code>true</code> if ResultSet is returned
      * @throws SQLException
      */
@@ -119,7 +116,7 @@ public class DBStatement extends AbstractParentWrapper implements AutoCloseable{
         if ((null != dbresultSet) && null != ((ResultSet) dbresultSet.product())) {
             ((ResultSet) dbresultSet.product()).close();
         }
-        //statement.close();
+        // statement.close();
     }
 
     /**

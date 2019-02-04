@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -18,10 +15,11 @@ class SQLServerSymmetricKey {
 
     SQLServerSymmetricKey(byte[] rootKey) throws SQLServerException {
         if (null == rootKey) {
-            throw new SQLServerException(this, SQLServerException.getErrString("R_NullColumnEncryptionKey"), null, 0, false);
-        }
-        else if (0 == rootKey.length) {
-            throw new SQLServerException(this, SQLServerException.getErrString("R_EmptyColumnEncryptionKey"), null, 0, false);
+            throw new SQLServerException(this, SQLServerException.getErrString("R_NullColumnEncryptionKey"), null, 0,
+                    false);
+        } else if (0 == rootKey.length) {
+            throw new SQLServerException(this, SQLServerException.getErrString("R_EmptyColumnEncryptionKey"), null, 0,
+                    false);
         }
         this.rootKey = rootKey;
     }

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc.dns;
 
@@ -20,6 +17,10 @@ import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
 
+
+/**
+ * Provides utility functions for the DNS package
+ */
 public class DNSUtilities {
 
     private final static Logger LOG = Logger.getLogger(DNSUtilities.class.getName());
@@ -27,13 +28,13 @@ public class DNSUtilities {
     private static final Level DNS_ERR_LOG_LEVEL = Level.FINE;
 
     /**
-     * Find all SRV Record using DNS.
+     * Finds all SRV Record using DNS.
      *
      * @param dnsSrvRecordToFind
-     *            the DNS record, for instance: _ldap._tcp.dc._msdcs.DOMAIN.COM to find all LDAP servers in DOMAIN.COM
+     *        the DNS record, for instance: _ldap._tcp.dc._msdcs.DOMAIN.COM to find all LDAP servers in DOMAIN.COM
      * @return the collection of records with facilities to find the best candidate
      * @throws NamingException
-     *             if DNS is not available
+     *         if DNS is not available
      */
     public static Set<DNSRecordSRV> findSrvRecords(final String dnsSrvRecordToFind) throws NamingException {
         Hashtable<Object, Object> env = new Hashtable<>();
@@ -53,10 +54,10 @@ public class DNSUtilities {
                     if (rec != null) {
                         records.add(rec);
                     }
-                }
-                catch (IllegalArgumentException errorParsingRecord) {
+                } catch (IllegalArgumentException errorParsingRecord) {
                     if (LOG.isLoggable(DNS_ERR_LOG_LEVEL)) {
-                        LOG.log(DNS_ERR_LOG_LEVEL, String.format("Failed to parse SRV DNS Record: '%s'", record), errorParsingRecord);
+                        LOG.log(DNS_ERR_LOG_LEVEL, String.format("Failed to parse SRV DNS Record: '%s'", record),
+                                errorParsingRecord);
                     }
                 }
             }

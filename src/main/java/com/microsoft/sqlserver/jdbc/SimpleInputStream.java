@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -11,6 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicInteger;
+
 
 /**
  * SimpleInputStream is an InputStream implementation that reads from TDS.
@@ -27,15 +25,17 @@ abstract class BaseInputStream extends InputStream {
     // Flag indicating whether the stream consumes and discards data as it reads it
     final boolean isStreaming;
 
-    /** Generate the logging ID */
-    private String parentLoggingInfo = "";
+    // Stated length of the payload
+    int payloadLength;
+
     private static final AtomicInteger lastLoggingID = new AtomicInteger(0);
 
     private static int nextLoggingID() {
         return lastLoggingID.incrementAndGet();
     }
 
-    static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.InputStream");;
+    static final java.util.logging.Logger logger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.internals.InputStream");
     private String traceID;
 
     final public String toString() {
@@ -45,7 +45,6 @@ abstract class BaseInputStream extends InputStream {
     }
 
     final void setLoggingInfo(String info) {
-        parentLoggingInfo = info;
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString());
     }
@@ -58,10 +57,7 @@ abstract class BaseInputStream extends InputStream {
     int readLimit = 0;
     boolean isReadLimitSet = false;
 
-    BaseInputStream(TDSReader tdsReader,
-            boolean isAdaptive,
-            boolean isStreaming,
-            ServerDTVImpl dtv) {
+    BaseInputStream(TDSReader tdsReader, boolean isAdaptive, boolean isStreaming, ServerDTVImpl dtv) {
         this.tdsReader = tdsReader;
         this.isAdaptive = isAdaptive;
         this.isStreaming = isStreaming;
@@ -121,7 +117,7 @@ abstract class BaseInputStream extends InputStream {
      * Resets stream to saved mark position.
      * 
      * @exception IOException
-     *                if an I/O error occurs.
+     *            if an I/O error occurs.
      */
     void resetHelper() throws IOException {
         checkClosed();
@@ -132,17 +128,13 @@ abstract class BaseInputStream extends InputStream {
     }
 }
 
-final class SimpleInputStream extends BaseInputStream {
 
-    // Stated length of the payload
-    private final int payloadLength;
+final class SimpleInputStream extends BaseInputStream {
 
     /**
      * Initializes the input stream.
      */
-    SimpleInputStream(TDSReader tdsReader,
-            int payLoadLength,
-            InputStreamGetterArgs getterArgs,
+    SimpleInputStream(TDSReader tdsReader, int payLoadLength, InputStreamGetterArgs getterArgs,
             ServerDTVImpl dtv) throws SQLServerException {
         super(tdsReader, getterArgs.isAdaptive, getterArgs.isStreaming, dtv);
         setLoggingInfo(getterArgs.logContext);
@@ -153,7 +145,7 @@ final class SimpleInputStream extends BaseInputStream {
      * Closes the stream releasing all resources held.
      * 
      * @exception IOException
-     *                if an I/O error occurs.
+     *            if an I/O error occurs.
      */
     public void close() throws IOException {
         if (null == tdsReader)
@@ -175,7 +167,7 @@ final class SimpleInputStream extends BaseInputStream {
      * Checks if we have EOS state.
      * 
      * @exception IOException
-     *                if an I/O error occurs.
+     *            if an I/O error occurs.
      */
     private boolean isEOS() throws IOException {
         assert streamPos <= payloadLength;
@@ -188,10 +180,10 @@ final class SimpleInputStream extends BaseInputStream {
      * Skips over and discards n bytes of data from this input stream.
      * 
      * @param n
-     *            the number of bytes to be skipped.
+     *        the number of bytes to be skipped.
      * @return the actual number of bytes skipped.
      * @exception IOException
-     *                if an I/O error occurs.
+     *            if an I/O error occurs.
      */
     public long skip(long n) throws IOException {
         checkClosed();
@@ -205,14 +197,12 @@ final class SimpleInputStream extends BaseInputStream {
         int skipAmount;
         if (streamPos + n > payloadLength) {
             skipAmount = payloadLength - streamPos;
-        }
-        else {
+        } else {
             skipAmount = (int) n;
         }
         try {
             tdsReader.skip(skipAmount);
-        }
-        catch (SQLServerException e) {
+        } catch (SQLServerException e) {
             throw new IOException(e.getMessage());
         }
         streamPos += skipAmount;
@@ -224,12 +214,12 @@ final class SimpleInputStream extends BaseInputStream {
     }
 
     /**
-     * Returns the number of bytes that can be read (or skipped over) from this input stream without blocking by the next caller of a method for this
-     * input stream.
+     * Returns the number of bytes that can be read (or skipped over) from this input stream without blocking by the
+     * next caller of a method for this input stream.
      * 
      * @return the actual number of bytes available.
      * @exception IOException
-     *                if an I/O error occurs.
+     *            if an I/O error occurs.
      */
     public int available() throws IOException {
         checkClosed();
@@ -248,7 +238,7 @@ final class SimpleInputStream extends BaseInputStream {
      * 
      * @return the byte read or -1 meaning no more bytes.
      * @exception IOException
-     *                if an I/O error occurs.
+     *            if an I/O error occurs.
      */
     public int read() throws IOException {
         checkClosed();
@@ -264,10 +254,10 @@ final class SimpleInputStream extends BaseInputStream {
      * Reads available data into supplied byte array.
      * 
      * @param b
-     *            array of bytes to fill.
+     *        array of bytes to fill.
      * @return the number of bytes read or -1 meaning no bytes read.
      * @exception IOException
-     *                if an I/O error occurs.
+     *            if an I/O error occurs.
      */
     public int read(byte[] b) throws IOException {
         checkClosed();
@@ -278,21 +268,20 @@ final class SimpleInputStream extends BaseInputStream {
      * Reads available data into supplied byte array.
      * 
      * @param b
-     *            array of bytes to fill.
+     *        array of bytes to fill.
      * @param offset
-     *            the offset into array b where to start writing.
+     *        the offset into array b where to start writing.
      * @param maxBytes
-     *            the max number of bytes to write into b.
+     *        the max number of bytes to write into b.
      * @return the number of bytes read or -1 meaning no bytes read.
      * @exception IOException
-     *                if an I/O error occurs.
+     *            if an I/O error occurs.
      */
-    public int read(byte b[],
-            int offset,
-            int maxBytes) throws IOException {
+    public int read(byte b[], int offset, int maxBytes) throws IOException {
         checkClosed();
         if (logger.isLoggable(java.util.logging.Level.FINER))
-            logger.finer(toString() + " Reading " + maxBytes + " from stream offset " + streamPos + " payload length " + payloadLength);
+            logger.finer(toString() + " Reading " + maxBytes + " from stream offset " + streamPos + " payload length "
+                    + payloadLength);
 
         if (offset < 0 || maxBytes < 0 || offset + maxBytes > b.length)
             throw new IndexOutOfBoundsException();
@@ -305,15 +294,13 @@ final class SimpleInputStream extends BaseInputStream {
         int readAmount;
         if (streamPos + maxBytes > payloadLength) {
             readAmount = payloadLength - streamPos;
-        }
-        else {
+        } else {
             readAmount = maxBytes;
         }
 
         try {
             tdsReader.readBytes(b, offset, readAmount);
-        }
-        catch (SQLServerException e) {
+        } catch (SQLServerException e) {
             throw new IOException(e.getMessage());
         }
         streamPos += readAmount;
@@ -328,7 +315,7 @@ final class SimpleInputStream extends BaseInputStream {
      * Marks the current position in this input stream.
      * 
      * @param readLimit
-     *            the number of bytes to hold
+     *        the number of bytes to hold
      */
     public void mark(int readLimit) {
         if (null != tdsReader && readLimit > 0) {
@@ -342,7 +329,7 @@ final class SimpleInputStream extends BaseInputStream {
      * Resets stream to saved mark position.
      * 
      * @exception IOException
-     *                if an I/O error occurs.
+     *            if an I/O error occurs.
      */
     public void reset() throws IOException {
         resetHelper();
@@ -350,8 +337,8 @@ final class SimpleInputStream extends BaseInputStream {
     }
 
     /**
-     * Helper function to convert the entire PLP stream into a contiguous byte array. This call is inefficient (in terms of memory usage and run time)
-     * for very large PLPs. Use it only if a contiguous byte array is required.
+     * Helper function to convert the entire PLP stream into a contiguous byte array. This call is inefficient (in terms
+     * of memory usage and run time) for very large PLPs. Use it only if a contiguous byte array is required.
      */
     final byte[] getBytes() throws SQLServerException {
         // We should always retrieve the entire stream, and only once.
@@ -361,8 +348,7 @@ final class SimpleInputStream extends BaseInputStream {
         try {
             read(value);
             close();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
         }
 

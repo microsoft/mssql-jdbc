@@ -18,12 +18,12 @@ SQL Server Team
 
 Let us know how you think we're doing.
 
-<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="67" width="156" src="https://meetsstorenew.blob.core.windows.net/contianerhd/survey.png?st=2017-02-17T22%3A03%3A00Z&se=2100-02-18T22%3A03%3A00Z&sp=rl&sv=2015-12-11&sr=b&sig=DJSFoihBptSvO%2BjvWzwpHecf8o5yfAbJoD2qW5oB8tc%3D"></a>
+<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="67" width="156" src="https://sqlchoice.blob.core.windows.net/sqlchoice/static/images/survey.png"></a>
 
 ## Status of Most Recent Builds
-| AppVeyor (Windows)       | Travis CI (Linux) |
+| Azure Pipelines (Windows)       | Travis CI (Linux) |
 |--------------------------|--------------------------|
-| [![AppVeyor ](https://ci.appveyor.com/api/projects/status/o6fjg16678ol64d3?svg=true "Windows")](https://ci.appveyor.com/project/Microsoft-JDBC/mssql-jdbc) | [![Travis CI](https://travis-ci.org/Microsoft/mssql-jdbc.svg? "Linux")](https://travis-ci.org/Microsoft/mssql-jdbc ) |vg? "Linux"
+| [![Build Status](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_apis/build/status/Microsoft.mssql-jdbc?branchName=dev)](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_build/latest?definitionId=1&branchName=dev) | [![Travis CI](https://travis-ci.org/Microsoft/mssql-jdbc.svg? "Linux")](https://travis-ci.org/Microsoft/mssql-jdbc ) |vg? "Linux"
 
 ## Announcements
 What's coming next?  We will look into adding a more comprehensive set of tests, improving our javadocs, and start developing the next set of features.
@@ -36,26 +36,26 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 
 ## Build
 ### Prerequisites
-* Java 10
+* Java 11
 * [Maven](http://maven.apache.org/download.cgi)
 * An instance of SQL Server or Azure SQL Database that you can connect to. 
 
 ### Build the JAR files
 Maven builds automatically trigger a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://docs.microsoft.com/en-us/sql/connect/jdbc/building-the-connection-url) for your SQL Server or Azure SQL Database instance.
 
-To build the jar files, you must use Java 10 with Maven.  You can choose to build a JDBC 4.3 compliant jar file (for use with JRE 10) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
+To build the jar files, you must use Java 11 with Maven.  You can choose to build a JDBC 4.3 compliant jar file (for use with JRE 11) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the \target directory. 
-    	* Run `mvn install -Pbuild43`. This creates JDBC 4.3 compliant jar in \target directory
-    	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in \target directory
+	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the `\target` directory. 
+    	* Run `mvn install -Pbuild43`. This creates JDBC 4.3 compliant jar in `\target` directory
+    	* Run `mvn install -Pbuild42`. This creates JDBC 4.2 compliant jar in `\target` directory
 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
-	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the \build\libs directory. 
-    	* Run `gradle build -PbuildProfile=build43`. This creates JDBC 4.3 compliant jar in \build\libs directory
-    	* Run `gradle build -PbuildProfile=build42`. This creates JDBC 4.2 compliant jar in \build\libs directory
+	2. Run one of the commands below to build a JDBC 4.3 compliant jar or JDBC 4.2 compliant jar in the `\build\libs` directory. 
+    	* Run `gradle build -PbuildProfile=build43`. This creates JDBC 4.3 compliant jar in `\build\libs` directory
+    	* Run `gradle build -PbuildProfile=build42`. This creates JDBC 4.2 compliant jar in `\build\libs` directory
 
 ## Resources
 
@@ -65,7 +65,7 @@ API reference documentation is available in [Javadocs](https://aka.ms/jdbcjavado
 This driver is documented on [Microsoft's Documentation web site](https://docs.microsoft.com/en-us/sql/connect/jdbc/getting-started-with-the-jdbc-driver).
 
 ### Sample Code
-For samples, please see the src\sample directory.
+For samples, please see the `src\sample` directory.
 
 ### Download the DLLs
 For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `sqljdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287)
@@ -74,32 +74,38 @@ For some features (e.g. Integrated Authentication and Distributed Transactions),
 Don't want to compile anything?
 
 We're now on the Maven Central Repository. Add the following to your POM file to get the most stable release:
+
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.4.0.jre9</version>
+	<version>7.2.0.jre11</version>
 </dependency>
 ```
 The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287).
 
 To get the latest preview version of the driver, add the following to your POM file: 
+
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.3.jre10-preview</version>
+	<version>7.1.4.jre11-preview</version>
 </dependency>
 ```
 
+### Using driver as Java Module
+Starting from version 7.0.0, the driver Jars (jre10 and above) will expose 'Automatic-Module' as **'com.microsoft.sqlserver.jdbc'**. The supporting Jar can now be added to ModulePath to access this module.
 
 
 ## Dependencies
 This project has following dependencies: 
 
 Compile Time:
- - `azure-keyvault` : Azure Key Vault Provider for Always Encrypted Azure Key Vault feature (optional)
- - `adal4j` : Azure ActiveDirectory Library for Java for Azure Active Directory Authentication feature and Azure Key Vault feature (optional)
+ - `com.microsoft.azure:azure-keyvault` : Azure Key Vault Provider for Always Encrypted Azure Key Vault feature (optional)
+ - `com.microsoft.azure:azure-keyvault-webkey` : Azure Key Vault Provider for Always Encrypted Azure Key Vault feature (optional)
+ - `com.microsoft.azure:adal4j` : Azure Active Directory Library for Java for Azure Active Directory Authentication feature and Azure Key Vault feature (optional)
+ - `com.microsoft.rest:client-runtime` : Azure Active Directory Library for Java for Azure Active Directory Authentication feature and Azure Key Vault feature (optional)
 
 Test Time:
  - `junit:jar`   : For Unit Test cases.
@@ -113,43 +119,64 @@ mvn dependency:tree
 ### Azure Key Vault and Azure Active Directory Authentication Dependencies
 Projects that require either of the two features need to explicitly declare the dependency in their pom file.
 
-***For Example:*** If you are using *Azure Active Directory Authentication feature* then you need to redeclare *adal4j* dependency in your project's pom file. Please see the following snippet: 
+***For Example:*** If you are using *Azure Active Directory Authentication feature* then you need to redeclare *adal4j* and *client-runtime* dependency in your project's pom file. Please see the following snippet: 
+
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.3.jre10-preview</version>
+	<version>7.2.0.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.5.0</version>
+	<version>1.6.3</version>
+</dependency>
+
+<dependency>
+	<groupId>com.microsoft.rest</groupId>
+	<artifactId>client-runtime</artifactId>
+	<version>1.6.5</version>
 </dependency>
 ```
 
-***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault* dependency and *adal4j* dependency in your project's pom file. Please see the following snippet: 
+***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault*, *azure-keyvault-webkey* dependency and *adal4j*, *client-runtime* dependency in your project's pom file. Please see the following snippet: 
+
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>6.5.3.jre10-preview</version>
+	<version>7.2.0.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.5.0</version>
+	<version>1.6.3</version>
+</dependency>
+
+<dependency>
+	<groupId>com.microsoft.rest</groupId>
+	<artifactId>client-runtime</artifactId>
+	<version>1.6.5</version>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>azure-keyvault</artifactId>
-	<version>1.0.0</version>
+	<version>1.2.0</version>
+</dependency>
+
+<dependency>
+	<groupId>com.microsoft.azure</groupId>
+	<artifactId>azure-keyvault-webkey</artifactId>
+	<version>1.2.0</version>
 </dependency>
 ```
+
 ***Please note*** as of the v6.2.2, the way to construct a `SQLServerColumnEncryptionAzureKeyVaultProvider` object has changed. Please refer to this [Wiki](https://github.com/Microsoft/mssql-jdbc/wiki/New-Constructor-Definition-for-SQLServerColumnEncryptionAzureKeyVaultProvider-after-6.2.2-Release) page for more information.
 
 ## Guidelines for Creating Pull Requests
@@ -182,7 +209,7 @@ Preview releases happen approximately monthly between stable releases. This give
 You can see what is going into a future release by monitoring [Milestones](https://github.com/Microsoft/mssql-jdbc/milestones) in the repository.
 
 ### Versioning convention
-Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5.
+Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4, 7.0, 7.2. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5, 7.1.
 
 ## Contributors 
 Special thanks to everyone who has contributed to the project.

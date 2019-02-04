@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -12,19 +9,20 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+
 /**
  * ActivityCorrelator provides the APIs to access the ActivityId in TLS
  */
 final class ActivityCorrelator {
 
-    private static Map<Long, ActivityId> ActivityIdTlsMap = new ConcurrentHashMap<Long, ActivityId>();
-    
+    private static Map<Long, ActivityId> activityIdTlsMap = new ConcurrentHashMap<>();
+
     static void cleanupActivityId() {
-        //remove the ActivityId that belongs to this thread.
+        // remove the ActivityId that belongs to this thread.
         long uniqueThreadId = Thread.currentThread().getId();
 
-        if (ActivityIdTlsMap.containsKey(uniqueThreadId)) {
-            ActivityIdTlsMap.remove(uniqueThreadId);
+        if (activityIdTlsMap.containsKey(uniqueThreadId)) {
+            activityIdTlsMap.remove(uniqueThreadId);
         }
     }
 
@@ -32,13 +30,13 @@ final class ActivityCorrelator {
     static ActivityId getCurrent() {
         // get the value in TLS, not reference
         long uniqueThreadId = Thread.currentThread().getId();
-        
-        //Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
-        if (!ActivityIdTlsMap.containsKey(uniqueThreadId)) {
-            ActivityIdTlsMap.put(uniqueThreadId, new ActivityId());
+
+        // Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
+        if (!activityIdTlsMap.containsKey(uniqueThreadId)) {
+            activityIdTlsMap.put(uniqueThreadId, new ActivityId());
         }
-        
-        return ActivityIdTlsMap.get(uniqueThreadId);
+
+        return activityIdTlsMap.get(uniqueThreadId);
     }
 
     // Increment the Sequence number of the ActivityId in TLS
@@ -48,7 +46,7 @@ final class ActivityCorrelator {
         ActivityId activityId = getCurrent();
 
         // Increment the Sequence number
-        activityId.Increment();
+        activityId.increment();
 
         return activityId;
     }
@@ -57,34 +55,39 @@ final class ActivityCorrelator {
         ActivityId activityId = getCurrent();
         activityId.setSentFlag();
     }
+    
+    /*
+     * Prevent instantiation.
+     */
+    private ActivityCorrelator() {}
 }
 
+
 class ActivityId {
-    private final UUID Id;
-    private long Sequence;
+    private final UUID id;
+    private long sequence;
     private boolean isSentToServer;
 
     ActivityId() {
-        Id = UUID.randomUUID();
-        Sequence = 0;
+        id = UUID.randomUUID();
+        sequence = 0;
         isSentToServer = false;
     }
 
     UUID getId() {
-        return Id;
+        return id;
     }
 
     long getSequence() {
-        return Sequence;
+        return sequence;
     }
 
-    void Increment() {
-        if (Sequence < 0xffffffffl) // to get to 32-bit unsigned
+    void increment() {
+        if (sequence < 0xffffffffl) // to get to 32-bit unsigned
         {
-            ++Sequence;
-        }
-        else {
-            Sequence = 0;
+            ++sequence;
+        } else {
+            sequence = 0;
         }
 
         isSentToServer = false;
@@ -94,16 +97,16 @@ class ActivityId {
         isSentToServer = true;
     }
 
-    boolean IsSentToServer() {
+    boolean isSentToServer() {
         return isSentToServer;
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(Id.toString());
+        sb.append(id.toString());
         sb.append("-");
-        sb.append(Sequence);
+        sb.append(sequence);
         return sb.toString();
     }
 }
