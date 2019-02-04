@@ -383,6 +383,44 @@ public class RegressionTest extends AbstractTest {
             }
         }
     }
+
+    @Test
+    public void testQueryParamsWithComment() throws Exception {
+        try (Connection con = DriverManager.getConnection(connectionString); 
+            PreparedStatement st1 = con.prepareStatement("/**COMMENT**/ SELECT 1 WHERE 1=?")){
+            st1.setInt(1, 1);
+            try (ResultSet rs = st1.executeQuery()) {
+                while (rs.next())
+                    assertEquals(1, rs.getInt(1));
+            }
+        }
+    }
+
+    @Test
+    public void testQueryParamsWithLineComment() throws Exception {
+        try (Connection con = DriverManager.getConnection(connectionString); 
+            PreparedStatement st1 = con.prepareStatement("--comment\nSELECT 1 WHERE 1=?")){
+            st1.setInt(1, 1);
+            try (ResultSet rs = st1.executeQuery()) {
+                while (rs.next())
+                    assertEquals(1, rs.getInt(1));
+            }
+        }
+    }
+
+    @Test
+    public void testQueryParamsWithBackSlash() throws Exception {
+        try (Connection con = DriverManager.getConnection(connectionString); 
+            PreparedStatement st1 = con.prepareStatement("SELECT 1, '/''' AS str WHERE 1=?")){
+            st1.setInt(1, 1);
+            try (ResultSet rs = st1.executeQuery()) {
+                while (rs.next()) {
+                    assertEquals(1, rs.getInt(1));
+                    assertEquals("/'", rs.getString("str"));
+                }
+            }
+        }
+    }
     
     /**
      * Cleanup after test
