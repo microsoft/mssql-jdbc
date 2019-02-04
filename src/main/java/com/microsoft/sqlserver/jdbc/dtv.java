@@ -869,11 +869,17 @@ final class DTV {
                                             timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                             subSecondNanos, (valueLength), isOutParam);
                                 }
-                            } else
-                                tdsWriter.writeRPCDateTime2(name,
-                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                        subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
-
+                            } else {
+                                if (jdbcType == JDBCType.DATETIME || jdbcType == JDBCType.SMALLDATETIME) {
+                                    tdsWriter.writeRPCDateTime(name,
+                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                            subSecondNanos, isOutParam);
+                                } else {
+                                    tdsWriter.writeRPCDateTime2(name,
+                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                            subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
+                                }
+                            }
                             break;
 
                         case TIME:
@@ -902,11 +908,11 @@ final class DTV {
                             break;
 
                         case DATE:
-                            if (null != cryptoMeta)
+                            if (null != cryptoMeta) {
                                 tdsWriter.writeEncryptedRPCDate(name, calendar, isOutParam);
-                            else
+                            } else {
                                 tdsWriter.writeRPCDate(name, calendar, isOutParam);
-
+                            }
                             break;
 
                         case TIME_WITH_TIMEZONE:
@@ -2316,9 +2322,10 @@ final class AppDTVImpl extends DTVImpl {
     Object getValue(DTV dtv, JDBCType jdbcType, int scale, InputStreamGetterArgs streamGetterArgs, Calendar cal,
             TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader) throws SQLServerException {
         // Client side type conversion is not supported
-        if (this.jdbcType != jdbcType)
+        // Checking for sql_variant here since the check will be performed elsewhere.
+        if (this.jdbcType != jdbcType && jdbcType != JDBCType.SQL_VARIANT) {
             DataTypes.throwConversionError(this.jdbcType.toString(), jdbcType.toString());
-
+        }
         return value;
     }
 

@@ -48,6 +48,7 @@ final class Parameter {
     private boolean shouldHonorAEForParameter = false;
     private boolean userProvidesPrecision = false;
     private boolean userProvidesScale = false;
+    private boolean isReturnValue = false;
 
     // The parameter type definition
     private String typeDefinition = null;
@@ -65,14 +66,77 @@ final class Parameter {
         shouldHonorAEForParameter = honorAE;
     }
 
-    // Flag set to true if this is a registered OUTPUT parameter.
+    /**
+     * Returns true if this is a registered OUTPUT parameter.
+     * 
+     * @return true/false
+     */
     boolean isOutput() {
         return null != registeredOutDTV;
     }
 
-    // Since a parameter can have only one type definition for both sending its value to the server (IN)
-    // and getting its value from the server (OUT), we use the JDBC type of the IN parameter value if there
-    // is one; otherwise we use the registered OUT param JDBC type.
+    /**
+     * Returns true/false if the parameter is of return type
+     * 
+     * @return isReturnValue
+     */
+    boolean isReturnValue() {
+        return isReturnValue;
+    }
+
+    /**
+     * Sets the parameter to be of return type
+     * 
+     * @param isReturnValue
+     */
+    void setReturnValue(boolean isReturnValue) {
+        this.isReturnValue = isReturnValue;
+    }
+
+    /**
+     * Sets the name of the parameter
+     * 
+     * @param name
+     */
+    void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Retrieve the name of the parameter
+     * 
+     * @return
+     */
+    String getName() {
+        return this.name;
+    }
+
+    /**
+     * Returns the `registeredOutDTV` instance of the parameter
+     * 
+     * @return registeredOutDTV
+     */
+    DTV getRegisteredOutDTV() {
+        return this.registeredOutDTV;
+    }
+
+    /**
+     * Returns the `inputDTV` instance of the parameter
+     * 
+     * @return inputDTV
+     */
+    DTV getInputDTV() {
+        return this.inputDTV;
+    }
+
+    /**
+     * Since a parameter can have only one type definition for both sending its value to the server (IN) and getting its
+     * value from the server (OUT), we use the JDBC type of the IN parameter value if there is one; otherwise we use the
+     * registered OUT param JDBC type.
+     * 
+     * @throws SQLServerException
+     *         if an error occurs
+     **/
     JDBCType getJdbcType() throws SQLServerException {
         return (null != inputDTV) ? inputDTV.getJdbcType() : JDBCType.UNKNOWN;
     }
@@ -96,9 +160,17 @@ final class Parameter {
         }
     }
 
-    // For parameters whose underlying type is not represented by a JDBC type
-    // the transport type reflects how the value is sent to the
-    // server (e.g. JDBCType.CHAR for GUID parameters).
+    /**
+     * For parameters whose underlying type is not represented by a JDBC type the transport type reflects how the value
+     * is sent to the server (e.g. JDBCType.CHAR for GUID parameters).
+     * 
+     * @param jdbcType
+     *        JDBCType of the parameter
+     * @param con
+     *        Connection reference to work with
+     * @throws SQLServerException
+     *         if an error occurs
+     */
     void registerForOutput(JDBCType jdbcType, SQLServerConnection con) throws SQLServerException {
         // DateTimeOffset is not supported with SQL Server versions earlier than Katmai
         if (JDBCType.DATETIMEOFFSET == jdbcType && !con.isKatmaiOrLater()) {
@@ -106,10 +178,11 @@ final class Parameter {
                     SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
         }
 
-        // sendStringParametersAsUnicode
-        // If set to true, this connection property tells the driver to send textual parameters
-        // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging
-        // the value with the appropriate corresponding Unicode type.
+        /*
+         * Check for sendStringParametersAsUnicode: If set to true, this connection property tells the driver to send
+         * textual parameters to the server as Unicode rather than MBCS. This is accomplished here by re-tagging the
+         * value with the appropriate corresponding Unicode type.
+         */
         if (con.sendStringParametersAsUnicode()) {
 
             if (shouldHonorAEForParameter) {
@@ -130,9 +203,10 @@ final class Parameter {
 
     int scale = 0;
 
-    // Scale requested for a DECIMAL and NUMERIC OUT parameter. If the OUT parameter
-    // is also non-null IN parameter, the scale will be the larger of this value and
-    // the value of the IN parameter's scale.
+    /**
+     * Scale requested for a DECIMAL and NUMERIC OUT parameter. If the OUT parameter is also non-null IN parameter, the
+     * scale will be the larger of this value and the value of the IN parameter's scale.
+     **/
     private int outScale = 4;
 
     int getOutScale() {
@@ -246,7 +320,7 @@ final class Parameter {
         if (null == getterDTV)
             getterDTV = new DTV();
 
-        getterDTV.setValue(null, JDBCType.INTEGER, returnStatus, JavaType.INTEGER, null, null, null, con,
+        getterDTV.setValue(null, this.getJdbcType(), returnStatus, JavaType.INTEGER, null, null, null, con,
                 getForceEncryption());
     }
 
@@ -390,10 +464,12 @@ final class Parameter {
 
     Object getValue(JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal,
             TDSReader tdsReader) throws SQLServerException {
-        if (null == getterDTV)
+        if (null == getterDTV) {
             getterDTV = new DTV();
-
-        deriveTypeInfo(tdsReader);
+        }
+        if (null != tdsReader) {
+            deriveTypeInfo(tdsReader);
+        }
         // If the parameter is not encrypted or column encryption is turned off (either at connection or
         // statement level), cryptoMeta would be null.
         return getterDTV.getValue(jdbcType, outScale, getterArgs, cal, typeInfo, cryptoMeta, tdsReader);

@@ -312,12 +312,45 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String parsedSql = translator.translate(sql);
         String procName = translator.getProcedureName(); // may return null
         boolean returnValueSyntax = translator.hasReturnValueSyntax();
-        int[] parameterPositions = locateParams(parsedSql);
+        int[] parameterPositions = locateParams(sql);
 
         ParsedSQLCacheItem cacheItem = new ParsedSQLCacheItem(parsedSql, parameterPositions, procName,
                 returnValueSyntax);
         parsedSQLCache.putIfAbsent(key, cacheItem);
         return cacheItem;
+    }
+
+    /**
+     * Checks if remote procedure call is a valid. Example: if exec procName 1,? we should not use RPC call directly,
+     * rather wrap it with sp_executesql call
+     * 
+     * @param sql
+     * @return
+     */
+    static boolean isCallRemoteProcDirectValid(String sql, int paramCount, boolean isReturnSyntax) {
+        int commaCount = SQLServerConnection.countCommas(sql);
+        if (isReturnSyntax) {
+            return !(paramCount != commaCount + 2); // if return syntax, sql text commas should be equal to paramCount -
+                                                    // 2
+        } else {
+            return !(paramCount != commaCount + 1); // if not return syntax, sql text commas should be equal to
+                                                    // paramCount -1
+        }
+    }
+
+    /**
+     * Count the number of commas in sql text
+     * 
+     * @param sql
+     * @return
+     */
+    static int countCommas(String sql) {
+        int nParams = 0;
+        int offset = -1;
+        while ((offset = ParameterUtils.scanSQLForChar(',', sql, ++offset)) < sql.length())
+            ++nParams;
+
+        return nParams;
     }
 
     /** Default size for prepared statement caches */
@@ -352,6 +385,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // return as int[]
         return parameterPositions.stream().mapToInt(Integer::valueOf).toArray();
+    }
+
+    static int countParams(String sql) {
+        return locateParams(sql).length;
     }
 
     /**

@@ -92,6 +92,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Set to true if the statement is a stored procedure call that expects a return value */
     final boolean bReturnValueSyntax;
 
+    /** Check if statement contains TVP Type */
+    static boolean isTVPType = false;
+
+    static boolean validRPC = false;
+
     /**
      * The number of OUT parameters to skip in the response to get to the first app-declared OUT parameter.
      *
@@ -239,6 +244,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         userSQLParamPositions = parsedSQL.parameterPositions;
         initParams(userSQLParamPositions.length);
         useBulkCopyForBatchInsert = conn.getUseBulkCopyForBatchInsert();
+        isTVPType = false;
     }
 
     /**
@@ -354,6 +360,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         inOutParam = new Parameter[nParams];
         for (int i = 0; i < nParams; i++) {
             inOutParam[i] = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
+        }
+        if (bReturnValueSyntax) {
+            inOutParam[0].setReturnValue(true);
         }
     }
 
@@ -675,9 +684,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Sends the statement parameters by RPC.
      */
-    void sendParamsByRPC(TDSWriter tdsWriter, Parameter[] params) throws SQLServerException {
+    void sendParamsByRPC(TDSWriter tdsWriter, Parameter[] params,
+            boolean bReturnValueSyntax) throws SQLServerException {
         char cParamName[];
-        for (int index = 0; index < params.length; index++) {
+        int index = 0;
+        if (bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType
+                && SQLServerConnection.isCallRemoteProcDirectValid(userSQL, params.length, bReturnValueSyntax)) {
+            returnParam = params[index];
+            params[index].setReturnValue(true);
+            index++;
+        }
+        for (; index < params.length; index++) {
             if (JDBCType.TVP == params[index].getJdbcType()) {
                 cParamName = new char[10];
                 int paramNameLen = SQLServerConnection.makeParamName(index, cParamName, 0);
@@ -834,6 +851,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // <handle> IN
         assert hasPreparedStatementHandle();
         tdsWriter.writeRPCInt(null, getPreparedStatementHandle(), false);
+    }
+
+    private void buildRPCExecParams(TDSWriter tdsWriter) throws SQLServerException {
+        if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
+            getStatementLogger().fine(toString() + ": calling PROC" + ", SQL:" + preparedSQL);
+
+        expectPrepStmtHandle = false;
+        executedSqlDirectly = true;
+        expectCursorOutParams = false;
+        outParamIndexAdjustment = 0;
+        tdsWriter.writeShort((short) procedureName.length()); // procedure name length
+        tdsWriter.writeString(procedureName);
+
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
+
     }
 
     private void getParameterEncryptionMetadata(Parameter[] params) throws SQLServerException {
@@ -1032,11 +1065,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
 
-            if (needsPrepare)
+            if (needsPrepare) {
                 buildServerCursorPrepExecParams(tdsWriter);
-            else
+            } else {
                 buildServerCursorExecParams(tdsWriter);
+            }
         } else {
+            if (needsPrepare && callRPCDirectly(params, bReturnValueSyntax)) {
+                // if it is a parameterized stored procedure call and is not TVP, use sp_execute directly.
+                buildRPCExecParams(tdsWriter);
+            }
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
             // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
             if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
@@ -1044,15 +1082,46 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 isExecutedAtLeastOnce = true;
             }
             // Second execution, use prepared statements since we seem to be re-using it.
-            else if (needsPrepare)
+            else if (needsPrepare) {
                 buildPrepExecParams(tdsWriter);
-            else
+            } else {
                 buildExecParams(tdsWriter);
+            }
         }
 
-        sendParamsByRPC(tdsWriter, params);
+        sendParamsByRPC(tdsWriter, params, bReturnValueSyntax);
 
         return needsPrepare;
+    }
+
+    /**
+     * Checks if we should call RPC directly for stored procedures
+     * 
+     * @param params
+     * @return
+     * @throws SQLServerException
+     */
+    boolean callRPCDirectly(Parameter[] params, boolean isReturnSyntax) throws SQLServerException {
+        int paramCount = SQLServerConnection.countParams(userSQL);
+        return (null != procedureName && paramCount != 0 && !isTVPType(params)
+                && SQLServerConnection.isCallRemoteProcDirectValid(userSQL, paramCount, isReturnSyntax));
+    }
+
+    /**
+     * Checks if the parameter is a TVP type.
+     * 
+     * @param params
+     * @return
+     * @throws SQLServerException
+     */
+    private boolean isTVPType(Parameter[] params) throws SQLServerException {
+        for (int i = 0; i < params.length; i++) {
+            if (JDBCType.TVP == params[i].getJdbcType()) {
+                isTVPType = true;
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
