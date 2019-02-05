@@ -551,6 +551,6 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_MSITokenFailureEndpoint", "MSI Token failure: Failed to acquire token from MSI Endpoint"},
             {"R_propertyNotSupported",
                     "Microsoft JDBC Driver for SQL Server currently does not support the property: {0}"},
-            {"R_parameterNamedIndex", 
+            {"R_parameterNamedIndex",
                     "Parameter \"{0}\" is not set. Combination of setting parameters with ordinals and name in the same statement is not supported."}};
 }

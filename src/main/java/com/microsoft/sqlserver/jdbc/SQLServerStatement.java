@@ -55,7 +55,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      * Always update serialVersionUID when prompted.
      */
     private static final long serialVersionUID = -4421134713913331507L;
-    
+
     final static char LEFT_CURLY_BRACKET = 123;
     final static char RIGHT_CURLY_BRACKET = 125;
 
@@ -108,7 +108,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     Parameter[] inOutParam = null; // Parameters for prepared stmts and stored procedures
 
-    /** Return parameter for stored procedure calls*/
+    /** Return parameter for stored procedure calls */
     Parameter returnParam;
 
     /**
@@ -1541,20 +1541,13 @@ public class SQLServerStatement implements ISQLServerStatement {
                 else {
                     procedureRetStatToken = new StreamRetStatus(); 
                     procedureRetStatToken.setFromTDS(tdsReader);
-                    // only read the return value from stored proc if we are expecting one. Also check that it is not cursable and not TVP type, for these two 
-                    // driver is still following the old behaviour of executing sp_executesql for stored procedures.
-                    if (!isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType) { 
-                        if (inOutParam != null) {
-                            try {
-                                if (inOutParam[0].isReturnValue()) {
-                                    inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
-                                    return false;
-                                }
-                            }
-                            catch (ArrayIndexOutOfBoundsException e) {
-                                // do nothing. It means the array was not initialized
-                            }
-                        }
+                    // only read the return value from stored procedure if we are expecting one. Also check that it is
+                    // not cursorable and not TVP type, for these two
+                    // driver is still following the old behavior of executing sp_executesql for stored procedures.
+                    if (!isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType && null != inOutParam
+                            && inOutParam.length > 0 && inOutParam[0].isReturnValue()) {
+                        inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
+                        return false;
                     }
                 }
 
