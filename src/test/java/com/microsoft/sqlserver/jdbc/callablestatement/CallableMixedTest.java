@@ -33,6 +33,7 @@ public class CallableMixedTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
+                TestUtils.dropProcedureIfExists(escapedProcName, stmt);
 
                 String createSQL = "create table " + escapedTableName + "(c1_int int primary key, col2 int)";
                 stmt.executeUpdate(createSQL);
@@ -78,6 +79,7 @@ public class CallableMixedTest extends AbstractTest {
             try (Connection conn = DriverManager.getConnection(connectionString);
                     Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
+                TestUtils.dropProcedureIfExists(escapedProcName, stmt);
             } catch (SQLException e) {
                 fail(e.toString());
             }

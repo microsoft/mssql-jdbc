@@ -1317,13 +1317,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      * @return
      */
     private String stripLeadingAtSign(String columnName) {
-        String columnNameWithoutAtSign = null;
-        if (columnName.startsWith("@")) {
-            columnNameWithoutAtSign = columnName.substring(1, columnName.length());
-        } else {
-            columnNameWithoutAtSign = columnName;
-        }
-        return columnNameWithoutAtSign;
+        return (columnName.startsWith("@") ? columnName.substring(1, columnName.length()) : columnName);
     }
 
     /* JDBC 3.0 */

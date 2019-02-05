@@ -133,8 +133,8 @@ public class CallableStatementTest extends AbstractTest {
 
         // the historical way: no leading '@', parameter names respected (not positional)
         try (CallableStatement cs = connection.prepareCall(call)) {
-            cs.setString("p2", "world");
-            cs.setString("p1", "hello");
+            cs.setString("par2", "world");
+            cs.setString("par1", "hello");
             try (ResultSet rs = cs.executeQuery()) {
                 rs.next();
                 assertEquals("helloworld", rs.getString(1));
@@ -143,8 +143,8 @@ public class CallableStatementTest extends AbstractTest {
 
         // the "new" way: leading '@', parameter names still respected (not positional)
         try (CallableStatement cs = connection.prepareCall(call)) {
-            cs.setString("@p2", "world!");
-            cs.setString("@p1", "Hello ");
+            cs.setString("@par2", "world!");
+            cs.setString("@par1", "Hello ");
             try (ResultSet rs = cs.executeQuery()) {
                 rs.next();
                 assertEquals("Hello world!", rs.getString(1));
@@ -152,14 +152,15 @@ public class CallableStatementTest extends AbstractTest {
         }
 
         // sanity check: unrecognized parameter name
+        // - now thrown error by SQL Server to support setting and getting with param names
         try (CallableStatement cs = connection.prepareCall(call)) {
-            cs.setString("@whatever", "test");
+            cs.setString("@whatever1", "test");
+            cs.setString("@whatever2", "test");
+            cs.executeQuery();
             fail(TestResource.getResource("R_shouldThrowException"));
         } catch (SQLException sse) {
-
-            MessageFormat form = new MessageFormat(TestResource.getResource("R_parameterNotDefined"));
-            Object[] msgArgs = {"@whatever"};
-
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_WrongParameter"));
+            Object[] msgArgs = {"@whatever1", inputParamsProcedureName};
             if (!sse.getMessage().startsWith(form.format(msgArgs))) {
                 fail(TestResource.getResource("R_unexpectedExceptionContent"));
             }
@@ -203,8 +204,8 @@ public class CallableStatementTest extends AbstractTest {
 
     private static void createInputParamsProcedure(Statement stmt) throws SQLException {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName)
-                + "    @p1 nvarchar(max) = N'parameter1', " + "    @p2 nvarchar(max) = N'parameter2' " + "AS "
-                + "BEGIN " + "    SET NOCOUNT ON; " + "    SELECT @p1 + @p2 AS result; " + "END ";
+                + "    @par1 nvarchar(max) = N'parameter1', " + "    @par2 nvarchar(max) = N'parameter2' " + "AS "
+                + "BEGIN " + "    SET NOCOUNT ON; " + "    SELECT @par1 + @par2 AS result; " + "END ";
 
         stmt.execute(sql);
     }

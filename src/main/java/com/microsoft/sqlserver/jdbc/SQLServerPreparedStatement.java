@@ -1077,10 +1077,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
             // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
-            if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
-                buildExecSQLParams(tdsWriter);
-                isExecutedAtLeastOnce = true;
-            }
+            else
+                if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
+                    buildExecSQLParams(tdsWriter);
+                    isExecutedAtLeastOnce = true;
+                }
             // Second execution, use prepared statements since we seem to be re-using it.
             else if (needsPrepare) {
                 buildPrepExecParams(tdsWriter);

@@ -328,7 +328,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @return
      */
     static boolean isCallRemoteProcDirectValid(String sql, int paramCount, boolean isReturnSyntax) {
-        int commaCount = SQLServerConnection.countCommas(sql);
+        int commaCount = countCommas(sql);
         if (isReturnSyntax) {
             return !(paramCount != commaCount + 2); // if return syntax, sql text commas should be equal to paramCount -
                                                     // 2
@@ -2437,7 +2437,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * driver.
      * 
      * @param serverInfo
-     * @param timeOutSliceInMillis
+     * @param timeOutsliceInMillis
      *        -timeout value in milli seconds for one try
      * @param timeOutFullInSeconds
      *        - whole timeout value specified by the user in seconds
@@ -4708,9 +4708,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Send a TDS 7.x logon packet.
-     * 
-     * @param secsTimeout
-     *        (optional) if non-zero, seconds to wait for logon to be sent.
+     *
      * @throws SQLServerException
      */
     private void sendLogon(LogonCommand logonCommand, SSPIAuthentication authentication,
@@ -5765,7 +5763,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         int paramIndex = 0;
         while (true) {
-            int srcEnd = (paramIndex >= paramPositions.length) ? sqlSrc.length() : paramPositions[paramIndex];
+            int srcEnd = ParameterUtils.scanSQLForChar('?', sqlSrc, srcBegin);
             sqlSrc.getChars(srcBegin, srcEnd, sqlDst, dstBegin);
             dstBegin += srcEnd - srcBegin;
 
@@ -6180,8 +6178,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Prepares the cache handle.
-     * 
-     * @param value
      */
     private void prepareCache() {
         preparedStatementHandleCache = new Builder<CityHash128Key, PreparedStatementHandle>()
