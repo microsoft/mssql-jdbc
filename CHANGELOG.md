@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.2.1] HotFix & Stable Release
+### Fixed Issues
+- Fixed parsing issues with certain parameterized queries [#950](https://github.com/Microsoft/mssql-jdbc/pull/950)
+
 ## [7.2.0] Stable Release
 ### Added
 - Added Azure Pipelines CI configuration to trigger Windows Client testing with SQL Server 2017 and SQL Server 2008 R2 [#940](https://github.com/Microsoft/mssql-jdbc/pull/940)
