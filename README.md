@@ -43,7 +43,7 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 ### Build the JAR files
 Maven builds automatically trigger a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://docs.microsoft.com/en-us/sql/connect/jdbc/building-the-connection-url) for your SQL Server or Azure SQL Database instance.
 
-To build the jar files, you must use Java 11 with Maven.  You can choose to build a JDBC 4.3 compliant jar file (for use with JRE 11) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
+To build the jar files, you must use Java 11 with Maven. You can choose to build a JDBC 4.3 compliant jar file (for use with JRE 11) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
@@ -79,7 +79,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.2.0.jre11</version>
+	<version>7.2.1.jre11</version>
 </dependency>
 ```
 The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287).
@@ -125,7 +125,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.2.0.jre11</version>
+	<version>7.2.1.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -148,7 +148,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.2.0.jre11</version>
+	<version>7.2.1.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
