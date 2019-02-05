@@ -1101,7 +1101,7 @@ public class StatementTest extends AbstractTest {
                 stmt.execute(query);
 
                 // Test JDBC 4.1 methods for CallableStatement
-                try (CallableStatement cstmt = conn.prepareCall("{call " + procName + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
+                try (CallableStatement cstmt = conn.prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
                     
                   cstmt.registerOutParameter("col1Value", java.sql.Types.VARCHAR);
                   cstmt.registerOutParameter("col2Value", java.sql.Types.INTEGER);
