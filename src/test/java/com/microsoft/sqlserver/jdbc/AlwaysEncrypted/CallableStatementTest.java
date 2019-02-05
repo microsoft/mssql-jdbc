@@ -2495,8 +2495,10 @@ public class CallableStatementTest extends AESetup {
             callableStatement.registerOutParameter(17, microsoft.sql.Types.DATETIMEOFFSET, 2);
             callableStatement.registerOutParameter(18, microsoft.sql.Types.DATETIMEOFFSET, 2);
             callableStatement.execute();
-            assertEquals(callableStatement.getDate(1), callableStatement.getDate(2), "Test for output parameter Date fails.\n");
-            assertEquals(callableStatement.getTimestamp(3), callableStatement.getTimestamp(4), "Test for output parameter datetime2 fails.\n");
+            assertEquals(callableStatement.getDate(1), callableStatement.getDate(2),
+                    "Test for output parameter Date fails.\n");
+            assertEquals(callableStatement.getTimestamp(3), callableStatement.getTimestamp(4),
+                    "Test for output parameter datetime2 fails.\n");
 
             assertEquals(callableStatement.getDate(1), callableStatement.getDate(2),
                     String.format(TestResource.getResource("R_outputParamFailed"), "Date"));

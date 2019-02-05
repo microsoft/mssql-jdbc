@@ -1101,24 +1101,26 @@ public class StatementTest extends AbstractTest {
                 stmt.execute(query);
 
                 // Test JDBC 4.1 methods for CallableStatement
-                try (CallableStatement cstmt = conn.prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
-                    
-                  cstmt.registerOutParameter("col1Value", java.sql.Types.VARCHAR);
-                  cstmt.registerOutParameter("col2Value", java.sql.Types.INTEGER);
-                  cstmt.registerOutParameter("col3Value", java.sql.Types.FLOAT);
-                  cstmt.registerOutParameter("col4Value", java.sql.Types.DECIMAL);
-                  cstmt.registerOutParameter("col5Value", microsoft.sql.Types.GUID);
-                  cstmt.registerOutParameter("col6Value", java.sql.Types.SQLXML);
-                  cstmt.registerOutParameter("col7Value", java.sql.Types.VARBINARY);
-                  cstmt.registerOutParameter("col8Value", java.sql.Types.CLOB);
-                  cstmt.registerOutParameter("col9Value", java.sql.Types.NCLOB);
-                  cstmt.registerOutParameter("col10Value", java.sql.Types.VARBINARY);
-                  cstmt.registerOutParameter("col11Value", java.sql.Types.DATE);
-                  cstmt.registerOutParameter("col12Value", java.sql.Types.TIME);
-                  cstmt.registerOutParameter("col13Value", java.sql.Types.TIMESTAMP);
-                  cstmt.registerOutParameter("col14Value", java.sql.Types.TIMESTAMP_WITH_TIMEZONE);
-                  cstmt.registerOutParameter("col15Value", java.sql.Types.DECIMAL);
-                  cstmt.registerOutParameter("col16Value", java.sql.Types.DECIMAL);
+                try (CallableStatement cstmt = conn
+                        .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName)
+                                + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
+
+                    cstmt.registerOutParameter("col1Value", java.sql.Types.VARCHAR);
+                    cstmt.registerOutParameter("col2Value", java.sql.Types.INTEGER);
+                    cstmt.registerOutParameter("col3Value", java.sql.Types.FLOAT);
+                    cstmt.registerOutParameter("col4Value", java.sql.Types.DECIMAL);
+                    cstmt.registerOutParameter("col5Value", microsoft.sql.Types.GUID);
+                    cstmt.registerOutParameter("col6Value", java.sql.Types.SQLXML);
+                    cstmt.registerOutParameter("col7Value", java.sql.Types.VARBINARY);
+                    cstmt.registerOutParameter("col8Value", java.sql.Types.CLOB);
+                    cstmt.registerOutParameter("col9Value", java.sql.Types.NCLOB);
+                    cstmt.registerOutParameter("col10Value", java.sql.Types.VARBINARY);
+                    cstmt.registerOutParameter("col11Value", java.sql.Types.DATE);
+                    cstmt.registerOutParameter("col12Value", java.sql.Types.TIME);
+                    cstmt.registerOutParameter("col13Value", java.sql.Types.TIMESTAMP);
+                    cstmt.registerOutParameter("col14Value", java.sql.Types.TIMESTAMP_WITH_TIMEZONE);
+                    cstmt.registerOutParameter("col15Value", java.sql.Types.DECIMAL);
+                    cstmt.registerOutParameter("col16Value", java.sql.Types.DECIMAL);
                     cstmt.execute();
 
                     assertEquals("hello", cstmt.getObject("col1Value", String.class));
@@ -1169,21 +1171,29 @@ public class StatementTest extends AbstractTest {
                         nclob.free();
                     }
 
-                    assertArrayEquals(new byte[] {0x63, (byte) 0xC3, 0x4D, 0x6B, (byte) 0xCA, (byte) 0xD5, 0x55, (byte) 0xEB, 0x64, (byte) 0xBF, 0x7E,
-                            (byte) 0x84, (byte) 0x8D, 0x02, (byte) 0xC3, 0x76}, cstmt.getObject("col10Value", byte[].class));
-                    assertEquals(java.sql.Date.valueOf("2017-05-19"), cstmt.getObject("col11Value", java.sql.Date.class));
+                    assertArrayEquals(
+                            new byte[] {0x63, (byte) 0xC3, 0x4D, 0x6B, (byte) 0xCA, (byte) 0xD5, 0x55, (byte) 0xEB,
+                                    0x64, (byte) 0xBF, 0x7E, (byte) 0x84, (byte) 0x8D, 0x02, (byte) 0xC3, 0x76},
+                            cstmt.getObject("col10Value", byte[].class));
+                    assertEquals(java.sql.Date.valueOf("2017-05-19"),
+                            cstmt.getObject("col11Value", java.sql.Date.class));
 
                     java.sql.Time expectedTime = new java.sql.Time(java.sql.Time.valueOf("10:47:15").getTime() + 123L);
                     assertEquals(expectedTime, cstmt.getObject("col12Value", java.sql.Time.class));
 
-                    assertEquals(java.sql.Timestamp.valueOf("2017-05-19 10:47:15.1234567"), cstmt.getObject("col13Value", java.sql.Timestamp.class));
+                    assertEquals(java.sql.Timestamp.valueOf("2017-05-19 10:47:15.1234567"),
+                            cstmt.getObject("col13Value", java.sql.Timestamp.class));
 
-                    assertEquals("2017-05-19 10:47:15.1234567 +02:00", cstmt.getObject("col14Value", microsoft.sql.DateTimeOffset.class).toString());
-                    
-                    // BigDecimal#equals considers the number of decimal places (OutParams always return 4 decimal digits rounded up)
-                    assertEquals(0, cstmt.getObject("col15Value", BigDecimal.class).compareTo(new BigDecimal("0.1235")));
-                    
-                    assertEquals(0, cstmt.getObject("col16Value", BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+                    assertEquals("2017-05-19 10:47:15.1234567 +02:00",
+                            cstmt.getObject("col14Value", microsoft.sql.DateTimeOffset.class).toString());
+
+                    // BigDecimal#equals considers the number of decimal places (OutParams always return 4 decimal
+                    // digits rounded up)
+                    assertEquals(0,
+                            cstmt.getObject("col15Value", BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+
+                    assertEquals(0,
+                            cstmt.getObject("col16Value", BigDecimal.class).compareTo(new BigDecimal("0.1235")));
 
                 }
             }
@@ -1451,9 +1461,10 @@ public class StatementTest extends AbstractTest {
                     // assertEquals(null, cstmt.getString(2), TestResource.getResource("R_valueNotMatch"));
                 }
             }
-            
-            // removing this as the sql server is not responding back with the null value any more. Added the comment for code review purpose, will 
-            // remove the verification after code review. 
+
+            // removing this as the sql server is not responding back with the null value any more. Added the comment
+            // for code review purpose, will
+            // remove the verification after code review.
             // assertEquals(null, cstmt.getString(2), TestResource.getResource("R_valueNotMatch"));
         }
 

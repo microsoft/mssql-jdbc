@@ -61,7 +61,7 @@ final class Parameter {
     private int valueLength = 0;
 
     private boolean forceEncryption = false;
-    
+
     Parameter(boolean honorAE) {
         shouldHonorAEForParameter = honorAE;
     }
@@ -274,9 +274,9 @@ final class Parameter {
     final void skipValue(TDSReader tdsReader, boolean isDiscard) throws SQLServerException {
         if (null == getterDTV)
             getterDTV = new DTV();
-        
+
         deriveTypeInfo(tdsReader);
-        
+
         getterDTV.skipValue(typeInfo, tdsReader, isDiscard);
     }
 

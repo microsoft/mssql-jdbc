@@ -169,6 +169,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     protected SQLServerStatementColumnEncryptionSetting getStmtColumnEncriptionSetting() {
         return stmtColumnEncriptionSetting;
     }
+
     /**
      * Encapsulates a subset of statement property values as they were set at execution time.
      */
@@ -1539,7 +1540,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 // so remember that we've seen it so that we don't ignore the RETVALUE tokens that
                 // may follow.
                 else {
-                    procedureRetStatToken = new StreamRetStatus(); 
+                    procedureRetStatToken = new StreamRetStatus();
                     procedureRetStatToken.setFromTDS(tdsReader);
                     // only read the return value from stored procedure if we are expecting one. Also check that it is
                     // not cursorable and not TVP type, for these two
@@ -1566,7 +1567,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                     p.skipValue(tdsReader, true);
                     return true;
                 }
-                
+
                 return false;
             }
 
@@ -1623,7 +1624,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             return false;
         }
 
-     // Figure out the next result.
+        // Figure out the next result.
         NextResult nextResult = new NextResult();
         TDSParser.parse(resultsReader(), nextResult);
 

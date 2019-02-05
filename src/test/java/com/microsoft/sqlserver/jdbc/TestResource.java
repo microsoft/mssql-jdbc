@@ -170,5 +170,5 @@ public final class TestResource extends ListResourceBundle {
                     "Column name or number of supplied values does not match table definition."},
             {"R_incorrectSyntaxTable", "Incorrect syntax near the keyword 'table'."},
             {"R_incorrectSyntaxTableDW", "Parse error at line: 1, column: 106: Incorrect syntax near 'table'."},
-            {"R_WrongParameter","{0} is not a parameter for procedure {1}."}};
+            {"R_WrongParameter", "{0} is not a parameter for procedure {1}."}};
 }
