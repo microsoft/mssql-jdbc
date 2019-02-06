@@ -12,6 +12,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 
@@ -24,6 +26,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+
+import microsoft.sql.DateTimeOffset;
 
 
 @RunWith(JUnitPlatform.class)
@@ -39,6 +43,9 @@ public class SetObjectTest extends AbstractTest {
     public void testSetObjectWithOffsetDateTime() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString)) {
             final String testValue = "2018-01-02T11:22:33.123456700+12:34";
+            final String testValue2 = "2018-01-02T11:22:33Z";
+            Instant ist = Instant.parse(testValue2);
+            ist = ist.plusNanos(123456700);
             try (Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " (id INT PRIMARY KEY, dto DATETIMEOFFSET)");
@@ -48,13 +55,17 @@ public class SetObjectTest extends AbstractTest {
                         pstmt.setInt(1, 1);
                         pstmt.setObject(2, OffsetDateTime.parse(testValue));
                         pstmt.executeUpdate();
+                        
+                        pstmt.setInt(1, 2);
+                        pstmt.setObject(2, DateTimeOffset.valueOf(Timestamp.from(ist), 754));
+                        pstmt.executeUpdate();
                     }
 
                     try (ResultSet rs = stmt
                             .executeQuery("SELECT COUNT(*) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                                    + " WHERE id = 1 AND dto = '" + testValue + "'")) {
+                                    + " WHERE dto = '" + testValue + "'")) {
                         rs.next();
-                        assertEquals(1, rs.getInt(1));
+                        assertEquals(2, rs.getInt(1));
                     }
                 } finally {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -73,6 +84,9 @@ public class SetObjectTest extends AbstractTest {
         try (Connection con = DriverManager.getConnection(connectionString)) {
             final String testValue = "11:22:33.123456700+12:34";
             final String expectedDto = "1970-01-01T" + testValue;
+            final String testValue2 = "1970-01-01T11:22:33Z";
+            Instant ist = Instant.parse(testValue2);
+            ist = ist.plusNanos(123456700);
             try (Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " (id INT PRIMARY KEY, dto DATETIMEOFFSET)");
@@ -82,13 +96,17 @@ public class SetObjectTest extends AbstractTest {
                         pstmt.setInt(1, 1);
                         pstmt.setObject(2, OffsetTime.parse(testValue));
                         pstmt.executeUpdate();
+                        
+                        pstmt.setInt(1, 2);
+                        pstmt.setObject(2, DateTimeOffset.valueOf(Timestamp.from(ist), 754));
+                        pstmt.executeUpdate();
                     }
 
                     try (ResultSet rs = stmt
                             .executeQuery("SELECT COUNT(*) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                                    + " WHERE id = 1 AND dto = '" + expectedDto + "'")) {
+                                    + " WHERE dto = '" + expectedDto + "'")) {
                         rs.next();
-                        assertEquals(1, rs.getInt(1));
+                        assertEquals(2, rs.getInt(1));
                     }
                 } finally {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -108,6 +126,9 @@ public class SetObjectTest extends AbstractTest {
             ((SQLServerConnection) con).setSendTimeAsDatetime(false);
             final String testValue = "11:22:33.123456700+12:34";
             final String expectedDto = "1900-01-01T" + testValue;
+            final String testValue2 = "1900-01-01T11:22:33Z";
+            Instant ist = Instant.parse(testValue2);
+            ist = ist.plusNanos(123456700);
             try (Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " (id INT PRIMARY KEY, dto DATETIMEOFFSET)");
@@ -117,13 +138,17 @@ public class SetObjectTest extends AbstractTest {
                         pstmt.setInt(1, 1);
                         pstmt.setObject(2, OffsetTime.parse(testValue));
                         pstmt.executeUpdate();
+                        
+                        pstmt.setInt(1, 2);
+                        pstmt.setObject(2, DateTimeOffset.valueOf(Timestamp.from(ist), 754));
+                        pstmt.executeUpdate();
                     }
 
                     try (ResultSet rs = stmt
                             .executeQuery("SELECT COUNT(*) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                                    + " WHERE id = 1 AND dto = '" + expectedDto + "'")) {
+                                    + " WHERE dto = '" + expectedDto + "'")) {
                         rs.next();
-                        assertEquals(1, rs.getInt(1));
+                        assertEquals(2, rs.getInt(1));
                     }
                 } finally {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
