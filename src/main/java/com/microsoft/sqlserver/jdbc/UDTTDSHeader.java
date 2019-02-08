@@ -22,9 +22,12 @@ package com.microsoft.sqlserver.jdbc;
 
 final class UDTTDSHeader {
     private final int maxLen; // MaxLen read from UDT type (not used when writing).
+    @SuppressWarnings("unused")
     private final String databaseName; // Database name where UDT type resides.
+    @SuppressWarnings("unused")
     private final String schemaName; // Schema where UDT resides.
     private final String typeName; // Type name of UDT.
+    @SuppressWarnings("unused")
     private final String assemblyQualifiedName; // Assembly qualified name of UDT.
 
     UDTTDSHeader(TDSReader tdsReader) throws SQLServerException {

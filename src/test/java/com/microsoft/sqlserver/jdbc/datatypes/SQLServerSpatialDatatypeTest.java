@@ -1042,7 +1042,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             }
         }
     }
-    
+
     @Test
     public void testWrongtype() throws SQLException {
         beforeEachSetup();
@@ -1059,7 +1059,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 pstmt.execute();
 
                 try {
-                    SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geomTableName));
+                    SQLServerResultSet rs = (SQLServerResultSet) stmt
+                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geomTableName));
                     rs.next();
                     rs.getGeography(1); // should fail
                     fail();
@@ -1074,7 +1075,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 pstmt.execute();
 
                 try {
-                    SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geogTableName));
+                    SQLServerResultSet rs = (SQLServerResultSet) stmt
+                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geogTableName));
                     rs.next();
                     rs.getGeometry(1); // should fail
                     fail();

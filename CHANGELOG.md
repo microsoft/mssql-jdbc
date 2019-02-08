@@ -3,6 +3,43 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.2.1] HotFix & Stable Release
+### Fixed Issues
+- Fixed parsing issues with certain parameterized queries [#950](https://github.com/Microsoft/mssql-jdbc/pull/950)
+
+## [7.2.0] Stable Release
+### Added
+- Added Azure Pipelines CI configuration to trigger Windows Client testing with SQL Server 2017 and SQL Server 2008 R2 [#940](https://github.com/Microsoft/mssql-jdbc/pull/940)
+
+### Fixed Issues
+- Fixed issue with ThreadPoolExecutor thread preventing JVM from exiting [#944](https://github.com/Microsoft/mssql-jdbc/pull/944)
+- Fixed issues reported by Static Analysis Tool - SonarQube [#928](https://github.com/Microsoft/mssql-jdbc/pull/928) [#930](https://github.com/Microsoft/mssql-jdbc/pull/930) [#933](https://github.com/Microsoft/mssql-jdbc/pull/933)
+- Fixed Timestamp comparison with "Thai" locale in DataTypesTest [#941](https://github.com/Microsoft/mssql-jdbc/pull/941)
+
+### Changed
+- Changed timeout request handling implementation to use SharedTimer [#920](https://github.com/Microsoft/mssql-jdbc/pull/920)
+- Removed Appveyor CI and updated Travis CI configuration [#940](https://github.com/Microsoft/mssql-jdbc/pull/940)
+
+## [7.1.4] Preview Release
+### Added
+- Added APIs for DataSourceFactory and OSGI Framework [#700](https://github.com/Microsoft/mssql-jdbc/pull/700)
+- Added support for OffsetDateTime to be passed as 'type' in ResultSet.getObject() [#830](https://github.com/Microsoft/mssql-jdbc/pull/830)
+- Added support for Active Directory MSI Authentication [#838](https://github.com/Microsoft/mssql-jdbc/pull/838)
+- Added more datatype tests to JUnit test suite [#878](https://github.com/Microsoft/mssql-jdbc/pull/878) [#916](https://github.com/Microsoft/mssql-jdbc/pull/916)
+- Added an option to perform JUnit testing against Azure Data Warehouse [#903](https://github.com/Microsoft/mssql-jdbc/pull/903)
+- Added new APIs to retrieve SQL Server error information received with SQLServerException [#905](https://github.com/Microsoft/mssql-jdbc/pull/905)
+
+### Fixed Issues
+- Fixed issue with java.time.OffsetDateTime value sent to the server being affected by the default timezone [#831](https://github.com/Microsoft/mssql-jdbc/pull/831)
+- Fixed SSL certificate validation to respect wildcards [#836](https://github.com/Microsoft/mssql-jdbc/pull/836)
+- Fixed Bulk Copy for batch insert operation to not error out against specific datatypes [#912](https://github.com/Microsoft/mssql-jdbc/pull/912)
+
+### Changed
+- Fixed synchronization on a non-final field [#860](https://github.com/Microsoft/mssql-jdbc/pull/860)
+- Removed hardcoded error messages from test file [#904](https://github.com/Microsoft/mssql-jdbc/pull/904)
+- Updated Issue and Pull Request templates [#906](https://github.com/Microsoft/mssql-jdbc/pull/906)
+- Updated JUnit tests by closing all resources consistently and updated Maven dependency versions to latest [#919](https://github.com/Microsoft/mssql-jdbc/pull/919)
+
 ## [7.1.3] Preview Release
 ### Added
 - Added a new SQLServerMetaData constructor for string values of length greater than 4000 [#876](https://github.com/Microsoft/mssql-jdbc/pull/876)

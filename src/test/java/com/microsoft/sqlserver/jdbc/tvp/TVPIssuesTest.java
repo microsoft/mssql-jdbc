@@ -46,8 +46,6 @@ public class TVPIssuesTest extends AbstractTest {
 
     @Test
     public void tryTVPRSvarcharMax4000Issue() throws Exception {
-        setup();
-
         try (SQLServerStatement st = (SQLServerStatement) connection.createStatement();
                 ResultSet rs = st
                         .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax));
@@ -98,8 +96,6 @@ public class TVPIssuesTest extends AbstractTest {
      */
     @Test
     public void tryTVPPrecisionmissedissue315() throws Exception {
-        setup();
-
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement();
                 ResultSet rs = stmt

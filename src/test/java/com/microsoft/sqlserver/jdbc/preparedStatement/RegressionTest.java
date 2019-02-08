@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.preparedStatement;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
@@ -18,6 +19,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -60,6 +62,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void createViewTest() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
                 PreparedStatement pstmt1 = con.prepareStatement(
@@ -80,6 +83,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void createSchemaTest() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
                 PreparedStatement pstmt1 = con
@@ -100,6 +104,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void createTableTest() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
                 PreparedStatement pstmt1 = con.prepareStatement(
@@ -120,6 +125,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void alterTableTest() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
                 PreparedStatement pstmt1 = con.prepareStatement(
@@ -143,6 +149,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("AzureDWTest")
     public void grantTest() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
                 PreparedStatement pstmt1 = con.prepareStatement(
@@ -365,6 +372,56 @@ public class RegressionTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testQueryParamsWithHyphen() throws Exception {
+        try (Connection con = DriverManager.getConnection(connectionString); 
+            PreparedStatement st1 = con.prepareStatement("SELECT 1 WHERE -1=-1 AND 1=?")){
+            st1.setInt(1, 1);
+            try (ResultSet rs = st1.executeQuery()) {
+                while (rs.next())
+                    assertEquals(1, rs.getInt(1));
+            }
+        }
+    }
+
+    @Test
+    public void testQueryParamsWithComment() throws Exception {
+        try (Connection con = DriverManager.getConnection(connectionString); 
+            PreparedStatement st1 = con.prepareStatement("/**COMMENT**/ SELECT 1 WHERE 1=?")){
+            st1.setInt(1, 1);
+            try (ResultSet rs = st1.executeQuery()) {
+                while (rs.next())
+                    assertEquals(1, rs.getInt(1));
+            }
+        }
+    }
+
+    @Test
+    public void testQueryParamsWithLineComment() throws Exception {
+        try (Connection con = DriverManager.getConnection(connectionString); 
+            PreparedStatement st1 = con.prepareStatement("--comment\nSELECT 1 WHERE 1=?")){
+            st1.setInt(1, 1);
+            try (ResultSet rs = st1.executeQuery()) {
+                while (rs.next())
+                    assertEquals(1, rs.getInt(1));
+            }
+        }
+    }
+
+    @Test
+    public void testQueryParamsWithBackSlash() throws Exception {
+        try (Connection con = DriverManager.getConnection(connectionString); 
+            PreparedStatement st1 = con.prepareStatement("SELECT 1, '/''' AS str WHERE 1=?")){
+            st1.setInt(1, 1);
+            try (ResultSet rs = st1.executeQuery()) {
+                while (rs.next()) {
+                    assertEquals(1, rs.getInt(1));
+                    assertEquals("/'", rs.getString("str"));
+                }
+            }
+        }
+    }
+    
     /**
      * Cleanup after test
      * 

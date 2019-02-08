@@ -820,4 +820,18 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return whether the driver is respecting platform GSS when authenticating with Kerberos.
      */
     boolean getUsePlatformGSSCredentials();
+    
+    /** Sets the client id to be used to retrieve access token from MSI EndPoint.
+     * 
+     * @param msiClientId
+     *        Client ID of User Assigned Managed Identity
+     */
+    public void setMSIClientId(String msiClientId);
+
+    /**
+     * Returns the value for the connection property 'msiClientId'.
+     * 
+     * @return msiClientId property value
+     */
+    public String getMSIClientId();
 }

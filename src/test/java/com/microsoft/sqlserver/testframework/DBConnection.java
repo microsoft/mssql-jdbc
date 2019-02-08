@@ -20,7 +20,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
  */
 public class DBConnection extends AbstractParentWrapper implements AutoCloseable {
     private double serverversion = 0;
-
     // TODO: add Isolation Level
     // TODO: add auto commit
     // TODO: add connection Savepoint and rollback
@@ -36,6 +35,12 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
     public DBConnection(String connectionString) {
         super(null, null, "connection");
         getConnection(connectionString);
+    }
+    
+    public DBConnection(Connection connection) {
+        super(null, null, "connection");
+        this.connection = (SQLServerConnection) connection;
+        setInternal(connection);
     }
 
     /**
@@ -162,26 +167,6 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
     public DatabaseMetaData getMetaData() throws SQLException {
         DatabaseMetaData product = connection.getMetaData();
         return product;
-    }
-
-    /**
-     * 
-     * @param con
-     * @return
-     * @throws SQLException
-     */
-    public static boolean isSqlAzure(Connection con) throws SQLException {
-        boolean isSqlAzure = false;
-
-        ResultSet rs = con.createStatement().executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)");
-        rs.next();
-        int engineEdition = rs.getInt(1);
-        rs.close();
-        if (ENGINE_EDITION_FOR_SQL_AZURE == engineEdition) {
-            isSqlAzure = true;
-        }
-
-        return isSqlAzure;
     }
 
     /**

@@ -5,13 +5,14 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
 import java.sql.Savepoint;
 
 
 /**
  * Provides an interface to the {@link SQLServerSavepoint} class.
  */
-public interface ISQLServerSavepoint extends Savepoint {
+public interface ISQLServerSavepoint extends Savepoint, Serializable {
 
     /**
      * Returns the savepoint name

@@ -11,6 +11,7 @@ package com.microsoft.sqlserver.testframework;
  */
 public abstract class AbstractParentWrapper {
     static final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+    static final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
 
     AbstractParentWrapper parent = null;
     Object internal = null;

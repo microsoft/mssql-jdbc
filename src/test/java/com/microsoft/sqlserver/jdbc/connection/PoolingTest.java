@@ -24,6 +24,7 @@ import javax.sql.PooledConnection;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -35,7 +36,6 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -45,14 +45,14 @@ import com.zaxxer.hikari.HikariDataSource;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class PoolingTest extends AbstractTest {
     static String tempTableName = RandomUtil.getIdentifier("#poolingtest");
     static String tableName = RandomUtil.getIdentifier("PoolingTestTable");
 
     @Test
     public void testPooling() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
-                "Skipping test case on Azure SQL.");
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerXADataSource XADataSource1 = new SQLServerXADataSource();
         XADataSource1.setURL(connectionString);
@@ -73,6 +73,10 @@ public class PoolingTest extends AbstractTest {
             // make sure the temporary table is not found.
             if (e.getMessage().startsWith(TestResource.getResource("R_invalidObjectName"))) {
                 tempTableFileRemoved = true;
+            }
+        } finally {
+            if (null != pc) {
+                pc.close();
             }
         }
         assertTrue(tempTableFileRemoved, TestResource.getResource("R_tempTAbleNotRemoved"));
@@ -102,7 +106,7 @@ public class PoolingTest extends AbstractTest {
         String sql1 = "if exists (select * from dbo.sysobjects where name = '" + TestUtils.escapeSingleQuotes(tableName)
                 + "' and type = 'U')\n" + "drop table " + AbstractSQLGenerator.escapeIdentifier(tableName) + "\n"
                 + "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + "\n" + "(\n"
-                + "wibble_id int primary key not null,\n" + "counter int null\n" + ");";
+                + "wibble_id int not null,\n" + "counter int null\n" + ");";
         String sql2 = "if exists (select * from dbo.sysobjects where name = '" + TestUtils.escapeSingleQuotes(tableName)
                 + "' and type = 'U')\n" + "drop table " + AbstractSQLGenerator.escapeIdentifier(tableName) + "\n";
 

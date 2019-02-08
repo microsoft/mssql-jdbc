@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
 import java.text.MessageFormat;
 import java.util.logging.Level;
 
@@ -113,7 +114,12 @@ final class FailoverInfo {
 // We need this class so during a connection open we can keep a copy of the current failover info stable
 // This is also used to keep the standalone primary server connection information.
 //
-final class ServerPortPlaceHolder {
+final class ServerPortPlaceHolder implements Serializable {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = 7393779415545731523L;
+
     private final String serverName;
     private final int port;
     private final String instanceName;

@@ -34,9 +34,9 @@ public class SensitivityClassification {
      */
     public SensitivityClassification(List<Label> labels, List<InformationType> informationTypes,
             List<ColumnSensitivity> columnSensitivity) {
-        this.labels = new ArrayList<Label>(labels);
-        this.informationTypes = new ArrayList<InformationType>(informationTypes);
-        this.columnSensitivities = new ArrayList<ColumnSensitivity>(columnSensitivity);
+        this.labels = new ArrayList<>(labels);
+        this.informationTypes = new ArrayList<>(informationTypes);
+        this.columnSensitivities = new ArrayList<>(columnSensitivity);
     }
 
     /**

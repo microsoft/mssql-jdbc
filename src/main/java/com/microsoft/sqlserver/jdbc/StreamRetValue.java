@@ -9,6 +9,7 @@ package com.microsoft.sqlserver.jdbc;
  * StreamRetValue represents a TDS return value.
  */
 final class StreamRetValue extends StreamPacket {
+    @SuppressWarnings("unused")
     private String paramName;
 
     /*
@@ -25,6 +26,7 @@ final class StreamRetValue extends StreamPacket {
      * Status: 0x01 if the return value is an OUTPUT parameter of a stored procedure 0x02 if the return value is from a
      * User Defined Function
      */
+    @SuppressWarnings("unused")
     private int status;
 
     StreamRetValue() {
@@ -41,7 +43,6 @@ final class StreamRetValue extends StreamPacket {
 
     CryptoMetadata getCryptoMetadata(TDSReader tdsReader) throws SQLServerException {
         CryptoMetadata cryptoMeta = (new StreamColumns()).readCryptoMetadata(tdsReader);
-
         return cryptoMeta;
     }
 }
