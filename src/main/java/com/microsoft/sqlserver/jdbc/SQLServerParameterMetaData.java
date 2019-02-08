@@ -547,7 +547,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      *        the procedure name
      * @throws SQLServerException
      */
-    SQLServerParameterMetaData(SQLServerPreparedStatement st, String sProcString) throws SQLServerException {
+    SQLServerParameterMetaData(SQLServerPreparedStatement st) throws SQLServerException {
 
         assert null != st;
         stmtParent = st;
@@ -623,7 +623,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     }
                 } else {
                     // old implementation for SQL server 2008
-                    stringToParse = sProcString;
+                    stringToParse = st.userSQL;
                     ArrayList<MetaInfo> metaInfoList = new ArrayList<>();
 
                     while (stringToParse.length() > 0) {

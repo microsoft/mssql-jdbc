@@ -3086,7 +3086,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } else {
             loggerExternal.entering(getClassNameLogging(), "getParameterMetaData");
             checkClosed();
-            pmd = new SQLServerParameterMetaData(this, userSQL);
+            pmd = new SQLServerParameterMetaData(this);
             connection.registerCachedParameterMetadata(sqlTextCacheKey, pmd);
             loggerExternal.exiting(getClassNameLogging(), "getParameterMetaData", pmd);
             return pmd;
