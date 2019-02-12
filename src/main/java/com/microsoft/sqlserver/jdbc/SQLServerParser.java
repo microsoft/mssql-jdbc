@@ -1,39 +1,71 @@
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.regex.Pattern;
+
 public class SQLServerParser {
-    
     /*
-     * Takes in a String object and returns the string without any comments or whitespaces at the beginning
+     * Takes in a String object and returns the string without any comments or white-spaces at the beginning
      */
     public static String skipWSComments(String s) {
-        boolean keepSearching = false;
-        String cleanedString = s;
-        do {
-            keepSearching = false;
-            cleanedString = cleanedString.stripLeading();
-            if (cleanedString.startsWith("/*")) {
-                boolean endFound = false;
-                while (!endFound) {
-                    String[] parts = cleanedString.split("*/", 2);
-                    if (parts[1] == "") {
-                        /*
-                         * Throw comment end not found error
-                         */
-                    } else {
-                        
-                    }
-                }
-            } else if (cleanedString.startsWith("--")) {
-                String[] parts = cleanedString.split("\n", 2);
-                if (parts[1] == "") {
-                    //Didn't find a new line, the entire string is a comment
-                    return "";
-                } else {
-                    cleanedString = parts[1];
-                    keepSearching = true;
-                }
+        /*
+         * Remove leading whitespace first.
+         */
+        String resultString = s.stripLeading();
+        if (resultString.startsWith("/*")) {
+            /*
+             * Remove block comments.
+             */
+            final String[] tokens = resultString.split(Pattern.quote("*/"), 2);
+            if (tokens.length == 2) {
+                return skipWSComments(tokens[1]);
+            } else {
+                /*
+                 * May need to throw Missing end comment mark '* /' like SSMS
+                 */
+                return "";
             }
-        } while (keepSearching);
-        return cleanedString;
+        } else if (resultString.startsWith("--")) {            
+            /*
+             * Remove single line comments.
+             */
+            final String[] tokens = resultString.split("\n", 2);
+            if (tokens.length == 2) {
+                return skipWSComments(tokens[1]);
+            } else {
+                return "";
+            }
+        } else {
+            return resultString;
+        }
+    }
+    
+    public static void peekNextSQLWord(String s) {
+        String resultString = skipWSComments(s).toUpperCase();
+        switch (resultString.charAt(0)) {
+            case 'S':
+                if (resultString.startsWith("SELECT ")) {
+                    
+                }
+                break;
+            case 'I':
+                if (resultString.startsWith("INSERT ")) {
+                    
+                }
+                break;
+            case 'U':
+                if (resultString.startsWith("UPDATE ")) {
+                    
+                }
+                break;
+            case 'D':
+                if (resultString.startsWith("DELETE ")) {
+                    
+                }
+                break;
+            case '(':
+                break;
+            default:
+                break;
+        }
     }
 }
