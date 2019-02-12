@@ -58,8 +58,7 @@ public class SQLServerDataSourceFactory implements DataSourceFactory {
 
     @Override
     public Driver createDriver(Properties props) throws SQLException {
-        SQLServerDriver driver = new SQLServerDriver();
-        return driver;
+        return new SQLServerDriver();
     }
 
     /**

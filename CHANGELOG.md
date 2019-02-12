@@ -3,6 +3,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.2.1] HotFix & Stable Release
+### Fixed Issues
+- Fixed parsing issues with certain parameterized queries [#950](https://github.com/Microsoft/mssql-jdbc/pull/950)
+
+## [7.2.0] Stable Release
+### Added
+- Added Azure Pipelines CI configuration to trigger Windows Client testing with SQL Server 2017 and SQL Server 2008 R2 [#940](https://github.com/Microsoft/mssql-jdbc/pull/940)
+
+### Fixed Issues
+- Fixed issue with ThreadPoolExecutor thread preventing JVM from exiting [#944](https://github.com/Microsoft/mssql-jdbc/pull/944)
+- Fixed issues reported by Static Analysis Tool - SonarQube [#928](https://github.com/Microsoft/mssql-jdbc/pull/928) [#930](https://github.com/Microsoft/mssql-jdbc/pull/930) [#933](https://github.com/Microsoft/mssql-jdbc/pull/933)
+- Fixed Timestamp comparison with "Thai" locale in DataTypesTest [#941](https://github.com/Microsoft/mssql-jdbc/pull/941)
+
+### Changed
+- Changed timeout request handling implementation to use SharedTimer [#920](https://github.com/Microsoft/mssql-jdbc/pull/920)
+- Removed Appveyor CI and updated Travis CI configuration [#940](https://github.com/Microsoft/mssql-jdbc/pull/940)
+
 ## [7.1.4] Preview Release
 ### Added
 - Added APIs for DataSourceFactory and OSGI Framework [#700](https://github.com/Microsoft/mssql-jdbc/pull/700)

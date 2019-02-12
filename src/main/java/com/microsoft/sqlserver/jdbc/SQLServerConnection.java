@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.HttpURLConnection;
@@ -140,6 +141,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private String originalHostNameInCertificate = null;
 
     private Boolean isAzureDW = null;
+
+    private SharedTimer sharedTimer;
+
+    /**
+     * Return an existing cached SharedTimer associated with this Connection or create a new one.
+     *
+     * The SharedTimer will be released when the Connection is closed.
+     */
+    SharedTimer getSharedTimer() {
+        if (state == State.Closed) {
+            throw new IllegalStateException("Connection is closed");
+        }
+        if (sharedTimer == null) {
+            this.sharedTimer = SharedTimer.getTimer();
+        }
+        return this.sharedTimer;
+    }
 
     static class CityHash128Key implements java.io.Serializable {
 
@@ -339,7 +357,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /**
      * Encapsulates the data to be sent to the server as part of Federated Authentication Feature Extension.
      */
-    class FederatedAuthenticationFeatureExtensionData {
+    class FederatedAuthenticationFeatureExtensionData implements Serializable {
+        /**
+         * Always update serialVersionUID when prompted
+         */
+        private static final long serialVersionUID = -6709861741957202475L;
         boolean fedAuthRequiredPreLoginResponse;
         int libraryType = -1;
         byte[] accessToken = null;
@@ -913,7 +935,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private int transactionIsolationLevel;
     private SQLServerPooledConnection pooledConnectionParent;
-    private DatabaseMetaData databaseMetaData; // the meta data for this connection
+    private SQLServerDatabaseMetaData databaseMetaData; // the meta data for this connection
     private int nNextSavePointId = 10000; // first save point id
 
     static final private java.util.logging.Logger connectionlogger = java.util.logging.Logger
@@ -987,7 +1009,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return state.equals(State.Connected);
     }
 
-    @SuppressWarnings("unused")
     SQLServerConnection(String parentInfo) throws SQLServerException {
         int connectionID = nextConnectionID(); // sequential connection id
         traceID = "ConnectionID:" + connectionID;
@@ -2880,7 +2901,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         throw ex;
     }
 
-    private final Object schedulerLock = new Object();
+    private final transient Object schedulerLock = new Object();
 
     /**
      * Executes a command through the scheduler.
@@ -2935,6 +2956,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     private void connectionCommand(String sql, String logContext) throws SQLServerException {
         final class ConnectionCommand extends UninterruptableTDSCommand {
+            /**
+             * Always update serialVersionUID when prompted.
+             */
+            private static final long serialVersionUID = 1L;
             final String sql;
 
             ConnectionCommand(String sql, String logContext) {
@@ -3174,6 +3199,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // with the connection.
         setState(State.Closed);
 
+        if (sharedTimer != null) {
+            sharedTimer.removeRef();
+            sharedTimer = null;
+        }
+
         // Close the TDS channel. When the channel is closed, the server automatically
         // rolls back any pending transactions and closes associated resources like
         // prepared handles.
@@ -3353,7 +3383,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             loggerExternal.entering(getClassNameLogging(), "createStatement",
                     new Object[] {resultSetType, resultSetConcurrency});
         checkClosed();
-        Statement st = new SQLServerStatement(this, resultSetType, resultSetConcurrency,
+        SQLServerStatement st = new SQLServerStatement(this, resultSetType, resultSetConcurrency,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
         if (requestStarted) {
             addOpenStatement(st);
@@ -3370,7 +3400,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     new Object[] {sql, resultSetType, resultSetConcurrency});
         checkClosed();
 
-        PreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
+        SQLServerPreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 
         if (requestStarted) {
@@ -3387,7 +3417,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     new Object[] {sql, resultSetType, resultSetConcurrency, stmtColEncSetting});
         checkClosed();
 
-        PreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
+        SQLServerPreparedStatement st = new SQLServerPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
                 stmtColEncSetting);
 
         if (requestStarted) {
@@ -3406,7 +3436,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     new Object[] {sql, resultSetType, resultSetConcurrency});
         checkClosed();
 
-        CallableStatement st = new SQLServerCallableStatement(this, sql, resultSetType, resultSetConcurrency,
+        SQLServerCallableStatement st = new SQLServerCallableStatement(this, sql, resultSetType, resultSetConcurrency,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 
         if (requestStarted) {
@@ -3576,6 +3606,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private final class LogonCommand extends UninterruptableTDSCommand {
+        /**
+         * Always update serialVersionUID when prompted.
+         */
+        private static final long serialVersionUID = 1L;
+
         LogonCommand() {
             super("logon");
         }
@@ -4025,6 +4060,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     final class FedAuthTokenCommand extends UninterruptableTDSCommand {
+        /**
+         * Always update serialVersionUID when prompted.
+         */
+        private static final long serialVersionUID = 1L;
         TDSTokenHandler tdsTokenHandler = null;
         SqlFedAuthToken sqlFedAuthToken = null;
 
@@ -4492,6 +4531,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 byte enabled = data[1];
                 serverSupportsDataClassification = enabled != 0;
+                break;
             }
             case TDS.TDS_FEATURE_EXT_UTF8SUPPORT: {
                 if (connectionlogger.isLoggable(Level.FINER)) {
@@ -4521,6 +4561,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     private void executeDTCCommand(int requestType, byte[] payload, String logContext) throws SQLServerException {
         final class DTCCommand extends UninterruptableTDSCommand {
+            /**
+             * Always update serialVersionUID when prompted.
+             */
+            private static final long serialVersionUID = 1L;
             private final int requestType;
             private final byte[] payload;
 
@@ -5033,7 +5077,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         checkMatchesCurrentHoldability(resultSetHoldability);
         Statement st = new SQLServerStatement(this, nType, nConcur, stmtColEncSetting);
         if (requestStarted) {
-            addOpenStatement(st);
+            addOpenStatement((ISQLServerStatement) st);
         }
         loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
         return st;
@@ -5062,7 +5106,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         PreparedStatement st = new SQLServerPreparedStatement(this, sql, nType, nConcur, stmtColEncSetting);
 
         if (requestStarted) {
-            addOpenStatement(st);
+            addOpenStatement((ISQLServerStatement) st);
         }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
@@ -5092,7 +5136,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         CallableStatement st = new SQLServerCallableStatement(this, sql, nType, nConcur, stmtColEncSetiing);
 
         if (requestStarted) {
-            addOpenStatement(st);
+            addOpenStatement((ISQLServerStatement) st);
         }
 
         loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
@@ -5586,7 +5630,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private String originalSCatalog;
     private boolean originalUseBulkCopyForBatchInsert;
     private volatile SQLWarning originalSqlWarnings;
-    private List<Statement> openStatements;
+    private List<ISQLServerStatement> openStatements;
 
     protected void beginRequestInternal() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "beginRequest", this);
@@ -5604,7 +5648,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalSCatalog = sCatalog;
                 originalUseBulkCopyForBatchInsert = getUseBulkCopyForBatchInsert();
                 originalSqlWarnings = sqlWarnings;
-                openStatements = new LinkedList<Statement>();
+                openStatements = new LinkedList<ISQLServerStatement>();
                 requestStarted = true;
             }
         }
@@ -6214,7 +6258,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param st
      *        Statement to add to openStatements
      */
-    final synchronized void addOpenStatement(Statement st) {
+    final synchronized void addOpenStatement(ISQLServerStatement st) {
         if (null != openStatements) {
             openStatements.add(st);
         }
@@ -6226,7 +6270,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param st
      *        Statement to remove from openStatements
      */
-    final synchronized void removeOpenStatement(Statement st) {
+    final synchronized void removeOpenStatement(ISQLServerStatement st) {
         if (null != openStatements) {
             openStatements.remove(st);
         }

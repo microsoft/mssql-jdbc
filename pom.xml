@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.1.4</version>
+	<version>7.2.1</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -70,19 +70,19 @@
 			<version>1.6.5</version>
 			<optional>true</optional>
 		</dependency>
-    
+
 		<!-- dependencies provided by an OSGi-Framework -->
 		<dependency>
-		    <groupId>org.osgi</groupId>
-		    <artifactId>org.osgi.core</artifactId>
-		    <version>${osgi.version}</version>
-		    <scope>provided</scope>
+			<groupId>org.osgi</groupId>
+			<artifactId>org.osgi.core</artifactId>
+			<version>${osgi.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
-		    <groupId>org.osgi</groupId>
-		    <artifactId>org.osgi.compendium</artifactId>
-		    <version>${osgi.version}</version>
-		    <scope>provided</scope>
+			<groupId>org.osgi</groupId>
+			<artifactId>org.osgi.compendium</artifactId>
+			<version>${osgi.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<!-- dependencies for running tests -->
@@ -153,10 +153,10 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-		    <groupId>org.eclipse.gemini.blueprint</groupId>
-		    <artifactId>gemini-blueprint-mock</artifactId>
-		    <version>2.0.0.RELEASE</version>
-		    <scope>test</scope>
+			<groupId>org.eclipse.gemini.blueprint</groupId>
+			<artifactId>gemini-blueprint-mock</artifactId>
+			<version>2.0.0.RELEASE</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
@@ -164,7 +164,7 @@
 		<profile>
 			<id>build42</id>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre8</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -176,6 +176,13 @@
 							</excludes>
 							<source>1.8</source>
 							<target>1.8</target>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<configuration>
+							<source>8</source>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -231,7 +238,7 @@
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre11-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre11</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -374,10 +381,12 @@
 				<extensions>true</extensions>
 				<configuration>
 					<instructions>
-						<_exportcontents>export com.microsoft.sqlserver.jdbc</_exportcontents>
-						<_exportcontents>export microsoft.sql</_exportcontents>
-						<_exportcontents>export
-							com.microsoft.sqlserver.jdbc.dataclassification</_exportcontents>
+						<_exportcontents>
+							com.microsoft.sqlserver.jdbc,
+							com.microsoft.sqlserver.jdbc.osgi,
+							com.microsoft.sqlserver.jdbc.dataclassification,
+							microsoft.sql
+						</_exportcontents>
 						<Import-Package>!microsoft.sql,*</Import-Package>
 						<Bundle-Activator>com.microsoft.sqlserver.jdbc.osgi.Activator</Bundle-Activator>
 					</instructions>

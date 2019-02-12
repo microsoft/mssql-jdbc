@@ -12,6 +12,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.Serializable;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -42,6 +43,7 @@ import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.concurrent.ScheduledFuture;
 import java.util.logging.Level;
 
 import javax.sql.RowSet;
@@ -69,7 +71,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Represents the column mappings between the source and destination table
      */
-    private class ColumnMapping {
+    private class ColumnMapping implements Serializable {
+        /**
+         * Always update serialVersionUID when prompted.
+         */
+        private static final long serialVersionUID = 6428337550654423919L;
+
         String sourceColumnName = null;
         int sourceColumnOrdinal = -1;
         String destinationColumnName = null;
@@ -100,8 +107,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      * Class name for logging.
      */
     private static final String loggerClassName = "com.microsoft.sqlserver.jdbc.SQLServerBulkCopy";
-
-    private static final int SQL_SERVER_2016_VERSION = 13;
 
     /**
      * Logger
@@ -246,31 +251,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      */
     private int srcColumnCount;
 
-    /**
-     * Timeout for the bulk copy command
-     */
-    private final class BulkTimeoutCommand extends TimeoutCommand<TDSCommand> {
-        public BulkTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
-            super(timeout, command, sqlServerConnection);
-        }
-
-        @Override
-        public void interrupt() {
-            TDSCommand command = getCommand();
-            // If the timer wasn't canceled before it ran out of
-            // time then interrupt the registered command.
-            try {
-                command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
-            } catch (SQLServerException e) {
-                // Unfortunately, there's nothing we can do if we
-                // fail to time out the request. There is no way
-                // to report back what happened.
-                command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
-            }
-        }
-    }
-
-    private BulkTimeoutCommand timeoutCommand;
+    private ScheduledFuture<?> timeout;
 
     /**
      * The maximum temporal precision we can send when using varchar(precision) in bulkcommand, to send a
@@ -644,18 +625,21 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
     private void sendBulkLoadBCP() throws SQLServerException {
         final class InsertBulk extends TDSCommand {
+            /**
+             * Always update serialVersionUID when prompted.
+             */
+            private static final long serialVersionUID = 6714118105257791547L;
+
             InsertBulk() {
                 super("InsertBulk", 0, 0);
-                int timeoutSeconds = copyOptions.getBulkCopyTimeout();
-                timeoutCommand = timeoutSeconds > 0 ? new BulkTimeoutCommand(timeoutSeconds, this, null) : null;
             }
 
             final boolean doExecute() throws SQLServerException {
-                if (null != timeoutCommand) {
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(this.toString() + ": Starting bulk timer...");
-
-                    TimeoutPoller.getTimeoutPoller().addTimeoutCommand(timeoutCommand);
+                int timeoutSeconds = copyOptions.getBulkCopyTimeout();
+                if (timeoutSeconds > 0) {
+                    connection.checkClosed();
+                    timeout = connection.getSharedTimer().schedule(new TDSTimeoutTask(this, connection),
+                            timeoutSeconds);
                 }
 
                 // doInsertBulk inserts the rows in one batch. It returns true if there are more rows in
@@ -671,21 +655,27 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     }
 
                     // Check whether it is a timeout exception.
-                    if (rootCause instanceof SQLException) {
-                        checkForTimeoutException((SQLException) rootCause, timeoutCommand);
+                    if (rootCause instanceof SQLException && timeout != null && timeout.isDone()) {
+                        SQLException sqlEx = (SQLException) rootCause;
+                        if (sqlEx.getSQLState() != null
+                                && sqlEx.getSQLState().equals(SQLState.STATEMENT_CANCELED.getSQLStateCode())) {
+                            // If SQLServerBulkCopy is managing the transaction, a rollback is needed.
+                            if (copyOptions.isUseInternalTransaction()) {
+                                connection.rollback();
+                            }
+                            throw new SQLServerException(SQLServerException.getErrString("R_queryTimedOut"),
+                                    SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, sqlEx);
+                        }
                     }
 
                     // It is not a timeout exception. Re-throw.
                     throw topLevelException;
                 }
 
-                if (null != timeoutCommand) {
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(this.toString() + ": Stopping bulk timer...");
-
-                    TimeoutPoller.getTimeoutPoller().remove(timeoutCommand);
+                if (timeout != null) {
+                    timeout.cancel(true);
+                    timeout = null;
                 }
-
                 return true;
             }
         }
@@ -766,7 +756,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         CryptoMetadata destCryptoMeta = destColumnMetadata.get(destColumnIndex).cryptoMeta;
 
         /*
-         * if source is encrypted and destination is unenecrypted, use destination's sql type to send since there is no
+         * if source is encrypted and destination is unencrypted, use destination's sql type to send since there is no
          * way of finding if source is encrypted without accessing the resultset. Send destination type if source
          * resultset set is of type SQLServer, encryption is enabled and destination column is not encrypted
          */
@@ -1146,22 +1136,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
-     * Helper method that throws a timeout exception if the cause of the exception was that the query was cancelled
-     */
-    private void checkForTimeoutException(SQLException e, BulkTimeoutCommand timeoutCommand) throws SQLServerException {
-        if ((null != e.getSQLState()) && (e.getSQLState().equals(SQLState.STATEMENT_CANCELED.getSQLStateCode()))
-                && timeoutCommand.canTimeout()) {
-            // If SQLServerBulkCopy is managing the transaction, a rollback is needed.
-            if (copyOptions.isUseInternalTransaction()) {
-                connection.rollback();
-            }
-
-            throw new SQLServerException(SQLServerException.getErrString("R_queryTimedOut"),
-                    SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, e);
-        }
-    }
-
-    /**
      * Validates whether the source JDBC types are compatible with the destination table data types. We need to do this
      * only once for the whole bulk copy session.
      */
@@ -1205,6 +1179,18 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             // Encrypted columns are sent as binary data.
             tdsWriter.setCryptoMetaData(destColumnMetadata.get(destColIndx).cryptoMeta);
 
+            /*
+             * if source is encrypted and destination is unencrypted, use destination's sql type to send since there is
+             * no way of finding if source is encrypted without accessing the resultset. Send destination type if source
+             * resultset set is of type SQLServer, encryption is enabled and destination column is not encrypted
+             */
+            if ((sourceResultSet instanceof SQLServerResultSet) && (connection.isColumnEncryptionSettingEnabled())
+                    && (null != destCryptoMeta)) {
+                bulkJdbcType = destColumnMetadata.get(destColIndx).jdbcType;
+                bulkPrecision = destPrecision;
+                bulkScale = destColumnMetadata.get(destColIndx).scale;
+            }
+
             // if destination is encrypted send metadata from destination and not from source
             if (DataTypes.SHORT_VARTYPE_MAX_BYTES < destPrecision) {
                 return "varbinary(max)";
@@ -1219,18 +1205,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             return "varbinary(" + bulkPrecision + ")";
         }
         bulkPrecision = validateSourcePrecision(srcPrecision, bulkJdbcType, destPrecision);
-
-        /*
-         * if source is encrypted and destination is unenecrypted, use destination's sql type to send since there is no
-         * way of finding if source is encrypted without accessing the resultset. Send destination type if source
-         * resultset set is of type SQLServer, encryption is enabled and destination column is not encrypted
-         */
-        if ((sourceResultSet instanceof SQLServerResultSet) && (connection.isColumnEncryptionSettingEnabled())
-                && (null != destCryptoMeta)) {
-            bulkJdbcType = destColumnMetadata.get(destColIndx).jdbcType;
-            bulkPrecision = destPrecision;
-            bulkScale = destColumnMetadata.get(destColIndx).scale;
-        }
 
         if ((java.sql.Types.NCHAR == bulkJdbcType) || (java.sql.Types.NVARCHAR == bulkJdbcType)
                 || (java.sql.Types.LONGNVARCHAR == bulkJdbcType)) {
@@ -1584,14 +1558,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
-     * Helper method to throw a SQLServerExeption with the errorConvertingValue message and given arguments.
-     */
-    private void throwInvalidJavaToJDBC(String javaClassName, int jdbcType) throws SQLServerException {
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-        throw new SQLServerException(form.format(new Object[] {javaClassName, jdbcType}), null, 0, null);
-    }
-
-    /**
      * The bulk copy operation
      */
     private void writeToServer() throws SQLServerException {
@@ -1676,8 +1642,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
 
                 // Get destination metadata
-                rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                        + escapedDestinationTableName + " '");
+                rs = stmt.executeQueryInternal(
+                        "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
             }
 
             destColumnCount = rs.getMetaData().getColumnCount();
@@ -1996,7 +1962,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             bulkJdbcType = java.sql.Types.VARBINARY;
         }
         /*
-         * if source is encrypted and destination is unenecrypted, use destination sql type to send since there is no
+         * if source is encrypted and destination is unencrypted, use destination sql type to send since there is no
          * way of finding if source is encrypted without accessing the resultset, send destination type if source
          * resultset set is of type SQLServer and encryption is enabled
          */
@@ -2461,6 +2427,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
         SqlVariant variantType = ((SQLServerResultSet) sourceResultSet).getVariantInternalType(srcColOrdinal);
         int baseType = variantType.getBaseType();
+        byte[] srcBytes;
         // for sql variant we normally should return the colvalue for time as time string. but for
         // bulkcopy we need it to be timestamp. so we have to retrieve it again once we are in bulkcopy
         // and make sure that the base type is time.
@@ -2649,22 +2616,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 length = b.length;
                 writeBulkCopySqlVariantHeader(4 + length, TDSType.BIGVARBINARY.byteValue(), (byte) 2, tdsWriter);
                 tdsWriter.writeShort((short) (variantType.getMaxLength())); // length
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                if (colValue instanceof byte[]) {
+                    srcBytes = (byte[]) colValue;
                 } else {
-                    byte[] srcBytes;
-                    if (colValue instanceof byte[]) {
-                        srcBytes = (byte[]) colValue;
-                    } else {
-                        try {
-                            srcBytes = ParameterUtils.HexToBin(colValue.toString());
-                        } catch (SQLServerException e) {
-                            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"),
-                                    e);
-                        }
+                    try {
+                        srcBytes = ParameterUtils.HexToBin(colValue.toString());
+                    } catch (SQLServerException e) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
                     }
-                    tdsWriter.writeBytes(srcBytes);
                 }
+                tdsWriter.writeBytes(srcBytes);
                 break;
 
             case BIGVARBINARY:
@@ -2672,22 +2633,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 length = b.length;
                 writeBulkCopySqlVariantHeader(4 + length, TDSType.BIGVARBINARY.byteValue(), (byte) 2, tdsWriter);
                 tdsWriter.writeShort((short) (variantType.getMaxLength())); // length
-                if (null == colValue) {
-                    writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                if (colValue instanceof byte[]) {
+                    srcBytes = (byte[]) colValue;
                 } else {
-                    byte[] srcBytes;
-                    if (colValue instanceof byte[]) {
-                        srcBytes = (byte[]) colValue;
-                    } else {
-                        try {
-                            srcBytes = ParameterUtils.HexToBin(colValue.toString());
-                        } catch (SQLServerException e) {
-                            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"),
-                                    e);
-                        }
+                    try {
+                        srcBytes = ParameterUtils.HexToBin(colValue.toString());
+                    } catch (SQLServerException e) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
                     }
-                    tdsWriter.writeBytes(srcBytes);
                 }
+                tdsWriter.writeBytes(srcBytes);
                 break;
 
             default:
@@ -3027,13 +2982,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return new java.sql.Date(ts.getTime());
                 case microsoft.sql.Types.DATETIMEOFFSET:
                     return DateTimeOffset.valueOf(ts, taOffsetSec / 60);
+                default:
+                    return valueStrUntrimmed;
             }
         } catch (DateTimeException | ArithmeticException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
             Object[] msgArgs = {JDBCType.of(srcJdbcType)};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
-        return valueStrUntrimmed;
     }
 
     private Object getTemporalObjectFromCSV(Object value, int srcJdbcType,
@@ -3065,6 +3021,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.DATE:
                 case microsoft.sql.Types.DATETIMEOFFSET:
                     return null;
+                default:
+                    break;
             }
         }
 
@@ -3176,6 +3134,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     Timestamp ts = new Timestamp(cal.getTimeInMillis());
                     ts.setNanos(fractionalSeconds);
                     return microsoft.sql.DateTimeOffset.valueOf(ts, totalOffset);
+                default:
+                    break;
             }
         } catch (IndexOutOfBoundsException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
@@ -3484,7 +3444,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             // Write row header for each row.
             tdsWriter.writeByte((byte) TDS.TDS_ROW);
-            int mappingColumnCount = columnMappings.size();
 
             // Copying from a resultset.
             if (null != sourceResultSet) {

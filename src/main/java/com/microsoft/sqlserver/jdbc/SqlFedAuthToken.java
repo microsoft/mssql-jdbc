@@ -5,10 +5,16 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
 import java.util.Date;
 
 
-class SqlFedAuthToken {
+class SqlFedAuthToken implements Serializable {
+    /**
+     * Always update serialVersionUID when prompted
+     */
+    private static final long serialVersionUID = -1343105491285383937L;
+    
     final Date expiresOn;
     final String accessToken;
 
