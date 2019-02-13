@@ -5339,7 +5339,7 @@ final class TDSWriter {
         // Next, figure out the number of milliseconds since midnight of the current day.
         int millisSinceMidnight;
         // Millis into the current second
-        if (con.getServerMajorVersion() >= 13.0) {
+        if (con.getServerMajorVersion() >= 13.0 || con.isAzure()) {
             millisSinceMidnight = getRoundedMilliseconds(subSecondNanos);
         } else {
             millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND;
