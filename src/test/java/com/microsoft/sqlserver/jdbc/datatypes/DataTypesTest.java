@@ -1653,10 +1653,10 @@ public class DataTypesTest extends AbstractTest {
                     assertEquals("1970-01-01 23:59:59.0", new Timestamp(rs.getTime(6).getTime()).toString());
 
                     // Update datetime w/expected rounding of nanos to DATETIME's 1/300second resolution
-                    ts = Timestamp.valueOf("6289-04-22 05:13:57.6745106");
+                    ts = Timestamp.valueOf("6289-04-22 05:13:57.6741234");
                     rs.updateTimestamp(2, ts);
                     rs.updateRow();
-                    assertEquals("6289-04-22 05:13:57.677", rs.getTimestamp(2).toString());
+                    assertEquals("6289-04-22 05:13:57.673", rs.getTimestamp(2).toString());
 
                     // Update datetime with rounding-induced overflow from Time (should roll date part to 1/2/1970)
                     ts = Timestamp.valueOf("2010-01-18 23:59:59.999");
