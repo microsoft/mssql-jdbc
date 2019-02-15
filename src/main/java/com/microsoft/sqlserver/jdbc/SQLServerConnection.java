@@ -6252,23 +6252,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 rs.next();
 
                 int engineEdition = rs.getInt(1);
-                if (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI) {
-                    isAzure = true;
-                } else {
-                    isAzure = false;
-                }
-
-                if (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW) {
-                    isAzureDW = true;
-                } else {
-                    isAzureDW = false;
-                }
-
-                if (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI) {
-                    isAzureMI = true;
-                } else {
-                    isAzureMI = false;
-                }
+                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+                isAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+                isAzureMI = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
 
             } catch (SQLException e) {
                 if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
