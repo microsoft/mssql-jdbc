@@ -114,6 +114,7 @@ public abstract class AbstractTest {
         String prefix = "jdbc:sqlserver://";
         if (null != connectionString && connectionString.startsWith(prefix)) {
             String extract = connectionString.substring(prefix.length());
+            System.out.println(extract);
             String[] identifiers = extract.split(";");
             String server = identifiers[0];
             // Check if serverName contains instance name
@@ -136,6 +137,7 @@ public abstract class AbstractTest {
                             break;
                         case "PASSWORD":
                             ds.setPassword(value);
+                            System.out.println("Temporary for debugging: " + value);
                             break;
                         case "DATABASE":
                         case "DATABASENAME":
