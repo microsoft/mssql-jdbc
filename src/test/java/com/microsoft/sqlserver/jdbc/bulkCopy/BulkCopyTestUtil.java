@@ -155,6 +155,65 @@ class BulkCopyTestUtil {
      * @param destTable
      * @param validateResult
      * @param fail
+     */
+    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, DBTable destinationTable,
+            boolean validateResult, boolean fail) {
+        try (DBConnection con = new DBConnection(wrapper.getConnectionString());
+                DBConnection conBulkCopy = new DBConnection(wrapper.getDataSource());
+                DBStatement stmt = con.createStatement();
+                DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName()
+                        + " ORDER BY " + sourceTable.getEscapedColumnName(0));
+                SQLServerBulkCopy bulkCopy = wrapper.isUsingConnection() ? new SQLServerBulkCopy(
+                        (Connection) conBulkCopy.product()) : new SQLServerBulkCopy(wrapper.getConnectionString())) {
+            try {
+                if (wrapper.isUsingBulkCopyOptions()) {
+                    bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
+                }
+                bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
+                if (wrapper.isUsingColumnMapping()) {
+                    for (int i = 0; i < wrapper.cm.size(); i++) {
+                        ColumnMap currentMap = wrapper.cm.get(i);
+                        if (currentMap.sourceIsInt && currentMap.destIsInt) {
+                            bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
+                        } else if (currentMap.sourceIsInt && (!currentMap.destIsInt)) {
+                            bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
+                        } else if ((!currentMap.sourceIsInt) && currentMap.destIsInt) {
+                            bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
+                        } else if ((!currentMap.sourceIsInt) && (!currentMap.destIsInt)) {
+                            bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
+                        }
+                    }
+                }
+                bulkCopy.writeToServer((ResultSet) srcResultSet.product());
+                if (fail)
+                    fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                if (validateResult) {
+                    validateValues(con, sourceTable, destinationTable);
+                }
+            } catch (SQLException ex) {
+                if (!fail) {
+                    fail(ex.getMessage());
+                }
+            } finally {
+                if (null != destinationTable) {
+                    stmt.dropTable(destinationTable);
+                }
+            }
+        } catch (SQLException e) {
+            if (!fail) {
+                fail(e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * perform bulk copy using source and destination tables
+     * 
+     * @param wrapper
+     * @param sourceTable
+     * @param destTable
+     * @param validateResult
+     * @param fail
      * @param dropDest
      */
     static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, DBTable destinationTable,
@@ -204,65 +263,6 @@ class BulkCopyTestUtil {
         } catch (SQLException ex) {
             if (!fail) {
                 fail(ex.getMessage());
-            }
-        }
-    }
-
-    /**
-     * perform bulk copy using source and destination tables
-     * 
-     * @param wrapper
-     * @param sourceTable
-     * @param destTable
-     * @param validateResult
-     * @param fail
-     */
-    static void performBulkCopy(BulkCopyTestWrapper wrapper, DBTable sourceTable, DBTable destinationTable,
-            boolean validateResult, boolean fail) {
-        try (DBConnection con = new DBConnection(wrapper.getConnectionString());
-                DBConnection conBulkCopy = new DBConnection(wrapper.getDataSource());
-                DBStatement stmt = con.createStatement();
-                DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName()
-                        + " ORDER BY " + sourceTable.getEscapedColumnName(0));
-                SQLServerBulkCopy bulkCopy = wrapper.isUsingConnection() ? new SQLServerBulkCopy(
-                        (Connection) conBulkCopy.product()) : new SQLServerBulkCopy(wrapper.getConnectionString())) {
-            try {
-                if (wrapper.isUsingBulkCopyOptions()) {
-                    bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
-                }
-                bulkCopy.setDestinationTableName(destinationTable.getEscapedTableName());
-                if (wrapper.isUsingColumnMapping()) {
-                    for (int i = 0; i < wrapper.cm.size(); i++) {
-                        ColumnMap currentMap = wrapper.cm.get(i);
-                        if (currentMap.sourceIsInt && currentMap.destIsInt) {
-                            bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destInt);
-                        } else if (currentMap.sourceIsInt && (!currentMap.destIsInt)) {
-                            bulkCopy.addColumnMapping(currentMap.srcInt, currentMap.destString);
-                        } else if ((!currentMap.sourceIsInt) && currentMap.destIsInt) {
-                            bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destInt);
-                        } else if ((!currentMap.sourceIsInt) && (!currentMap.destIsInt)) {
-                            bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
-                        }
-                    }
-                }
-                bulkCopy.writeToServer((ResultSet) srcResultSet.product());
-                if (fail)
-                    fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-                if (validateResult) {
-                    validateValues(con, sourceTable, destinationTable);
-                }
-            } catch (SQLException ex) {
-                if (!fail) {
-                    fail(ex.getMessage());
-                }
-            } finally {
-                if (null != destinationTable) {
-                    stmt.dropTable(destinationTable);
-                }
-            }
-        } catch (SQLException e) {
-            if (!fail) {
-                fail(e.getMessage());
             }
         }
     }
