@@ -44,7 +44,9 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             BulkData Bdata = new BulkData(dstTable);
 
             BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false, ds);
+            bulkWrapper.setUsingXAConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false, dsXA);
+            bulkWrapper.setUsingPooledConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false, dsPool);
             BulkCopyTestUtil.performBulkCopy(bulkWrapper, Bdata, dstTable);
         } finally {
             if (null != dstTable) {
