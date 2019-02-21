@@ -12,6 +12,9 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import javax.sql.PooledConnection;
+import javax.sql.XAConnection;
+
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
@@ -30,6 +33,8 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
     // TODO: add connection Savepoint and rollback
     // TODO: add additional connection properties
     private Connection connection = null;
+    private XAConnection xaConnection = null;
+    private PooledConnection pooledConnection = null;
 
     /**
      * establishes connection using the input
@@ -81,11 +86,12 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
     void getConnection(ISQLServerDataSource dataSource) {
         try {
             if (dataSource instanceof SQLServerXADataSource) {
-                connection = (ISQLServerConnection) ((SQLServerXADataSource) dataSource).getXAConnection()
-                        .getConnection();
+                xaConnection = (XAConnection) ((SQLServerXADataSource) dataSource).getXAConnection();
+                connection = (ISQLServerConnection) xaConnection.getConnection();
             } else if (dataSource instanceof SQLServerConnectionPoolDataSource) {
-                connection = (ISQLServerConnection) ((SQLServerConnectionPoolDataSource) dataSource)
-                        .getPooledConnection().getConnection();
+                pooledConnection = (PooledConnection) ((SQLServerConnectionPoolDataSource) dataSource)
+                        .getPooledConnection();
+                connection = (ISQLServerConnection) pooledConnection.getConnection();
             } else if (dataSource instanceof SQLServerDataSource) {
                 connection = (ISQLServerConnection) ((SQLServerDataSource) dataSource).getConnection();
             }
@@ -167,11 +173,16 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
     }
 
     /**
-     * close connection
+     * close all open connections
      */
     public void close() {
         try {
-            connection.close();
+            if (null != connection)
+                connection.close();
+            if (null != xaConnection)
+                xaConnection.close();
+            if (null != pooledConnection)
+                pooledConnection.close();
         } catch (SQLException ex) {
             fail(ex.getMessage());
         }
