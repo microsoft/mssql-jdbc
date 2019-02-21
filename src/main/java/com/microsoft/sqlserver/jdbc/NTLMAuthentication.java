@@ -64,38 +64,38 @@ byte flag4 = buf.get();
 // 3 4 1 2
 // -119 -94 37-126
 
-if (((flag4 & 0xff) & (TDS.NTLM_NEGOTIATE_EXTENDED_SESSIONSECURITY & 0xff)) == 1) {
+if (((flag4 & 0xff) & (TDS.NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY & 0xff)) == 1) {
     System.out.println("die NTLM v2 not supported");
 }
 
 // 1110 0111
 // 0010 0000
 int f = flag3 & 0xff;
-int s = (int)(TDS.NTLM_NEGOTIATE_128 >> 24);
+int s = (int)(TDS.NTLMSSP_NEGOTIATE_128 >> 24);
 
-if (((flag3 & 0xff) & (int)(TDS.NTLM_NEGOTIATE_128 >> 24)) == 0) {
+if (((flag3 & 0xff) & (int)(TDS.NTLMSSP_NEGOTIATE_128 >> 24)) == 0) {
     System.out.println("128 bit encryption not supported");
 }
-if (((flag3 & 0xff) & (int)(TDS.NTLM_NEGOTIATE_56 >> 24)) == 0) {
+if (((flag3 & 0xff) & (int)(TDS.NTLMSSP_NEGOTIATE_56 >> 24)) == 0) {
     System.out.println("56 bit encryption not supported");
 }
 
        /*
         
        // P
-        if ((flags[1] & TDS.NTLM_NEGOTIATE_EXTENDED_SESSIONSECURITY) == 1) {
+        if ((flags[1] & TDS.NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY) == 1) {
             System.out.println("die NTLM v2 not supported");
         }
         // U
-        if ((flags[0] & TDS.NTLM_NEGOTIATE_128) != 1) {
+        if ((flags[0] & TDS.NTLMSSP_NEGOTIATE_128) != 1) {
             System.out.println("128 bit encryption not supported");
         }
         // W
-        if ((flags[0] & TDS.NTLM_NEGOTIATE_56) != 1) {
+        if ((flags[0] & TDS.NTLMSSP_NEGOTIATE_56) != 1) {
             System.out.println("56 bit encryption not supported");
         }
         // E
-        if ((flags[3] & TDS.NTLM_NEGOTIATE_SEAL) != 1) {
+        if ((flags[3] & TDS.NTLMSSP_NEGOTIATE_SEAL) != 1) {
             System.out.println("seal not supported");
         }
         */
@@ -103,30 +103,30 @@ if (((flag3 & 0xff) & (int)(TDS.NTLM_NEGOTIATE_56 >> 24)) == 0) {
         // 0010 1000 1001 1000 0010 0000 0101
 /*
         // ntlm v2 not supported
-        if ((flags[0] & TDS.NTLM_NEGOTIATE_EXTENDED_SESSIONSECURITY) == 1) {
+        if ((flags[0] & TDS.NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY) == 1) {
             System.out.println("die NTLM v2 not supported");
         }
         
-        if ((flags[0] & TDS.NTLM_NEGOTIATE_128) != 1) {
+        if ((flags[0] & TDS.NTLMSSP_NEGOTIATE_128) != 1) {
             System.out.println("128 bit encryption not supported");
         }
-        if ((flags[0] & TDS.NTLM_NEGOTIATE_56) != 1) {
+        if ((flags[0] & TDS.NTLMSSP_NEGOTIATE_56) != 1) {
             System.out.println("56 bit encryption not supported");
         }
-        if ((flags[3] & TDS.NTLM_NEGOTIATE_SEAL) != 1) {
+        if ((flags[3] & TDS.NTLMSSP_NEGOTIATE_SEAL) != 1) {
             System.out.println("seal not supported");
         }
         /*
         byte[] array1 = buf.order(ByteOrder.LITTLE_ENDIAN).array();
         byte[] array2 = buf.order(ByteOrder.BIG_ENDIAN).array();
         int flags = buf.order(ByteOrder.LITTLE_ENDIAN).getInt();
-        if ((flags & TDS.NTLM_NEGOTIATE_128) != 1) {
+        if ((flags & TDS.NTLMSSP_NEGOTIATE_128) != 1) {
             System.out.println("128 bit encryption not supported");
         }
-        if ((flags & TDS.NTLM_NEGOTIATE_56) != 1) {
+        if ((flags & TDS.NTLMSSP_NEGOTIATE_56) != 1) {
             System.out.println("56 bit encryption not supported");
         }
-        if ((flags & TDS.NTLM_NEGOTIATE_SEAL) != 1) {
+        if ((flags & TDS.NTLMSSP_NEGOTIATE_SEAL) != 1) {
             System.out.println("seal not supported");
         }
         */
@@ -362,8 +362,8 @@ if (((flag3 & 0xff) & (int)(TDS.NTLM_NEGOTIATE_56 >> 24)) == 0) {
             // negotiate flags
        //      buf.putInt(0x88201); // 1000 1000 0010 0000 0001 jtds
 
-            buf.putInt((int) (TDS.NTLM_NEGOTIATE_EXTENDED_SESSIONSECURITY | TDS.NTLM_NEGOTIATE_ALWAYS_SIGN
-                    | TDS.NTLM_NEGOTIATE_OEM_DOMAIN_SUPPLIED | TDS.NTLM_NEGOTIATE_UNICODE));
+            buf.putInt((int) (TDS.NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY | TDS.NTLMSSP_NEGOTIATE_ALWAYS_SIGN
+                    | TDS.NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED | TDS.NTLMSSP_NEGOTIATE_UNICODE));
 
             // version not requested
 
@@ -393,9 +393,14 @@ if (((flag3 & 0xff) & (int)(TDS.NTLM_NEGOTIATE_56 >> 24)) == 0) {
         buf.putInt(TDS.NTLM_MESSAGE_TYPE_NEGOTIATE);
 
         // negotiate flags - only NTLMV2 supported
-        buf.putInt((int) (TDS.NTLM_NEGOTIATE_128 | TDS.NTLM_NEGOTIATE_56 |TDS.NTLM_NEGOTIATE_SEAL | TDS.NTLM_NEGOTIATE_EXTENDED_SESSIONSECURITY | TDS.NTLM_NEGOTIATE_ALWAYS_SIGN
-                | TDS.NTLM_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | TDS.NTLM_NEGOTIATE_OEM_DOMAIN_SUPPLIED
-                | TDS.NTLM_REQUEST_TARGET | TDS.NTLM_NEGOTIATE_UNICODE));
+        /*
+        buf.putInt((int) (TDS.NTLMSSP_NEGOTIATE_128 | TDS.NTLMSSP_NEGOTIATE_56 |TDS.NTLMSSP_NEGOTIATE_SIGN | TDS.NTLMSSP_NEGOTIATE_SEAL | TDS.NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY | TDS.NTLMSSP_NEGOTIATE_ALWAYS_SIGN
+                | TDS.NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | TDS.NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
+                | TDS.NTLMSSP_REQUEST_TARGET | TDS.NTLMSSP_NEGOTIATE_UNICODE));
+                */
+        buf.putInt((int) (TDS.NTLMSSP_NEGOTIATE_56 |TDS.NTLMSSP_NEGOTIATE_SIGN | TDS.NTLMSSP_NEGOTIATE_SEAL | TDS.NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY | TDS.NTLMSSP_NEGOTIATE_ALWAYS_SIGN
+                | TDS.NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | TDS.NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
+                | TDS.NTLMSSP_REQUEST_TARGET | TDS.NTLMSSP_NEGOTIATE_UNICODE));
 
         // 0x89005 1000 1001 0000 0000 0101
         // jtds: 0x8b205 1000 1011 0010 0101

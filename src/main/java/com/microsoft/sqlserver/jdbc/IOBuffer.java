@@ -121,19 +121,26 @@ final class TDS {
     static final byte[] NTLM_CLIENT_CHALLENGE_RESERVED2 = {0x00, 0x00, 0x00, 0x00};;
     static final byte[] NTLM_CLIENT_CHALLENGE_RESERVED3 = {0x00, 0x00, 0x00, 0x00};;
 
-    static final long NTLM_NEGOTIATE_56 = 0x80000000; // 56-bit encryption
-    static final long NTLM_NEGOTIATE_128 = 0x20000000; // 128-bit encryption
-    static final long NTLM_NEGOTIATE_EXTENDED_SESSIONSECURITY = 0x00080000; // ntlm v2
-    static final long NTLM_NEGOTIATE_ALWAYS_SIGN = 0x00008000;
-    static final long NTLM_NEGOTIATE_SEAL = 0x00000020;
-    static final long NTLM_NEGOTIATE_OEM_WORKSTATION_SUPPLIED = 0x00000000; //0x00002000; not supported?
-    static final long NTLM_NEGOTIATE_OEM_DOMAIN_SUPPLIED = 0x00001000;
-    static final long NTLM_NEGOTIATE_NTLM = 0x00000000; // 0x00000200; // no ntlm v1!!
-    static final long NTLM_REQUEST_TARGET = 0x00000004;
-    static final long NTLM_NEGOTIATE_UNICODE = 0x00000001;
-    //static final long NTLM_NEGOTIATE_KEY_EXCH = 0x00100000;
-    //static final long NTLM_NEGOTIATE_56 = 0x00200000;
-    // static final long NTLM_NEGOTIATE_TARGET_INFO = 0x00800000;
+    static final long NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY = 0x00080000; // ntlm v2
+
+    static final long NTLMSSP_NEGOTIATE_UNICODE                  = 0x00000001;
+    static final long NTLMSSP_NEGOTIATE_OEM                      = 0x00000002;
+    static final long NTLMSSP_REQUEST_TARGET                     = 0x00000004;
+    static final long NTLMSSP_NEGOTIATE_SIGN                     = 0x00000010;
+    static final long NTLMSSP_NEGOTIATE_SEAL                     = 0x00000020;
+    static final long NTLMSSP_NEGOTIATE_DATAGRAM                 = 0x00000040;
+    static final long NTLMSSP_NEGOTIATE_LM_KEY                   = 0x00000080;
+    static final long NTLMSSP_NEGOTIATE_NTLM                     = 0x00000000; // 0x00000200; // ntlm v1 not supported
+    static final long NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED      = 0x00001000;
+    static final long NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED = 0x00000000; //0x00002000; not supported?
+    static final long NTLMSSP_NEGOTIATE_ALWAYS_SIGN              = 0x00008000;
+    
+    // static final long NTLMSSP_TARGET_TYPE_DOMAIN              = 0x00010000; // sent from server only
+    // static final long NTLMSSP_TARGET_TYPE_SERVER              = 0x00020000; // sent from server only
+    //static final long NTLM_NEGOTIATE_TARGET_INFO               = 0x00800000; // sent from server only
+    static final long NTLMSSP_NEGOTIATE_128                      = 0x20000000; // 128-bit encryption
+    static final long NTLMSSP_NEGOTIATE_KEY_EXCH                    = 0x40000000;
+    static final long NTLMSSP_NEGOTIATE_56                       = 0x80000000; // 56-bit encryption
     
     static final int NTLM_NEGOTIATE_MESSAGE_BUFFER_OFFSET = 32;
     static final int NTLM_AUTHENTICATE_MESSAGE_BUFFER_OFFSET = 64;
