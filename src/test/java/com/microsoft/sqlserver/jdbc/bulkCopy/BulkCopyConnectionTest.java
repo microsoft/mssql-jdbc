@@ -197,7 +197,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
         bulkWrapper4.setUsingXAConnection(false, dsXA);
         bulkWrapper4.setUsingXAConnection(true, dsPool);
         testData.add(bulkWrapper4);
- 
+
         return testData;
     }
 
@@ -221,8 +221,10 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
                     BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
                     bulkWrapper.testName = testCaseName;
                     bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false, ds);
-                    bulkWrapper.setUsingXAConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false, dsXA);
-                    bulkWrapper.setUsingPooledConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false, dsPool);
+                    bulkWrapper.setUsingXAConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false,
+                            dsXA);
+                    bulkWrapper.setUsingPooledConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false,
+                            dsPool);
 
                     SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
                     if (!(method.getName()).equalsIgnoreCase("setUseInternalTransaction")

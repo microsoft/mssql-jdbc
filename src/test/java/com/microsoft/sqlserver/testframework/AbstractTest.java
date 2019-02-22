@@ -110,20 +110,27 @@ public abstract class AbstractTest {
         }
     }
 
+    /**
+     * Covers only connection properties required for testing. Does not cover all connection properties - add more
+     * properties if needed.
+     * 
+     * @param ds
+     *        DataSource to be configured
+     * @return ISQLServerDataSource
+     */
     private static ISQLServerDataSource updateDataSource(ISQLServerDataSource ds) {
         String prefix = "jdbc:sqlserver://";
         if (null != connectionString && connectionString.startsWith(prefix)) {
             String extract = connectionString.substring(prefix.length());
-            System.out.println(extract);
             String[] identifiers = extract.split(";");
             String server = identifiers[0];
             // Check if serverName contains instance name
             if (server.contains("\\")) {
                 int i = identifiers[0].indexOf('\\');
-                ds.setServerName(server.substring(0, i));
+                ds.setServerName(extractPort(server.substring(0, i), ds));
                 ds.setInstanceName(server.substring(i + 1));
             } else {
-                ds.setServerName(server);
+                ds.setServerName(extractPort(server, ds));
             }
             for (String prop : identifiers) {
                 if (prop.contains("=")) {
@@ -135,9 +142,12 @@ public abstract class AbstractTest {
                         case "USERNAME":
                             ds.setUser(value);
                             break;
+                        case "PORT":
+                        case "PORTNUMBER":
+                            ds.setPortNumber(Integer.parseInt(value));
+                            break;
                         case "PASSWORD":
                             ds.setPassword(value);
-                            System.out.println("Temporary for debugging: " + value);
                             break;
                         case "DATABASE":
                         case "DATABASENAME":
@@ -174,6 +184,14 @@ public abstract class AbstractTest {
             }
         }
         return ds;
+    }
+
+    static String extractPort(String server, ISQLServerDataSource ds) {
+        if (server.contains(":")) {
+            ds.setPortNumber(Integer.parseInt(server.substring(server.indexOf(":") + 1)));
+            server = server.substring(0, server.indexOf(":"));
+        }
+        return server;
     }
 
     /**
