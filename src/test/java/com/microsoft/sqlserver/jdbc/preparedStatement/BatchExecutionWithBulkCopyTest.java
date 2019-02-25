@@ -624,8 +624,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.executeBatch();
             throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
+            System.out.println("swagger");
+            System.out.println(TestResource.getResource("R_incorrectSyntaxTableDW"));
+            System.out.println(e.getMessage());
             if (isSqlAzureDW()) {
-                assertEquals(TestResource.getResource("R_incorrectSyntaxTableDW"), e.getMessage().replaceAll("\r", ""));
+                assertEquals(TestResource.getResource("R_incorrectSyntaxTableDW"), e.getMessage());
             } else {
                 assertEquals(TestResource.getResource("R_incorrectSyntaxTable"), e.getMessage());
             }
