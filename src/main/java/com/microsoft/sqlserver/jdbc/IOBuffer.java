@@ -5337,16 +5337,9 @@ final class TDSWriter {
         int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(cal.get(Calendar.YEAR), cal.get(Calendar.DAY_OF_YEAR),
                 TDS.BASE_YEAR_1900);
 
-        // Next, figure out the number of milliseconds since midnight of the current day.
-        int millisSinceMidnight;
         // Millis into the current second
-        if (con.getServerMajorVersion() >= SQL_SERVER_VERSION_2016) {
-            millisSinceMidnight = getRoundedMilliseconds(subSecondNanos);
-        } else {
-            millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND;
-        }
-
-        millisSinceMidnight = millisSinceMidnight + 1000 * cal.get(Calendar.SECOND) + // Seconds into the current minute
+        int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + 
+                1000 * cal.get(Calendar.SECOND) + // Seconds into the current minute
                 60 * 1000 * cal.get(Calendar.MINUTE) + // Minutes into the current hour
                 60 * 60 * 1000 * cal.get(Calendar.HOUR_OF_DAY); // Hours into the current day
 
@@ -5629,37 +5622,6 @@ final class TDSWriter {
         int roundedNanos = ((subSecondNanos + (Nanos.PER_MAX_SCALE_INTERVAL / 2)) / Nanos.PER_MAX_SCALE_INTERVAL)
                 * Nanos.PER_MAX_SCALE_INTERVAL;
         return roundedNanos;
-    }
-    
-    /**
-     * Returns subSecondNanos rounded to a millisecond value for SQL Server compatibility level >= 130 (SQL Server 2016 and after).
-     * The rounding logic below represents the actual rounding logic employed by datetime columns when determining their last millisecond digit.
-     */
-    private int getRoundedMilliseconds(int subSecondNanos) {
-        int fourthDigitOnward = subSecondNanos % 1000000;
-        int millis = subSecondNanos / 1000000;
-        int lastMillisDigit = millis % 10;
-        switch (lastMillisDigit) {
-            case 1:
-                if (fourthDigitOnward >= 666650) {
-                    millis++;
-                }
-                break;
-            case 4:
-                if (fourthDigitOnward >= 999950) {
-                    millis++;
-                }
-                break;
-            case 8:
-                if (fourthDigitOnward >= 333350) {
-                    millis++;
-                }
-                break;
-            default:
-                break;
-        }
-
-        return millis;
     }
 
     /**
