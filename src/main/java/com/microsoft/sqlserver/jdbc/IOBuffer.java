@@ -3007,7 +3007,6 @@ final class SocketConnector implements Runnable {
 final class TDSWriter {
     private static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Writer");
     private final String traceID;
-    private static final double SQL_SERVER_VERSION_2016 = 13.0;
 
     final public String toString() {
         return traceID;
@@ -5337,8 +5336,10 @@ final class TDSWriter {
         int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(cal.get(Calendar.YEAR), cal.get(Calendar.DAY_OF_YEAR),
                 TDS.BASE_YEAR_1900);
 
-        // Millis into the current second
-        int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + 
+        // Next, figure out the number of milliseconds since midnight of the current day.
+        int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
+                                                                                                         // the current
+                                                                                                         // second
                 1000 * cal.get(Calendar.SECOND) + // Seconds into the current minute
                 60 * 1000 * cal.get(Calendar.MINUTE) + // Minutes into the current hour
                 60 * 60 * 1000 * cal.get(Calendar.HOUR_OF_DAY); // Hours into the current day
