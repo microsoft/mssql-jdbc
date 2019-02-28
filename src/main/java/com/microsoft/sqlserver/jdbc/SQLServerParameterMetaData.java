@@ -735,15 +735,19 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     @Override
     public String getParameterClassName(int param) throws SQLServerException {
         checkClosed();
+        String parameterClassName = null;
         try {
             if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
-                return queryMetaMap.get(param).parameterClassName;
+                parameterClassName = queryMetaMap.get(param).parameterClassName;
             } else {
-                JDBCType jdbcType = JDBCType.of((short) getParameterInfo(param).get("DATA_TYPE"));
-                return jdbcType.className();
+                Map<String, Object> info = getParameterInfo(param);
+                if (null != info) {
+                    parameterClassName = JDBCType.of((short) info.get("DATA_TYPE")).className();
+                }
             }
+            return parameterClassName;
         } catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
             return null;
@@ -771,15 +775,19 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 // if it is not a stored proc, the param can only be input.
                 return parameterModeIn;
             } else {
-                int n = (int) getParameterInfo(param).get("COLUMN_TYPE");
-                switch (n) {
-                    case 1:
-                        return parameterModeIn;
-                    case 2:
-                        return parameterModeOut;
-                    default:
-                        return parameterModeUnknown;
+                Map<String, Object> info = getParameterInfo(param);
+                if (null != info) {
+                    int n = (int) info.get("COLUMN_TYPE");
+                    switch (n) {
+                        case 1:
+                            return parameterModeIn;
+                        case 2:
+                            return parameterModeOut;
+                        default:
+                            return parameterModeUnknown;
+                    }
                 }
+                return parameterModeUnknown;
             }
         } catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
@@ -829,14 +837,19 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     @Override
     public String getParameterTypeName(int param) throws SQLServerException {
         checkClosed();
+        String parameterTypeName = null;
         try {
             if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
-                return queryMetaMap.get(param).parameterTypeName;
+                parameterTypeName = queryMetaMap.get(param).parameterTypeName;
             } else {
-                return getParameterInfo(param).get("TYPE_NAME").toString();
+                Map<String, Object> info = getParameterInfo(param);
+                if (null != info) {
+                    parameterTypeName = info.get("TYPE_NAME").toString();
+                }
             }
+            return parameterTypeName;
         } catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
             return null;
@@ -846,15 +859,19 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     @Override
     public int getPrecision(int param) throws SQLServerException {
         checkClosed();
+        int nPrec = 0;
         try {
             if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
-                return queryMetaMap.get(param).precision;
+                nPrec = queryMetaMap.get(param).precision;
             } else {
-                int nPrec = (int) getParameterInfo(param).get("PRECISION");
-                return nPrec;
+                Map<String, Object> info = getParameterInfo(param);
+                if (null != info) {
+                    nPrec = (int) info.get("PRECISION");
+                }
             }
+            return nPrec;
         } catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
             return 0;
@@ -864,15 +881,19 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     @Override
     public int getScale(int param) throws SQLServerException {
         checkClosed();
+        int nScale = 0;
         try {
             if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
-                return queryMetaMap.get(param).scale;
+                nScale = queryMetaMap.get(param).scale;
             } else {
-                int nScale = (int) getParameterInfo(param).get("SCALE");
-                return nScale;
+                Map<String, Object> info = getParameterInfo(param);
+                if (null != info) {
+                    nScale = (int) getParameterInfo(param).get("SCALE");
+                }
             }
+            return nScale;
         } catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
             return 0;
@@ -888,11 +909,14 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 checkParam(param);
                 return queryMetaMap.get(param).isNullable;
             } else {
-                int nNull = (int) getParameterInfo(param).get("NULLABLE");
-                if (nNull == 1)
-                    return parameterNullable;
-                if (nNull == 0)
-                    return parameterNoNulls;
+                Map<String, Object> info = getParameterInfo(param);
+                if (null != info) {
+                    int nNull = (int) info.get("NULLABLE");
+                    if (nNull == 1)
+                        return parameterNullable;
+                    if (nNull == 0)
+                        return parameterNoNulls;
+                }
                 return parameterNullableUnknown;
             }
         } catch (SQLException e) {
@@ -913,14 +937,19 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     @Override
     public boolean isSigned(int param) throws SQLServerException {
         checkClosed();
+        boolean isSigned = false;
         try {
             if (procMetadata == null) {
                 // PreparedStatement.
                 checkParam(param);
-                return queryMetaMap.get(param).isSigned;
+                isSigned = queryMetaMap.get(param).isSigned;
             } else {
-                return JDBCType.of((short) getParameterInfo(param).get("DATA_TYPE")).isSigned();
+                Map<String, Object> info = getParameterInfo(param);
+                if (null != info) {
+                    isSigned = JDBCType.of((short) info.get("DATA_TYPE")).isSigned();
+                }
             }
+            return isSigned;
         } catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.toString(), null, false);
             return false;
@@ -929,6 +958,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
     String getTVPSchemaFromStoredProcedure(int param) throws SQLServerException {
         checkClosed();
-        return (String) getParameterInfo(param).get("SS_TYPE_SCHEMA_NAME");
+        Map<String, Object> info = getParameterInfo(param);
+        if (null != info) {
+            return (String) info.get("SS_TYPE_SCHEMA_NAME");
+        }
+        return null;
     }
 }
