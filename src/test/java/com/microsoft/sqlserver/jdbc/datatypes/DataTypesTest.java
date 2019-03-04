@@ -5,6 +5,7 @@ import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -20,6 +21,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DateFormatSymbols;
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.Calendar;
 import java.util.EnumSet;
 import java.util.GregorianCalendar;
@@ -1664,6 +1666,124 @@ public class DataTypesTest extends AbstractTest {
                     rs.updateRow();
                     assertEquals("1970-01-02 00:00:00.0", rs.getTimestamp(2).toString());
 
+                } finally {
+                    TestUtils.dropTableIfExists(escapedTableName, stmt);
+                }
+            }
+        }
+    }
+    
+    @Test
+    public void testDateTimeInsertUpdate() throws Exception {
+        assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_cursorAzureDW"));
+        
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager
+                .getConnection(connectionString)) {
+
+            try (Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO "
+                            + escapedTableName + " VALUES (?)")) {
+                TestUtils.dropTableIfExists(escapedTableName, stmt);
+
+                stmt.executeUpdate("CREATE TABLE " + escapedTableName + " (c1 datetime)");
+
+                String testValue2 = "2012-06-18T10:34:09Z";
+                Instant ist = Instant.parse(testValue2);
+                ist = ist.plusNanos(634999949);
+                DateTimeOffset dto1 = DateTimeOffset.valueOf(Timestamp.from(ist), 0);
+                
+                pstmt.setObject(1, dto1);
+                pstmt.addBatch();
+                
+                ist = Instant.parse(testValue2);
+                ist = ist.plusNanos(634999950);
+                DateTimeOffset dto2 = DateTimeOffset.valueOf(Timestamp.from(ist), 0);
+                
+                pstmt.setObject(1, dto2);
+                pstmt.addBatch();
+                
+                ist = Instant.parse(testValue2);
+                ist = ist.plusNanos(741666649);
+                DateTimeOffset dto3 = DateTimeOffset.valueOf(Timestamp.from(ist), 0);
+                
+                pstmt.setObject(1, dto3);
+                pstmt.addBatch();
+                
+                ist = Instant.parse(testValue2);
+                ist = ist.plusNanos(741666650);
+                DateTimeOffset dto4 = DateTimeOffset.valueOf(Timestamp.from(ist), 0);
+                
+                pstmt.setObject(1, dto4);
+                pstmt.addBatch();
+                
+                ist = Instant.parse(testValue2);
+                ist = ist.plusNanos(788333349);
+                DateTimeOffset dto5 = DateTimeOffset.valueOf(Timestamp.from(ist), 0);
+                
+                pstmt.setObject(1, dto5);
+                pstmt.addBatch();
+                
+                ist = Instant.parse(testValue2);
+                ist = ist.plusNanos(788333350);
+                DateTimeOffset dto6 = DateTimeOffset.valueOf(Timestamp.from(ist), 0);
+                
+                pstmt.setObject(1, dto6);
+                pstmt.addBatch();
+                
+                pstmt.executeBatch();
+                
+                Method method = conn.getClass().getSuperclass().getDeclaredMethod("getServerMajorVersion");
+                method.setAccessible(true);
+                int serverVersion = (int) method.invoke(conn);
+                
+                String[] result = new String[6];
+                result[0] = "2012-06-18 10:34:09.633";
+                result[1] = "2012-06-18 10:34:09.637";
+                result[2] = "2012-06-18 10:34:09.74";
+                result[3] = "2012-06-18 10:34:09.743";
+                result[4] = "2012-06-18 10:34:09.787";
+                result[5] = "2012-06-18 10:34:09.79";
+                
+                String[] resultPre2k16 = new String[6];
+                resultPre2k16[0] = "2012-06-18 10:34:09.637";
+                resultPre2k16[1] = "2012-06-18 10:34:09.637";
+                resultPre2k16[2] = "2012-06-18 10:34:09.743";
+                resultPre2k16[3] = "2012-06-18 10:34:09.743";
+                resultPre2k16[4] = "2012-06-18 10:34:09.787";
+                resultPre2k16[5] = "2012-06-18 10:34:09.787";
+                
+                DateTimeOffset[] dto = new DateTimeOffset[6];
+                dto[0] = dto1;
+                dto[1] = dto2;
+                dto[2] = dto3;
+                dto[3] = dto4;
+                dto[4] = dto5;
+                dto[5] = dto6;
+                
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + escapedTableName + " ORDER BY c1")) {
+                    if (serverVersion >= 13.0 || TestUtils.isAzure(conn)) {
+                        for (int i = 0; i < result.length; i++) {
+                            rs.next();
+                            assertEquals(rs.getObject(1).toString(), result[i]);
+                        }
+                        
+                        for (int i = 0; i < result.length; i++) {
+                            rs.updateObject(1, dto[i]);
+                            rs.updateRow();
+                            assertEquals(rs.getObject(1).toString(), result[i]);
+                        }
+                    } else {
+                        for (int i = 0; i < result.length; i++) {
+                            rs.next();
+                            assertEquals(rs.getObject(1).toString(), resultPre2k16[i]);
+                        }
+                        
+                        for (int i = 0; i < result.length; i++) {
+                            rs.updateObject(1, dto[i]);
+                            rs.updateRow();
+                            assertEquals(rs.getObject(1).toString(), resultPre2k16[i]);
+                        }
+                    }
                 } finally {
                     TestUtils.dropTableIfExists(escapedTableName, stmt);
                 }
