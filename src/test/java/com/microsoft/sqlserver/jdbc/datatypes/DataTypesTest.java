@@ -1732,8 +1732,15 @@ public class DataTypesTest extends AbstractTest {
                 
                 pstmt.executeBatch();
                 
-                Method method = conn.getClass().getSuperclass().getDeclaredMethod("getServerMajorVersion");
-                method.setAccessible(true);
+                Method method;
+                try {
+                    method = conn.getClass().getSuperclass().getDeclaredMethod("getServerMajorVersion");
+                    method.setAccessible(true);
+                } catch (NoSuchMethodException e) {
+                    method = conn.getClass().getDeclaredMethod("getServerMajorVersion");
+                    method.setAccessible(true);
+                }
+
                 int serverVersion = (int) method.invoke(conn);
                 
                 String[] result = new String[6];
