@@ -12,7 +12,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
-import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,7 +41,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
             DBTable destTable = null;
             try {
-                // create dest table
+                // create destination table
                 destTable = sourceTable.cloneSchema();
                 stmt.createTable(destTable);
 
@@ -64,7 +63,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
             DBTable destTable = null;
             try {
-                // create dest table
+                // create destination table
                 destTable = sourceTable.cloneSchema();
                 stmt.createTable(destTable);
 
@@ -75,21 +74,17 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
                 for (int i = 1; i <= destTable.totalColumns(); i++) {
                     int select = i % 4;
-
                     switch (select) {
                         case 0:
                             bulkWrapper.setColumnMapping(i, i);
                             break;
-
                         case 1:
                             bulkWrapper.setColumnMapping(i, destTable.getColumnName(i - 1));
                             break;
-
                         case 2:
                             bulkWrapper.setColumnMapping(sourceTable.getColumnName(i - 1),
                                     destTable.getColumnName(i - 1));
                             break;
-
                         case 3:
                             bulkWrapper.setColumnMapping(sourceTable.getColumnName(i - 1), i);
                             break;
@@ -124,21 +119,17 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
                 for (int i = 1; i <= destTableUnicode.totalColumns(); i++) {
                     int select = i % 4;
-
                     switch (select) {
                         case 0:
                             bulkWrapper.setColumnMapping(i, i);
                             break;
-
                         case 1:
                             bulkWrapper.setColumnMapping(i, destTableUnicode.getColumnName(i - 1));
                             break;
-
                         case 2:
                             bulkWrapper.setColumnMapping(sourceTableUnicode.getColumnName(i - 1),
                                     destTableUnicode.getColumnName(i - 1));
                             break;
-
                         case 3:
                             bulkWrapper.setColumnMapping(sourceTableUnicode.getColumnName(i - 1), i);
                             break;
@@ -179,21 +170,17 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
                 for (int i = 1; i <= sourceTable1.totalColumns(); i++) {
                     int select = i % 4;
-
                     switch (select) {
                         case 0:
                             bulkWrapper.setColumnMapping(i, i);
                             break;
-
                         case 1:
                             bulkWrapper.setColumnMapping(i, destTable.getColumnName(i - 1));
                             break;
-
                         case 2:
                             bulkWrapper.setColumnMapping(sourceTable1.getColumnName(i - 1),
                                     destTable.getColumnName(i - 1));
                             break;
-
                         case 3:
                             bulkWrapper.setColumnMapping(sourceTable1.getColumnName(i - 1), i);
                             break;
@@ -202,7 +189,6 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // add column mapping for duplicate column in destination
                 bulkWrapper.setColumnMapping(1, 25);
-
                 // perform bulkCopy without validating results or dropping destination table
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable1, destTable, false, false, false);
 
@@ -227,7 +213,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
             DBTable destTable = null;
             try {
-                // create non unicode dest table with different schema from source table
+                // create non unicode destination table with different schema from source table
                 destTable = new DBTable(true, false, true);
                 stmt.createTable(destTable);
 
@@ -238,21 +224,17 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
                 for (int i = 1; i <= destTable.totalColumns(); i++) {
                     int select = i % 4;
-
                     switch (select) {
                         case 0:
                             bulkWrapper.setColumnMapping(i, i);
                             break;
-
                         case 1:
                             bulkWrapper.setColumnMapping(i, destTable.getColumnName(i - 1));
                             break;
-
                         case 2:
                             bulkWrapper.setColumnMapping(sourceTable.getColumnName(i - 1),
                                     destTable.getColumnName(i - 1));
                             break;
-
                         case 3:
                             bulkWrapper.setColumnMapping(sourceTable.getColumnName(i - 1), i);
                             break;
@@ -271,7 +253,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
             DBTable destTable = null;
             try {
-                // create dest table
+                // create destination table
                 destTable = sourceTable.cloneSchema();
                 stmt.createTable(destTable);
 
@@ -283,7 +265,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setColumnMapping("wrongFirst", "wrongSecond");
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-                // create dest table
+                // create destination table
                 destTable = sourceTable.cloneSchema();
                 stmt.createTable(destTable);
 
@@ -295,7 +277,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setColumnMapping(sourceTable.getColumnName(1), 65);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-                // create dest table
+                // create destination table
                 destTable = sourceTable.cloneSchema();
                 stmt.createTable(destTable);
 
@@ -307,7 +289,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setColumnMapping(42, destTable.getColumnName(1));
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-                // create dest table
+                // create destination table
                 destTable = sourceTable.cloneSchema();
                 stmt.createTable(destTable);
 
@@ -319,7 +301,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setColumnMapping(42, 65);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-                // create dest table
+                // create destination table
                 destTable = sourceTable.cloneSchema();
                 stmt.createTable(destTable);
 
@@ -331,7 +313,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setColumnMapping(sourceTable.getColumnName(1), "     ");
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-                // create dest table
+                // create destination table
                 destTable = sourceTable.cloneSchema();
                 stmt.createTable(destTable);
 
@@ -343,7 +325,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setColumnMapping(0, 0);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-                // create dest table
+                // create destination table
                 destTable = sourceTable.cloneSchema();
                 stmt.createTable(destTable);
 
@@ -355,7 +337,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setColumnMapping(-3, -6);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-                // create dest table
+                // create destination table
                 destTable = sourceTable.cloneSchema();
                 stmt.createTable(destTable);
 

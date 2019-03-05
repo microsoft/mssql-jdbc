@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -58,6 +57,8 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     }
 
     class BulkData implements ISQLServerBulkRecord {
+
+        private static final long serialVersionUID = 1L;
 
         private class ColumnMetadata {
             String columnName;
