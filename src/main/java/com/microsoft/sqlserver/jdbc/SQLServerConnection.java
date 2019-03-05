@@ -5586,7 +5586,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // The connection is considered to be invalid if the statement fails to close,
             // even though query execution succeeded.
             connectionlogger.fine(toString() + " Exception checking connection validity: " + e.getMessage());
-            isValid = false;
+            return false;
         }
 
         loggerExternal.exiting(getClassNameLogging(), "isValid", isValid);
