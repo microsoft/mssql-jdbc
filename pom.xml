@@ -70,6 +70,13 @@
 			<version>1.6.5</version>
 			<optional>true</optional>
 		</dependency>
+		
+		<!-- dependencies for ANTLR -->
+		<dependency>
+		    <groupId>org.antlr</groupId>
+		    <artifactId>antlr4-runtime</artifactId>
+		    <version>4.7.2</version>
+		</dependency>
 
 		<!-- dependencies provided by an OSGi-Framework -->
 		<dependency>
