@@ -792,11 +792,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     public int getParameterType(int param) throws SQLServerException {
         checkClosed();
         checkParam(param);
-        int parameterType = 0;
         if (null == procMetadata) {
-            parameterType = queryMetaMap.get(param).parameterType;
+            return queryMetaMap.get(param).parameterType;
         } else {
-            parameterType = (short) getParameterInfo(param).get("DATA_TYPE");
+            int parameterType = (short) getParameterInfo(param).get("DATA_TYPE");
             if (0 != parameterType) {
                 switch (parameterType) {
                     case microsoft.sql.Types.DATETIME:
@@ -812,8 +811,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                         break;
                 }
             }
+            return parameterType;
         }
-        return parameterType;
     }
 
     @Override
