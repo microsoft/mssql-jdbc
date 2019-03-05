@@ -792,27 +792,28 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     public int getParameterType(int param) throws SQLServerException {
         checkClosed();
         checkParam(param);
+        int parameterType = 0;
         if (null == procMetadata) {
-            return queryMetaMap.get(param).parameterType;
+            parameterType = queryMetaMap.get(param).parameterType;
         } else {
-            int parameterType = (short) getParameterInfo(param).get("DATA_TYPE");
-            if (0 != parameterType) {
-                switch (parameterType) {
-                    case microsoft.sql.Types.DATETIME:
-                    case microsoft.sql.Types.SMALLDATETIME:
-                        parameterType = SSType.DATETIME2.getJDBCType().asJavaSqlType();
-                        break;
-                    case microsoft.sql.Types.MONEY:
-                    case microsoft.sql.Types.SMALLMONEY:
-                        parameterType = SSType.DECIMAL.getJDBCType().asJavaSqlType();
-                        break;
-                    case microsoft.sql.Types.GUID:
-                        parameterType = SSType.CHAR.getJDBCType().asJavaSqlType();
-                        break;
-                }
-            }
-            return parameterType;
+            parameterType = (short) getParameterInfo(param).get("DATA_TYPE");
         }
+        if (0 != parameterType) {
+            switch (parameterType) {
+                case microsoft.sql.Types.DATETIME:
+                case microsoft.sql.Types.SMALLDATETIME:
+                    parameterType = SSType.DATETIME2.getJDBCType().asJavaSqlType();
+                    break;
+                case microsoft.sql.Types.MONEY:
+                case microsoft.sql.Types.SMALLMONEY:
+                    parameterType = SSType.DECIMAL.getJDBCType().asJavaSqlType();
+                    break;
+                case microsoft.sql.Types.GUID:
+                    parameterType = SSType.CHAR.getJDBCType().asJavaSqlType();
+                    break;
+            }
+        }
+        return parameterType;
     }
 
     @Override
