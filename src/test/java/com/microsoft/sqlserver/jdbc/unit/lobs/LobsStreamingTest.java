@@ -90,7 +90,7 @@ public class LobsStreamingTest extends AbstractTest {
         String characterPool = (l == Lob.CLOB) ? ASCII_CHARACTERS : UNICODE_CHARACTERS;
         ArrayList<String> string_array = new ArrayList<>();
         IntStream.range(0, LOB_ARRAY_SIZE).forEach(i -> string_array.add(
-                getRandomString(ThreadLocalRandom.current().nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX), characterPool)));
+                getRandomString(random.nextInt(LOB_LENGTH_MIN, LOB_LENGTH_MAX), characterPool)));
         return string_array;
     }
 

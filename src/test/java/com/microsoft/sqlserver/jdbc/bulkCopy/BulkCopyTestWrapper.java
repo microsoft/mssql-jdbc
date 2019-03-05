@@ -103,7 +103,7 @@ class BulkCopyTestWrapper {
      */
     public void setUsingXAConnection(boolean isUsingXAConnection, ISQLServerDataSource ds) {
         if (!isUsingConnection) {
-            // Set to false if isUsingConnection is false.
+            // Cannot use XA Connection if connection itself is not in use.
             isUsingXAConnection = false;
         }
         this.isUsingXAConnection = isUsingXAConnection;
@@ -121,7 +121,7 @@ class BulkCopyTestWrapper {
      */
     public void setUsingPooledConnection(boolean isUsingPooledConnection, ISQLServerDataSource ds) {
         if (!isUsingConnection || isUsingXAConnection) {
-            // Set to false if isUsingConnection is false or isUsingXAConnection is true.
+            // Cannot use Pooled connection if connection itself is not in use or we are already using XA Connection
             isUsingPooledConnection = false;
         }
         this.isUsingPooledConnection = isUsingPooledConnection;

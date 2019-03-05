@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -41,9 +42,9 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
  */
 public abstract class AbstractTest {
 
-    protected static Logger logger = Logger.getLogger("AbstractTest");
-
-    protected static String secretstrJks = "changeit";
+    protected static final Logger logger = Logger.getLogger("AbstractTest");
+    protected static final ThreadLocalRandom random = ThreadLocalRandom.current();
+    protected static final String secretstrJks = "changeit";
 
     protected static String applicationClientID = null;
     protected static String applicationKey = null;
