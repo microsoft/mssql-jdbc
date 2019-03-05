@@ -112,10 +112,48 @@ public class ParameterMetaDataTest extends AbstractTest {
                 try (PreparedStatement pstmt = con.prepareStatement(query)) {
                     ParameterMetaData metadata = pstmt.getParameterMetaData();
                     assert (metadata.getParameterCount() == 2);
+                    assert (metadata.getParameterType(1) == java.sql.Types.VARCHAR);
                     assert (metadata.getParameterTypeName(1).equalsIgnoreCase("varchar"));
+                    assert (metadata.getParameterType(2) == java.sql.Types.DECIMAL);
                     assert (metadata.getParameterTypeName(2).equalsIgnoreCase("decimal"));
+                    assert (metadata.getParameterMode(1) == ParameterMetaData.parameterModeIn);
                     assert (metadata.getPrecision(2) == 38);
                     assert (metadata.getScale(2) == 5);
+                    assert (metadata.isNullable(1) == ParameterMetaData.parameterNullableUnknown);
+                    assert (!metadata.isSigned(1));
+                }
+            } finally {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Test ParameterMetaData when parameter name containing apostrophe
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testParameterMetaDataProc() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+
+            stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " ([c1_varchar(max)] varchar(max), c2 decimal(38,5))");
+            try {
+                String query = "exec sp_help (" + AbstractSQLGenerator.escapeIdentifier(tableName) + ")";
+
+                try (PreparedStatement pstmt = con.prepareStatement(query)) {
+                    ParameterMetaData metadata = pstmt.getParameterMetaData();
+                    assert (metadata.getParameterCount() == 1);
+                    assert (metadata.getParameterType(1) == java.sql.Types.NVARCHAR);
+                    assert (metadata.getParameterTypeName(1).equalsIgnoreCase("nvarchar"));
+                    assert (metadata.getParameterClassName(1).equalsIgnoreCase(String.class.getName()));
+                    assert (metadata.getParameterMode(1) == ParameterMetaData.parameterModeIn);
+                    // Standard value - validate precision of sp_help stored procedure parameter
+                    assert (metadata.getPrecision(1) == 776);
+                    assert (metadata.getScale(1) == 0);
+                    assert (metadata.isNullable(1) == ParameterMetaData.parameterNullable);
+                    assert (!metadata.isSigned(1));
                 }
             } finally {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
