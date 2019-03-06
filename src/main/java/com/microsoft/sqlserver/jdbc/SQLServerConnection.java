@@ -4848,22 +4848,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         TDSWriter tdsWriter = logonCommand.startRequest(TDS.PKT_LOGON70);
 
-        /*
-         * check this // System.out.println("secBlob: "+secBlob.length); int len2 = TDS_LOGIN_REQUEST_BASE_LEN +
-         * hostnameBytes.length + appNameBytes.length + serverNameBytes.length + interfaceLibNameBytes.length +
-         * databaseNameBytes.length + secBlob.length + 4;// AE is always on;
-         */
         int len2 = TDS_LOGIN_REQUEST_BASE_LEN + hostnameBytes.length + appNameBytes.length + serverNameBytes.length
                 + interfaceLibNameBytes.length + databaseNameBytes.length + ((secBlob != null) ? secBlob.length : 0)
                 + 4;// AE is always on;
 
-        if (ntlmAuthentication) {
-            // len2 = len2 + writeNTLMRequest(false, tdsWriter, domainName);
-        } else {
-            // only add lengths of password and username if not using SSPI or requesting federated authentication info
-            if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
-                len2 = len2 + passwordLen + userBytes.length;
-            }
+        // only add lengths of password and username if not using SSPI or requesting federated authentication info
+        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+            len2 = len2 + passwordLen + userBytes.length;
         }
 
         int aeOffset = len2;
@@ -5024,7 +5015,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsWriter.writeShort((short) 0);
 
             // TDS 7.2: 32-bit SSPI byte count (used if 16 bits above were not sufficient)
-            if (secBlob != null && USHRT_MAX <= secBlob.length)
+            if (null != secBlob && USHRT_MAX <= secBlob.length)
                 tdsWriter.writeInt(secBlob.length);
             else
                 tdsWriter.writeInt((short) 0);
