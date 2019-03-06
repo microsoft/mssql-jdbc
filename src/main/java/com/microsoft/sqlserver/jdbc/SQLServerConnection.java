@@ -4890,12 +4890,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 TDS.LOGIN_OPTION1_SET_LANG_ON // Warn on SET LANGUAGE stmt
         ));
 
-        tdsWriter.writeByte((byte) ( // OptionFlags2:
-        TDS.LOGIN_OPTION2_INIT_LANG_FATAL | // Fail connection if initial language change fails
+        // OptionFlags2:
+        tdsWriter.writeByte((byte) (TDS.LOGIN_OPTION2_INIT_LANG_FATAL | // Fail connection if initial language change
+                                                                        // fails
                 TDS.LOGIN_OPTION2_ODBC_ON | // Use ODBC defaults (ANSI_DEFAULTS ON, IMPLICIT_TRANSACTIONS OFF, TEXTSIZE
                                             // inf, ROWCOUNT inf)
-                (integratedSecurity || ntlmAuthentication ? // integrated security if integratedSecurity or NTLM
-                                                            // requested
+                (integratedSecurity || ntlmAuthentication ? // integrated security or NTLM requested
                                                           TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_ON
                                                           : TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_OFF)));
 
@@ -4930,8 +4930,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.writeShort((short) ((hostName != null && !hostName.isEmpty()) ? hostName.length() : 0));
         dataLen += hostnameBytes.length;
 
-        // Only send user/password over if not fSSPI or fed auth ADAL... If both user/password and SSPI are in login
-        // rec, only SSPI is used.
+        // Only send user/password over if not NTLM or fSSPI or fed auth ADAL... If both user/password and SSPI are in
+        // login rec, only SSPI is used.
         if (ntlmAuthentication) {
             tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
             tdsWriter.writeShort((short) (0));
@@ -5023,12 +5023,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         tdsWriter.writeBytes(hostnameBytes);
 
-        // Don't allow user credentials to be logged
-        tdsWriter.setDataLoggable(false);
-
-        // if we are using SSPI or fed auth ADAL, do not send over username/password, since we will use SSPI instead
-        if (!integratedSecurity && !ntlmAuthentication
-                && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        // if we are using NTLM or SSPI or fed auth ADAL, do not send over username/password, since we will use SSPI
+        // instead
+        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
             tdsWriter.writeBytes(userBytes); // Username
             tdsWriter.writeBytes(passwordBytes); // Password (encrypted)
         }
@@ -5047,10 +5044,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // Don't allow user credentials to be logged
         tdsWriter.setDataLoggable(false);
+
+        // SSPI data
         if (integratedSecurity || ntlmAuthentication) {
             tdsWriter.writeBytes(secBlob, 0, secBlob.length);
-        } else if (ntlmAuthentication) {
-            // writeNTLMRequest(true, tdsWriter, domainName);
         }
 
         // AE is always ON
