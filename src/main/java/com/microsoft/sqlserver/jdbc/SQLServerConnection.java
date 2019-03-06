@@ -1353,9 +1353,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
             String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
-            if (sPropValueDomain != null) {
-                ntlmAuthentication = true;
-            }
             String domainName = sPropValueDomain;
 
             String sPropKeyPort = SQLServerDriverIntProperty.PORT_NUMBER.toString();
@@ -1589,27 +1586,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"), null);
             }
 
-            // integratedSecurity and domain
-            if (integratedSecurity && !StringUtils.isEmpty(domainName)) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(toString() + " "
-                            + SQLServerException.getErrString("R_SetDomainWhenIntegratedSecurityTrue"));
-                }
-                throw new SQLServerException(SQLServerException.getErrString("R_SetDomainWhenIntegratedSecurityTrue"),
-                        null);
-            }
+            if (authenticationString.equalsIgnoreCase(SqlAuthentication.NTLM.toString())) {
+                // domain and no user or password
+                if (!StringUtils.isEmpty(domainName) && ((activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
+                        || (activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
+                                .isEmpty()))) {
 
-            // domain and no user or password
-            if (!StringUtils.isEmpty(domainName) && ((activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
-                    || (activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
-                            .isEmpty()))) {
-
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger
-                            .severe(toString() + " " + SQLServerException.getErrString("R_NoUserPasswordForDomain"));
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(
+                                toString() + " " + SQLServerException.getErrString("R_NoUserPasswordForDomain"));
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForDomain"), null);
                 }
-                throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForDomain"), null);
+                ntlmAuthentication = true;
             }
 
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
@@ -2493,7 +2483,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     void Prelogin(String serverName, int portNumber) throws SQLServerException {
         // Build a TDS Pre-Login packet to send to the server.
-        if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
+        if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())
+                && !authenticationString.equalsIgnoreCase(SqlAuthentication.NTLM.toString()))
                 || (null != accessTokenInByte)) {
             fedAuthRequiredByUser = true;
         }
@@ -3659,7 +3650,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (integratedSecurity) {
             if (AuthenticationScheme.nativeAuthentication == intAuthScheme) {
                 authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(),
-                        currentConnectPlaceHolder.getPortNumber()); 
+                        currentConnectPlaceHolder.getPortNumber());
             } else if (AuthenticationScheme.javaKerberos == intAuthScheme) {
                 if (null != ImpersonatedUserCred) {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
@@ -3671,7 +3662,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } else if (ntlmAuthentication) {
             authentication = new NTLMAuthentication(this, currentConnectPlaceHolder.getDomainName());
         }
-        
+
         // If the workflow being used is Active Directory Password or Active Directory Integrated and server's prelogin
         // response
         // for FEDAUTHREQUIRED option indicates Federated Authentication is required, we have to insert FedAuth Feature
@@ -3709,7 +3700,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } finally {
             if (integratedSecurity) {
                 if (null != authentication) {
-                    authentication.ReleaseClientContext();
+                    authentication.releaseClientContext();
                     authentication = null;
                 }
                 if (null != ImpersonatedUserCred) {
@@ -4743,7 +4734,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // required then we will start it after we finish processing the
                 // rest of this response.
                 boolean[] done = {false};
-                secBlobOut = auth.GenerateClientContext(ack.sspiBlob, done);
+                secBlobOut = auth.generateClientContext(ack.sspiBlob, done);
                 return true;
             }
 
@@ -4821,7 +4812,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         byte[] secBlob = new byte[0];
         boolean[] done = {false};
         if (null != authentication) {
-            secBlob = authentication.GenerateClientContext(secBlob, done);
+            secBlob = authentication.generateClientContext(secBlob, done);
             sUser = null;
             sPwd = null;
         }
@@ -4857,18 +4848,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         TDSWriter tdsWriter = logonCommand.startRequest(TDS.PKT_LOGON70);
 
-        /* check this
-        
-       // System.out.println("secBlob: "+secBlob.length);
-        
+        /*
+         * check this // System.out.println("secBlob: "+secBlob.length); int len2 = TDS_LOGIN_REQUEST_BASE_LEN +
+         * hostnameBytes.length + appNameBytes.length + serverNameBytes.length + interfaceLibNameBytes.length +
+         * databaseNameBytes.length + secBlob.length + 4;// AE is always on;
+         */
         int len2 = TDS_LOGIN_REQUEST_BASE_LEN + hostnameBytes.length + appNameBytes.length + serverNameBytes.length
-                + interfaceLibNameBytes.length + databaseNameBytes.length + secBlob.length + 4;// AE is always on;
-*/
-        int len2 = TDS_LOGIN_REQUEST_BASE_LEN + hostnameBytes.length + appNameBytes.length + serverNameBytes.length
-                + interfaceLibNameBytes.length + databaseNameBytes.length + ((secBlob != null) ? secBlob.length : 0) + 4;// AE is always on;
+                + interfaceLibNameBytes.length + databaseNameBytes.length + ((secBlob != null) ? secBlob.length : 0)
+                + 4;// AE is always on;
 
         if (ntlmAuthentication) {
-          //  len2 = len2 + writeNTLMRequest(false, tdsWriter, domainName);
+            // len2 = len2 + writeNTLMRequest(false, tdsWriter, domainName);
         } else {
             // only add lengths of password and username if not using SSPI or requesting federated authentication info
             if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
@@ -5069,7 +5059,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (integratedSecurity || ntlmAuthentication) {
             tdsWriter.writeBytes(secBlob, 0, secBlob.length);
         } else if (ntlmAuthentication) {
-       //     writeNTLMRequest(true, tdsWriter, domainName);
+            // writeNTLMRequest(true, tdsWriter, domainName);
         }
 
         // AE is always ON

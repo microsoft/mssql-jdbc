@@ -386,8 +386,6 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_UnknownFeatureAck", "Unknown feature acknowledge is received."},
             {"R_SetAuthenticationWhenIntegratedSecurityTrue",
                     "Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."},
-            {"R_SetDomainWhenIntegratedSecurityFalse",
-                    "Cannot set \"domain\" for NTLM with \"IntegratedSecurity\" set to \"false\"."},
             {"R_NoUserPasswordForDomain",
                     "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified for \"domain\"."},
             {"R_SetAccesstokenWhenIntegratedSecurityTrue",
@@ -555,5 +553,7 @@ public final class SQLServerResource extends ListResourceBundle {
                     "MSI Token failure: Failed to acquire access token from IMDS, unexpected error occurred."},
             {"R_MSITokenFailureEndpoint", "MSI Token failure: Failed to acquire token from MSI Endpoint"},
             {"R_propertyNotSupported",
-                    "Microsoft JDBC Driver for SQL Server currently does not support the property: {0}"}};
+                    "Microsoft JDBC Driver for SQL Server currently does not support the property: {0}"},
+            {"R_ntlmInitError", "Unable to initialize NTLM authentication: {0}"},
+            {"R_ntlmAuthError", "NTLM authentication error: {0}"}};
 }

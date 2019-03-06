@@ -64,6 +64,7 @@ final class SQLServerDriverPropertyInfo {
 enum SqlAuthentication {
     NotSpecified,
     SqlPassword,
+    NTLM,
     ActiveDirectoryPassword,
     ActiveDirectoryIntegrated,
     ActiveDirectoryMSI;
@@ -75,6 +76,8 @@ enum SqlAuthentication {
             method = SqlAuthentication.NotSpecified;
         } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.SqlPassword.toString())) {
             method = SqlAuthentication.SqlPassword;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.NTLM.toString())) {
+            method = SqlAuthentication.NTLM;
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
             method = SqlAuthentication.ActiveDirectoryPassword;
@@ -482,7 +485,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION.toString(),
                     SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(), false,
                     new String[] {SqlAuthentication.NotSpecified.toString(), SqlAuthentication.SqlPassword.toString(),
-                            SqlAuthentication.ActiveDirectoryPassword.toString(),
+                            SqlAuthentication.NTLM.toString(), SqlAuthentication.ActiveDirectoryPassword.toString(),
                             SqlAuthentication.ActiveDirectoryIntegrated.toString(),
                             SqlAuthentication.ActiveDirectoryMSI.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),

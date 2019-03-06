@@ -350,14 +350,14 @@ final class KerbAuthentication extends SSPIAuthentication {
         this.isUserCreatedCredential = (isUserCreated == null ? false : isUserCreated);
     }
 
-    byte[] GenerateClientContext(byte[] pin, boolean[] done) throws SQLServerException {
+    byte[] generateClientContext(byte[] pin, boolean[] done) throws SQLServerException {
         if (null == peerContext) {
             intAuthInit();
         }
         return intAuthHandShake(pin, done);
     }
 
-    int ReleaseClientContext() throws SQLServerException {
+    int releaseClientContext() throws SQLServerException {
         try {
             if (null != peerCredentials && !isUserCreatedCredential) {
                 peerCredentials.dispose();

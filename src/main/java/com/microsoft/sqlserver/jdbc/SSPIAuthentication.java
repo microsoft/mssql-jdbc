@@ -10,7 +10,7 @@ package com.microsoft.sqlserver.jdbc;
  */
 
 abstract class SSPIAuthentication {
-    abstract byte[] GenerateClientContext(byte[] pin, boolean[] done) throws SQLServerException;
+    abstract byte[] generateClientContext(byte[] pin, boolean[] done) throws SQLServerException;
 
-    abstract int ReleaseClientContext() throws SQLServerException;
+    abstract int releaseClientContext() throws SQLServerException;
 }
