@@ -119,7 +119,6 @@ public class ParameterMetaDataTest extends AbstractTest {
                     assert (metadata.getParameterMode(1) == ParameterMetaData.parameterModeIn);
                     assert (metadata.getPrecision(2) == 38);
                     assert (metadata.getScale(2) == 5);
-                    assert (metadata.isNullable(1) == ParameterMetaData.parameterNullableUnknown);
                     assert (!metadata.isSigned(1));
                 }
             } finally {
