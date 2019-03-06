@@ -1673,6 +1673,11 @@ public class DataTypesTest extends AbstractTest {
         }
     }
     
+    /*
+     * SQL Server compatibility level >= 130 (SQL Server 2016 and after) doesn't round up or down equally for
+     * datetime. The rounding logic below represents the actual rounding logic employed by datetime
+     * columns when determining their last millisecond digit.
+     */
     @Test
     public void testDateTimeInsertUpdate() throws Exception {
         assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_cursorAzureDW"));
