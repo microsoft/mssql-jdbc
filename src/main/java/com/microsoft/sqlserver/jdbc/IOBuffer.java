@@ -6257,6 +6257,8 @@ final class TDSReader implements Serializable {
     final private String traceID;
     private ScheduledFuture<?> timeout;
 
+    private boolean executed = false;
+
     final public String toString() {
         return traceID;
     }
@@ -7149,6 +7151,7 @@ abstract class TDSCommand implements Serializable {
     private int queryTimeoutSeconds;
     private int cancelQueryTimeoutSeconds;
     private ScheduledFuture<?> timeout;
+    private boolean executed = false;
 
     protected int getQueryTimeoutSeconds() {
         return this.queryTimeoutSeconds;
@@ -7156,6 +7159,10 @@ abstract class TDSCommand implements Serializable {
 
     protected int getCancelQueryTimeoutSeconds() {
         return this.cancelQueryTimeoutSeconds;
+    }
+    
+    protected boolean wasExecuted() {
+        return executed;
     }
 
     final boolean readingResponse() {
@@ -7187,6 +7194,7 @@ abstract class TDSCommand implements Serializable {
      */
 
     boolean execute(TDSWriter tdsWriter, TDSReader tdsReader) throws SQLServerException {
+        executed = true;
         this.tdsWriter = tdsWriter;
         this.tdsReader = tdsReader;
         assert null != tdsReader;
