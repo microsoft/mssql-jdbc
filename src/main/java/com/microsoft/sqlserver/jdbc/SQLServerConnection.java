@@ -5569,7 +5569,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             return false;
 
         SQLServerStatement stmt = null;
-
         try {
             stmt = new SQLServerStatement(this, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                     SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
@@ -5590,7 +5589,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // The connection is considered to be invalid if the statement fails to close,
             // even though query execution succeeded.
             connectionlogger.fine(toString() + " Exception checking connection validity: " + e.getMessage());
-            return false;
         } finally {
             if (null != stmt && !stmt.isClosed()) {
                 stmt.close();
