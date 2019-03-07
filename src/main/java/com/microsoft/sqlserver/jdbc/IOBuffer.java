@@ -6257,8 +6257,6 @@ final class TDSReader implements Serializable {
     final private String traceID;
     private ScheduledFuture<?> timeout;
 
-    private boolean executed = false;
-
     final public String toString() {
         return traceID;
     }
