@@ -612,9 +612,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
                 if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION) {
                     // new implementation for SQL verser 2012 and above
-                    String preparedSQL = con.replaceParameterMarkers((stmtParent).userSQL,
-                            (stmtParent).userSQLParamPositions, (stmtParent).inOutParam,
-                            (stmtParent).bReturnValueSyntax);
+                    String preparedSQL = con.replaceParameterMarkers(stmtParent.userSQL,
+                            stmtParent.userSQLParamPositions, stmtParent.inOutParam, stmtParent.bReturnValueSyntax);
 
                     try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con
                             .prepareCall("exec sp_describe_undeclared_parameters ?")) {
@@ -704,7 +703,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     }
 
     private Map<String, Object> getParameterInfo(int param) {
-        if ((stmtParent).bReturnValueSyntax && isTVP) {
+        if (stmtParent.bReturnValueSyntax && isTVP) {
             return procMetadata.get(param - 1);
         } else {
             // Note row 1 is the 'return value' meta data
@@ -714,7 +713,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
     private boolean isValidParamProc(int n) {
         // Note row 1 is the 'return value' meta data
-        return (((stmtParent).bReturnValueSyntax && isTVP && procMetadata.size() >= n) || procMetadata.size() > n);
+        return ((stmtParent.bReturnValueSyntax && isTVP && procMetadata.size() >= n) || procMetadata.size() > n);
     }
 
     private boolean isValidParamQuery(int n) {
@@ -810,6 +809,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     break;
                 case microsoft.sql.Types.GUID:
                     parameterType = SSType.CHAR.getJDBCType().asJavaSqlType();
+                    break;
+                default:
                     break;
             }
         }
