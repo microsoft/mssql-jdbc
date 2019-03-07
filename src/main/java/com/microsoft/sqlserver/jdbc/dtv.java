@@ -740,9 +740,10 @@ final class DTV {
                 switch (typeInfo.getSSType()) {
                     case DATETIME:
                     case DATETIME2:
-                        // Default and max fractional precision is 7 digits (100ns)
-                        // Send DateTime2 to DateTime columns to let the server handle nanosecond rounding. Also
-                        // adjust scale accordingly to avoid rounding on driver's end.
+                        /* Default and max fractional precision is 7 digits (100ns)
+                         * Send DateTime2 to DateTime columns to let the server handle nanosecond rounding. Also
+                         * adjust scale accordingly to avoid rounding on driver's end.
+                         */
                         int scale = (typeInfo.getSSType() == SSType.DATETIME) ? typeInfo.getScale() + 4 : typeInfo.getScale();
                         tdsWriter.writeRPCDateTime2(name,
                                 timestampNormalizedCalendar(calendar, javaType, conn.baseYear()), subSecondNanos,
