@@ -15,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.text.MessageFormat;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Mac;
@@ -72,28 +73,44 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final int NTLM_CLIENT_NONCE_LENGTH = 8;
     private static final int NTLM_SERVER_CHALLENGE_LENGTH = 8;
 
-    // domain name to connect to
-    private final String domainName;
-    private final byte[] domainBytes;
+    private class NtlmContext {
+        // domain name to connect to
+        private final String domainName;
+        private final byte[] domainBytes;
 
-    // user credentials
-    private final String userName;
-    private final String password;
-    private final byte[] userBytes;
-    private final String workstation;
-    private final byte[] workstationBytes;
+        // user credentials
+        private final String userName;
+        private final String password;
+        private final byte[] userBytes;
+        private final String workstation;
+        private final byte[] workstationBytes;
 
-    // message authentication code
-    private Mac mac = null;
+        // message authentication code
+        private Mac mac = null;
 
-    // output token
-    private static ByteBuffer token = null;
+        // output token
+        private ByteBuffer token = null;
 
-    // target info field from server
-    private static byte[] targetInfo = null;
+        // target info field from server
+        private byte[] targetInfo = null;
 
-    // server challenge
-    private byte[] serverChallenge = new byte[NTLM_SERVER_CHALLENGE_LENGTH];
+        // server challenge
+        private byte[] serverChallenge = new byte[NTLM_SERVER_CHALLENGE_LENGTH];
+
+        NtlmContext(SQLServerConnection con, String domainName, String workstation) throws NoSuchAlgorithmException {
+            this.domainName = domainName.toUpperCase();
+            this.domainBytes = domainName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            this.userName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
+            this.userBytes = userName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            password = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
+            this.workstation = workstation;
+            this.workstationBytes = workstation.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+            mac = Mac.getInstance("HmacMD5");
+        }
+    };
+
+    private NtlmContext context = null;
 
     /*
      * Creates an instance of the NTLM authentication
@@ -101,17 +118,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @param domainName - domain name to connect to
      */
     NTLMAuthentication(SQLServerConnection con, String domainName, String workstation) throws SQLServerException {
-
-        this.domainName = domainName.toUpperCase();
-        this.domainBytes = domainName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        this.userName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
-        this.userBytes = userName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        password = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
-        this.workstation = workstation;
-        this.workstationBytes = workstation.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-
         try {
-            mac = Mac.getInstance("HmacMD5");
+            if (context == null) {
+                this.context = new NtlmContext(con, domainName, workstation);
+            }
         } catch (NoSuchAlgorithmException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmInitError"));
             Object[] msgArgs = {e.getMessage()};
@@ -127,7 +137,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     @Override
     byte[] generateClientContext(byte[] inToken, boolean[] done) throws SQLServerException {
-
         return initializeSecurityContext(inToken, done);
     }
 
@@ -137,7 +146,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     @Override
     int releaseClientContext() throws SQLServerException {
-        // TODO Auto-generated method stub
+        context = null;
         return 0;
     }
 
@@ -149,11 +158,19 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         // TODO: verify Challenge message fields
 
-        token = ByteBuffer.wrap(inToken).order(ByteOrder.LITTLE_ENDIAN);
+        context.token = ByteBuffer.wrap(inToken).order(ByteOrder.LITTLE_ENDIAN);
 
+        // verify signature
         byte[] signature = new byte[NTLM_HEADER_SIGNATURE.length];
-        token.get(signature);
-        int messageType = token.getInt(); // message type
+        context.token.get(signature);
+        if (!Arrays.equals(signature, NTLM_HEADER_SIGNATURE)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmSignatureError"));
+            Object[] msgArgs = {signature};
+            throw new SQLServerException(form.format(msgArgs), null);
+        }
+
+        // verify message type
+        int messageType = context.token.getInt();
         if (messageType != NTLM_MESSAGE_TYPE_CHALLENGE) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmMessageTypeError"));
             Object[] msgArgs = {messageType};
@@ -161,36 +178,36 @@ final class NTLMAuthentication extends SSPIAuthentication {
         }
 
         // target name fields
-        int targetNameLen = token.getShort();
-        token.getShort(); // targetNameMaxLen
-        token.getInt(); // targetNameOffset
+        int targetNameLen = context.token.getShort();
+        context.token.getShort(); // targetNameMaxLen
+        context.token.getInt(); // targetNameOffset
 
         // negotiate flags
-        int flags = token.getInt();
+        int flags = context.token.getInt();
 
         // get server challenge
-        token.get(serverChallenge);
+        context.token.get(context.serverChallenge);
 
         // 8 bytes reserved 32-40: all 0's
-        token.getLong();
+        context.token.getLong();
 
         // target info fields
-        int targetInfoLen = token.getShort();
-        token.getShort(); // targetInfoMaxLen
-        token.getInt(); // targetInfoOffset
+        int targetInfoLen = context.token.getShort();
+        context.token.getShort(); // targetInfoMaxLen
+        context.token.getInt(); // targetInfoOffset
 
-        token.getLong(); /// version - not used
+        context.token.getLong(); /// version - not used
 
         // get requested target name
         // TODO: verify
         byte[] targetName = new byte[targetNameLen];
-        token.get(targetName);
+        context.token.get(targetName);
 
         // if targetInfo was requested, should always be sent
         // TODO: verify targetInfo av pairs
         // TODO: check MsAvTimeStamp and add MIC
-        targetInfo = new byte[targetInfoLen];
-        token.get(targetInfo);
+        context.targetInfo = new byte[targetInfoLen];
+        context.token.get(context.targetInfo);
     }
 
     /*
@@ -199,7 +216,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @param done - indicates processing is done
      */
     private byte[] initializeSecurityContext(byte[] inToken, boolean[] done) throws SQLServerException {
-
         if (inToken.length == 0) {
             return getNtlmNegotiateMsg();
         } else {
@@ -216,7 +232,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private byte[] getLmChallengeResp(
             byte[] clientNonce) throws UnsupportedEncodingException, NoSuchAlgorithmException, InvalidKeyException {
 
-        byte[] respKey = lmowfv2(password);
+        byte[] respKey = lmowfv2(context.password);
         return computeResponse(respKey, clientNonce);
     }
 
@@ -224,28 +240,30 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * Get NTLMv2 Client Challenge
      * @param clientNonce - client challenge nonce
      */
-    private static byte[] getClientChallenge(byte[] clientNonce) {
+    private byte[] getClientChallenge(byte[] clientNonce) {
 
         // timestamp is number of 100 nanosecond ticks since Epoch
         ByteBuffer time = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
         time.putLong(TimeUnit.SECONDS.toNanos(Instant.now().getEpochSecond()) / 100);
         byte[] timestamp = time.array();
 
-        token = ByteBuffer.allocate(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE.length + NTLM_CLIENT_CHALLENGE_RESERVED1.length
-                + NTLM_CLIENT_CHALLENGE_RESERVED2.length + timestamp.length + NTLM_CLIENT_NONCE_LENGTH
-                + NTLM_CLIENT_CHALLENGE_RESERVED3.length + targetInfo.length).order(ByteOrder.LITTLE_ENDIAN);
+        context.token = ByteBuffer
+                .allocate(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE.length + NTLM_CLIENT_CHALLENGE_RESERVED1.length
+                        + NTLM_CLIENT_CHALLENGE_RESERVED2.length + timestamp.length + NTLM_CLIENT_NONCE_LENGTH
+                        + NTLM_CLIENT_CHALLENGE_RESERVED3.length + context.targetInfo.length)
+                .order(ByteOrder.LITTLE_ENDIAN);
 
-        token.put(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE);
-        token.put(NTLM_CLIENT_CHALLENGE_RESERVED1);
-        token.put(NTLM_CLIENT_CHALLENGE_RESERVED2);
+        context.token.put(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE);
+        context.token.put(NTLM_CLIENT_CHALLENGE_RESERVED1);
+        context.token.put(NTLM_CLIENT_CHALLENGE_RESERVED2);
 
-        token.put(timestamp, 0, timestamp.length);
-        token.put(clientNonce, 0, NTLM_CLIENT_NONCE_LENGTH);
-        token.put(NTLM_CLIENT_CHALLENGE_RESERVED3);
+        context.token.put(timestamp, 0, timestamp.length);
+        context.token.put(clientNonce, 0, NTLM_CLIENT_NONCE_LENGTH);
+        context.token.put(NTLM_CLIENT_CHALLENGE_RESERVED3);
 
-        token.put(targetInfo, 0, targetInfo.length);
+        context.token.put(context.targetInfo, 0, context.targetInfo.length);
 
-        return token.array();
+        return context.token.array();
     }
 
     /*
@@ -254,10 +272,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @param data - data
      */
     private byte[] hmacMD5(byte[] key, byte[] data) throws InvalidKeyException {
-
         SecretKeySpec keySpec = new SecretKeySpec(key, "HmacMD5");
-        mac.init(keySpec);
-        return mac.doFinal(data);
+        context.mac.init(keySpec);
+        return context.mac.doFinal(data);
     }
 
     /*
@@ -276,7 +293,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @param str - string to convert to unicode
      */
     private byte[] unicode(String str) {
-
         return str.getBytes(UTF_16LE);
     }
 
@@ -287,7 +303,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private byte[] ntowfv2(
             String password) throws UnsupportedEncodingException, NoSuchAlgorithmException, InvalidKeyException {
 
-        return hmacMD5(MD4(unicode(password)), unicode(userName.toUpperCase() + domainName));
+        return hmacMD5(MD4(unicode(password)), unicode(context.userName.toUpperCase() + context.domainName));
     }
 
     /*
@@ -312,7 +328,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         // concatenate client and server challenge
         byte[] temp = new byte[NTLM_SERVER_CHALLENGE_LENGTH + len];
-        System.arraycopy(serverChallenge, 0, temp, 0, NTLM_SERVER_CHALLENGE_LENGTH);
+        System.arraycopy(context.serverChallenge, 0, temp, 0, NTLM_SERVER_CHALLENGE_LENGTH);
         System.arraycopy(clientChallenge, 0, temp, NTLM_SERVER_CHALLENGE_LENGTH, len);
 
         byte[] ntProofStr = hmacMD5(key, temp);
@@ -330,17 +346,16 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     private byte[] getNtChallengeResp(
             byte[] clientNonce) throws UnsupportedEncodingException, NoSuchAlgorithmException, InvalidKeyException {
-        return computeResponse(ntowfv2(password), getClientChallenge(clientNonce));
+        return computeResponse(ntowfv2(context.password), getClientChallenge(clientNonce));
     }
 
     /*
      * Get NTLM Authentication message
      */
     private byte[] getNtlmAuthenticateMsg() throws SQLServerException {
-
-        int domainNameLen = domainBytes.length * 2;
-        int userNameLen = userBytes.length * 2;
-        int workstationLen = workstationBytes.length * 2;
+        int domainNameLen = context.domainBytes.length * 2;
+        int userNameLen = context.userBytes.length * 2;
+        int workstationLen = context.workstationBytes.length * 2;
         byte[] clientNonce = new byte[NTLM_CLIENT_NONCE_LENGTH];
 
         try {
@@ -350,118 +365,117 @@ final class NTLMAuthentication extends SSPIAuthentication {
             byte[] lmChallengeResp = getLmChallengeResp(clientNonce);
             byte[] ntChallengeResp = getNtChallengeResp(clientNonce);
 
-            token = ByteBuffer.allocate(NTLM_AUTHENTICATE_PAYLOAD_OFFSET + domainNameLen + userNameLen + workstationLen
-                    + lmChallengeResp.length + ntChallengeResp.length).order(ByteOrder.LITTLE_ENDIAN);
+            context.token = ByteBuffer.allocate(NTLM_AUTHENTICATE_PAYLOAD_OFFSET + domainNameLen + userNameLen
+                    + workstationLen + lmChallengeResp.length + ntChallengeResp.length).order(ByteOrder.LITTLE_ENDIAN);
 
             // set NTLM signature and message type
-            token.put(NTLM_HEADER_SIGNATURE, 0, NTLM_HEADER_SIGNATURE.length);
-            token.putInt(NTLM_MESSAGE_TYPE_AUTHENTICATE);
+            context.token.put(NTLM_HEADER_SIGNATURE, 0, NTLM_HEADER_SIGNATURE.length);
+            context.token.putInt(NTLM_MESSAGE_TYPE_AUTHENTICATE);
 
             // LM challenge response
             int len = lmChallengeResp.length;
             int offset = NTLM_AUTHENTICATE_PAYLOAD_OFFSET + domainNameLen + userNameLen + workstationLen;
-            token.putShort((short) len);
-            token.putShort((short) len);
-            token.putInt(offset);
+            context.token.putShort((short) len);
+            context.token.putShort((short) len);
+            context.token.putInt(offset);
             offset += lmChallengeResp.length;
 
             // NT challenge response
             len = ntChallengeResp.length;
-            token.putShort((short) len);
-            token.putShort((short) len);
-            token.putInt(offset);
+            context.token.putShort((short) len);
+            context.token.putShort((short) len);
+            context.token.putInt(offset);
 
             offset = NTLM_AUTHENTICATE_PAYLOAD_OFFSET;
 
             // domain name fields
             len = domainNameLen;
-            token.putShort((short) len);
-            token.putShort((short) len);
-            token.putInt(offset);
+            context.token.putShort((short) len);
+            context.token.putShort((short) len);
+            context.token.putInt(offset);
             offset += len;
 
             // user name fields
             len = userNameLen;
-            token.putShort((short) len);
-            token.putShort((short) len);
-            token.putInt(offset);
+            context.token.putShort((short) len);
+            context.token.putShort((short) len);
+            context.token.putInt(offset);
             offset += len;
 
             // workstation fields
             len = workstationLen;
-            token.putShort((short) len);
-            token.putShort((short) len);
-            token.putInt(offset);
+            context.token.putShort((short) len);
+            context.token.putShort((short) len);
+            context.token.putInt(offset);
             offset += len;
 
             // not used = encrypted random session key fields
             len = 0; // do not send
-            token.putShort((short) len);
-            token.putShort((short) len);
-            token.putInt(offset);
+            context.token.putShort((short) len);
+            context.token.putShort((short) len);
+            context.token.putInt(offset);
 
             // same negotiate flags sent before
-            token.putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
-                    | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_UNICODE));
+            context.token.putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED
+                    | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_UNICODE));
 
             // version not requested
 
             // TODO - add MIC - 16 bytes
 
             // payload
-            token.put(unicode(domainName), 0, domainNameLen);
-            token.put(unicode(userName), 0, userNameLen);
-            token.put(unicode(workstation), 0, workstationLen);
+            context.token.put(unicode(context.domainName), 0, domainNameLen);
+            context.token.put(unicode(context.userName), 0, userNameLen);
+            context.token.put(unicode(context.workstation), 0, workstationLen);
 
-            token.put(lmChallengeResp, 0, lmChallengeResp.length);
-            token.put(ntChallengeResp, 0, ntChallengeResp.length);
+            context.token.put(lmChallengeResp, 0, lmChallengeResp.length);
+            context.token.put(ntChallengeResp, 0, ntChallengeResp.length);
 
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmAuthError"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(form.format(msgArgs), e);
         }
-        return token.array();
+        return context.token.array();
     }
 
     /*
      * Get NTLM Negotiate message
      */
     private byte[] getNtlmNegotiateMsg() throws SQLServerException {
-
-        ByteBuffer token = ByteBuffer
-                .allocate(NTLM_NEGOTIATE_PAYLOAD_OFFSET + domainBytes.length + workstationBytes.length)
+        context.token = ByteBuffer
+                .allocate(NTLM_NEGOTIATE_PAYLOAD_OFFSET + context.domainBytes.length + context.workstationBytes.length)
                 .order(ByteOrder.LITTLE_ENDIAN);
 
         // signature and message type
-        token.put(NTLM_HEADER_SIGNATURE, 0, NTLM_HEADER_SIGNATURE.length);
-        token.putInt(NTLM_MESSAGE_TYPE_NEGOTIATE);
+        context.token.put(NTLM_HEADER_SIGNATURE, 0, NTLM_HEADER_SIGNATURE.length);
+        context.token.putInt(NTLM_MESSAGE_TYPE_NEGOTIATE);
 
         // NTLM negotiate flags - only NTLMV2 supported
-        token.putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
+        context.token.putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
                 | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_UNICODE));
 
         // domain name fields
-        int len = domainBytes.length;
+        int len = context.domainBytes.length;
         int offset = NTLM_NEGOTIATE_PAYLOAD_OFFSET;
-        token.putShort((short) len);
-        token.putShort((short) len);
-        token.putInt(offset);
+        context.token.putShort((short) len);
+        context.token.putShort((short) len);
+        context.token.putInt(offset);
         // offset += len;
 
         // workstation field
-        len = workstationBytes.length;
-        token.putShort((short) len);
-        token.putShort((short) len);
-        token.putInt(offset);
+        len = context.workstationBytes.length;
+        context.token.putShort((short) len);
+        context.token.putShort((short) len);
+        context.token.putInt(offset);
         offset += len;
 
         // version - not used
 
         // payload
-        token.put(domainBytes, 0, domainBytes.length);
-        token.put(workstationBytes, 0, workstationBytes.length);
+        context.token.put(context.domainBytes, 0, context.domainBytes.length);
+        context.token.put(context.workstationBytes, 0, context.workstationBytes.length);
 
-        return token.array();
+        return context.token.array();
     }
 }

@@ -555,6 +555,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_propertyNotSupported",
                     "Microsoft JDBC Driver for SQL Server currently does not support the property: {0}"},
             {"R_ntlmInitError", "Unable to initialize NTLM authentication: {0}"},
+            {"R_ntlmSignatureError", "NTLM authentication Challenge Message signature error: {0}"},
+            {"R_ntlmSignatureError", "NTLM authentication Challenge signature error: {0}"},
             {"R_ntlmMessageTypeError", "NTLM authentication Challenge Message type error: {0}"},
             {"R_ntlmAuthError", "NTLM authentication error: {0}"},
 };
