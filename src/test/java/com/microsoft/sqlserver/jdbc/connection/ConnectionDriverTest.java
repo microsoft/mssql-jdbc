@@ -308,6 +308,7 @@ public class ConnectionDriverTest extends AbstractTest {
     @Test
     public void testDeadConnection() throws SQLException {
         assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
+
         String tableName = RandomUtil.getIdentifier("ConnectionTestTable");
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
                 .getConnection(connectionString + ";responseBuffering=adaptive");
@@ -330,7 +331,7 @@ public class ConnectionDriverTest extends AbstractTest {
                 assertEquals(e.getMessage(), TestResource.getResource("R_connectionReset"),
                         TestResource.getResource("R_unknownException"));
             }
-            assertEquals(conn.isValid(10), false, TestResource.getResource("R_deadConnection"));
+            assertEquals(conn.isValid(5), false, TestResource.getResource("R_deadConnection"));
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
         } finally {
