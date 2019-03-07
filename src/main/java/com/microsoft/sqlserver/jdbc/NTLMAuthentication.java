@@ -55,13 +55,17 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final long NTLMSSP_NEGOTIATE_ALWAYS_SIGN = 0x00008000;
 
     // NTLM target name types
-    // TODO: verify
+    // TODO: use for verification
     private static final long NTLMSSP_TARGET_TYPE_DOMAIN = 0x00010000; // sent from server only
     private static final long NTLMSSP_TARGET_TYPE_SERVER = 0x00020000; // sent from server only
     private static final long NTLM_NEGOTIATE_TARGET_INFO = 0x00800000; // sent from server only
 
     // offsets to payload
+    // 8 (signature) + 4 (message type) + 8 (domain name) + 8 (workstation) + 4 (negotiate flags) + 0 (version)
     private static final int NTLM_NEGOTIATE_PAYLOAD_OFFSET = 32;
+
+    // 8 (signature) + 4 (message type) + 8 (lmChallengeResp) + 8 (ntChallengeResp) + 8 (domain name) + 8 (user name) +
+    // 8 (workstation) + 8 (encrypted random session key) + 4 (negotiate flags) + 0 (version) + 0 (mic)
     private static final int NTLM_AUTHENTICATE_PAYLOAD_OFFSET = 64;
 
     // challenge lengths
@@ -76,6 +80,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private final String userName;
     private final String password;
     private final byte[] userBytes;
+    private final String workstation;
+    private final byte[] workstationBytes;
 
     // message authentication code
     private Mac mac = null;
@@ -94,13 +100,15 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @param con - connection
      * @param domainName - domain name to connect to
      */
-    NTLMAuthentication(SQLServerConnection con, String domainName) throws SQLServerException {
+    NTLMAuthentication(SQLServerConnection con, String domainName, String workstation) throws SQLServerException {
 
         this.domainName = domainName.toUpperCase();
-        domainBytes = domainName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        userName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
-        userBytes = userName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        this.domainBytes = domainName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        this.userName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
+        this.userBytes = userName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         password = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
+        this.workstation = workstation;
+        this.workstationBytes = workstation.getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
         try {
             mac = Mac.getInstance("HmacMD5");
@@ -137,7 +145,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * Get the NTLM Challenge message from server
      * @param inToken - SSPI input blob
      */
-    private void getNtlmChallenge(byte[] inToken) {
+    private void getNtlmChallenge(byte[] inToken) throws SQLServerException {
 
         // TODO: verify Challenge message fields
 
@@ -145,13 +153,20 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         byte[] signature = new byte[NTLM_HEADER_SIGNATURE.length];
         token.get(signature);
-        token.getInt(); // message type
+        int messageType = token.getInt(); // message type
+        if (messageType != NTLM_MESSAGE_TYPE_CHALLENGE) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmMessageTypeError"));
+            Object[] msgArgs = {messageType};
+            throw new SQLServerException(form.format(msgArgs), null);
+        }
 
+        // target name fields
         int targetNameLen = token.getShort();
         token.getShort(); // targetNameMaxLen
         token.getInt(); // targetNameOffset
 
-        token.getInt();
+        // negotiate flags
+        int flags = token.getInt();
 
         // get server challenge
         token.get(serverChallenge);
@@ -159,22 +174,23 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // 8 bytes reserved 32-40: all 0's
         token.getLong();
 
+        // target info fields
         int targetInfoLen = token.getShort();
         token.getShort(); // targetInfoMaxLen
         token.getInt(); // targetInfoOffset
 
         token.getLong(); /// version - not used
 
-        // get payload
+        // get requested target name
+        // TODO: verify
         byte[] targetName = new byte[targetNameLen];
         token.get(targetName);
 
         // if targetInfo was requested, should always be sent
-        targetInfo = new byte[targetInfoLen];
-        token.get(targetInfo);
-
         // TODO: verify targetInfo av pairs
         // TODO: check MsAvTimeStamp and add MIC
+        targetInfo = new byte[targetInfoLen];
+        token.get(targetInfo);
     }
 
     /*
@@ -324,6 +340,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         int domainNameLen = domainBytes.length * 2;
         int userNameLen = userBytes.length * 2;
+        int workstationLen = workstationBytes.length * 2;
         byte[] clientNonce = new byte[NTLM_CLIENT_NONCE_LENGTH];
 
         try {
@@ -333,7 +350,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
             byte[] lmChallengeResp = getLmChallengeResp(clientNonce);
             byte[] ntChallengeResp = getNtChallengeResp(clientNonce);
 
-            token = ByteBuffer.allocate(NTLM_AUTHENTICATE_PAYLOAD_OFFSET + domainNameLen + userNameLen
+            token = ByteBuffer.allocate(NTLM_AUTHENTICATE_PAYLOAD_OFFSET + domainNameLen + userNameLen + workstationLen
                     + lmChallengeResp.length + ntChallengeResp.length).order(ByteOrder.LITTLE_ENDIAN);
 
             // set NTLM signature and message type
@@ -342,7 +359,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
             // LM challenge response
             int len = lmChallengeResp.length;
-            int offset = NTLM_AUTHENTICATE_PAYLOAD_OFFSET + domainNameLen + userNameLen + 0; // host name 0
+            int offset = NTLM_AUTHENTICATE_PAYLOAD_OFFSET + domainNameLen + userNameLen + workstationLen;
             token.putShort((short) len);
             token.putShort((short) len);
             token.putInt(offset);
@@ -354,31 +371,28 @@ final class NTLMAuthentication extends SSPIAuthentication {
             token.putShort((short) len);
             token.putInt(offset);
 
-            // 8 (signature) + 4 (message type)+ 8 (lmChallengeResp) + 8 (ntChallengeResp) + 8 (domain name) + 8 (user
-            // name) + 0 (workstation) + 0 (encrypted random session key) + 4 (negotiate flags) + 0 (version) + 16 (mic)
             offset = NTLM_AUTHENTICATE_PAYLOAD_OFFSET;
 
             // domain name fields
-            len = domainBytes.length * 2;
+            len = domainNameLen;
             token.putShort((short) len);
             token.putShort((short) len);
             token.putInt(offset);
-            offset += domainNameLen;
+            offset += len;
 
             // user name fields
-            len = userBytes.length * 2;
+            len = userNameLen;
             token.putShort((short) len);
             token.putShort((short) len);
             token.putInt(offset);
-            offset += userNameLen;
+            offset += len;
 
-            // TODO: add workstation field and length
             // workstation fields
-            len = 0; // do not send
+            len = workstationLen;
             token.putShort((short) len);
             token.putShort((short) len);
             token.putInt(offset);
-            // bufferOffset += 0; // add workstation length
+            offset += len;
 
             // not used = encrypted random session key fields
             len = 0; // do not send
@@ -386,9 +400,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
             token.putShort((short) len);
             token.putInt(offset);
 
-            // TODO: what negotiate flags need to be set?
-            token.putInt((int) (NTLMSSP_NEGOTIATE_ALWAYS_SIGN | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
-                    | NTLMSSP_NEGOTIATE_UNICODE));
+            // same negotiate flags sent before
+            token.putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
+                    | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_UNICODE));
 
             // version not requested
 
@@ -397,6 +411,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
             // payload
             token.put(unicode(domainName), 0, domainNameLen);
             token.put(unicode(userName), 0, userNameLen);
+            token.put(unicode(workstation), 0, workstationLen);
+
             token.put(lmChallengeResp, 0, lmChallengeResp.length);
             token.put(ntChallengeResp, 0, ntChallengeResp.length);
 
@@ -413,33 +429,39 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     private byte[] getNtlmNegotiateMsg() throws SQLServerException {
 
-        int len = NTLM_NEGOTIATE_PAYLOAD_OFFSET + domainBytes.length;
-        ByteBuffer buf = ByteBuffer.allocate(NTLM_NEGOTIATE_PAYLOAD_OFFSET + domainBytes.length)
+        ByteBuffer token = ByteBuffer
+                .allocate(NTLM_NEGOTIATE_PAYLOAD_OFFSET + domainBytes.length + workstationBytes.length)
                 .order(ByteOrder.LITTLE_ENDIAN);
 
         // signature and message type
-        buf.put(NTLM_HEADER_SIGNATURE, 0, NTLM_HEADER_SIGNATURE.length);
-        buf.putInt(NTLM_MESSAGE_TYPE_NEGOTIATE);
+        token.put(NTLM_HEADER_SIGNATURE, 0, NTLM_HEADER_SIGNATURE.length);
+        token.putInt(NTLM_MESSAGE_TYPE_NEGOTIATE);
 
         // NTLM negotiate flags - only NTLMV2 supported
-        buf.putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
+        token.putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
                 | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_UNICODE));
 
         // domain name fields
-        len = domainBytes.length;
-        buf.putShort((short) len);
-        buf.putShort((short) len);
-        buf.putInt((short) NTLM_NEGOTIATE_PAYLOAD_OFFSET);
+        int len = domainBytes.length;
+        int offset = NTLM_NEGOTIATE_PAYLOAD_OFFSET;
+        token.putShort((short) len);
+        token.putShort((short) len);
+        token.putInt(offset);
+        // offset += len;
 
-        // TODO: add workstation field
-        len = 0;
-        buf.putShort((short) len);
-        buf.putShort((short) len);
-        buf.putInt((short) NTLM_NEGOTIATE_PAYLOAD_OFFSET);
+        // workstation field
+        len = workstationBytes.length;
+        token.putShort((short) len);
+        token.putShort((short) len);
+        token.putInt(offset);
+        offset += len;
+
+        // version - not used
 
         // payload
-        buf.put(domainBytes, 0, domainBytes.length);
+        token.put(domainBytes, 0, domainBytes.length);
+        token.put(workstationBytes, 0, workstationBytes.length);
 
-        return buf.array();
+        return token.array();
     }
 }

@@ -3660,7 +3660,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             currentConnectPlaceHolder.getPortNumber());
             }
         } else if (ntlmAuthentication) {
-            authentication = new NTLMAuthentication(this, currentConnectPlaceHolder.getDomainName());
+            authentication = new NTLMAuthentication(this, currentConnectPlaceHolder.getDomainName(), hostName);
         }
 
         // If the workflow being used is Active Directory Password or Active Directory Integrated and server's prelogin
