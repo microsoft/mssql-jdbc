@@ -1351,10 +1351,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = "localhost";
             }
 
-            String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
-            String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
-            String domainName = sPropValueDomain;
-
             String sPropKeyPort = SQLServerDriverIntProperty.PORT_NUMBER.toString();
             String sPropValuePort = activeConnectionProperties.getProperty(sPropKeyPort);
 
@@ -1587,11 +1583,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.NTLM.toString())) {
+                String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
+                String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
+                String domainName = sPropValueDomain;
+
                 // domain and no user or password
-                if (!StringUtils.isEmpty(domainName) && ((activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
-                        || (activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
-                                .isEmpty()))) {
+                if (null == domainName || domainName.isEmpty()
+                        || !domainName.isEmpty() && ((activeConnectionProperties
+                                .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
+                                || (activeConnectionProperties
+                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
 
                     if (connectionlogger.isLoggable(Level.SEVERE)) {
                         connectionlogger.severe(
@@ -1925,6 +1926,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
             String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
+            String domainNameProperty = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
             String failOverPartnerProperty = SQLServerDriverStringProperty.FAILOVER_PARTNER.toString();
             String failOverPartnerPropertyValue = activeConnectionProperties.getProperty(failOverPartnerProperty);
 
@@ -1968,8 +1970,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 mirror = failOverPartnerPropertyValue;
 
             long startTime = System.currentTimeMillis();
-            login(activeConnectionProperties.getProperty(serverNameProperty), domainName, instanceValue, nPort, mirror,
-                    fo, loginTimeoutSeconds, startTime);
+            login(activeConnectionProperties.getProperty(serverNameProperty),
+                    activeConnectionProperties.getProperty(domainNameProperty), instanceValue, nPort, mirror, fo,
+                    loginTimeoutSeconds, startTime);
 
             // If SSL is to be used for the duration of the connection, then make sure
             // that the final negotiated TDS packet size is no larger than the SSL record size.
@@ -4802,12 +4805,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         if (serverName != null && serverName.length() > 128)
             serverName = serverName.substring(0, 128);
-
-        String domainName = (null != currentConnectPlaceHolder) ? currentConnectPlaceHolder.getDomainName()
-                                                                : activeConnectionProperties.getProperty(
-                                                                        SQLServerDriverStringProperty.DOMAIN_NAME
-                                                                                .toString());
-        ntlmAuthentication = !StringUtils.isEmpty(domainName);
 
         byte[] secBlob = new byte[0];
         boolean[] done = {false};
