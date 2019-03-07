@@ -267,8 +267,7 @@ public class ConnectionDriverTest extends AbstractTest {
             isWrapper = ssconn.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
             Object[] msgArgs2 = {"ISQLServerConnection"};
             assertTrue(isWrapper, form.format(msgArgs2));
-            ISQLServerConnection iSql = (ISQLServerConnection) ssconn
-                    .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
+            ssconn.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
             assertEquals(ISQLServerConnection.TRANSACTION_SNAPSHOT, ISQLServerConnection.TRANSACTION_SNAPSHOT,
                     TestResource.getResource("R_cantAccessSnapshot"));
 
@@ -309,7 +308,7 @@ public class ConnectionDriverTest extends AbstractTest {
     @Test
     public void testDeadConnection() throws SQLException {
         assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
-
+        System.out.println("Starting dead connection test");
         String tableName = RandomUtil.getIdentifier("ConnectionTestTable");
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
                 .getConnection(connectionString + ";responseBuffering=adaptive");
@@ -344,6 +343,7 @@ public class ConnectionDriverTest extends AbstractTest {
                 }
             }
         }
+        System.out.println("Ending dead connection test");
     }
 
     @Test
