@@ -41,10 +41,11 @@ public class DateAndTimeTypeTest extends AbstractTest {
     private static final Time TIME_TO_TEST = new java.sql.Time(74096000L);
     private static final Timestamp TIMESTAMP_TO_TEST = new java.sql.Timestamp(61494838496000L);
 
-    private String dateTVP = RandomUtil.getIdentifier("dateTVP");
-    private String timeTVP = RandomUtil.getIdentifier("timeTVP");
-    private String timestampTVP = RandomUtil.getIdentifier("timestampTVP");
-    private static String tableName = RandomUtil.getIdentifier("DataTypesTable");
+    private static final String dateTVP = RandomUtil.getIdentifier("dateTVP");
+    private static final String timeTVP = RandomUtil.getIdentifier("timeTVP");
+    private static final String timestampTVP = RandomUtil.getIdentifier("timestampTVP");
+    private static final String tableName = RandomUtil.getIdentifier("DataTypesTable");
+    private static final String primaryKeyConstraintName = "pk_" + tableName;
 
     /**
      * Test query with date
@@ -203,7 +204,8 @@ public class DateAndTimeTypeTest extends AbstractTest {
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint pk_esimple primary key (id))";
+                    + " (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint "
+                    + AbstractSQLGenerator.escapeIdentifier(primaryKeyConstraintName) + " primary key (id))";
             stmt.execute(sql1);
 
             // add one sample data
