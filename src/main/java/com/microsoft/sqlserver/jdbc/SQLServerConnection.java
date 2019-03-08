@@ -1589,10 +1589,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // domain and no user or password
                 if (null == domainName || domainName.isEmpty()
-                        || !domainName.isEmpty() && ((activeConnectionProperties
+                        || (!domainName.isEmpty() && ((activeConnectionProperties
                                 .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
                                 || (activeConnectionProperties
-                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
+                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty())))) {
 
                     if (connectionlogger.isLoggable(Level.SEVERE)) {
                         connectionlogger.severe(

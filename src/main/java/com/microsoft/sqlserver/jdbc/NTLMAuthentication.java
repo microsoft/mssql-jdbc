@@ -32,6 +32,9 @@ import mssql.java.security.MD4;
  * </pre>
  */
 final class NTLMAuthentication extends SSPIAuthentication {
+    private final static java.util.logging.Logger logger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.NTLMAuthentication");
+
     // NTLM signature "NTLMSSP\0"
     private static final byte[] NTLM_HEADER_SIGNATURE = {0x4e, 0x54, 0x4c, 0x4d, 0x53, 0x53, 0x50, 0x00};
 
@@ -54,12 +57,12 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final long NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED = 0x00001000;
     private static final long NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED = 0x00002000;
     private static final long NTLMSSP_NEGOTIATE_ALWAYS_SIGN = 0x00008000;
+    private static final long NTLMSSP_NEGOTIATE_TARGET_INFO = 0x00800000;
 
     // NTLM target name types
-    // TODO: use for verification
+    // TODO: use for verification of targetname
     private static final long NTLMSSP_TARGET_TYPE_DOMAIN = 0x00010000; // sent from server only
     private static final long NTLMSSP_TARGET_TYPE_SERVER = 0x00020000; // sent from server only
-    private static final long NTLM_NEGOTIATE_TARGET_INFO = 0x00800000; // sent from server only
 
     // offsets to payload
     // 8 (signature) + 4 (message type) + 8 (domain name) + 8 (workstation) + 4 (negotiate flags) + 0 (version)
@@ -199,9 +202,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.getLong(); /// version - not used
 
         // get requested target name
-        // TODO: verify
+
         byte[] targetName = new byte[targetNameLen];
         context.token.get(targetName);
+        // TODO: how to get the Netbios computer and domain name to verify?
 
         // if targetInfo was requested, should always be sent
         // TODO: verify targetInfo av pairs
@@ -416,8 +420,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
             context.token.putInt(offset);
 
             // same negotiate flags sent before
-            context.token.putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED
-                    | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_UNICODE));
+            context.token
+                    .putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
+                            | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_TARGET_INFO | NTLMSSP_NEGOTIATE_UNICODE));
 
             // version not requested
 
@@ -453,7 +458,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         // NTLM negotiate flags - only NTLMV2 supported
         context.token.putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
-                | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_UNICODE));
+                | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_TARGET_INFO | NTLMSSP_NEGOTIATE_UNICODE));
 
         // domain name fields
         int len = context.domainBytes.length;
