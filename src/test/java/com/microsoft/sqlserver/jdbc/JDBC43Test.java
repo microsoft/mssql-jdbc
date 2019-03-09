@@ -178,39 +178,4 @@ public class JDBC43Test extends AbstractTest {
             }
         }
     }
-
-    /**
-     * Tests the stream<Driver> drivers() methods in java.sql.DriverManager
-     * 
-     * @since 1.9
-     * @throws ClassNotFoundException
-     */
-    @Test
-    public void driversTest() throws ClassNotFoundException {
-        Stream<Driver> drivers = DriverManager.drivers();
-        Object[] driversArray = drivers.toArray();
-        assertEquals(driversArray[0].getClass(), Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver"));
-    }
-
-    /**
-     * Tests deregister Driver
-     * 
-     * @throws SQLException
-     * @throws ClassNotFoundException
-     */
-    @Test
-    public void deregisterDriverTest() throws SQLException, ClassNotFoundException {
-        Enumeration<Driver> drivers = DriverManager.getDrivers();
-        Driver current = null;
-        while (drivers.hasMoreElements()) {
-            current = drivers.nextElement();
-            DriverManager.deregisterDriver(current);
-        }
-        Stream<Driver> currentDrivers = DriverManager.drivers();
-        Object[] driversArray = currentDrivers.toArray();
-        assertEquals(0, driversArray.length);
-
-        DriverManager.registerDriver(current);
-    }
-
 }
