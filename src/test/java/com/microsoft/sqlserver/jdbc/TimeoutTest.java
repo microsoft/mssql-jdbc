@@ -59,7 +59,7 @@ public class TimeoutTest extends AbstractTest {
 
     @Test
     public void testBasicQueryTimeout() {
-        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
+        assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         assertThrows(SQLTimeoutException.class, () -> {
             runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS);
         });
@@ -67,7 +67,7 @@ public class TimeoutTest extends AbstractTest {
 
     @Test
     public void testQueryTimeoutValid() {
-        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
+        assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         long start = System.currentTimeMillis();
         assertThrows(SQLTimeoutException.class, () -> {
             runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS);
