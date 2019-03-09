@@ -364,8 +364,8 @@ public final class SQLServerException extends java.sql.SQLException {
                     String dbState = databaseState.toString();
                     /*
                      * Length allowed for SQL State is 5 characters as per SQLSTATE specifications. Append trailing
-                     * zeroes as needed based on length of database error State as length of databaseState is either 1
-                     * or 2 characters.
+                     * zeroes as needed based on length of database error State as length of databaseState is between 1
+                     * to 3 digits.
                      */
                     StringBuilder trailingZeroes = new StringBuilder("S");
                     for (int i = 0; i < 4 - dbState.length(); i++) {
