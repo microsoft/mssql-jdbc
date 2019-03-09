@@ -4,18 +4,13 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
-import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.JDBCType;
 import java.sql.SQLException;
 import java.sql.ShardingKey;
-import java.util.Enumeration;
-import java.util.stream.Stream;
-
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
 import javax.sql.XAConnection;

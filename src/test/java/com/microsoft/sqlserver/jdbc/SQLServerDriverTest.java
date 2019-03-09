@@ -17,6 +17,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -25,6 +26,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class SQLServerDriverTest extends AbstractTest {
 
     String randomServer = RandomUtil.getIdentifier("Server");
@@ -179,5 +181,4 @@ public class SQLServerDriverTest extends AbstractTest {
             }
         }
     }
-
 }
