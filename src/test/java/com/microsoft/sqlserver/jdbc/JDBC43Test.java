@@ -15,6 +15,7 @@ import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
 import javax.sql.XAConnection;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -28,6 +29,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class JDBC43Test extends AbstractTest {
     ShardingKey superShardingKey = null;
     ShardingKey shardingKey = null;

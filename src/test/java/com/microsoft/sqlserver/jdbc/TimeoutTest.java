@@ -10,6 +10,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -23,6 +24,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -31,6 +33,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class TimeoutTest extends AbstractTest {
     private static final int TIMEOUT_SECONDS = 2;
     private static final String WAIT_FOR_ONE_MINUTE_SQL = "WAITFOR DELAY '00:01:00'";
@@ -56,6 +59,7 @@ public class TimeoutTest extends AbstractTest {
 
     @Test
     public void testBasicQueryTimeout() {
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
         assertThrows(SQLTimeoutException.class, () -> {
             runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS);
         });
@@ -63,6 +67,7 @@ public class TimeoutTest extends AbstractTest {
 
     @Test
     public void testQueryTimeoutValid() {
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
         long start = System.currentTimeMillis();
         assertThrows(SQLTimeoutException.class, () -> {
             runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS);
