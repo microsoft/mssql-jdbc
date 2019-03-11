@@ -186,7 +186,7 @@ public class CallableStatementTest extends AbstractTest {
     private static void createGUIDStoredProcedure(Statement stmt) throws SQLException {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID)
                 + "(@p1 uniqueidentifier OUTPUT) AS SELECT @p1 = c1 FROM "
-                + AbstractSQLGenerator.escapeIdentifier(tableNameGUID) + ";";
+                + AbstractSQLGenerator.escapeIdentifier(tableNameGUID) + SEMI_COLON;
         stmt.execute(sql);
     }
 

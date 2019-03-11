@@ -67,18 +67,18 @@ public class ConnectionDriverTest extends AbstractTest {
         // test defaults
         DriverPropertyInfo[] infoArray = d.getPropertyInfo(url.toString(), info);
         for (DriverPropertyInfo anInfoArray1 : infoArray) {
-            logger.fine(anInfoArray1.name);
-            logger.fine(anInfoArray1.description);
-            logger.fine(Boolean.valueOf(anInfoArray1.required).toString());
-            logger.fine(anInfoArray1.value);
+            LOGGER.fine(anInfoArray1.name);
+            LOGGER.fine(anInfoArray1.description);
+            LOGGER.fine(Boolean.valueOf(anInfoArray1.required).toString());
+            LOGGER.fine(anInfoArray1.value);
         }
 
         url.append("encrypt=true; trustStore=someStore; trustStorePassword=somepassword;");
         url.append("hostNameInCertificate=someHost; trustServerCertificate=true");
         infoArray = d.getPropertyInfo(url.toString(), info);
         for (DriverPropertyInfo anInfoArray : infoArray) {
-            if (anInfoArray.name.equals("encrypt")) {
-                assertTrue(anInfoArray.value.equals("true"), TestResource.getResource("R_valuesAreDifferent"));
+            if (anInfoArray.name.equals(ENCRYPT)) {
+                assertTrue(anInfoArray.value.equals(Boolean.TRUE.toString()), TestResource.getResource("R_valuesAreDifferent"));
             }
             if (anInfoArray.name.equals("trustStore")) {
                 assertTrue(anInfoArray.value.equals("someStore"), TestResource.getResource("R_valuesAreDifferent"));
@@ -130,7 +130,7 @@ public class ConnectionDriverTest extends AbstractTest {
     public void testJdbcDriverMethod() throws SQLFeatureNotSupportedException {
         SQLServerDriver serverDriver = new SQLServerDriver();
         Logger logger = serverDriver.getParentLogger();
-        assertEquals(logger.getName(), "com.microsoft.sqlserver.jdbc",
+        assertEquals(logger.getName(), MSSQL_JDBC_PACKAGE,
                 TestResource.getResource("R_parrentLoggerNameWrong"));
     }
 
@@ -138,7 +138,7 @@ public class ConnectionDriverTest extends AbstractTest {
     public void testJdbcDataSourceMethod() throws SQLFeatureNotSupportedException {
         SQLServerDataSource fxds = new SQLServerDataSource();
         Logger logger = fxds.getParentLogger();
-        assertEquals(logger.getName(), "com.microsoft.sqlserver.jdbc",
+        assertEquals(logger.getName(), MSSQL_JDBC_PACKAGE,
                 TestResource.getResource("R_parrentLoggerNameWrong"));
     }
 
@@ -264,11 +264,11 @@ public class ConnectionDriverTest extends AbstractTest {
             assertEquals(ISQLServerConnection.TRANSACTION_SNAPSHOT, ISQLServerConnection.TRANSACTION_SNAPSHOT,
                     TestResource.getResource("R_cantAccessSnapshot"));
 
-            isWrapper = ssconn.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
+            isWrapper = ssconn.isWrapperFor(Class.forName(MSSQL_JDBC_PACKAGE + ".ISQLServerConnection"));
             Object[] msgArgs2 = {"ISQLServerConnection"};
             assertTrue(isWrapper, form.format(msgArgs2));
             ISQLServerConnection iSql = (ISQLServerConnection) ssconn
-                    .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
+                    .unwrap(Class.forName(MSSQL_JDBC_PACKAGE + ".ISQLServerConnection"));
             assertEquals(ISQLServerConnection.TRANSACTION_SNAPSHOT, ISQLServerConnection.TRANSACTION_SNAPSHOT,
                     TestResource.getResource("R_cantAccessSnapshot"));
 
@@ -362,8 +362,8 @@ public class ConnectionDriverTest extends AbstractTest {
         }
 
         // Wrong database, ClientConnectionId should be available in error message
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager
-                .getConnection(connectionString + ";databaseName=" + RandomUtil.getIdentifierForDB("DataBase") + ";")) {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(
+                connectionString + ";databaseName=" + RandomUtil.getIdentifierForDB("DataBase") + SEMI_COLON)) {
             conn.close();
 
         } catch (SQLException e) {

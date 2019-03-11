@@ -57,9 +57,9 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
 
     private void testBulkCopyWithTimeout(int timeout) throws SQLException {
         BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-        bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-        bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+        bulkWrapper.setUsingConnection((0 == RANDOM.nextInt(2)) ? true : false, ds);
+        bulkWrapper.setUsingXAConnection((0 == RANDOM.nextInt(2)) ? true : false, dsXA);
+        bulkWrapper.setUsingPooledConnection((0 == RANDOM.nextInt(2)) ? true : false, dsPool);
         SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
         option.setBulkCopyTimeout(timeout);
         bulkWrapper.useBulkCopyOptions(true);

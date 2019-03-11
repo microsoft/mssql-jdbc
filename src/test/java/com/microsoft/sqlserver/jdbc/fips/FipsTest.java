@@ -11,7 +11,6 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -31,15 +30,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;;
 @Tag("AzureDWTest")
 public class FipsTest extends AbstractTest {
 
-    private static String connectionString;
-    private static String[] dataSourceProps;
-
-    @BeforeAll
-    public static void init() {
-        connectionString = getConnectionString();
-        dataSourceProps = getDataSourceProperties();
-    }
-
     /**
      * Test after setting TrustServerCertificate as true.
      * 
@@ -48,7 +38,7 @@ public class FipsTest extends AbstractTest {
     @Test
     public void fipsTrustServerCertificateTest() throws Exception {
         Properties props = buildConnectionProperties();
-        props.setProperty("TrustServerCertificate", "true");
+        props.setProperty(TRUST_SERVER_CERTIFICATE, Boolean.TRUE.toString());
         try (Connection con = PrepUtil.getConnection(connectionString, props)) {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
@@ -65,7 +55,7 @@ public class FipsTest extends AbstractTest {
     @Test
     public void fipsEncryptTest() throws Exception {
         Properties props = buildConnectionProperties();
-        props.setProperty("encrypt", "false");
+        props.setProperty(ENCRYPT, Boolean.FALSE.toString());
         try (Connection con = PrepUtil.getConnection(connectionString, props)) {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
@@ -82,13 +72,13 @@ public class FipsTest extends AbstractTest {
     @Test
     public void fipsPropertyTest() throws Exception {
         Properties props = buildConnectionProperties();
-        props.remove("fips");
-        props.remove("trustStoreType");
-        props.remove("encrypt");
+        props.remove(FIPS);
+        props.remove(TRUST_STORE_TYPE);
+        props.remove(ENCRYPT);
         try (Connection con = PrepUtil.getConnection(connectionString, props)) {
             Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
         } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
 
@@ -103,11 +93,11 @@ public class FipsTest extends AbstractTest {
         setDataSourceProperties(ds);
         ds.setFIPS(false);
         ds.setEncrypt(false);
-        ds.setTrustStoreType("JKS");
+        ds.setTrustStoreType(JKS);
         try (Connection con = ds.getConnection()) {
             Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
         } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
 
@@ -153,22 +143,14 @@ public class FipsTest extends AbstractTest {
      * @param ds
      */
     private void setDataSourceProperties(SQLServerDataSource ds) {
-        ds.setServerName(dataSourceProps[0]);
-
-        if (dataSourceProps[1] != null && StringUtils.isInteger(dataSourceProps[1])) {
-            ds.setPortNumber(Integer.valueOf(dataSourceProps[1]));
-        }
-
-        ds.setUser(dataSourceProps[2]);
-        ds.setPassword(dataSourceProps[3]);
-        ds.setDatabaseName(dataSourceProps[4]);
+        ds = (SQLServerDataSource) updateDataSource(ds);
 
         // Set all properties for FIPS
         ds.setFIPS(true);
         ds.setEncrypt(true);
         ds.setTrustServerCertificate(false);
         ds.setIntegratedSecurity(false);
-        ds.setTrustStoreType("PKCS12");
+        ds.setTrustStoreType(PKCS12);
     }
 
     /**
@@ -179,68 +161,16 @@ public class FipsTest extends AbstractTest {
     private Properties buildConnectionProperties() {
         Properties connectionProps = new Properties();
 
-        connectionProps.setProperty("encrypt", "true");
-        connectionProps.setProperty("integratedSecurity", "false");
+        connectionProps.setProperty(ENCRYPT, Boolean.TRUE.toString());
+        connectionProps.setProperty(INTEGRATED_SECURITY, Boolean.FALSE.toString());
 
         // In case of false we need to pass keystore etc. which is not passing by default.
-        connectionProps.setProperty("TrustServerCertificate", "false");
+        connectionProps.setProperty(TRUST_SERVER_CERTIFICATE, Boolean.FALSE.toString());
 
         // For New Code
-        connectionProps.setProperty("trustStoreType", "PKCS12");
-        connectionProps.setProperty("fips", "true");
+        connectionProps.setProperty(TRUST_STORE_TYPE, PKCS12);
+        connectionProps.setProperty(FIPS, Boolean.TRUE.toString());
 
         return connectionProps;
-    }
-
-    /**
-     * It will return String array. [dbServer,username,password,dbname/database]
-     * 
-     * @param connectionProperty
-     * @return
-     */
-    private static String[] getDataSourceProperties() {
-        String[] params = connectionString.split(";");
-        String[] dataSoureParam = new String[5];
-
-        for (String strParam : params) {
-            if (strParam.startsWith("jdbc:sqlserver")) {
-                dataSoureParam[0] = strParam.replace("jdbc:sqlserver://", "");
-                String[] hostPort = dataSoureParam[0].split(":");
-                dataSoureParam[0] = hostPort[0];
-                if (hostPort.length > 1) {
-                    dataSoureParam[1] = hostPort[1];
-                }
-            }
-            // Actually this is specifically did for Travis.
-            else if (strParam.startsWith("port")) {
-                strParam = strParam.toLowerCase();
-                if (strParam.startsWith("portnumber")) {
-                    dataSoureParam[1] = strParam.replace("portnumber=", "");
-                } else {
-                    dataSoureParam[1] = strParam.replace("port=", "");
-                }
-            }
-
-            else if (strParam.startsWith("user")) {
-                strParam = strParam.toLowerCase();
-                if (strParam.startsWith("username")) {
-                    dataSoureParam[2] = strParam.replace("username=", "");
-                } else {
-                    dataSoureParam[2] = strParam.replace("user=", "");
-                }
-            } else if (strParam.startsWith("password")) {
-                dataSoureParam[3] = strParam.replace("password=", "");
-            } else if (strParam.startsWith("database")) {
-                strParam = strParam.toLowerCase();
-                if (strParam.startsWith("databasename")) {
-                    dataSoureParam[4] = strParam.replace("databasename=", "");
-                } else {
-                    dataSoureParam[4] = strParam.replace("database=", "");
-                }
-            }
-
-        }
-
-        return dataSoureParam;
     }
 }

@@ -635,7 +635,8 @@ public class PreparedStatementTest extends AbstractTest {
             // Execute new statement with different SQL text and verify it does NOT get same handle (should now fall
             // back to using sp_executesql).
             SQLServerPreparedStatement outer = null;
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query + ";")) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                    .prepareStatement(query + SEMI_COLON)) {
                 outer = pstmt;
                 pstmt.execute(); // sp_executesql
                 pstmt.getMoreResults(); // Make sure handle is updated.

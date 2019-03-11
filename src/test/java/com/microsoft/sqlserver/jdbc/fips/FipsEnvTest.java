@@ -123,7 +123,7 @@ public class FipsEnvTest extends AbstractTest {
     @Test
     @Disabled
     public void testFIPSEnv() {
-        assumeTrue("FIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")),
+        assumeTrue(FIPS.equals(TestUtils.getConfiguredProperty(FIPS_ENV)),
                 TestResource.getResource("R_fipsPropertyNotSet"));
 
         // As JDK 1.7 is not supporting lambda for time being commenting.

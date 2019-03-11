@@ -475,14 +475,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testNumericSpecificSetterMaxValue() throws SQLException {
-        String[] numericValuesBoundaryPositive = {"true", "255", "32767", "2147483647", "9223372036854775807",
-                "1.79E308", "1.123", "3.4E38", "999999999999999999", "12345.12345", "999999999999999999", "567812.78",
-                "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
-                "999999999999999999999999.9999"};
-        String[] numericValuesBoundaryPositive2 = {"true", "255", "32767", "2147483647", "9223372036854775807",
-                "1.79E308", "1.123", "3.4E38", "999999999999999999", "12345.12345", "999999999999999999", "567812.78",
-                "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
-                "999999999999999999999999.9999"};
+        String[] numericValuesBoundaryPositive = {Boolean.TRUE.toString(), "255", "32767", "2147483647",
+                "9223372036854775807", "1.79E308", "1.123", "3.4E38", "999999999999999999", "12345.12345",
+                "999999999999999999", "567812.78", "214748.3647", "922337203685477.5807",
+                "999999999999999999999999.9999", "999999999999999999999999.9999"};
+        String[] numericValuesBoundaryPositive2 = {Boolean.TRUE.toString(), "255", "32767", "2147483647",
+                "9223372036854775807", "1.79E308", "1.123", "3.4E38", "999999999999999999", "12345.12345",
+                "999999999999999999", "567812.78", "214748.3647", "922337203685477.5807",
+                "999999999999999999999999.9999", "999999999999999999999999.9999"};
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
                 AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -501,14 +501,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testNumericSpecificSetterMinValue() throws SQLException {
-        String[] numericValuesBoundaryNegtive = {"false", "0", "-32768", "-2147483648", "-9223372036854775808",
-                "-1.79E308", "1.123", "-3.4E38", "999999999999999999", "12345.12345", "999999999999999999", "567812.78",
-                "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
-                "999999999999999999999999.9999"};
-        String[] numericValuesBoundaryNegtive2 = {"false", "0", "-32768", "-2147483648", "-9223372036854775808",
-                "-1.79E308", "1.123", "-3.4E38", "999999999999999999", "12345.12345", "999999999999999999", "567812.78",
-                "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
-                "999999999999999999999999.9999"};
+        String[] numericValuesBoundaryNegtive = {Boolean.FALSE.toString(), "0", "-32768", "-2147483648",
+                "-9223372036854775808", "-1.79E308", "1.123", "-3.4E38", "999999999999999999", "12345.12345",
+                "999999999999999999", "567812.78", "-214748.3648", "-922337203685477.5808",
+                "999999999999999999999999.9999", "999999999999999999999999.9999"};
+        String[] numericValuesBoundaryNegtive2 = {Boolean.FALSE.toString(), "0", "-32768", "-2147483648",
+                "-9223372036854775808", "-1.79E308", "1.123", "-3.4E38", "999999999999999999", "12345.12345",
+                "999999999999999999", "567812.78", "-214748.3648", "-922337203685477.5808",
+                "999999999999999999999999.9999", "999999999999999999999999.9999"};
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
                 AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -579,12 +579,12 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testNumericNormalization() throws SQLException {
-        String[] numericValuesNormalization = {"true", "1", "127", "100", "100", "1.123", "1.123", "1.123",
-                "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
-                "999999999999999999999999.9999", "999999999999999999999999.9999"};
-        String[] numericValuesNormalization2 = {"true", "1", "127", "100", "100", "1.123", "1.123", "1.123",
-                "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
-                "999999999999999999999999.9999", "999999999999999999999999.9999"};
+        String[] numericValuesNormalization = {Boolean.TRUE.toString(), "1", "127", "100", "100", "1.123", "1.123",
+                "1.123", "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812",
+                "7812.7812", "999999999999999999999999.9999", "999999999999999999999999.9999"};
+        String[] numericValuesNormalization2 = {Boolean.TRUE.toString(), "1", "127", "100", "100", "1.123", "1.123",
+                "1.123", "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812",
+                "7812.7812", "999999999999999999999999.9999", "999999999999999999999999.9999"};
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
                 AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -597,7 +597,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testChar(SQLServerStatement stmt, String[] values) throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(charTable);
+        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(CHAR_TABLE_AE);
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
                 AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -614,7 +614,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testBinary(SQLServerStatement stmt, LinkedList<byte[]> values) throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(binaryTable);
+        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(BINARY_TABLE_AE);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
                 AEInfo);
@@ -632,7 +632,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testDate(SQLServerStatement stmt, LinkedList<Object> values1) throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(dateTable);
+        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
                 AEInfo);
@@ -747,16 +747,16 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String decimalValue2 = "" + rs.getBigDecimal(i + 1);
             String decimalValue3 = "" + rs.getBigDecimal(i + 2);
 
-            if (decimalValue1.equalsIgnoreCase("0")
-                    && (values[index].equalsIgnoreCase("true") || values[index].equalsIgnoreCase("false"))) {
-                decimalValue1 = "false";
-                decimalValue2 = "false";
-                decimalValue3 = "false";
-            } else if (decimalValue1.equalsIgnoreCase("1")
-                    && (values[index].equalsIgnoreCase("true") || values[index].equalsIgnoreCase("false"))) {
-                decimalValue1 = "true";
-                decimalValue2 = "true";
-                decimalValue3 = "true";
+            if (decimalValue1.equalsIgnoreCase("0") && (values[index].equalsIgnoreCase(Boolean.TRUE.toString())
+                    || values[index].equalsIgnoreCase(Boolean.FALSE.toString()))) {
+                decimalValue1 = Boolean.FALSE.toString();
+                decimalValue2 = Boolean.FALSE.toString();
+                decimalValue3 = Boolean.FALSE.toString();
+            } else if (decimalValue1.equalsIgnoreCase("1") && (values[index].equalsIgnoreCase(Boolean.TRUE.toString())
+                    || values[index].equalsIgnoreCase(Boolean.FALSE.toString()))) {
+                decimalValue1 = Boolean.TRUE.toString();
+                decimalValue2 = Boolean.TRUE.toString();
+                decimalValue3 = Boolean.TRUE.toString();
             }
 
             if (null != values[index]) {
@@ -795,16 +795,16 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String stringValue2 = ("" + rs.getString(i + 1)).trim();
             String stringValue3 = ("" + rs.getString(i + 2)).trim();
 
-            if (stringValue1.equalsIgnoreCase("0")
-                    && (values[index].equalsIgnoreCase("true") || values[index].equalsIgnoreCase("false"))) {
-                stringValue1 = "false";
-                stringValue2 = "false";
-                stringValue3 = "false";
-            } else if (stringValue1.equalsIgnoreCase("1")
-                    && (values[index].equalsIgnoreCase("true") || values[index].equalsIgnoreCase("false"))) {
-                stringValue1 = "true";
-                stringValue2 = "true";
-                stringValue3 = "true";
+            if (stringValue1.equalsIgnoreCase("0") && (values[index].equalsIgnoreCase(Boolean.TRUE.toString())
+                    || values[index].equalsIgnoreCase(Boolean.FALSE.toString()))) {
+                stringValue1 = Boolean.FALSE.toString();
+                stringValue2 = Boolean.FALSE.toString();
+                stringValue3 = Boolean.FALSE.toString();
+            } else if (stringValue1.equalsIgnoreCase("1") && (values[index].equalsIgnoreCase(Boolean.TRUE.toString())
+                    || values[index].equalsIgnoreCase(Boolean.FALSE.toString()))) {
+                stringValue1 = Boolean.TRUE.toString();
+                stringValue2 = Boolean.TRUE.toString();
+                stringValue3 = Boolean.TRUE.toString();
             }
             try {
 
@@ -1016,7 +1016,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testNumeric(Statement stmt, String[] numericValues, boolean isNull) throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(numericTable);
+        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
                 AEInfo);
@@ -1032,8 +1032,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     if (!isNull)
                         testWithSpecifiedtype(rs, numberOfColumns, numericValues);
                     else {
-                        String[] nullNumericValues = {"false", "0", "0", "0", "0", "0.0", "0.0", "0.0", null, null,
-                                null, null, null, null, null, null};
+                        String[] nullNumericValues = {Boolean.FALSE.toString(), "0", "0", "0", "0", "0.0", "0.0", "0.0",
+                                null, null, null, null, null, null, null, null};
                         testWithSpecifiedtype(rs, numberOfColumns, nullNumericValues);
                     }
                 }

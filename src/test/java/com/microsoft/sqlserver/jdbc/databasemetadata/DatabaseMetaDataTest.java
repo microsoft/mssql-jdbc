@@ -152,11 +152,11 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
             if (connectionString.contains("username")) {
                 startIndex = connectionString.indexOf("username=");
-                endIndex = connectionString.indexOf(";", startIndex);
+                endIndex = connectionString.indexOf(SEMI_COLON, startIndex);
                 startIndex = startIndex + "username=".length();
             } else if (connectionString.contains("user")) {
                 startIndex = connectionString.indexOf("user=");
-                endIndex = connectionString.indexOf(";", startIndex);
+                endIndex = connectionString.indexOf(SEMI_COLON, startIndex);
                 startIndex = startIndex + "user=".length();
             }
 

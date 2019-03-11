@@ -43,7 +43,7 @@ public class SavepointTest extends AbstractTest {
             SQLServerSavepoint savePoint = (SQLServerSavepoint) connection.setSavepoint(savePointName);
             MessageFormat form = new MessageFormat(TestResource.getResource("R_savePointError"));
             Object[][] msgArgs = {{"Name", "same"}, {"Label", "Savepoint Name"},
-                    {"SQLServerSavepoint.isNamed", "true"}};
+                    {"SQLServerSavepoint.isNamed", Boolean.TRUE.toString()}};
 
             assertTrue(savePointName.equals(savePoint.getSavepointName()), form.format(msgArgs[0]));
             assertTrue(savePointName.equals(savePoint.getLabel()), form.format(msgArgs[1]));

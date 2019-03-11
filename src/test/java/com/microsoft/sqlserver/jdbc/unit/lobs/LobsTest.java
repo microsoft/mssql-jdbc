@@ -46,6 +46,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBCoercion;
 import com.microsoft.sqlserver.testframework.DBColumn;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.DBConstants;
 import com.microsoft.sqlserver.testframework.DBInvalidUtil;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -132,19 +133,19 @@ public class LobsTest extends AbstractTest {
     private void testInvalidLobs(Class<?> lobClass, boolean isResultSet) throws SQLException {
         String clobTypes[] = {"varchar(max)", "nvarchar(max)"};
         String blobTypes[] = {"varbinary(max)"};
-        int choose = random.nextInt(3);
+        int choose = RANDOM.nextInt(3);
         switch (choose) {
             case 0:
                 datasize = packetSize;
                 break;
             case 1:
-                datasize = packetSize + random.nextInt(packetSize) + 1;
+                datasize = packetSize + RANDOM.nextInt(packetSize) + 1;
                 break;
             default:
-                datasize = packetSize - random.nextInt(packetSize);
+                datasize = packetSize - RANDOM.nextInt(packetSize);
         }
 
-        int coercionType = isResultSet ? DBCoercion.UPDATE : DBCoercion.SET;
+        int coercionType = isResultSet ? DBConstants.UPDATE_COERCION : DBConstants.SET_COERCION;
         Object updater = null;
         Statement stmt = null;
         try {
@@ -240,7 +241,7 @@ public class LobsTest extends AbstractTest {
             int size = 10000;
 
             byte[] data = new byte[size];
-            random.nextBytes(data);
+            RANDOM.nextBytes(data);
 
             Blob blob = null;
             for (int i = 0; i < 5; i++) {
@@ -314,7 +315,7 @@ public class LobsTest extends AbstractTest {
                         } else {
                             DBColumn col = table.getColumns().get(i);
                             try (DBConnection con = new DBConnection(connectionString)) {
-                                if (!col.getSqlType().canConvert(streamClass, DBCoercion.GET, con))
+                                if (!col.getSqlType().canConvert(streamClass, DBConstants.GET_COERCION, con))
                                     continue;
                             }
 
@@ -385,7 +386,7 @@ public class LobsTest extends AbstractTest {
         int size = 10000;
 
         byte[] data = new byte[size];
-        random.nextBytes(data);
+        RANDOM.nextBytes(data);
 
         Clob clob = null;
         Blob blob = null;
@@ -490,7 +491,7 @@ public class LobsTest extends AbstractTest {
         int size = 10000;
 
         byte[] data = new byte[size];
-        random.nextBytes(data);
+        RANDOM.nextBytes(data);
 
         Blob blob = null;
         try (PreparedStatement ps = conn
@@ -545,7 +546,7 @@ public class LobsTest extends AbstractTest {
             try (PreparedStatement ps = conn
                     .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
                 blobs[i] = conn.createBlob();
-                random.nextBytes(data);
+                RANDOM.nextBytes(data);
                 blobs[i].setBytes(1, data);
                 ps.setInt(1, i + 1);
                 ps.setBlob(2, blobs[i]);
@@ -590,7 +591,7 @@ public class LobsTest extends AbstractTest {
         int size = 10000;
 
         byte[] data = new byte[size];
-        random.nextBytes(data);
+        RANDOM.nextBytes(data);
 
         Clob clob = null;
         Blob blob = null;
@@ -698,15 +699,14 @@ public class LobsTest extends AbstractTest {
 
     private Object createLob(Class<?> lobClass) {
         // Randomly indicate negative length
-        streamLength = random.nextInt(3) < 2 ? datasize
-                                                                  : -1 - random.nextInt(datasize);
+        streamLength = RANDOM.nextInt(3) < 2 ? datasize : -1 - RANDOM.nextInt(datasize);
         // For streams -1 means any length, avoid to ensure that an exception is always thrown
         if (streamLength == -1 && (lobClass == DBCharacterStream.class || lobClass == DBBinaryStream.class))
             streamLength = datasize;
         log.fine("Length passed into update : " + streamLength);
 
         byte[] data = new byte[datasize];
-        random.nextBytes(data);
+        RANDOM.nextBytes(data);
 
         if (lobClass == DBCharacterStream.class)
             return new DBInvalidUtil().new InvalidCharacterStream(new String(data), streamLength < -1);

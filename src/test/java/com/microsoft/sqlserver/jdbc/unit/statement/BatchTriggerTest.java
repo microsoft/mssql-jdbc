@@ -124,7 +124,8 @@ public class BatchTriggerTest extends AbstractTest {
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
             stmt.execute("IF EXISTS (\r\n" + "    SELECT *\r\n" + "    FROM sys.objects\r\n"
                     + "    WHERE [type] = 'TR' AND [name] = '" + TestUtils.escapeSingleQuotes(triggerName) + "'\r\n"
-                    + "    )\r\n" + "    DROP TRIGGER " + AbstractSQLGenerator.escapeIdentifier(triggerName) + ";");
+                    + "    )\r\n" + "    DROP TRIGGER " + AbstractSQLGenerator.escapeIdentifier(triggerName)
+                    + SEMI_COLON);
             dropTable();
             createTable();
             createTrigger(AbstractSQLGenerator.escapeIdentifier(triggerName));
@@ -156,7 +157,8 @@ public class BatchTriggerTest extends AbstractTest {
             dropTable();
             stmt.execute("IF EXISTS (\r\n" + "    SELECT *\r\n" + "    FROM sys.objects\r\n"
                     + "    WHERE [type] = 'TR' AND [name] = '" + TestUtils.escapeSingleQuotes(triggerName) + "'\r\n"
-                    + "    )\r\n" + "    DROP TRIGGER " + AbstractSQLGenerator.escapeIdentifier(triggerName) + ";");
+                    + "    )\r\n" + "    DROP TRIGGER " + AbstractSQLGenerator.escapeIdentifier(triggerName)
+                    + SEMI_COLON);
         }
     }
 }

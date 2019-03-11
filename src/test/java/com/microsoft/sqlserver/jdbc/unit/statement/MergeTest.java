@@ -36,7 +36,7 @@ public class MergeTest extends AbstractTest {
     static String cricketTeamsUpdated = RandomUtil.getIdentifier("cricketTeamsUpdated");
 
     private static final String setupTables = "IF OBJECT_ID (N'" + TestUtils.escapeSingleQuotes(cricketTeams)
-            + "', N'U') IS NOT NULL DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(cricketTeams) + ";"
+            + "', N'U') IS NOT NULL DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(cricketTeams) + SEMI_COLON
             + "   CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(cricketTeams)
             + "   (       CricketTeamID tinyint NOT NULL PRIMARY KEY,     CricketTeamCountry nvarchar(30),        CricketTeamContinent nvarchar(50))"
             + "   INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(cricketTeams)
@@ -44,7 +44,7 @@ public class MergeTest extends AbstractTest {
             + "     (7, 'U.A.E', 'Asia'),      (8, 'England', 'Europe'),       (9, 'South Africa', 'Africa'),      (10, 'West Indies', 'North America');"
             + "   SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(cricketTeams) + "  IF OBJECT_ID (N'"
             + TestUtils.escapeSingleQuotes(cricketTeams) + "_UpdatedList', N'U') IS NOT NULL        DROP TABLE "
-            + AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated) + ";" + "   CREATE TABLE "
+            + AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated) + SEMI_COLON + "   CREATE TABLE "
             + AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated)
             + "   (       CricketTeamID tinyint NOT NULL PRIMARY KEY,     CricketTeamCountry nvarchar(30),        CricketTeamContinent nvarchar(50))"
             + "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated)

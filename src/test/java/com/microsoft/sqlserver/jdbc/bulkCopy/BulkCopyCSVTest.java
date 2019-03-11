@@ -191,7 +191,7 @@ public class BulkCopyCSVTest extends AbstractTest {
                 br.readLine(); // skip first line as it is header
 
             try (DBResultSet dstResultSet = stmt
-                    .executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";")) {
+                    .executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + SEMI_COLON)) {
                 ResultSetMetaData destMeta = ((ResultSet) dstResultSet.product()).getMetaData();
                 int totalColumns = destMeta.getColumnCount();
                 while (dstResultSet.next()) {

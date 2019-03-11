@@ -259,8 +259,8 @@ public class RegressionTest extends AbstractTest {
                 // check the data in the table
                 Map<Integer, String> selectedValues = new LinkedHashMap<>();
                 int id = 0;
-                try (PreparedStatement pstmt = con
-                        .prepareStatement("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName2) + ";")) {
+                try (PreparedStatement pstmt = con.prepareStatement(
+                        "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName2) + SEMI_COLON)) {
                     try (ResultSet rs = pstmt.executeQuery()) {
                         int i = 0;
                         while (rs.next()) {
@@ -374,8 +374,8 @@ public class RegressionTest extends AbstractTest {
 
     @Test
     public void testQueryParamsWithHyphen() throws Exception {
-        try (Connection con = DriverManager.getConnection(connectionString); 
-            PreparedStatement st1 = con.prepareStatement("SELECT 1 WHERE -1=-1 AND 1=?")){
+        try (Connection con = DriverManager.getConnection(connectionString);
+                PreparedStatement st1 = con.prepareStatement("SELECT 1 WHERE -1=-1 AND 1=?")) {
             st1.setInt(1, 1);
             try (ResultSet rs = st1.executeQuery()) {
                 while (rs.next())
@@ -386,8 +386,8 @@ public class RegressionTest extends AbstractTest {
 
     @Test
     public void testQueryParamsWithComment() throws Exception {
-        try (Connection con = DriverManager.getConnection(connectionString); 
-            PreparedStatement st1 = con.prepareStatement("/**COMMENT**/ SELECT 1 WHERE 1=?")){
+        try (Connection con = DriverManager.getConnection(connectionString);
+                PreparedStatement st1 = con.prepareStatement("/**COMMENT**/ SELECT 1 WHERE 1=?")) {
             st1.setInt(1, 1);
             try (ResultSet rs = st1.executeQuery()) {
                 while (rs.next())
@@ -398,8 +398,8 @@ public class RegressionTest extends AbstractTest {
 
     @Test
     public void testQueryParamsWithLineComment() throws Exception {
-        try (Connection con = DriverManager.getConnection(connectionString); 
-            PreparedStatement st1 = con.prepareStatement("--comment\nSELECT 1 WHERE 1=?")){
+        try (Connection con = DriverManager.getConnection(connectionString);
+                PreparedStatement st1 = con.prepareStatement("--comment\nSELECT 1 WHERE 1=?")) {
             st1.setInt(1, 1);
             try (ResultSet rs = st1.executeQuery()) {
                 while (rs.next())
@@ -410,8 +410,8 @@ public class RegressionTest extends AbstractTest {
 
     @Test
     public void testQueryParamsWithBackSlash() throws Exception {
-        try (Connection con = DriverManager.getConnection(connectionString); 
-            PreparedStatement st1 = con.prepareStatement("SELECT 1, '/''' AS str WHERE 1=?")){
+        try (Connection con = DriverManager.getConnection(connectionString);
+                PreparedStatement st1 = con.prepareStatement("SELECT 1, '/''' AS str WHERE 1=?")) {
             st1.setInt(1, 1);
             try (ResultSet rs = st1.executeQuery()) {
                 while (rs.next()) {
@@ -421,7 +421,7 @@ public class RegressionTest extends AbstractTest {
             }
         }
     }
-    
+
     /**
      * Cleanup after test
      * 

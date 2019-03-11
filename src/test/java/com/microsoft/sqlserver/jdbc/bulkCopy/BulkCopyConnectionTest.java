@@ -152,9 +152,9 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
     @DisplayName("BulkCopy:test null SQLServerBulkCopyOptions")
     public void testEmptyBulkCopyOptions() {
         BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-        bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-        bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+        bulkWrapper.setUsingConnection((0 == RANDOM.nextInt(2)) ? true : false, ds);
+        bulkWrapper.setUsingXAConnection((0 == RANDOM.nextInt(2)) ? true : false, dsXA);
+        bulkWrapper.setUsingPooledConnection((0 == RANDOM.nextInt(2)) ? true : false, dsPool);
         SQLServerBulkCopyOptions option = null;
         bulkWrapper.useBulkCopyOptions(true);
         bulkWrapper.setBulkOptions(option);
@@ -219,9 +219,9 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
 
                     BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
                     bulkWrapper.testName = testCaseName;
-                    bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                    bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                    bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                    bulkWrapper.setUsingConnection((0 == RANDOM.nextInt(2)) ? true : false, ds);
+                    bulkWrapper.setUsingXAConnection((0 == RANDOM.nextInt(2)) ? true : false, dsXA);
+                    bulkWrapper.setUsingPooledConnection((0 == RANDOM.nextInt(2)) ? true : false, dsPool);
 
                     SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
                     if (!(method.getName()).equalsIgnoreCase("setUseInternalTransaction")
@@ -229,7 +229,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
                         method.invoke(option, true);
                         bulkWrapper.useBulkCopyOptions(true);
                         bulkWrapper.setBulkOptions(option);
-                        bulkWrapper.testName += method.getName() + ";";
+                        bulkWrapper.testName += method.getName() + SEMI_COLON;
                         testData.add(bulkWrapper);
                     }
                 } catch (Exception ex) {

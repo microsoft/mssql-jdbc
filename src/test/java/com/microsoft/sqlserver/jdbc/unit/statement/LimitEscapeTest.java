@@ -851,8 +851,8 @@ public class LimitEscapeTest extends AbstractTest {
         // Test the parsing error with unmatched braces in limit clause
         try {
             // Do not execute query. Exception will be thrown when verifying translation.
-            new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit (2))}",
-                    "", 0, // # of rows
+            new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit (2))}", "", 0, // # of
+                                                                                                                 // rows
                     0, // # of columns
                     null, // id column values
                     null, // int column values

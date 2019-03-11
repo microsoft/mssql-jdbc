@@ -84,7 +84,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         smallTimestamp.setSeconds(0);
 
         Object[] expected = new Object[23];
-        expected[0] = random.nextLong();
+        expected[0] = RANDOM.nextLong();
         expected[1] = randomBinary;
         expected[2] = true;
         expected[3] = randomChar;
@@ -97,7 +97,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         expected[10] = ramdonNum;
         expected[11] = randomMoney;
         expected[12] = randomChar;
-        expected[13] = BigDecimal.valueOf(random.nextInt());
+        expected[13] = BigDecimal.valueOf(RANDOM.nextInt());
         expected[14] = randomString;
         expected[15] = randomFloat;
         expected[16] = smallTimestamp;
@@ -295,7 +295,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             Timestamp randomTimestamp = new Timestamp(
                     LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             Date randomDate = Date.valueOf(LocalDateTime.now().toLocalDate());
-            long randomLong = random.nextLong();
+            long randomLong = RANDOM.nextLong();
 
             pstmt.setLong(1, randomLong); // bigint
             pstmt.setBoolean(2, true); // bit
@@ -338,7 +338,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            long randomLong = random.nextLong();
+            long randomLong = RANDOM.nextLong();
             String randomChar = RandomData.generateCharTypes("1", false, false);
 
             pstmt.setLong(1, randomLong); // bigint

@@ -74,7 +74,7 @@ public class ExceptionTest extends AbstractTest {
         }
 
         try (Connection conn = DriverManager
-                .getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
+                .getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + SEMI_COLON);
                 Statement stmt = conn.createStatement()) {
             stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
             throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));

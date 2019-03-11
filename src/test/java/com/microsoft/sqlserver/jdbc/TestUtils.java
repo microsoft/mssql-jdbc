@@ -21,36 +21,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
-import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
-import com.microsoft.sqlserver.testframework.sqlType.SqlBit;
-import com.microsoft.sqlserver.testframework.sqlType.SqlChar;
-import com.microsoft.sqlserver.testframework.sqlType.SqlDate;
-import com.microsoft.sqlserver.testframework.sqlType.SqlDateTime;
-import com.microsoft.sqlserver.testframework.sqlType.SqlDateTime2;
-import com.microsoft.sqlserver.testframework.sqlType.SqlDateTimeOffset;
-import com.microsoft.sqlserver.testframework.sqlType.SqlDecimal;
-import com.microsoft.sqlserver.testframework.sqlType.SqlFloat;
-import com.microsoft.sqlserver.testframework.sqlType.SqlInt;
-import com.microsoft.sqlserver.testframework.sqlType.SqlMoney;
-import com.microsoft.sqlserver.testframework.sqlType.SqlNChar;
-import com.microsoft.sqlserver.testframework.sqlType.SqlNVarChar;
-import com.microsoft.sqlserver.testframework.sqlType.SqlNVarCharMax;
-import com.microsoft.sqlserver.testframework.sqlType.SqlNumeric;
-import com.microsoft.sqlserver.testframework.sqlType.SqlReal;
-import com.microsoft.sqlserver.testframework.sqlType.SqlSmallDateTime;
-import com.microsoft.sqlserver.testframework.sqlType.SqlSmallInt;
-import com.microsoft.sqlserver.testframework.sqlType.SqlSmallMoney;
-import com.microsoft.sqlserver.testframework.sqlType.SqlTime;
-import com.microsoft.sqlserver.testframework.sqlType.SqlTinyInt;
-import com.microsoft.sqlserver.testframework.sqlType.SqlType;
-import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinary;
-import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinaryMax;
-import com.microsoft.sqlserver.testframework.sqlType.SqlVarChar;
-import com.microsoft.sqlserver.testframework.sqlType.SqlVarCharMax;
+import com.microsoft.sqlserver.testframework.sqlType.*;
 
 
 /**
@@ -59,39 +30,10 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlVarCharMax;
  * @since 6.1.2
  */
 public class TestUtils {
-    public static final Logger log = Logger.getLogger("TestUtils");
-
-    // 'SQL' represents SQL Server, while 'SQLAzure' represents SQL Azure.
-    public static final String SERVER_TYPE_SQL_SERVER = "SQL";
-    public static final String SERVER_TYPE_SQL_AZURE = "SQLAzure";
-
     // private static SqlType types = null;
     private static ArrayList<SqlType> types = null;
-
-    /**
-     * Returns serverType
-     * 
-     * @return
-     */
-    public static String getServerType() {
-        String serverType = null;
-
-        String serverTypeProperty = getConfiguredProperty("server.type");
-        if (null == serverTypeProperty) {
-            // default to SQL Server
-            serverType = SERVER_TYPE_SQL_SERVER;
-        } else if (serverTypeProperty.equalsIgnoreCase(SERVER_TYPE_SQL_AZURE)) {
-            serverType = SERVER_TYPE_SQL_AZURE;
-        } else if (serverTypeProperty.equalsIgnoreCase(SERVER_TYPE_SQL_SERVER)) {
-            serverType = SERVER_TYPE_SQL_SERVER;
-        } else {
-            if (log.isLoggable(Level.FINE)) {
-                log.fine("Server.type '" + serverTypeProperty + "' is not supported yet. Default to SQL Server");
-            }
-            serverType = SERVER_TYPE_SQL_SERVER;
-        }
-        return serverType;
-    }
+    private static final char[] HEXCHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E',
+            'F'};
 
     /**
      * Read variable from property files if found null try to read from env.
@@ -130,7 +72,7 @@ public class TestUtils {
      * @param javatype
      * @return
      */
-    public static SqlType find(Class javatype) {
+    public static SqlType find(Class<?> javatype) {
         if (null != types) {
             types();
             for (SqlType type : types) {
@@ -347,14 +289,12 @@ public class TestUtils {
      *        length of the array
      * @return
      */
-    final static char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
     public static String bytesToHexString(byte[] b, int length) {
         StringBuilder sb = new StringBuilder(length * 2);
         for (int i = 0; i < length; i++) {
             int hexVal = b[i] & 0xFF;
-            sb.append(hexChars[(hexVal & 0xF0) >> 4]);
-            sb.append(hexChars[(hexVal & 0x0F)]);
+            sb.append(HEXCHARS[(hexVal & 0xF0) >> 4]);
+            sb.append(HEXCHARS[(hexVal & 0x0F)]);
         }
         return sb.toString();
     }

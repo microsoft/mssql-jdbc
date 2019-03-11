@@ -105,7 +105,7 @@ public class TimeoutTest extends AbstractTest {
         }
 
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
-                .getConnection(connectionString + ";queryTimeout=" + (waitForDelaySeconds / 2) + ";")) {
+                .getConnection(connectionString + ";queryTimeout=" + (waitForDelaySeconds / 2) + SEMI_COLON)) {
 
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
@@ -141,8 +141,9 @@ public class TimeoutTest extends AbstractTest {
             createWaitForDelayPreocedure(conn);
         }
 
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString
-                + ";queryTimeout=" + (waitForDelaySeconds / 2) + ";cancelQueryTimeout=" + waitForDelaySeconds + ";")) {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager
+                .getConnection(connectionString + ";queryTimeout=" + (waitForDelaySeconds / 2) + ";cancelQueryTimeout="
+                        + waitForDelaySeconds + SEMI_COLON)) {
 
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
                 stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
@@ -177,7 +178,8 @@ public class TimeoutTest extends AbstractTest {
             createWaitForDelayPreocedure(conn);
         }
 
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString + ";")) {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager
+                .getConnection(connectionString + SEMI_COLON)) {
 
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
                 stmt.setQueryTimeout(waitForDelaySeconds / 2);
@@ -215,7 +217,7 @@ public class TimeoutTest extends AbstractTest {
         }
 
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
-                .getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";")) {
+                .getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + SEMI_COLON)) {
 
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
                 stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));

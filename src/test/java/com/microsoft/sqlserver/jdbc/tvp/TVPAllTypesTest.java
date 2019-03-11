@@ -79,8 +79,7 @@ public class TVPAllTypesTest extends AbstractTest {
                             "INSERT INTO " + tableDest.getEscapedTableName() + " select * from ? ;")) {
                 pstmt.setStructured(1, tvpName, rs);
                 pstmt.execute();
-                ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(conn), tableSrc,
-                        tableDest);
+                ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(conn), tableSrc, tableDest);
             } catch (Exception e) {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
             } finally {
@@ -130,8 +129,7 @@ public class TVPAllTypesTest extends AbstractTest {
                             .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}")) {
                 Cstmt.setStructured(1, tvpName, rs);
                 Cstmt.execute();
-                ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(conn), tableSrc,
-                        tableDest);
+                ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(conn), tableSrc, tableDest);
             } finally {
                 stmt.close();
             }

@@ -381,7 +381,7 @@ public class PQImpsTest extends AbstractTest {
 
         String sql = "update " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " set " + "c1 = ?," + "c2 = ?,"
                 + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?," + "c7 = ?," + "c8 = ?," + "c9 = ?," + "c10 = ?,"
-                + "c11 = ?," + "c12 = ?," + "c13 = ?," + "c14 = ?," + "c15 = ?" + ";";
+                + "c11 = ?," + "c12 = ?," + "c13 = ?," + "c14 = ?," + "c15 = ?" + SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -397,7 +397,7 @@ public class PQImpsTest extends AbstractTest {
         String sql = "delete from " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " where " + "c1 = ? and "
                 + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and " + "c6 = ? and " + "c7 = ? and "
                 + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? and "
-                + "c14 = ? and " + "c15 = ?" + ";";
+                + "c14 = ? and " + "c15 = ?" + SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -472,7 +472,7 @@ public class PQImpsTest extends AbstractTest {
     private static void updateChar() throws SQLException {
 
         String sql = "update " + AbstractSQLGenerator.escapeIdentifier(charTable) + " set " + "c1 = ?," + "c2 = ?,"
-                + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?" + ";";
+                + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?" + SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -540,7 +540,7 @@ public class PQImpsTest extends AbstractTest {
     private static void updateBinary() throws SQLException {
 
         String sql = "update " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " set " + "c1 = ?," + "c2 = ?"
-                + ";";
+                + SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -555,7 +555,7 @@ public class PQImpsTest extends AbstractTest {
     private static void deleteBinary() throws SQLException {
 
         String sql = "delete from " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " where " + "c1 = ? and "
-                + "c2 = ?" + ";";
+                + "c2 = ?" + SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -598,7 +598,8 @@ public class PQImpsTest extends AbstractTest {
     private static void updateDateAndTime() throws SQLException {
 
         String sql = "update " + AbstractSQLGenerator.escapeIdentifier(dateAndTimeTable) + " set " + "c1 = ?,"
-                + "c2 = ?," + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?," + "c7 = ?," + "c8 = ?," + "c9 = ?" + ";";
+                + "c2 = ?," + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?," + "c7 = ?," + "c8 = ?," + "c9 = ?"
+                + SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -613,7 +614,7 @@ public class PQImpsTest extends AbstractTest {
 
         String sql = "delete from " + AbstractSQLGenerator.escapeIdentifier(dateAndTimeTable) + " where "
                 + "c1 = ? and " + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and " + "c6 = ? and "
-                + "c7 = ? and " + "c8 = ? and " + "c9 = ?" + ";";
+                + "c7 = ? and " + "c8 = ? and " + "c9 = ?" + SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
