@@ -885,6 +885,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
                 break;
 
+            case java.sql.Types.FLOAT:
             case java.sql.Types.DOUBLE: // (FLT8TYPE) 0x3E
                 if (!srcNullable) {
                     tdsWriter.writeByte(TDSType.FLOAT8.byteValue());
@@ -1241,6 +1242,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.TINYINT:
                 return "tinyint";
 
+            case java.sql.Types.FLOAT:
             case java.sql.Types.DOUBLE:
                 return "float";
 
@@ -1926,6 +1928,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.BIGINT:
             case java.sql.Types.REAL:
             case java.sql.Types.DOUBLE:
+            case java.sql.Types.FLOAT:
             case java.sql.Types.DECIMAL:
             case java.sql.Types.NUMERIC:
             case java.sql.Types.TIMESTAMP:
@@ -2048,6 +2051,17 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     }
                     break;
 
+                case java.sql.Types.FLOAT:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    } else {
+                        if (bulkNullable) {
+                            tdsWriter.writeByte((byte) 0x08);
+                        }
+                        tdsWriter.writeDouble((float) colValue);
+                    }
+                    break;
+                    
                 case java.sql.Types.DOUBLE:
                     if (null == colValue) {
                         writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
@@ -2698,6 +2712,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.TINYINT:
                 case java.sql.Types.DOUBLE:
                 case java.sql.Types.REAL:
+                case java.sql.Types.FLOAT:
                     return sourceResultSet.getObject(srcColOrdinal);
 
                 case microsoft.sql.Types.MONEY:
