@@ -78,7 +78,8 @@ public class ConnectionDriverTest extends AbstractTest {
         infoArray = d.getPropertyInfo(url.toString(), info);
         for (DriverPropertyInfo anInfoArray : infoArray) {
             if (anInfoArray.name.equals(ENCRYPT)) {
-                assertTrue(anInfoArray.value.equals(Boolean.TRUE.toString()), TestResource.getResource("R_valuesAreDifferent"));
+                assertTrue(anInfoArray.value.equals(Boolean.TRUE.toString()),
+                        TestResource.getResource("R_valuesAreDifferent"));
             }
             if (anInfoArray.name.equals("trustStore")) {
                 assertTrue(anInfoArray.value.equals("someStore"), TestResource.getResource("R_valuesAreDifferent"));
@@ -130,16 +131,14 @@ public class ConnectionDriverTest extends AbstractTest {
     public void testJdbcDriverMethod() throws SQLFeatureNotSupportedException {
         SQLServerDriver serverDriver = new SQLServerDriver();
         Logger logger = serverDriver.getParentLogger();
-        assertEquals(logger.getName(), MSSQL_JDBC_PACKAGE,
-                TestResource.getResource("R_parrentLoggerNameWrong"));
+        assertEquals(logger.getName(), MSSQL_JDBC_PACKAGE, TestResource.getResource("R_parrentLoggerNameWrong"));
     }
 
     @Test
     public void testJdbcDataSourceMethod() throws SQLFeatureNotSupportedException {
         SQLServerDataSource fxds = new SQLServerDataSource();
         Logger logger = fxds.getParentLogger();
-        assertEquals(logger.getName(), MSSQL_JDBC_PACKAGE,
-                TestResource.getResource("R_parrentLoggerNameWrong"));
+        assertEquals(logger.getName(), MSSQL_JDBC_PACKAGE, TestResource.getResource("R_parrentLoggerNameWrong"));
     }
 
     class MyEventListener implements javax.sql.ConnectionEventListener {
@@ -267,8 +266,8 @@ public class ConnectionDriverTest extends AbstractTest {
             isWrapper = ssconn.isWrapperFor(Class.forName(MSSQL_JDBC_PACKAGE + ".ISQLServerConnection"));
             Object[] msgArgs2 = {"ISQLServerConnection"};
             assertTrue(isWrapper, form.format(msgArgs2));
-            ISQLServerConnection iSql = (ISQLServerConnection) ssconn
-                    .unwrap(Class.forName(MSSQL_JDBC_PACKAGE + ".ISQLServerConnection"));
+            
+            ssconn.unwrap(Class.forName(MSSQL_JDBC_PACKAGE + ".ISQLServerConnection"));
             assertEquals(ISQLServerConnection.TRANSACTION_SNAPSHOT, ISQLServerConnection.TRANSACTION_SNAPSHOT,
                     TestResource.getResource("R_cantAccessSnapshot"));
 
