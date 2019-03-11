@@ -35,7 +35,8 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 @Tag("AzureDWTest")
 public class BatchExecutionWithNullTest extends AbstractTest {
 
-    static String tableName = RandomUtil.getIdentifier("esimple");
+    private static final String tableName = RandomUtil.getIdentifier("batchNull");
+    private static final String primaryKeyConstraintName = "pk_" + tableName;
 
     /**
      * Test with combination of setString and setNull which cause the "Violation of PRIMARY KEY constraint and
@@ -114,7 +115,8 @@ public class BatchExecutionWithNullTest extends AbstractTest {
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (id integer not null, name varchar(255), constraint pk_esimple primary key (id))";
+                    + " (id integer not null, name varchar(255), constraint "
+                    + AbstractSQLGenerator.escapeIdentifier(primaryKeyConstraintName) + " primary key (id))";
             stmt.execute(sql1);
             stmt.close();
         }
