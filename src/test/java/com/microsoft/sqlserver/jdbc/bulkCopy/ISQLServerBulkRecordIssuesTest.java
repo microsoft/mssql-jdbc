@@ -253,6 +253,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
 
 
 class BulkData implements ISQLServerBulkRecord {
+    private static final long serialVersionUID = 1L;
     boolean isStringData = false;
 
     private class ColumnMetadata {
