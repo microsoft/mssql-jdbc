@@ -3192,7 +3192,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
 
-        executor.execute(() -> closeInternal());
+        // Always report the connection as closed for any further use, no matter
+        // what happens when we try to clean up the physical resources associated
+        // with the connection using executor.
+        setState(State.Closed);
+
+        executor.execute(() -> clearConnectionResources());
 
         loggerExternal.exiting(getClassNameLogging(), "abort");
     }
@@ -3200,16 +3205,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void close() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "close");
-        closeInternal();
-        loggerExternal.exiting(getClassNameLogging(), "close");
-    }
 
-    private void closeInternal() {
         // Always report the connection as closed for any further use, no matter
         // what happens when we try to clean up the physical resources associated
         // with the connection.
         setState(State.Closed);
+        
+        clearConnectionResources();
 
+        loggerExternal.exiting(getClassNameLogging(), "close");
+    }
+
+    private void clearConnectionResources() {
         if (sharedTimer != null) {
             sharedTimer.removeRef();
             sharedTimer = null;
