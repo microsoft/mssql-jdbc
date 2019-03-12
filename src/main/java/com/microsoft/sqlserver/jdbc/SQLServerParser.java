@@ -26,11 +26,10 @@ class SQLServerParser {
         try {
             lexer = new SQLServerLexer(CharStreams.fromStream(stream));
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            SQLServerException.makeFromDriverError(null, userSQL, e.getLocalizedMessage(), "", false);
         }
         ArrayList<? extends Token> tokenList = (ArrayList<? extends Token>) lexer.getAllTokens();
-        tokenList.forEach(t -> System.out.println(t.toString()));
+        //tokenList.forEach(t -> System.out.println(t.toString()));
         ListIterator<? extends Token> iter = tokenList.listIterator();
         List<String> openingBrackets = Arrays.asList("'","\"","(","[","{");
         while (iter.hasNext()) {
@@ -39,12 +38,8 @@ class SQLServerParser {
                 case SQLServerLexer.SELECT:
                     int selectIndex = iter.nextIndex();
                     boolean foundFrom = false;
-                    while (t.getType() != SQLServerLexer.SEMI) {
-                        if (iter.hasNext()) {
-                            t = iter.next();
-                        } else {
-                            break;
-                        }
+                    while (t.getType() != SQLServerLexer.SEMI && iter.hasNext()) {
+                        t = iter.next();
                         if (t.getType() == SQLServerLexer.FROM) {
                             foundFrom = true;
                             return getTableTargetChunk(iter, Arrays.asList(SQLServerLexer.WHERE, SQLServerLexer.GROUP,
@@ -68,13 +63,9 @@ class SQLServerParser {
                 case SQLServerLexer.INSERT:
                     int insertIndex = iter.nextIndex();
                     boolean foundInto = false;
-                    while (t.getType() != SQLServerLexer.INTO) {
-                        if (iter.hasNext()) {
-                            t = iter.next();
-                        } else {
-                            break;
-                        }
-                        if (t.getType() == SQLServerLexer.FROM) {
+                    while (t.getType() != SQLServerLexer.SEMI && iter.hasNext()) {
+                        t = iter.next();
+                        if (t.getType() == SQLServerLexer.INTO) {
                             foundFrom = true;
                             return getTableTargetChunk(iter, Arrays.asList(SQLServerLexer.VALUES, SQLServerLexer.OUTPUT,
                                     SQLServerLexer.RR_BRACKET));
@@ -111,39 +102,105 @@ class SQLServerParser {
     /*
      * Doesn't only cover brackets. Covers ', ", (, [, and {.
      */
-    private static void skipBracket(ListIterator<? extends Token> iter, String firstBracket) {
+    private static void skipBracket(ListIterator<? extends Token> iter, String firstBracket) throws SQLServerException {
         Stack<String> s = new Stack<>();
         s.push(firstBracket);
         while (iter.hasNext() && !s.empty()) {
             Token t = iter.next();
-            switch (t.getType()) {
-                case SQLServerLexer.LR_BRACKET:
-                    s.push("(");
-                    break;
-                case SQLServerLexer.RR_BRACKET:
-                    if (s.peek() == "(")
-                        s.pop();
-                    break;
-                case SQLServerLexer.LC_BRACKET:
-                    s.push("{");
-                    break;
-                case SQLServerLexer.RC_BRACKET:
-                    if (s.peek() == "}")
-                        s.pop();
-                    break;
-                case SQLServerLexer.SINGLE_QUOTE:
-                    String d = (s.peek() == "'") ? s.pop() : s.push("'");
-                    break;
-                case SQLServerLexer.DOUBLE_QUOTE:
-                    d = (s.peek() == "\"") ? s.pop() : s.push("\"");
-                    break;
-                default:
-                    break;
+            if (s.peek().equalsIgnoreCase("\"") || s.peek().equalsIgnoreCase("[") || s.peek().equalsIgnoreCase("'")) {
+                handleLiteral(t,s,iter);
+            } else {
+                handleNonLiteral(t,s);
             }
+        }
+        if (!s.empty()) {
+            SQLServerException.makeFromDriverError(null, null, "SQL Syntax Error", "", false);
+        }
+    }
+    
+    private static void handleNonLiteral(Token t, Stack<String> s) {
+        switch (t.getType()) {
+            case SQLServerLexer.LR_BRACKET:
+                s.push("(");
+                break;
+            case SQLServerLexer.RR_BRACKET:
+                if (s.peek().equalsIgnoreCase("("))
+                    s.pop();
+                break;
+            case SQLServerLexer.LC_BRACKET:
+                s.push("{");
+                break;
+            case SQLServerLexer.RC_BRACKET:
+                if (s.peek().equalsIgnoreCase("{"))
+                    s.pop();
+                break;
+            case SQLServerLexer.LS_BRACKET:
+                s.push("[");
+                break;
+            case SQLServerLexer.SINGLE_QUOTE:
+                s.push("'");
+                break;
+            case SQLServerLexer.DOUBLE_QUOTE:
+                s.push("\"");
+                break;
+            default:
+                break;
+        }
+    }
+    
+    private static void handleLiteral(Token t, Stack<String> s, ListIterator<? extends Token> iter) {
+        switch (t.getType()) {
+            case SQLServerLexer.RS_BRACKET:
+                if ((s.peek().equalsIgnoreCase("["))) {
+                    if (iter.hasNext()) {
+                        Token tempToken = iter.next();
+                        if (tempToken.getType() == SQLServerLexer.RS_BRACKET) {
+                            //Do nothing, continue skipping
+                        } else {
+                            iter.previous();
+                            s.pop();
+                        }
+                    } else {
+                        s.pop();
+                    }
+                }
+                break;
+            case SQLServerLexer.SINGLE_QUOTE:
+                if ((s.peek().equalsIgnoreCase("'"))) {
+                    if (iter.hasNext()) {
+                        Token tempToken = iter.next();
+                        if (tempToken.getType() == SQLServerLexer.SINGLE_QUOTE) {
+                            //Do nothing, continue skipping
+                        } else {
+                            iter.previous();
+                            s.pop();
+                        }
+                    } else {
+                        s.pop();
+                    }
+                }
+                break;
+            case SQLServerLexer.DOUBLE_QUOTE:
+                if ((s.peek().equalsIgnoreCase("\""))) {
+                    if (iter.hasNext()) {
+                        Token tempToken = iter.next();
+                        if (tempToken.getType() == SQLServerLexer.DOUBLE_QUOTE) {
+                            //Do nothing, continue skipping
+                        } else {
+                            iter.previous();
+                            s.pop();
+                        }
+                    } else {
+                        s.pop();
+                    }
+                }
+                break;
+            default:
+                break;
         }
     }
 
-    private static String getTableTargetChunk(ListIterator<? extends Token> iter, List<Integer> list) {
+    private static String getTableTargetChunk(ListIterator<? extends Token> iter, List<Integer> list) throws SQLServerException {
         StringBuilder sb = new StringBuilder();
         Token t = iter.next();
         do {
@@ -165,8 +222,9 @@ class SQLServerParser {
                                 sb.append(t.getText()).append(" ");
                             }
                         }
-                    } catch (Exception e) {
-                        // throw index out of bounds
+                    } catch (IndexOutOfBoundsException e) {
+                        //TODO: throw index out of bounds
+                        SQLServerException.makeFromDriverError(null, null, e.getLocalizedMessage(), "", false);
                     }
                     break;
                 case SQLServerLexer.LS_BRACKET:
@@ -183,6 +241,7 @@ class SQLServerParser {
                                 sb.append("]");
                                 if (!iter.hasNext()) {
                                     // TODO: THROW EXCEPTION IF ENDING BRACKET COUNT DOESN'T MATCH
+                                    SQLServerException.makeFromDriverError(null, null, "Unclosed sqaure brackets", "", false);
                                     break;
                                 }
                             } else {
@@ -192,9 +251,6 @@ class SQLServerParser {
                             }
                         }
                     }
-                    break;
-                case SQLServerLexer.STRING:
-                    sb.append(t.getText());
                     break;
                 case SQLServerLexer.DOUBLE_QUOTE:
                     do {

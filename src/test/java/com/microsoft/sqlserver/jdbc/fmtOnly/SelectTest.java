@@ -22,23 +22,61 @@ public class SelectTest extends AbstractTest {
         // minor case sensitivity checking
         valuePair.add(Pair.of("select * from jdbctest", "jdbctest"));
         valuePair.add(Pair.of("SelECt * fRom jdbctest", "jdbctest"));
+        valuePair.add(Pair.of("SELECT c1, c2 FROM jdbctest, jdbctest2;", "jdbctest , jdbctest2"));
+
+        // escape sequence
+        valuePair.add(Pair.of("select * from [jdbctest]]]", "[jdbctest]]]"));
+        valuePair.add(Pair.of("select * from [jdb]]ctest]", "[jdb]]ctest]"));
+        valuePair.add(Pair.of("select * from [j[db]]ctest]", "[j[db]]ctest]"));
 
         // basic cases
         valuePair.add(Pair.of("SELECT * FROM jdbctest", "jdbctest"));
         valuePair.add(Pair.of("SELECT * FROM jdbctest;", "jdbctest"));
+        valuePair.add(Pair.of("SELECT * FROM /*hello this is a comment*/jdbctest;","jdbctest"));
+        valuePair.add(Pair.of("SELECT * FROM jdbctest ORDER BY blah...", "jdbctest"));
+        valuePair.add(Pair.of("SELECT * FROM jdbctest WHERE blah...", "jdbctest"));
+        valuePair.add(Pair.of("SELECT * FROM jdbctest HAVING blah...", "jdbctest"));
+        valuePair.add(Pair.of("SELECT * FROM jdbctest OPTION blah...", "jdbctest"));
+        valuePair.add(Pair.of("SELECT * FROM jdbctest GROUP BY blah...", "jdbctest"));
+
+        //double quote literal
+        valuePair.add(Pair.of("SELECT * FROM \"jdbc test\"", "\"jdbc test\""));
+        valuePair.add(Pair.of("SELECT * FROM \"jdbc /*test*/\"", "\"jdbc /*test*/\""));
+        valuePair.add(Pair.of("SELECT * FROM \"jdbc //test\"", "\"jdbc //test\""));
+        valuePair.add(Pair.of("SELECT * FROM \"dbo\".\"jdbcDB\".\"jdbctest\"", "\"dbo\" . \"jdbcDB\" . \"jdbctest\""));
         valuePair.add(Pair.of("SELECT * FROM \"jdbctest\"", "\"jdbctest\""));
+
+        //square bracket literal
         valuePair.add(Pair.of("SELECT * FROM [jdbctest]", "[jdbctest]"));
         valuePair.add(Pair.of("SELECT * FROM [dbo].[jdbcDB].[jdbctest]", "[dbo] . [jdbcDB] . [jdbctest]"));
-        valuePair.add(Pair.of("SELECT * FROM \"dbo\".\"jdbcDB\".\"jdbctest\"", "\"dbo\" . \"jdbcDB\" . \"jdbctest\""));
         valuePair.add(Pair.of("SELECT * FROM [dbo].\"jdbcDB\".\"jdbctest\"", "[dbo] . \"jdbcDB\" . \"jdbctest\""));
+        valuePair.add(Pair.of("SELECT * FROM [jdbc test]", "[jdbc test]"));
+        valuePair.add(Pair.of("SELECT * FROM [jdbc /*test*/]", "[jdbc /*test*/]"));
+        valuePair.add(Pair.of("SELECT * FROM [jdbc //test]", "[jdbc //test]"));
 
         // with parameters
         valuePair.add(Pair.of("SELECT c1,c2,c3 FROM jdbctest", "jdbctest"));
         valuePair.add(Pair.of("SELECT (c1,c2,c3) FROM jdbctest", "jdbctest"));
         valuePair.add(Pair.of("SELECT ?,?,? FROM jdbctest", "jdbctest"));
+        valuePair.add(Pair.of("SELECT (c1,?,c3) FROM jdbctest", "jdbctest"));
 
-        // with query
-        valuePair.add(Pair.of("SELECT * FROM (SELECT jdbctest)", "(SELECT jdbctest )"));
+        // with special parameters
+        valuePair.add(Pair.of("SELECT [c1],\"c2\" FROM jdbctest", "jdbctest"));
+        valuePair.add(Pair.of("SELECT [c1]]],\"c2\" FROM jdbctest", "jdbctest"));
+        valuePair.add(Pair.of("SELECT [c]]1],\"c2\" FROM jdbctest", "jdbctest"));
+        valuePair.add(Pair.of("SELECT [c1],\"[c2]\" FROM jdbctest", "jdbctest"));
+        valuePair.add(Pair.of("SELECT [\"c1],\"FROM\" FROM jdbctest", "jdbctest"));
+        valuePair.add(Pair.of("SELECT [\"c\"1\"],\"c2\" FROM jdbctest", "jdbctest"));
+        valuePair.add(Pair.of("SELECT ['FROM'1)],\"c2\" FROM jdbctest", "jdbctest"));
+        valuePair.add(Pair.of("SELECT [((c)1{}],\"{{c}2)(\" FROM jdbctest", "jdbctest"));
+
+        // with sub queries
+        valuePair.add(Pair.of(
+                "SELECT top 1 OrderId, convert(char(10), OrderDate,121) Last_Paris_Order, (select convert(char(10), max(OrderDate),121) FROM Southwind.dbo.Orders) Last_OrderDate, datediff(dd,OrderDate,(SELECT Max(OrderDate) from Northwind.dbo.orders)) Day_Diff from Northwind.dbo.Orders where ShipCity = 'Paris' Order by OrderDate desc",
+                "Northwind . dbo . Orders"));
+        valuePair.add(Pair.of("SELECT t.*, a+b AS total_sum FROM (SELECT SUM(col1) as a, SUM(col2) AS b FROM table ORDER BY a ASC) t ORDER BY total_sum DSC", "(SELECT SUM (col1 )as a , SUM (col2 )AS b FROM table ORDER BY a ASC ) t"));
+        valuePair.add(Pair.of("SELECT col1 FROM myTestInts UNION " + 
+                "SELECT top 1 (select top 1 CONVERT(char(10), max(col1),121) a FROM myTestInts Order by a) FROM myTestInts Order by col1", "myTestInts UNION SELECT top 1 (select top 1 CONVERT (char (10 ), max (col1 ), 121 )a FROM myTestInts Order by a ) FROM myTestInts"));
 
         valuePair.forEach(p -> assertEquals(p.getRight(), ParserUtils.getTableName(p.getLeft()).trim()));
     }
@@ -185,10 +223,10 @@ public class SelectTest extends AbstractTest {
                         + "SELECT LastName, FirstName, JobTitle FROM dbo.EmployeeThree;",
                 "dbo . EmployeeOne UNION SELECT LastName , FirstName , JobTitle FROM dbo . EmployeeTwo UNION SELECT LastName , FirstName , JobTitle FROM dbo . EmployeeThree"));
         valuePair.add(Pair.of(
-                "SELECT LastName, FirstName,JobTitle FROM dbo.EmployeeOne UNION ALL ("
+                "SELECT LastName, FirstName,JobTitle FROM [dbo].[EmployeeOne] UNION ALL ("
                         + "SELECT LastName, FirstName, JobTitle FROM dbo.EmployeeTwo UNION "
                         + "SELECT LastName, FirstName, JobTitle FROM dbo.EmployeeThree);",
-                "dbo . EmployeeOne UNION ALL (SELECT LastName , FirstName , JobTitle FROM dbo . EmployeeTwo UNION SELECT LastName , FirstName , JobTitle FROM dbo . EmployeeThree )"));
+                "[dbo] . [EmployeeOne] UNION ALL (SELECT LastName , FirstName , JobTitle FROM dbo . EmployeeTwo UNION SELECT LastName , FirstName , JobTitle FROM dbo . EmployeeThree )"));
 
         valuePair.forEach(p -> assertEquals(p.getRight(), ParserUtils.getTableName(p.getLeft()).trim()));
     }
