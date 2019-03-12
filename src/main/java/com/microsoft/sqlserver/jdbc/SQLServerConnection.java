@@ -3192,10 +3192,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
 
-        setState(State.Closed);
-
-        if (null != tdsChannel && null != executor)
-            executor.execute(() -> tdsChannel.close());
+        executor.execute(() -> closeInternal());
 
         loggerExternal.exiting(getClassNameLogging(), "abort");
     }
@@ -3203,7 +3200,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void close() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "close");
+        closeInternal();
+        loggerExternal.exiting(getClassNameLogging(), "close");
+    }
 
+    private void closeInternal() {
         // Always report the connection as closed for any further use, no matter
         // what happens when we try to clean up the physical resources associated
         // with the connection.
@@ -3232,8 +3233,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         cleanupPreparedStatementDiscardActions();
 
         ActivityCorrelator.cleanupActivityId();
-
-        loggerExternal.exiting(getClassNameLogging(), "close");
     }
 
     // This function is used by the proxy for notifying the pool manager that this connection proxy is closed
