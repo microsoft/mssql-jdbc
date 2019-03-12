@@ -40,10 +40,10 @@ public class BulkCopyRowSetTest extends AbstractTest {
             crs.setMetaData(rsmd);
             crs.setFloat(1, 123.45f);
             
-            SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(con);
-            bcOperation.setDestinationTableName(tableName);
-            bcOperation.writeToServer(crs);
-            bcOperation.close();
+            try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(con)) {
+                bcOperation.setDestinationTableName(tableName);
+                bcOperation.writeToServer(crs);
+            }
         }
     }
     
