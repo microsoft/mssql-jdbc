@@ -1485,6 +1485,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
             if ("cursor".equalsIgnoreCase(sPropValue) || "direct".equalsIgnoreCase(sPropValue)) {
                 activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
+                selectMethod = sPropValue.toLowerCase(Locale.ENGLISH);
             } else {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidselectMethod"));
                 Object[] msgArgs = {sPropValue};
@@ -1754,13 +1755,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             lastUpdateCount = booleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
             sPropKey = SQLServerDriverBooleanProperty.XOPEN_STATES.toString();
             xopenStates = booleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
-
-            sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
-            selectMethod = null;
-            if (activeConnectionProperties.getProperty(sPropKey) != null
-                    && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                selectMethod = activeConnectionProperties.getProperty(sPropKey);
-            }
 
             sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
             responseBuffering = null;
