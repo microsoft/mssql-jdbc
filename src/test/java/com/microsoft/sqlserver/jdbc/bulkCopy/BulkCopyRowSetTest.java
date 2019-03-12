@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
@@ -38,7 +39,7 @@ public class BulkCopyRowSetTest extends AbstractTest {
             rsmd.setColumnType(1, java.sql.Types.FLOAT);
             
             crs.setMetaData(rsmd);
-            crs.setFloat(1, 123.45f);
+            crs.setFloat(1, RandomData.generateReal(true));
             
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(con)) {
                 bcOperation.setDestinationTableName(tableName);
