@@ -25,7 +25,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 public class BulkCopyRowSetTest extends AbstractTest {
     
-    static String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkCopyFloatTest"));
+    private static String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkCopyFloatTest"));
     
     @Test
     public void testBulkCopyFloatRowSet() throws SQLException {
