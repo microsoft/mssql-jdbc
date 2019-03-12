@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 
 
@@ -14,7 +15,7 @@ import java.time.format.DateTimeFormatter;
  * 
  * This interface is implemented by {@link SQLServerBulkCommon} Class
  */
-public interface ISQLServerBulkRecord {
+public interface ISQLServerBulkRecord extends Serializable {
 
     /**
      * Returns the ordinals for each of the columns represented in this data record.

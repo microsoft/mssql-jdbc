@@ -5,10 +5,12 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.Serializable;
+
 /**
  * Provides an interface to the {@link SQLServerStatement} class.
  */
-public interface ISQLServerStatement extends java.sql.Statement {
+public interface ISQLServerStatement extends java.sql.Statement, Serializable {
     /**
      * Sets the response buffering mode for this SQLServerStatement object to case-insensitive String full or adaptive.
      * <p>

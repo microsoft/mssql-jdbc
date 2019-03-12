@@ -13,6 +13,11 @@ import java.util.Map.Entry;
 
 abstract class SQLServerBulkCommon implements ISQLServerBulkRecord {
 
+    /**
+     * Update serialVersionUID when making changes to this file
+     */
+    private static final long serialVersionUID = -170992637946357449L;
+
     /*
      * Class to represent the column metadata
      */

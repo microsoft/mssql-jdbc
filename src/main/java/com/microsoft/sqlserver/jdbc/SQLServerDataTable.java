@@ -244,7 +244,7 @@ public final class SQLServerDataTable {
                 else if (val instanceof OffsetTime)
                     rowValues[pair.getKey()] = val.toString();
                 else
-                    rowValues[pair.getKey()] = (null == val) ? null : (String) val;
+                    rowValues[pair.getKey()] = (String) val;
                 break;
 
             case BINARY:

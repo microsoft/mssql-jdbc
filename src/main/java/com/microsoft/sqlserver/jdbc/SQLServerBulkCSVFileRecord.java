@@ -29,6 +29,10 @@ import java.util.Set;
  * data types from a delimited file where each line represents a row of data.
  */
 public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements java.lang.AutoCloseable {
+    /**
+     * Update serialVersionUID when making changes to this file
+     */
+    private static final long serialVersionUID = 1546487135640225989L;
     /*
      * Resources associated with reading in the file
      */

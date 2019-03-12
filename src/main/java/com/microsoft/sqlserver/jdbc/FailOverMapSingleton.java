@@ -10,8 +10,8 @@ import java.util.logging.Level;
 
 
 final class FailoverMapSingleton {
-    private static int INITIALHASHMAPSIZE = 5;
-    private static HashMap<String, FailoverInfo> failoverMap = new HashMap<>(INITIALHASHMAPSIZE);
+    private static int initialHashmapSize = 5;
+    private static HashMap<String, FailoverInfo> failoverMap = new HashMap<>(initialHashmapSize);
 
     private FailoverMapSingleton() {
         /* hide the constructor to stop the instantiation of this class. */}

@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterAll;
@@ -69,7 +68,7 @@ public class LobsTest extends AbstractTest {
     int precision = 2000;
     long streamLength = -1; // Used to verify exceptions
     public static final Logger log = Logger.getLogger("lobs");
-    Class lobClass = null;
+    Class<?> lobClass = null;
     boolean isResultSet = false;
     DBTable table = null;
 
@@ -96,14 +95,14 @@ public class LobsTest extends AbstractTest {
 
     @TestFactory
     public Collection<DynamicTest> executeDynamicTests() {
-        List<Class> classes = new ArrayList<Class>(
+        List<Class<?>> classes = new ArrayList<Class<?>>(
                 Arrays.asList(Blob.class, Clob.class, DBBinaryStream.class, DBCharacterStream.class));
         List<Boolean> isResultSetTypes = new ArrayList<>(Arrays.asList(true, false));
         Collection<DynamicTest> dynamicTests = new ArrayList<>();
 
-        for (Class aClass : classes) {
+        for (Class<?> aClass : classes) {
             for (Boolean isResultSetType : isResultSetTypes) {
-                final Class lobClass = aClass;
+                final Class<?> lobClass = aClass;
                 final boolean isResultSet = isResultSetType;
                 Executable exec = new Executable() {
                     @Override
@@ -130,19 +129,19 @@ public class LobsTest extends AbstractTest {
      * @param isResultSet
      * @throws SQLException
      */
-    private void testInvalidLobs(Class lobClass, boolean isResultSet) throws SQLException {
+    private void testInvalidLobs(Class<?> lobClass, boolean isResultSet) throws SQLException {
         String clobTypes[] = {"varchar(max)", "nvarchar(max)"};
         String blobTypes[] = {"varbinary(max)"};
-        int choose = ThreadLocalRandom.current().nextInt(3);
+        int choose = random.nextInt(3);
         switch (choose) {
             case 0:
                 datasize = packetSize;
                 break;
             case 1:
-                datasize = packetSize + ThreadLocalRandom.current().nextInt(packetSize) + 1;
+                datasize = packetSize + random.nextInt(packetSize) + 1;
                 break;
             default:
-                datasize = packetSize - ThreadLocalRandom.current().nextInt(packetSize);
+                datasize = packetSize - random.nextInt(packetSize);
         }
 
         int coercionType = isResultSet ? DBCoercion.UPDATE : DBCoercion.SET;
@@ -234,14 +233,14 @@ public class LobsTest extends AbstractTest {
 
     @Test
     @DisplayName("testFreedBlobs")
-    private void testFreedBlobs(Class lobClass, boolean isResultSet) throws SQLException {
+    private void testFreedBlobs(Class<?> lobClass, boolean isResultSet) throws SQLException {
         String types[] = {"varbinary(max)"};
         try {
             table = createTable(table, types, false); // create empty table
             int size = 10000;
 
             byte[] data = new byte[size];
-            ThreadLocalRandom.current().nextBytes(data);
+            random.nextBytes(data);
 
             Blob blob = null;
             for (int i = 0; i < 5; i++) {
@@ -299,7 +298,7 @@ public class LobsTest extends AbstractTest {
      * @param streamClass
      * @throws Exception
      */
-    private void testMultipleClose(Class streamClass) throws Exception {
+    private void testMultipleClose(Class<?> streamClass) throws Exception {
         String[] types = {"varchar(max)", "nvarchar(max)", "varbinary(max)"};
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
@@ -381,12 +380,12 @@ public class LobsTest extends AbstractTest {
         testLobsInsertRetrieve(types, Clob.class);
     }
 
-    private void testLobsInsertRetrieve(String types[], Class lobClass) throws Exception {
+    private void testLobsInsertRetrieve(String types[], Class<?> lobClass) throws Exception {
         table = createTable(table, types, false); // create empty table
         int size = 10000;
 
         byte[] data = new byte[size];
-        ThreadLocalRandom.current().nextBytes(data);
+        random.nextBytes(data);
 
         Clob clob = null;
         Blob blob = null;
@@ -491,7 +490,7 @@ public class LobsTest extends AbstractTest {
         int size = 10000;
 
         byte[] data = new byte[size];
-        ThreadLocalRandom.current().nextBytes(data);
+        random.nextBytes(data);
 
         Blob blob = null;
         try (PreparedStatement ps = conn
@@ -546,7 +545,7 @@ public class LobsTest extends AbstractTest {
             try (PreparedStatement ps = conn
                     .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
                 blobs[i] = conn.createBlob();
-                ThreadLocalRandom.current().nextBytes(data);
+                random.nextBytes(data);
                 blobs[i].setBytes(1, data);
                 ps.setInt(1, i + 1);
                 ps.setBlob(2, blobs[i]);
@@ -586,12 +585,12 @@ public class LobsTest extends AbstractTest {
         }
     }
 
-    private void testUpdateLobs(String types[], Class lobClass) throws Exception {
+    private void testUpdateLobs(String types[], Class<?> lobClass) throws Exception {
         table = createTable(table, types, false); // create empty table
         int size = 10000;
 
         byte[] data = new byte[size];
-        ThreadLocalRandom.current().nextBytes(data);
+        random.nextBytes(data);
 
         Clob clob = null;
         Blob blob = null;
@@ -656,7 +655,7 @@ public class LobsTest extends AbstractTest {
         }
     }
 
-    private int classType(Class type) {
+    private int classType(Class<?> type) {
         if (Clob.class == type)
             return clobType;
         else if (NClob.class == type)
@@ -697,29 +696,27 @@ public class LobsTest extends AbstractTest {
         rs.updateRow();
     }
 
-    private Object createLob(Class lobClass) {
+    private Object createLob(Class<?> lobClass) {
         // Randomly indicate negative length
-        streamLength = ThreadLocalRandom.current().nextInt(3) < 2 ? datasize
-                                                                  : -1 - ThreadLocalRandom.current().nextInt(datasize);
+        streamLength = random.nextInt(3) < 2 ? datasize
+                                                                  : -1 - random.nextInt(datasize);
         // For streams -1 means any length, avoid to ensure that an exception is always thrown
         if (streamLength == -1 && (lobClass == DBCharacterStream.class || lobClass == DBBinaryStream.class))
             streamLength = datasize;
         log.fine("Length passed into update : " + streamLength);
 
         byte[] data = new byte[datasize];
-        ThreadLocalRandom.current().nextBytes(data);
+        random.nextBytes(data);
 
         if (lobClass == DBCharacterStream.class)
             return new DBInvalidUtil().new InvalidCharacterStream(new String(data), streamLength < -1);
         else if (lobClass == DBBinaryStream.class)
             return new DBInvalidUtil().new InvalidBinaryStream(data, streamLength < -1);
         if (lobClass == Clob.class) {
-            ArrayList<SqlType> types = TestUtils.types();
             SqlType type = TestUtils.find(String.class);
             Object expected = type.createdata(String.class, data);
             return new DBInvalidUtil().new InvalidClob(expected, false);
         } else {
-            ArrayList<SqlType> types = TestUtils.types();
             SqlType type = TestUtils.find(byte[].class);
             Object expected = type.createdata(type.getClass(), data);
             return new DBInvalidUtil().new InvalidBlob(expected, false);

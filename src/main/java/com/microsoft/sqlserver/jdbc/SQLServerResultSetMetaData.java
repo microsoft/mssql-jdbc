@@ -17,6 +17,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * interfaces javadoc for those details.
  */
 public final class SQLServerResultSetMetaData implements ISQLServerResultSetMetaData {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -5747558730471411712L;
+    
     private SQLServerConnection con;
     private final SQLServerResultSet rs;
     static final private java.util.logging.Logger logger = java.util.logging.Logger

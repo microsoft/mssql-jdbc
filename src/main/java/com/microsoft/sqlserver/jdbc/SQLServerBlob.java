@@ -26,6 +26,16 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
      */
     private static final long serialVersionUID = -3526170228097889085L;
 
+    // Error messages
+    private static final String R_CANT_SET_NULL = "R_cantSetNull";
+    private static final String R_INVALID_POSITION_INDEX = "R_invalidPositionIndex";
+    private static final String R_INVALID_LENGTH = "R_invalidLength";
+
+    private static final Logger _LOGGER = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerBlob");
+
+    // Unique id generator for each instance (use for logging).
+    private static final AtomicInteger BASE_ID = new AtomicInteger(0);
+
     // The value of the BLOB that this Blob object represents.
     // This value is never null unless/until the free() method is called.
     private byte[] value;
@@ -41,19 +51,15 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
     // grows automatically if multiple streams are used.
     ArrayList<Closeable> activeStreams = new ArrayList<>(1);
 
-    static private final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerBlob");
+    private final String traceID;
 
-    // Unique id generator for each instance (use for logging).
-    static private final AtomicInteger baseID = new AtomicInteger(0);
-    final private String traceID;
-
-    final public String toString() {
+    public final String toString() {
         return traceID;
     }
 
     // Returns unique id for each instance.
     private static int nextInstanceID() {
-        return baseID.incrementAndGet();
+        return BASE_ID.incrementAndGet();
     }
 
     /**
@@ -66,8 +72,8 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
      * @deprecated Use {@link SQLServerConnection#createBlob()} instead.
      */
     @Deprecated
-    public SQLServerBlob(SQLServerConnection connection, byte data[]) {
-        traceID = " SQLServerBlob:" + nextInstanceID();
+    public SQLServerBlob(SQLServerConnection connection, byte[] data) {
+        traceID = this.getClass().getSimpleName() + nextInstanceID();
         con = connection;
 
         // Disallow Blobs with internal null values. We throw a
@@ -76,29 +82,29 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
         // permit a SQLException
         // to be thrown.
         if (null == data)
-            throw new NullPointerException(SQLServerException.getErrString("R_cantSetNull"));
+            throw new NullPointerException(SQLServerException.getErrString(R_CANT_SET_NULL));
 
         value = data;
 
-        if (logger.isLoggable(Level.FINE)) {
+        if (_LOGGER.isLoggable(Level.FINE)) {
             String loggingInfo = (null != connection) ? connection.toString() : "null connection";
-            logger.fine(toString() + " created by (" + loggingInfo + ")");
+            _LOGGER.fine(this.toString() + " created by (" + loggingInfo + ")");
         }
     }
 
     SQLServerBlob(SQLServerConnection connection) {
-        traceID = " SQLServerBlob:" + nextInstanceID();
+        traceID = this.getClass().getSimpleName() + nextInstanceID();
         con = connection;
         value = new byte[0];
-        if (logger.isLoggable(Level.FINE))
-            logger.fine(toString() + " created by (" + connection.toString() + ")");
+        if (_LOGGER.isLoggable(Level.FINE))
+            _LOGGER.fine(this.toString() + " created by (" + connection.toString() + ")");
     }
 
-    SQLServerBlob(BaseInputStream stream) throws SQLServerException {
-        traceID = " SQLServerBlob:" + nextInstanceID();
+    SQLServerBlob(BaseInputStream stream) {
+        traceID = this.getClass().getSimpleName() + nextInstanceID();
         activeStreams.add(stream);
-        if (logger.isLoggable(Level.FINE))
-            logger.fine(toString() + " created by (null connection)");
+        if (_LOGGER.isLoggable(Level.FINE))
+            _LOGGER.fine(this.toString() + " created by (null connection)");
     }
 
     @Override
@@ -111,7 +117,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
                     try {
                         stream.close();
                     } catch (IOException ioException) {
-                        logger.fine(toString() + " ignored IOException closing stream " + stream + ": "
+                        _LOGGER.fine(this.toString() + " ignored IOException closing stream " + stream + ": "
                                 + ioException.getMessage());
                     }
                 }
@@ -177,13 +183,13 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
 
         getBytesFromStream();
         if (pos < 1) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(R_INVALID_POSITION_INDEX));
             Object[] msgArgs = {pos};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
         if (length < 0) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(R_INVALID_LENGTH));
             Object[] msgArgs = {length};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
@@ -199,7 +205,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
         if (length > value.length - pos)
             length = (int) (value.length - pos);
 
-        byte bTemp[] = new byte[length];
+        byte[] bTemp = new byte[length];
         System.arraycopy(value, (int) pos, bTemp, 0, length);
         return bTemp;
     }
@@ -244,7 +250,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
 
         getBytesFromStream();
         if (start < 1) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(R_INVALID_POSITION_INDEX));
             Object[] msgArgs = {start};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
@@ -260,7 +266,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
         checkClosed();
         getBytesFromStream();
         if (start < 1) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(R_INVALID_POSITION_INDEX));
             Object[] msgArgs = {start};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
@@ -298,13 +304,13 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
         getBytesFromStream();
 
         if (len < 0) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(R_INVALID_LENGTH));
             Object[] msgArgs = {len};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
 
         if (value.length > len) {
-            byte bNew[] = new byte[(int) len];
+            byte[] bNew = new byte[(int) len];
             System.arraycopy(value, 0, bNew, 0, (int) len);
             value = bNew;
         }
@@ -315,7 +321,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
         checkClosed();
 
         if (pos < 1) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(R_INVALID_POSITION_INDEX));
             SQLServerException.makeFromDriverError(con, null, form.format(new Object[] {pos}), null, true);
         }
 
@@ -328,7 +334,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
 
         getBytesFromStream();
         if (null == bytes)
-            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null,
+            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString(R_CANT_SET_NULL), null,
                     true);
 
         return setBytes(pos, bytes, 0, bytes.length);
@@ -340,7 +346,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
         getBytesFromStream();
 
         if (null == bytes)
-            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString("R_cantSetNull"), null,
+            SQLServerException.makeFromDriverError(con, null, SQLServerException.getErrString(R_CANT_SET_NULL), null,
                     true);
 
         // Offset must be within incoming bytes boundary.
@@ -352,7 +358,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
 
         // len must be within incoming bytes boundary.
         if (len < 0 || len > bytes.length - offset) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(R_INVALID_LENGTH));
             Object[] msgArgs = {len};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
@@ -361,7 +367,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
         // Position must be in range of existing Blob data or exactly 1 byte
         // past the end of data to request "append" mode.
         if (pos <= 0 || pos > value.length + 1) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPositionIndex"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(R_INVALID_POSITION_INDEX));
             Object[] msgArgs = {pos};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
@@ -374,10 +380,9 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
             // Make sure the new value length wouldn't exceed the maximum
             // allowed
             DataTypes.getCheckedLength(con, JDBCType.BLOB, pos + len, false);
-            assert pos + len <= Integer.MAX_VALUE;
 
             // Start with the original value, up to the starting position
-            byte combinedValue[] = new byte[(int) pos + len];
+            byte[] combinedValue = new byte[(int) pos + len];
             System.arraycopy(value, 0, combinedValue, 0, (int) pos);
 
             // Copy rest of data.
