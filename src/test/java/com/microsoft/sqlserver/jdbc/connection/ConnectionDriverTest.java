@@ -267,8 +267,7 @@ public class ConnectionDriverTest extends AbstractTest {
             isWrapper = ssconn.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
             Object[] msgArgs2 = {"ISQLServerConnection"};
             assertTrue(isWrapper, form.format(msgArgs2));
-            ISQLServerConnection iSql = (ISQLServerConnection) ssconn
-                    .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
+            ssconn.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
             assertEquals(ISQLServerConnection.TRANSACTION_SNAPSHOT, ISQLServerConnection.TRANSACTION_SNAPSHOT,
                     TestResource.getResource("R_cantAccessSnapshot"));
 
