@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -21,8 +22,12 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
+import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
+import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 
 
@@ -37,9 +42,9 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
  */
 public abstract class AbstractTest {
 
-    protected static Logger logger = Logger.getLogger("AbstractTest");
-
-    protected static String secretstrJks = "changeit";
+    protected static final Logger logger = Logger.getLogger("AbstractTest");
+    protected static final ThreadLocalRandom random = ThreadLocalRandom.current();
+    protected static final String secretstrJks = "changeit";
 
     protected static String applicationClientID = null;
     protected static String applicationKey = null;
@@ -50,6 +55,10 @@ public abstract class AbstractTest {
     protected static String windowsKeyPath = null;
 
     protected static SQLServerConnection connection = null;
+    protected static ISQLServerDataSource ds = null;
+    protected static ISQLServerDataSource dsXA = null;
+    protected static ISQLServerDataSource dsPool = null;
+
     protected static Connection connectionAzure = null;
 
     protected static String connectionString = null;
@@ -77,6 +86,9 @@ public abstract class AbstractTest {
         keyIDs = getConfiguredProperty("keyID", "").split(";");
 
         connectionString = getConfiguredProperty("mssql_jdbc_test_connection_properties");
+        ds = updateDataSource(new SQLServerDataSource());
+        dsXA = updateDataSource(new SQLServerXADataSource());
+        dsPool = updateDataSource(new SQLServerConnectionPoolDataSource());
 
         jksPaths = getConfiguredProperty("jksPaths", "").split(";");
         javaKeyAliases = getConfiguredProperty("javaKeyAliases", "").split(";");
@@ -97,6 +109,90 @@ public abstract class AbstractTest {
         } catch (Exception e) {
             throw e;
         }
+    }
+
+    /**
+     * Covers only connection properties required for testing. Does not cover all connection properties - add more
+     * properties if needed.
+     * 
+     * @param ds
+     *        DataSource to be configured
+     * @return ISQLServerDataSource
+     */
+    private static ISQLServerDataSource updateDataSource(ISQLServerDataSource ds) {
+        String prefix = "jdbc:sqlserver://";
+        if (null != connectionString && connectionString.startsWith(prefix)) {
+            String extract = connectionString.substring(prefix.length());
+            String[] identifiers = extract.split(";");
+            String server = identifiers[0];
+            // Check if serverName contains instance name
+            if (server.contains("\\")) {
+                int i = identifiers[0].indexOf('\\');
+                ds.setServerName(extractPort(server.substring(0, i), ds));
+                ds.setInstanceName(server.substring(i + 1));
+            } else {
+                ds.setServerName(extractPort(server, ds));
+            }
+            for (String prop : identifiers) {
+                if (prop.contains("=")) {
+                    int index = prop.indexOf("=");
+                    String name = prop.substring(0, index);
+                    String value = prop.substring(index + 1);
+                    switch (name.toUpperCase()) {
+                        case "USER":
+                        case "USERNAME":
+                            ds.setUser(value);
+                            break;
+                        case "PORT":
+                        case "PORTNUMBER":
+                            ds.setPortNumber(Integer.parseInt(value));
+                            break;
+                        case "PASSWORD":
+                            ds.setPassword(value);
+                            break;
+                        case "DATABASE":
+                        case "DATABASENAME":
+                            ds.setDatabaseName(value);
+                            break;
+                        case "COLUMNENCRYPTIONSETTING":
+                            ds.setColumnEncryptionSetting(value);
+                            break;
+                        case "DISABLESTATEMENTPOOLING":
+                            ds.setDisableStatementPooling(Boolean.parseBoolean(value));
+                            break;
+                        case "STATEMENTPOOLINGCACHESIZE":
+                            ds.setStatementPoolingCacheSize(Integer.parseInt(value));
+                            break;
+                        case "AUTHENTICATION":
+                            ds.setAuthentication(value);
+                            break;
+                        case "AUTHENTICATIONSCHEME":
+                            ds.setAuthenticationScheme(value);
+                            break;
+                        case "CANCELQUERYTIMEOUT":
+                            ds.setCancelQueryTimeout(Integer.parseInt(value));
+                            break;
+                        case "ENCRYPT":
+                            ds.setEncrypt(Boolean.parseBoolean(value));
+                            break;
+                        case "HOSTNAMEINCERTIFICATE":
+                            ds.setHostNameInCertificate(value);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+        }
+        return ds;
+    }
+
+    static String extractPort(String server, ISQLServerDataSource ds) {
+        if (server.contains(":")) {
+            ds.setPortNumber(Integer.parseInt(server.substring(server.indexOf(":") + 1)));
+            server = server.substring(0, server.indexOf(":"));
+        }
+        return server;
     }
 
     /**

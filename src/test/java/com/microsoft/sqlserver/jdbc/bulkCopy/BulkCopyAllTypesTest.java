@@ -64,8 +64,7 @@ public class BulkCopyAllTypesTest extends AbstractTest {
             bcOperation.writeToServer(rs);
             bcOperation.close();
 
-            ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connection), tableSrc,
-                    tableDest);
+            ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(connection), tableSrc, tableDest);
         } finally {
             terminateVariation();
         }

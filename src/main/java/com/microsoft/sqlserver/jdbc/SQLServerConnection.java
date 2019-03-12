@@ -2911,31 +2911,41 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     boolean executeCommand(TDSCommand newCommand) throws SQLServerException {
         synchronized (schedulerLock) {
-            // Detach (buffer) the response from any previously executing
-            // command so that we can execute the new command.
-            //
-            // Note that detaching the response does not process it. Detaching just
-            // buffers the response off of the wire to clear the TDS channel.
+            /*
+             * Detach (buffer) the response from any previously executing command so that we can execute the new
+             * command. Note that detaching the response does not process it. Detaching just buffers the response off of
+             * the wire to clear the TDS channel.
+             */
             if (null != currentCommand) {
-                currentCommand.detach();
-                currentCommand = null;
+                try {
+                    currentCommand.detach();
+                } catch (SQLServerException e) {
+                    /*
+                     * If any exception occurs during detach, need not do anything, simply log it. Our purpose to detach
+                     * the response and empty buffer is done here. If there is anything wrong with the connection
+                     * itself, let the exception pass below to be thrown during 'execute()'.
+                     */
+                    if (connectionlogger.isLoggable(Level.FINE)) {
+                        connectionlogger.fine("Failed to detach current command : " + e.getMessage());
+                    }
+                } finally {
+                    currentCommand = null;
+                }
             }
 
-            // The implementation of this scheduler is pretty simple...
-            // Since only one command at a time may use a connection
-            // (to avoid TDS protocol errors), just synchronize to
-            // serialize command execution.
+            /*
+             * The implementation of this scheduler is pretty simple... Since only one command at a time may use a
+             * connection (to avoid TDS protocol errors), just synchronize to serialize command execution.
+             */
             boolean commandComplete = false;
             try {
                 commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
             } finally {
-                // We should never displace an existing currentCommand
-                // assert null == currentCommand;
-
-                // If execution of the new command left response bytes on the wire
-                // (e.g. a large ResultSet or complex response with multiple results)
-                // then remember it as the current command so that any subsequent call
-                // to executeCommand will detach it before executing another new command.
+                /*
+                 * If execution of the new command left response bytes on the wire (e.g. a large ResultSet or complex
+                 * response with multiple results) then remember it as the current command so that any subsequent call
+                 * to executeCommand will detach it before executing another new command.
+                 */
                 if (!commandComplete && !isSessionUnAvailable())
                     currentCommand = newCommand;
             }
@@ -5553,8 +5563,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     @Override
     public boolean isValid(int timeout) throws SQLException {
-        boolean isValid = false;
-
         loggerExternal.entering(getClassNameLogging(), "isValid", timeout);
 
         // Throw an exception if the timeout is invalid
@@ -5568,25 +5576,26 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (isSessionUnAvailable())
             return false;
 
-        try {
-            SQLServerStatement stmt = new SQLServerStatement(this, ResultSet.TYPE_FORWARD_ONLY,
-                    ResultSet.CONCUR_READ_ONLY, SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
+        boolean isValid = true;
+        try (SQLServerStatement stmt = new SQLServerStatement(this, ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY, SQLServerStatementColumnEncryptionSetting.UseConnectionSetting)) {
 
             // If asked, limit the time to wait for the query to complete.
             if (0 != timeout)
                 stmt.setQueryTimeout(timeout);
 
-            // Try to execute the query. If this succeeds, then the connection is valid.
-            // If it fails (throws an exception), then the connection is not valid.
-            // If a timeout was provided, execution throws an "query timed out" exception
-            // if the query fails to execute in that time.
+            /*
+             * Try to execute the query. If this succeeds, then the connection is valid. If it fails (throws an
+             * exception), then the connection is not valid. If a timeout was provided, execution throws an
+             * "query timed out" exception if the query fails to execute in that time.
+             */
             stmt.executeQueryInternal("SELECT 1");
-            stmt.close();
-            isValid = true;
         } catch (SQLException e) {
-            // Do not propagate SQLExceptions from query execution or statement closure.
-            // The connection is considered to be invalid if the statement fails to close,
-            // even though query execution succeeded.
+            isValid = false;
+            /*
+             * Do not propagate SQLExceptions from query execution or statement closure. The connection is considered to
+             * be invalid if the statement fails to close, even though query execution succeeded.
+             */
             connectionlogger.fine(toString() + " Exception checking connection validity: " + e.getMessage());
         }
 
