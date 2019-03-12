@@ -49,22 +49,19 @@ public class BulkCopyRowSetTest extends AbstractTest {
     
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
-        try (Connection connection = DriverManager
-                .getConnection(connectionString)) {
-            try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
-                TestUtils.dropTableIfExists(tableName, stmt);
-                String sql1 = "create table " + tableName + " (c1 float)";
-                stmt.execute(sql1);
-            }
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+            TestUtils.dropTableIfExists(tableName, stmt);
+            String sql1 = "create table " + tableName + " (c1 float)";
+            stmt.execute(sql1);
         }
     }
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString)) {
-            try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
-                TestUtils.dropTableIfExists(tableName, stmt);
-            }
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+            TestUtils.dropTableIfExists(tableName, stmt);
         }
     }
 }
