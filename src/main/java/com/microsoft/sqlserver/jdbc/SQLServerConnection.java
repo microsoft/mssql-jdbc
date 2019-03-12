@@ -3169,15 +3169,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void abort(Executor executor) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "abort", executor);
 
-        // nop if connection is closed
+        // no-op if connection is closed
         if (isClosed())
             return;
-
-        if (null == executor) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-            Object[] msgArgs = {"executor"};
-            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
-        }
 
         // check for callAbort permission
         SecurityManager secMgr = System.getSecurityManager();
@@ -3191,13 +3185,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, true);
             }
         }
+        if (null == executor) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
+            Object[] msgArgs = {"executor"};
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
+        } else {
 
-        // Always report the connection as closed for any further use, no matter
-        // what happens when we try to clean up the physical resources associated
-        // with the connection using executor.
-        setState(State.Closed);
+            // Always report the connection as closed for any further use, no matter
+            // what happens when we try to clean up the physical resources associated
+            // with the connection using executor.
+            setState(State.Closed);
 
-        executor.execute(() -> clearConnectionResources());
+            executor.execute(() -> clearConnectionResources());
+        }
 
         loggerExternal.exiting(getClassNameLogging(), "abort");
     }
@@ -3210,7 +3210,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // what happens when we try to clean up the physical resources associated
         // with the connection.
         setState(State.Closed);
-        
+
         clearConnectionResources();
 
         loggerExternal.exiting(getClassNameLogging(), "close");
