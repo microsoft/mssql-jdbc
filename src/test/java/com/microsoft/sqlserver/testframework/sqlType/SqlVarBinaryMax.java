@@ -18,8 +18,10 @@ public class SqlVarBinaryMax extends SqlVarBinary {
         name = "varbinary(max)";
         jdbctype = JDBCType.LONGVARBINARY;
         variableLengthType = variableLengthType.Variable;
-        coercions.add(new DBCoercion(Blob.class, new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
-                DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION, DBConstants.REG_COERCION}));
+        coercions.add(new DBCoercion(Blob.class,
+                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
+                        DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION,
+                        DBConstants.REG_COERCION}));
     }
 
 }

@@ -12,14 +12,12 @@ import java.math.RoundingMode;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.Date;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,6 +41,8 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 import microsoft.sql.DateTimeOffset;
 
@@ -68,12 +68,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         BigDecimal randomBigDecimal = new BigDecimal(ramdonNum);
         BigDecimal randomMoney = RandomData.generateMoney(false);
         BigDecimal randomSmallMoney = RandomData.generateSmallMoney(false);
-
         // Temporal datatypes
-        Date randomDate = Date.valueOf(LocalDateTime.now().toLocalDate());
-        Time randomTime = new Time(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        Date randomDate = Date.valueOf(Constants.NOW.toLocalDate());
+        Time randomTime = new Time(Constants.NOW.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         Timestamp randomTimestamp = new Timestamp(
-                LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+                Constants.NOW.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
 
         // Datetime can only end in 0,3,7 and will be rounded to those numbers on the server. Manually set nanos
         Timestamp roundedDatetime = randomTimestamp;
@@ -84,7 +83,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         smallTimestamp.setSeconds(0);
 
         Object[] expected = new Object[23];
-        expected[0] = RANDOM.nextLong();
+        expected[0] = Constants.RANDOM.nextLong();
         expected[1] = randomBinary;
         expected[2] = true;
         expected[3] = randomChar;
@@ -97,7 +96,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         expected[10] = ramdonNum;
         expected[11] = randomMoney;
         expected[12] = randomChar;
-        expected[13] = BigDecimal.valueOf(RANDOM.nextInt());
+        expected[13] = BigDecimal.valueOf(Constants.RANDOM.nextInt());
         expected[14] = randomString;
         expected[15] = randomFloat;
         expected[16] = smallTimestamp;
@@ -113,7 +112,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testIsInsert() throws Exception {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
             String valid1 = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " values (1, 2)";
             String valid2 = " insert into " + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " values (1, 2)";
@@ -132,7 +131,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testComments() throws Exception {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
             String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ "
                     + AbstractSQLGenerator.escapeIdentifier(tableNameBulk) + " /*rando comment */"
@@ -153,7 +152,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testBrackets() throws Exception {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
             String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ [BulkCopy[]]Table] /*rando comment */"
                     + " /* rando comment */values/* rando comment */ (1, 2)";
@@ -172,7 +171,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testDoubleQuotes() throws Exception {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
             String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Bulk\"\"\"\"Table\" /*rando comment */"
                     + " /* rando comment */values/* rando comment */ (1, 2)";
@@ -192,7 +191,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testAll() throws Exception {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
             String valid = "/* rando comment *//* rando comment */ INSERT /* rando comment */ INTO /* rando comment *//*rando comment*/ \"Bulk\"\"\"\"Table\" /*rando comment */"
                     + " /* rando comment */ (\"c1\"/* rando comment */, /* rando comment */[c2]/* rando comment */, /* rando comment */ /* rando comment */c3/* rando comment */, c4)"
@@ -230,7 +229,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?" + ")";
 
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
@@ -285,7 +284,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1, c3, c5, c8) values "
                 + "(" + "?, " + "?, " + "?, " + "? " + ")";
 
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
@@ -293,9 +292,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.set(connection, true);
 
             Timestamp randomTimestamp = new Timestamp(
-                    LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-            Date randomDate = Date.valueOf(LocalDateTime.now().toLocalDate());
-            long randomLong = RANDOM.nextLong();
+                    Constants.NOW.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            Date randomDate = Date.valueOf(Constants.NOW.toLocalDate());
+            long randomLong = Constants.RANDOM.nextLong();
 
             pstmt.setLong(1, randomLong); // bigint
             pstmt.setBoolean(2, true); // bit
@@ -330,15 +329,14 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " (c1, c2, c3, c4, c5, c6, c7) values " + "(" + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "? "
                 + ")";
-
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            long randomLong = RANDOM.nextLong();
+            long randomLong = Constants.RANDOM.nextLong();
             String randomChar = RandomData.generateCharTypes("1", false, false);
 
             pstmt.setLong(1, randomLong); // bigint
@@ -379,7 +377,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testSquareBracketAgainstDB() throws Exception {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName) + " values (?)";
 
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
@@ -409,7 +407,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testDoubleQuoteAgainstDB() throws Exception {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName) + " values (?)";
 
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
@@ -439,7 +437,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testSchemaAgainstDB() throws Exception {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(schemaTableName) + " values (?)";
 
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
@@ -469,7 +467,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(squareBracketTableName)
                 + " ([c]]]]1], [c]]]]2]) values (?, 1)";
 
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
@@ -501,7 +499,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?" + ")";
 
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
@@ -555,7 +553,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testIllegalNumberOfArgNoColumnList() throws Exception {
         String invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?, ?,? ,?) ";
 
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
@@ -577,7 +575,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " (c1, c2, c3) values (?, ?,? ,?) ";
 
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
@@ -606,7 +604,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         String invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " values ((SELECT * from table where c1=?), ?,? ,?) ";
 
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
 
@@ -632,7 +630,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
         invalid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values ('?', ?,? ,?) ";
 
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(invalid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
@@ -657,7 +655,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName)
                 + " values (?, ?, ?, ?)";
 
-        try (Connection connection = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
@@ -695,8 +693,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
-        try (Connection connection = DriverManager
-                .getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
             try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " " + "("
@@ -713,7 +710,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString)) {
+        try (Connection connection = PrepUtil.getConnection(connectionString)) {
             try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulk), stmt);

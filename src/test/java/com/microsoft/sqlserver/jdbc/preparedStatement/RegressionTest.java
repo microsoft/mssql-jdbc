@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -30,6 +29,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -51,7 +51,7 @@ public class RegressionTest extends AbstractTest {
      */
     @BeforeAll
     public static void setupTest() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }
@@ -64,7 +64,7 @@ public class RegressionTest extends AbstractTest {
     @Test
     @Tag("AzureDWTest")
     public void createViewTest() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = getConnection();
                 PreparedStatement pstmt1 = con.prepareStatement(
                         "create view " + AbstractSQLGenerator.escapeIdentifier(tableName) + " as select 1 a");
                 PreparedStatement pstmt2 = con
@@ -85,7 +85,7 @@ public class RegressionTest extends AbstractTest {
     @Test
     @Tag("AzureDWTest")
     public void createSchemaTest() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = getConnection();
                 PreparedStatement pstmt1 = con
                         .prepareStatement("create schema " + AbstractSQLGenerator.escapeIdentifier(schemaName));
                 PreparedStatement pstmt2 = con
@@ -106,7 +106,7 @@ public class RegressionTest extends AbstractTest {
     @Test
     @Tag("AzureDWTest")
     public void createTableTest() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = getConnection();
                 PreparedStatement pstmt1 = con.prepareStatement(
                         "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
                 PreparedStatement pstmt2 = con
@@ -127,7 +127,7 @@ public class RegressionTest extends AbstractTest {
     @Test
     @Tag("AzureDWTest")
     public void alterTableTest() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = getConnection();
                 PreparedStatement pstmt1 = con.prepareStatement(
                         "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
                 PreparedStatement pstmt2 = con.prepareStatement(
@@ -151,7 +151,7 @@ public class RegressionTest extends AbstractTest {
     @Test
     @Tag("AzureDWTest")
     public void grantTest() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = getConnection();
                 PreparedStatement pstmt1 = con.prepareStatement(
                         "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
                 PreparedStatement pstmt2 = con.prepareStatement(
@@ -186,7 +186,7 @@ public class RegressionTest extends AbstractTest {
     }
 
     private void batchWithLargeStringTestInternal(String mode) throws Exception {
-        try (Connection con = DriverManager.getConnection(connectionString);) {
+        try (Connection con = getConnection();) {
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI((SQLServerConnection) con);
             }
@@ -209,7 +209,7 @@ public class RegressionTest extends AbstractTest {
                                 + " ( ID int, DATA nvarchar(max) );");
                     }
                 } catch (Exception e) {
-                    fail(e.toString());
+                    fail(e.getMessage());
                 }
 
                 con.commit();
@@ -252,7 +252,7 @@ public class RegressionTest extends AbstractTest {
 
                     pstmt.executeBatch();
                 } catch (Exception e) {
-                    fail(e.toString());
+                    fail(e.getMessage());
                 }
                 con.commit();
 
@@ -260,7 +260,7 @@ public class RegressionTest extends AbstractTest {
                 Map<Integer, String> selectedValues = new LinkedHashMap<>();
                 int id = 0;
                 try (PreparedStatement pstmt = con.prepareStatement(
-                        "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName2) + SEMI_COLON)) {
+                        "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName2) + Constants.SEMI_COLON)) {
                     try (ResultSet rs = pstmt.executeQuery()) {
                         int i = 0;
                         while (rs.next()) {
@@ -287,7 +287,7 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void addBatchWithLargeStringTest() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
 
             con.setAutoCommit(false);
@@ -305,7 +305,7 @@ public class RegressionTest extends AbstractTest {
                             + " ( ID int, DATA nvarchar(max) );");
                 }
             } catch (Exception e) {
-                fail(e.toString());
+                fail(e.getMessage());
             }
             con.commit();
 
@@ -365,7 +365,7 @@ public class RegressionTest extends AbstractTest {
             }
 
             catch (Exception e) {
-                fail(e.toString());
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
             }
@@ -374,7 +374,7 @@ public class RegressionTest extends AbstractTest {
 
     @Test
     public void testQueryParamsWithHyphen() throws Exception {
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = getConnection();
                 PreparedStatement st1 = con.prepareStatement("SELECT 1 WHERE -1=-1 AND 1=?")) {
             st1.setInt(1, 1);
             try (ResultSet rs = st1.executeQuery()) {
@@ -386,7 +386,7 @@ public class RegressionTest extends AbstractTest {
 
     @Test
     public void testQueryParamsWithComment() throws Exception {
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = getConnection();
                 PreparedStatement st1 = con.prepareStatement("/**COMMENT**/ SELECT 1 WHERE 1=?")) {
             st1.setInt(1, 1);
             try (ResultSet rs = st1.executeQuery()) {
@@ -398,7 +398,7 @@ public class RegressionTest extends AbstractTest {
 
     @Test
     public void testQueryParamsWithLineComment() throws Exception {
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = getConnection();
                 PreparedStatement st1 = con.prepareStatement("--comment\nSELECT 1 WHERE 1=?")) {
             st1.setInt(1, 1);
             try (ResultSet rs = st1.executeQuery()) {
@@ -410,7 +410,7 @@ public class RegressionTest extends AbstractTest {
 
     @Test
     public void testQueryParamsWithBackSlash() throws Exception {
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = getConnection();
                 PreparedStatement st1 = con.prepareStatement("SELECT 1, '/''' AS str WHERE 1=?")) {
             st1.setInt(1, 1);
             try (ResultSet rs = st1.executeQuery()) {
@@ -429,7 +429,7 @@ public class RegressionTest extends AbstractTest {
      */
     @AfterAll
     public static void cleanup() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
         }

@@ -25,7 +25,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
-import com.microsoft.sqlserver.testframework.AbstractTest;;
+import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;;
 
 
 /**
@@ -141,7 +142,7 @@ public class JDBC43Test extends AbstractTest {
     @Test
     public void setShardingKeyIfValidTest() throws TestAbortedException, SQLException {
         assumeTrue(TestUtils.supportJDBC43(connection));
-        try (SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection connection43 = (SQLServerConnection43) getConnection()) {
             try {
                 connection43.setShardingKeyIfValid(shardingKey, 10);
             } catch (SQLException e) {
@@ -165,7 +166,7 @@ public class JDBC43Test extends AbstractTest {
     @Test
     public void setShardingKeyTest() throws TestAbortedException, SQLException {
         assumeTrue(TestUtils.supportJDBC43(connection));
-        try (SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection connection43 = (SQLServerConnection43) getConnection()) {
             try {
                 connection43.setShardingKey(shardingKey);
             } catch (SQLException e) {
@@ -189,7 +190,7 @@ public class JDBC43Test extends AbstractTest {
     public void driversTest() throws ClassNotFoundException {
         Stream<Driver> drivers = DriverManager.drivers();
         Object[] driversArray = drivers.toArray();
-        assertEquals(driversArray[0].getClass(), Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver"));
+        assertEquals(driversArray[0].getClass(), Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver"));
     }
 
     /**

@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -35,7 +34,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      */
     @Test
     public void testParameterMetaDataWrapper() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (col1 int identity(1,1) primary key)");
@@ -60,7 +59,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      */
     @Test
     public void testSQLServerExceptionNotWrapped() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = getConnection();
                 PreparedStatement pstmt = connection.prepareStatement("invalid query :)");) {
 
             pstmt.getParameterMetaData();
@@ -77,7 +76,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      */
     @Test
     public void testNameWithBraces() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " ([c1_varchar(max)] varchar(max))");
@@ -101,7 +100,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      */
     @Test
     public void testParameterMetaData() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " ([c1_varchar(max)] varchar(max), c2 decimal(38,5))");

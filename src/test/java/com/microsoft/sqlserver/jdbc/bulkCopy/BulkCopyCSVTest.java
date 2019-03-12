@@ -30,6 +30,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -191,7 +192,7 @@ public class BulkCopyCSVTest extends AbstractTest {
                 br.readLine(); // skip first line as it is header
 
             try (DBResultSet dstResultSet = stmt
-                    .executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + SEMI_COLON)) {
+                    .executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + Constants.SEMI_COLON)) {
                 ResultSetMetaData destMeta = ((ResultSet) dstResultSet.product()).getMetaData();
                 int totalColumns = destMeta.getColumnCount();
                 while (dstResultSet.next()) {

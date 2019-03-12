@@ -19,7 +19,8 @@ public class SqlVarCharMax extends SqlVarChar {
         jdbctype = JDBCType.LONGVARCHAR;
         variableLengthType = VariableLengthType.Variable;
         coercions.add(new DBCoercion(Clob.class,
-                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION, DBConstants.SET_COERCION,
-                        DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION, DBConstants.REG_COERCION, DBConstants.CHAR_COERCION}));
+                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
+                        DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION,
+                        DBConstants.REG_COERCION, DBConstants.CHAR_COERCION}));
     }
 }

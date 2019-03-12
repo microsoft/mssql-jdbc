@@ -23,22 +23,29 @@ public class SqlVarBinary extends SqlBinary {
      */
     public SqlVarBinary() {
         super("varbinary", JDBCType.VARBINARY, 4000);
-        coercions.add(new DBCoercion(String.class, new int[] {DBConstants.GET_COERCION, DBConstants.GETPARAM_COERCION}));
-        coercions.add(new DBCoercion(Object.class, new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION,
-                DBConstants.UPDATEOBJECT_COERCION, DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION, DBConstants.REG_COERCION}));
-        coercions.add(new DBCoercion(byte[].class, new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION,
-                DBConstants.UPDATEOBJECT_COERCION, DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION, DBConstants.REG_COERCION}));
+        coercions
+                .add(new DBCoercion(String.class, new int[] {DBConstants.GET_COERCION, DBConstants.GETPARAM_COERCION}));
+        coercions.add(new DBCoercion(Object.class,
+                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
+                        DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION,
+                        DBConstants.REG_COERCION}));
+        coercions.add(new DBCoercion(byte[].class,
+                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
+                        DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION,
+                        DBConstants.REG_COERCION}));
 
         // TODO: Following coercions are not supported by AE. add a check later
         // coercions.remove(String.class);
         coercions.add(new DBCoercion(String.class, new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION,
                 DBConstants.UPDATEOBJECT_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION}));
         coercions.add(new DBCoercion(DBBinaryStream.class,
-                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION, DBConstants.SET_COERCION,
-                        DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION, DBConstants.REG_COERCION, DBConstants.STREAM_COERCION}));
+                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
+                        DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION,
+                        DBConstants.REG_COERCION, DBConstants.STREAM_COERCION}));
         coercions.add(new DBCoercion(DBCharacterStream.class,
-                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION, DBConstants.SETOBJECT_COERCION,
-                        DBConstants.GETPARAM_COERCION, DBConstants.REG_COERCION, DBConstants.STREAM_COERCION}));
+                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
+                        DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION, DBConstants.REG_COERCION,
+                        DBConstants.STREAM_COERCION}));
 
     }
 }

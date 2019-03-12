@@ -40,7 +40,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
  * 
  * @since 6.1.2
  */
-public abstract class AbstractTest extends Constants {
+public abstract class AbstractTest {
 
     static String applicationClientID = null;
     static String applicationKey = null;
@@ -75,27 +75,28 @@ public abstract class AbstractTest extends Constants {
 
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
-        keyIDs = getConfiguredProperty("keyID", "").split(SEMI_COLON);
+        keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
 
-        connectionString = getConfiguredProperty(MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
+        connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
         ds = updateDataSource(new SQLServerDataSource());
         dsXA = updateDataSource(new SQLServerXADataSource());
         dsPool = updateDataSource(new SQLServerConnectionPoolDataSource());
 
-        jksPaths = getConfiguredProperty("jksPaths", "").split(SEMI_COLON);
-        javaKeyAliases = getConfiguredProperty("javaKeyAliases", "").split(SEMI_COLON);
+        jksPaths = getConfiguredProperty("jksPaths", "").split(Constants.SEMI_COLON);
+        javaKeyAliases = getConfiguredProperty("javaKeyAliases", "").split(Constants.SEMI_COLON);
         windowsKeyPath = getConfiguredProperty("windowsKeyPath");
 
         // info.setProperty("ColumnEncryptionSetting", "Enabled"); // May be we
         // can use parameterized way to change this value
         if (!jksPaths[0].isEmpty()) {
-            info.setProperty("keyStoreAuthentication", JAVA_KEY_STORE_PASSWORD);
+            info.setProperty("keyStoreAuthentication", Constants.JAVA_KEY_STORE_PASSWORD);
             info.setProperty("keyStoreLocation", jksPaths[0]);
-            info.setProperty("keyStoreSecret", JKS_SECRET_STRING);
+            info.setProperty("keyStoreSecret", Constants.JKS_SECRET_STRING);
         }
 
         try {
             Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
+            Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
             connection = PrepUtil.getConnection(connectionString, info);
             isSqlAzureOrAzureDW(connection);
         } catch (Exception e) {
@@ -112,64 +113,64 @@ public abstract class AbstractTest extends Constants {
      * @return ISQLServerDataSource
      */
     protected static ISQLServerDataSource updateDataSource(ISQLServerDataSource ds) {
-        if (null != connectionString && connectionString.startsWith(JDBC_PREFIX)) {
-            String extract = connectionString.substring(JDBC_PREFIX.length());
-            String[] identifiers = extract.split(SEMI_COLON);
+        if (null != connectionString && connectionString.startsWith(Constants.JDBC_PREFIX)) {
+            String extract = connectionString.substring(Constants.JDBC_PREFIX.length());
+            String[] identifiers = extract.split(Constants.SEMI_COLON);
             String server = identifiers[0];
 
             // Check if serverName contains instance name
-            if (server.contains(BACK_SLASH)) {
-                int i = identifiers[0].indexOf(BACK_SLASH);
+            if (server.contains(Constants.BACK_SLASH)) {
+                int i = identifiers[0].indexOf(Constants.BACK_SLASH);
                 ds.setServerName(extractPort(server.substring(0, i), ds));
                 ds.setInstanceName(server.substring(i + 1));
             } else {
                 ds.setServerName(extractPort(server, ds));
             }
             for (String prop : identifiers) {
-                if (prop.contains(EQUAL_TO)) {
-                    int index = prop.indexOf(EQUAL_TO);
+                if (prop.contains(Constants.EQUAL_TO)) {
+                    int index = prop.indexOf(Constants.EQUAL_TO);
                     String name = prop.substring(0, index);
                     String value = prop.substring(index + 1);
                     switch (name.toUpperCase()) {
-                        case INTEGRATED_SECURITY:
+                        case Constants.INTEGRATED_SECURITY:
                             ds.setIntegratedSecurity(Boolean.parseBoolean(value));
-                        case USER:
-                        case USER_NAME:
+                        case Constants.USER:
+                        case Constants.USER_NAME:
                             ds.setUser(value);
                             break;
-                        case PORT:
-                        case PORT_NUMBER:
+                        case Constants.PORT:
+                        case Constants.PORT_NUMBER:
                             ds.setPortNumber(Integer.parseInt(value));
                             break;
-                        case PASSWORD:
+                        case Constants.PASSWORD:
                             ds.setPassword(value);
                             break;
-                        case DATABASE:
-                        case DATABASE_NAME:
+                        case Constants.DATABASE:
+                        case Constants.DATABASE_NAME:
                             ds.setDatabaseName(value);
                             break;
-                        case COLUMN_ENCRYPTION_SETTING:
+                        case Constants.COLUMN_ENCRYPTION_SETTING:
                             ds.setColumnEncryptionSetting(value);
                             break;
-                        case DISABLE_STATEMENT_POOLING:
+                        case Constants.DISABLE_STATEMENT_POOLING:
                             ds.setDisableStatementPooling(Boolean.parseBoolean(value));
                             break;
-                        case STATEMENT_POOLING_CACHE_SIZE:
+                        case Constants.STATEMENT_POOLING_CACHE_SIZE:
                             ds.setStatementPoolingCacheSize(Integer.parseInt(value));
                             break;
-                        case AUTHENTICATION:
+                        case Constants.AUTHENTICATION:
                             ds.setAuthentication(value);
                             break;
-                        case AUTHENTICATION_SCHEME:
+                        case Constants.AUTHENTICATION_SCHEME:
                             ds.setAuthenticationScheme(value);
                             break;
-                        case CANCEL_QUERY_TIMEOUT:
+                        case Constants.CANCEL_QUERY_TIMEOUT:
                             ds.setCancelQueryTimeout(Integer.parseInt(value));
                             break;
-                        case ENCRYPT:
+                        case Constants.ENCRYPT:
                             ds.setEncrypt(Boolean.parseBoolean(value));
                             break;
-                        case HOST_NAME_IN_CERTIFICATE:
+                        case Constants.HOST_NAME_IN_CERTIFICATE:
                             ds.setHostNameInCertificate(value);
                             break;
                         default:
@@ -182,9 +183,9 @@ public abstract class AbstractTest extends Constants {
     }
 
     static String extractPort(String server, ISQLServerDataSource ds) {
-        if (server.contains(COLON)) {
-            ds.setPortNumber(Integer.parseInt(server.substring(server.indexOf(COLON) + 1)));
-            server = server.substring(0, server.indexOf(COLON));
+        if (server.contains(Constants.COLON)) {
+            ds.setPortNumber(Integer.parseInt(server.substring(server.indexOf(Constants.COLON) + 1)));
+            server = server.substring(0, server.indexOf(Constants.COLON));
         }
         return server;
     }
@@ -196,6 +197,16 @@ public abstract class AbstractTest extends Constants {
      */
     public static String getConnectionString() {
         return connectionString;
+    }
+
+    /**
+     * Retrieves connection using default configured connection string
+     * 
+     * @return
+     * @throws SQLException
+     */
+    protected static SQLServerConnection getConnection() throws SQLException {
+        return PrepUtil.getConnection(connectionString);
     }
 
     /**
@@ -247,32 +258,32 @@ public abstract class AbstractTest extends Constants {
     public static void invokeLogging() {
         Handler handler = null;
 
-        String enableLogging = getConfiguredProperty(MSSQL_JDBC_LOGGING, Boolean.FALSE.toString());
+        String enableLogging = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING, Boolean.FALSE.toString());
 
         // If logging is not enable then return.
         if (!Boolean.TRUE.toString().equalsIgnoreCase(enableLogging)) {
             return;
         }
 
-        String loggingHandler = getConfiguredProperty(MSSQL_JDBC_LOGGING_HANDLER, "not_configured");
+        String loggingHandler = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING_HANDLER, "not_configured");
 
         try {
-            if (LOGGING_HANDLER_CONSOLE.equalsIgnoreCase(loggingHandler)) {
+            if (Constants.LOGGING_HANDLER_CONSOLE.equalsIgnoreCase(loggingHandler)) {
                 handler = new ConsoleHandler();
-            } else if (LOGGING_HANDLER_FILE.equalsIgnoreCase(loggingHandler)) {
-                handler = new FileHandler(DEFAULT_DRIVER_LOG);
+            } else if (Constants.LOGGING_HANDLER_FILE.equalsIgnoreCase(loggingHandler)) {
+                handler = new FileHandler(Constants.DEFAULT_DRIVER_LOG);
                 System.out.println("Look for Driver.log file in your classpath for detail logs");
             }
 
             if (handler != null) {
                 handler.setFormatter(new SimpleFormatter());
                 handler.setLevel(Level.FINEST);
-                Logger.getLogger(MSSQL_JDBC_LOGGING_HANDLER).addHandler(handler);
+                Logger.getLogger(Constants.MSSQL_JDBC_LOGGING_HANDLER).addHandler(handler);
             }
             // By default, Loggers also send their output to their parent logger.
             // Typically the root Logger is configured with a set of Handlers that essentially act as default handlers
             // for all loggers.
-            Logger logger = Logger.getLogger(MSSQL_JDBC_PACKAGE);
+            Logger logger = Logger.getLogger(Constants.MSSQL_JDBC_PACKAGE);
             logger.setLevel(Level.FINEST);
         } catch (Exception e) {
             System.err.println("Some how could not invoke logging: " + e.getMessage());
@@ -304,9 +315,9 @@ public abstract class AbstractTest extends Constants {
                 ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
             rs.next();
             int engineEdition = rs.getInt(1);
-            _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
-                    || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
-            _isSqlAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            _isSqlAzure = (engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE
+                    || engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            _isSqlAzureDW = (engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
             _determinedSqlAzureOrSqlServer = true;
         }
     }

@@ -29,15 +29,18 @@ public class SqlChar extends SqlType {
         super(name, jdbctype, precision, 0, SqlTypeValue.CHAR.minValue, SqlTypeValue.CHAR.maxValue,
                 SqlTypeValue.CHAR.nullValue, VariableLengthType.Precision, String.class);
         generatePrecision();
-        coercions.add(new DBCoercion(Object.class, new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION,
-                DBConstants.UPDATEOBJECT_COERCION, DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION, DBConstants.REG_COERCION}));
-        coercions
-                .add(new DBCoercion(String.class, new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
-                        DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION, DBConstants.REG_COERCION, DBConstants.CHAR_COERCION}));
+        coercions.add(new DBCoercion(Object.class,
+                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
+                        DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION,
+                        DBConstants.REG_COERCION}));
+        coercions.add(new DBCoercion(String.class,
+                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
+                        DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION,
+                        DBConstants.REG_COERCION, DBConstants.CHAR_COERCION}));
         coercions.add(new DBCoercion(TestUtils.DBCharacterStream.class,
-                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION, DBConstants.SET_COERCION,
-                        DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION, DBConstants.REG_COERCION, DBConstants.STREAM_COERCION,
-                        DBConstants.CHAR_COERCION}));
+                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
+                        DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION,
+                        DBConstants.REG_COERCION, DBConstants.STREAM_COERCION, DBConstants.CHAR_COERCION}));
     }
 
     public Object createdata() {

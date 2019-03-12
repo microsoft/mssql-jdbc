@@ -240,8 +240,9 @@ public abstract class SqlType extends DBItems {
     public boolean canConvert(Class<?> target, int flag, DBConnection conn) throws Exception {
         double serverversion = conn.getServerVersion();
 
-        if (flag == DBConstants.SET_COERCION || flag == DBConstants.SETOBJECT_COERCION || flag == DBConstants.UPDATE_COERCION
-                || flag == DBConstants.UPDATEOBJECT_COERCION || flag == DBConstants.REG_COERCION) {
+        if (flag == DBConstants.SET_COERCION || flag == DBConstants.SETOBJECT_COERCION
+                || flag == DBConstants.UPDATE_COERCION || flag == DBConstants.UPDATEOBJECT_COERCION
+                || flag == DBConstants.REG_COERCION) {
             // SQL 8 does not allow conversion from string to money
             if (flag != DBConstants.SETOBJECT_COERCION && serverversion < 9.0 && this instanceof SqlMoney
                     && target == String.class)

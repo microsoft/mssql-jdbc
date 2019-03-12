@@ -78,8 +78,6 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
             setInternal(connection);
         } catch (SQLException ex) {
             fail(ex.getMessage());
-        } catch (ClassNotFoundException ex) {
-            fail(ex.getMessage());
         }
     }
 

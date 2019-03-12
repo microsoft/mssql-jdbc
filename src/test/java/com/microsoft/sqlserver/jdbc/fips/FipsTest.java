@@ -20,6 +20,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;;
 
 
@@ -38,7 +39,7 @@ public class FipsTest extends AbstractTest {
     @Test
     public void fipsTrustServerCertificateTest() throws Exception {
         Properties props = buildConnectionProperties();
-        props.setProperty(TRUST_SERVER_CERTIFICATE, Boolean.TRUE.toString());
+        props.setProperty(Constants.TRUST_SERVER_CERTIFICATE, Boolean.TRUE.toString());
         try (Connection con = PrepUtil.getConnection(connectionString, props)) {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
@@ -55,7 +56,7 @@ public class FipsTest extends AbstractTest {
     @Test
     public void fipsEncryptTest() throws Exception {
         Properties props = buildConnectionProperties();
-        props.setProperty(ENCRYPT, Boolean.FALSE.toString());
+        props.setProperty(Constants.ENCRYPT, Boolean.FALSE.toString());
         try (Connection con = PrepUtil.getConnection(connectionString, props)) {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
@@ -72,9 +73,9 @@ public class FipsTest extends AbstractTest {
     @Test
     public void fipsPropertyTest() throws Exception {
         Properties props = buildConnectionProperties();
-        props.remove(FIPS);
-        props.remove(TRUST_STORE_TYPE);
-        props.remove(ENCRYPT);
+        props.remove(Constants.FIPS);
+        props.remove(Constants.TRUST_STORE_TYPE);
+        props.remove(Constants.ENCRYPT);
         try (Connection con = PrepUtil.getConnection(connectionString, props)) {
             Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
         } catch (Exception e) {
@@ -93,7 +94,7 @@ public class FipsTest extends AbstractTest {
         setDataSourceProperties(ds);
         ds.setFIPS(false);
         ds.setEncrypt(false);
-        ds.setTrustStoreType(JKS);
+        ds.setTrustStoreType(Constants.JKS);
         try (Connection con = ds.getConnection()) {
             Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
         } catch (Exception e) {
@@ -150,7 +151,7 @@ public class FipsTest extends AbstractTest {
         ds.setEncrypt(true);
         ds.setTrustServerCertificate(false);
         ds.setIntegratedSecurity(false);
-        ds.setTrustStoreType(PKCS12);
+        ds.setTrustStoreType(Constants.PKCS12);
     }
 
     /**
@@ -161,15 +162,15 @@ public class FipsTest extends AbstractTest {
     private Properties buildConnectionProperties() {
         Properties connectionProps = new Properties();
 
-        connectionProps.setProperty(ENCRYPT, Boolean.TRUE.toString());
-        connectionProps.setProperty(INTEGRATED_SECURITY, Boolean.FALSE.toString());
+        connectionProps.setProperty(Constants.ENCRYPT, Boolean.TRUE.toString());
+        connectionProps.setProperty(Constants.INTEGRATED_SECURITY, Boolean.FALSE.toString());
 
         // In case of false we need to pass keystore etc. which is not passing by default.
-        connectionProps.setProperty(TRUST_SERVER_CERTIFICATE, Boolean.FALSE.toString());
+        connectionProps.setProperty(Constants.TRUST_SERVER_CERTIFICATE, Boolean.FALSE.toString());
 
         // For New Code
-        connectionProps.setProperty(TRUST_STORE_TYPE, PKCS12);
-        connectionProps.setProperty(FIPS, Boolean.TRUE.toString());
+        connectionProps.setProperty(Constants.TRUST_STORE_TYPE, Constants.PKCS12);
+        connectionProps.setProperty(Constants.FIPS, Boolean.TRUE.toString());
 
         return connectionProps;
     }

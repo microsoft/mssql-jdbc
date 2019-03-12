@@ -21,7 +21,36 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import com.microsoft.sqlserver.testframework.sqlType.*;
+
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
+import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
+import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
+import com.microsoft.sqlserver.testframework.sqlType.SqlBit;
+import com.microsoft.sqlserver.testframework.sqlType.SqlChar;
+import com.microsoft.sqlserver.testframework.sqlType.SqlDate;
+import com.microsoft.sqlserver.testframework.sqlType.SqlDateTime;
+import com.microsoft.sqlserver.testframework.sqlType.SqlDateTime2;
+import com.microsoft.sqlserver.testframework.sqlType.SqlDateTimeOffset;
+import com.microsoft.sqlserver.testframework.sqlType.SqlDecimal;
+import com.microsoft.sqlserver.testframework.sqlType.SqlFloat;
+import com.microsoft.sqlserver.testframework.sqlType.SqlInt;
+import com.microsoft.sqlserver.testframework.sqlType.SqlMoney;
+import com.microsoft.sqlserver.testframework.sqlType.SqlNChar;
+import com.microsoft.sqlserver.testframework.sqlType.SqlNVarChar;
+import com.microsoft.sqlserver.testframework.sqlType.SqlNVarCharMax;
+import com.microsoft.sqlserver.testframework.sqlType.SqlNumeric;
+import com.microsoft.sqlserver.testframework.sqlType.SqlReal;
+import com.microsoft.sqlserver.testframework.sqlType.SqlSmallDateTime;
+import com.microsoft.sqlserver.testframework.sqlType.SqlSmallInt;
+import com.microsoft.sqlserver.testframework.sqlType.SqlSmallMoney;
+import com.microsoft.sqlserver.testframework.sqlType.SqlTime;
+import com.microsoft.sqlserver.testframework.sqlType.SqlTinyInt;
+import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinary;
+import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinaryMax;
+import com.microsoft.sqlserver.testframework.sqlType.SqlVarChar;
+import com.microsoft.sqlserver.testframework.sqlType.SqlVarCharMax;
 
 
 /**
@@ -228,6 +257,13 @@ public class TestUtils {
     public static void dropDatabaseIfExists(String databaseName, java.sql.Statement stmt) throws SQLException {
         stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='"
                 + escapeSingleQuotes(databaseName) + "') DROP DATABASE [" + databaseName + "]");
+    }
+
+    public static void dropTriggerIfExists(String triggerName, java.sql.Statement stmt) throws SQLException {
+        stmt.execute("IF EXISTS (\r\n" + "    SELECT *\r\n" + "    FROM sys.objects\r\n"
+                + "    WHERE [type] = 'TR' AND [name] = '" + TestUtils.escapeSingleQuotes(triggerName) + "'\r\n"
+                + "    )\r\n" + "    DROP TRIGGER " + AbstractSQLGenerator.escapeIdentifier(triggerName)
+                + Constants.SEMI_COLON);
     }
 
     /**

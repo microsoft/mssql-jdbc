@@ -21,6 +21,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
@@ -43,9 +44,9 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             BulkData Bdata = new BulkData(dstTable);
 
             BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == RANDOM.nextInt(2)) ? true : false, ds);
-            bulkWrapper.setUsingXAConnection((0 == RANDOM.nextInt(2)) ? true : false, dsXA);
-            bulkWrapper.setUsingPooledConnection((0 == RANDOM.nextInt(2)) ? true : false, dsPool);
+            bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+            bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+            bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
             BulkCopyTestUtil.performBulkCopy(bulkWrapper, Bdata, dstTable);
         } finally {
             if (null != dstTable) {
@@ -104,7 +105,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 for (int j = 0; j < totalColumn; j++) {
                     SqlType sqlType = dstTable.getSqlType(j);
                     if (JDBCType.BIT == sqlType.getJdbctype()) {
-                        CurrentRow[j] = ((0 == RANDOM.nextInt(2)) ? Boolean.FALSE : Boolean.TRUE);
+                        CurrentRow[j] = ((0 == Constants.RANDOM.nextInt(2)) ? Boolean.FALSE : Boolean.TRUE);
                     } else {
                         if (j == 0) {
                             CurrentRow[j] = i + 1;
