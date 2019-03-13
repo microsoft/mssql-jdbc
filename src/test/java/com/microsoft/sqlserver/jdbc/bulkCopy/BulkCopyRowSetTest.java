@@ -1,7 +1,10 @@
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
+import static org.junit.Assert.assertEquals;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -30,7 +33,8 @@ public class BulkCopyRowSetTest extends AbstractTest {
     
     @Test
     public void testBulkCopyFloatRowSet() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString)) {
+        try (Connection con = DriverManager.getConnection(connectionString);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
             RowSetFactory rsf = RowSetProvider.newFactory();
             CachedRowSet crs = rsf.createCachedRowSet();
             RowSetMetaData rsmd = new RowSetMetaDataImpl();
@@ -38,13 +42,22 @@ public class BulkCopyRowSetTest extends AbstractTest {
             rsmd.setColumnName(1, "c1");
             rsmd.setColumnType(1, java.sql.Types.FLOAT);
             
+            Float floatData = RandomData.generateReal(false);
+            
             crs.setMetaData(rsmd);
-            crs.setFloat(1, RandomData.generateReal(false));
+            crs.moveToInsertRow();
+            crs.updateFloat(1, floatData);
+            crs.insertRow();
+            crs.moveToCurrentRow();
             
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(con)) {
                 bcOperation.setDestinationTableName(tableName);
                 bcOperation.writeToServer(crs);
             }
+            
+            ResultSet rs = stmt.executeQuery("select * from " + tableName);
+            rs.next();
+            assertEquals(floatData, (Float) rs.getFloat(1));
         }
     }
     
