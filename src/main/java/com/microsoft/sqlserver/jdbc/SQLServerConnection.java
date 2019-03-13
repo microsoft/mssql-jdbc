@@ -73,7 +73,7 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
  * participate in XA distributed transactions managed via an XAResource adapter.
  * <p>
  * SQLServerConnection instantiates a new TDSChannel object for use by itself and all statement objects that are created
- * under this connection. SQLServerConnection is thread safe.
+ * under this connection.
  * <p>
  * SQLServerConnection manages a pool of prepared statement handles. Prepared statements are prepared once and typically
  * executed many times with different data values for their parameters. Prepared statements are also maintained across
@@ -1485,7 +1485,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (sPropValue == null)
                 sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
             if ("cursor".equalsIgnoreCase(sPropValue) || "direct".equalsIgnoreCase(sPropValue)) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
+                sPropValue = sPropValue.toLowerCase(Locale.ENGLISH);
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                selectMethod = sPropValue;
             } else {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidselectMethod"));
                 Object[] msgArgs = {sPropValue};
@@ -1774,13 +1776,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             lastUpdateCount = booleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
             sPropKey = SQLServerDriverBooleanProperty.XOPEN_STATES.toString();
             xopenStates = booleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
-
-            sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
-            selectMethod = null;
-            if (activeConnectionProperties.getProperty(sPropKey) != null
-                    && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                selectMethod = activeConnectionProperties.getProperty(sPropKey);
-            }
 
             sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
             responseBuffering = null;
