@@ -73,7 +73,7 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
  * participate in XA distributed transactions managed via an XAResource adapter.
  * <p>
  * SQLServerConnection instantiates a new TDSChannel object for use by itself and all statement objects that are created
- * under this connection. SQLServerConnection is thread safe.
+ * under this connection.
  * <p>
  * SQLServerConnection manages a pool of prepared statement handles. Prepared statements are prepared once and typically
  * executed many times with different data values for their parameters. Prepared statements are also maintained across
