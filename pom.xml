@@ -407,6 +407,7 @@
 				<version>3.0.0</version>
 				<configuration>
 					<failOnError>true</failOnError>
+					<excludePackageNames>mssql.googlecode.*</excludePackageNames>
 				</configuration>
 				<executions>
 					<execution>
