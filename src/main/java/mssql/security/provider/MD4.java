@@ -11,7 +11,7 @@
  * Shores, CA 94065 USA or visit www.oracle.com if you need additional information or have any questions.
  */
 
-package mssql.java.security;
+package mssql.security.provider;
 
 // import static sun.security.provider.ByteArrayAccess.*;
 // code updated to remove dependency

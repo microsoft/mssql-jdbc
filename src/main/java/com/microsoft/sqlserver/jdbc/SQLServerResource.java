@@ -560,7 +560,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_ntlmNegotiateError", "NTLM authentication error constructing Negotiate Message: {0}"},
             {"R_ntlmNoTargetInfo", "NTLM authentication Challenge Message is missing target info."},
             {"R_ntlmNoDomain", "NTLM authentication Challenge Message error: missing server name"},
-            {"R_ntlmNoSever", "NTLM authentication Challenge Message target info error: missing computer name"},
+            {"R_ntlmNoServer", "NTLM authentication Challenge Message target info error: missing computer name"},
             {"R_ntlmNoTimestamp", "NTLM authentication Challenge Message target info error: missing timestamp"},
             {"R_ntlmAuthError", "NTLM authentication error: {0}"},};
 }
