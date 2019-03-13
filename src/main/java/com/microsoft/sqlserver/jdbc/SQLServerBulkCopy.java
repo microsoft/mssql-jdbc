@@ -47,7 +47,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.logging.Level;
 
 import javax.sql.RowSet;
-import javax.sql.XAConnection;
 
 import microsoft.sql.DateTimeOffset;
 
@@ -3349,12 +3348,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return ((String) value).getBytes(UTF_16LE);
 
                 case REAL:
-                case FLOAT:
-
                     Float floatValue = (value instanceof String) ? Float.parseFloat((String) value) : (Float) value;
                     return ByteBuffer.allocate((Float.SIZE / Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN)
                             .putFloat(floatValue).array();
-
+                    
+                case FLOAT:
                 case DOUBLE:
                     Double doubleValue = (value instanceof String) ? Double.parseDouble((String) value)
                                                                    : (Double) value;
