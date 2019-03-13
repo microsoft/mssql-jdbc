@@ -1,6 +1,5 @@
 package com.microsoft.sqlserver.jdbc.connection;
 
-import static org.junit.Assume.assumeTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -11,7 +10,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.Before;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -63,17 +61,17 @@ public class NTLMConnectionTest extends AbstractTest {
         if (connectionStringNTLM != null) {
             // NTLM without domain.
             testInvalidProperties(addOrOverrideProperty(connectionStringNTLM, "domain", ""),
-                    "R_NoUserPasswordForDomain");
+                    "R_NtlmNoUserPasswordDomain");
 
             // NTLM without user name
-            testInvalidProperties(addOrOverrideProperty(connectionStringNTLM, "user", ""), "R_NoUserPasswordForDomain");
+            testInvalidProperties(addOrOverrideProperty(connectionStringNTLM, "user", ""), "R_NtlmNoUserPasswordDomain");
 
             // NTLM without password
             testInvalidProperties(addOrOverrideProperty(connectionStringNTLM, "password", ""),
-                    "R_NoUserPasswordForDomain");
+                    "R_NtlmNoUserPasswordDomain");
 
             // NTLM with integratedSecurity property
-            testInvalidProperties(addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true"),
+            testInvalidProperties(addOrOverrideProperty(connectionStringNTLM, "authentication", "ActiveDirectoryIntegrated "),
                     "R_SetAuthenticationWhenIntegratedSecurityTrue");
         }
     }
@@ -240,6 +238,9 @@ public class NTLMConnectionTest extends AbstractTest {
                             break;
                         case "HOSTNAMEINCERTIFICATE":
                             ds.setHostNameInCertificate(value);
+                            break;
+                        case "INTEGRATEDSECURITY":
+                            ds.setIntegratedSecurity(Boolean.valueOf(value));
                             break;
                         default:
                             break;
