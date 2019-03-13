@@ -39,7 +39,7 @@ public class BulkCopyRowSetTest extends AbstractTest {
             rsmd.setColumnType(1, java.sql.Types.FLOAT);
             
             crs.setMetaData(rsmd);
-            crs.setFloat(1, RandomData.generateReal(true));
+            crs.setFloat(1, RandomData.generateReal(false));
             
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(con)) {
                 bcOperation.setDestinationTableName(tableName);
