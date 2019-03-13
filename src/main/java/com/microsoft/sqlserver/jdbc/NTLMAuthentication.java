@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import mssql.java.security.MD4;
+import mssql.security.provider.MD4;
 
 
 /**
@@ -58,7 +58,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final long NTLMSSP_REQUEST_TARGET = 0x00000004;
     private static final long NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED = 0x00001000;
     private static final long NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED = 0x00002000;
-    private static final long NTLMSSP_NEGOTIATE_ALWAYS_SIGN = 0x00008000;
     private static final long NTLMSSP_NEGOTIATE_TARGET_INFO = 0x00800000;
 
     // sent by server
@@ -93,7 +92,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
     // Filetime timestamp length
     private static final int NTLM_TIMESTAMP_LENGTH = 8;
 
-    private class NtlmContext {
+    /*
+     * NTLM Context
+     */
+    private class NTLMContext {
         // domain name to connect to
         private final String domainName;
         private final byte[] domainBytes;
@@ -128,7 +130,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // concatenated message buffer - for calculating MIC
         private ByteArrayOutputStream concatByteStream = new ByteArrayOutputStream();
 
-        NtlmContext(SQLServerConnection con, String serverName, String domainName,
+        NTLMContext(SQLServerConnection con, String serverName, String domainName,
                 String workstation) throws NoSuchAlgorithmException {
             this.domainName = domainName.toUpperCase();
             this.domainBytes = domainName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -143,7 +145,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         }
     };
 
-    private NtlmContext context = null;
+    private NTLMContext context = null;
 
     /*
      * Creates an instance of the NTLM authentication
@@ -154,7 +156,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
             String workstation) throws SQLServerException {
         try {
             if (context == null) {
-                this.context = new NtlmContext(con, serverName, domainName, workstation);
+                this.context = new NTLMContext(con, serverName, domainName, workstation);
             }
         } catch (NoSuchAlgorithmException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmInitError"));
@@ -262,7 +264,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
                 case NTLM_AVID_MSVAVDNSCOMPUTERNAME:
                     // verify server name
                     if (context.serverName.equalsIgnoreCase(new String(value))) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_ntlmNoSever"), null);
+                        throw new SQLServerException(SQLServerException.getErrString("R_ntlmNoServer"), null);
                     }
                     break;
                 case NTLM_AVID_MSVAVTIMESTAMP:

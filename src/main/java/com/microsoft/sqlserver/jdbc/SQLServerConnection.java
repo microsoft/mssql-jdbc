@@ -1563,6 +1563,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     ImpersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
                     isUserCreatedCredential = true;
                 }
+            } else if (intAuthScheme == AuthenticationScheme.ntlm) {
+                String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
+                String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
+                String domainName = sPropValueDomain;
+                // domain and no user or password
+                if (null == domainName || domainName.isEmpty()
+                        || (!domainName.isEmpty() && ((activeConnectionProperties
+                                .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
+                                || (activeConnectionProperties
+                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty())))) {
+
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(
+                                toString() + " " + SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"));
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"), null);
+
+                }
+                ntlmAuthentication = true;
             }
 
             sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
@@ -1580,27 +1599,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 throw new SQLServerException(
                         SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"), null);
-            }
-
-            if (authenticationString.equalsIgnoreCase(SqlAuthentication.NTLM.toString())) {
-                String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
-                String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
-                String domainName = sPropValueDomain;
-
-                // domain and no user or password
-                if (null == domainName || domainName.isEmpty()
-                        || (!domainName.isEmpty() && ((activeConnectionProperties
-                                .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
-                                || (activeConnectionProperties
-                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty())))) {
-
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(
-                                toString() + " " + SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"));
-                    }
-                    throw new SQLServerException(SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"), null);
-                }
-                ntlmAuthentication = true;
             }
 
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
@@ -2486,8 +2484,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     void Prelogin(String serverName, int portNumber) throws SQLServerException {
         // Build a TDS Pre-Login packet to send to the server.
-        if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())
-                && !authenticationString.equalsIgnoreCase(SqlAuthentication.NTLM.toString()))
+        if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
                 || (null != accessTokenInByte)) {
             fedAuthRequiredByUser = true;
         }
@@ -3671,10 +3668,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 } else
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber());
+            } else if (ntlmAuthentication) {
+                authentication = new NTLMAuthentication(this, currentConnectPlaceHolder.getServerName(),
+                        currentConnectPlaceHolder.getDomainName(), hostName);
             }
-        } else if (ntlmAuthentication) {
-            authentication = new NTLMAuthentication(this, currentConnectPlaceHolder.getServerName(),
-                    currentConnectPlaceHolder.getDomainName(), hostName);
         }
 
         // If the workflow being used is Active Directory Password or Active Directory Integrated and server's prelogin
@@ -4903,9 +4900,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                                         // fails
                 TDS.LOGIN_OPTION2_ODBC_ON | // Use ODBC defaults (ANSI_DEFAULTS ON, IMPLICIT_TRANSACTIONS OFF, TEXTSIZE
                                             // inf, ROWCOUNT inf)
-                (integratedSecurity || ntlmAuthentication ? // integrated security or NTLM requested
-                                                          TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_ON
-                                                          : TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_OFF)));
+                (integratedSecurity ? // integrated security if integratedSecurity requested
+                                    TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_ON
+                                    : TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_OFF)));
 
         // TypeFlags
         tdsWriter.writeByte((byte) (TDS.LOGIN_SQLTYPE_DEFAULT | (applicationIntent != null
@@ -5002,7 +4999,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         final int USHRT_MAX = 65535;
         // SSPI data
-        if (!integratedSecurity && !ntlmAuthentication) {
+        if (!integratedSecurity) {
             tdsWriter.writeShort((short) 0);
             tdsWriter.writeShort((short) 0);
         } else {
@@ -5054,7 +5051,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.setDataLoggable(false);
 
         // SSPI data
-        if (integratedSecurity || ntlmAuthentication) {
+        if (integratedSecurity) {
             tdsWriter.writeBytes(secBlob, 0, secBlob.length);
         }
 
