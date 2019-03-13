@@ -3169,15 +3169,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void abort(Executor executor) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "abort", executor);
 
-        // nop if connection is closed
+        // no-op if connection is closed
         if (isClosed())
             return;
-
-        if (null == executor) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-            Object[] msgArgs = {"executor"};
-            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
-        }
 
         // check for callAbort permission
         SecurityManager secMgr = System.getSecurityManager();
@@ -3191,11 +3185,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, true);
             }
         }
+        if (null == executor) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
+            Object[] msgArgs = {"executor"};
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
+        } else {
 
-        setState(State.Closed);
+            /*
+             * Always report the connection as closed for any further use, no matter what happens when we try to clean
+             * up the physical resources associated with the connection using executor.
+             */
+            setState(State.Closed);
 
-        if (null != tdsChannel && null != executor)
-            executor.execute(() -> tdsChannel.close());
+            executor.execute(() -> clearConnectionResources());
+        }
 
         loggerExternal.exiting(getClassNameLogging(), "abort");
     }
@@ -3204,19 +3207,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void close() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "close");
 
-        // Always report the connection as closed for any further use, no matter
-        // what happens when we try to clean up the physical resources associated
-        // with the connection.
+        /*
+         * Always report the connection as closed for any further use, no matter what happens when we try to clean up
+         * the physical resources associated with the connection.
+         */
         setState(State.Closed);
 
+        clearConnectionResources();
+
+        loggerExternal.exiting(getClassNameLogging(), "close");
+    }
+
+    private void clearConnectionResources() {
         if (sharedTimer != null) {
             sharedTimer.removeRef();
             sharedTimer = null;
         }
 
-        // Close the TDS channel. When the channel is closed, the server automatically
-        // rolls back any pending transactions and closes associated resources like
-        // prepared handles.
+        /*
+         * Close the TDS channel. When the channel is closed, the server automatically rolls back any pending
+         * transactions and closes associated resources like prepared handles.
+         */
         if (null != tdsChannel) {
             tdsChannel.close();
         }
@@ -3232,8 +3243,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         cleanupPreparedStatementDiscardActions();
 
         ActivityCorrelator.cleanupActivityId();
-
-        loggerExternal.exiting(getClassNameLogging(), "close");
     }
 
     // This function is used by the proxy for notifying the pool manager that this connection proxy is closed
