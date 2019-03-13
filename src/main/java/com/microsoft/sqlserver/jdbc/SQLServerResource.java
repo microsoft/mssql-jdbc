@@ -386,8 +386,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_UnknownFeatureAck", "Unknown feature acknowledge is received."},
             {"R_SetAuthenticationWhenIntegratedSecurityTrue",
                     "Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."},
-            {"R_NoUserPasswordForDomain",
-                    "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified for \"domain\"."},
+            {"R_NtlmNoUserPasswordDomain",
+                    "\"User\" (or \"UserName\"), \"Password\" and \"Domain\" connection string properties must be specified for \"NTLM Authentication\"."},
             {"R_SetAccesstokenWhenIntegratedSecurityTrue",
                     "Cannot set the AccessToken property if the \"IntegratedSecurity\" connection string keyword has been set to \"true\"."},
             {"R_IntegratedAuthenticationWithUserPassword",
@@ -557,7 +557,10 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_ntlmInitError", "Unable to initialize NTLM authentication: {0}"},
             {"R_ntlmSignatureError", "NTLM authentication Challenge Message signature error: {0}"},
             {"R_ntlmMessageTypeError", "NTLM authentication Challenge Message type error: {0}"},
-            {"R_ntlmTargetInfoError", "NTLM authentication Challenge Message target info error: {0}"},
-            {"R_ntlmAuthError", "NTLM authentication error: {0}"},
-};
+            {"R_ntlmNegotiateError", "NTLM authentication error constructing Negotiate Message: {0}"},
+            {"R_ntlmNoTargetInfo", "NTLM authentication Challenge Message is missing target info."},
+            {"R_ntlmNoDomain", "NTLM authentication Challenge Message error: missing server name"},
+            {"R_ntlmNoSever", "NTLM authentication Challenge Message target info error: missing computer name"},
+            {"R_ntlmNoTimestamp", "NTLM authentication Challenge Message target info error: missing timestamp"},
+            {"R_ntlmAuthError", "NTLM authentication error: {0}"},};
 }

@@ -12,10 +12,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
-import java.util.concurrent.ThreadLocalRandom;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -38,315 +35,322 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 @DisplayName("BulkCopy Column Mapping Test")
 public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
-    static DBConnection con = null;
-    static DBStatement stmt = null;
-
-    /**
-     * Create connection, statement and generate path of resource file
-     */
-    @BeforeAll
-    public static void setUpConnection() {
-        con = new DBConnection(connectionString);
-        stmt = con.createStatement();
-    }
-
-    @AfterAll
-    public static void closeConnection() throws SQLException {
-        stmt.close();
-        con.close();
-    }
-
     @Test
     @DisplayName("BulkCopy:test no explicit column mapping")
     public void testNoExplicitCM() throws SQLException {
-        DBTable destTable = null;
-        try {
-            // create dest table
-            destTable = sourceTable.cloneSchema();
-            stmt.createTable(destTable);
+        try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
+            DBTable destTable = null;
+            try {
+                // create destination table
+                destTable = sourceTable.cloneSchema();
+                stmt.createTable(destTable);
 
-            // set up bulkCopy without explicit column mapping
-            BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
-        } finally {
-            TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
+                // set up bulkCopy without explicit column mapping
+                BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
+            } finally {
+                TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
+            }
         }
     }
 
     @Test
     @DisplayName("BulkCopy:test explicit column mapping")
     public void testExplicitCM() throws SQLException {
-        DBTable destTable = null;
-        try {
-            // create dest table
-            destTable = sourceTable.cloneSchema();
-            stmt.createTable(destTable);
+        try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
+            DBTable destTable = null;
+            try {
+                // create destination table
+                destTable = sourceTable.cloneSchema();
+                stmt.createTable(destTable);
 
-            // set up bulkCopy with explicit column mapping
-            BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            for (int i = 1; i <= destTable.totalColumns(); i++) {
-                int select = i % 4;
-
-                switch (select) {
-                    case 0:
-                        bulkWrapper.setColumnMapping(i, i);
-                        break;
-
-                    case 1:
-                        bulkWrapper.setColumnMapping(i, destTable.getColumnName(i - 1));
-                        break;
-
-                    case 2:
-                        bulkWrapper.setColumnMapping(sourceTable.getColumnName(i - 1), destTable.getColumnName(i - 1));
-                        break;
-
-                    case 3:
-                        bulkWrapper.setColumnMapping(sourceTable.getColumnName(i - 1), i);
-                        break;
+                // set up bulkCopy with explicit column mapping
+                BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                for (int i = 1; i <= destTable.totalColumns(); i++) {
+                    int select = i % 4;
+                    switch (select) {
+                        case 0:
+                            bulkWrapper.setColumnMapping(i, i);
+                            break;
+                        case 1:
+                            bulkWrapper.setColumnMapping(i, destTable.getColumnName(i - 1));
+                            break;
+                        case 2:
+                            bulkWrapper.setColumnMapping(sourceTable.getColumnName(i - 1),
+                                    destTable.getColumnName(i - 1));
+                            break;
+                        case 3:
+                            bulkWrapper.setColumnMapping(sourceTable.getColumnName(i - 1), i);
+                            break;
+                    }
                 }
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
+            } finally {
+                TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
             }
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
-        } finally {
-            TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
         }
     }
 
     @Test
     @DisplayName("BulkCopy:test unicode column mapping")
     public void testUnicodeCM() throws SQLException {
-        DBTable sourceTableUnicode = null;
-        DBTable destTableUnicode = null;
-        try {
-            // create source unicode table
-            sourceTableUnicode = new DBTable(true, true);
-            stmt.createTable(sourceTableUnicode);
+        try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
+            DBTable sourceTableUnicode = null;
+            DBTable destTableUnicode = null;
+            try {
+                // create source unicode table
+                sourceTableUnicode = new DBTable(true, true);
+                stmt.createTable(sourceTableUnicode);
 
-            // create destination unicode table with same schema as source
-            destTableUnicode = sourceTableUnicode.cloneSchema();
-            stmt.createTable(destTableUnicode);
+                // create destination unicode table with same schema as source
+                destTableUnicode = sourceTableUnicode.cloneSchema();
+                stmt.createTable(destTableUnicode);
 
-            // set up bulkCopy with explicit column mapping
-            BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            for (int i = 1; i <= destTableUnicode.totalColumns(); i++) {
-                int select = i % 4;
-
-                switch (select) {
-                    case 0:
-                        bulkWrapper.setColumnMapping(i, i);
-                        break;
-
-                    case 1:
-                        bulkWrapper.setColumnMapping(i, destTableUnicode.getColumnName(i - 1));
-                        break;
-
-                    case 2:
-                        bulkWrapper.setColumnMapping(sourceTableUnicode.getColumnName(i - 1),
-                                destTableUnicode.getColumnName(i - 1));
-                        break;
-
-                    case 3:
-                        bulkWrapper.setColumnMapping(sourceTableUnicode.getColumnName(i - 1), i);
-                        break;
+                // set up bulkCopy with explicit column mapping
+                BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                for (int i = 1; i <= destTableUnicode.totalColumns(); i++) {
+                    int select = i % 4;
+                    switch (select) {
+                        case 0:
+                            bulkWrapper.setColumnMapping(i, i);
+                            break;
+                        case 1:
+                            bulkWrapper.setColumnMapping(i, destTableUnicode.getColumnName(i - 1));
+                            break;
+                        case 2:
+                            bulkWrapper.setColumnMapping(sourceTableUnicode.getColumnName(i - 1),
+                                    destTableUnicode.getColumnName(i - 1));
+                            break;
+                        case 3:
+                            bulkWrapper.setColumnMapping(sourceTableUnicode.getColumnName(i - 1), i);
+                            break;
+                    }
                 }
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTableUnicode, destTableUnicode);
+            } finally {
+                TestUtils.dropTableIfExists(sourceTableUnicode.getEscapedTableName(), (Statement) stmt.product());
+                TestUtils.dropTableIfExists(destTableUnicode.getEscapedTableName(), (Statement) stmt.product());
             }
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTableUnicode, destTableUnicode);
-        } finally {
-            TestUtils.dropTableIfExists(sourceTableUnicode.getEscapedTableName(), (Statement) stmt.product());
-            TestUtils.dropTableIfExists(destTableUnicode.getEscapedTableName(), (Statement) stmt.product());
         }
     }
 
     @Test
     @DisplayName("BulkCopy:test repetitive column mapping")
     public void testRepetitiveCM() throws SQLException {
-        DBTable sourceTable1 = null;
-        DBTable destTable = null;
-        try {
-            // create source table
-            sourceTable1 = new DBTable(true);
-            stmt.createTable(sourceTable1);
-            stmt.populateTable(sourceTable1);
-
-            // create destination table with same schema as source
-            destTable = sourceTable1.cloneSchema();
-
-            // add 1 column to destination which will be duplicate of first source column
-            SqlType sqlType = sourceTable1.getSqlType(0);
-            destTable.addColumn(sqlType);
-            stmt.createTable(destTable);
-
-            // set up bulkCopy with explicit column mapping
-            BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            for (int i = 1; i <= sourceTable1.totalColumns(); i++) {
-                int select = i % 4;
-
-                switch (select) {
-                    case 0:
-                        bulkWrapper.setColumnMapping(i, i);
-                        break;
-
-                    case 1:
-                        bulkWrapper.setColumnMapping(i, destTable.getColumnName(i - 1));
-                        break;
-
-                    case 2:
-                        bulkWrapper.setColumnMapping(sourceTable1.getColumnName(i - 1), destTable.getColumnName(i - 1));
-                        break;
-
-                    case 3:
-                        bulkWrapper.setColumnMapping(sourceTable1.getColumnName(i - 1), i);
-                        break;
-                }
-            }
-
-            // add column mapping for duplicate column in destination
-            bulkWrapper.setColumnMapping(1, 25);
-
-            // perform bulkCopy without validating results or dropping destination table
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable1, destTable, false, false, false);
+        try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
+            DBTable sourceTable1 = null;
+            DBTable destTable = null;
             try {
-                validateValuesRepetitiveCM(con, sourceTable1, destTable);
-            } catch (SQLException e) {
-                MessageFormat form = new MessageFormat(TestResource.getResource("R_failedValidate"));
-                Object[] msgArgs = {sourceTable1.getTableName() + " and" + destTable.getTableName()};
+                // create source table
+                sourceTable1 = new DBTable(true);
+                stmt.createTable(sourceTable1);
+                stmt.populateTable(sourceTable1);
 
-                fail(form.format(msgArgs) + "\n" + destTable.getTableName() + "\n" + e.getMessage());
+                // create destination table with same schema as source
+                destTable = sourceTable1.cloneSchema();
+
+                // add 1 column to destination which will be duplicate of first source column
+                SqlType sqlType = sourceTable1.getSqlType(0);
+                destTable.addColumn(sqlType);
+                stmt.createTable(destTable);
+
+                // set up bulkCopy with explicit column mapping
+                BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                for (int i = 1; i <= sourceTable1.totalColumns(); i++) {
+                    int select = i % 4;
+                    switch (select) {
+                        case 0:
+                            bulkWrapper.setColumnMapping(i, i);
+                            break;
+                        case 1:
+                            bulkWrapper.setColumnMapping(i, destTable.getColumnName(i - 1));
+                            break;
+                        case 2:
+                            bulkWrapper.setColumnMapping(sourceTable1.getColumnName(i - 1),
+                                    destTable.getColumnName(i - 1));
+                            break;
+                        case 3:
+                            bulkWrapper.setColumnMapping(sourceTable1.getColumnName(i - 1), i);
+                            break;
+                    }
+                }
+
+                // add column mapping for duplicate column in destination
+                bulkWrapper.setColumnMapping(1, 25);
+                // perform bulkCopy without validating results or dropping destination table
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable1, destTable, false, false, false);
+
+                try {
+                    validateValuesRepetitiveCM(con, sourceTable1, destTable);
+                } catch (SQLException e) {
+                    MessageFormat form = new MessageFormat(TestResource.getResource("R_failedValidate"));
+                    Object[] msgArgs = {sourceTable1.getTableName() + " and" + destTable.getTableName()};
+
+                    fail(form.format(msgArgs) + "\n" + destTable.getTableName() + "\n" + e.getMessage());
+                }
+            } finally {
+                TestUtils.dropTableIfExists(sourceTable1.getEscapedTableName(), (Statement) stmt.product());
+                TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
             }
-        } finally {
-            TestUtils.dropTableIfExists(sourceTable1.getEscapedTableName(), (Statement) stmt.product());
-            TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
         }
     }
 
     @Test
     @DisplayName("BulkCopy:test implicit mismatched column mapping")
     public void testImplicitMismatchCM() throws SQLException {
-        DBTable destTable = null;
-        try {
-            // create non unicode dest table with different schema from source table
-            destTable = new DBTable(true, false, true);
-            stmt.createTable(destTable);
+        try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
+            DBTable destTable = null;
+            try {
+                // create non unicode destination table with different schema from source table
+                destTable = new DBTable(true, false, true);
+                stmt.createTable(destTable);
 
-            // set up bulkCopy with explicit column mapping
-            BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            for (int i = 1; i <= destTable.totalColumns(); i++) {
-                int select = i % 4;
-
-                switch (select) {
-                    case 0:
-                        bulkWrapper.setColumnMapping(i, i);
-                        break;
-
-                    case 1:
-                        bulkWrapper.setColumnMapping(i, destTable.getColumnName(i - 1));
-                        break;
-
-                    case 2:
-                        bulkWrapper.setColumnMapping(sourceTable.getColumnName(i - 1), destTable.getColumnName(i - 1));
-                        break;
-
-                    case 3:
-                        bulkWrapper.setColumnMapping(sourceTable.getColumnName(i - 1), i);
-                        break;
+                // set up bulkCopy with explicit column mapping
+                BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                for (int i = 1; i <= destTable.totalColumns(); i++) {
+                    int select = i % 4;
+                    switch (select) {
+                        case 0:
+                            bulkWrapper.setColumnMapping(i, i);
+                            break;
+                        case 1:
+                            bulkWrapper.setColumnMapping(i, destTable.getColumnName(i - 1));
+                            break;
+                        case 2:
+                            bulkWrapper.setColumnMapping(sourceTable.getColumnName(i - 1),
+                                    destTable.getColumnName(i - 1));
+                            break;
+                        case 3:
+                            bulkWrapper.setColumnMapping(sourceTable.getColumnName(i - 1), i);
+                            break;
+                    }
                 }
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            } finally {
+                TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
             }
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
-        } finally {
-            TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
         }
     }
 
     @Test
     @DisplayName("BulkCopy:test invalid column mapping")
     public void testInvalidCM() throws SQLException {
-        DBTable destTable = null;
-        try {
-            // create dest table
-            destTable = sourceTable.cloneSchema();
-            stmt.createTable(destTable);
+        try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
+            DBTable destTable = null;
+            try {
+                // create destination table
+                destTable = sourceTable.cloneSchema();
+                stmt.createTable(destTable);
 
-            // set up bulkCopy with wrong column names
-            BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            bulkWrapper.setColumnMapping("wrongFirst", "wrongSecond");
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+                // set up bulkCopy with wrong column names
+                BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setColumnMapping("wrongFirst", "wrongSecond");
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-            // create dest table
-            destTable = sourceTable.cloneSchema();
-            stmt.createTable(destTable);
+                // create destination table
+                destTable = sourceTable.cloneSchema();
+                stmt.createTable(destTable);
 
-            // set up bulkCopy with invalid ordinal, column no 65 does not exist
-            bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            bulkWrapper.setColumnMapping(sourceTable.getColumnName(1), 65);
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+                // set up bulkCopy with invalid ordinal, column no 65 does not exist
+                bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setColumnMapping(sourceTable.getColumnName(1), 65);
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-            // create dest table
-            destTable = sourceTable.cloneSchema();
-            stmt.createTable(destTable);
+                // create destination table
+                destTable = sourceTable.cloneSchema();
+                stmt.createTable(destTable);
 
-            // set up bulkCopy with invalid ordinal, column no 42 does not exist
-            bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            bulkWrapper.setColumnMapping(42, destTable.getColumnName(1));
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+                // set up bulkCopy with invalid ordinal, column no 42 does not exist
+                bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setColumnMapping(42, destTable.getColumnName(1));
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-            // create dest table
-            destTable = sourceTable.cloneSchema();
-            stmt.createTable(destTable);
+                // create destination table
+                destTable = sourceTable.cloneSchema();
+                stmt.createTable(destTable);
 
-            // set up bulkCopy with invalid ordinal, column no 42 and 65 do not exist
-            bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            bulkWrapper.setColumnMapping(42, 65);
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+                // set up bulkCopy with invalid ordinal, column no 42 and 65 do not exist
+                bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setColumnMapping(42, 65);
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-            // create dest table
-            destTable = sourceTable.cloneSchema();
-            stmt.createTable(destTable);
+                // create destination table
+                destTable = sourceTable.cloneSchema();
+                stmt.createTable(destTable);
 
-            // set up bulkCopy while passing empty string as column mapping
-            bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            bulkWrapper.setColumnMapping(sourceTable.getColumnName(1), "     ");
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+                // set up bulkCopy while passing empty string as column mapping
+                bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setColumnMapping(sourceTable.getColumnName(1), "     ");
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-            // create dest table
-            destTable = sourceTable.cloneSchema();
-            stmt.createTable(destTable);
+                // create destination table
+                destTable = sourceTable.cloneSchema();
+                stmt.createTable(destTable);
 
-            // set up bulkCopy with 0 ordinal column mapping
-            bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            bulkWrapper.setColumnMapping(0, 0);
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+                // set up bulkCopy with 0 ordinal column mapping
+                bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setColumnMapping(0, 0);
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-            // create dest table
-            destTable = sourceTable.cloneSchema();
-            stmt.createTable(destTable);
+                // create destination table
+                destTable = sourceTable.cloneSchema();
+                stmt.createTable(destTable);
 
-            // set up bulkCopy with negative ordinal column mapping
-            bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            bulkWrapper.setColumnMapping(-3, -6);
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+                // set up bulkCopy with negative ordinal column mapping
+                bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setColumnMapping(-3, -6);
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
-            // create dest table
-            destTable = sourceTable.cloneSchema();
-            stmt.createTable(destTable);
+                // create destination table
+                destTable = sourceTable.cloneSchema();
+                stmt.createTable(destTable);
 
-            // set up bulkCopy with Integer.MIN_VALUE and Integer.MAX_VALUE column mapping
-            bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
-            bulkWrapper.setColumnMapping(Integer.MIN_VALUE, Integer.MAX_VALUE);
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
-        } finally {
-            TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
+                // set up bulkCopy with Integer.MIN_VALUE and Integer.MAX_VALUE column mapping
+                bulkWrapper = new BulkCopyTestWrapper(connectionString);
+                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setColumnMapping(Integer.MIN_VALUE, Integer.MAX_VALUE);
+                BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            } finally {
+                TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
+            }
         }
     }
 

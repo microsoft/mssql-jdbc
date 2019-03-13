@@ -47,6 +47,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.logging.Level;
 
 import javax.sql.RowSet;
+import javax.sql.XAConnection;
 
 import microsoft.sql.DateTimeOffset;
 
@@ -270,13 +271,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     public SQLServerBulkCopy(Connection connection) throws SQLServerException {
         loggerExternal.entering(loggerClassName, "SQLServerBulkCopy", connection);
 
-        if (null == connection || !(connection instanceof SQLServerConnection)) {
+        if (null == connection || !(connection instanceof ISQLServerConnection)) {
             SQLServerException.makeFromDriverError(null, null,
                     SQLServerException.getErrString("R_invalidDestConnection"), null, false);
         }
 
         if (connection instanceof SQLServerConnection) {
             this.connection = (SQLServerConnection) connection;
+        } else if (connection instanceof SQLServerConnectionPoolProxy) {
+            this.connection = ((SQLServerConnectionPoolProxy) connection).getWrappedConnection();
         } else {
             SQLServerException.makeFromDriverError(null, null,
                     SQLServerException.getErrString("R_invalidDestConnection"), null, false);
@@ -1962,9 +1965,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             bulkJdbcType = java.sql.Types.VARBINARY;
         }
         /*
-         * if source is encrypted and destination is unencrypted, use destination sql type to send since there is no
-         * way of finding if source is encrypted without accessing the resultset, send destination type if source
-         * resultset set is of type SQLServer and encryption is enabled
+         * if source is encrypted and destination is unencrypted, use destination sql type to send since there is no way
+         * of finding if source is encrypted without accessing the resultset, send destination type if source resultset
+         * set is of type SQLServer and encryption is enabled
          */
         else if (null != sourceCryptoMeta) {
             bulkJdbcType = destColumnMetadata.get(destColOrdinal).jdbcType;
