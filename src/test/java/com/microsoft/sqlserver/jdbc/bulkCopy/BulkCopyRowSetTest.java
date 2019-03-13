@@ -22,7 +22,6 @@ import org.opentest4j.TestAbortedException;
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
-import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -34,7 +33,7 @@ public class BulkCopyRowSetTest extends AbstractTest {
     @Test
     public void testBulkCopyFloatRowSet() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString);
-                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+                Statement stmt = connection.createStatement()) {
             RowSetFactory rsf = RowSetProvider.newFactory();
             CachedRowSet crs = rsf.createCachedRowSet();
             RowSetMetaData rsmd = new RowSetMetaDataImpl();
@@ -64,7 +63,7 @@ public class BulkCopyRowSetTest extends AbstractTest {
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
         try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+                Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
             String sql1 = "create table " + tableName + " (c1 float)";
             stmt.execute(sql1);
@@ -74,7 +73,7 @@ public class BulkCopyRowSetTest extends AbstractTest {
     @AfterAll
     public static void terminateVariation() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+                Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
         }
     }
