@@ -3191,9 +3191,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
         } else {
 
-            // Always report the connection as closed for any further use, no matter
-            // what happens when we try to clean up the physical resources associated
-            // with the connection using executor.
+            /*
+             * Always report the connection as closed for any further use, no matter what happens when we try to clean
+             * up the physical resources associated with the connection using executor.
+             */
             setState(State.Closed);
 
             executor.execute(() -> clearConnectionResources());
@@ -3206,9 +3207,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void close() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "close");
 
-        // Always report the connection as closed for any further use, no matter
-        // what happens when we try to clean up the physical resources associated
-        // with the connection.
+        /*
+         * Always report the connection as closed for any further use, no matter what happens when we try to clean up
+         * the physical resources associated with the connection.
+         */
         setState(State.Closed);
 
         clearConnectionResources();
@@ -3222,9 +3224,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sharedTimer = null;
         }
 
-        // Close the TDS channel. When the channel is closed, the server automatically
-        // rolls back any pending transactions and closes associated resources like
-        // prepared handles.
+        /*
+         * Close the TDS channel. When the channel is closed, the server automatically rolls back any pending
+         * transactions and closes associated resources like prepared handles.
+         */
         if (null != tdsChannel) {
             tdsChannel.close();
         }
