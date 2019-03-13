@@ -102,7 +102,9 @@ public class Constants {
     // Other Connection Properties set in FipsTest
     public static final String FIPS = "FIPS";
     public static final String TRUST_STORE_TYPE = "TRUSTSTORETYPE";
-    public static final String TRUST_SERVER_CERTIFICATE = "TrustServerCertificate";
+    public static final String TRUST_SERVER_CERTIFICATE = "TRUSTSERVERCERTIFICATE";
+    public static final String TRUST_STORE_PASSWORD = "TRUSTSTOREPASSWORD";
+    public static final String TRUST_STORE = "TRUSTSTORE";
 
     public static enum LOB {
         CLOB,

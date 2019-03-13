@@ -55,46 +55,6 @@ public class ConnectionDriverTest extends AbstractTest {
     String randomServer = RandomUtil.getIdentifier("Server");
 
     /**
-     * test connection properties
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testConnectionDriver() throws SQLException {
-        SQLServerDriver d = new SQLServerDriver();
-        Properties info = new Properties();
-        StringBuffer url = new StringBuffer();
-        url.append("jdbc:sqlserver://" + randomServer + ";packetSize=512;");
-        // test defaults
-        DriverPropertyInfo[] infoArray = d.getPropertyInfo(url.toString(), info);
-        for (DriverPropertyInfo anInfoArray1 : infoArray) {
-            Constants.LOGGER.fine(anInfoArray1.name);
-            Constants.LOGGER.fine(anInfoArray1.description);
-            Constants.LOGGER.fine(Boolean.valueOf(anInfoArray1.required).toString());
-            Constants.LOGGER.fine(anInfoArray1.value);
-        }
-
-        url.append("encrypt=true; trustStore=someStore; trustStorePassword=somepassword;");
-        url.append("hostNameInCertificate=someHost; trustServerCertificate=true");
-        infoArray = d.getPropertyInfo(url.toString(), info);
-        for (DriverPropertyInfo anInfoArray : infoArray) {
-            if (anInfoArray.name.equals(Constants.ENCRYPT)) {
-                assertTrue(anInfoArray.value.equals(Boolean.TRUE.toString()),
-                        TestResource.getResource("R_valuesAreDifferent"));
-            }
-            if (anInfoArray.name.equals("trustStore")) {
-                assertTrue(anInfoArray.value.equals("someStore"), TestResource.getResource("R_valuesAreDifferent"));
-            }
-            if (anInfoArray.name.equals("trustStorePassword")) {
-                assertTrue(anInfoArray.value.equals("somepassword"), TestResource.getResource("R_valuesAreDifferent"));
-            }
-            if (anInfoArray.name.equals("hostNameInCertificate")) {
-                assertTrue(anInfoArray.value.equals("someHost"), TestResource.getResource("R_valuesAreDifferent"));
-            }
-        }
-    }
-
-    /**
      * test connection properties with SQLServerDataSource
      */
     @Test
@@ -126,14 +86,6 @@ public class ConnectionDriverTest extends AbstractTest {
         ds.setTrustServerCertificate(true);
         ds.setPacketSize(8192);
         try (Connection con = ds.getConnection()) {}
-    }
-
-    @Test
-    public void testJdbcDriverMethod() throws SQLFeatureNotSupportedException {
-        SQLServerDriver serverDriver = new SQLServerDriver();
-        Logger logger = serverDriver.getParentLogger();
-        assertEquals(logger.getName(), Constants.MSSQL_JDBC_PACKAGE,
-                TestResource.getResource("R_parrentLoggerNameWrong"));
     }
 
     @Test

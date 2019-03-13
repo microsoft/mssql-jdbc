@@ -73,7 +73,7 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
  * participate in XA distributed transactions managed via an XAResource adapter.
  * <p>
  * SQLServerConnection instantiates a new TDSChannel object for use by itself and all statement objects that are created
- * under this connection. SQLServerConnection is thread safe.
+ * under this connection.
  * <p>
  * SQLServerConnection manages a pool of prepared statement handles. Prepared statements are prepared once and typically
  * executed many times with different data values for their parameters. Prepared statements are also maintained across
@@ -140,7 +140,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private String originalHostNameInCertificate = null;
 
+    final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+    final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+    final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
+    private Boolean isAzure = null;
     private Boolean isAzureDW = null;
+    private Boolean isAzureMI = null;
 
     private SharedTimer sharedTimer;
 
@@ -1484,7 +1489,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (sPropValue == null)
                 sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
             if ("cursor".equalsIgnoreCase(sPropValue) || "direct".equalsIgnoreCase(sPropValue)) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
+                sPropValue = sPropValue.toLowerCase(Locale.ENGLISH);
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                selectMethod = sPropValue;
             } else {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidselectMethod"));
                 Object[] msgArgs = {sPropValue};
@@ -1754,13 +1761,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             lastUpdateCount = booleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
             sPropKey = SQLServerDriverBooleanProperty.XOPEN_STATES.toString();
             xopenStates = booleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
-
-            sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
-            selectMethod = null;
-            if (activeConnectionProperties.getProperty(sPropKey) != null
-                    && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                selectMethod = activeConnectionProperties.getProperty(sPropKey);
-            }
 
             sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
             responseBuffering = null;
@@ -6232,33 +6232,55 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
     }
-
-    boolean isAzureDW() throws SQLServerException, SQLException {
-        if (null == isAzureDW) {
-            try (Statement stmt = this.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
-                // SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
-                // It should return 6 for SQL Azure DW. This is more reliable than @@version or
-                // serverproperty('edition').
-                // Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
-                //
-                // SERVERPROPERTY('EngineEdition') means
-                // Database Engine edition of the instance of SQL Server installed on the server.
-                // 1 = Personal or Desktop Engine (Not available for SQL Server.)
-                // 2 = Standard (This is returned for Standard and Workgroup.)
-                // 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
-                // 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
-                // 5 = SQL Azure
-                // 6 = SQL Azure DW
-                // Base data type: int
-                final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+    
+    /*
+     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
+     * It should return 6 for SQL Azure DW. This is more reliable than @@version or
+     * serverproperty('edition').
+     * Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
+     * 
+     * SERVERPROPERTY('EngineEdition') means
+     * Database Engine edition of the instance of SQL Server installed on the server.
+     * 1 = Personal or Desktop Engine (Not available for SQL Server.)
+     * 2 = Standard (This is returned for Standard and Workgroup.)
+     * 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
+     * 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
+     * 5 = SQL Azure
+     * 6 = SQL Azure DW
+     * 8 = Managed Instance
+     * Base data type: int
+     */
+    boolean isAzure() {
+        if (null == isAzure) {
+            try (Statement stmt = this.createStatement(); ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
                 rs.next();
-                isAzureDW = rs.getInt(1) == ENGINE_EDITION_FOR_SQL_AZURE_DW;
+
+                int engineEdition = rs.getInt(1);
+                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+                isAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+                isAzureMI = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+
+            } catch (SQLException e) {
+                if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+                    loggerExternal.log(Level.FINER, this + ": Error retrieving server type", e);
+                isAzure = false;
+                isAzureDW = false;
+                isAzureMI = false;
             }
-            return isAzureDW;
+            return isAzure;
         } else {
-            return isAzureDW;
+            return isAzure;
         }
+    }
+
+    boolean isAzureDW() {
+        isAzure();
+        return isAzureDW;
+    }
+
+    boolean isAzureMI() {
+        isAzure();
+        return isAzureMI;
     }
 
     /**

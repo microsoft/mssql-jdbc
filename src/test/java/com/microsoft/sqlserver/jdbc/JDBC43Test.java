@@ -4,29 +4,19 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
 import java.sql.JDBCType;
 import java.sql.SQLException;
 import java.sql.ShardingKey;
-import java.util.Enumeration;
-import java.util.stream.Stream;
-
 import javax.sql.ConnectionPoolDataSource;
-import javax.sql.PooledConnection;
-import javax.sql.XAConnection;
-
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
-import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Constants;;
+import com.microsoft.sqlserver.testframework.AbstractTest;;
 
 
 /**
@@ -34,6 +24,7 @@ import com.microsoft.sqlserver.testframework.Constants;;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class JDBC43Test extends AbstractTest {
     ShardingKey superShardingKey = null;
     ShardingKey shardingKey = null;
@@ -63,7 +54,7 @@ public class JDBC43Test extends AbstractTest {
         }
 
         try {
-            Connection con = ds.createConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
+            ds.createConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
                     .superShardingKey(superShardingKey).build();
         } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
@@ -95,7 +86,7 @@ public class JDBC43Test extends AbstractTest {
         }
 
         try {
-            XAConnection con = ds.createXAConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
+            ds.createXAConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
                     .superShardingKey(superShardingKey).build();
         } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
@@ -125,8 +116,8 @@ public class JDBC43Test extends AbstractTest {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
         try {
-            PooledConnection con = ds.createPooledConnectionBuilder().user("rafa").password("tennis")
-                    .shardingKey(shardingKey).superShardingKey(superShardingKey).build();
+            ds.createPooledConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
+                    .superShardingKey(superShardingKey).build();
         } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
@@ -179,39 +170,4 @@ public class JDBC43Test extends AbstractTest {
             }
         }
     }
-
-    /**
-     * Tests the stream<Driver> drivers() methods in java.sql.DriverManager
-     * 
-     * @since 1.9
-     * @throws ClassNotFoundException
-     */
-    @Test
-    public void driversTest() throws ClassNotFoundException {
-        Stream<Driver> drivers = DriverManager.drivers();
-        Object[] driversArray = drivers.toArray();
-        assertEquals(driversArray[0].getClass(), Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver"));
-    }
-
-    /**
-     * Tests deregister Driver
-     * 
-     * @throws SQLException
-     * @throws ClassNotFoundException
-     */
-    @Test
-    public void deregisterDriverTest() throws SQLException, ClassNotFoundException {
-        Enumeration<Driver> drivers = DriverManager.getDrivers();
-        Driver current = null;
-        while (drivers.hasMoreElements()) {
-            current = drivers.nextElement();
-            DriverManager.deregisterDriver(current);
-        }
-        Stream<Driver> currentDrivers = DriverManager.drivers();
-        Object[] driversArray = currentDrivers.toArray();
-        assertEquals(0, driversArray.length);
-
-        DriverManager.registerDriver(current);
-    }
-
 }

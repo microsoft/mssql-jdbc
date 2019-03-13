@@ -9,8 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -229,28 +227,6 @@ public class PoolingTest extends AbstractTest {
                 rs.getString(1);
             }
         }
-    }
-
-    /**
-     * count number of mssql-jdbc-TimeoutTimer threads
-     * 
-     * @return
-     */
-    private static int countTimeoutThreads() {
-        int count = 0;
-        String threadName = "mssql-jdbc-TimeoutTimer";
-
-        ThreadInfo[] tinfos = ManagementFactory.getThreadMXBean()
-                .getThreadInfo(ManagementFactory.getThreadMXBean().getAllThreadIds(), 0);
-
-        for (ThreadInfo ti : tinfos) {
-            if ((ti.getThreadName().startsWith(threadName))
-                    && (ti.getThreadState().equals(java.lang.Thread.State.TIMED_WAITING))) {
-                count++;
-            }
-        }
-
-        return count;
     }
 
     /**
