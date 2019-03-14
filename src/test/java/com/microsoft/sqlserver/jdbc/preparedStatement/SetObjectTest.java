@@ -24,6 +24,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -69,8 +70,8 @@ public class SetObjectTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testSetObjectWithOffsetTime() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString)) {
+    public void testSetObjectWithOffsetTime_sendTimeAsDatetimeEnabled() throws SQLException {
+        try (Connection con = DriverManager.getConnection(connectionString + "sendTimeAsDatetime=true")) {
             final String testValue = "11:22:33.123456700+12:34";
             final String expectedDto = "1970-01-01T" + testValue;
             try (Statement stmt = con.createStatement()) {
