@@ -512,6 +512,36 @@ public class TVPTypesTest extends AbstractTest {
         }
     }
 
+    /**
+     * Boolean with StoredProcedure
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testTVPBooleanStoredProcedure() throws SQLException {
+        createTables("Bit");
+        createTVPS("Bit");
+        createPreocedure();
+
+        value = "1";
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", java.sql.Types.BIT);
+        tvp.addRow(value);
+
+        final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
+
+        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            P_C_statement.setStructured(1, tvpName, tvp);
+            P_C_statement.execute();
+        }
+        try (Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            while (rs.next())
+                assertEquals(rs.getString(1), value);
+        }
+    }
+
     @BeforeEach
     public void testSetup() throws SQLException {
         tvpName = RandomUtil.getIdentifier("TVP");
