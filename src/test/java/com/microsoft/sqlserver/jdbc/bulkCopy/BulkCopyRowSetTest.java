@@ -15,7 +15,7 @@ import javax.sql.rowset.RowSetMetaDataImpl;
 import javax.sql.rowset.RowSetProvider;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
 
@@ -37,15 +37,18 @@ public class BulkCopyRowSetTest extends AbstractTest {
             RowSetFactory rsf = RowSetProvider.newFactory();
             CachedRowSet crs = rsf.createCachedRowSet();
             RowSetMetaData rsmd = new RowSetMetaDataImpl();
-            rsmd.setColumnCount(1);
+            rsmd.setColumnCount(2);
             rsmd.setColumnName(1, "c1");
+            rsmd.setColumnName(2, "c2");
             rsmd.setColumnType(1, java.sql.Types.FLOAT);
+            rsmd.setColumnType(2, java.sql.Types.REAL);
             
             Float floatData = RandomData.generateReal(false);
             
             crs.setMetaData(rsmd);
             crs.moveToInsertRow();
             crs.updateFloat(1, floatData);
+            crs.updateFloat(2, floatData);
             crs.insertRow();
             crs.moveToCurrentRow();
             
@@ -60,12 +63,12 @@ public class BulkCopyRowSetTest extends AbstractTest {
         }
     }
     
-    @BeforeEach
-    public void testSetup() throws TestAbortedException, Exception {
+    @BeforeAll
+    public static void testSetup() throws TestAbortedException, Exception {
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
-            String sql1 = "create table " + tableName + " (c1 float)";
+            String sql1 = "create table " + tableName + " (c1 float, c2 real)";
             stmt.execute(sql1);
         }
     }
