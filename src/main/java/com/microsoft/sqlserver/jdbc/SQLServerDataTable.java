@@ -164,15 +164,24 @@ public final class SQLServerDataTable {
                     break;
 
                 case BIT:
-                    rowValues[pair.getKey()] = (val instanceof Boolean ? (boolean) val
-                                                                       : (val.toString().equals("0") ? Boolean.FALSE
-                                                                                                     : Boolean.TRUE));
+                    if (val instanceof Boolean) {
+                        rowValues[pair.getKey()] = (boolean) val;
+                        break;
+                    } else if (val.toString().equals("0")
+                            || val.toString().equalsIgnoreCase(Boolean.FALSE.toString())) {
+                        rowValues[pair.getKey()] = Boolean.FALSE;
+                    } else if (val.toString().equals("1") || val.toString().equalsIgnoreCase(Boolean.TRUE.toString())) {
+                        rowValues[pair.getKey()] = Boolean.TRUE;
+                    } else {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_TVPInvalidColumnValue"));
+                        Object[] msgArgs = {jdbcType};
+                        throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                    }
                     break;
-
                 case INTEGER:
                     rowValues[pair.getKey()] = (val instanceof Integer) ? (int) val : Integer.parseInt(val.toString());
                     break;
-
                 case SMALLINT:
                 case TINYINT:
                     rowValues[pair.getKey()] = (val instanceof Short) ? (short) val : Short.parseShort(val.toString());
