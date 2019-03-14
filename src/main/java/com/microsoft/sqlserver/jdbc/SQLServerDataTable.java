@@ -166,7 +166,6 @@ public final class SQLServerDataTable {
                 case BIT:
                     if (val instanceof Boolean) {
                         rowValues[pair.getKey()] = (boolean) val;
-                        break;
                     } else if (val.toString().equals("0")
                             || val.toString().equalsIgnoreCase(Boolean.FALSE.toString())) {
                         rowValues[pair.getKey()] = Boolean.FALSE;
@@ -179,9 +178,11 @@ public final class SQLServerDataTable {
                         throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
                     }
                     break;
+
                 case INTEGER:
                     rowValues[pair.getKey()] = (val instanceof Integer) ? (int) val : Integer.parseInt(val.toString());
                     break;
+
                 case SMALLINT:
                 case TINYINT:
                     rowValues[pair.getKey()] = (val instanceof Short) ? (short) val : Short.parseShort(val.toString());
@@ -259,7 +260,6 @@ public final class SQLServerDataTable {
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
                     rowValues[pair.getKey()] = (byte[]) val;
-
                     break;
 
                 case CHAR:
@@ -279,12 +279,14 @@ public final class SQLServerDataTable {
                     }
                     rowValues[pair.getKey()] = (String) val;
                     break;
+
                 case SQL_VARIANT:
                     JDBCType internalJDBCType;
                     JavaType javaType = JavaType.of(val);
                     internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
                     internalAddrow(internalJDBCType, val, rowValues, pair);
                     break;
+
                 default:
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedDataTypeTVP"));
                     Object[] msgArgs = {jdbcType};
