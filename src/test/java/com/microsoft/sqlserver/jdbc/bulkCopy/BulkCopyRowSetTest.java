@@ -41,7 +41,7 @@ public class BulkCopyRowSetTest extends AbstractTest {
             rsmd.setColumnName(1, "c1");
             rsmd.setColumnName(2, "c2");
             rsmd.setColumnType(1, java.sql.Types.FLOAT);
-            rsmd.setColumnType(2, java.sql.Types.REAL);
+            rsmd.setColumnType(2, java.sql.Types.FLOAT);
             
             Float floatData = RandomData.generateReal(false);
             
@@ -60,6 +60,7 @@ public class BulkCopyRowSetTest extends AbstractTest {
             ResultSet rs = stmt.executeQuery("select * from " + tableName);
             rs.next();
             assertEquals(floatData, (Float) rs.getFloat(1));
+            assertEquals(floatData, (Float) rs.getFloat(2));
         }
     }
     
@@ -67,7 +68,6 @@ public class BulkCopyRowSetTest extends AbstractTest {
     public static void testSetup() throws TestAbortedException, Exception {
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(tableName, stmt);
             String sql1 = "create table " + tableName + " (c1 float, c2 real)";
             stmt.execute(sql1);
         }
