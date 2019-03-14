@@ -323,13 +323,13 @@ public final class SQLServerException extends java.sql.SQLException {
      *        the database state
      * @return the state code
      */
-    static String generateStateCode(SQLServerConnection con, int errNum, int databaseState) {
+    static String generateStateCode(SQLServerConnection con, int errNum, Integer databaseState) {
         // Generate a SQL 99 or XOPEN state from a database generated error code
         boolean xopenStates = (con != null && con.xopenStates);
         if (xopenStates) {
             switch (errNum) {
                 case 4060:
-                    return "08001"; // Database name undefined at loging
+                    return "08001"; // Database name undefined at logging
                 case 18456:
                     return "08001"; // username password wrong at login
                 case 2714:
@@ -360,8 +360,19 @@ public final class SQLServerException extends java.sql.SQLException {
                     return "40001"; // deadlock detected
                 case 2627:
                     return "23000"; // DPM 4.04. Primary key violation
-                default:
-                    return "S000" + databaseState;
+                default: {
+                    String dbState = databaseState.toString();
+                    /*
+                     * Length allowed for SQL State is 5 characters as per SQLSTATE specifications. Append trailing
+                     * zeroes as needed based on length of database error State as length of databaseState is between 1
+                     * to 3 digits.
+                     */
+                    StringBuilder trailingZeroes = new StringBuilder("S");
+                    for (int i = 0; i < 4 - dbState.length(); i++) {
+                        trailingZeroes.append("0");
+                    }
+                    return trailingZeroes.append(dbState).toString();
+                }
             }
         }
     }

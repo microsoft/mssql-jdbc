@@ -47,6 +47,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_createDropAlterTableFailed", "Create/drop/alter table with preparedStatement failed!"},
             {"R_grantFailed", "grant table with preparedStatement failed!"},
             {"R_connectionIsClosed", "The connection is closed."},
+            {"R_ConnectionURLNull", "The connection URL is null." },
             {"R_connectionIsNotClosed", "The connection is not closed."},
             {"R_invalidExceptionMessage", "Invalid exception message"},
             {"R_failedValidate", "failed to validate values in $0} "}, {"R_tableNotDropped", "table not dropped. "},
@@ -169,5 +170,5 @@ public final class TestResource extends ListResourceBundle {
             {"R_incorrectColumnNumInsertDW",
                     "Column name or number of supplied values does not match table definition."},
             {"R_incorrectSyntaxTable", "Incorrect syntax near the keyword 'table'."},
-            {"R_incorrectSyntaxTableDW", "Parse error at line: 1, column: 106: Incorrect syntax near 'table'."},};
+            {"R_incorrectSyntaxTableDW", "Incorrect syntax near 'table'."},};
 }
