@@ -20,6 +20,7 @@ import java.sql.DriverManager;
 import java.sql.NClob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
 import java.time.LocalDate;
@@ -247,7 +248,7 @@ public class ResultSetTest extends AbstractTest {
                     assertFalse(rs.next());
                 }
             } finally {
-                stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
     }
@@ -507,6 +508,71 @@ public class ResultSetTest extends AbstractTest {
             } catch (Exception e) {
                 fail(e.toString());
             } finally {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    @Test
+    public void testMultipleResultSets() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1 int IDENTITY)");
+            String SQL = "exec sp_help 'dbo." + TestUtils.escapeSingleQuotes(tableName) + "'";
+
+            boolean results = stmt.execute(SQL);
+            int rsCount = 0;
+
+            // Loop through the available result sets.
+            while (results) {
+                try (ResultSet rs = stmt.getResultSet()) {
+                    rsCount++;
+                    String firstColumnName = rs.getMetaData().getColumnName(1);
+                    switch (rsCount) {
+                        case 1:
+                            assert (firstColumnName.trim().equalsIgnoreCase("Name"));
+                            break;
+                        case 2:
+                            assert (firstColumnName.trim().equalsIgnoreCase("Column_name"));
+                            break;
+                        case 3:
+                            assert (firstColumnName.trim().equalsIgnoreCase("Identity"));
+                            break;
+                        case 4:
+                            assert (firstColumnName.trim().equalsIgnoreCase("RowGuidCol"));
+                            break;
+                        case 5:
+                            assert (firstColumnName.trim().equalsIgnoreCase("Data_located_on_filegroup"));
+                            break;
+                    }
+                    while (rs.next()) {
+                        String firstColumnValue = rs.getString(1);
+                        switch (rsCount) {
+                            case 1:
+                                assert (firstColumnValue.equals(tableName));
+                                break;
+                            case 2:
+                            case 3:
+                                assert (firstColumnValue.equalsIgnoreCase("c1"));
+                                break;
+                            case 4:
+                                assert (firstColumnValue.equalsIgnoreCase("No rowguidcol column defined."));
+                                break;
+                            case 5:
+                                assert (firstColumnValue.equalsIgnoreCase("PRIMARY"));
+                                break;
+                        }
+                    }
+                }
+
+                SQLWarning warnings = stmt.getWarnings();
+                while (null != warnings) {
+                    warnings = warnings.getNextWarning();
+                }
+                results = stmt.getMoreResults();
+            }
+            assert (rsCount == 5);
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }

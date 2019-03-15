@@ -54,7 +54,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      * Always update serialVersionUID when prompted.
      */
     private static final long serialVersionUID = -4421134713913331507L;
-    
+
     final static char LEFT_CURLY_BRACKET = 123;
     final static char RIGHT_CURLY_BRACKET = 125;
 
@@ -1385,6 +1385,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      * @return true if another result (ResultSet or update count) was available; false if there were no more results.
      */
     final boolean getNextResult(boolean clearFlag) throws SQLServerException {
+
         /**
          * TDS response token stream handler used to locate the next result in the TDS response token stream.
          */
@@ -1606,21 +1607,26 @@ public class SQLServerStatement implements ISQLServerStatement {
             clearLastResult();
         }
 
-        // If there are no more results, then we're done.
-        // All we had to do was to close out the previous results.
+        // If there are no more results, then we're done. All we had to do was to close out the previous results.
         if (!moreResults) {
             return false;
         }
 
         // Figure out the next result.
         NextResult nextResult = new NextResult();
-        TDSParser.parse(resultsReader(), nextResult);
+
+        // Signal to not read all token other than TDS_MSG if reading only warnings
+        TDSParser.parse(resultsReader(), nextResult, !clearFlag);
 
         // Check for errors first.
         if (null != nextResult.getDatabaseError()) {
             SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getErrorMessage(),
                     nextResult.getDatabaseError(), false);
         }
+
+        // If we didn't clear current ResultSet, we wanted to read only warnings. Return back from here.
+        if (!clearFlag)
+            return false;
 
         // Not an error. Is it a result set?
         else if (nextResult.isResultSet()) {
@@ -1667,7 +1673,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     boolean consumeExecOutParam(TDSReader tdsReader) throws SQLServerException {
         if (expectCursorOutParams) {
-            TDSParser.parse(tdsReader, new StmtExecOutParamHandler());
+            TDSParser.parse(tdsReader, new StmtExecOutParamHandler(), false);
             return true;
         }
 

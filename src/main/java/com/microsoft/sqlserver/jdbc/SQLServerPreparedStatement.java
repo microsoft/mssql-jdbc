@@ -665,7 +665,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if (expectPrepStmtHandle || expectCursorOutParams) {
-            TDSParser.parse(tdsReader, new PrepStmtExecOutParamHandler());
+            TDSParser.parse(tdsReader, new PrepStmtExecOutParamHandler(), false);
             return true;
         }
 

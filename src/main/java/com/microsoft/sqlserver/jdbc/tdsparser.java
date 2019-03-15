@@ -23,10 +23,11 @@ final class TDSParser {
      * token handler says to stop by returning false from one of the token handling methods.
      */
     static void parse(TDSReader tdsReader, String logContext) throws SQLServerException {
-        parse(tdsReader, new TDSTokenHandler(logContext));
+        parse(tdsReader, new TDSTokenHandler(logContext), false);
     }
 
-    static void parse(TDSReader tdsReader, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
+    static void parse(TDSReader tdsReader, TDSTokenHandler tdsTokenHandler,
+            boolean readOnlyWarningsFlag) throws SQLServerException {
         final boolean isLogging = logger.isLoggable(Level.FINEST);
 
         // Process TDS tokens from the token stream until we're told to stop.
@@ -41,7 +42,10 @@ final class TDSParser {
                 logger.finest(tdsReader.toString() + ": " + tdsTokenHandler.logContext + ": Processing "
                         + ((-1 == tdsTokenType) ? "EOF" : TDS.getTokenName(tdsTokenType)));
             }
-
+            if (readOnlyWarningsFlag && TDS.TDS_MSG != tdsTokenType) {
+                parsing = false;
+                return;
+            }
             switch (tdsTokenType) {
                 case TDS.TDS_SSPI:
                     parsing = tdsTokenHandler.onSSPI(tdsReader);
@@ -255,8 +259,8 @@ class TDSTokenHandler {
 
     void onEOF(TDSReader tdsReader) throws SQLServerException {
         if (null != getDatabaseError()) {
-            SQLServerException.makeFromDatabaseError(tdsReader.getConnection(), null, getDatabaseError().getErrorMessage(),
-                    getDatabaseError(), false);
+            SQLServerException.makeFromDatabaseError(tdsReader.getConnection(), null,
+                    getDatabaseError().getErrorMessage(), getDatabaseError(), false);
         }
     }
 

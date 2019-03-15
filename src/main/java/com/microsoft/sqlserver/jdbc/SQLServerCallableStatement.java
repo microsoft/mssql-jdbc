@@ -257,7 +257,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         }
 
         ExecDoneHandler execDoneHandler = new ExecDoneHandler();
-        TDSParser.parse(resultsReader(), execDoneHandler);
+        TDSParser.parse(resultsReader(), execDoneHandler, false);
     }
 
     private void skipOutParameters(int numParamsToSkip, boolean discardValues) throws SQLServerException {
@@ -301,7 +301,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
             // Look for the next parameter value in the response.
             outParamHandler.reset();
-            TDSParser.parse(resultsReader(), outParamHandler);
+            TDSParser.parse(resultsReader(), outParamHandler, false);
 
             // If we don't find it, then most likely the server encountered some error that
             // was bad enough to halt statement execution before returning OUT params, but
