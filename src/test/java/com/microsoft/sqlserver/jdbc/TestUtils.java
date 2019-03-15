@@ -21,9 +21,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Locale;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
@@ -69,32 +66,61 @@ public class TestUtils {
 
     // private static SqlType types = null;
     private static ArrayList<SqlType> types = null;
+    
+    final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+    final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+    final static int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
+    private static Boolean isAzure = null;
+    private static Boolean isAzureDW = null;
+    private static Boolean isAzureMI = null;
 
-    /**
-     * Returns serverType
+    /*
+     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
+     * It should return 6 for SQL Azure DW. This is more reliable than @@version or
+     * serverproperty('edition').
+     * Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
      * 
-     * @return
+     * SERVERPROPERTY('EngineEdition') means
+     * Database Engine edition of the instance of SQL Server installed on the server.
+     * 1 = Personal or Desktop Engine (Not available for SQL Server.)
+     * 2 = Standard (This is returned for Standard and Workgroup.)
+     * 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
+     * 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
+     * 5 = SQL Azure
+     * 6 = SQL Azure DW
+     * 8 = Managed Instance
+     * Base data type: int
      */
-    public static String getServerType() {
-        String serverType = null;
+    public static boolean isAzure(Connection con) {
+        if (null == isAzure) {
+            try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+                rs.next();
 
-        String serverTypeProperty = getConfiguredProperty("server.type");
-        if (null == serverTypeProperty) {
-            // default to SQL Server
-            serverType = SERVER_TYPE_SQL_SERVER;
-        } else if (serverTypeProperty.equalsIgnoreCase(SERVER_TYPE_SQL_AZURE)) {
-            serverType = SERVER_TYPE_SQL_AZURE;
-        } else if (serverTypeProperty.equalsIgnoreCase(SERVER_TYPE_SQL_SERVER)) {
-            serverType = SERVER_TYPE_SQL_SERVER;
-        } else {
-            if (log.isLoggable(Level.FINE)) {
-                log.fine("Server.type '" + serverTypeProperty + "' is not supported yet. Default to SQL Server");
+                int engineEdition = rs.getInt(1);
+                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+                isAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+                isAzureMI = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+
+            } catch (SQLException e) {
+                isAzure = false;
+                isAzureDW = false;
+                isAzureMI = false;
             }
-            serverType = SERVER_TYPE_SQL_SERVER;
+            return isAzure;
+        } else {
+            return isAzure;
         }
-        return serverType;
     }
 
+    public static boolean isAzureDW(Connection con) {
+        isAzure(con);
+        return isAzureDW;
+    }
+
+    public static boolean isAzureMI(Connection con) {
+        isAzure(con);
+        return isAzureMI;
+    }
     /**
      * Read variable from property files if found null try to read from env.
      * 
@@ -668,21 +694,5 @@ public class TestUtils {
      */
     public static String escapeSingleQuotes(String name) {
         return name.replace("'", "''");
-    }
-
-    public static final ResourceBundle rBundle = getDefaultLocaleBundle();
-    /**
-     * Returns the root bundle. This is the bundle from SQLServerResource.java - the English version that gets updated
-     * in development process.
-     *
-     * @return root bundle.
-     */
-    private static ResourceBundle getDefaultLocaleBundle() {
-        return ResourceBundle.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource", Locale.getDefault());
-    }
-
-    public static String formatErrorMsg(String s) {
-        //Creates a regex where all '{#}' fields will return true for any value when calling match()
-        return ("\\Q" + TestUtils.rBundle.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
     }
 }

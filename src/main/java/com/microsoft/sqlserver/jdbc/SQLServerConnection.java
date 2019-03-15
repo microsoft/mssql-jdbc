@@ -140,7 +140,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private String originalHostNameInCertificate = null;
 
+    final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+    final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+    final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
+    private Boolean isAzure = null;
     private Boolean isAzureDW = null;
+    private Boolean isAzureMI = null;
 
     private SharedTimer sharedTimer;
 
@@ -3187,15 +3192,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void abort(Executor executor) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "abort", executor);
 
-        // nop if connection is closed
+        // no-op if connection is closed
         if (isClosed())
             return;
-
-        if (null == executor) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-            Object[] msgArgs = {"executor"};
-            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
-        }
 
         // check for callAbort permission
         SecurityManager secMgr = System.getSecurityManager();
@@ -3209,11 +3208,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, true);
             }
         }
+        if (null == executor) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
+            Object[] msgArgs = {"executor"};
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
+        } else {
 
-        setState(State.Closed);
+            /*
+             * Always report the connection as closed for any further use, no matter what happens when we try to clean
+             * up the physical resources associated with the connection using executor.
+             */
+            setState(State.Closed);
 
-        if (null != tdsChannel && null != executor)
-            executor.execute(() -> tdsChannel.close());
+            executor.execute(() -> clearConnectionResources());
+        }
 
         loggerExternal.exiting(getClassNameLogging(), "abort");
     }
@@ -3222,19 +3230,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void close() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "close");
 
-        // Always report the connection as closed for any further use, no matter
-        // what happens when we try to clean up the physical resources associated
-        // with the connection.
+        /*
+         * Always report the connection as closed for any further use, no matter what happens when we try to clean up
+         * the physical resources associated with the connection.
+         */
         setState(State.Closed);
 
+        clearConnectionResources();
+
+        loggerExternal.exiting(getClassNameLogging(), "close");
+    }
+
+    private void clearConnectionResources() {
         if (sharedTimer != null) {
             sharedTimer.removeRef();
             sharedTimer = null;
         }
 
-        // Close the TDS channel. When the channel is closed, the server automatically
-        // rolls back any pending transactions and closes associated resources like
-        // prepared handles.
+        /*
+         * Close the TDS channel. When the channel is closed, the server automatically rolls back any pending
+         * transactions and closes associated resources like prepared handles.
+         */
         if (null != tdsChannel) {
             tdsChannel.close();
         }
@@ -3250,8 +3266,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         cleanupPreparedStatementDiscardActions();
 
         ActivityCorrelator.cleanupActivityId();
-
-        loggerExternal.exiting(getClassNameLogging(), "close");
     }
 
     // This function is used by the proxy for notifying the pool manager that this connection proxy is closed
@@ -6266,33 +6280,55 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
     }
-
-    boolean isAzureDW() throws SQLServerException, SQLException {
-        if (null == isAzureDW) {
-            try (Statement stmt = this.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
-                // SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
-                // It should return 6 for SQL Azure DW. This is more reliable than @@version or
-                // serverproperty('edition').
-                // Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
-                //
-                // SERVERPROPERTY('EngineEdition') means
-                // Database Engine edition of the instance of SQL Server installed on the server.
-                // 1 = Personal or Desktop Engine (Not available for SQL Server.)
-                // 2 = Standard (This is returned for Standard and Workgroup.)
-                // 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
-                // 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
-                // 5 = SQL Azure
-                // 6 = SQL Azure DW
-                // Base data type: int
-                final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+    
+    /*
+     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
+     * It should return 6 for SQL Azure DW. This is more reliable than @@version or
+     * serverproperty('edition').
+     * Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
+     * 
+     * SERVERPROPERTY('EngineEdition') means
+     * Database Engine edition of the instance of SQL Server installed on the server.
+     * 1 = Personal or Desktop Engine (Not available for SQL Server.)
+     * 2 = Standard (This is returned for Standard and Workgroup.)
+     * 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
+     * 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
+     * 5 = SQL Azure
+     * 6 = SQL Azure DW
+     * 8 = Managed Instance
+     * Base data type: int
+     */
+    boolean isAzure() {
+        if (null == isAzure) {
+            try (Statement stmt = this.createStatement(); ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
                 rs.next();
-                isAzureDW = rs.getInt(1) == ENGINE_EDITION_FOR_SQL_AZURE_DW;
+
+                int engineEdition = rs.getInt(1);
+                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+                isAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+                isAzureMI = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+
+            } catch (SQLException e) {
+                if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+                    loggerExternal.log(Level.FINER, this + ": Error retrieving server type", e);
+                isAzure = false;
+                isAzureDW = false;
+                isAzureMI = false;
             }
-            return isAzureDW;
+            return isAzure;
         } else {
-            return isAzureDW;
+            return isAzure;
         }
+    }
+
+    boolean isAzureDW() {
+        isAzure();
+        return isAzureDW;
+    }
+
+    boolean isAzureMI() {
+        isAzure();
+        return isAzureMI;
     }
 
     /**

@@ -4,22 +4,18 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
-import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.JDBCType;
 import java.sql.SQLException;
 import java.sql.ShardingKey;
-import java.util.Enumeration;
-import java.util.stream.Stream;
-
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
 import javax.sql.XAConnection;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -33,6 +29,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class JDBC43Test extends AbstractTest {
     ShardingKey superShardingKey = null;
     ShardingKey shardingKey = null;
@@ -178,39 +175,4 @@ public class JDBC43Test extends AbstractTest {
             }
         }
     }
-
-    /**
-     * Tests the stream<Driver> drivers() methods in java.sql.DriverManager
-     * 
-     * @since 1.9
-     * @throws ClassNotFoundException
-     */
-    @Test
-    public void driversTest() throws ClassNotFoundException {
-        Stream<Driver> drivers = DriverManager.drivers();
-        Object[] driversArray = drivers.toArray();
-        assertEquals(driversArray[0].getClass(), Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver"));
-    }
-
-    /**
-     * Tests deregister Driver
-     * 
-     * @throws SQLException
-     * @throws ClassNotFoundException
-     */
-    @Test
-    public void deregisterDriverTest() throws SQLException, ClassNotFoundException {
-        Enumeration<Driver> drivers = DriverManager.getDrivers();
-        Driver current = null;
-        while (drivers.hasMoreElements()) {
-            current = drivers.nextElement();
-            DriverManager.deregisterDriver(current);
-        }
-        Stream<Driver> currentDrivers = DriverManager.drivers();
-        Object[] driversArray = currentDrivers.toArray();
-        assertEquals(0, driversArray.length);
-
-        DriverManager.registerDriver(current);
-    }
-
 }

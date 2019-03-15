@@ -8,7 +8,6 @@ package com.microsoft.sqlserver.jdbc;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.Locale;
@@ -126,6 +125,7 @@ enum SSLProtocol {
         this.name = name;
     }
 
+    @Override
     public String toString() {
         return name;
     }
@@ -211,6 +211,7 @@ enum ApplicationIntent {
     /**
      * Returns the string value of enum.
      */
+    @Override
     public String toString() {
         return value;
     }
@@ -254,6 +255,7 @@ enum SQLServerDriverObjectProperty {
         return defaultValue;
     }
 
+    @Override
     public String toString() {
         return name;
     }
@@ -303,6 +305,7 @@ enum SQLServerDriverStringProperty {
         return defaultValue;
     }
 
+    @Override
     public String toString() {
         return name;
     }
@@ -332,6 +335,7 @@ enum SQLServerDriverIntProperty {
         return defaultValue;
     }
 
+    @Override
     public String toString() {
         return name;
     }
@@ -366,6 +370,7 @@ enum SQLServerDriverBooleanProperty {
         return defaultValue;
     }
 
+    @Override
     public String toString() {
         return name;
     }
@@ -547,6 +552,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return baseID.incrementAndGet();
     }
 
+    @Override
     final public String toString() {
         return traceID;
     }
@@ -728,6 +734,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return null;
     }
 
+    @Override
     public java.sql.Connection connect(String Url, Properties suppliedProperties) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
         SQLServerConnection result = null;
@@ -767,6 +774,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return connectProperties;
     }
 
+    @Override
     public boolean acceptsURL(String url) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "acceptsURL", "Arguments not traced.");
 
@@ -785,6 +793,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return result;
     }
 
+    @Override
     public DriverPropertyInfo[] getPropertyInfo(String Url, Properties Info) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getPropertyInfo", "Arguments not traced.");
 
@@ -806,22 +815,26 @@ public final class SQLServerDriver implements java.sql.Driver {
         return properties;
     }
 
+    @Override
     public int getMajorVersion() {
         loggerExternal.entering(getClassNameLogging(), "getMajorVersion");
         loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", SQLJdbcVersion.major);
         return SQLJdbcVersion.major;
     }
 
+    @Override
     public int getMinorVersion() {
         loggerExternal.entering(getClassNameLogging(), "getMinorVersion");
         loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", SQLJdbcVersion.minor);
         return SQLJdbcVersion.minor;
     }
 
-    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+    @Override
+    public Logger getParentLogger() {
         return parentLogger;
     }
 
+    @Override
     public boolean jdbcCompliant() {
         loggerExternal.entering(getClassNameLogging(), "jdbcCompliant");
         loggerExternal.exiting(getClassNameLogging(), "jdbcCompliant", Boolean.TRUE);
