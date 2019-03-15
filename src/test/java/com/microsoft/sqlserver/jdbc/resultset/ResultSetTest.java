@@ -516,7 +516,8 @@ public class ResultSetTest extends AbstractTest {
     @Test
     public void testMultipleResultSets() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1 int IDENTITY)");
+            stmt.execute(
+                    "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1 int IDENTITY, c2 int)");
             String SQL = "exec sp_help 'dbo." + TestUtils.escapeSingleQuotes(tableName) + "'";
 
             boolean results = stmt.execute(SQL);
@@ -544,6 +545,7 @@ public class ResultSetTest extends AbstractTest {
                             assert (firstColumnName.trim().equalsIgnoreCase("Data_located_on_filegroup"));
                             break;
                     }
+                    int i = 1;
                     while (rs.next()) {
                         String firstColumnValue = rs.getString(1);
                         switch (rsCount) {
@@ -551,6 +553,8 @@ public class ResultSetTest extends AbstractTest {
                                 assert (firstColumnValue.equals(tableName));
                                 break;
                             case 2:
+                                assert (firstColumnValue.equalsIgnoreCase("c" + i++));
+                                break;
                             case 3:
                                 assert (firstColumnValue.equalsIgnoreCase("c1"));
                                 break;
@@ -570,7 +574,23 @@ public class ResultSetTest extends AbstractTest {
                 }
                 results = stmt.getMoreResults();
             }
+            assert (!stmt.getMoreResults() && -1 == stmt.getUpdateCount());
             assert (rsCount == 5);
+
+            /*
+             * Testing Scenario: There are no more results when the following is true ............
+             * ((stmt.getMoreResults() == false) && (stmt.getUpdateCount() == -1))
+             */
+            stmt.execute("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (12345)");
+            assert (stmt.getUpdateCount() == 1);
+            assert (!stmt.getMoreResults());
+
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                // Calling getMoreResults() consumes and closes the current ResultSet
+                assert (!stmt.getMoreResults() && -1 == stmt.getUpdateCount());
+                assert (rs.isClosed());
+            }
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
