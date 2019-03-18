@@ -5643,9 +5643,6 @@ final class TDSWriter {
      */
     private void writeScaledTemporal(GregorianCalendar cal, int subSecondNanos, int scale,
             SSType ssType) throws SQLServerException {
-
-        assert con.isKatmaiOrLater();
-
         assert SSType.DATE == ssType || SSType.TIME == ssType || SSType.DATETIME2 == ssType
                 || SSType.DATETIMEOFFSET == ssType : "Unexpected SSType: " + ssType;
 
@@ -5777,8 +5774,6 @@ final class TDSWriter {
      */
     byte[] writeEncryptedScaledTemporal(GregorianCalendar cal, int subSecondNanos, int scale, SSType ssType,
             short minutesOffset) throws SQLServerException {
-        assert con.isKatmaiOrLater();
-
         assert SSType.DATE == ssType || SSType.TIME == ssType || SSType.DATETIME2 == ssType
                 || SSType.DATETIMEOFFSET == ssType : "Unexpected SSType: " + ssType;
 

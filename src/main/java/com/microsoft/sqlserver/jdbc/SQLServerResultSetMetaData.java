@@ -133,32 +133,30 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
             }
         }
         int r = jdbcType.asJavaSqlType();
-        if (con.isKatmaiOrLater()) {
-            switch (sqlType) {
-                case VARCHARMAX:
-                    r = SSType.VARCHAR.getJDBCType().asJavaSqlType();
-                    break;
-                case NVARCHARMAX:
-                    r = SSType.NVARCHAR.getJDBCType().asJavaSqlType();
-                    break;
-                case VARBINARYMAX:
-                    r = SSType.VARBINARY.getJDBCType().asJavaSqlType();
-                    break;
-                case DATETIME:
-                case SMALLDATETIME:
-                    r = SSType.DATETIME2.getJDBCType().asJavaSqlType();
-                    break;
-                case MONEY:
-                case SMALLMONEY:
-                    r = SSType.DECIMAL.getJDBCType().asJavaSqlType();
-                    break;
-                case GUID:
-                    r = SSType.CHAR.getJDBCType().asJavaSqlType();
-                    break;
-                default:
-                    // Do nothing
-                    break;
-            }
+        switch (sqlType) {
+            case VARCHARMAX:
+                r = SSType.VARCHAR.getJDBCType().asJavaSqlType();
+                break;
+            case NVARCHARMAX:
+                r = SSType.NVARCHAR.getJDBCType().asJavaSqlType();
+                break;
+            case VARBINARYMAX:
+                r = SSType.VARBINARY.getJDBCType().asJavaSqlType();
+                break;
+            case DATETIME:
+            case SMALLDATETIME:
+                r = SSType.DATETIME2.getJDBCType().asJavaSqlType();
+                break;
+            case MONEY:
+            case SMALLMONEY:
+                r = SSType.DECIMAL.getJDBCType().asJavaSqlType();
+                break;
+            case GUID:
+                r = SSType.CHAR.getJDBCType().asJavaSqlType();
+                break;
+            default:
+                // Do nothing
+                break;
         }
         return r;
     }

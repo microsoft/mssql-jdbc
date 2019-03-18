@@ -577,7 +577,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public final boolean getSendTimeAsDatetime() {
-        return !isKatmaiOrLater() || sendTimeAsDatetime;
+        return sendTimeAsDatetime;
     }
 
     final int baseYear() {
@@ -975,12 +975,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private TDSCommand currentCommand = null;
 
     private int tdsVersion = TDS.VER_UNKNOWN;
-
-    final boolean isKatmaiOrLater() {
-        assert TDS.VER_UNKNOWN != tdsVersion;
-        assert tdsVersion >= TDS.VER_YUKON;
-        return tdsVersion >= TDS.VER_KATMAI;
-    }
 
     final boolean isDenaliOrLater() {
         return tdsVersion >= TDS.VER_DENALI;

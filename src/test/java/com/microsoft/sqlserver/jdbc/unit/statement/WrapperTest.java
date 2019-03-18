@@ -23,7 +23,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
 
 
 /**
@@ -85,9 +84,7 @@ public class WrapperTest extends AbstractTest {
                     try (ISQLServerPreparedStatement stmt3 = (ISQLServerPreparedStatement) ((SQLServerCallableStatement) cs)
                             .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerPreparedStatement"))) {
                         stmt3.setResponseBuffering("adaptive");
-
-                        if (isKatmaiServer())
-                            stmt3.setDateTimeOffset(1, null);
+                        stmt3.setDateTimeOffset(1, null);
 
                         // Try Unwrapping CallableStatement to a callableStatement
                         isWrapper = ((SQLServerCallableStatement) cs)
@@ -98,9 +95,7 @@ public class WrapperTest extends AbstractTest {
                         try (SQLServerCallableStatement stmt4 = (SQLServerCallableStatement) ((SQLServerCallableStatement) cs)
                                 .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerCallableStatement"))) {
                             stmt4.setResponseBuffering("adaptive");
-                            if (isKatmaiServer()) {
-                                stmt4.setDateTimeOffset(1, null);
-                            }
+                            stmt4.setDateTimeOffset(1, null);
                         }
                     }
                 }
@@ -136,13 +131,6 @@ public class WrapperTest extends AbstractTest {
                     "isWrapperFor " + TestResource.getResource("R_shouldBeSupported"));
             assertEquals(e.getMessage(), "This operation is not supported.",
                     TestResource.getResource("R_unexpectedExceptionContent"));
-        }
-    }
-
-    private static boolean isKatmaiServer() throws Exception {
-        try (DBConnection conn = new DBConnection(connectionString)) {
-            double version = conn.getServerVersion();
-            return ((version >= 10.0) ? true : false);
         }
     }
 }

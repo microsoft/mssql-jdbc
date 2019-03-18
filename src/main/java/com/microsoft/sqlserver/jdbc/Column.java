@@ -311,12 +311,6 @@ final class Column {
             }
         }
 
-        // DateTimeOffset is not supported with SQL Server versions earlier than Katmai
-        if ((JDBCType.DATETIMEOFFSET == jdbcType || JavaType.DATETIMEOFFSET == javaType) && !con.isKatmaiOrLater()) {
-            throw new SQLServerException(SQLServerException.getErrString("R_notSupported"),
-                    SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
-        }
-
         // sendStringParametersAsUnicode
         // If set to true, this connection property tells the driver to send textual parameters
         // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging

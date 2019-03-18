@@ -73,17 +73,15 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         SP_TABLE_PRIVILEGES("{call sp_table_privileges(?,?,?) }", "{call sp_table_privileges(?,?,?) }"),
         SP_PKEYS("{ call sp_pkeys (?, ?, ?)}", "{ call sp_pkeys (?, ?, ?)}");
         // stored procs before Katmai ie SS10
-        private final String preKatProc;
         // procs on or after katmai
         private final String katProc;
 
         private CallableHandles(String name, String katName) {
-            this.preKatProc = name;
             this.katProc = katName;
         }
 
         CallableStatement prepare(SQLServerConnection conn) throws SQLServerException {
-            return conn.prepareCall(conn.isKatmaiOrLater() ? katProc : preKatProc);
+            return conn.prepareCall(katProc);
         }
     }
 
@@ -636,38 +634,26 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          * [ @column_name = ] column ] [ , [ @ODBCVer = ] ODBCVer ]
          */
         String[] arguments;
-        if (connection.isKatmaiOrLater())
-            arguments = new String[6];
-        else
-            arguments = new String[5];
+        arguments = new String[6];
         arguments[0] = table;
         arguments[1] = schema;
         arguments[2] = catalog;
         arguments[3] = column;
-        if (connection.isKatmaiOrLater()) {
-            arguments[4] = "2"; // give information about everything including
-                                // sparse columns
-            arguments[5] = "3"; // odbc version
-        } else
-            arguments[4] = "3"; // odbc version
+        arguments[4] = "2"; // give information about everything including
+                            // sparse columns
+        arguments[5] = "3"; // odbc version
+
         SQLServerResultSet rs;
-        if (connection.isKatmaiOrLater())
-            rs = getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_COLUMNS, arguments,
-                    getColumnsColumnNamesKatmai);
-        else
-            rs = getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_COLUMNS, arguments,
-                    getColumnsColumnNames);
+        rs = getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_COLUMNS, arguments,
+                getColumnsColumnNamesKatmai);
         // Hook in a filter on the DATA_TYPE column of the result set we're
         // going to return that converts the ODBC values from sp_columns
         // into JDBC values.
         rs.getColumn(5).setFilter(new DataTypeFilter());
-
-        if (connection.isKatmaiOrLater()) {
-            rs.getColumn(22).setFilter(new IntColumnIdentityFilter());
-            rs.getColumn(7).setFilter(new ZeroFixupFilter());
-            rs.getColumn(8).setFilter(new ZeroFixupFilter());
-            rs.getColumn(16).setFilter(new ZeroFixupFilter());
-        }
+        rs.getColumn(22).setFilter(new IntColumnIdentityFilter());
+        rs.getColumn(7).setFilter(new ZeroFixupFilter());
+        rs.getColumn(8).setFilter(new ZeroFixupFilter());
+        rs.getColumn(16).setFilter(new ZeroFixupFilter());
         return rs;
     }
 
@@ -738,12 +724,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         // going to return that converts the ODBC values from sp_columns
         // into JDBC values. Also for the precision
         rs.getColumn(6).setFilter(new DataTypeFilter());
-
-        if (connection.isKatmaiOrLater()) {
-            rs.getColumn(8).setFilter(new ZeroFixupFilter());
-            rs.getColumn(9).setFilter(new ZeroFixupFilter());
-            rs.getColumn(17).setFilter(new ZeroFixupFilter());
-        }
+        rs.getColumn(8).setFilter(new ZeroFixupFilter());
+        rs.getColumn(9).setFilter(new ZeroFixupFilter());
+        rs.getColumn(17).setFilter(new ZeroFixupFilter());
         return rs;
     }
 
@@ -1156,11 +1139,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         // going to return that converts the ODBC values from sp_columns
         // into JDBC values. Also for the precision
         rs.getColumn(6).setFilter(new DataTypeFilter());
-        if (connection.isKatmaiOrLater()) {
-            rs.getColumn(8).setFilter(new ZeroFixupFilter());
-            rs.getColumn(9).setFilter(new ZeroFixupFilter());
-            rs.getColumn(17).setFilter(new ZeroFixupFilter());
-        }
+        rs.getColumn(8).setFilter(new ZeroFixupFilter());
+        rs.getColumn(9).setFilter(new ZeroFixupFilter());
+        rs.getColumn(17).setFilter(new ZeroFixupFilter());
 
         return rs;
     }
@@ -1423,11 +1404,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         checkClosed();
 
         SQLServerResultSet rs;
-        // We support only sql2k5 and above
-        if (connection.isKatmaiOrLater())
-            rs = getResultSetFromInternalQueries(null, "sp_datatype_info_100 @ODBCVer=3");
-        else
-            rs = getResultSetFromInternalQueries(null, "sp_datatype_info @ODBCVer=3");
+        rs = getResultSetFromInternalQueries(null, "sp_datatype_info_100 @ODBCVer=3");
 
         rs.setColumnName(11, "FIXED_PREC_SCALE");
         // Hook in a filter on the DATA_TYPE column of the result set we're

@@ -2700,12 +2700,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", columnIndex);
         checkClosed();
-
-        // DateTimeOffset is not supported with SQL Server versions earlier than Katmai
-        if (!stmt.connection.isKatmaiOrLater())
-            throw new SQLServerException(SQLServerException.getErrString("R_notSupported"),
-                    SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
-
         microsoft.sql.DateTimeOffset value = (microsoft.sql.DateTimeOffset) getValue(columnIndex,
                 JDBCType.DATETIMEOFFSET);
         loggerExternal.exiting(getClassNameLogging(), "getDateTimeOffset", value);
@@ -2716,12 +2710,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", columnName);
         checkClosed();
-
-        // DateTimeOffset is not supported with SQL Server versions earlier than Katmai
-        if (!stmt.connection.isKatmaiOrLater())
-            throw new SQLServerException(SQLServerException.getErrString("R_notSupported"),
-                    SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
-
         microsoft.sql.DateTimeOffset value = (microsoft.sql.DateTimeOffset) getValue(findColumn(columnName),
                 JDBCType.DATETIMEOFFSET);
         loggerExternal.exiting(getClassNameLogging(), "getDateTimeOffset", value);

@@ -850,137 +850,118 @@ final class DTV {
                 // as determined by sendTimeAsDatetime setting
                 // - java.sql.Types.DATE, use DATE SQL Server data type
                 // - microsoft.sql.Types.DATETIMEOFFSET, use DATETIMEOFFSET SQL Server data type
-                if (conn.isKatmaiOrLater()) {
-                    if (aeLogger.isLoggable(java.util.logging.Level.FINE) && (null != cryptoMeta)) {
-                        aeLogger.fine("Encrypting temporal data type.");
-                    }
+                if (aeLogger.isLoggable(java.util.logging.Level.FINE) && (null != cryptoMeta)) {
+                    aeLogger.fine("Encrypting temporal data type.");
+                }
 
-                    switch (jdbcType) {
-                        case DATETIME:
-                        case SMALLDATETIME:
-                        case TIMESTAMP:
-                            if (null != cryptoMeta) {
-                                if ((JDBCType.DATETIME == jdbcType) || (JDBCType.SMALLDATETIME == jdbcType)) {
-                                    tdsWriter.writeEncryptedRPCDateTime(name,
-                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                            subSecondNanos, isOutParam, jdbcType);
-                                } else if (0 == valueLength) {
-                                    tdsWriter.writeEncryptedRPCDateTime2(name,
-                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                            subSecondNanos, outScale, isOutParam);
-                                } else {
-                                    tdsWriter.writeEncryptedRPCDateTime2(name,
-                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                            subSecondNanos, (valueLength), isOutParam);
-                                }
-                            } else
-                                tdsWriter.writeRPCDateTime2(name,
+                switch (jdbcType) {
+                    case DATETIME:
+                    case SMALLDATETIME:
+                    case TIMESTAMP:
+                        if (null != cryptoMeta) {
+                            if ((JDBCType.DATETIME == jdbcType) || (JDBCType.SMALLDATETIME == jdbcType)) {
+                                tdsWriter.writeEncryptedRPCDateTime(name,
                                         timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                        subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
-
-                            break;
-
-                        case TIME:
-                            // if column is encrypted, always send as TIME
-                            if (null != cryptoMeta) {
-                                if (0 == valueLength) {
-                                    tdsWriter.writeEncryptedRPCTime(name, calendar, subSecondNanos, outScale,
-                                            isOutParam);
-                                } else {
-                                    tdsWriter.writeEncryptedRPCTime(name, calendar, subSecondNanos, valueLength,
-                                            isOutParam);
-                                }
+                                        subSecondNanos, isOutParam, jdbcType);
+                            } else if (0 == valueLength) {
+                                tdsWriter.writeEncryptedRPCDateTime2(name,
+                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                        subSecondNanos, outScale, isOutParam);
                             } else {
-                                // Send the java.sql.Types.TIME value as TIME or DATETIME SQL Server
-                                // data type, based on sendTimeAsDatetime setting.
-                                if (conn.getSendTimeAsDatetime()) {
-                                    tdsWriter.writeRPCDateTime(name,
-                                            timestampNormalizedCalendar(calendar, JavaType.TIME, TDS.BASE_YEAR_1970),
-                                            subSecondNanos, isOutParam);
-                                } else {
-                                    tdsWriter.writeRPCTime(name, calendar, subSecondNanos,
-                                            TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
-                                }
+                                tdsWriter.writeEncryptedRPCDateTime2(name,
+                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                        subSecondNanos, (valueLength), isOutParam);
                             }
+                        } else
+                            tdsWriter.writeRPCDateTime2(name,
+                                    timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                    subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
 
-                            break;
+                        break;
 
-                        case DATE:
-                            if (null != cryptoMeta)
-                                tdsWriter.writeEncryptedRPCDate(name, calendar, isOutParam);
-                            else
-                                tdsWriter.writeRPCDate(name, calendar, isOutParam);
-
-                            break;
-
-                        case TIME_WITH_TIMEZONE:
-                            // When converting from any other temporal Java type to TIME_WITH_TIMEZONE,
-                            // deliberately reinterpret the value as local to UTC. This is to match
-                            // SQL Server behavior for such conversions.
-                            if ((JavaType.OFFSETDATETIME != javaType) && (JavaType.OFFSETTIME != javaType)) {
-                                calendar = timestampNormalizedCalendar(localCalendarAsUTC(calendar), javaType,
-                                        conn.baseYear());
-
-                                minutesOffset = 0; // UTC
+                    case TIME:
+                        // if column is encrypted, always send as TIME
+                        if (null != cryptoMeta) {
+                            if (0 == valueLength) {
+                                tdsWriter.writeEncryptedRPCTime(name, calendar, subSecondNanos, outScale,
+                                        isOutParam);
+                            } else {
+                                tdsWriter.writeEncryptedRPCTime(name, calendar, subSecondNanos, valueLength,
+                                        isOutParam);
                             }
+                        } else {
+                            // Send the java.sql.Types.TIME value as TIME or DATETIME SQL Server
+                            // data type, based on sendTimeAsDatetime setting.
+                            if (conn.getSendTimeAsDatetime()) {
+                                tdsWriter.writeRPCDateTime(name,
+                                        timestampNormalizedCalendar(calendar, JavaType.TIME, TDS.BASE_YEAR_1970),
+                                        subSecondNanos, isOutParam);
+                            } else {
+                                tdsWriter.writeRPCTime(name, calendar, subSecondNanos,
+                                        TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
+                            }
+                        }
 
+                        break;
+
+                    case DATE:
+                        if (null != cryptoMeta)
+                            tdsWriter.writeEncryptedRPCDate(name, calendar, isOutParam);
+                        else
+                            tdsWriter.writeRPCDate(name, calendar, isOutParam);
+
+                        break;
+
+                    case TIME_WITH_TIMEZONE:
+                        // When converting from any other temporal Java type to TIME_WITH_TIMEZONE,
+                        // deliberately reinterpret the value as local to UTC. This is to match
+                        // SQL Server behavior for such conversions.
+                        if ((JavaType.OFFSETDATETIME != javaType) && (JavaType.OFFSETTIME != javaType)) {
+                            calendar = timestampNormalizedCalendar(localCalendarAsUTC(calendar), javaType,
+                                    conn.baseYear());
+
+                            minutesOffset = 0; // UTC
+                        }
+
+                        tdsWriter.writeRPCDateTimeOffset(name, calendar, minutesOffset, subSecondNanos,
+                                TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
+
+                        break;
+
+                    case TIMESTAMP_WITH_TIMEZONE:
+                    case DATETIMEOFFSET:
+                        // When converting from any other temporal Java type to
+                        // DATETIMEOFFSET/TIMESTAMP_WITH_TIMEZONE,
+                        // deliberately reinterpret the value as local to UTC. This is to match
+                        // SQL Server behavior for such conversions.
+                        if ((JavaType.DATETIMEOFFSET != javaType) && (JavaType.OFFSETDATETIME != javaType)) {
+                            calendar = timestampNormalizedCalendar(localCalendarAsUTC(calendar), javaType,
+                                    conn.baseYear());
+
+                            minutesOffset = 0; // UTC
+                        }
+
+                        if (null != cryptoMeta) {
+                            if (0 == valueLength) {
+                                tdsWriter.writeEncryptedRPCDateTimeOffset(name, calendar, minutesOffset,
+                                        subSecondNanos, outScale, isOutParam);
+                            } else {
+                                tdsWriter.writeEncryptedRPCDateTimeOffset(name, calendar, minutesOffset,
+                                        subSecondNanos,
+                                        (0 == valueLength ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : valueLength),
+                                        isOutParam);
+                            }
+                        } else
                             tdsWriter.writeRPCDateTimeOffset(name, calendar, minutesOffset, subSecondNanos,
                                     TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
 
-                            break;
+                        break;
 
-                        case TIMESTAMP_WITH_TIMEZONE:
-                        case DATETIMEOFFSET:
-                            // When converting from any other temporal Java type to
-                            // DATETIMEOFFSET/TIMESTAMP_WITH_TIMEZONE,
-                            // deliberately reinterpret the value as local to UTC. This is to match
-                            // SQL Server behavior for such conversions.
-                            if ((JavaType.DATETIMEOFFSET != javaType) && (JavaType.OFFSETDATETIME != javaType)) {
-                                calendar = timestampNormalizedCalendar(localCalendarAsUTC(calendar), javaType,
-                                        conn.baseYear());
+                    default:
+                        assert false : "Unexpected JDBCType: " + jdbcType;
 
-                                minutesOffset = 0; // UTC
-                            }
-
-                            if (null != cryptoMeta) {
-                                if (0 == valueLength) {
-                                    tdsWriter.writeEncryptedRPCDateTimeOffset(name, calendar, minutesOffset,
-                                            subSecondNanos, outScale, isOutParam);
-                                } else {
-                                    tdsWriter.writeEncryptedRPCDateTimeOffset(name, calendar, minutesOffset,
-                                            subSecondNanos,
-                                            (0 == valueLength ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : valueLength),
-                                            isOutParam);
-                                }
-                            } else
-                                tdsWriter.writeRPCDateTimeOffset(name, calendar, minutesOffset, subSecondNanos,
-                                        TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
-
-                            break;
-
-                        default:
-                            assert false : "Unexpected JDBCType: " + jdbcType;
-
-                    }
                 }
-
-                // Yukon and earlier
-                // -----------------
-                //
-                // When sending as...
-                // - java.sql.Types.TIMESTAMP, use DATETIME SQL Server data type (all components)
-                // - java.sql.Types.TIME, use DATETIME SQL Server data type (with date = 1/1/1970)
-                // - java.sql.Types.DATE, use DATETIME SQL Server data type (with time = midnight)
-                // - microsoft.sql.Types.DATETIMEOFFSET (not supported - exception should have been thrown earlier)
-                else {
-                    assert JDBCType.TIME == jdbcType || JDBCType.DATE == jdbcType
-                            || JDBCType.TIMESTAMP == jdbcType : "Unexpected JDBCType: " + jdbcType;
-
-                    tdsWriter.writeRPCDateTime(name,
-                            timestampNormalizedCalendar(calendar, javaType, TDS.BASE_YEAR_1970), subSecondNanos,
-                            isOutParam);
-                }
-            } // setters
+            }
         }
 
         /**

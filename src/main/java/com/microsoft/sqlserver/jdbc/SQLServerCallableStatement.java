@@ -968,12 +968,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", index);
         checkClosed();
-
-        // DateTimeOffset is not supported with SQL Server versions earlier than Katmai
-        if (!connection.isKatmaiOrLater())
-            throw new SQLServerException(SQLServerException.getErrString("R_notSupported"),
-                    SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
-
         microsoft.sql.DateTimeOffset value = (microsoft.sql.DateTimeOffset) getValue(index, JDBCType.DATETIMEOFFSET);
         loggerExternal.exiting(getClassNameLogging(), "getDateTimeOffset", value);
         return value;
@@ -983,12 +977,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     public microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", parameterName);
         checkClosed();
-
-        // DateTimeOffset is not supported with SQL Server versions earlier than Katmai
-        if (!connection.isKatmaiOrLater())
-            throw new SQLServerException(SQLServerException.getErrString("R_notSupported"),
-                    SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
-
         microsoft.sql.DateTimeOffset value = (microsoft.sql.DateTimeOffset) getValue(findColumn(parameterName),
                 JDBCType.DATETIMEOFFSET);
         loggerExternal.exiting(getClassNameLogging(), "getDateTimeOffset", value);
