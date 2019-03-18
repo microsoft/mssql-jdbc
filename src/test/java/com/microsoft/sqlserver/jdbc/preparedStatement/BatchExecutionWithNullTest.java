@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,6 +28,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -53,8 +53,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         int key = 42;
 
         // this is the minimum sequence, I've found to trigger the error\
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                PreparedStatement pstmt = conn.prepareStatement(sPrepStmt)) {
+        try (Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sPrepStmt)) {
             pstmt.setInt(1, key++);
             pstmt.setNull(2, Types.VARCHAR);
             pstmt.addBatch();
@@ -99,8 +98,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      */
     @Test
     public void testAddbatch2AEOnConnection() throws SQLException {
-        try (Connection connection = DriverManager
-                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
             testAddBatch2();
         }
     }
@@ -111,7 +109,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
             assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
         }
 
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = getConnection();
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -124,8 +122,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+        try (Connection conn = getConnection(); SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }

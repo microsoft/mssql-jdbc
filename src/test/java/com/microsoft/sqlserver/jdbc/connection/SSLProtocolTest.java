@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
 import java.text.MessageFormat;
 
 import org.junit.jupiter.api.Tag;
@@ -22,6 +21,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
@@ -39,7 +39,7 @@ public class SSLProtocolTest extends AbstractTest {
      */
     public void testWithSupportedProtocols(String sslProtocol) throws Exception {
         String url = connectionString + ";sslProtocol=" + sslProtocol;
-        try (Connection con = DriverManager.getConnection(url)) {
+        try (Connection con = PrepUtil.getConnection(url)) {
             DatabaseMetaData dbmd = con.getMetaData();
             assertNotNull(dbmd);
             assertTrue(!StringUtils.isEmpty(dbmd.getDatabaseProductName()));
@@ -59,7 +59,7 @@ public class SSLProtocolTest extends AbstractTest {
      */
     public void testWithUnSupportedProtocols(String sslProtocol) throws Exception {
         String url = connectionString + ";sslProtocol=" + sslProtocol;
-        try (Connection con = DriverManager.getConnection(url)) {
+        try (Connection con = PrepUtil.getConnection(url)) {
             assertFalse(true, TestResource.getResource("R_protocolVersion"));
         } catch (SQLServerException e) {
             assertTrue(true, TestResource.getResource("R_shouldThrowException"));

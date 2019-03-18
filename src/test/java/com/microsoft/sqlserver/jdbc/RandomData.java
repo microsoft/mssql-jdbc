@@ -30,9 +30,7 @@ public class RandomData {
 
     private static String specicalCharSet = "ÀÂÃÄËßîðÐ";
     private static String normalCharSet = "1234567890-=!@#$%^&*()_+qwertyuiop[]\\asdfghjkl;'zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
-
     private static String unicodeCharSet = "♠♣♥♦林花謝了春紅太匆匆無奈朝我附件为放假哇额外放我放问역사적으로본래한민족의영역은만주와연해주의일부를포함하였으나会和太空特工我來寒雨晚來風胭脂淚留人醉幾時重自是人生長恨水長東ྱོགས་སུ་འཁོར་བའི་ས་ཟླུུམ་ཞིག་ལ་ངོས་འཛིན་དགོས་ཏེ།ངག་ཕྱོαβγδεζηθικλμνξοπρστυφχψ太陽系の年齢もまた隕石の年代測定に依拠するので";
-
     private static String numberCharSet = "1234567890";
     private static String numberCharSet2 = "123456789";
 
