@@ -315,7 +315,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         // save this for calculating MIC later
         context.concatByteStream.write(inToken);
-
     }
 
     /*
@@ -379,25 +378,25 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.put(NTLM_CLIENT_CHALLENGE_RESERVED1);
         context.token.put(NTLM_CLIENT_CHALLENGE_RESERVED2);
 
-        // context.token.put(timestamp, 0, timestamp.length);
         context.token.put(context.timestamp, 0, NTLM_TIMESTAMP_LENGTH);
         context.token.put(clientNonce, 0, NTLM_CLIENT_NONCE_LENGTH);
         context.token.put(NTLM_CLIENT_CHALLENGE_RESERVED3);
 
-        ByteBuffer targetInfo = ByteBuffer.allocate(context.targetInfo.length + 8).order(ByteOrder.LITTLE_ENDIAN);
-        targetInfo.put(context.targetInfo, 0, context.targetInfo.length - 4);
-        byte[] arr = targetInfo.array();
+        ByteBuffer newTargetInfo = ByteBuffer.allocate(context.targetInfo.length + 8).order(ByteOrder.LITTLE_ENDIAN);
 
-        targetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
-        targetInfo.putShort((short) 2);
-        targetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
-        targetInfo.putShort(NTLM_AVID_MSVAVEOL);
-        targetInfo.putShort((short) 0);
-        System.out.println("context targetinfo length: " + context.targetInfo.length);
-        System.out.println("new targetinfo length: " + targetInfo.array().length);
-        context.token.put(targetInfo.array(), 0, targetInfo.array().length);
+        // copy targetInfo up to NTLM_AVID_MSVAVEOL
+        newTargetInfo.put(context.targetInfo, 0, context.targetInfo.length - 4);
 
-       // context.token.put(context.targetInfo, 0, context.targetInfo.length);
+        // MIC flag
+        newTargetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
+        newTargetInfo.putShort((short) 4);
+        newTargetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
+
+        // EOL
+        newTargetInfo.putShort(NTLM_AVID_MSVAVEOL);
+        newTargetInfo.putShort((short) 0);
+
+        context.token.put(newTargetInfo.array(), 0, newTargetInfo.array().length);
 
         return context.token.array();
     }
@@ -583,17 +582,12 @@ final class NTLMAuthentication extends SSPIAuthentication {
                     NTLM_MIC_LENGTH);
 
             System.arraycopy(mic, 0, msg, NTLM_AUTHENTICATE_MIC_OFFSET, NTLM_MIC_LENGTH);
-
-            // context.token.put(hmacMD5(context.responseKeyNT, context.concatByteStream.toByteArray()), 0,
-            // NTLM_MIC_LENGTH);
-
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmAuthError"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(form.format(msgArgs), e);
         }
         return context.token.array();
-        // return msg;
     }
 
     /*
