@@ -387,7 +387,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_SetAuthenticationWhenIntegratedSecurityTrue",
                     "Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."},
             {"R_NtlmNoUserPasswordDomain",
-                    "\"User\" (or \"UserName\"), \"Password\" and \"Domain\" connection string properties must be specified for \"NTLM Authentication\"."},
+                    "\"User\" (or \"UserName\") and \"Password\" connection string properties must be specified for \"NTLM Authentication\"."},
             {"R_SetAccesstokenWhenIntegratedSecurityTrue",
                     "Cannot set the AccessToken property if the \"IntegratedSecurity\" connection string keyword has been set to \"true\"."},
             {"R_IntegratedAuthenticationWithUserPassword",
@@ -562,5 +562,6 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_ntlmNoDomain", "NTLM authentication Challenge Message error: missing server name"},
             {"R_ntlmNoServer", "NTLM authentication Challenge Message target info error: missing computer name"},
             {"R_ntlmNoTimestamp", "NTLM authentication Challenge Message target info error: missing timestamp"},
+            {"R_ntlmUnknownValue", "NTLM authentication Challenge Message target info error: unknown value"},
             {"R_ntlmAuthError", "NTLM authentication error: {0}"},};
 }
