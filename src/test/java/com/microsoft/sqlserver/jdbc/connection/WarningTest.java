@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.sql.DriverManager;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.Arrays;
@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
@@ -30,7 +29,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 public class WarningTest extends AbstractTest {
     @Test
     public void testWarnings() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+        try (Connection conn = getConnection()) {
 
             Properties info = conn.getClientInfo();
             conn.setClientInfo(info);
@@ -65,7 +64,7 @@ public class WarningTest extends AbstractTest {
             warn = warn.getNextWarning();
             assertEquals(null, warn, TestResource.getResource("R_warningsFound"));
         } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
 }

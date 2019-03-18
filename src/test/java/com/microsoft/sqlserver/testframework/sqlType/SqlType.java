@@ -12,6 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import com.microsoft.sqlserver.testframework.DBCoercion;
 import com.microsoft.sqlserver.testframework.DBCoercions;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.DBConstants;
 import com.microsoft.sqlserver.testframework.DBItems;
 
 
@@ -26,7 +27,7 @@ public abstract class SqlType extends DBItems {
     protected Object maxvalue = null;
     protected Object nullvalue = null; // Primitives have non-null defaults
     protected VariableLengthType variableLengthType;
-    protected Class type = null;
+    protected Class<?> type = null;
     protected BitSet flags = new BitSet();
     protected DBCoercions coercions = new DBCoercions();
 
@@ -236,16 +237,17 @@ public abstract class SqlType extends DBItems {
      * @return
      * @throws Exception
      */
-    public boolean canConvert(Class target, int flag, DBConnection conn) throws Exception {
+    public boolean canConvert(Class<?> target, int flag, DBConnection conn) throws Exception {
         double serverversion = conn.getServerVersion();
 
-        if (flag == DBCoercion.SET || flag == DBCoercion.SETOBJECT || flag == DBCoercion.UPDATE
-                || flag == DBCoercion.UPDATEOBJECT || flag == DBCoercion.REG) {
+        if (flag == DBConstants.SET_COERCION || flag == DBConstants.SETOBJECT_COERCION
+                || flag == DBConstants.UPDATE_COERCION || flag == DBConstants.UPDATEOBJECT_COERCION
+                || flag == DBConstants.REG_COERCION) {
             // SQL 8 does not allow conversion from string to money
-            if (flag != DBCoercion.SETOBJECT && serverversion < 9.0 && this instanceof SqlMoney
+            if (flag != DBConstants.SETOBJECT_COERCION && serverversion < 9.0 && this instanceof SqlMoney
                     && target == String.class)
                 return false;
-            if (flag == DBCoercion.SET || flag == DBCoercion.SETOBJECT) {
+            if (flag == DBConstants.SET_COERCION || flag == DBConstants.SETOBJECT_COERCION) {
                 // setTemporal() on textual columns returns unverifiable format
                 if (this.isString() && (target == java.sql.Date.class || target == java.sql.Time.class
                         || target == java.sql.Timestamp.class))

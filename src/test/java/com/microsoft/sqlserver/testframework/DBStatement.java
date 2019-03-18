@@ -23,13 +23,9 @@ public class DBStatement extends AbstractParentWrapper implements AutoCloseable 
     // TODO: support PreparedStatement and CallableStatement
     // TODO: add stmt level holdability
     // TODO: support IDENTITY column and stmt.getGeneratedKeys()
-    public int cursortype = ResultSet.TYPE_FORWARD_ONLY;
-    public int concurrency = ResultSet.CONCUR_READ_ONLY;
-    public int holdability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
-    public static final int STATEMENT = 0;
-    public static final int PREPAREDSTATEMENT = 1;
-    public static final int CALLABLESTATEMENT = 2;
-    public static final int ALL = 3;
+    // public int cursortype = ResultSet.TYPE_FORWARD_ONLY;
+    // public int concurrency = ResultSet.CONCUR_READ_ONLY;
+    // public int holdability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
 
     Statement statement = null;
     DBResultSet dbresultSet = null;

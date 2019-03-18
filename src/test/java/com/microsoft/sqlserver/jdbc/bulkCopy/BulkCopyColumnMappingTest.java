@@ -21,6 +21,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -47,9 +48,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy without explicit column mapping
                 BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
             } finally {
                 TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
@@ -69,9 +70,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy with explicit column mapping
                 BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 for (int i = 1; i <= destTable.totalColumns(); i++) {
                     int select = i % 4;
                     switch (select) {
@@ -114,9 +115,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy with explicit column mapping
                 BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 for (int i = 1; i <= destTableUnicode.totalColumns(); i++) {
                     int select = i % 4;
                     switch (select) {
@@ -165,9 +166,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy with explicit column mapping
                 BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 for (int i = 1; i <= sourceTable1.totalColumns(); i++) {
                     int select = i % 4;
                     switch (select) {
@@ -219,9 +220,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy with explicit column mapping
                 BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 for (int i = 1; i <= destTable.totalColumns(); i++) {
                     int select = i % 4;
                     switch (select) {
@@ -259,9 +260,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy with wrong column names
                 BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 bulkWrapper.setColumnMapping("wrongFirst", "wrongSecond");
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
@@ -271,9 +272,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy with invalid ordinal, column no 65 does not exist
                 bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 bulkWrapper.setColumnMapping(sourceTable.getColumnName(1), 65);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
@@ -283,9 +284,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy with invalid ordinal, column no 42 does not exist
                 bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 bulkWrapper.setColumnMapping(42, destTable.getColumnName(1));
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
@@ -295,9 +296,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy with invalid ordinal, column no 42 and 65 do not exist
                 bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 bulkWrapper.setColumnMapping(42, 65);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
@@ -307,9 +308,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy while passing empty string as column mapping
                 bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 bulkWrapper.setColumnMapping(sourceTable.getColumnName(1), "     ");
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
@@ -319,9 +320,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy with 0 ordinal column mapping
                 bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 bulkWrapper.setColumnMapping(0, 0);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
@@ -331,9 +332,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy with negative ordinal column mapping
                 bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 bulkWrapper.setColumnMapping(-3, -6);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
 
@@ -343,9 +344,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                 // set up bulkCopy with Integer.MIN_VALUE and Integer.MAX_VALUE column mapping
                 bulkWrapper = new BulkCopyTestWrapper(connectionString);
-                bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-                bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-                bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+                bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 bulkWrapper.setColumnMapping(Integer.MIN_VALUE, Integer.MAX_VALUE);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
             } finally {
@@ -367,9 +368,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             DBTable destinationTable) throws SQLException {
         try (DBStatement srcStmt = con.createStatement(); DBStatement dstStmt = con.createStatement();
                 DBResultSet srcResultSet = srcStmt
-                        .executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + ";");
-                DBResultSet dstResultSet = dstStmt
-                        .executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";")) {
+                        .executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + Constants.SEMI_COLON);
+                DBResultSet dstResultSet = dstStmt.executeQuery(
+                        "SELECT * FROM " + destinationTable.getEscapedTableName() + Constants.SEMI_COLON)) {
             ResultSetMetaData sourceMeta = ((ResultSet) srcResultSet.product()).getMetaData();
             int totalColumns = sourceMeta.getColumnCount();
 
