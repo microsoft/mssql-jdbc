@@ -255,8 +255,8 @@ class TDSTokenHandler {
 
     void onEOF(TDSReader tdsReader) throws SQLServerException {
         if (null != getDatabaseError()) {
-            SQLServerException.makeFromDatabaseError(tdsReader.getConnection(), null, getDatabaseError().getErrorMessage(),
-                    getDatabaseError(), false);
+            SQLServerException.makeFromDatabaseError(tdsReader.getConnection(), null,
+                    getDatabaseError().getErrorMessage(), getDatabaseError(), false);
         }
     }
 

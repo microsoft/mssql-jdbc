@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -44,7 +43,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestInt() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString)) {
+        try (Connection con = getConnection()) {
 
             int col1Value = 5;
             beforeEachSetup("int", col1Value);
@@ -74,7 +73,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestSmallInt() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString)) {
+        try (Connection con = getConnection()) {
 
             int col1Value = 5;
             beforeEachSetup("smallint", col1Value);
@@ -107,7 +106,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestTinyint() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString)) {
+        try (Connection con = getConnection()) {
 
             int col1Value = 5;
             beforeEachSetup("tinyint", col1Value);
@@ -140,7 +139,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestBigint() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString)) {
+        try (Connection con = getConnection()) {
 
             int col1Value = 5;
             beforeEachSetup("bigint", col1Value);
@@ -172,7 +171,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestFloat() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString)) {
+        try (Connection con = getConnection()) {
 
             int col1Value = 5;
             beforeEachSetup("float", col1Value);
@@ -205,7 +204,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestReal() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString)) {
+        try (Connection con = getConnection()) {
 
             int col1Value = 5;
             beforeEachSetup("real", col1Value);
@@ -238,7 +237,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestMoney() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString)) {
+        try (Connection con = getConnection()) {
 
             String col1Value = "126.1230";
             beforeEachSetup("money", col1Value);
@@ -270,7 +269,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestSmallmoney() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "126.1230";
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -307,7 +306,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestDate() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "2015-05-05";
             beforeEachSetup("date", "'" + col1Value + "'");
@@ -337,7 +336,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestTwoCols() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "2015-05-05";
             String col2Value = "126.1230";
@@ -377,7 +376,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestTimeWithScale() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "'12:26:27.1452367'";
             beforeEachSetup("time(2)", col1Value);
@@ -405,7 +404,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestChar() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "'sample'";
 
@@ -435,7 +434,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestNchar() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "'a'";
 
@@ -464,7 +463,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestVarchar() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "'hello'";
 
@@ -494,7 +493,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestNvarchar() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "'hello'";
             beforeEachSetup("nvarchar", col1Value);
@@ -523,7 +522,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestBinary20() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "hello";
             beforeEachSetup("binary(20)", "'" + col1Value + "'");
@@ -553,7 +552,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestVarbinary20() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "hello";
 
@@ -583,7 +582,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestVarbinary8000() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "hello";
             beforeEachSetup("binary(8000)", "'" + col1Value + "'");
@@ -611,7 +610,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestBitNull() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             beforeEachSetup("bit", null);
 
@@ -640,7 +639,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestBit() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             int col1Value = 5000;
             beforeEachSetup("bit", col1Value);
@@ -669,7 +668,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestDatetime() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "2015-05-08 12:26:24.0";
             beforeEachSetup("datetime", "'" + col1Value + "'");
@@ -700,7 +699,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestSmalldatetime() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "2015-05-08 12:26:24";
             beforeEachSetup("smalldatetime", "'" + col1Value + "'");
@@ -730,7 +729,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestDatetime2() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "2015-05-08 12:26:24.12645";
             beforeEachSetup("datetime2(2)", "'" + col1Value + "'");
@@ -760,7 +759,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestTime() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "'12:26:27.1452367'";
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -795,7 +794,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestReadGUID() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             String col1Value = "1AE740A2-2272-4B0F-8086-3DDAC595BC11";
             beforeEachSetup("uniqueidentifier", "'" + col1Value + "'");
@@ -825,7 +824,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @Test
     public void bulkCopyTestVarChar8000() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             StringBuffer buffer = new StringBuffer();
             for (int i = 0; i < 8000; i++) {
@@ -853,7 +852,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
     }
 
     private void beforeEachSetup(String colType, Object colValue) throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTableName), stmt);
@@ -873,7 +872,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTableName), stmt);
         }

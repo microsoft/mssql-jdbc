@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc.parametermetadata;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -37,14 +36,14 @@ public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
 
     @AfterAll
     public static void dropTables() throws SQLException {
-        try (SQLServerConnection connection = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        try (SQLServerConnection connection = (SQLServerConnection) getConnection();
                 Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }
 
     private static void createCharTable() throws SQLException {
-        try (SQLServerConnection connection = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        try (SQLServerConnection connection = (SQLServerConnection) getConnection();
                 Statement stmt = connection.createStatement()) {
             stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1 int)");
         }

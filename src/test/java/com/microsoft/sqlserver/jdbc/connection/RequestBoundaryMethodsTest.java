@@ -30,7 +30,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
@@ -74,7 +73,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         String sCatalog2 = RandomUtil.getIdentifier("RequestBoundaryDatabase");
         boolean useBulkCopyForBatchInsert2 = false;
 
-        try (SQLServerConnection con = connect(); Statement stmt = con.createStatement()) {
+        try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
             if (TestUtils.isJDBC43OrGreater(con)) {
                 // Second database
                 stmt.executeUpdate("CREATE DATABASE [" + sCatalog2 + "]");
@@ -134,7 +133,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 con.setCatalog("master");
             }
         } finally {
-            try (SQLServerConnection con = connect(); Statement stmt = con.createStatement()) {
+            try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
                 TestUtils.dropDatabaseIfExists(sCatalog2, stmt);
             }
         }
@@ -147,7 +146,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
      */
     @Test
     public void testWarnings() throws SQLException {
-        try (SQLServerConnection con = connect()) {
+        try (SQLServerConnection con = getConnection()) {
             if (TestUtils.isJDBC43OrGreater(con)) {
                 con.beginRequest();
                 generateWarning(con);
@@ -176,7 +175,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
      */
     @Test
     public void testOpenTransactions() throws SQLException {
-        try (SQLServerConnection con = connect(); Statement stmt = con.createStatement()) {
+        try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
             if (TestUtils.isJDBC43OrGreater(con)) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col int)");
@@ -206,10 +205,9 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
      * 
      * @throws SQLException
      */
-    @SuppressWarnings("resource")
     @Test
     public void testStatements() throws SQLException {
-        try (SQLServerConnection con = connect();) {
+        try (SQLServerConnection con = getConnection();) {
             if (TestUtils.isJDBC43OrGreater(con)) {
                 try (Statement stmt1 = con.createStatement()) {
                     con.beginRequest();
@@ -285,7 +283,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         final Variables sharedVariables = new Variables();
         final CountDownLatch latch = new CountDownLatch(3);
         try {
-            sharedVariables.con = connect();
+            sharedVariables.con = getConnection();
             if (TestUtils.isJDBC43OrGreater(sharedVariables.con)) {
                 Thread thread1 = new Thread() {
                     public void run() {
@@ -381,16 +379,6 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     "A failure is expected if you are adding a new public non-static method to SQLServerConnection."
                             + " See the test for instructions on how to fix the failure. ");
         }
-    }
-
-    private SQLServerConnection connect() throws SQLException {
-        SQLServerConnection connection = null;
-        try {
-            connection = PrepUtil.getConnection(connectionString);
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        return connection;
     }
 
     private void setConnectionFields(SQLServerConnection con, boolean autoCommitMode, int transactionIsolationLevel,

@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -53,7 +52,7 @@ public class TVPSchemaTest extends AbstractTest {
 
         final String sql = "{call " + procedureName + "(?)}";
 
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
                 SQLServerPreparedStatement P_C_statement = (SQLServerPreparedStatement) conn.prepareStatement(sql);
                 ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
             P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
@@ -75,7 +74,7 @@ public class TVPSchemaTest extends AbstractTest {
 
         final String sql = "{call " + procedureName + "(?)}";
 
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
                 SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) conn.prepareCall(sql);
                 ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
             P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
@@ -95,7 +94,7 @@ public class TVPSchemaTest extends AbstractTest {
     @DisplayName("TVPSchemaPreparedInsertCommand")
     public void testTVPSchemaPreparedInsertCommand() throws SQLException, IOException {
 
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
                 SQLServerPreparedStatement P_C_stmt = (SQLServerPreparedStatement) conn
                         .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
                 ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
@@ -116,7 +115,7 @@ public class TVPSchemaTest extends AbstractTest {
     @DisplayName("TVPSchemaCallableInsertCommand()")
     public void testTVPSchemaCallableInsertCommand() throws SQLException, IOException {
 
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
                 SQLServerCallableStatement P_C_stmt = (SQLServerCallableStatement) conn
                         .prepareCall("INSERT INTO " + charTable + " select * from ? ;");
                 ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
@@ -178,27 +177,27 @@ public class TVPSchemaTest extends AbstractTest {
                 + TestUtils.escapeSingleQuotes(procedureName) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + procedureName;
 
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         }
     }
 
     private static void dropTables() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(charTable) + "','U') is not null"
                     + " drop table " + charTable);
         }
     }
 
     private static void dropTVPS() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
                     + TestUtils.escapeSingleQuotes(tvpNameWithouSchema) + "') " + " drop type " + tvpNameWithSchema);
         }
     }
 
     private static void dropAndCreateSchema() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(
                     "if EXISTS (SELECT * FROM sys.schemas where name = '" + TestUtils.escapeSingleQuotes(schemaName)
                             + "') drop schema " + AbstractSQLGenerator.escapeIdentifier(schemaName));
@@ -210,7 +209,7 @@ public class TVPSchemaTest extends AbstractTest {
         String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpNameWithSchema + " READONLY " + " AS "
                 + " BEGIN " + " INSERT INTO " + charTable + " SELECT * FROM @InputData" + " END";
 
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         }
     }
@@ -218,7 +217,7 @@ public class TVPSchemaTest extends AbstractTest {
     private void createTables() throws SQLException {
         String sql = "create table " + charTable + " (" + "PlainChar char(50) null," + "PlainVarchar varchar(50) null,"
                 + "PlainVarcharMax varchar(max) null," + ");";
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         }
     }
@@ -226,7 +225,7 @@ public class TVPSchemaTest extends AbstractTest {
     private void createTVPS() throws SQLException {
         String TVPCreateCmd = "CREATE TYPE " + tvpNameWithSchema + " as table ( " + "PlainChar char(50) null,"
                 + "PlainVarchar varchar(50) null," + "PlainVarcharMax varchar(max) null" + ")";
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.executeUpdate(TVPCreateCmd);
         }
     }
