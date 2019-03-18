@@ -1673,7 +1673,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     boolean consumeExecOutParam(TDSReader tdsReader) throws SQLServerException {
         if (expectCursorOutParams) {
-            TDSParser.parse(tdsReader, new StmtExecOutParamHandler(), false);
+            TDSParser.parse(tdsReader, new StmtExecOutParamHandler());
             return true;
         }
 

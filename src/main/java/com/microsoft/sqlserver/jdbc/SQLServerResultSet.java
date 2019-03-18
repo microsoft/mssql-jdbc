@@ -382,7 +382,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         CursorInitializer initializer = stmtIn.executedSqlDirectly ? (new ClientCursorInitializer())
                                                                    : (new ServerCursorInitializer(stmtIn));
 
-        TDSParser.parse(stmtIn.resultsReader(), initializer, false);
+        TDSParser.parse(stmtIn.resultsReader(), initializer);
         this.columns = initializer.buildColumns();
         this.rowCount = initializer.getRowCount();
         this.serverCursorId = initializer.getServerCursorId();
@@ -5420,7 +5420,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             fetchBufferCurrentRowType = RowType.UNKNOWN;
 
             while (null != tdsReader && !done && fetchBufferCurrentRowType.equals(RowType.UNKNOWN))
-                TDSParser.parse(tdsReader, fetchBufferTokenHandler, false);
+                TDSParser.parse(tdsReader, fetchBufferTokenHandler);
 
             if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN)
                     && null != fetchBufferTokenHandler.getDatabaseError()) {

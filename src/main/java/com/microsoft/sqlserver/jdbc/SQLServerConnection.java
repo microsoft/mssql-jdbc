@@ -4426,7 +4426,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         federatedAuthenticationRequested = true;
 
-        TDSParser.parse(tdsReader, tdsTokenHandler, false);
+        TDSParser.parse(tdsReader, tdsTokenHandler);
     }
 
     final void processFeatureExtAck(TDSReader tdsReader) throws SQLServerException {
@@ -4760,7 +4760,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 logonCommand.onRequestComplete();
                 ++tdsChannel.numMsgsSent;
 
-                TDSParser.parse(tdsReader, this, false);
+                TDSParser.parse(tdsReader, this);
                 return true;
             }
         }
@@ -5044,7 +5044,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         TDSReader tdsReader;
         do {
             tdsReader = logonCommand.startResponse();
-            TDSParser.parse(tdsReader, logonProcessor, false);
+            TDSParser.parse(tdsReader, logonProcessor);
         } while (!logonProcessor.complete(logonCommand, tdsReader));
     }
 

@@ -23,9 +23,30 @@ final class TDSParser {
      * token handler says to stop by returning false from one of the token handling methods.
      */
     static void parse(TDSReader tdsReader, String logContext) throws SQLServerException {
-        parse(tdsReader, new TDSTokenHandler(logContext), false);
+        parse(tdsReader, new TDSTokenHandler(logContext));
     }
 
+    /**
+     * Default parse method to parse all tokens in TDS stream.
+     * 
+     * @param tdsReader
+     * @param tdsTokenHandler
+     * @throws SQLServerException
+     */
+    static void parse(TDSReader tdsReader, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
+        parse(tdsReader, tdsTokenHandler, false);
+    }
+
+    /**
+     * Underlying parse method to parse all tokens in TDS stream. Also accepts 'readOnlyWarningFlag' to parse only
+     * SQLWarnings received in TDS_MSG tokens.
+     * 
+     * @param tdsReader
+     * @param tdsTokenHandler
+     * @param readOnlyWarningsFlag
+     *        - true if only TDS_MSG tokens need to be parsed in TDS Stream. false - to parse all tokens in TDS Stream.
+     * @throws SQLServerException
+     */
     static void parse(TDSReader tdsReader, TDSTokenHandler tdsTokenHandler,
             boolean readOnlyWarningsFlag) throws SQLServerException {
         final boolean isLogging = logger.isLoggable(Level.FINEST);
