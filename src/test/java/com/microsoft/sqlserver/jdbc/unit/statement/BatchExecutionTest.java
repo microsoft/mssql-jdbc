@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,6 +30,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
@@ -85,8 +85,7 @@ public class BatchExecutionTest extends AbstractTest {
         int i = 0;
         int retValue[] = {0, 0, 0};
         int updateCountlen = 0;
-        try (Connection connection = DriverManager
-                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");) {
             String sPrepStmt = "update " + AbstractSQLGenerator.escapeIdentifier(ctstable2)
                     + " set PRICE=PRICE*20 where TYPE_ID=?";
 
@@ -137,8 +136,7 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     private static void createTable() throws SQLException {
-        try (Connection connection = DriverManager
-                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
             String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(ctstable1)
                     + " (TYPE_ID int, TYPE_DESC varchar(32), primary key(TYPE_ID)) ";
@@ -171,8 +169,7 @@ public class BatchExecutionTest extends AbstractTest {
     private void testAddBatch1Internal(String mode) {
         int i = 0;
         int retValue[] = {0, 0, 0};
-        try (Connection connection = DriverManager
-                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");) {
             String sPrepStmt = "update " + AbstractSQLGenerator.escapeIdentifier(ctstable2)
                     + " set PRICE=PRICE*20 where TYPE_ID=?";
 
@@ -245,8 +242,7 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     private static void dropTable() throws SQLException {
-        try (Connection connection = DriverManager
-                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable1), stmt);
