@@ -115,6 +115,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             TransformerFactory factory;
             try {
                 factory = TransformerFactory.newInstance();
+                factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
                 factory.newTransformer().transform(new DOMSource(docValue), new StreamResult(strm));
             } catch (javax.xml.transform.TransformerException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
@@ -454,6 +455,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         TransformerHandler handler = null;
         try {
             SAXTransformerFactory stf = (SAXTransformerFactory) TransformerFactory.newInstance();
+            stf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             handler = stf.newTransformerHandler();
         } catch (TransformerConfigurationException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));

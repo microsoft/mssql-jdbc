@@ -15,14 +15,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 final class ActivityCorrelator {
 
-    private static Map<Long, ActivityId> ActivityIdTlsMap = new ConcurrentHashMap<Long, ActivityId>();
+    private static Map<Long, ActivityId> activityIdTlsMap = new ConcurrentHashMap<>();
 
     static void cleanupActivityId() {
         // remove the ActivityId that belongs to this thread.
         long uniqueThreadId = Thread.currentThread().getId();
 
-        if (ActivityIdTlsMap.containsKey(uniqueThreadId)) {
-            ActivityIdTlsMap.remove(uniqueThreadId);
+        if (activityIdTlsMap.containsKey(uniqueThreadId)) {
+            activityIdTlsMap.remove(uniqueThreadId);
         }
     }
 
@@ -32,11 +32,11 @@ final class ActivityCorrelator {
         long uniqueThreadId = Thread.currentThread().getId();
 
         // Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
-        if (!ActivityIdTlsMap.containsKey(uniqueThreadId)) {
-            ActivityIdTlsMap.put(uniqueThreadId, new ActivityId());
+        if (!activityIdTlsMap.containsKey(uniqueThreadId)) {
+            activityIdTlsMap.put(uniqueThreadId, new ActivityId());
         }
 
-        return ActivityIdTlsMap.get(uniqueThreadId);
+        return activityIdTlsMap.get(uniqueThreadId);
     }
 
     // Increment the Sequence number of the ActivityId in TLS
@@ -46,7 +46,7 @@ final class ActivityCorrelator {
         ActivityId activityId = getCurrent();
 
         // Increment the Sequence number
-        activityId.Increment();
+        activityId.increment();
 
         return activityId;
     }
@@ -55,34 +55,39 @@ final class ActivityCorrelator {
         ActivityId activityId = getCurrent();
         activityId.setSentFlag();
     }
+    
+    /*
+     * Prevent instantiation.
+     */
+    private ActivityCorrelator() {}
 }
 
 
 class ActivityId {
-    private final UUID Id;
-    private long Sequence;
+    private final UUID id;
+    private long sequence;
     private boolean isSentToServer;
 
     ActivityId() {
-        Id = UUID.randomUUID();
-        Sequence = 0;
+        id = UUID.randomUUID();
+        sequence = 0;
         isSentToServer = false;
     }
 
     UUID getId() {
-        return Id;
+        return id;
     }
 
     long getSequence() {
-        return Sequence;
+        return sequence;
     }
 
-    void Increment() {
-        if (Sequence < 0xffffffffl) // to get to 32-bit unsigned
+    void increment() {
+        if (sequence < 0xffffffffl) // to get to 32-bit unsigned
         {
-            ++Sequence;
+            ++sequence;
         } else {
-            Sequence = 0;
+            sequence = 0;
         }
 
         isSentToServer = false;
@@ -92,16 +97,16 @@ class ActivityId {
         isSentToServer = true;
     }
 
-    boolean IsSentToServer() {
+    boolean isSentToServer() {
         return isSentToServer;
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(Id.toString());
+        sb.append(id.toString());
         sb.append("-");
-        sb.append(Sequence);
+        sb.append(sequence);
         return sb.toString();
     }
 }

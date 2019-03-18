@@ -23,8 +23,11 @@ package com.microsoft.sqlserver.jdbc;
  */
 
 final class XMLTDSHeader {
+    @SuppressWarnings("unused")
     private final String databaseName; // Database name where XML schema resides.
+    @SuppressWarnings("unused")
     private final String owningSchema; // Owner of XML schema (like dbo for example).
+    @SuppressWarnings("unused")
     private final String xmlSchemaCollection; // Name of XML schema collection.
 
     XMLTDSHeader(TDSReader tdsReader) throws SQLServerException {

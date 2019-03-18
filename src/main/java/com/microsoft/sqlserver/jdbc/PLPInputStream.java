@@ -15,19 +15,18 @@ import java.io.IOException;
  * Note PLP stands for Partially Length-prefixed Bytes. TDS 7.2 introduced this new streaming format for streaming of
  * large types such as varchar(max), nvarchar(max), varbinary(max) and XML.
  * 
- * See TDS specification, 6.3.3 Datatype Dependant Data Streams: Partially Length-prefixed Bytes for more details on the
+ * See TDS specification, 6.3.3 Datatype Dependent Data Streams: Partially Length-prefixed Bytes for more details on the
  * PLP format.
  */
 
 class PLPInputStream extends BaseInputStream {
     static final long PLP_NULL = 0xFFFFFFFFFFFFFFFFL;
     static final long UNKNOWN_PLP_LEN = 0xFFFFFFFFFFFFFFFEL;
-    static final int PLP_TERMINATOR = 0x00000000;
-    private final static byte[] EMPTY_PLP_BYTES = new byte[0];
 
+    private static final byte[] EMPTY_PLP_BYTES = new byte[0];
     private static final int PLP_EOS = -1;
-    private int currentChunkRemain;
 
+    private int currentChunkRemain;
     private int markedChunkRemain;
     private int leftOverReadLimit = 0;
 
@@ -36,7 +35,7 @@ class PLPInputStream extends BaseInputStream {
     /**
      * Non-destructive method for checking whether a PLP value at the current TDSReader location is null.
      */
-    final static boolean isNull(TDSReader tdsReader) throws SQLServerException {
+    static final boolean isNull(TDSReader tdsReader) throws SQLServerException {
         TDSReaderMark mark = tdsReader.mark();
         // Temporary stream cannot get closes, since it closes the main stream.
         try {
@@ -59,12 +58,12 @@ class PLPInputStream extends BaseInputStream {
      * @throws SQLServerException
      *         when an error occurs
      */
-    final static PLPInputStream makeTempStream(TDSReader tdsReader, boolean discardValue,
+    static final PLPInputStream makeTempStream(TDSReader tdsReader, boolean discardValue,
             ServerDTVImpl dtv) throws SQLServerException {
         return makeStream(tdsReader, discardValue, discardValue, dtv);
     }
 
-    final static PLPInputStream makeStream(TDSReader tdsReader, InputStreamGetterArgs getterArgs,
+    static final PLPInputStream makeStream(TDSReader tdsReader, InputStreamGetterArgs getterArgs,
             ServerDTVImpl dtv) throws SQLServerException {
         PLPInputStream is = makeStream(tdsReader, getterArgs.isAdaptive, getterArgs.isStreaming, dtv);
         if (null != is)
@@ -88,7 +87,7 @@ class PLPInputStream extends BaseInputStream {
      * Initializes the input stream.
      */
     PLPInputStream(TDSReader tdsReader, long statedPayloadLength, boolean isAdaptive, boolean isStreaming,
-            ServerDTVImpl dtv) throws SQLServerException {
+            ServerDTVImpl dtv) {
         super(tdsReader, isAdaptive, isStreaming, dtv);
         this.payloadLength = (UNKNOWN_PLP_LEN != statedPayloadLength) ? ((int) statedPayloadLength) : -1;
         this.currentChunkRemain = this.markedChunkRemain = 0;
@@ -146,6 +145,7 @@ class PLPInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public long skip(long n) throws IOException {
         checkClosed();
         if (n < 0)
@@ -169,6 +169,7 @@ class PLPInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public int available() throws IOException {
         checkClosed();
         try {
@@ -202,6 +203,7 @@ class PLPInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public int read() throws IOException {
         checkClosed();
 
@@ -219,6 +221,7 @@ class PLPInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public int read(byte[] b) throws IOException {
         // If b is null, a NullPointerException is thrown.
         if (null == b)
@@ -242,7 +245,7 @@ class PLPInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
-    public int read(byte b[], int offset, int maxBytes) throws IOException {
+    public int read(byte[] b, int offset, int maxBytes) throws IOException {
         // If b is null, a NullPointerException is thrown.
         if (null == b)
             throw new NullPointerException();
@@ -285,10 +288,11 @@ class PLPInputStream extends BaseInputStream {
         }
     }
 
-    private int readBytesInternal(byte b[], int offset, int maxBytes) throws SQLServerException {
-        // If we're at EOS, say so.
-        // Note: For back compat, this special case needs to always be handled
-        // before checking user-supplied arguments below.
+    private int readBytesInternal(byte[] b, int offset, int maxBytes) throws SQLServerException {
+        /*
+         * If we're at EOS, say so. Note: For back compat, this special case needs to always be handled before checking
+         * user-supplied arguments below.
+         */
         if (PLP_EOS == currentChunkRemain)
             return -1;
 
@@ -296,10 +300,11 @@ class PLPInputStream extends BaseInputStream {
         // from where we left off last time.
 
         int bytesRead = 0;
-        for (;;) {
-            // Check that we have bytes left to read from the current chunk.
-            // If not then figure out the size of the next chunk or
-            // determine that we have reached the end of the stream.
+        while (true) {
+            /*
+             * Check that we have bytes left to read from the current chunk. If not then figure out the size of the next
+             * chunk or determine that we have reached the end of the stream.
+             */
             if (0 == currentChunkRemain) {
                 currentChunkRemain = (int) tdsReader.readUnsignedInt();
                 assert currentChunkRemain >= 0;
@@ -312,9 +317,10 @@ class PLPInputStream extends BaseInputStream {
             if (bytesRead == maxBytes)
                 break;
 
-            // Now we know there are bytes to be read in the current chunk.
-            // Further limit the max number of bytes we can read to whatever
-            // remains in the current chunk.
+            /*
+             * Now we know there are bytes to be read in the current chunk. Further limit the max number of bytes we can
+             * read to whatever remains in the current chunk.
+             */
             int bytesToRead = maxBytes - bytesRead;
             if (bytesToRead > currentChunkRemain)
                 bytesToRead = currentChunkRemain;
@@ -350,6 +356,7 @@ class PLPInputStream extends BaseInputStream {
      * @param readlimit
      *        the number of bytes to hold (this implementation ignores this).
      */
+    @Override
     public void mark(int readLimit) {
         // Save off current position and how much of the current chunk remains
         // cant throw if the tdsreader is null
@@ -367,6 +374,7 @@ class PLPInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public void close() throws IOException {
         if (null == tdsReader)
             return;
@@ -382,6 +390,7 @@ class PLPInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public void reset() throws IOException {
         resetHelper();
         leftOverReadLimit = readLimit;
@@ -398,10 +407,10 @@ class PLPInputStream extends BaseInputStream {
  */
 final class PLPXMLInputStream extends PLPInputStream {
     // XML BOM header (the first two header bytes sent to caller).
-    private final static byte[] xmlBOM = {(byte) 0xFF, (byte) 0xFE};
+    private static final byte[] xmlBOM = {(byte) 0xFF, (byte) 0xFE};
     private final ByteArrayInputStream bomStream = new ByteArrayInputStream(xmlBOM);
 
-    final static PLPXMLInputStream makeXMLStream(TDSReader tdsReader, InputStreamGetterArgs getterArgs,
+    static final PLPXMLInputStream makeXMLStream(TDSReader tdsReader, InputStreamGetterArgs getterArgs,
             ServerDTVImpl dtv) throws SQLServerException {
         // Read total length of PLP stream.
         long payloadLength = tdsReader.readLong();
@@ -421,10 +430,7 @@ final class PLPXMLInputStream extends PLPInputStream {
         super(tdsReader, statedPayloadLength, getterArgs.isAdaptive, getterArgs.isStreaming, dtv);
     }
 
-    public void close() throws IOException {
-        super.close();
-    }
-
+    @Override
     int readBytes(byte[] b, int offset, int maxBytes) throws IOException {
         assert offset >= 0;
         assert maxBytes >= 0;
@@ -461,11 +467,13 @@ final class PLPXMLInputStream extends PLPInputStream {
         return -1;
     }
 
+    @Override
     public void mark(int readLimit) {
         bomStream.mark(xmlBOM.length);
         super.mark(readLimit);
     }
 
+    @Override
     public void reset() throws IOException {
         bomStream.reset();
         super.reset();
@@ -475,9 +483,12 @@ final class PLPXMLInputStream extends PLPInputStream {
      * Helper function to convert the entire PLP stream into a contiguous byte array. This call is inefficient (in terms
      * of memory usage and run time) for very large PLPs. Use it only if a contiguous byte array is required.
      */
+    @Override
     byte[] getBytes() throws SQLServerException {
         // Look to see if the BOM has been read
         byte[] bom = new byte[2];
+        byte[] bytesToReturn = null;
+
         try {
             int bytesread = bomStream.read(bom);
             byte[] valueWithoutBOM = super.getBytes();
@@ -487,13 +498,13 @@ final class PLPXMLInputStream extends PLPInputStream {
                 byte[] valueWithBOM = new byte[valueWithoutBOM.length + bytesread];
                 System.arraycopy(bom, 0, valueWithBOM, 0, bytesread);
                 System.arraycopy(valueWithoutBOM, 0, valueWithBOM, bytesread, valueWithoutBOM.length);
-                return valueWithBOM;
+                bytesToReturn = valueWithBOM;
             } else
-                return valueWithoutBOM;
+                bytesToReturn = valueWithoutBOM;
         } catch (IOException e) {
             SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
         }
 
-        return null;
+        return bytesToReturn;
     }
 }

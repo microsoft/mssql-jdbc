@@ -436,7 +436,7 @@ final class Column {
         try {
             // this is for updateRow() stuff
             updaterDTV.sendCryptoMetaData(cryptoMetadata, tdsWriter);
-            updaterDTV.jdbcTypeSetByUser(getJdbcTypeSetByUser(), getValueLength());
+            updaterDTV.setJdbcTypeSetByUser(getJdbcTypeSetByUser(), getValueLength());
 
             // Otherwise, send the updated value via RPC
             updaterDTV.sendByRPC(baseColumnName, typeInfo,

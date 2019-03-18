@@ -16,7 +16,6 @@ import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -88,7 +87,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     private final int maxRows;
 
     /** the meta data for this result set */
-    private ResultSetMetaData metaData;
+    private SQLServerResultSetMetaData metaData;
 
     /** is the result set close */
     private boolean isClosed = false;
@@ -135,7 +134,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
      * Currently active Stream Note only one stream can be active at a time, JDBC spec calls for the streams to be
      * closed when a column or row move occurs
      */
-    private Closeable activeStream;
+    private transient Closeable activeStream;
     private SQLServerLob activeLOB;
 
     /**
@@ -737,11 +736,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     continue;
                 }
 
-                for (int bitNo = 0; bitNo < 8 && columnNo < this.columns.length; bitNo++) {
+                for (int bitNo = 0; bitNo < 8 && columnNo < this.columns.length; bitNo++, columnNo++) {
                     if ((byteValue & (1 << bitNo)) != 0) {
                         this.columns[columnNo].initFromCompressedNull();
                     }
-                    columnNo++;
                 }
             }
             areNullCompressedColumnsInitialized = true;
@@ -1598,67 +1596,68 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             case -1:
                 moveLast();
                 return;
-        }
 
-        // Depending on how much we know about the result set, an absolute move
-        // can be translated into a relative move. The advantage to doing this
-        // is that we gain the benefit of using the scroll window, which reduces
-        // calls to the server when absolute moves can translate to small moves
-        // relative to the current row.
-        if (hasCurrentRow()) {
-            assert currentRow >= 1;
+            default:
+                // Depending on how much we know about the result set, an absolute move
+                // can be translated into a relative move. The advantage to doing this
+                // is that we gain the benefit of using the scroll window, which reduces
+                // calls to the server when absolute moves can translate to small moves
+                // relative to the current row.
+                if (hasCurrentRow()) {
+                    assert currentRow >= 1;
 
-            // If the absolute move is from the start of the result set (+ve rows)
-            // then we can easily express it as a relative (to the current row) move:
-            // the amount to move is just the difference between the current row and
-            // the target absolute row.
-            if (row > 0) {
-                moveRelative(row - currentRow);
-                return;
-            }
+                    // If the absolute move is from the start of the result set (+ve rows)
+                    // then we can easily express it as a relative (to the current row) move:
+                    // the amount to move is just the difference between the current row and
+                    // the target absolute row.
+                    if (row > 0) {
+                        moveRelative(row - currentRow);
+                        return;
+                    }
 
-            // If the absolute move is from the end of the result set (-ve rows)
-            // then we also need to know how many rows are in the result set.
-            // If we do then we can convert to an absolute move from the start
-            // of the result set, and apply the logic above.
-            if (UNKNOWN_ROW_COUNT != rowCount) {
-                assert row < 0;
-                moveRelative((rowCount + row + 1) - currentRow);
-                return;
-            }
-        }
+                    // If the absolute move is from the end of the result set (-ve rows)
+                    // then we also need to know how many rows are in the result set.
+                    // If we do then we can convert to an absolute move from the start
+                    // of the result set, and apply the logic above.
+                    if (UNKNOWN_ROW_COUNT != rowCount) {
+                        assert row < 0;
+                        moveRelative((rowCount + row + 1) - currentRow);
+                        return;
+                    }
+                }
 
-        // Ok, so there's no chance of a relative move. In other words, the current
-        // position may be before the first row or after the last row. Or perhaps
-        // it's an absolute move from the end of the result set and we don't know
-        // how many rows there are yet (can happen with a scrollable client cursor).
-        // In that case, we need to move absolutely.
+                // Ok, so there's no chance of a relative move. In other words, the current
+                // position may be before the first row or after the last row. Or perhaps
+                // it's an absolute move from the end of the result set and we don't know
+                // how many rows there are yet (can happen with a scrollable client cursor).
+                // In that case, we need to move absolutely.
 
-        // Try to fetch a block of up to fetchSize rows starting at row row.
-        if (0 == serverCursorId) {
-            currentRow = clientMoveAbsolute(row);
-            return;
-        }
+                // Try to fetch a block of up to fetchSize rows starting at row row.
+                if (0 == serverCursorId) {
+                    currentRow = clientMoveAbsolute(row);
+                    return;
+                }
 
-        doServerFetch(TDS.FETCH_ABSOLUTE, row, fetchSize);
+                doServerFetch(TDS.FETCH_ABSOLUTE, row, fetchSize);
 
-        // If the absolute server fetch didn't land somewhere on the result set
-        // then it's either before the first row or after the last row.
-        if (!scrollWindow.next(this)) {
-            currentRow = (row < 0) ? BEFORE_FIRST_ROW : AFTER_LAST_ROW;
-            return;
-        }
+                // If the absolute server fetch didn't land somewhere on the result set
+                // then it's either before the first row or after the last row.
+                if (!scrollWindow.next(this)) {
+                    currentRow = (row < 0) ? BEFORE_FIRST_ROW : AFTER_LAST_ROW;
+                    return;
+                }
 
-        // The absolute server fetch landed somewhere on the result set,
-        // so update the current row to reflect the new position.
-        if (row > 0) {
-            // The current row is just the row to which we moved.
-            currentRow = row;
-        } else {
-            // Absolute fetch with -ve row is relative to the end of the result set.
-            assert row < 0;
-            assert rowCount + row + 1 >= 1;
-            currentRow = rowCount + row + 1;
+                // The absolute server fetch landed somewhere on the result set,
+                // so update the current row to reflect the new position.
+                if (row > 0) {
+                    // The current row is just the row to which we moved.
+                    currentRow = row;
+                } else {
+                    // Absolute fetch with -ve row is relative to the end of the result set.
+                    assert row < 0;
+                    assert rowCount + row + 1 >= 1;
+                    currentRow = rowCount + row + 1;
+                }
         }
     }
 
@@ -2396,6 +2395,20 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 } else {
                     returnValue = ldt.toLocalTime();
                 }
+            }
+        } else if (type == java.time.OffsetDateTime.class) {
+            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(columnIndex);
+            if (dateTimeOffset == null) {
+                returnValue = null;
+            } else {
+                returnValue = dateTimeOffset.getOffsetDateTime();
+            }
+        } else if (type == java.time.OffsetTime.class) {
+            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(columnIndex);
+            if (dateTimeOffset == null) {
+                returnValue = null;
+            } else {
+                returnValue = dateTimeOffset.getOffsetDateTime().toOffsetTime();
             }
         } else if (type == microsoft.sql.DateTimeOffset.class) {
             returnValue = getDateTimeOffset(columnIndex);
@@ -4620,6 +4633,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         }
 
         final class InsertRowRPC extends TDSCommand {
+            /**
+             * Always update serialVersionUID when prompted.
+             */
+            private static final long serialVersionUID = 1L;
             final String tableName;
 
             InsertRowRPC(String tableName) {
@@ -4722,6 +4739,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         final class UpdateRowRPC extends TDSCommand {
+            /**
+             * Always update serialVersionUID when prompted.
+             */
+            private static final long serialVersionUID = 1L;
+
             UpdateRowRPC() {
                 super("UpdateRowRPC", 0, 0);
             }
@@ -4802,6 +4824,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         final class DeleteRowRPC extends TDSCommand {
+            /**
+             * Always update serialVersionUID when prompted.
+             */
+            private static final long serialVersionUID = 1L;
+
             DeleteRowRPC() {
                 super("DeleteRowRPC", 0, 0);
             }
@@ -5398,7 +5425,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN)
                     && null != fetchBufferTokenHandler.getDatabaseError()) {
                 SQLServerException.makeFromDatabaseError(stmt.connection, null,
-                        fetchBufferTokenHandler.getDatabaseError().getMessage(),
+                        fetchBufferTokenHandler.getDatabaseError().getErrorMessage(),
                         fetchBufferTokenHandler.getDatabaseError(), false);
             }
 
@@ -5407,6 +5434,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     private final class CursorFetchCommand extends TDSCommand {
+        /**
+         * Always update serialVersionUID when prompted.
+         */
+        private static final long serialVersionUID = 1L;
         private final int serverCursorId;
         private int fetchType;
         private int startRow;
@@ -5586,6 +5617,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 logger.finer(toString() + " Closing cursor:" + serverCursorId);
 
             final class CloseServerCursorCommand extends UninterruptableTDSCommand {
+                /**
+                 * Always update serialVersionUID when prompted.
+                 */
+                private static final long serialVersionUID = 1L;
+
                 CloseServerCursorCommand() {
                     super("closeServerCursor");
                 }

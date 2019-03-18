@@ -25,7 +25,6 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
 
     private static final int NANOS_MIN = 0;
     private static final int NANOS_MAX = 999999999;
-    private static final int SS_NANOS_MAX = 9999999;
     private static final int MINUTES_OFFSET_MIN = -14 * 60;
     private static final int MINUTES_OFFSET_MAX = 14 * 60;
     private static final int HUNDRED_NANOS_PER_SECOND = 10000000;
@@ -213,6 +212,18 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
         java.sql.Timestamp timestamp = new java.sql.Timestamp(utcMillis);
         timestamp.setNanos(nanos);
         return timestamp;
+    }
+
+    /**
+     * Returns OffsetDateTime equivalent to this DateTimeOffset object.
+     *
+     * @return OffsetDateTime equivalent to this DateTimeOffset object.
+     */
+    public java.time.OffsetDateTime getOffsetDateTime() {
+        java.time.ZoneOffset zoneOffset = java.time.ZoneOffset.ofTotalSeconds(60 * minutesOffset);
+        java.time.LocalDateTime localDateTime = java.time.LocalDateTime.ofEpochSecond(utcMillis / 1000, nanos,
+                zoneOffset);
+        return java.time.OffsetDateTime.of(localDateTime, zoneOffset);
     }
 
     /**

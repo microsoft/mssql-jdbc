@@ -14,7 +14,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -322,7 +321,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
     }
 
     /**
-     * Test ith datetime
+     * Test with datetime
      * 
      * @throws SQLException
      * @throws SQLTimeoutException
@@ -353,10 +352,10 @@ public class TVPWithSqlVariantTest extends AbstractTest {
      * 
      * @throws SQLException
      * @throws SQLTimeoutException
-     * https://msdn.microsoft.com/en-ca/library/dd303302.aspx?f=255&MSPPError=-2147217396
-     * Data types cannot be NULL when inside a sql_variant
+     *         https://msdn.microsoft.com/en-ca/library/dd303302.aspx?f=255&MSPPError=-2147217396 Data types cannot be
+     *         NULL when inside a sql_variant
      */
-    @Test       
+    @Test
     public void testNull() throws SQLException {
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.SQL_VARIANT);
@@ -509,19 +508,9 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
         TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTable), stmt);
         dropTVPS();
-    }
-
-    /**
-     * drop the tables
-     * 
-     * @throws SQLException
-     */
-    @AfterAll
-    public static void afterAll() throws SQLException {
         if (null != stmt) {
             stmt.close();
         }
-
         if (null != conn) {
             conn.close();
         }

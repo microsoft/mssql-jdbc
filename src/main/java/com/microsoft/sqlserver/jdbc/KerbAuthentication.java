@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.lang.reflect.Method;
 import java.net.IDN;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -229,7 +228,7 @@ final class KerbAuthentication extends SSPIAuthentication {
             spn = makeSpn(address, port);
         }
         this.spn = enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
-        if (!this.spn.equals(spn) && authLogger.isLoggable(Level.FINER)) {
+        if (null != spn && !this.spn.equals(spn) && authLogger.isLoggable(Level.FINER)) {
             authLogger.finer(toString() + "SPN enriched: " + spn + " := " + this.spn);
         }
     }

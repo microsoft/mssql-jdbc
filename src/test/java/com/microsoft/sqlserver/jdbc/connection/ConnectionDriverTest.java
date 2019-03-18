@@ -7,7 +7,7 @@ package com.microsoft.sqlserver.jdbc.connection;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -42,55 +42,16 @@ import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureDWTest")
 public class ConnectionDriverTest extends AbstractTest {
     // If no retry is done, the function should at least exit in 5 seconds
     static int threshHoldForNoRetryInMilliseconds = 5000;
     static int loginTimeOutInSeconds = 10;
 
     String randomServer = RandomUtil.getIdentifier("Server");
-
-    /**
-     * test connection properties
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testConnectionDriver() throws SQLException {
-        SQLServerDriver d = new SQLServerDriver();
-        Properties info = new Properties();
-        StringBuffer url = new StringBuffer();
-        url.append("jdbc:sqlserver://" + randomServer + ";packetSize=512;");
-        // test defaults
-        DriverPropertyInfo[] infoArray = d.getPropertyInfo(url.toString(), info);
-        for (DriverPropertyInfo anInfoArray1 : infoArray) {
-            logger.fine(anInfoArray1.name);
-            logger.fine(anInfoArray1.description);
-            logger.fine(Boolean.valueOf(anInfoArray1.required).toString());
-            logger.fine(anInfoArray1.value);
-        }
-
-        url.append("encrypt=true; trustStore=someStore; trustStorePassword=somepassword;");
-        url.append("hostNameInCertificate=someHost; trustServerCertificate=true");
-        infoArray = d.getPropertyInfo(url.toString(), info);
-        for (DriverPropertyInfo anInfoArray : infoArray) {
-            if (anInfoArray.name.equals("encrypt")) {
-                assertTrue(anInfoArray.value.equals("true"), TestResource.getResource("R_valuesAreDifferent"));
-            }
-            if (anInfoArray.name.equals("trustStore")) {
-                assertTrue(anInfoArray.value.equals("someStore"), TestResource.getResource("R_valuesAreDifferent"));
-            }
-            if (anInfoArray.name.equals("trustStorePassword")) {
-                assertTrue(anInfoArray.value.equals("somepassword"), TestResource.getResource("R_valuesAreDifferent"));
-            }
-            if (anInfoArray.name.equals("hostNameInCertificate")) {
-                assertTrue(anInfoArray.value.equals("someHost"), TestResource.getResource("R_valuesAreDifferent"));
-            }
-        }
-    }
 
     /**
      * test connection properties with SQLServerDataSource
@@ -127,14 +88,6 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
-    public void testJdbcDriverMethod() throws SQLFeatureNotSupportedException {
-        SQLServerDriver serverDriver = new SQLServerDriver();
-        Logger logger = serverDriver.getParentLogger();
-        assertEquals(logger.getName(), "com.microsoft.sqlserver.jdbc",
-                TestResource.getResource("R_parrentLoggerNameWrong"));
-    }
-
-    @Test
     public void testJdbcDataSourceMethod() throws SQLFeatureNotSupportedException {
         SQLServerDataSource fxds = new SQLServerDataSource();
         Logger logger = fxds.getParentLogger();
@@ -165,8 +118,7 @@ public class ConnectionDriverTest extends AbstractTest {
      */
     @Test
     public void testConnectionEvents() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
-                TestResource.getResource("R_skipAzure"));
+        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -191,14 +143,16 @@ public class ConnectionDriverTest extends AbstractTest {
 
             // Check to see if error occurred.
             assertTrue(myE.errorOccurred, TestResource.getResource("R_errorNotCalled"));
+        } finally {
+            // make sure that connection is closed.
+            if (null != pooledConnection)
+                pooledConnection.close();
         }
-        // make sure that connection is closed.
     }
 
     @Test
     public void testConnectionPoolGetTwice() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
-                TestResource.getResource("R_skipAzure"));
+        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -211,7 +165,7 @@ public class ConnectionDriverTest extends AbstractTest {
         try (Connection con = pooledConnection.getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
             // raise a non severe exception and make sure that the connection is not closed.
-            stmt.executeUpdate("RAISERROR ('foo', 3,1) WITH LOG");
+            stmt.executeUpdate("RAISERROR ('foo', 3,1)");
             // not a serious error there should not be any errors.
             assertTrue(!myE.errorOccurred, TestResource.getResource("R_errorCalled"));
             // check to make sure that connection is not closed.
@@ -220,13 +174,16 @@ public class ConnectionDriverTest extends AbstractTest {
             con.close();
             // check to make sure that connection is closed.
             assertTrue(con.isClosed(), TestResource.getResource("R_connectionIsNotClosed"));
+        } finally {
+            // make sure that connection is closed.
+            if (null != pooledConnection)
+                pooledConnection.close();
         }
     }
 
     @Test
     public void testConnectionClosed() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
-                TestResource.getResource("R_skipAzure"));
+        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerDataSource mds = new SQLServerDataSource();
         mds.setURL(connectionString);
@@ -257,15 +214,14 @@ public class ConnectionDriverTest extends AbstractTest {
             Object[] msgArgs1 = {"SQLServerConnection"};
 
             assertTrue(isWrapper, form.format(msgArgs1));
-            assertEquals(ssconn.TRANSACTION_SNAPSHOT, ssconn.TRANSACTION_SNAPSHOT,
+            assertEquals(ISQLServerConnection.TRANSACTION_SNAPSHOT, ISQLServerConnection.TRANSACTION_SNAPSHOT,
                     TestResource.getResource("R_cantAccessSnapshot"));
 
             isWrapper = ssconn.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
             Object[] msgArgs2 = {"ISQLServerConnection"};
             assertTrue(isWrapper, form.format(msgArgs2));
-            ISQLServerConnection iSql = (ISQLServerConnection) ssconn
-                    .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
-            assertEquals(iSql.TRANSACTION_SNAPSHOT, iSql.TRANSACTION_SNAPSHOT,
+            ssconn.unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerConnection"));
+            assertEquals(ISQLServerConnection.TRANSACTION_SNAPSHOT, ISQLServerConnection.TRANSACTION_SNAPSHOT,
                     TestResource.getResource("R_cantAccessSnapshot"));
 
             ssconn.unwrap(Class.forName("java.sql.Connection"));
@@ -304,8 +260,7 @@ public class ConnectionDriverTest extends AbstractTest {
 
     @Test
     public void testDeadConnection() throws SQLException {
-        assumeTrue(!DBConnection.isSqlAzure(DriverManager.getConnection(connectionString)),
-                TestResource.getResource("R_skipAzure"));
+        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         String tableName = RandomUtil.getIdentifier("ConnectionTestTable");
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
@@ -466,7 +421,6 @@ public class ConnectionDriverTest extends AbstractTest {
             ds.setFailoverPartner(RandomUtil.getIdentifier("FailoverPartner"));
             timerStart = System.currentTimeMillis();
             try (Connection con = ds.getConnection()) {
-
                 long timeDiff = timerEnd - timerStart;
                 assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
                 MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedMoreSeconds"));
@@ -492,7 +446,6 @@ public class ConnectionDriverTest extends AbstractTest {
             ds.setFailoverPartner(RandomUtil.getIdentifier("FailoverPartner"));
             timerStart = System.currentTimeMillis();
             try (Connection con = ds.getConnection()) {
-
                 long timeDiff = timerEnd - timerStart;
                 assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
                 MessageFormat form = new MessageFormat(TestResource.getResource("R_exitedLessSeconds"));

@@ -155,12 +155,12 @@ final class TDSParser {
 class TDSTokenHandler {
     final String logContext;
 
-    private StreamError databaseError;
+    private SQLServerError databaseError;
 
     /** TDS protocol diagnostics logger */
     private static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.TOKEN");
 
-    final StreamError getDatabaseError() {
+    final SQLServerError getDatabaseError() {
         return databaseError;
     }
 
@@ -206,10 +206,10 @@ class TDSTokenHandler {
 
     boolean onError(TDSReader tdsReader) throws SQLServerException {
         if (null == databaseError) {
-            databaseError = new StreamError();
+            databaseError = new SQLServerError();
             databaseError.setFromTDS(tdsReader);
         } else {
-            (new StreamError()).setFromTDS(tdsReader);
+            (new SQLServerError()).setFromTDS(tdsReader);
         }
 
         return true;
@@ -255,7 +255,7 @@ class TDSTokenHandler {
 
     void onEOF(TDSReader tdsReader) throws SQLServerException {
         if (null != getDatabaseError()) {
-            SQLServerException.makeFromDatabaseError(tdsReader.getConnection(), null, getDatabaseError().getMessage(),
+            SQLServerException.makeFromDatabaseError(tdsReader.getConnection(), null, getDatabaseError().getErrorMessage(),
                     getDatabaseError(), false);
         }
     }

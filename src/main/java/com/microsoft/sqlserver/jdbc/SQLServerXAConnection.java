@@ -19,6 +19,11 @@ import javax.transaction.xa.XAResource;
  */
 public final class SQLServerXAConnection extends SQLServerPooledConnection implements XAConnection {
 
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -8154621218821899459L;
+
     // NB These instances are not used by applications, only by the app server who is
     // providing the connection pool and transactional processing to the application.
     // That app server is the one who should restrict commit/rollback on the connections
