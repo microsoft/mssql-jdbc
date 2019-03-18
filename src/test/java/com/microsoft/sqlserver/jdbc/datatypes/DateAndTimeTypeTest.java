@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.Date;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -32,6 +31,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -41,17 +41,18 @@ public class DateAndTimeTypeTest extends AbstractTest {
     private static final Time TIME_TO_TEST = new java.sql.Time(74096000L);
     private static final Timestamp TIMESTAMP_TO_TEST = new java.sql.Timestamp(61494838496000L);
 
-    private String dateTVP = RandomUtil.getIdentifier("dateTVP");
-    private String timeTVP = RandomUtil.getIdentifier("timeTVP");
-    private String timestampTVP = RandomUtil.getIdentifier("timestampTVP");
-    private static String tableName = RandomUtil.getIdentifier("DataTypesTable");
+    private static final String dateTVP = RandomUtil.getIdentifier("dateTVP");
+    private static final String timeTVP = RandomUtil.getIdentifier("timeTVP");
+    private static final String timestampTVP = RandomUtil.getIdentifier("timestampTVP");
+    private static final String tableName = RandomUtil.getIdentifier("DataTypesTable");
+    private static final String primaryKeyConstraintName = "pk_" + tableName;
 
     /**
      * Test query with date
      */
     @Test
     public void testQueryDate() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
 
             String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " where my_date = ?";
@@ -71,7 +72,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
      */
     @Test
     public void testQueryTimestamp() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
 
             String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " where my_timestamp = ?";
@@ -91,7 +92,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
      */
     @Test
     public void testQueryTime() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
 
             String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " where my_time = ?";
@@ -111,7 +112,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
      */
     @Test
     public void testQueryDateTVP() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
 
             SQLServerDataTable tvp = new SQLServerDataTable();
             tvp.addColumnMetadata("c1", java.sql.Types.DATE);
@@ -135,7 +136,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
      */
     @Test
     public void testQueryTimestampTVP() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
 
             SQLServerDataTable tvp = new SQLServerDataTable();
             tvp.addColumnMetadata("c1", java.sql.Types.TIMESTAMP);
@@ -159,7 +160,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
      */
     @Test
     public void testQueryTimeTVP() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
 
             SQLServerDataTable tvp = new SQLServerDataTable();
             tvp.addColumnMetadata("c1", java.sql.Types.TIME);
@@ -179,7 +180,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
     }
 
     private void createTVPs(String tvpName, String tvpType) throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
 
             stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
@@ -199,11 +200,12 @@ public class DateAndTimeTypeTest extends AbstractTest {
 
         // To get TIME & setTime working on Servers >= 2008, we must add 'sendTimeAsDatetime=false'
         // by default to the connection. See issue https://github.com/Microsoft/mssql-jdbc/issues/559
-        try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint pk_esimple primary key (id))";
+                    + " (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint "
+                    + AbstractSQLGenerator.escapeIdentifier(primaryKeyConstraintName) + " primary key (id))";
             stmt.execute(sql1);
 
             // add one sample data
@@ -225,8 +227,8 @@ public class DateAndTimeTypeTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
-                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false");
+                Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }

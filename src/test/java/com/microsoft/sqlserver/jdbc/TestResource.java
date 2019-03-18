@@ -7,6 +7,8 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.util.ListResourceBundle;
 
+import com.microsoft.sqlserver.testframework.Constants;
+
 
 /**
  * A simple resource bundle containing the strings for localizing.
@@ -14,7 +16,7 @@ import java.util.ListResourceBundle;
  */
 public final class TestResource extends ListResourceBundle {
     public static String getResource(String key) {
-        return TestResource.getBundle("com.microsoft.sqlserver.jdbc.TestResource").getString(key);
+        return TestResource.getBundle(Constants.MSSQL_JDBC_PACKAGE + ".TestResource").getString(key);
     }
 
     protected Object[][] getContents() {
@@ -47,6 +49,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_createDropAlterTableFailed", "Create/drop/alter table with preparedStatement failed!"},
             {"R_grantFailed", "grant table with preparedStatement failed!"},
             {"R_connectionIsClosed", "The connection is closed."},
+            {"R_ConnectionURLNull", "The connection URL is null." },
             {"R_connectionIsNotClosed", "The connection is not closed."},
             {"R_invalidExceptionMessage", "Invalid exception message"},
             {"R_failedValidate", "failed to validate values in $0} "}, {"R_tableNotDropped", "table not dropped. "},
@@ -125,7 +128,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_noKeyStore", "Aborting test case as no java key store and alias name exists."},
             {"R_badStreamLength", "The stream value is not the specified length. The specified length was"},
             {"R_streamReadError", "An error occurred while reading the value from the stream object. Error"},
-            {"R_SQLStateNull", "SQLState should not be null"}, {"R_blobFreed", "This Blob oject has been freed."},
+            {"R_SQLStateNull", "SQLState should not be null"}, {"R_blobFreed", "This Blob object has been freed."},
             {"R_streamNull", "Stream is null when data is not."}, {"R_incorrectUpdateCount", "Incorrect updateCount."},
             {"R_testInterleaved", "Test interleaved inserts and warnings"},
             {"R_errorFollowInserts", "Test error followed by inserts"},
@@ -169,6 +172,8 @@ public final class TestResource extends ListResourceBundle {
             {"R_incorrectColumnNumInsertDW",
                     "Column name or number of supplied values does not match table definition."},
             {"R_incorrectSyntaxTable", "Incorrect syntax near the keyword 'table'."},
-            {"R_incorrectSyntaxTableDW", "Parse error at line: 1, column: 106: Incorrect syntax near 'table'."},
-            {"R_WrongParameter", "{0} is not a parameter for procedure {1}."}};
+            {"R_WrongParameter", "{0} is not a parameter for procedure {1}."},
+            {"R_incorrectSyntaxTableDW", "Incorrect syntax near 'table'."},
+            {"R_ConnectionStringNull", "Connection String should not be null"},
+            {"R_OperandTypeClash", "Operand type clash"}};
 }

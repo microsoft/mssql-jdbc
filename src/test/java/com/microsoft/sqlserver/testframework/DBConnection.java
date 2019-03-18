@@ -12,7 +12,14 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import javax.sql.PooledConnection;
+import javax.sql.XAConnection;
+
+import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
+import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 
 
 /*
@@ -20,15 +27,17 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
  */
 public class DBConnection extends AbstractParentWrapper implements AutoCloseable {
     private double serverversion = 0;
+
     // TODO: add Isolation Level
     // TODO: add auto commit
     // TODO: add connection Savepoint and rollback
     // TODO: add additional connection properties
-    // TODO: add DataSource support
-    private SQLServerConnection connection = null;
+    private Connection connection = null;
+    private XAConnection xaConnection = null;
+    private PooledConnection pooledConnection = null;
 
     /**
-     * establishes connection using the input
+     * DBConnection Constructor using provided connection string
      * 
      * @param connectionString
      */
@@ -36,15 +45,30 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
         super(null, null, "connection");
         getConnection(connectionString);
     }
-    
+
+    /**
+     * DBConnection Constructor using provided Connection object
+     * 
+     * @param connection
+     */
     public DBConnection(Connection connection) {
         super(null, null, "connection");
-        this.connection = (SQLServerConnection) connection;
+        this.connection = connection;
         setInternal(connection);
     }
 
     /**
-     * establish connection
+     * DBConnection Constructor using provided DataSource
+     * 
+     * @param dataSource
+     */
+    public DBConnection(ISQLServerDataSource dataSource) {
+        super(null, null, "connection");
+        getConnection(dataSource);
+    }
+
+    /**
+     * Creates connection instance using the connection string provided.
      * 
      * @param connectionString
      */
@@ -54,7 +78,28 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
             setInternal(connection);
         } catch (SQLException ex) {
             fail(ex.getMessage());
-        } catch (ClassNotFoundException ex) {
+        }
+    }
+
+    /**
+     * Creates connection instance based on the provided DataSource
+     * 
+     * @param dataSource
+     */
+    void getConnection(ISQLServerDataSource dataSource) {
+        try {
+            if (dataSource instanceof SQLServerXADataSource) {
+                xaConnection = (XAConnection) ((SQLServerXADataSource) dataSource).getXAConnection();
+                connection = (ISQLServerConnection) xaConnection.getConnection();
+            } else if (dataSource instanceof SQLServerConnectionPoolDataSource) {
+                pooledConnection = (PooledConnection) ((SQLServerConnectionPoolDataSource) dataSource)
+                        .getPooledConnection();
+                connection = (ISQLServerConnection) pooledConnection.getConnection();
+            } else if (dataSource instanceof SQLServerDataSource) {
+                connection = (ISQLServerConnection) ((SQLServerDataSource) dataSource).getConnection();
+            }
+            setInternal(connection);
+        } catch (SQLException ex) {
             fail(ex.getMessage());
         }
     }
@@ -68,10 +113,10 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
      * 
      * @return Statement wrapper
      */
+    @SuppressWarnings("resource")
     public DBStatement createStatement() {
         try {
-            DBStatement dbstatement = new DBStatement(this);
-            return dbstatement.createStatement();
+            return new DBStatement(this).createStatement();
         } catch (SQLException ex) {
             fail(ex.getMessage());
         }
@@ -85,9 +130,9 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
      * @return
      * @throws SQLException
      */
+    @SuppressWarnings("resource")
     public DBStatement createStatement(int type, int concurrency) throws SQLException {
-        DBStatement dbstatement = new DBStatement(this);
-        return dbstatement.createStatement(type, concurrency);
+        return new DBStatement(this).createStatement(type, concurrency);
 
     }
 
@@ -97,9 +142,9 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
      * @return
      * @throws SQLException
      */
+    @SuppressWarnings("resource")
     public DBStatement createStatement(DBResultSetTypes rsType) throws SQLException {
-        DBStatement dbstatement = new DBStatement(this);
-        return dbstatement.createStatement(rsType.resultsetCursor, rsType.resultSetConcurrency);
+        return new DBStatement(this).createStatement(rsType.resultsetCursor, rsType.resultSetConcurrency);
     }
 
     /**
@@ -108,9 +153,9 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
      * @return
      * @throws SQLException
      */
+    @SuppressWarnings("resource")
     public DBPreparedStatement prepareStatement(String query) throws SQLException {
-        DBPreparedStatement dbpstmt = new DBPreparedStatement(this);
-        return dbpstmt.prepareStatement(query);
+        return new DBPreparedStatement(this).prepareStatement(query);
     }
 
     /**
@@ -121,22 +166,26 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
      * @return
      * @throws SQLException
      */
+    @SuppressWarnings("resource")
     public DBPreparedStatement prepareStatement(String query, int type, int concurrency) throws SQLException {
         // Static for fast-forward, limited settings
         if ((type == ResultSet.TYPE_FORWARD_ONLY || type == ResultSet.TYPE_SCROLL_INSENSITIVE))
             concurrency = ResultSet.CONCUR_READ_ONLY;
 
-        DBPreparedStatement dbpstmt = new DBPreparedStatement(this);
-
-        return dbpstmt.prepareStatement(query, type, concurrency);
+        return new DBPreparedStatement(this).prepareStatement(query, type, concurrency);
     }
 
     /**
-     * close connection
+     * close all open connections
      */
     public void close() {
         try {
-            connection.close();
+            if (null != connection)
+                connection.close();
+            if (null != xaConnection)
+                xaConnection.close();
+            if (null != pooledConnection)
+                pooledConnection.close();
         } catch (SQLException ex) {
             fail(ex.getMessage());
         }
@@ -187,12 +236,8 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
      */
     public double getServerVersion() throws Exception {
         if (0 == serverversion) {
-            DBStatement stmt = null;
-            DBResultSet rs = null;
-
-            try {
-                stmt = this.createStatement(DBResultSet.TYPE_DIRECT_FORWARDONLY, ResultSet.CONCUR_READ_ONLY);
-                rs = stmt.executeQuery("SELECT @@VERSION");
+            try (DBStatement stmt = this.createStatement(DBConstants.RESULTSET_TYPE_DIRECT_FORWARDONLY,
+                    ResultSet.CONCUR_READ_ONLY); DBResultSet rs = stmt.executeQuery("SELECT @@VERSION")) {
                 rs.next();
 
                 String version = rs.getString(1);
@@ -208,9 +253,6 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
                 }
             } catch (Exception e) {
                 throw new Exception("Unable to get dbms major version", e);
-            } finally {
-                rs.close();
-                stmt.close();
             }
         }
         return serverversion;

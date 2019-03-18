@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -46,8 +45,7 @@ public class PoolableTest extends AbstractTest {
     @Test
     @DisplayName("Poolable Test")
     public void poolableTest() throws SQLException, ClassNotFoundException {
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                Statement statement = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement statement = conn.createStatement()) {
             // First get the default values
             boolean isPoolable = ((SQLServerStatement) statement).isPoolable();
             assertEquals(isPoolable, false, "SQLServerStatement: " + TestResource.getResource("R_incorrectDefault"));
@@ -89,7 +87,7 @@ public class PoolableTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             TestUtils.dropProcedureIfExists("ProcName", stmt);
         } catch (Exception ex) {
             fail(ex.toString());

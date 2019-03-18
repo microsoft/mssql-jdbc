@@ -326,7 +326,7 @@ public class BvtTest extends AbstractTest {
                 if (null != rs)
                     rs.close();
             } catch (SQLException e) {
-                fail(e.toString());
+                fail(e.getMessage());
             }
         }
     }

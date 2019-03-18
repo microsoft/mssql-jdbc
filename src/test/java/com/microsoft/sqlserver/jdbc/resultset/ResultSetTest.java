@@ -16,7 +16,6 @@ import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.NClob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -55,7 +54,7 @@ public class ResultSetTest extends AbstractTest {
      */
     @Test
     public void testJdbc41ResultSetMethods() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ( " + "col1 int, "
                     + "col2 varchar(512), " + "col3 float, " + "col4 decimal(10,5), " + "col5 uniqueidentifier, "
                     + "col6 xml, " + "col7 varbinary(max), " + "col8 text, " + "col9 ntext, " + "col10 varbinary(max), "
@@ -260,7 +259,7 @@ public class ResultSetTest extends AbstractTest {
     @Test
     @Tag("AzureDWTest")
     public void testGetObjectAsLocalDateTime() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TimeZone prevTimeZone = TimeZone.getDefault();
             TimeZone.setDefault(TimeZone.getTimeZone("America/Edmonton"));
 
@@ -303,7 +302,7 @@ public class ResultSetTest extends AbstractTest {
      */
     @Test
     public void testGetObjectAsOffsetDateTime() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             final String testValue = "2018-01-02T11:22:33.123456700+12:34";
 
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -338,7 +337,7 @@ public class ResultSetTest extends AbstractTest {
     @Test
     @Tag("AzureDWTest")
     public void testResultSetWrapper() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (col1 int, col2 varchar(8000), col3 int identity(1,1))");
@@ -364,7 +363,7 @@ public class ResultSetTest extends AbstractTest {
     @Test
     @Tag("AzureDWTest")
     public void testGetterOnNull() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("select null")) {
             rs.next();
             assertEquals(null, rs.getTime(1));
@@ -380,7 +379,7 @@ public class ResultSetTest extends AbstractTest {
     public void testGetSetHoldability() throws SQLException {
         int[] holdabilityOptions = {ResultSet.HOLD_CURSORS_OVER_COMMIT, ResultSet.CLOSE_CURSORS_AT_COMMIT};
 
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("select null")) {
 
             int connHold = con.getHoldability();
@@ -403,7 +402,7 @@ public class ResultSetTest extends AbstractTest {
      */
     @Test
     public void testResultSetMethods() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -505,7 +504,7 @@ public class ResultSetTest extends AbstractTest {
                 } while (rs.next());
 
             } catch (Exception e) {
-                fail(e.toString());
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
