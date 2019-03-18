@@ -287,8 +287,8 @@ enum SQLServerDriverStringProperty {
     KEY_STORE_LOCATION("keyStoreLocation", ""),
     SSL_PROTOCOL("sslProtocol", SSLProtocol.TLS.toString()),
     MSI_CLIENT_ID("msiClientId", ""),
-    KEY_VAULT_COLUMN_ENCRYPTION_PROVIDER_CLIENT_ID("keyVaultColumnEncryptionProviderClientId", ""),
-    KEY_VAULT_COLUMN_ENCRYPTION_PROVIDER_CLIENT_KEY("keyVaultColumnEncryptionProviderClientKey", "");
+    KEY_VAULT_PROVIDER_CLIENT_ID("keyVaultProviderClientId", ""),
+    KEY_VAULT_PROVIDER_CLIENT_KEY("keyVaultProviderClientKey", "");
 
     private final String name;
     private final String defaultValue;
@@ -519,10 +519,10 @@ public final class SQLServerDriver implements java.sql.Driver {
                     false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue(), false, null),
-            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_COLUMN_ENCRYPTION_PROVIDER_CLIENT_ID.toString(),
-                    SQLServerDriverStringProperty.KEY_VAULT_COLUMN_ENCRYPTION_PROVIDER_CLIENT_ID.getDefaultValue(), false, null),
-            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_COLUMN_ENCRYPTION_PROVIDER_CLIENT_KEY.toString(),
-                    SQLServerDriverStringProperty.KEY_VAULT_COLUMN_ENCRYPTION_PROVIDER_CLIENT_KEY.getDefaultValue(), false, null)};
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),
+                    SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString(),
+                    SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.getDefaultValue(), false, null)};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string
