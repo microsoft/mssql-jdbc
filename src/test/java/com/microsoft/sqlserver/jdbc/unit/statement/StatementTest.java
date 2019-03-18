@@ -16,7 +16,6 @@ import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Clob;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -51,6 +50,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
@@ -74,7 +74,7 @@ public class StatementTest extends AbstractTest {
 
         @BeforeEach
         public void init() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString)) {
+            try (Connection con = getConnection()) {
                 con.setAutoCommit(false);
                 try (Statement stmt = con.createStatement()) {
                     try {
@@ -92,8 +92,7 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 try {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 } catch (SQLException e) {}
@@ -108,8 +107,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testCancelBeforeExecute() throws Exception {
 
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.cancel();
                 try (ResultSet rs = stmt
                         .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
@@ -134,9 +132,8 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testErrorInRequest() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    PreparedStatement ps = con.prepareStatement("UPDATE "
-                            + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET col2 = ? WHERE col1 = ?")) {
+            try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(
+                    "UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET col2 = ? WHERE col1 = ?")) {
                 ps.setString(1, TEST_STRING);
                 for (int i = 0; i < MIN_TABLE_ROWS; i++) {
                     ps.setInt(2, i);
@@ -169,7 +166,7 @@ public class StatementTest extends AbstractTest {
         public void testQueryTimeout() throws Exception {
             long elapsedMillis;
 
-            try (Connection con = DriverManager.getConnection(connectionString);
+            try (Connection con = getConnection();
                     PreparedStatement ps = con.prepareStatement("WAITFOR DELAY '00:00:07'")) {
 
                 // First execution:
@@ -220,7 +217,7 @@ public class StatementTest extends AbstractTest {
             assumeTrue("JDBC42".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                     TestResource.getResource("R_incompatJDBC"));
 
-            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con
+            try (Connection con = getConnection(); Statement stmt = con
                     .createStatement(SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
                 ((SQLServerStatement) stmt).setResponseBuffering("adaptive");
 
@@ -308,7 +305,7 @@ public class StatementTest extends AbstractTest {
 
             Thread oneShotCancel = null;
 
-            try (Connection conLock = DriverManager.getConnection(connectionString)) {
+            try (Connection conLock = getConnection()) {
                 // Start a transaction on a second connection that locks the last part of the table
                 // and leave it non-responsive for now...
                 conLock.setAutoCommit(false);
@@ -316,7 +313,7 @@ public class StatementTest extends AbstractTest {
                     stmtLock.executeUpdate("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                             + " SET col2 = 'New Value!' WHERE col1 = " + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
 
-                    try (Connection con = DriverManager.getConnection(connectionString)) {
+                    try (Connection con = getConnection()) {
                         // In SQL Azure, both ALLOW_SNAPSHOT_ISOLATION and READ_COMMITTED_SNAPSHOT options
                         // are always ON and can NOT be turned OFF. Thus the default transaction isolation level
                         // READ_COMMITTED
@@ -400,7 +397,7 @@ public class StatementTest extends AbstractTest {
 
             Thread oneShotCancel = null;
 
-            try (Connection conLock = DriverManager.getConnection(connectionString)) {
+            try (Connection conLock = getConnection()) {
                 // Start a transaction on a second connection that locks the last part of the table
                 // and leave it non-responsive for now...
                 conLock.setAutoCommit(false);
@@ -408,7 +405,7 @@ public class StatementTest extends AbstractTest {
                     stmtLock.executeUpdate("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                             + " SET col2 = 'New Value!' WHERE col1 = " + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
 
-                    try (Connection con = DriverManager.getConnection(connectionString)) {
+                    try (Connection con = getConnection()) {
                         // In SQL Azure, both ALLOW_SNAPSHOT_ISOLATION and READ_COMMITTED_SNAPSHOT options
                         // are always ON and can NOT be turned OFF. Thus the default transaction isolation level
                         // READ_COMMITTED
@@ -495,7 +492,7 @@ public class StatementTest extends AbstractTest {
         public void testCancelBlockedCursoredResponse() throws Exception {
             Thread oneShotCancel = null;
 
-            try (Connection conLock = DriverManager.getConnection(connectionString)) {
+            try (Connection conLock = getConnection()) {
                 // Start a transaction on a second connection that locks the last part of the table
                 // and leave it non-responsive for now...
                 conLock.setAutoCommit(false);
@@ -503,7 +500,7 @@ public class StatementTest extends AbstractTest {
                     stmtLock.executeUpdate("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                             + " SET col2 = 'New Value!' WHERE col1 = " + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
 
-                    try (Connection con = DriverManager.getConnection(connectionString)) {
+                    try (Connection con = getConnection()) {
                         // In SQL Azure, both ALLOW_SNAPSHOT_ISOLATION and READ_COMMITTED_SNAPSHOT options
                         // are always ON and can NOT be turned OFF. Thus the default transaction isolation level
                         // READ_COMMITTED
@@ -580,8 +577,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testCancelAfterResponse() throws Exception {
             int numSelectedRows;
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 try (ResultSet rs = stmt
                         .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     numSelectedRows = 0;
@@ -614,7 +610,7 @@ public class StatementTest extends AbstractTest {
             // Use small packet size to force OUT params to span multiple packets
             // so that cancelling execution from the same thread will work.
             final String procName = RandomUtil.getIdentifier("p1");
-            try (Connection con = DriverManager.getConnection(connectionString + ";packetSize=512");
+            try (Connection con = PrepUtil.getConnection(connectionString + ";packetSize=512");
                     Statement stmt = con.createStatement()) {
 
                 try {
@@ -794,7 +790,7 @@ public class StatementTest extends AbstractTest {
                     // (hammer ID, execute interval, cancel interval)
                     new Hammer(4, 120, 180), new Hammer(3, 60, 184), new Hammer(2, 30, 150), new Hammer(1, 10, 50)};
 
-            final Connection dbCon = DriverManager.getConnection(connectionString);
+            final Connection dbCon = getConnection();
 
             for (Hammer hammer : hammers)
                 hammer.start(dbCon);
@@ -842,8 +838,7 @@ public class StatementTest extends AbstractTest {
 
         @Test
         public void testIsCloseOnCompletion() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    PreparedStatement ps = con.prepareStatement("")) {
+            try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement("")) {
 
                 boolean result = false;
                 try {
@@ -860,8 +855,7 @@ public class StatementTest extends AbstractTest {
 
         @Test
         public void testCloseOnCompletion() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    PreparedStatement ps = con.prepareStatement("select ?")) {
+            try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement("select ?")) {
                 ps.setInt(1, 1);
 
                 // enable isCloseOnCompletion
@@ -896,8 +890,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testIsCloseOnCompletion() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
                 assertEquals(false, stmt.isCloseOnCompletion(), "isCloseOnCompletion default should be false.");
 
@@ -918,8 +911,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testCloseOnCompletion() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 // enable isCloseOnCompletion
                 try {
                     stmt.closeOnCompletion();
@@ -947,8 +939,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testConsecutiveQueries() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 // enable isCloseOnCompletion
                 try {
                     stmt.closeOnCompletion();
@@ -984,7 +975,7 @@ public class StatementTest extends AbstractTest {
             assumeTrue("JDBC41".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                     TestResource.getResource("R_incompatJDBC"));
 
-            try (Connection con = DriverManager.getConnection(connectionString);
+            try (Connection con = getConnection();
                     SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
 
                 // testing exception for getLargeMaxRows method
@@ -1015,8 +1006,7 @@ public class StatementTest extends AbstractTest {
             assumeTrue("JDBC42".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                     TestResource.getResource("R_incompatJDBC"));
 
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
                 // Default value should return zero
                 long actual = stmt.getLargeMaxRows();
@@ -1057,8 +1047,7 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement();) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();) {
                 try {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1Name), stmt);
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2Name), stmt);
@@ -1080,7 +1069,7 @@ public class StatementTest extends AbstractTest {
         public void testJdbc41CallableStatementMethods() throws Exception {
             // Prepare database setup
 
-            try (Connection conn = DriverManager.getConnection(connectionString);
+            try (Connection conn = getConnection();
                     Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
                 String query = "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName)
                         + " @col1Value varchar(512) OUTPUT," + " @col2Value int OUTPUT," + " @col3Value float OUTPUT,"
@@ -1214,12 +1203,11 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
                 } catch (SQLException e) {
-                    fail(e.toString());
+                    fail(e.getMessage());
                 }
             }
         }
@@ -1237,8 +1225,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testStatementOutParamGetsTwice() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
                 // enable isCloseOnCompletion
                 try {
@@ -1286,8 +1273,7 @@ public class StatementTest extends AbstractTest {
 
         @Test
         public void testStatementOutManyParamGetsTwiceRandomOrder() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
                         + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT,  @p4_smallint smallint OUTPUT, @p5_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p2_smallint, @p5_smallint_out=@p4_smallint RETURN @p2_smallint + 1");
 
@@ -1320,8 +1306,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testStatementOutParamGetsTwiceInOut() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
                         + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p3_smallint_out +1 RETURN @p2_smallint + 1");
 
@@ -1350,7 +1335,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testResultSetParams() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
+            try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -1385,7 +1370,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testResultSetNullParams() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
+            try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -1419,8 +1404,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testFailedToResumeTransaction() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
@@ -1450,7 +1434,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testResultSetErrors() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
+            try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -1482,8 +1466,7 @@ public class StatementTest extends AbstractTest {
         @Disabled
         // TODO: We are commenting this out due to random AppVeyor failures. We will investigate later.
         public void testRowError() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
@@ -1506,7 +1489,7 @@ public class StatementTest extends AbstractTest {
                 for (int row = 0; row <= 2; row++) {
                     // On the first connection, retrieve the indicated row,
                     // locking it for update.
-                    try (Connection testConn1 = DriverManager.getConnection(connectionString)) {
+                    try (Connection testConn1 = getConnection()) {
                         testConn1.setAutoCommit(false);
                         try (CallableStatement cstmt = testConn1
                                 .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?)}")) {
@@ -1526,7 +1509,7 @@ public class StatementTest extends AbstractTest {
 
                             // On a second connection, repeat the query, with an immediate
                             // lock timeout to induce an error.
-                            try (Connection testConn2 = DriverManager.getConnection(connectionString)) {
+                            try (Connection testConn2 = getConnection()) {
                                 testConn2.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
                                 testConn2.setAutoCommit(false);
                                 try (Statement stmt2 = testConn2.createStatement()) {
@@ -1574,13 +1557,12 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 try {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                     TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
                 } catch (SQLException e) {
-                    fail(e.toString());
+                    fail(e.getMessage());
                 }
             }
         }
@@ -1610,12 +1592,11 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 try {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 } catch (SQLException e) {
-                    fail(e.toString());
+                    fail(e.getMessage());
                 }
             }
         }
@@ -1930,7 +1911,7 @@ public class StatementTest extends AbstractTest {
     public class TCStatementIsClosed {
         @Test
         public void testActiveStatement() throws Exception {
-            try (Connection conn = DriverManager.getConnection(connectionString);
+            try (Connection conn = getConnection();
                     SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
 
                 // enable isCloseOnCompletion
@@ -1957,7 +1938,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testClosedStatement() throws Exception {
-            try (Connection conn = DriverManager.getConnection(connectionString);
+            try (Connection conn = getConnection();
                     SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
                 stmt.close();
 
@@ -1976,7 +1957,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testClosedConnection() throws Exception {
-            try (Connection conn = DriverManager.getConnection(connectionString);
+            try (Connection conn = getConnection();
                     SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
                 conn.close();
 
@@ -1999,8 +1980,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testActiveResultSet() throws Exception {
-            try (Connection conn = DriverManager.getConnection(connectionString);
-                    Statement stmt = conn.createStatement()) {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
 
                 // enable isCloseOnCompletion
                 try {
@@ -2030,8 +2010,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testClosedResultSet() throws Exception {
-            try (Connection conn = DriverManager.getConnection(connectionString);
-                    Statement stmt = conn.createStatement()) {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
 
                 // enable isCloseOnCompletion
                 try {
@@ -2060,8 +2039,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testClosedStatement() throws Exception {
-            try (Connection conn = DriverManager.getConnection(connectionString);
-                    Statement stmt = conn.createStatement()) {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
 
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT 1")) {
                     stmt.close();
@@ -2082,8 +2060,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testClosedConnection() throws Exception {
-            try (Connection conn = DriverManager.getConnection(connectionString);
-                    Statement stmt = conn.createStatement()) {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
 
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT 1")) {
                     conn.close();
@@ -2109,7 +2086,7 @@ public class StatementTest extends AbstractTest {
 
         @BeforeEach
         public void setup() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString)) {
+            try (Connection con = getConnection()) {
                 con.setAutoCommit(false);
                 try (Statement stmt = con.createStatement()) {
 
@@ -2158,7 +2135,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testLastUpdateCountTrue() throws Exception {
 
-            try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount=true");
+            try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount=true");
                     PreparedStatement ps = con.prepareStatement(
                             "DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE col1 = ?")) {
                 ps.setInt(1, 1);
@@ -2178,7 +2155,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testLastUpdateCountFalse() throws Exception {
 
-            try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount=false");
+            try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
                     PreparedStatement ps = con.prepareStatement(
                             "DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE col1 = ?")) {
                 ps.setInt(1, 1);
@@ -2198,7 +2175,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testPreparedStatementInsertExecInsert() throws Exception {
 
-            try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount=true");
+            try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount=true");
                     PreparedStatement ps = con.prepareStatement("INSERT INTO "
                             + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1) VALUES (" + (NUM_ROWS + 1)
                             + "); " + "EXEC " + AbstractSQLGenerator.escapeIdentifier(sprocName) + "; " + "UPDATE "
@@ -2220,7 +2197,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testStatementInsertExecInsert() throws Exception {
 
-            try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount=true");
+            try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount=true");
                     Statement stmt = con.createStatement()) {
                 int updateCount = stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " (col1) VALUES (" + (NUM_ROWS + 1) + "); " + "EXEC "
@@ -2235,14 +2212,13 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement();) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();) {
                 try {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2Name), stmt);
                     TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(sprocName), stmt);
                 } catch (SQLException e) {
-                    fail(e.toString());
+                    fail(e.getMessage());
                 }
             }
         }
@@ -2257,17 +2233,10 @@ public class StatementTest extends AbstractTest {
 
         @BeforeEach
         public void setup() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString)) {
+            try (Connection con = getConnection()) {
                 con.setAutoCommit(false);
                 try (Statement stmt = con.createStatement()) {
-
-                    try {
-                        stmt.executeUpdate("if EXISTS (SELECT * FROM sys.triggers where name = '"
-                                + AbstractSQLGenerator.escapeIdentifier(triggerName) + "') drop trigger "
-                                + AbstractSQLGenerator.escapeIdentifier(triggerName));
-                    } catch (SQLException e) {
-                        System.out.println(e.toString());
-                    }
+                    TestUtils.dropTriggerIfExists(triggerName, stmt);
                     stmt.executeUpdate(
                             "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 INT )");
                     for (int i = 0; i < NUM_ROWS; i++)
@@ -2277,7 +2246,7 @@ public class StatementTest extends AbstractTest {
                     // Skip adding message for 50001 if the target server is SQL Azure, because SQL Azure does not
                     // support
                     // sp_addmessage.
-                    try (Connection dbConn = DriverManager.getConnection(connectionString)) {
+                    try (Connection dbConn = getConnection()) {
                         if (isSqlAzure()) {
                             log.fine(
                                     "Because SQL Azure does not support sp_addmessage, 'EXEC sp_addmessage ...' is skipped.");
@@ -2306,7 +2275,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testUpdateCountAfterRaiseError() throws Exception {
 
-            try (Connection con = DriverManager.getConnection(connectionString);
+            try (Connection con = getConnection();
                     PreparedStatement pstmt = con
                             .prepareStatement("UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                                     + " SET col1 = 5 WHERE col1 = 2 RAISERROR(50001, 17, 1) SELECT * FROM "
@@ -2362,7 +2331,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testUpdateCountAfterErrorInTriggerLastUpdateCountFalse() throws Exception {
 
-            try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = false");
+            try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount = false");
                     PreparedStatement pstmt = con.prepareStatement(
                             "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (5)")) {
 
@@ -2411,7 +2380,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testUpdateCountAfterErrorInTriggerLastUpdateCountTrue() throws Exception {
 
-            try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = true");
+            try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount = true");
                     PreparedStatement pstmt = con.prepareStatement(
                             "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (5)")) {
 
@@ -2454,12 +2423,11 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement();) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();) {
                 try {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 } catch (SQLException e) {
-                    fail(e.toString());
+                    fail(e.getMessage());
                 }
             }
         }
@@ -2473,7 +2441,7 @@ public class StatementTest extends AbstractTest {
 
         @BeforeEach
         public void setup() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString)) {
+            try (Connection con = getConnection()) {
                 con.setAutoCommit(false);
                 try (Statement stmt = con.createStatement()) {
 
@@ -2503,7 +2471,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testNoCountWithExecute() throws Exception {
             // Ensure lastUpdateCount=true...
-            try (Connection con = DriverManager.getConnection(connectionString + ";lastUpdateCount = true");
+            try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount = true");
                     Statement stmt = con.createStatement();) {
 
                 boolean isResultSet = stmt
@@ -2526,12 +2494,11 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            try (Connection con = DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 try {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 } catch (SQLException e) {
-                    fail(e.toString());
+                    fail(e.getMessage());
                 }
             }
         }

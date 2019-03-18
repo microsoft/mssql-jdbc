@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.UnsupportedEncodingException;
 import java.net.SocketTimeoutException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
@@ -26,6 +25,8 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -37,13 +38,13 @@ public class ExceptionTest extends AbstractTest {
      * 
      * @throws Exception
      */
+    @SuppressWarnings("resource")
     @Test
     public void testBulkCSVFileRecordExceptionCause() throws Exception {
         String filePath = TestUtils.getCurrentClassPath();
 
         try {
-            SQLServerBulkCSVFileRecord scvFileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile,
-                    "invalid_encoding", true);
+            new SQLServerBulkCSVFileRecord(filePath + inputFile, "invalid_encoding", true);
         } catch (Exception e) {
             if (!(e instanceof SQLException)) {
                 throw e;
@@ -67,14 +68,14 @@ public class ExceptionTest extends AbstractTest {
      */
     @Test
     public void testSocketTimeoutExceptionCause() throws Exception {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        try (SQLServerConnection conn = (SQLServerConnection) getConnection();
                 Statement stmt = conn.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName), stmt);
             createWaitForDelayPreocedure(conn);
         }
 
-        try (Connection conn = DriverManager
-                .getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
+        try (Connection conn = PrepUtil.getConnection(
+                connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + Constants.SEMI_COLON);
                 Statement stmt = conn.createStatement()) {
             stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
             throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
@@ -98,7 +99,7 @@ public class ExceptionTest extends AbstractTest {
 
     @AfterAll
     public static void cleanup() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        try (SQLServerConnection conn = (SQLServerConnection) getConnection();
                 Statement stmt = conn.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName), stmt);
         }

@@ -13,7 +13,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -42,7 +41,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 public class LimitEscapeTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("LimitEscape");
     private static Vector<String> offsetQuery = new Vector<>();
-    private static Connection conn = null;
 
     // TODO: remove quote for now to avoid bug in driver
     static String table1 = RandomUtil.getIdentifier("UnitStatement_LimitEscape_t1").replaceAll("\'", "");
@@ -275,536 +273,561 @@ public class LimitEscapeTest extends AbstractTest {
     @DisplayName("initAndVerifyQueries")
     public void initAndVerifyQueries() throws Exception {
         Query qry;
-        // 1
-        // Test whether queries without limit syntax works
-        qry = new Query("select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1),
-                "select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1), 1, // # of rows
-                5, // # of columns
-                new int[] {1}, // id column values
-                new int[][] {{1, 1}}, // int column values
-                new String[][] {{"col3", "col4"}}); // string column values
-        qry.execute(conn);
+        try (Connection conn = getConnection()) {
+            // 1
+            // Test whether queries without limit syntax works
+            qry = new Query("select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1),
+                    "select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1), 1, // # of rows
+                    5, // # of columns
+                    new int[] {1}, // id column values
+                    new int[][] {{1, 1}}, // int column values
+                    new String[][] {{"col3", "col4"}}); // string column values
+            qry.execute(conn);
 
-        // 2
-        // Test parentheses in limit syntax
-        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit ( (  (2)))}",
-                "select TOP ( (  (2))) * from " + AbstractSQLGenerator.escapeIdentifier(table1), 2, // # of rows
-                5, // # of columns
-                new int[] {1, 2}, // id column values
-                new int[][] {{1, 1}, {2, 2}}, // int column values
-                new String[][] {{"col3", "col4"}, {"row2 ' with ' quote", "row2 with limit  {limit 22} {limit ?}"}}); // string
-                                                                                                                      // column
-                                                                                                                      // values
-        qry.execute(conn);
+            // 2
+            // Test parentheses in limit syntax
+            qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit ( (  (2)))}",
+                    "select TOP ( (  (2))) * from " + AbstractSQLGenerator.escapeIdentifier(table1), 2, // # of rows
+                    5, // # of columns
+                    new int[] {1, 2}, // id column values
+                    new int[][] {{1, 1}, {2, 2}}, // int column values
+                    new String[][] {{"col3", "col4"},
+                            {"row2 ' with ' quote", "row2 with limit  {limit 22} {limit ?}"}}); // string
+                                                                                                // column
+                                                                                                // values
+            qry.execute(conn);
 
-        // 3
-        // Test limit syntax in string literal as well as in query, also test subquery syntax in string literal
-        qry = new Query("select ( (col1)), ( ((col2) ) ) from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                + " where col3 = 'row3 with subquery (select * from t1)' and col4 = 'row3 with subquery (select * from (select * from t1) {limit 4})' {limit (35)}",
-                "select TOP (35) ( (col1)), ( ((col2) ) ) from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + " where col3 = 'row3 with subquery (select * from t1)' and col4 = 'row3 with subquery (select * from (select * from t1) {limit 4})'",
-                1, // # of rows
-                2, // # of columns
-                new int[] {3}, // id column values
-                new int[][] {{3, 3}}, // int column values
-                null); // string column values
-        qry.execute(conn);
+            // 3
+            // Test limit syntax in string literal as well as in query, also test subquery syntax in string literal
+            qry = new Query("select ( (col1)), ( ((col2) ) ) from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                    + " where col3 = 'row3 with subquery (select * from t1)' and col4 = 'row3 with subquery (select * from (select * from t1) {limit 4})' {limit (35)}",
+                    "select TOP (35) ( (col1)), ( ((col2) ) ) from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " where col3 = 'row3 with subquery (select * from t1)' and col4 = 'row3 with subquery (select * from (select * from t1) {limit 4})'",
+                    1, // # of rows
+                    2, // # of columns
+                    new int[] {3}, // id column values
+                    new int[][] {{3, 3}}, // int column values
+                    null); // string column values
+            qry.execute(conn);
 
-        // 4
-        // Test quotes/limit syntax/scalar function in string literal. Also test real limit syntax in query.
-        qry = new Query("select (col1), (col2) from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                + " where col3 = 'select * from t1 {limit 4} ''quotes'' (braces)' and col4 = 'ucase(scalar function)' {limit 3543}",
-                "select TOP 3543 (col1), (col2) from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + " where col3 = 'select * from t1 {limit 4} ''quotes'' (braces)' and col4 = 'ucase(scalar function)'",
-                1, // # of rows
-                2, // # of columns
-                new int[] {4}, // id column values
-                new int[][] {{4, 4}}, // int column values
-                null); // string column values
-        qry.execute(conn);
+            // 4
+            // Test quotes/limit syntax/scalar function in string literal. Also test real limit syntax in query.
+            qry = new Query("select (col1), (col2) from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                    + " where col3 = 'select * from t1 {limit 4} ''quotes'' (braces)' and col4 = 'ucase(scalar function)' {limit 3543}",
+                    "select TOP 3543 (col1), (col2) from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " where col3 = 'select * from t1 {limit 4} ''quotes'' (braces)' and col4 = 'ucase(scalar function)'",
+                    1, // # of rows
+                    2, // # of columns
+                    new int[] {4}, // id column values
+                    new int[][] {{4, 4}}, // int column values
+                    null); // string column values
+            qry.execute(conn);
 
-        // 5
-        // Test openquery/openrowset in string literals
-        qry = new Query("select col1 from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                + " where col3 = 'openquery(''server'', ''query'')' and col4 = 'openrowset(''server'',''connection string'',''query'')' {limit (((2)))}",
-                "select TOP (((2))) col1 from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + " where col3 = 'openquery(''server'', ''query'')' and col4 = 'openrowset(''server'',''connection string'',''query'')'",
-                1, // # of rows
-                1, // # of columns
-                new int[] {5}, // id column values
-                new int[][] {{5}}, // int column values
-                null); // string column values
-        qry.execute(conn);
+            // 5
+            // Test openquery/openrowset in string literals
+            qry = new Query("select col1 from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                    + " where col3 = 'openquery(''server'', ''query'')' and col4 = 'openrowset(''server'',''connection string'',''query'')' {limit (((2)))}",
+                    "select TOP (((2))) col1 from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " where col3 = 'openquery(''server'', ''query'')' and col4 = 'openrowset(''server'',''connection string'',''query'')'",
+                    1, // # of rows
+                    1, // # of columns
+                    new int[] {5}, // id column values
+                    new int[][] {{5}}, // int column values
+                    null); // string column values
+            qry.execute(conn);
 
-        // 6
-        // Test limit syntax in subquery as well as in outer query
-        qry = new Query(
-                "select id from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + " {limit 10}) t1 {limit ((1) )}",
-                "select TOP ((1) ) id from (select TOP 10 * from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + ") t1",
-                1, // # of rows
-                1, // # of columns
-                new int[] {1}, // id column values
-                null, // int column values
-                null); // string column values
-        qry.execute(conn);
+            // 6
+            // Test limit syntax in subquery as well as in outer query
+            qry = new Query(
+                    "select id from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " {limit 10}) t1 {limit ((1) )}",
+                    "select TOP ((1) ) id from (select TOP 10 * from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + ") t1",
+                    1, // # of rows
+                    1, // # of columns
+                    new int[] {1}, // id column values
+                    null, // int column values
+                    null); // string column values
+            qry.execute(conn);
 
-        // 7
-        // Test multiple parentheses in limit syntax and in subquery
-        qry = new Query(
-                "select id from (( (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + " {limit 10})) ) t1 {limit ((1) )}",
-                "select TOP ((1) ) id from (( (select TOP 10 * from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + ")) ) t1",
-                1, // # of
-                   // rows
-                1, // # of columns
-                new int[] {1}, // id column values
-                null, // int column values
-                null); // string column values
-        qry.execute(conn);
+            // 7
+            // Test multiple parentheses in limit syntax and in subquery
+            qry = new Query(
+                    "select id from (( (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " {limit 10})) ) t1 {limit ((1) )}",
+                    "select TOP ((1) ) id from (( (select TOP 10 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1) + ")) ) t1",
+                    1, // # of
+                       // rows
+                    1, // # of columns
+                    new int[] {1}, // id column values
+                    null, // int column values
+                    null); // string column values
+            qry.execute(conn);
 
-        // 8
-        // Test limit syntax in multiple subqueries, also test arbitrary spaces in limit syntax
-        qry = new Query(
-                "select j1.id from (( (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + " {limit 10})) ) j1 join (select * from " + AbstractSQLGenerator.escapeIdentifier(table2)
-                        + " {limit 4}) j2 on j1.id = j2.id {limit  	(1)}",
-                "select TOP (1) j1.id from (( (select TOP 10 * from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + ")) ) j1 join (select TOP 4 * from " + AbstractSQLGenerator.escapeIdentifier(table2)
-                        + ") j2 on j1.id = j2.id",
-                1, // # of rows
-                1, // # of columns
-                new int[] {1}, // id column values
-                null, // int column values
-                null); // string column values
-        qry.execute(conn);
+            // 8
+            // Test limit syntax in multiple subqueries, also test arbitrary spaces in limit syntax
+            qry = new Query(
+                    "select j1.id from (( (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " {limit 10})) ) j1 join (select * from " + AbstractSQLGenerator.escapeIdentifier(table2)
+                            + " {limit 4}) j2 on j1.id = j2.id {limit  	(1)}",
+                    "select TOP (1) j1.id from (( (select TOP 10 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1) + ")) ) j1 join (select TOP 4 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table2) + ") j2 on j1.id = j2.id",
+                    1, // # of rows
+                    1, // # of columns
+                    new int[] {1}, // id column values
+                    null, // int column values
+                    null); // string column values
+            qry.execute(conn);
 
-        // 9
-        // Test limit syntax in multiple levels of nested subqueries
-        qry = new Query(
-                "select j1.id from (select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + " {limit 3}) j3 {limit 2}) j1 join (select * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table2) + " {limit 4}) j2 on j1.id = j2.id {limit 1}",
-                "select TOP 1 j1.id from (select TOP 2 * from (select TOP 3 * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table1) + ") j3) j1 join (select TOP 4 * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table2) + ") j2 on j1.id = j2.id",
-                1, // # of rows
-                1, // # of columns
-                new int[] {1}, // id column values
-                null, // int column values
-                null); // string column values
-        qry.execute(conn);
+            // 9
+            // Test limit syntax in multiple levels of nested subqueries
+            qry = new Query(
+                    "select j1.id from (select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " {limit 3}) j3 {limit 2}) j1 join (select * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table2)
+                            + " {limit 4}) j2 on j1.id = j2.id {limit 1}",
+                    "select TOP 1 j1.id from (select TOP 2 * from (select TOP 3 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1) + ") j3) j1 join (select TOP 4 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table2) + ") j2 on j1.id = j2.id",
+                    1, // # of rows
+                    1, // # of columns
+                    new int[] {1}, // id column values
+                    null, // int column values
+                    null); // string column values
+            qry.execute(conn);
 
-        // 10
-        // Test limit syntax in multiple levels of nested subqueries as well as in outer query
-        qry = new Query(
-                "select j1.id from (select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + " {limit 3}) j3 {limit 2}) j1 join (select j4.id from (select * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table3) + " {limit 5}) j4 join (select * from  "
-                        + AbstractSQLGenerator.escapeIdentifier(table4)
-                        + " {limit 6}) j5 on j4.id = j5.id ) j2 on j1.id = j2.id {limit 1}",
-                "select TOP 1 j1.id from (select TOP 2 * from (select TOP 3 * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + ") j3) j1 join (select j4.id from (select TOP 5 * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table3) + ") j4 join (select TOP 6 * from  "
-                        + AbstractSQLGenerator.escapeIdentifier(table4) + ") j5 on j4.id = j5.id ) j2 on j1.id = j2.id",
-                1, // # of rows
-                1, // # of columns
-                new int[] {1}, // id column values
-                null, // int column values
-                null); // string column values
-        qry.execute(conn);
+            // 10
+            // Test limit syntax in multiple levels of nested subqueries as well as in outer query
+            qry = new Query(
+                    "select j1.id from (select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " {limit 3}) j3 {limit 2}) j1 join (select j4.id from (select * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table3) + " {limit 5}) j4 join (select * from  "
+                            + AbstractSQLGenerator.escapeIdentifier(table4)
+                            + " {limit 6}) j5 on j4.id = j5.id ) j2 on j1.id = j2.id {limit 1}",
+                    "select TOP 1 j1.id from (select TOP 2 * from (select TOP 3 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + ") j3) j1 join (select j4.id from (select TOP 5 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table3) + ") j4 join (select TOP 6 * from  "
+                            + AbstractSQLGenerator.escapeIdentifier(table4)
+                            + ") j5 on j4.id = j5.id ) j2 on j1.id = j2.id",
+                    1, // # of rows
+                    1, // # of columns
+                    new int[] {1}, // id column values
+                    null, // int column values
+                    null); // string column values
+            qry.execute(conn);
 
-        // 11
-        // Test multiple parentheses/spaces in limit syntax, also test '[]' in columns
-        qry = new Query(
-                "select [col1], col2, [col3], col4 from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + " {limit ( (  (2)))}",
-                "select TOP ( (  (2))) [col1], col2, [col3], col4 from "
-                        + AbstractSQLGenerator.escapeIdentifier(table1),
-                2, // # of rows
-                4, // # of columns
-                new int[] {1, 2}, // id column values
-                new int[][] {{1, 1}, {2, 2}}, // int column values
-                new String[][] {{"col3", "col4"}, {"row2 ' with ' quote", "row2 with limit  {limit 22} {limit ?}"}}); // string
-                                                                                                                      // column
-                                                                                                                      // values
-        qry.execute(conn);
+            // 11
+            // Test multiple parentheses/spaces in limit syntax, also test '[]' in columns
+            qry = new Query(
+                    "select [col1], col2, [col3], col4 from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " {limit ( (  (2)))}",
+                    "select TOP ( (  (2))) [col1], col2, [col3], col4 from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1),
+                    2, // # of rows
+                    4, // # of columns
+                    new int[] {1, 2}, // id column values
+                    new int[][] {{1, 1}, {2, 2}}, // int column values
+                    new String[][] {{"col3", "col4"},
+                            {"row2 ' with ' quote", "row2 with limit  {limit 22} {limit ?}"}}); // string
+                                                                                                // column
+                                                                                                // values
+            qry.execute(conn);
 
-        // 12
-        // Test complicated query with nested subquery having limit syntax
-        qry = new Query(
-                "select j1.id from ( ((select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + " {limit 3}) j3 {limit 2}))) j1 join (select j4.id from ((((select * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table3) + " {limit 5})))) j4 join (select * from  "
-                        + AbstractSQLGenerator.escapeIdentifier(table4)
-                        + " {limit 6}) j5 on j4.id = j5.id ) j2 on j1.id = j2.id {limit 1}",
-                "select TOP 1 j1.id from ( ((select TOP 2 * from (select TOP 3 * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + ") j3))) j1 join (select j4.id from ((((select TOP 5 * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table3) + ")))) j4 join (select TOP 6 * from  "
-                        + AbstractSQLGenerator.escapeIdentifier(table4) + ") j5 on j4.id = j5.id ) j2 on j1.id = j2.id",
-                1, // # of rows
-                1, // # of columns
-                new int[] {1}, // id column values
-                null, // int column values
-                null); // string column values
-        qry.execute(conn);
+            // 12
+            // Test complicated query with nested subquery having limit syntax
+            qry = new Query(
+                    "select j1.id from ( ((select * from (select * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " {limit 3}) j3 {limit 2}))) j1 join (select j4.id from ((((select * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table3) + " {limit 5})))) j4 join (select * from  "
+                            + AbstractSQLGenerator.escapeIdentifier(table4)
+                            + " {limit 6}) j5 on j4.id = j5.id ) j2 on j1.id = j2.id {limit 1}",
+                    "select TOP 1 j1.id from ( ((select TOP 2 * from (select TOP 3 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + ") j3))) j1 join (select j4.id from ((((select TOP 5 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table3) + ")))) j4 join (select TOP 6 * from  "
+                            + AbstractSQLGenerator.escapeIdentifier(table4)
+                            + ") j5 on j4.id = j5.id ) j2 on j1.id = j2.id",
+                    1, // # of rows
+                    1, // # of columns
+                    new int[] {1}, // id column values
+                    null, // int column values
+                    null); // string column values
+            qry.execute(conn);
 
-        // 13
-        // Test prepared statements with limit syntax with multiple parentheses/spaces
-        qry = new PreparedQuery(
-                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit ( (  (?)))}",
-                "select TOP ( (  (?))) * from " + AbstractSQLGenerator.escapeIdentifier(table1), 1, // # of rows
-                5, // # of columns
-                new int[] {1}, // id column values
-                new int[][] {{1, 1}}, // int column values
-                new String[][] {{"col3", "col4"}}, 1);
-        qry.execute(conn);
+            // 13
+            // Test prepared statements with limit syntax with multiple parentheses/spaces
+            qry = new PreparedQuery(
+                    "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit ( (  (?)))}",
+                    "select TOP ( (  (?))) * from " + AbstractSQLGenerator.escapeIdentifier(table1), 1, // # of rows
+                    5, // # of columns
+                    new int[] {1}, // id column values
+                    new int[][] {{1, 1}}, // int column values
+                    new String[][] {{"col3", "col4"}}, 1);
+            qry.execute(conn);
 
-        // 14
-        // Test prepared statements with limit syntax
-        qry = new PreparedQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit (?)}",
-                "select TOP (?) * from " + AbstractSQLGenerator.escapeIdentifier(table1), 1, // #
-                // of
-                // rows
-                5, // # of columns
-                new int[] {1}, // id column values
-                new int[][] {{1, 1}}, // int column values
-                new String[][] {{"col3", "col4"}}, 1);
-        qry.execute(conn);
+            // 14
+            // Test prepared statements with limit syntax
+            qry = new PreparedQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit (?)}",
+                    "select TOP (?) * from " + AbstractSQLGenerator.escapeIdentifier(table1), 1, // #
+                    // of
+                    // rows
+                    5, // # of columns
+                    new int[] {1}, // id column values
+                    new int[][] {{1, 1}}, // int column values
+                    new String[][] {{"col3", "col4"}}, 1);
+            qry.execute(conn);
 
-        // 15
-        // Test prepared statements with limit syntax with multiple parentheses/spaces
-        qry = new PreparedQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit ?}",
-                "select TOP (?) * from " + AbstractSQLGenerator.escapeIdentifier(table1), 1, // #
-                // of
-                // rows
-                5, // # of columns
-                new int[] {1}, // id column values
-                new int[][] {{1, 1}}, // int column values
-                new String[][] {{"col3", "col4"}}, 1);
-        qry.execute(conn);
+            // 15
+            // Test prepared statements with limit syntax with multiple parentheses/spaces
+            qry = new PreparedQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit ?}",
+                    "select TOP (?) * from " + AbstractSQLGenerator.escapeIdentifier(table1), 1, // #
+                    // of
+                    // rows
+                    5, // # of columns
+                    new int[] {1}, // id column values
+                    new int[][] {{1, 1}}, // int column values
+                    new String[][] {{"col3", "col4"}}, 1);
+            qry.execute(conn);
 
-        // 16
-        // Test prepared statements with limit syntax with subqueries
-        qry = new PreparedQuery(
-                "select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + " {limit ?}) t1 {limit (?)}",
-                "select TOP (?) * from (select TOP (?) * from " + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + ") t1",
-                1, // # of rows
-                5, // # of columns
-                new int[] {1}, // id column values
-                new int[][] {{1, 1}}, // int column values
-                new String[][] {{"col3", "col4"}}, 2);
-        qry.execute(conn);
+            // 16
+            // Test prepared statements with limit syntax with subqueries
+            qry = new PreparedQuery(
+                    "select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " {limit ?}) t1 {limit (?)}",
+                    "select TOP (?) * from (select TOP (?) * from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + ") t1",
+                    1, // # of rows
+                    5, // # of columns
+                    new int[] {1}, // id column values
+                    new int[][] {{1, 1}}, // int column values
+                    new String[][] {{"col3", "col4"}}, 2);
+            qry.execute(conn);
 
-        // 17
-        // Test callable statements as they are also translated by the driver
-        qry = new CallableQuery(
-                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName) + " @col3Value = 'col3', @col4Value = 'col4'",
-                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName) + " @col3Value = 'col3', @col4Value = 'col4'",
-                1, // # of rows
-                5, // # of columns
-                new int[] {1}, // id column values
-                new int[][] {{1, 1}}, // int column values
-                new String[][] {{"col3", "col4"}}, 0);
-        qry.execute(conn);
+            // 17
+            // Test callable statements as they are also translated by the driver
+            qry = new CallableQuery(
+                    "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                            + " @col3Value = 'col3', @col4Value = 'col4'",
+                    "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                            + " @col3Value = 'col3', @col4Value = 'col4'",
+                    1, // # of rows
+                    5, // # of columns
+                    new int[] {1}, // id column values
+                    new int[][] {{1, 1}}, // int column values
+                    new String[][] {{"col3", "col4"}}, 0);
+            qry.execute(conn);
 
-        // 18
-        // Test callable statements with limit syntax in string literals
-        qry = new CallableQuery(
-                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " @col3Value = 'row2 '' with '' quote', @col4Value = 'row2 with limit  {limit 22} {limit ?}'",
-                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " @col3Value = 'row2 '' with '' quote', @col4Value = 'row2 with limit  {limit 22} {limit ?}'",
-                1, // #
-                   // of
-                   // rows
-                5, // # of columns
-                new int[] {2}, // id column values
-                new int[][] {{2, 2}}, // int column values
-                new String[][] {{"row2 ' with ' quote", "row2 with limit  {limit 22} {limit ?}"}}, 0);
-        qry.execute(conn);
+            // 18
+            // Test callable statements with limit syntax in string literals
+            qry = new CallableQuery("EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                    + " @col3Value = 'row2 '' with '' quote', @col4Value = 'row2 with limit  {limit 22} {limit ?}'",
+                    "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                            + " @col3Value = 'row2 '' with '' quote', @col4Value = 'row2 with limit  {limit 22} {limit ?}'",
+                    1, // #
+                       // of
+                       // rows
+                    5, // # of columns
+                    new int[] {2}, // id column values
+                    new int[][] {{2, 2}}, // int column values
+                    new String[][] {{"row2 ' with ' quote", "row2 with limit  {limit 22} {limit ?}"}}, 0);
+            qry.execute(conn);
 
-        // 19
-        // Test callable statements with subquery/limit syntax in string literals
-        qry = new CallableQuery("EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
-                + " @col3Value = 'row3 with subquery (select * from t1)', @col4Value = 'row3 with subquery (select * from (select * from t1) {limit 4})'",
-                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " @col3Value = 'row3 with subquery (select * from t1)', @col4Value = 'row3 with subquery (select * from (select * from t1) {limit 4})'",
-                1, // # of rows
-                5, // # of columns
-                new int[] {3}, // id column values
-                new int[][] {{3, 3}}, // int column values
-                new String[][] {{"row3 with subquery (select * from t1)",
-                        "row3 with subquery (select * from (select * from t1) {limit 4})"}},
-                0);
-        qry.execute(conn);
+            // 19
+            // Test callable statements with subquery/limit syntax in string literals
+            qry = new CallableQuery("EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                    + " @col3Value = 'row3 with subquery (select * from t1)', @col4Value = 'row3 with subquery (select * from (select * from t1) {limit 4})'",
+                    "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                            + " @col3Value = 'row3 with subquery (select * from t1)', @col4Value = 'row3 with subquery (select * from (select * from t1) {limit 4})'",
+                    1, // # of rows
+                    5, // # of columns
+                    new int[] {3}, // id column values
+                    new int[][] {{3, 3}}, // int column values
+                    new String[][] {{"row3 with subquery (select * from t1)",
+                            "row3 with subquery (select * from (select * from t1) {limit 4})"}},
+                    0);
+            qry.execute(conn);
 
-        // 20
-        // Test callable statements with quotes/scalar functions/limit syntax in string literals
-        qry = new CallableQuery("EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
-                + " @col3Value = 'select * from t1 {limit 4} ''quotes'' (braces)', @col4Value = 'ucase(scalar function)'",
-                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " @col3Value = 'select * from t1 {limit 4} ''quotes'' (braces)', @col4Value = 'ucase(scalar function)'",
-                1, // # of rows
-                5, // # of columns
-                new int[] {4}, // id column values
-                new int[][] {{4, 4}}, // int column value
-                new String[][] {{"select * from t1 {limit 4} 'quotes' (braces)", "ucase(scalar function)"}}, 0);
-        qry.execute(conn);
+            // 20
+            // Test callable statements with quotes/scalar functions/limit syntax in string literals
+            qry = new CallableQuery("EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                    + " @col3Value = 'select * from t1 {limit 4} ''quotes'' (braces)', @col4Value = 'ucase(scalar function)'",
+                    "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                            + " @col3Value = 'select * from t1 {limit 4} ''quotes'' (braces)', @col4Value = 'ucase(scalar function)'",
+                    1, // # of rows
+                    5, // # of columns
+                    new int[] {4}, // id column values
+                    new int[][] {{4, 4}}, // int column value
+                    new String[][] {{"select * from t1 {limit 4} 'quotes' (braces)", "ucase(scalar function)"}}, 0);
+            qry.execute(conn);
 
-        // 21
-        // Test callable statement escape syntax with quotes/scalar functions/limit syntax in string literals
-        qry = new CallableQuery(
-                "{call " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " ('select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)')}",
-                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " 'select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)'",
-                1, // #
-                   // of
-                   // rows
-                5, // # of columns
-                new int[] {4}, // id column values
-                new int[][] {{4, 4}}, // int column value
-                new String[][] {{"select * from t1 {limit 4} 'quotes' (braces)", "ucase(scalar function)"}}, 0);
-        qry.execute(conn);
+            // 21
+            // Test callable statement escape syntax with quotes/scalar functions/limit syntax in string literals
+            qry = new CallableQuery(
+                    "{call " + AbstractSQLGenerator.escapeIdentifier(procName)
+                            + " ('select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)')}",
+                    "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                            + " 'select * from t1 {limit 4} ''quotes'' (braces)', 'ucase(scalar function)'",
+                    1, // #
+                       // of
+                       // rows
+                    5, // # of columns
+                    new int[] {4}, // id column values
+                    new int[][] {{4, 4}}, // int column value
+                    new String[][] {{"select * from t1 {limit 4} 'quotes' (braces)", "ucase(scalar function)"}}, 0);
+            qry.execute(conn);
 
-        // 22
-        // Test callable statement escape syntax with openrowquery/openrowset/quotes in string literals
-        qry = new CallableQuery("{call " + AbstractSQLGenerator.escapeIdentifier(procName)
-                + " ('openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')')}",
-                "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " 'openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')'",
-                1, // #
-                   // of
-                   // rows
-                5, // # of columns
-                new int[] {5}, // id column values
-                new int[][] {{5, 5}}, // int column value
-                new String[][] {{"openquery('server', 'query')", "openrowset('server','connection string','query')"}},
-                0);
-        qry.execute(conn);
+            // 22
+            // Test callable statement escape syntax with openrowquery/openrowset/quotes in string literals
+            qry = new CallableQuery("{call " + AbstractSQLGenerator.escapeIdentifier(procName)
+                    + " ('openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')')}",
+                    "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                            + " 'openquery(''server'', ''query'')', 'openrowset(''server'',''connection string'',''query'')'",
+                    1, // #
+                       // of
+                       // rows
+                    5, // # of columns
+                    new int[] {5}, // id column values
+                    new int[][] {{5, 5}}, // int column value
+                    new String[][] {
+                            {"openquery('server', 'query')", "openrowset('server','connection string','query')"}},
+                    0);
+            qry.execute(conn);
 
-        // Do not execute this query as no lnked_server is setup. Only verify the translation for it.
-        // 23
-        // Test openquery syntax translation with limit syntax
-        qry = new Query(
-                "select * from openquery('linked_server', 'select * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 2}') {limit 1}",
-                "select TOP 1 * from openquery('linked_server', 'select TOP 2 * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table1) + "')",
-                1, // #
-                   // of
-                   // rows
-                5, // # of columns
-                new int[] {5}, // id column values
-                new int[][] {{5, 5}}, // int column value
-                new String[][] {{"openquery('server', 'query')", "openrowset('server','connection string','query')"}});
+            // Do not execute this query as no lnked_server is setup. Only verify the translation for it.
+            // 23
+            // Test openquery syntax translation with limit syntax
+            qry = new Query(
+                    "select * from openquery('linked_server', 'select * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 2}') {limit 1}",
+                    "select TOP 1 * from openquery('linked_server', 'select TOP 2 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1) + "')",
+                    1, // #
+                       // of
+                       // rows
+                    5, // # of columns
+                    new int[] {5}, // id column values
+                    new int[][] {{5, 5}}, // int column value
+                    new String[][] {
+                            {"openquery('server', 'query')", "openrowset('server','connection string','query')"}});
 
-        // Do not execute this query as no lnked_server is setup. Only verify the translation for it.
-        // 24
-        // Test openrowset syntax translation with a complicated query with subqueries and limit syntax
-        qry = new Query(
-                "select * from openrowset('provider_name', 'provider_string', 'select j1.id from (select * from (select * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + " {limit 3}) j3 {limit 2}) j1 join (select j4.id from (select * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table3) + " {limit 5}) j4 join (select * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table4)
-                        + " {limit 6}) j5 on j4.id = j5.id ) j2 on j1.id = j2.id {limit 1}') {limit 1}",
-                "select TOP 1 * from openrowset('provider_name', 'provider_string', 'select TOP 1 j1.id from (select TOP 2 * from (select TOP 3 * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table1)
-                        + ") j3) j1 join (select j4.id from (select TOP 5 * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table3) + ") j4 join (select TOP 6 * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table4)
-                        + ") j5 on j4.id = j5.id ) j2 on j1.id = j2.id')",
-                1, // # of rows
-                5, // # of columns
-                new int[] {5}, // id column values
-                new int[][] {{5, 5}}, // int column value
-                new String[][] {{"openquery('server', 'query')", "openrowset('server','connection string','query')"}});
+            // Do not execute this query as no lnked_server is setup. Only verify the translation for it.
+            // 24
+            // Test openrowset syntax translation with a complicated query with subqueries and limit syntax
+            qry = new Query(
+                    "select * from openrowset('provider_name', 'provider_string', 'select j1.id from (select * from (select * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " {limit 3}) j3 {limit 2}) j1 join (select j4.id from (select * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table3) + " {limit 5}) j4 join (select * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table4)
+                            + " {limit 6}) j5 on j4.id = j5.id ) j2 on j1.id = j2.id {limit 1}') {limit 1}",
+                    "select TOP 1 * from openrowset('provider_name', 'provider_string', 'select TOP 1 j1.id from (select TOP 2 * from (select TOP 3 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + ") j3) j1 join (select j4.id from (select TOP 5 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table3) + ") j4 join (select TOP 6 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table4)
+                            + ") j5 on j4.id = j5.id ) j2 on j1.id = j2.id')",
+                    1, // # of rows
+                    5, // # of columns
+                    new int[] {5}, // id column values
+                    new int[][] {{5, 5}}, // int column value
+                    new String[][] {
+                            {"openquery('server', 'query')", "openrowset('server','connection string','query')"}});
 
-        // 25
-        // Test offset syntax in string literals
-        qry = new Query(
-                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = '{limit 1 offset 2}'",
-                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = '{limit 1 offset 2}'",
-                0, // # of rows
-                5, // # of columns
-                null, // id column values
-                null, // int column values
-                null);
-        qry.execute(conn);
+            // 25
+            // Test offset syntax in string literals
+            qry = new Query(
+                    "select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " where col3 = '{limit 1 offset 2}'",
+                    "select * from " + AbstractSQLGenerator.escapeIdentifier(table1)
+                            + " where col3 = '{limit 1 offset 2}'",
+                    0, // # of rows
+                    5, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null);
+            qry.execute(conn);
 
-        // 26
-        // Do not execute this query as it is a batch query, needs to be handled differently.
-        // Only test the syntax translation.
-        // Test batch query.
-        qry = new Query(
-                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1}; select * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 4}",
-                "select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + "; select TOP 4 * from "
-                        + AbstractSQLGenerator.escapeIdentifier(table1),
-                0, // #
-                   // of
-                   // rows
-                5, // # of columns
-                null, // id column values
-                null, // int column values
-                null);
+            // 26
+            // Do not execute this query as it is a batch query, needs to be handled differently.
+            // Only test the syntax translation.
+            // Test batch query.
+            qry = new Query(
+                    "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1}; select * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 4}",
+                    "select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + "; select TOP 4 * from "
+                            + AbstractSQLGenerator.escapeIdentifier(table1),
+                    0, // #
+                       // of
+                       // rows
+                    5, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null);
 
-        // 27
-        // Execute query, and verify exception for unclosed quotation marks.
-        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = 'abcd",
-                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = 'abcd", 0, // # of
-                                                                                                             // rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Unclosed quotation mark after the character string 'abcd'.");
-        qry.execute(conn);
+            // 27
+            // Execute query, and verify exception for unclosed quotation marks.
+            qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = 'abcd",
+                    "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " where col3 = 'abcd", 0, // # of
+                                                                                                                 // rows
+                    0, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null); // string column values
+            // Verified that SQL Server throws an exception with this message for similar errors.
+            qry.setExceptionMsg("Unclosed quotation mark after the character string 'abcd'.");
+            qry.execute(conn);
 
-        // 28
-        // Execute query, and verify exception for unclosed subquery.
-        qry = new Query("select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1}",
-                "select * from (select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1), 0, // # of rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '" + table1 + "'.");
-        qry.execute(conn);
+            // 28
+            // Execute query, and verify exception for unclosed subquery.
+            qry = new Query(
+                    "select * from (select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1}",
+                    "select * from (select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1), 0, // # of
+                                                                                                              // rows
+                    0, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null); // string column values
+            // Verified that SQL Server throws an exception with this message for similar errors.
+            qry.setExceptionMsg("Incorrect syntax near '" + table1 + "'.");
+            qry.execute(conn);
 
-        // 29
-        // Execute query, and verify exception for syntax error in select.
-        qry = new Query("selectsel * from from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1}",
-                "selectsel * from from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1}", 0, // # of rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '*'.");
-        qry.execute(conn);
-
-        // 29
-        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
-        // as limit syntax is not correct.
-        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1}",
-                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1}", 0, // # of rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '{'.");
-        qry.execute(conn);
-
-        // 30
-        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
-        // as limit syntax is not correct.
-        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit(1}",
-                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit(1}", 0, // # of
-                // rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '{'.");
-        qry.execute(conn);
-
-        // 31
-        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
-        // as limit syntax is not correct.
-        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1 offset10}",
-                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1 offset10}", 0, // # of
-                                                                                                             // rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '{'.");
-        qry.execute(conn);
-
-        // 32
-        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
-        // as limit syntax is not correct.
-        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1 offset 10}",
-                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1 offset 10}", 0, // # of
-                                                                                                             // rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '{'.");
-        qry.execute(conn);
-
-        // 33
-        // Execute query, and verify exception for limit syntax error. The translator should leave the query unchanged
-        // as limit syntax is not correct.
-        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1 offset10}",
-                "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1 offset10}", 0, // # of rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '{'.");
-        qry.execute(conn);
-
-        // 34
-        // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as
-        // limit syntax is not correct.
-        qry = new Query("insert into " + AbstractSQLGenerator.escapeIdentifier(table1) + "(col3) values({limit 1})",
-                "insert into " + AbstractSQLGenerator.escapeIdentifier(table1) + "(col3) values({limit 1})", 0, // # of
+            // 29
+            // Execute query, and verify exception for syntax error in select.
+            qry = new Query("selectsel * from from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1}",
+                    "selectsel * from from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1}", 0, // # of
                                                                                                                 // rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '1'.");
-        qry.execute(conn);
+                    0, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null); // string column values
+            // Verified that SQL Server throws an exception with this message for similar errors.
+            qry.setExceptionMsg("Incorrect syntax near '*'.");
+            qry.execute(conn);
 
-        // 35
-        // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as
-        // limit syntax is not correct.
-        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit {limit 5}}",
-                "select TOP 5 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit}", 0, // #
-                // of
-                // rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '{'.");
-        qry.execute(conn);
+            // 29
+            // Execute query, and verify exception for limit syntax error. The translator should leave the query
+            // unchanged
+            // as limit syntax is not correct.
+            qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1}",
+                    "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1}", 0, // # of rows
+                    0, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null); // string column values
+            // Verified that SQL Server throws an exception with this message for similar errors.
+            qry.setExceptionMsg("Incorrect syntax near '{'.");
+            qry.execute(conn);
 
-        // 36
-        // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as
-        // limit syntax is not correct.
-        qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1} {limit 2}",
-                "select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 2}", 0, // # of rows
-                0, // # of columns
-                null, // id column values
-                null, // int column values
-                null); // string column values
-        // Verified that SQL Server throws an exception with this message for similar errors.
-        qry.setExceptionMsg("Incorrect syntax near '{'.");
-        qry.execute(conn);
+            // 30
+            // Execute query, and verify exception for limit syntax error. The translator should leave the query
+            // unchanged
+            // as limit syntax is not correct.
+            qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit(1}",
+                    "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit(1}", 0, // # of
+                    // rows
+                    0, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null); // string column values
+            // Verified that SQL Server throws an exception with this message for similar errors.
+            qry.setExceptionMsg("Incorrect syntax near '{'.");
+            qry.execute(conn);
 
-        log.fine("Tranlsation verified for " + Query.queryCount + " queries");
+            // 31
+            // Execute query, and verify exception for limit syntax error. The translator should leave the query
+            // unchanged
+            // as limit syntax is not correct.
+            qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1 offset10}",
+                    "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1 offset10}", 0, // # of
+                                                                                                                 // rows
+                    0, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null); // string column values
+            // Verified that SQL Server throws an exception with this message for similar errors.
+            qry.setExceptionMsg("Incorrect syntax near '{'.");
+            qry.execute(conn);
+
+            // 32
+            // Execute query, and verify exception for limit syntax error. The translator should leave the query
+            // unchanged
+            // as limit syntax is not correct.
+            qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1 offset 10}",
+                    "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1 offset 10}", 0, // # of
+                                                                                                                 // rows
+                    0, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null); // string column values
+            // Verified that SQL Server throws an exception with this message for similar errors.
+            qry.setExceptionMsg("Incorrect syntax near '{'.");
+            qry.execute(conn);
+
+            // 33
+            // Execute query, and verify exception for limit syntax error. The translator should leave the query
+            // unchanged
+            // as limit syntax is not correct.
+            qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1 offset10}",
+                    "select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit1 offset10}", 0, // # of
+                                                                                                                // rows
+                    0, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null); // string column values
+            // Verified that SQL Server throws an exception with this message for similar errors.
+            qry.setExceptionMsg("Incorrect syntax near '{'.");
+            qry.execute(conn);
+
+            // 34
+            // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as
+            // limit syntax is not correct.
+            qry = new Query("insert into " + AbstractSQLGenerator.escapeIdentifier(table1) + "(col3) values({limit 1})",
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(table1) + "(col3) values({limit 1})", 0, // #
+                                                                                                                    // of
+                                                                                                                    // rows
+                    0, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null); // string column values
+            // Verified that SQL Server throws an exception with this message for similar errors.
+            qry.setExceptionMsg("Incorrect syntax near '1'.");
+            qry.execute(conn);
+
+            // 35
+            // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as
+            // limit syntax is not correct.
+            qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit {limit 5}}",
+                    "select TOP 5 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit}", 0, // #
+                    // of
+                    // rows
+                    0, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null); // string column values
+            // Verified that SQL Server throws an exception with this message for similar errors.
+            qry.setExceptionMsg("Incorrect syntax near '{'.");
+            qry.execute(conn);
+
+            // 36
+            // Execute query, and verify exception for syntax error. The translator should leave the query unchanged as
+            // limit syntax is not correct.
+            qry = new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 1} {limit 2}",
+                    "select TOP 1 * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit 2}", 0, // # of
+                                                                                                              // rows
+                    0, // # of columns
+                    null, // id column values
+                    null, // int column values
+                    null); // string column values
+            // Verified that SQL Server throws an exception with this message for similar errors.
+            qry.setExceptionMsg("Incorrect syntax near '{'.");
+            qry.execute(conn);
+
+            log.fine("Tranlsation verified for " + Query.queryCount + " queries");
+        }
     }
 
     /**
@@ -851,8 +874,8 @@ public class LimitEscapeTest extends AbstractTest {
         // Test the parsing error with unmatched braces in limit clause
         try {
             // Do not execute query. Exception will be thrown when verifying translation.
-            new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit (2))}",
-                    "", 0, // # of rows
+            new Query("select * from " + AbstractSQLGenerator.escapeIdentifier(table1) + " {limit (2))}", "", 0, // # of
+                                                                                                                 // rows
                     0, // # of columns
                     null, // id column values
                     null, // int column values
@@ -869,11 +892,10 @@ public class LimitEscapeTest extends AbstractTest {
      */
     @BeforeAll
     public static void beforeAll() {
-        try {
-            conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = getConnection()) {
             createAndPopulateTables(conn);
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -884,8 +906,7 @@ public class LimitEscapeTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws Exception {
-
-        try (Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
@@ -893,10 +914,6 @@ public class LimitEscapeTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
         } catch (Exception ex) {
             fail(ex.toString());
-        } finally {
-            conn.close();
         }
-
     }
-
 }

@@ -5,7 +5,6 @@
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -21,6 +20,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -53,7 +53,7 @@ public class BulkCopyAllTypesTest extends AbstractTest {
             Integer resultSetConcurrency) throws SQLException {
         setupVariation();
 
-        try (Connection connnection = DriverManager
+        try (Connection connnection = PrepUtil
                 .getConnection(connectionString + (setSelectMethod ? ";selectMethod=cursor;" : ""));
                 Statement statement = (null != resultSetType || null != resultSetConcurrency) ? connnection
                         .createStatement(resultSetType, resultSetConcurrency) : connnection.createStatement();
@@ -85,7 +85,7 @@ public class BulkCopyAllTypesTest extends AbstractTest {
     }
 
     private void terminateVariation() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
 
             TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
             TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);

@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -26,6 +25,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -46,8 +46,7 @@ public class CallableStatementTest extends AbstractTest {
     @BeforeAll
     public static void setupTest() throws SQLException {
 
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
@@ -173,9 +172,7 @@ public class CallableStatementTest extends AbstractTest {
      */
     @AfterAll
     public static void cleanup() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
-
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
@@ -186,7 +183,7 @@ public class CallableStatementTest extends AbstractTest {
     private static void createGUIDStoredProcedure(Statement stmt) throws SQLException {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID)
                 + "(@p1 uniqueidentifier OUTPUT) AS SELECT @p1 = c1 FROM "
-                + AbstractSQLGenerator.escapeIdentifier(tableNameGUID) + ";";
+                + AbstractSQLGenerator.escapeIdentifier(tableNameGUID) + Constants.SEMI_COLON;
         stmt.execute(sql);
     }
 

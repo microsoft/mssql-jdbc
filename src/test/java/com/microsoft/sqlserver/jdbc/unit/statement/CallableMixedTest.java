@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -42,8 +41,7 @@ public class CallableMixedTest extends AbstractTest {
     @Test
     @DisplayName("Test CallableMix")
     public void datatypesTest() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement statement = connection.createStatement();) {
+        try (Connection connection = getConnection(); Statement statement = connection.createStatement();) {
 
             statement.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (c1_int int primary key, col2 int)");

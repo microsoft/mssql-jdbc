@@ -8,13 +8,11 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
@@ -44,7 +42,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 public class BatchExecuteWithErrorsTest extends AbstractTest {
 
     public static final Logger log = Logger.getLogger("BatchExecuteWithErrors");
-    Connection con = null;
+
     final String tableName = RandomUtil.getIdentifier("t_Repro47239");
     final String insertStmt = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
             + " VALUES (999, 'HELLO', '4/12/1994')";
@@ -52,6 +50,10 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
     final String select = "SELECT 1";
     final String dateConversionError = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
             + " values (999999, 'Hello again', 'asdfasdf')";
+
+    String warning;
+    String error;
+    String severe;
 
     /**
      * Batch test
@@ -88,18 +90,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
     }
 
     private void Repro47239Internal(String mode) throws Exception {
-        final String tableName = RandomUtil.getIdentifier("t_Repro47239");
-        final String insertStmt = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                + " VALUES (999, 'HELLO', '4/12/1994')";
-        final String error16 = "RAISERROR ('raiserror level 16',16,42)";
-        final String select = "SELECT 1";
-        final String dateConversionError = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                + " values (999999, 'Hello again', 'asdfasdf')";
-
-        String warning;
-        String error;
-        String severe;
-        try (Connection con = DriverManager.getConnection(connectionString)) {
+        try (Connection con = getConnection()) {
             if (isSqlAzure()) {
                 // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have
                 // not
@@ -129,13 +120,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         int[] expectedUpdateCounts;
         String actualExceptionText;
 
-        // SQL Server 2005 driver
-        try {
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        } catch (ClassNotFoundException e1) {
-            fail(e1.toString());
-        }
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = getConnection()) {
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI((SQLServerConnection) conn);
             }
@@ -306,22 +291,17 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
                 }
             }
         } finally {
-            try (Connection conn = DriverManager.getConnection(connectionString);
-                    Statement stmt = conn.createStatement()) {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
             }
         }
     }
 
     private void Repro47239largeInternal(String mode) throws Exception {
-
         assumeTrue("JDBC42".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                 TestResource.getResource("R_incompatJDBC"));
         // the DBConnection for detecting whether the server is SQL Azure or SQL Server.
-        try (Connection con = DriverManager.getConnection(connectionString)) {
-            final String warning;
-            final String error;
-            final String severe;
+        try (Connection con = getConnection()) {
             if (isSqlAzure()) {
                 // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have
                 // not
@@ -351,10 +331,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             long[] expectedUpdateCounts;
             String actualExceptionText;
 
-            // SQL Server 2005 driver
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-
-            try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (Connection conn = getConnection()) {
                 if (mode.equalsIgnoreCase("bulkcopy")) {
                     modifyConnectionForBulkCopyAPI((SQLServerConnection) conn);
                 }
