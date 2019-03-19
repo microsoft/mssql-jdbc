@@ -21,6 +21,8 @@ import java.sql.Timestamp;
 import java.text.DateFormatSymbols;
 import java.text.MessageFormat;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.EnumSet;
 import java.util.GregorianCalendar;
@@ -884,51 +886,16 @@ public class DataTypesTest extends AbstractTest {
             return dto;
         }
 
-        private final DateTimeOffset initExpected(String stringValue, int fractionalSecondsDigits) {
-            int lastColon = stringValue.lastIndexOf(':');
+        private final DateTimeOffset initExpected(String stringValue, int nanos, int minutesOffset) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDateTime dateTime = LocalDateTime.parse(stringValue, formatter);
 
-            String offsetString = stringValue.substring(lastColon - 3);
-            int minutesOffset = 60 * Integer.valueOf(offsetString.substring(1, 3))
-                    + Integer.valueOf(offsetString.substring(4, 6));
-
-            if (offsetString.startsWith("-"))
-                minutesOffset = -minutesOffset;
-
-            String timestampString = stringValue.substring(0, lastColon - 4);
-            int year = Integer.valueOf(timestampString.substring(0, 4));
-            int month = Integer.valueOf(timestampString.substring(5, 7));
-            int day = Integer.valueOf(timestampString.substring(8, 10));
-            int hour = Integer.valueOf(timestampString.substring(11, 13));
-            int minute = Integer.valueOf(timestampString.substring(14, 16));
-            int second = Integer.valueOf(timestampString.substring(17, 19));
-
-            int nanos = (19 == timestampString.indexOf('.')) ? (new BigDecimal(timestampString.substring(19)))
-                    .scaleByPowerOfTen(9).intValue() : 0;
-
-            Calendar cal = Calendar.getInstance(Locale.US);
-            cal.set(Calendar.ZONE_OFFSET, 1000 * 60 * minutesOffset);
-            cal.set(Calendar.DST_OFFSET, 0);
-            cal.set(Calendar.YEAR, year);
-            cal.set(Calendar.MONTH, month - 1);
-            cal.set(Calendar.DAY_OF_MONTH, day);
-            cal.set(Calendar.HOUR_OF_DAY, hour);
-            cal.set(Calendar.MINUTE, minute);
-            cal.set(Calendar.SECOND, second);
-
-            Timestamp timestamp = new Timestamp(cal.getTimeInMillis());
-            timestamp.setNanos(nanos);
-
-            return DateTimeOffset.valueOf(timestamp, minutesOffset);
+            return DateTimeOffset.valueOf(Timestamp.valueOf(dateTime), minutesOffset);
         }
 
-        DateTimeOffsetValue(String stringValue) {
+        DateTimeOffsetValue(String stringValue, int nanos, int minutesOffset) {
             super(SQLType.datetimeoffset, stringValue);
-            dto = initExpected(stringValue, -1);
-        }
-
-        DateTimeOffsetValue(String stringValue, int fractionalSecondsDigits) {
-            super(SQLType.datetimeoffset, stringValue);
-            dto = initExpected(stringValue, fractionalSecondsDigits);
+            dto = initExpected(stringValue, nanos, minutesOffset);
         }
 
         private Date expectedDate() {
@@ -1006,19 +973,19 @@ public class DataTypesTest extends AbstractTest {
     enum TestValue {
         POST_GREGORIAN_DATETIME2(new DateTime2Value("1582-10-25 15:07:09.0810000")),
 
-        PRE_GREGORIAN_DTO_VALUE(new DateTimeOffsetValue("1414-01-05 00:00:00.0000000 -08:00")),
+        PRE_GREGORIAN_DTO_VALUE(new DateTimeOffsetValue("1414-01-05 00:00:00", 0, -480)),
 
         PRE_GREGORIAN_DATETIME2_VALUE(new DateTime2Value("1414-01-05 00:00:00.0000000")),
 
-        ANOTHER_TEST(new DateTimeOffsetValue("3431-04-13 15:23:32.7954829 -05:32")),
+        ANOTHER_TEST(new DateTimeOffsetValue("3431-04-13 15:23:32", 7954829, -332)),
 
         BOA_VISTA(new DateTime2Value("6854-01-27 04:39:54.86772", 5, "America/Boa_Vista")),
 
-        NEGATIVE_OFFSET(new DateTimeOffsetValue("3431-04-13 21:42:14.7954829 -05:32")),
+        NEGATIVE_OFFSET(new DateTimeOffsetValue("3431-04-13 21:42:14", 7954829, -332)),
 
         SOMETIME(new TimeValue("11:58:31.456789", 6)),
 
-        THE_LAST_MILLISECOND_WITH_TIME_ZONE(new DateTimeOffsetValue("9999-12-31 23:59:59.9999999 +14:00")),
+        THE_LAST_MILLISECOND_WITH_TIME_ZONE(new DateTimeOffsetValue("9999-12-31 23:59:59", 9999999, 840)),
 
         COMMON_ERA_FIRST_DAY(new DateValue("0001-01-01")),
 
@@ -1053,7 +1020,7 @@ public class DataTypesTest extends AbstractTest {
 
         DATETIME2_4(new DateTime2Value("2009-10-20 11:58:31.1234", 4)),
 
-        DATETIMEOFFSET(new DateTimeOffsetValue("2009-10-20 11:58:31.1230000 +07:00"));
+        DATETIMEOFFSET(new DateTimeOffsetValue("2009-10-20 11:58:31", 1230000 ,420));
 
         final SQLValue sqlValue;
 

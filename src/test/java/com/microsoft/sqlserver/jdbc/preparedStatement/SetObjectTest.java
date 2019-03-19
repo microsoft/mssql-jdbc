@@ -42,7 +42,7 @@ public class SetObjectTest extends AbstractTest {
     @Test
     public void testSetObjectWithOffsetDateTime() throws SQLException {
         try (Connection con = DriverManager.getConnection(connectionString)) {
-            final String testValue = "2018-01-02T11:22:33.123456700+12:34";
+            final String testValue = "2018-01-02T11:22:33.123456700-12:34";
             final String testValue2 = "2018-01-02T11:22:33Z";
             Instant ist = Instant.parse(testValue2);
             ist = ist.plusNanos(123456700);
@@ -57,7 +57,7 @@ public class SetObjectTest extends AbstractTest {
                         pstmt.executeUpdate();
                         
                         pstmt.setInt(1, 2);
-                        pstmt.setObject(2, DateTimeOffset.valueOf(Timestamp.from(ist), 754));
+                        pstmt.setObject(2, DateTimeOffset.valueOf(Timestamp.from(ist), -754));
                         pstmt.executeUpdate();
                     }
 

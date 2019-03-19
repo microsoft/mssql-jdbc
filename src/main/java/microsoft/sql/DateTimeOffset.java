@@ -127,7 +127,7 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
             // Like java.sql.Date.toString() and java.sql.Timestamp.toString(), DateTimeOffset.toString() produces
             // a value that is not locale-sensitive. The date part of the returned string is a Gregorian date, even
             // if the VM default locale would otherwise indicate that a Buddhist calendar should be used.
-            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT+0"), Locale.US);
+            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT" + formattedOffset), Locale.US);
 
             // Initialize the calendar with the UTC milliseconds value represented by this DateTimeOffset object
             calendar.setTimeInMillis(utcMillis);
@@ -221,7 +221,7 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
      */
     public java.time.OffsetDateTime getOffsetDateTime() {
         java.time.ZoneOffset zoneOffset = java.time.ZoneOffset.ofTotalSeconds(60 * minutesOffset);
-        java.time.LocalDateTime localDateTime = java.time.LocalDateTime.ofEpochSecond((utcMillis - (minutesOffset * 60 * 1000)) / 1000, nanos,
+        java.time.LocalDateTime localDateTime = java.time.LocalDateTime.ofEpochSecond(utcMillis / 1000, nanos,
                 zoneOffset);
         return java.time.OffsetDateTime.of(localDateTime, zoneOffset);
     }
