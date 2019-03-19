@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -60,9 +59,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final long NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED = 0x00002000;
     private static final long NTLMSSP_NEGOTIATE_TARGET_INFO = 0x00800000;
 
-    // sent by server
-    private static final long NTLMSSP_TARGET_TYPE_DOMAIN = 0x00010000;
-    private static final long NTLMSSP_TARGET_TYPE_SERVER = 0x00020000;
+    // this is not specified in NTLM spec but is required for server to verify MIC!!
+    static final long NTLMSSP_NEGOTIATE_ALWAYS_SIGN = 0x00008000;
 
     // AV ids
     private static final short NTLM_AVID_MSVAVEOL = 0x0000;
@@ -101,18 +99,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
     // Filetime timestamp length
     private static final int NTLM_TIMESTAMP_LENGTH = 8;
 
-    class AVPair {
-        private final int id;
-        private final int len;
-        private final byte[] value;
-
-        AVPair(int id, int len, byte[] value) {
-            this.id = id;
-            this.len = len;
-            this.value = value;
-        }
-    }
-
     /*
      * NTLM Context
      */
@@ -133,8 +119,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // message authentication code
         private Mac mac = null;
 
-        //
+        // NTLMv2 hash
         byte[] responseKeyNT = null;
+
+        // session key calculated from user's password
+        byte[] sessionBaseKey = null;
 
         // FileTime timestamp - number of 100 nanosecond ticks since Windows Epoch time
         byte[] timestamp = new byte[NTLM_TIMESTAMP_LENGTH];
@@ -149,7 +138,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         private byte[] serverChallenge = new byte[NTLM_SERVER_CHALLENGE_LENGTH];
 
         // concatenated message buffer - for calculating MIC
-        private ByteArrayOutputStream concatByteStream = new ByteArrayOutputStream();
+        private byte[] concatMsgs = null;
 
         NTLMContext(SQLServerConnection con, String serverName, String domainName,
                 String workstation) throws NoSuchAlgorithmException {
@@ -313,8 +302,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
             throw new SQLServerException(SQLServerException.getErrString("R_ntlmNoTimestamp"), null);
         }
 
-        // save this for calculating MIC later
-        context.concatByteStream.write(inToken);
+        // for calculating MIC later
+        byte[] temp = new byte[context.concatMsgs.length + inToken.length];
+        System.arraycopy(context.concatMsgs, 0, temp, 0, context.concatMsgs.length);
+        System.arraycopy(inToken, 0, temp, context.concatMsgs.length, inToken.length);
+        context.concatMsgs = temp;
     }
 
     /*
@@ -388,9 +380,12 @@ final class NTLMAuthentication extends SSPIAuthentication {
         newTargetInfo.put(context.targetInfo, 0, context.targetInfo.length - 4);
 
         // MIC flag
-        newTargetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
-        newTargetInfo.putShort((short) 4);
-        newTargetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
+        // TODO: add to include MIC
+        /*
+         newTargetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
+         newTargetInfo.putShort((short) 4);
+         newTargetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
+        */
 
         // EOL
         newTargetInfo.putShort(NTLM_AVID_MSVAVEOL);
@@ -441,7 +436,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
         if (null != context.responseKeyNT) {
             return context.responseKeyNT;
         }
-        return hmacMD5(MD4(unicode(password)), unicode(context.userName.toUpperCase() + context.domainName));
+        context.responseKeyNT = hmacMD5(MD4(unicode(password)),
+                unicode(context.userName.toUpperCase() + context.domainName));
+        return context.responseKeyNT;
     }
 
     /*
@@ -463,7 +460,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
             byte[] clientChallenge) throws NoSuchAlgorithmException, InvalidKeyException {
 
         int len = clientChallenge.length;
-        System.out.println("client challenge length: " + len);
         // concatenate client and server challenge
         byte[] temp = new byte[NTLM_SERVER_CHALLENGE_LENGTH + len];
         System.arraycopy(context.serverChallenge, 0, temp, 0, NTLM_SERVER_CHALLENGE_LENGTH);
@@ -471,6 +467,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         byte[] ntProofStr = hmacMD5(key, temp);
         int ntProofStrLen = ntProofStr.length;
+
+        context.sessionBaseKey = hmacMD5(context.responseKeyNT, ntProofStr);
 
         byte[] ntlmv2resp = new byte[ntProofStr.length + len];
         System.arraycopy(ntProofStr, 0, ntlmv2resp, 0, ntProofStrLen);
@@ -556,9 +554,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
             context.token.putInt(offset);
 
             // same negotiate flags sent before
-            context.token
-                    .putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
-                            | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_TARGET_INFO | NTLMSSP_NEGOTIATE_UNICODE));
+            context.token.putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED
+                    | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_TARGET_INFO
+                    | NTLMSSP_NEGOTIATE_UNICODE | NTLMSSP_NEGOTIATE_ALWAYS_SIGN));
 
             // version not requested
 
@@ -574,12 +572,14 @@ final class NTLMAuthentication extends SSPIAuthentication {
             context.token.put(lmChallengeResp, 0, lmChallengeResp.length);
             context.token.put(ntChallengeResp, 0, ntChallengeResp.length);
 
-            // MIC is calculated by concatenating of all 3 msgs with 0'd MIC
-            // then hmac_md5(responseKeyNT, concat of negotiate, challenge and auth msg
+            // MIC is calculated by concatenating of all 3 msgs with 0 MIC
+            // then hmacMD5 of ExportedSessionKey and concat of the 3 msgs
+            // TODO: verify
             byte[] msg = context.token.array();
-            context.concatByteStream.write(msg);
-            System.arraycopy(hmacMD5(context.responseKeyNT, context.concatByteStream.toByteArray()), 0, mic, 0,
-                    NTLM_MIC_LENGTH);
+            byte[] temp = new byte[context.concatMsgs.length + msg.length];
+            System.arraycopy(context.concatMsgs, 0, temp, 0, context.concatMsgs.length);
+            System.arraycopy(msg, 0, temp, context.concatMsgs.length, msg.length);
+            System.arraycopy(hmacMD5(context.sessionBaseKey, temp), 0, mic, 0, NTLM_MIC_LENGTH);
 
             System.arraycopy(mic, 0, msg, NTLM_AUTHENTICATE_MIC_OFFSET, NTLM_MIC_LENGTH);
         } catch (Exception e) {
@@ -627,9 +627,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.put(context.domainBytes, 0, context.domainBytes.length);
         context.token.put(context.workstationBytes, 0, context.workstationBytes.length);
 
-        // save this for calculating MIC later
+        // for calculating MIC later
         byte[] msg = context.token.array();
-        context.concatByteStream.write(msg);
+        context.concatMsgs = new byte[msg.length];
+        System.arraycopy(msg, 0, context.concatMsgs, 0, msg.length);
+
         return msg;
     }
 }
