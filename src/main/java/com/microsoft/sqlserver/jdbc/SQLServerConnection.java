@@ -845,6 +845,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     Properties activeConnectionProperties; // the active set of connection properties
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
+    private boolean ntlmAuthentication = false;
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
     private GSSCredential ImpersonatedUserCred;
     private Boolean isUserCreatedCredential;
@@ -1569,6 +1570,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     ImpersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
                     isUserCreatedCredential = true;
                 }
+            } else if (intAuthScheme == AuthenticationScheme.ntlm) {
+                String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
+                String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
+                String domainName = sPropValueDomain;
+                // domain and no user or password
+                if (activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
+                        || activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
+                                .isEmpty()) {
+
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(
+                                toString() + " " + SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"));
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"), null);
+
+                }
+                ntlmAuthentication = true;
             }
 
             sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
@@ -1904,6 +1922,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
             String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
+            String domainNameProperty = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
             String failOverPartnerProperty = SQLServerDriverStringProperty.FAILOVER_PARTNER.toString();
             String failOverPartnerPropertyValue = activeConnectionProperties.getProperty(failOverPartnerProperty);
 
@@ -1947,7 +1966,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 mirror = failOverPartnerPropertyValue;
 
             long startTime = System.currentTimeMillis();
-            login(activeConnectionProperties.getProperty(serverNameProperty), instanceValue, nPort, mirror, fo,
+            login(activeConnectionProperties.getProperty(serverNameProperty),
+                    activeConnectionProperties.getProperty(domainNameProperty), instanceValue, nPort, mirror, fo,
                     loginTimeoutSeconds, startTime);
 
             // If SSL is to be used for the duration of the connection, then make sure
@@ -1992,8 +2012,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * provide us with its FO partner. If no FO information is available a standard connection is made. If the server
      * returns a failover upon connection, we shall store the FO in our cache.
      */
-    private void login(String primary, String primaryInstanceName, int primaryPortNumber, String mirror,
-            FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
+    private void login(String primary, String domainName, String primaryInstanceName, int primaryPortNumber,
+            String mirror, FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
         final boolean isDBMirroring = null != mirror || null != foActual;
@@ -2080,7 +2100,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         currentPrimaryPlaceHolder = routingInfo;
                         routingInfo = null;
                     } else if (null == currentPrimaryPlaceHolder) {
-                        currentPrimaryPlaceHolder = primaryPermissionCheck(primary, primaryInstanceName,
+                        currentPrimaryPlaceHolder = primaryPermissionCheck(primary, domainName, primaryInstanceName,
                                 primaryPortNumber);
                     }
                     currentConnectPlaceHolder = currentPrimaryPlaceHolder;
@@ -2338,7 +2358,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     // This code should be similar to the code in FailOverInfo class's failoverPermissionCheck
     // Only difference is that this gets the instance port if the port number is zero where as failover
     // does not have port number available.
-    ServerPortPlaceHolder primaryPermissionCheck(String primary, String primaryInstanceName,
+    ServerPortPlaceHolder primaryPermissionCheck(String primary, String domainName, String primaryInstanceName,
             int primaryPortNumber) throws SQLServerException {
         String instancePort;
         // look to see primary port number is specified
@@ -2373,7 +2393,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // now we have determined the right port set the connection property back
         activeConnectionProperties.setProperty(SQLServerDriverIntProperty.PORT_NUMBER.toString(),
                 String.valueOf(primaryPortNumber));
-        return new ServerPortPlaceHolder(primary, primaryPortNumber, primaryInstanceName, integratedSecurity);
+        return new ServerPortPlaceHolder(primary, domainName, primaryPortNumber, primaryInstanceName,
+                integratedSecurity);
     }
 
     static boolean timerHasExpired(long timerExpire) {
@@ -3642,16 +3663,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private void logon(LogonCommand command) throws SQLServerException {
         SSPIAuthentication authentication = null;
-        if (integratedSecurity && AuthenticationScheme.nativeAuthentication == intAuthScheme)
-            authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(),
-                    currentConnectPlaceHolder.getPortNumber());
-        if (integratedSecurity && AuthenticationScheme.javaKerberos == intAuthScheme) {
-            if (null != ImpersonatedUserCred) {
-                authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
-                        currentConnectPlaceHolder.getPortNumber(), ImpersonatedUserCred, isUserCreatedCredential);
-            } else
-                authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
+
+        if (integratedSecurity) {
+            if (AuthenticationScheme.nativeAuthentication == intAuthScheme) {
+                authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(),
                         currentConnectPlaceHolder.getPortNumber());
+            } else if (AuthenticationScheme.javaKerberos == intAuthScheme) {
+                if (null != ImpersonatedUserCred) {
+                    authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
+                            currentConnectPlaceHolder.getPortNumber(), ImpersonatedUserCred, isUserCreatedCredential);
+                } else
+                    authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
+                            currentConnectPlaceHolder.getPortNumber());
+            } else if (ntlmAuthentication) {
+                authentication = new NTLMAuthentication(this, currentConnectPlaceHolder.getServerName(),
+                        currentConnectPlaceHolder.getDomainName(), hostName);
+            }
         }
 
         // If the workflow being used is Active Directory Password or Active Directory Integrated and server's prelogin
@@ -3691,7 +3718,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } finally {
             if (integratedSecurity) {
                 if (null != authentication) {
-                    authentication.ReleaseClientContext();
+                    authentication.releaseClientContext();
                     authentication = null;
                 }
                 if (null != ImpersonatedUserCred) {
@@ -4725,7 +4752,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // required then we will start it after we finish processing the
                 // rest of this response.
                 boolean[] done = {false};
-                secBlobOut = auth.GenerateClientContext(ack.sspiBlob, done);
+                secBlobOut = auth.generateClientContext(ack.sspiBlob, done);
                 return true;
             }
 
@@ -4797,7 +4824,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         byte[] secBlob = new byte[0];
         boolean[] done = {false};
         if (null != authentication) {
-            secBlob = authentication.GenerateClientContext(secBlob, done);
+            secBlob = authentication.generateClientContext(secBlob, done);
             sUser = null;
             sPwd = null;
         }
@@ -4834,7 +4861,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         TDSWriter tdsWriter = logonCommand.startRequest(TDS.PKT_LOGON70);
 
         int len2 = TDS_LOGIN_REQUEST_BASE_LEN + hostnameBytes.length + appNameBytes.length + serverNameBytes.length
-                + interfaceLibNameBytes.length + databaseNameBytes.length + secBlob.length + 4;// AE is always on;
+                + interfaceLibNameBytes.length + databaseNameBytes.length + ((secBlob != null) ? secBlob.length : 0)
+                + 4;// AE is always on;
 
         // only add lengths of password and username if not using SSPI or requesting federated authentication info
         if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
@@ -4857,6 +4885,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // Length of entire Login 7 packet
         tdsWriter.writeInt(len2);
+
         tdsWriter.writeInt(tdsVersion);
         tdsWriter.writeInt(requestedPacketSize);
         tdsWriter.writeBytes(interfaceLibVersionBytes); // writeBytes() is little endian
@@ -4873,11 +4902,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 TDS.LOGIN_OPTION1_SET_LANG_ON // Warn on SET LANGUAGE stmt
         ));
 
-        tdsWriter.writeByte((byte) ( // OptionFlags2:
-        TDS.LOGIN_OPTION2_INIT_LANG_FATAL | // Fail connection if initial language change fails
+        // OptionFlags2:
+        tdsWriter.writeByte((byte) (TDS.LOGIN_OPTION2_INIT_LANG_FATAL | // Fail connection if initial language change
+                                                                        // fails
                 TDS.LOGIN_OPTION2_ODBC_ON | // Use ODBC defaults (ANSI_DEFAULTS ON, IMPLICIT_TRANSACTIONS OFF, TEXTSIZE
                                             // inf, ROWCOUNT inf)
-                (integratedSecurity ? // Use integrated security if requested
+                (integratedSecurity ? // integrated security if integratedSecurity requested
                                     TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_ON
                                     : TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_OFF)));
 
@@ -4912,9 +4942,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.writeShort((short) ((hostName != null && !hostName.isEmpty()) ? hostName.length() : 0));
         dataLen += hostnameBytes.length;
 
-        // Only send user/password over if not fSSPI or fed auth ADAL... If both user/password and SSPI are in login
-        // rec, only SSPI is used.
-        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        // Only send user/password over if not NTLM or fSSPI or fed auth ADAL... If both user/password and SSPI are in
+        // login rec, only SSPI is used.
+        if (ntlmAuthentication) {
+            tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+            tdsWriter.writeShort((short) (0));
+            tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+            tdsWriter.writeShort((short) (0));
+
+        } else if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
             // User and Password
             tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
             tdsWriter.writeShort((short) (sUser == null ? 0 : sUser.length()));
@@ -4991,7 +5027,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsWriter.writeShort((short) 0);
 
             // TDS 7.2: 32-bit SSPI byte count (used if 16 bits above were not sufficient)
-            if (USHRT_MAX <= secBlob.length)
+            if (null != secBlob && USHRT_MAX <= secBlob.length)
                 tdsWriter.writeInt(secBlob.length);
             else
                 tdsWriter.writeInt((short) 0);
@@ -4999,13 +5035,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         tdsWriter.writeBytes(hostnameBytes);
 
-        // Don't allow user credentials to be logged
-        tdsWriter.setDataLoggable(false);
-
-        // if we are using SSPI or fed auth ADAL, do not send over username/password, since we will use SSPI instead
+        // if we are using NTLM or SSPI or fed auth ADAL, do not send over username/password, since we will use SSPI
+        // instead
         if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
             tdsWriter.writeBytes(userBytes); // Username
-            tdsWriter.writeBytes(passwordBytes); // Password (encrapted)
+            tdsWriter.writeBytes(passwordBytes); // Password (encrypted)
         }
         tdsWriter.setDataLoggable(true);
 
@@ -5022,8 +5056,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // Don't allow user credentials to be logged
         tdsWriter.setDataLoggable(false);
-        if (integratedSecurity)
+
+        // SSPI data
+        if (integratedSecurity) {
             tdsWriter.writeBytes(secBlob, 0, secBlob.length);
+        }
 
         // AE is always ON
         {
@@ -6241,31 +6278,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
     }
-    
+
     /*
-     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
-     * It should return 6 for SQL Azure DW. This is more reliable than @@version or
-     * serverproperty('edition').
-     * Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
-     * 
-     * SERVERPROPERTY('EngineEdition') means
-     * Database Engine edition of the instance of SQL Server installed on the server.
-     * 1 = Personal or Desktop Engine (Not available for SQL Server.)
-     * 2 = Standard (This is returned for Standard and Workgroup.)
-     * 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
-     * 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
-     * 5 = SQL Azure
-     * 6 = SQL Azure DW
-     * 8 = Managed Instance
-     * Base data type: int
+     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure. It should return 6
+     * for SQL Azure DW. This is more reliable than @@version or serverproperty('edition'). Reference:
+     * http://msdn.microsoft.com/en-us/library/ee336261.aspx SERVERPROPERTY('EngineEdition') means Database Engine
+     * edition of the instance of SQL Server installed on the server. 1 = Personal or Desktop Engine (Not available for
+     * SQL Server.) 2 = Standard (This is returned for Standard and Workgroup.) 3 = Enterprise (This is returned for
+     * Enterprise, Enterprise Evaluation, and Developer.) 4 = Express (This is returned for Express, Express with
+     * Advanced Services, and Windows Embedded SQL.) 5 = SQL Azure 6 = SQL Azure DW 8 = Managed Instance Base data type:
+     * int
      */
     boolean isAzure() {
         if (null == isAzure) {
-            try (Statement stmt = this.createStatement(); ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+            try (Statement stmt = this.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
                 rs.next();
 
                 int engineEdition = rs.getInt(1);
-                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
+                        || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW
+                        || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
                 isAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
                 isAzureMI = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
 

@@ -73,7 +73,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
                     SQLServerException.getErrString("R_notConfiguredForIntegrated"), linkError);
 
         this.con = con;
-        DNSName = GetDNSName(address);
+        DNSName = getDNSName(address);
         port = serverport;
     }
 
@@ -85,7 +85,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
     }
 
     // InitDNSName should be called to initialize the DNSName before calling this function
-    byte[] GenerateClientContext(byte[] pin, boolean[] done) throws SQLServerException {
+    byte[] generateClientContext(byte[] pin, boolean[] done) throws SQLServerException {
         byte[] pOut;
         int[] outsize; // This is where the size of the filled data returned
         outsize = new int[1];
@@ -111,7 +111,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
         return output;
     }
 
-    /* L0 */ int ReleaseClientContext() {
+    int releaseClientContext() {
         int success = 0;
         if (sniSecLen[0] > 0) {
             success = SNISecReleaseClientContext(sniSec, sniSecLen[0], authLogger);
@@ -122,7 +122,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
     // note we handle the failures of the GetDNSName in this function, this function will return an empty string if the
     // underlying call fails.
-    private static String GetDNSName(String address) {
+    private static String getDNSName(String address) {
         String DNS[] = new String[1];
         if (GetDNSName(address, DNS, authLogger) != 0) {
             // Simply initialize the DNS to address
@@ -134,12 +134,11 @@ final class AuthenticationJNI extends SSPIAuthentication {
     // we use arrays of size one in many places to retrieve output values
     // Java Integer objects are immutable so we cant use them to get the output sizes.
     // Same for String
-    /* L0 */private native static int SNISecGenClientContext(byte[] psec, int[] secptrsize, byte[] pin, int insize,
-            byte[] pOut, int[] outsize, boolean[] done, String servername, int port, String username, String password,
+    private native static int SNISecGenClientContext(byte[] psec, int[] secptrsize, byte[] pin, int insize, byte[] pOut,
+            int[] outsize, boolean[] done, String servername, int port, String username, String password,
             java.util.logging.Logger log);
 
-    /* L0 */ private native static int SNISecReleaseClientContext(byte[] psec, int secptrsize,
-            java.util.logging.Logger log);
+    private native static int SNISecReleaseClientContext(byte[] psec, int secptrsize, java.util.logging.Logger log);
 
     private native static int SNISecInitPackage(int[] pcbMaxToken, java.util.logging.Logger log);
 

@@ -21,6 +21,9 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.logging.Logger;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -71,22 +74,10 @@ public class TestUtils {
     private static Boolean isAzureDW = null;
     private static Boolean isAzureMI = null;
 
-    /*
-     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
-     * It should return 6 for SQL Azure DW. This is more reliable than @@version or
-     * serverproperty('edition').
-     * Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
+    /**
+     * Returns serverType
      * 
-     * SERVERPROPERTY('EngineEdition') means
-     * Database Engine edition of the instance of SQL Server installed on the server.
-     * 1 = Personal or Desktop Engine (Not available for SQL Server.)
-     * 2 = Standard (This is returned for Standard and Workgroup.)
-     * 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
-     * 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
-     * 5 = SQL Azure
-     * 6 = SQL Azure DW
-     * 8 = Managed Instance
-     * Base data type: int
+     * @return
      */
     public static boolean isAzure(Connection con) {
         if (null == isAzure) {
@@ -106,8 +97,8 @@ public class TestUtils {
             return isAzure;
         } else {
             return isAzure;
+            }
         }
-    }
 
     public static boolean isAzureDW(Connection con) {
         isAzure(con);
@@ -696,5 +687,22 @@ public class TestUtils {
      */
     public static String escapeSingleQuotes(String name) {
         return name.replace("'", "''");
+    }
+
+    public static final ResourceBundle rBundle = getDefaultLocaleBundle();
+
+    /**
+     * Returns the root bundle. This is the bundle from SQLServerResource.java - the English version that gets updated
+     * in development process.
+     *
+     * @return root bundle.
+     */
+    private static ResourceBundle getDefaultLocaleBundle() {
+        return ResourceBundle.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource", Locale.getDefault());
+    }
+
+    public static String formatErrorMsg(String s) {
+        // Creates a regex where all '{#}' fields will return true for any value when calling match()
+        return ("\\Q" + TestUtils.rBundle.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
     }
 }

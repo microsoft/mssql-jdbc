@@ -877,6 +877,17 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue());
     }
 
+    @Override
+    public void setDomain(String domain) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN_NAME.toString(), domain);
+    }
+
+    @Override
+    public String getDomain() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN_NAME.toString(),
+                SQLServerDriverStringProperty.DOMAIN_NAME.getDefaultValue());
+    }
+
     /**
      * Sets a property string value.
      * 
