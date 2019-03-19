@@ -639,13 +639,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         arguments[1] = schema;
         arguments[2] = catalog;
         arguments[3] = column;
-        arguments[4] = "2"; // give information about everything including
-                            // sparse columns
+        arguments[4] = "2"; // give information about everything including sparse columns
         arguments[5] = "3"; // odbc version
 
-        SQLServerResultSet rs;
-        rs = getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_COLUMNS, arguments,
+        SQLServerResultSet rs = getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_COLUMNS, arguments,
                 getColumnsColumnNamesKatmai);
+        
         // Hook in a filter on the DATA_TYPE column of the result set we're
         // going to return that converts the ODBC values from sp_columns
         // into JDBC values.
@@ -1403,8 +1402,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         checkClosed();
 
-        SQLServerResultSet rs;
-        rs = getResultSetFromInternalQueries(null, "sp_datatype_info_100 @ODBCVer=3");
+        SQLServerResultSet rs = getResultSetFromInternalQueries(null, "sp_datatype_info_100 @ODBCVer=3");
 
         rs.setColumnName(11, "FIXED_PREC_SCALE");
         // Hook in a filter on the DATA_TYPE column of the result set we're

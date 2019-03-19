@@ -563,7 +563,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 String sProc = parseProcIdentifier(st.procedureName);
                 try (SQLServerStatement s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
                         ResultSet.CONCUR_READ_ONLY);
-                        SQLServerResultSet rsProcedureMeta = s.executeQueryInternal("exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3")) {
+                        SQLServerResultSet rsProcedureMeta = 
+                                s.executeQueryInternal("exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3")) {
 
                     // if rsProcedureMeta has next row, it means the stored procedure is found
                     if (rsProcedureMeta.next()) {
