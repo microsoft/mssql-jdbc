@@ -32,21 +32,21 @@ public class SelectTest extends AbstractTest {
         // basic cases
         valuePair.add(Pair.of("SELECT * FROM jdbctest", "jdbctest"));
         valuePair.add(Pair.of("SELECT * FROM jdbctest;", "jdbctest"));
-        valuePair.add(Pair.of("SELECT * FROM /*hello this is a comment*/jdbctest;","jdbctest"));
+        valuePair.add(Pair.of("SELECT * FROM /*hello this is a comment*/jdbctest;", "jdbctest"));
         valuePair.add(Pair.of("SELECT * FROM jdbctest ORDER BY blah...", "jdbctest"));
         valuePair.add(Pair.of("SELECT * FROM jdbctest WHERE blah...", "jdbctest"));
         valuePair.add(Pair.of("SELECT * FROM jdbctest HAVING blah...", "jdbctest"));
         valuePair.add(Pair.of("SELECT * FROM jdbctest OPTION blah...", "jdbctest"));
         valuePair.add(Pair.of("SELECT * FROM jdbctest GROUP BY blah...", "jdbctest"));
 
-        //double quote literal
+        // double quote literal
         valuePair.add(Pair.of("SELECT * FROM \"jdbc test\"", "\"jdbc test\""));
         valuePair.add(Pair.of("SELECT * FROM \"jdbc /*test*/\"", "\"jdbc /*test*/\""));
         valuePair.add(Pair.of("SELECT * FROM \"jdbc //test\"", "\"jdbc //test\""));
         valuePair.add(Pair.of("SELECT * FROM \"dbo\".\"jdbcDB\".\"jdbctest\"", "\"dbo\" . \"jdbcDB\" . \"jdbctest\""));
         valuePair.add(Pair.of("SELECT * FROM \"jdbctest\"", "\"jdbctest\""));
 
-        //square bracket literal
+        // square bracket literal
         valuePair.add(Pair.of("SELECT * FROM [jdbctest]", "[jdbctest]"));
         valuePair.add(Pair.of("SELECT * FROM [dbo].[jdbcDB].[jdbctest]", "[dbo] . [jdbcDB] . [jdbctest]"));
         valuePair.add(Pair.of("SELECT * FROM [dbo].\"jdbcDB\".\"jdbctest\"", "[dbo] . \"jdbcDB\" . \"jdbctest\""));
@@ -74,17 +74,23 @@ public class SelectTest extends AbstractTest {
         valuePair.add(Pair.of(
                 "SELECT top 1 OrderId, convert(char(10), OrderDate,121) Last_Paris_Order, (select convert(char(10), max(OrderDate),121) FROM Southwind.dbo.Orders) Last_OrderDate, datediff(dd,OrderDate,(SELECT Max(OrderDate) from Northwind.dbo.orders)) Day_Diff from Northwind.dbo.Orders where ShipCity = 'Paris' Order by OrderDate desc",
                 "Northwind . dbo . Orders"));
-        valuePair.add(Pair.of("SELECT t.*, a+b AS total_sum FROM (SELECT SUM(col1) as a, SUM(col2) AS b FROM table ORDER BY a ASC) t ORDER BY total_sum DSC", "(SELECT SUM (col1 )as a , SUM (col2 )AS b FROM table ORDER BY a ASC ) t"));
-        valuePair.add(Pair.of("SELECT col1 FROM myTestInts UNION " + 
-                "SELECT top 1 (select top 1 CONVERT(char(10), max(col1),121) a FROM myTestInts Order by a) FROM myTestInts Order by col1", "myTestInts UNION SELECT top 1 (select top 1 CONVERT (char (10 ), max (col1 ), 121 )a FROM myTestInts Order by a ) FROM myTestInts"));
+        valuePair.add(Pair.of(
+                "SELECT t.*, a+b AS total_sum FROM (SELECT SUM(col1) as a, SUM(col2) AS b FROM table ORDER BY a ASC) t ORDER BY total_sum DSC",
+                "(SELECT SUM (col1 )as a , SUM (col2 )AS b FROM table ORDER BY a ASC ) t"));
+        valuePair.add(Pair.of("SELECT col1 FROM myTestInts UNION "
+                + "SELECT top 1 (select top 1 CONVERT(char(10), max(col1),121) a FROM myTestInts Order by a) FROM myTestInts Order by col1",
+                "myTestInts UNION SELECT top 1 (select top 1 CONVERT (char (10 ), max (col1 ), 121 )a FROM myTestInts Order by a ) FROM myTestInts"));
 
+        // Multiple Selects
+        valuePair.add(Pair.of("SELECT * FROM table1;SELECT * FROM table2", "table1,table2"));
+        valuePair.add(Pair.of("SELECT * FROM table1;SELECT * FROM table1", "table1"));
+        
         valuePair.forEach(p -> assertEquals(p.getRight(), ParserUtils.getTableName(p.getLeft()).trim()));
     }
 
     /*
      * https://docs.microsoft.com/en-us/sql/t-sql/queries/select-examples-transact-sql?view=sql-server-2017
      */
-    @Test
     public void selectExamplesTest() {
         ArrayList<Pair<String, String>> valuePair = new ArrayList<>();
         // A. Using SELECT to retrieve rows and columns
@@ -201,16 +207,16 @@ public class SelectTest extends AbstractTest {
         // P. Using a simple UNION
         valuePair.add(Pair.of("SELECT ProductModelID, Name FROM Production.ProductModel "
                 + "WHERE ProductModelID NOT IN (3, 4) UNION SELECT ProductModelID, Name "
-                + "FROM dbo.Gloves ORDER BY Name;", "Production . ProductModel"));
+                + "FROM dbo.Gloves ORDER BY Name;", "Production . ProductModel ,dbo . Gloves"));
 
         // Q. Using SELECT INTO with UNION
         valuePair.add(Pair.of("SELECT ProductModelID, Name INTO dbo.ProductResults "
                 + "FROM Production.ProductModel WHERE ProductModelID NOT IN (3, 4) UNION "
-                + "SELECT ProductModelID, Name FROM dbo.Gloves;", "Production . ProductModel"));
+                + "SELECT ProductModelID, Name FROM dbo.Gloves;", "Production . ProductModel ,dbo . Gloves"));
         // R. Using UNION of two SELECT statements with ORDER BY*
         valuePair.add(Pair.of("SELECT ProductModelID, Name FROM Production.ProductModel "
                 + "WHERE ProductModelID NOT IN (3, 4) UNION SELECT ProductModelID, Name "
-                + "FROM dbo.Gloves ORDER BY Name;", "Production . ProductModel"));
+                + "FROM dbo.Gloves ORDER BY Name;", "Production . ProductModel ,dbo . Gloves"));
         // S. Using UNION of three SELECT statements to show the effects of ALL and parentheses
         valuePair.add(Pair.of(
                 "SELECT LastName, FirstName, JobTitle FROM dbo.EmployeeOne UNION ALL "
