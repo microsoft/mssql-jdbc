@@ -915,7 +915,7 @@ public class DataTypesTest extends AbstractTest {
             cal.set(Calendar.MINUTE, minute);
             cal.set(Calendar.SECOND, second);
 
-            Timestamp timestamp = new Timestamp(cal.getTimeInMillis() + (minutesOffset * 60 * 1000));
+            Timestamp timestamp = new Timestamp(cal.getTimeInMillis());
             timestamp.setNanos(nanos);
 
             return DateTimeOffset.valueOf(timestamp, minutesOffset);
@@ -1358,8 +1358,7 @@ public class DataTypesTest extends AbstractTest {
                  * Need to use the following constructor for running against IBM JVM. Here, year should be year-1900, //
                  * month // is from 0-11.
                  */
-                long currentTime = System.currentTimeMillis();
-                Timestamp ts = new Timestamp(currentTime);
+                Timestamp ts = new Timestamp(System.currentTimeMillis());
 
                 /*
                  * Test PreparedStatement with Timestamp Value sent as DATETIME2; result should have 7 digits of
@@ -1423,12 +1422,6 @@ public class DataTypesTest extends AbstractTest {
                 try (ResultSet rs = ps.executeQuery()) {
                     rs.next();
 
-                    /*
-                     * Timestamp is a timezone aware data type, whereas DateTimeOffset isn't.
-                     * Pad the Timestamp data with the time difference corresponding to America/Los_Angeles
-                     * zone in milliseconds.
-                     */
-                    ts = new Timestamp(currentTime + (420 * 60 * 1000));
                     dtoFormat.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
                     assertEquals(dtoFormat.format(ts), rs.getString(1));
                 }
