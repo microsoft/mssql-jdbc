@@ -58,6 +58,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final long NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED = 0x00001000;
     private static final long NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED = 0x00002000;
     private static final long NTLMSSP_NEGOTIATE_TARGET_INFO = 0x00800000;
+    static final long NTLMSSP_NEGOTIATE_SIGN = 0x00000010;
 
     // this is not specified in NTLM spec but is required for server to verify MIC!!
     static final long NTLMSSP_NEGOTIATE_ALWAYS_SIGN = 0x00008000;
@@ -96,8 +97,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final int NTLM_CLIENT_NONCE_LENGTH = 8;
     private static final int NTLM_SERVER_CHALLENGE_LENGTH = 8;
 
-    // Filetime timestamp length
+    // Windows Filetime timestamp length
     private static final int NTLM_TIMESTAMP_LENGTH = 8;
+
+    // Windows epoch time difference from Unix epoch time in secs
+    private static final long WINDOWS_EPOCH_DIFF = 11644473600L;
 
     /*
      * NTLM Context
@@ -119,13 +123,16 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // message authentication code
         private Mac mac = null;
 
+        // negotiate flags
+        long negotiateFlags = 0x00000000;
+
         // NTLMv2 hash
         byte[] responseKeyNT = null;
 
         // session key calculated from user's password
         byte[] sessionBaseKey = null;
 
-        // FileTime timestamp - number of 100 nanosecond ticks since Windows Epoch time
+        // Windows FileTime timestamp - number of 100 nanosecond ticks since Windows Epoch time
         byte[] timestamp = new byte[NTLM_TIMESTAMP_LENGTH];
 
         // output token
@@ -242,7 +249,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.getShort(); // targetInfoMaxLen
         context.token.getInt(); // targetInfoOffset
 
-        context.token.getLong(); /// version - not used
+        context.token.getLong(); // version - not used
 
         // get requested target name
         // the target name is not verified since this is also in the target info av pairs
@@ -354,15 +361,14 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     private byte[] getClientChallenge(byte[] clientNonce) throws IOException {
 
-        // timestamp is number of 100 nanosecond ticks since Epoch
+        // timestamp is number of 100 nanosecond ticks since Windows Epoch
         ByteBuffer time = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
-        time.putLong(TimeUnit.SECONDS.toNanos(Instant.now().getEpochSecond()) / 100);
-
-        byte[] timestamp = time.array();
+        time.putLong((TimeUnit.SECONDS.toNanos(Instant.now().getEpochSecond() + WINDOWS_EPOCH_DIFF)) / 100);
+        byte[] currentTime = time.array();
 
         context.token = ByteBuffer
                 .allocate(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE.length + NTLM_CLIENT_CHALLENGE_RESERVED1.length
-                        + NTLM_CLIENT_CHALLENGE_RESERVED2.length + timestamp.length + NTLM_CLIENT_NONCE_LENGTH
+                        + NTLM_CLIENT_CHALLENGE_RESERVED2.length + currentTime.length + NTLM_CLIENT_NONCE_LENGTH
                         + NTLM_CLIENT_CHALLENGE_RESERVED3.length + context.targetInfo.length + 8)
                 .order(ByteOrder.LITTLE_ENDIAN);
 
@@ -370,7 +376,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.put(NTLM_CLIENT_CHALLENGE_RESERVED1);
         context.token.put(NTLM_CLIENT_CHALLENGE_RESERVED2);
 
-        context.token.put(context.timestamp, 0, NTLM_TIMESTAMP_LENGTH);
+        context.token.put(currentTime, 0, NTLM_TIMESTAMP_LENGTH);
         context.token.put(clientNonce, 0, NTLM_CLIENT_NONCE_LENGTH);
         context.token.put(NTLM_CLIENT_CHALLENGE_RESERVED3);
 
@@ -382,11 +388,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // MIC flag
         // TODO: add to include MIC
         /*
-         newTargetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
-         newTargetInfo.putShort((short) 4);
-         newTargetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
+        newTargetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
+        newTargetInfo.putShort((short) 4);
+        newTargetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
         */
-
+        
         // EOL
         newTargetInfo.putShort(NTLM_AVID_MSVAVEOL);
         newTargetInfo.putShort((short) 0);
@@ -524,6 +530,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
             context.token.putShort((short) len);
             context.token.putInt(offset);
 
+            // start of payload data
             offset = NTLM_AUTHENTICATE_PAYLOAD_OFFSET;
 
             // domain name fields
@@ -554,11 +561,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
             context.token.putInt(offset);
 
             // same negotiate flags sent before
-            context.token.putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED
-                    | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_TARGET_INFO
-                    | NTLMSSP_NEGOTIATE_UNICODE | NTLMSSP_NEGOTIATE_ALWAYS_SIGN));
+            context.token.putInt((int) context.negotiateFlags);
 
-            // version not requested
+            // version not used - for debug only
 
             // 0 the MIC field first for calculation
             byte[] mic = new byte[NTLM_MIC_LENGTH];
@@ -603,8 +608,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.putInt(NTLM_MESSAGE_TYPE_NEGOTIATE);
 
         // NTLM negotiate flags - only NTLMV2 supported
-        context.token.putInt((int) (NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
-                | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_TARGET_INFO | NTLMSSP_NEGOTIATE_UNICODE));
+        context.negotiateFlags = NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
+                | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_TARGET_INFO | NTLMSSP_NEGOTIATE_UNICODE
+                | NTLMSSP_NEGOTIATE_ALWAYS_SIGN | NTLMSSP_NEGOTIATE_SIGN;
+        context.token.putInt((int) context.negotiateFlags);
 
         // domain name fields
         int len = context.domainBytes.length;
@@ -612,7 +619,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.putShort((short) len);
         context.token.putShort((short) len);
         context.token.putInt(offset);
-        // offset += len;
+        offset += len;
 
         // workstation field
         len = context.workstationBytes.length;
@@ -621,7 +628,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.putInt(offset);
         offset += len;
 
-        // version - not used
+        // version not used - for debug only
 
         // payload
         context.token.put(context.domainBytes, 0, context.domainBytes.length);
