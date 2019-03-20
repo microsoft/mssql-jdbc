@@ -3224,8 +3224,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case DATETIMEOFFSET:
                 microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) colValue;
-                utcMillis = dtoValue.getTimestamp().getTime();
-                subSecondNanos = dtoValue.getTimestamp().getNanos();
+                utcMillis = dtoValue.getMillis();
+                subSecondNanos = dtoValue.getNanos();
                 int minutesOffset = dtoValue.getMinutesOffset();
                 calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
                 calendar.setLenient(true);

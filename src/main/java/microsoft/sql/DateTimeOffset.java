@@ -226,6 +226,25 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
                 zoneOffset);
         return java.time.OffsetDateTime.of(localDateTime, zoneOffset);
     }
+    
+    /**
+     * Returns the instant in time as the number of milliseconds since January 1, 1970, 00:00:00
+     * represented by this object.
+     *
+     * @return long the number of milliseconds since January 1, 1970, 00:00:00
+     */
+    public long getMillis() {
+        return utcMillis;
+    }
+    
+    /**
+     * Returns the nanosecond value of this object.
+     *
+     * @return int the nanosecond value of this object.
+     */
+    public int getNanos() {
+        return nanos;
+    }
 
     /**
      * Returns this DateTimeOffset object's offset value.

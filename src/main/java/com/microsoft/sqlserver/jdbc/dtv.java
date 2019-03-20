@@ -681,8 +681,8 @@ final class DTV {
 
                     case DATETIMEOFFSET: {
                         microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
-                        utcMillis = dtoValue.getTimestamp().getTime();
-                        subSecondNanos = dtoValue.getTimestamp().getNanos();
+                        utcMillis = dtoValue.getMillis();
+                        subSecondNanos = dtoValue.getNanos();
                         minutesOffset = dtoValue.getMinutesOffset();
 
                         // microsoft.sql.DateTimeOffset values have a time zone offset that is internal

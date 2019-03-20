@@ -3539,8 +3539,8 @@ final class TDSWriter {
         int minutesOffset;
 
         microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
-        utcMillis = dtoValue.getTimestamp().getTime();
-        subSecondNanos = dtoValue.getTimestamp().getNanos();
+        utcMillis = dtoValue.getMillis();
+        subSecondNanos = dtoValue.getNanos();
         minutesOffset = dtoValue.getMinutesOffset();
 
         // If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
