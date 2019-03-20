@@ -33,8 +33,6 @@ import mssql.security.provider.MD4;
  * </pre>
  */
 final class NTLMAuthentication extends SSPIAuthentication {
-    private final static java.util.logging.Logger logger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.NTLMAuthentication");
 
     // NTLM signature "NTLMSSP\0"
     private static final byte[] NTLM_HEADER_SIGNATURE = {0x4e, 0x54, 0x4c, 0x4d, 0x53, 0x53, 0x50, 0x00};
@@ -209,8 +207,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     private void getNtlmChallenge(byte[] inToken) throws SQLServerException, IOException {
 
-        // TODO: verify Challenge message fields
-
         context.token = ByteBuffer.wrap(inToken).order(ByteOrder.LITTLE_ENDIAN);
 
         // verify signature
@@ -304,7 +300,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
             }
         }
 
-        // verify timestamp was set
+        // verify timestamp was set - this should always be present
         if (null == context.timestamp || context.timestamp[0] == '\0') {
             throw new SQLServerException(SQLServerException.getErrString("R_ntlmNoTimestamp"), null);
         }
@@ -345,17 +341,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
     }
 
     /*
-     * Get LM Challenge response to server challenge
-     * @param clientNonce - client challenge nonce
-     */
-    private byte[] getLmChallengeResp(
-            byte[] clientNonce) throws UnsupportedEncodingException, NoSuchAlgorithmException, InvalidKeyException {
-
-        byte[] responseKeyLM = lmowfv2(context.password);
-        return computeResponse(responseKeyLM, clientNonce);
-    }
-
-    /*
      * Get NTLMv2 Client Challenge
      * @param clientNonce - client challenge nonce
      */
@@ -387,12 +372,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         // MIC flag
         // TODO: add to include MIC
-        /*
-        newTargetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
-        newTargetInfo.putShort((short) 4);
-        newTargetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
-        */
-        
+     //    newTargetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
+     //    newTargetInfo.putShort((short) 4);
+     //    newTargetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
+
         // EOL
         newTargetInfo.putShort(NTLM_AVID_MSVAVEOL);
         newTargetInfo.putShort((short) 0);
@@ -448,16 +431,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
     }
 
     /*
-     * Generate key from password to get LM hash
-     * @param password - password to obtain hash of
-     */
-    private byte[] lmowfv2(
-            String password) throws UnsupportedEncodingException, NoSuchAlgorithmException, InvalidKeyException {
-
-        return ntowfv2(password);
-    }
-
-    /*
      * Compute challenge response
      * @param key - hash key
      * @param clientChallenge - client challenge
@@ -506,26 +479,26 @@ final class NTLMAuthentication extends SSPIAuthentication {
             // get random client challenge nonce
             SecureRandom.getInstanceStrong().nextBytes(clientNonce);
 
-            byte[] lmChallengeResp = getLmChallengeResp(clientNonce);
+            // LM Challenge response is only sent if no MsAvTimestamp
+
             byte[] ntChallengeResp = getNtChallengeResp(clientNonce);
 
             context.token = ByteBuffer.allocate(NTLM_AUTHENTICATE_PAYLOAD_OFFSET + domainNameLen + userNameLen
-                    + workstationLen + lmChallengeResp.length + ntChallengeResp.length).order(ByteOrder.LITTLE_ENDIAN);
+                    + workstationLen + ntChallengeResp.length).order(ByteOrder.LITTLE_ENDIAN);
 
             // set NTLM signature and message type
             context.token.put(NTLM_HEADER_SIGNATURE, 0, NTLM_HEADER_SIGNATURE.length);
             context.token.putInt(NTLM_MESSAGE_TYPE_AUTHENTICATE);
 
-            // LM challenge response
-            int len = lmChallengeResp.length;
             int offset = NTLM_AUTHENTICATE_PAYLOAD_OFFSET + domainNameLen + userNameLen + workstationLen;
-            context.token.putShort((short) len);
-            context.token.putShort((short) len);
+
+            // LM challenge response is 0 since timestamp is present
+            context.token.putShort((short) 0);
+            context.token.putShort((short) 0);
             context.token.putInt(offset);
-            offset += lmChallengeResp.length;
 
             // NT challenge response
-            len = ntChallengeResp.length;
+            int len = ntChallengeResp.length;
             context.token.putShort((short) len);
             context.token.putShort((short) len);
             context.token.putInt(offset);
@@ -574,7 +547,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
             context.token.put(unicode(context.userName), 0, userNameLen);
             context.token.put(unicode(context.workstation), 0, workstationLen);
 
-            context.token.put(lmChallengeResp, 0, lmChallengeResp.length);
             context.token.put(ntChallengeResp, 0, ntChallengeResp.length);
 
             // MIC is calculated by concatenating of all 3 msgs with 0 MIC

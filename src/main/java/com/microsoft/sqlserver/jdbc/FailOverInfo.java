@@ -121,25 +121,13 @@ final class ServerPortPlaceHolder implements Serializable {
     private static final long serialVersionUID = 7393779415545731523L;
 
     private final String serverName;
-    private final String domainName;
     private final int port;
     private final String instanceName;
     private final boolean checkLink;
     private final SQLServerConnectionSecurityManager securityManager;
 
-    ServerPortPlaceHolder(String serverName, int conPort, String instance, boolean fLink) {
-        this.serverName = serverName;
-        this.domainName = "";
-        port = conPort;
-        instanceName = instance;
-        checkLink = fLink;
-        securityManager = new SQLServerConnectionSecurityManager(serverName, port);
-        doSecurityCheck();
-    }
-
-    ServerPortPlaceHolder(String serverName, String domainName, int conPort, String instance, boolean fLink) {
-        this.serverName = serverName;
-        this.domainName = domainName;
+    ServerPortPlaceHolder(String name, int conPort, String instance, boolean fLink) {
+        serverName = name;
         port = conPort;
         instanceName = instance;
         checkLink = fLink;
@@ -154,10 +142,6 @@ final class ServerPortPlaceHolder implements Serializable {
 
     String getServerName() {
         return serverName;
-    }
-
-    String getDomainName() {
-        return domainName;
     }
 
     String getInstanceName() {
