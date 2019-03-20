@@ -1424,9 +1424,9 @@ public class DataTypesTest extends AbstractTest {
                     rs.next();
 
                     /*
-                     *  Timestamp is a timezone aware data type, whereas DateTimeOffset isn't.
-                     *  Pad the Timestamp data with the time difference corresponding to America/Los_Angeles
-                     *  zone in milliseconds.
+                     * Timestamp is a timezone aware data type, whereas DateTimeOffset isn't.
+                     * Pad the Timestamp data with the time difference corresponding to America/Los_Angeles
+                     * zone in milliseconds.
                      */
                     ts = new Timestamp(currentTime + (420 * 60 * 1000));
                     dtoFormat.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
