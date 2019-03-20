@@ -1009,7 +1009,7 @@ final class DDC {
                 // milliseconds precision results in no loss of precision.
                 assert 0 == localMillisOffset % (60 * 1000);
 
-                java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
+                java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis() + localMillisOffset);
                 ts.setNanos(subSecondNanos);
                 return microsoft.sql.DateTimeOffset.valueOf(ts, localMillisOffset / (60 * 1000));
             }

@@ -56,7 +56,7 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
         int hundredNanos = (timestampNanos + 50) / 100;
         this.nanos = 100 * (hundredNanos % HUNDRED_NANOS_PER_SECOND);
         this.utcMillis = timestamp.getTime() - timestamp.getNanos() / 1000000
-                + 1000 * (hundredNanos / HUNDRED_NANOS_PER_SECOND);
+                + 1000 * (hundredNanos / HUNDRED_NANOS_PER_SECOND) - (minutesOffset * 60 * 1000);
 
         // Postconditions
         assert this.minutesOffset >= MINUTES_OFFSET_MIN && this.minutesOffset <= MINUTES_OFFSET_MAX : "minutesOffset: "

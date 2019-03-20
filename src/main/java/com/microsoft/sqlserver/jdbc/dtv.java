@@ -683,7 +683,7 @@ final class DTV {
                         microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
                         subSecondNanos = dtoValue.getTimestamp().getNanos();
                         minutesOffset = dtoValue.getMinutesOffset();
-                        utcMillis = dtoValue.getTimestamp().getTime() - (minutesOffset * 60 * 1000);
+                        utcMillis = dtoValue.getTimestamp().getTime();
 
                         // microsoft.sql.DateTimeOffset values have a time zone offset that is internal
                         // to the value, so there should not be any DTV calendar for DateTimeOffset values.
