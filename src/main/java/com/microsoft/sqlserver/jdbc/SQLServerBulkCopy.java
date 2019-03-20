@@ -47,7 +47,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.logging.Level;
 
 import javax.sql.RowSet;
-import javax.sql.XAConnection;
 
 import microsoft.sql.DateTimeOffset;
 
@@ -888,6 +887,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
                 break;
 
+            case java.sql.Types.FLOAT:
             case java.sql.Types.DOUBLE: // (FLT8TYPE) 0x3E
                 if (!srcNullable) {
                     tdsWriter.writeByte(TDSType.FLOAT8.byteValue());
@@ -1244,6 +1244,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.TINYINT:
                 return "tinyint";
 
+            case java.sql.Types.FLOAT:
             case java.sql.Types.DOUBLE:
                 return "float";
 
@@ -1929,6 +1930,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.BIGINT:
             case java.sql.Types.REAL:
             case java.sql.Types.DOUBLE:
+            case java.sql.Types.FLOAT:
             case java.sql.Types.DECIMAL:
             case java.sql.Types.NUMERIC:
             case java.sql.Types.TIMESTAMP:
@@ -2051,6 +2053,17 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     }
                     break;
 
+                case java.sql.Types.FLOAT:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    } else {
+                        if (bulkNullable) {
+                            tdsWriter.writeByte((byte) 0x08);
+                        }
+                        tdsWriter.writeDouble((float) colValue);
+                    }
+                    break;
+                    
                 case java.sql.Types.DOUBLE:
                     if (null == colValue) {
                         writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
@@ -2701,6 +2714,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.TINYINT:
                 case java.sql.Types.DOUBLE:
                 case java.sql.Types.REAL:
+                case java.sql.Types.FLOAT:
                     return sourceResultSet.getObject(srcColOrdinal);
 
                 case microsoft.sql.Types.MONEY:
@@ -3334,12 +3348,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return ((String) value).getBytes(UTF_16LE);
 
                 case REAL:
-                case FLOAT:
-
                     Float floatValue = (value instanceof String) ? Float.parseFloat((String) value) : (Float) value;
                     return ByteBuffer.allocate((Float.SIZE / Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN)
                             .putFloat(floatValue).array();
-
+                    
+                case FLOAT:
                 case DOUBLE:
                     Double doubleValue = (value instanceof String) ? Double.parseDouble((String) value)
                                                                    : (Double) value;

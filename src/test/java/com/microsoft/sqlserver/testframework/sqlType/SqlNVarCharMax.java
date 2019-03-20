@@ -9,6 +9,7 @@ import java.sql.JDBCType;
 import java.sql.NClob;
 
 import com.microsoft.sqlserver.testframework.DBCoercion;
+import com.microsoft.sqlserver.testframework.DBConstants;
 
 
 public class SqlNVarCharMax extends SqlNVarChar {
@@ -17,12 +18,16 @@ public class SqlNVarCharMax extends SqlNVarChar {
         super();
         name = "nvarchar(max)";
         jdbctype = JDBCType.LONGNVARCHAR;
-        variableLengthType = variableLengthType.Variable;
+        variableLengthType = VariableLengthType.Variable;
 
-        coercions.add(new DBCoercion(Clob.class, new int[] {DBCoercion.GET, DBCoercion.UPDATE, DBCoercion.UPDATEOBJECT,
-                DBCoercion.SET, DBCoercion.SETOBJECT, DBCoercion.GETPARAM, DBCoercion.REG, DBCoercion.CHAR}));
-        coercions.add(new DBCoercion(NClob.class, new int[] {DBCoercion.GET, DBCoercion.UPDATE, DBCoercion.UPDATEOBJECT,
-                DBCoercion.SET, DBCoercion.SETOBJECT, DBCoercion.GETPARAM, DBCoercion.REG, DBCoercion.NCHAR}));
+        coercions.add(new DBCoercion(Clob.class,
+                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
+                        DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION,
+                        DBConstants.REG_COERCION, DBConstants.CHAR_COERCION}));
+        coercions.add(new DBCoercion(NClob.class,
+                new int[] {DBConstants.GET_COERCION, DBConstants.UPDATE_COERCION, DBConstants.UPDATEOBJECT_COERCION,
+                        DBConstants.SET_COERCION, DBConstants.SETOBJECT_COERCION, DBConstants.GETPARAM_COERCION,
+                        DBConstants.REG_COERCION, DBConstants.NCHAR_COERCION}));
 
     }
 

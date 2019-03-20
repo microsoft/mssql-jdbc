@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.sql.SQLException;
 
 
-abstract class SQLServerLob implements Serializable{
+abstract class SQLServerLob implements Serializable {
 
     /**
      * Always update serialVersionUID when prompted.

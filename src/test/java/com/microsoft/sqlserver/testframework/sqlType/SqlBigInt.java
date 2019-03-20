@@ -19,7 +19,6 @@ public class SqlBigInt extends SqlNumber {
     }
 
     public Object createdata() {
-        // TODO: include max value
         return ThreadLocalRandom.current().nextLong(Long.MIN_VALUE, Long.MAX_VALUE);
     }
 }

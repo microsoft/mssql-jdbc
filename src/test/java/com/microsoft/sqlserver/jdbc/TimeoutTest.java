@@ -13,7 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -129,10 +128,6 @@ public class TimeoutTest extends AbstractTest {
             // Timer should still be running because our original connection is still open
             assertSharedTimerIsRunning();
         }
-    }
-
-    private static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(connectionString);
     }
 
     private static void runQuery(String query, int timeout) throws SQLException {
