@@ -416,7 +416,7 @@
 				<version>3.0.0</version>
 				<configuration>
 					<failOnError>true</failOnError>
-					<excludePackageNames>mssql.googlecode.*</excludePackageNames>
+					<excludePackageNames>mssql.googlecode.*:mssql.security.provider.MD4</excludePackageNames>
 				</configuration>
 				<executions>
 					<execution>
