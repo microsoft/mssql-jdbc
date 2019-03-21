@@ -308,7 +308,7 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
 
             case java.sql.Types.TIME:
                 String retrievedTime = retrieved.toString();
-                String expectedTime = expectedData.toString().substring(0, retrievedTime.length());
+                String expectedTime = expectedData.toString();
                 assertTrue(expectedTime.equalsIgnoreCase(retrievedTime),
                         "Unexpected time value, expected: " + expectedTime + " ,received: " + retrievedTime);
                 break;
