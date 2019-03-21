@@ -205,12 +205,11 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
      * <p>
      * The returned value represents an instant in time as the number of milliseconds since January 1, 1970, 00:00:00
      * GMT.
-     * This Timestamp object is not affected by the offset value.
      *
      * @return this DateTimeOffset object's timestamp component
      */
     public java.sql.Timestamp getTimestamp() {
-        java.sql.Timestamp timestamp = new java.sql.Timestamp(utcMillis + (minutesOffset * 60 * 1000));
+        java.sql.Timestamp timestamp = new java.sql.Timestamp(utcMillis);
         timestamp.setNanos(nanos);
         return timestamp;
     }

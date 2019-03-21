@@ -779,6 +779,17 @@ final class DDC {
         // current date and time.
         cal.clear();
 
+        int localMillisOffset;
+        if (null == timeZoneCalendar) {
+            TimeZone tz = TimeZone.getDefault();
+            GregorianCalendar _cal = new GregorianCalendar(componentTimeZone, Locale.US);
+            _cal.setLenient(true);
+            _cal.clear();
+            localMillisOffset = tz.getOffset(_cal.getTimeInMillis());
+        } else {
+            localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
+        }
+        
         // Set the calendar value according to the specified local time zone and constituent
         // date (days since base date) and time (ticks since midnight) parts.
         switch (ssType) {
@@ -864,7 +875,7 @@ final class DDC {
                 if (SSType.DATETIMEOFFSET == ssType && !componentTimeZone.hasSameRules(localTimeZone)) {
                     GregorianCalendar localCalendar = new GregorianCalendar(localTimeZone, Locale.US);
                     localCalendar.clear();
-                    localCalendar.setTimeInMillis(cal.getTimeInMillis());
+                    localCalendar.setTimeInMillis(cal.getTimeInMillis() + localMillisOffset);
                     cal = localCalendar;
                 }
 
@@ -892,16 +903,6 @@ final class DDC {
 
             default:
                 throw new AssertionError("Unexpected SSType: " + ssType);
-        }
-        int localMillisOffset;
-        if (null == timeZoneCalendar) {
-            TimeZone tz = TimeZone.getDefault();
-            GregorianCalendar _cal = new GregorianCalendar(componentTimeZone, Locale.US);
-            _cal.setLenient(true);
-            _cal.clear();
-            localMillisOffset = tz.getOffset(_cal.getTimeInMillis());
-        } else {
-            localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
         }
         // Convert the calendar value (in local time) to the desired Java object type.
         switch (jdbcType.category) {
