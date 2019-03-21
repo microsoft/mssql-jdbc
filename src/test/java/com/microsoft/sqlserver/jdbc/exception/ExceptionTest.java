@@ -4,11 +4,14 @@
  */
 package com.microsoft.sqlserver.jdbc.exception;
 
+import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.net.SocketTimeoutException;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
@@ -88,6 +91,51 @@ public class ExceptionTest extends AbstractTest {
             MessageFormat form = new MessageFormat(TestResource.getResource("R_causeShouldBeInstance"));
             Object[] msgArgs = {"SocketTimeoutException"};
             assertTrue(e.getCause() instanceof SocketTimeoutException, form.format(msgArgs));
+        }
+    }
+
+    @Test
+    public void testResultSetErrorSearch() throws Exception {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ISSUE659TABLE"));
+        String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ISSUE659PROC"));
+        String expectedException = "Error occured during the insert";
+        int outputValue = 5;
+        String createTableSql = "CREATE TABLE " + tableName + "(ID INT IDENTITY NOT NULL,"
+                + "FIELD1 VARCHAR (255) NOT NULL," + "FIELD2 VARCHAR (255) NOT NULL);";
+        String createProcSql = "CREATE PROCEDURE " + procName
+                + " AS BEGIN TRANSACTION\n BEGIN TRY SET NOCOUNT ON; INSERT INTO " + tableName
+                + " (FIELD1, FIELD2) OUTPUT " + outputValue + " VALUES ('test', 'test'); INSERT INTO" + tableName
+                + " (FIELD1, FIELD2) VALUES (NULL, NULL); COMMIT TRANSACTION; END TRY BEGIN CATCH DECLARE @errorMessage NVARCHAR(4000) = ERROR_MESSAGE(); ROLLBACK TRANSACTION; RAISERROR('"
+                + expectedException + ": %s', 16, 1, @errorMessage); END CATCH;";
+        String execProcSql = "EXECUTE " + procName;
+
+        try (Connection conn = PrepUtil.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropProcedureIfExists(procName, stmt);
+            stmt.execute(createTableSql);
+            stmt.execute(createProcSql);
+            stmt.execute(execProcSql);
+            try (ResultSet rs = stmt.getResultSet()) {
+                // First result set
+                while (rs.next()) {
+                    assertEquals(outputValue, rs.getInt(1));
+                }
+            } catch (SQLException e) {
+                // First result set should not throw an exception.
+                fail();
+            }
+            try {
+                // Second result set, contains the exception.
+                assertTrue(stmt.getMoreResults());
+                fail();
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains(expectedException), "Unexpected Error Message: " + e.getMessage());
+            }
+        } finally {
+            try (Connection conn = PrepUtil.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropProcedureIfExists(procName, stmt);
+            }
         }
     }
 
