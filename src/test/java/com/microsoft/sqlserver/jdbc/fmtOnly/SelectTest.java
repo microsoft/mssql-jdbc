@@ -16,7 +16,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class SelectTest extends AbstractTest {
 
-    @Test
     public void basicSelectTest() {
         ArrayList<Pair<String, String>> valuePair = new ArrayList<>();
         // minor case sensitivity checking
@@ -91,6 +90,7 @@ public class SelectTest extends AbstractTest {
     /*
      * https://docs.microsoft.com/en-us/sql/t-sql/queries/select-examples-transact-sql?view=sql-server-2017
      */
+    @Test
     public void selectExamplesTest() {
         ArrayList<Pair<String, String>> valuePair = new ArrayList<>();
         // A. Using SELECT to retrieve rows and columns
@@ -122,16 +122,16 @@ public class SelectTest extends AbstractTest {
         valuePair.add(Pair.of("SELECT DISTINCT Name\r\n" + "FROM Production.Product AS p WHERE EXISTS "
                 + "    (SELECT * FROM Production.ProductModel AS pm "
                 + "     WHERE p.ProductModelID = pm.ProductModelID "
-                + "           AND pm.Name LIKE 'Long-Sleeve Logo Jersey%');", "Production . Product AS p"));
+                + "           AND pm.Name LIKE 'Long-Sleeve Logo Jersey%');", "Production . Product AS p,Production . ProductModel AS pm"));
         valuePair.add(Pair.of("SELECT DISTINCT Name FROM Production.Product WHERE ProductModelID IN "
                 + "    (SELECT ProductModelID FROM Production.ProductModel "
-                + "     WHERE Name LIKE 'Long-Sleeve Logo Jersey%');", "Production . Product"));
+                + "     WHERE Name LIKE 'Long-Sleeve Logo Jersey%');", "Production . Product,Production . ProductModel"));
         valuePair.add(Pair.of(
                 "SELECT DISTINCT p.LastName, p.FirstName FROM Person.Person AS p "
                         + "JOIN HumanResources.Employee AS e "
                         + "ON e.BusinessEntityID = p.BusinessEntityID WHERE 5000.00 IN (SELECT Bonus "
                         + "FROM Sales.SalesPerson AS sp WHERE e.BusinessEntityID = sp.BusinessEntityID);",
-                "Person . Person AS p JOIN HumanResources . Employee AS e ON e . BusinessEntityID = p . BusinessEntityID"));
+                "Person . Person AS p JOIN HumanResources . Employee AS e ON e . BusinessEntityID = p . BusinessEntityID,Sales . SalesPerson AS sp"));
         // F. Using GROUP BY
         valuePair.add(Pair.of("SELECT SalesOrderID, SUM(LineTotal) AS SubTotal FROM Sales.SalesOrderDetail "
                 + "GROUP BY SalesOrderID ORDER BY SalesOrderID;", "Sales . SalesOrderDetail"));
@@ -207,16 +207,16 @@ public class SelectTest extends AbstractTest {
         // P. Using a simple UNION
         valuePair.add(Pair.of("SELECT ProductModelID, Name FROM Production.ProductModel "
                 + "WHERE ProductModelID NOT IN (3, 4) UNION SELECT ProductModelID, Name "
-                + "FROM dbo.Gloves ORDER BY Name;", "Production . ProductModel ,dbo . Gloves"));
+                + "FROM dbo.Gloves ORDER BY Name;", "Production . ProductModel,dbo . Gloves"));
 
         // Q. Using SELECT INTO with UNION
         valuePair.add(Pair.of("SELECT ProductModelID, Name INTO dbo.ProductResults "
                 + "FROM Production.ProductModel WHERE ProductModelID NOT IN (3, 4) UNION "
-                + "SELECT ProductModelID, Name FROM dbo.Gloves;", "Production . ProductModel ,dbo . Gloves"));
+                + "SELECT ProductModelID, Name FROM dbo.Gloves;", "Production . ProductModel,dbo . Gloves"));
         // R. Using UNION of two SELECT statements with ORDER BY*
         valuePair.add(Pair.of("SELECT ProductModelID, Name FROM Production.ProductModel "
                 + "WHERE ProductModelID NOT IN (3, 4) UNION SELECT ProductModelID, Name "
-                + "FROM dbo.Gloves ORDER BY Name;", "Production . ProductModel ,dbo . Gloves"));
+                + "FROM dbo.Gloves ORDER BY Name;", "Production . ProductModel,dbo . Gloves"));
         // S. Using UNION of three SELECT statements to show the effects of ALL and parentheses
         valuePair.add(Pair.of(
                 "SELECT LastName, FirstName, JobTitle FROM dbo.EmployeeOne UNION ALL "

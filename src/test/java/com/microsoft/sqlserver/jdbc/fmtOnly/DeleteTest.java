@@ -28,28 +28,28 @@ public class DeleteTest extends AbstractTest {
     public void deleteExamplesTest() {
         ArrayList<Pair<String, String>> valuePair = new ArrayList<>();
 
-        // A. Using DELETE with no WHERE clause
-        valuePair.add(Pair.of("DELETE FROM Sales.SalesPersonQuotaHistory;  ", "Sales . SalesPersonQuotaHistory"));
-
-        // B. Using the WHERE clause to delete a set of rows
-        valuePair.add(Pair.of("DELETE FROM Production.ProductCostHistory  \r\n" + "WHERE StandardCost > 1000.00;",
-                "Production . ProductCostHistory"));
-        valuePair.add(Pair.of(
-                "DELETE Production.ProductCostHistory  \r\n" + "WHERE StandardCost BETWEEN 12.00 AND 14.00  \r\n"
-                        + "      AND EndDate IS NULL;  \r\n"
-                        + "PRINT 'Number of rows deleted is ' + CAST(@@ROWCOUNT as char(3));  ",
-                "Production . ProductCostHistory"));
-
-        // C. Using a cursor to determine the row to delete
-        valuePair.add(Pair.of(
-                "DELETE FROM HumanResources.EmployeePayHistory  \r\n" + "WHERE CURRENT OF complex_cursor;  \r\n"
-                        + "CLOSE complex_cursor;  \r\n" + "DEALLOCATE complex_cursor;  ",
-                "HumanResources . EmployeePayHistory"));
+//        // A. Using DELETE with no WHERE clause
+//        valuePair.add(Pair.of("DELETE FROM Sales.SalesPersonQuotaHistory;  ", "Sales . SalesPersonQuotaHistory"));
+//
+//        // B. Using the WHERE clause to delete a set of rows
+//        valuePair.add(Pair.of("DELETE FROM Production.ProductCostHistory  \r\n" + "WHERE StandardCost > 1000.00;",
+//                "Production . ProductCostHistory"));
+//        valuePair.add(Pair.of(
+//                "DELETE Production.ProductCostHistory  \r\n" + "WHERE StandardCost BETWEEN 12.00 AND 14.00  \r\n"
+//                        + "      AND EndDate IS NULL;  \r\n"
+//                        + "PRINT 'Number of rows deleted is ' + CAST(@@ROWCOUNT as char(3));  ",
+//                "Production . ProductCostHistory"));
+//
+//        // C. Using a cursor to determine the row to delete
+//        valuePair.add(Pair.of(
+//                "DELETE FROM HumanResources.EmployeePayHistory  \r\n" + "WHERE CURRENT OF complex_cursor;  \r\n"
+//                        + "CLOSE complex_cursor;  \r\n" + "DEALLOCATE complex_cursor;  ",
+//                "HumanResources . EmployeePayHistory"));
 
         // D. Using joins and subqueries to data in one table to delete rows in another table
-        valuePair.add(Pair.of("DELETE FROM Sales.SalesPersonQuotaHistory   \r\n" + "WHERE BusinessEntityID IN   \r\n"
-                + "    (SELECT BusinessEntityID   \r\n" + "     FROM Sales.SalesPerson   \r\n"
-                + "     WHERE SalesYTD > 2500000.00);  ", "Sales . SalesPersonQuotaHistory ,Sales . SalesPerson"));
+//        valuePair.add(Pair.of("DELETE FROM Sales.SalesPersonQuotaHistory   \r\n" + "WHERE BusinessEntityID IN   \r\n"
+//                + "    (SELECT BusinessEntityID   \r\n" + "     FROM Sales.SalesPerson   \r\n"
+//                + "     WHERE SalesYTD > 2500000.00);  ", "Sales . SalesPersonQuotaHistory,Sales . SalesPerson"));
         valuePair.add(Pair.of(
                 "DELETE FROM Sales.SalesPersonQuotaHistory   \r\n" + "FROM Sales.SalesPersonQuotaHistory AS spqh  \r\n"
                         + "INNER JOIN Sales.SalesPerson AS sp  \r\n"

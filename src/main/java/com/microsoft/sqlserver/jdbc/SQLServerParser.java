@@ -39,6 +39,7 @@ class SQLServerParser {
                             tableNames.add(
                                     getTableTargetChunk(iter, Arrays.asList(SQLServerLexer.WHERE, SQLServerLexer.GROUP,
                                             SQLServerLexer.HAVING, SQLServerLexer.ORDER, SQLServerLexer.OPTION)));
+                            break;
                         } else if (openingBrackets.contains(t.getText())) {
                             skipBracket(iter, t.getType());
                         }
@@ -72,33 +73,16 @@ class SQLServerParser {
                     }
                     break;
                 case SQLServerLexer.DELETE:
-                    t = skipTop(iter);
-                    // Check for optional keyword FROM and move the iterator back if it isn't there
-                    if (t.getType() != SQLServerLexer.FROM) {
-                        t = iter.previous();
-                    }
-                    int deleteIndex = iter.nextIndex();
-                    foundFrom = false;
-                    while (t.getType() != SQLServerLexer.SEMI && iter.hasNext()) {
-                        t = iter.next();
-                        if (t.getType() == SQLServerLexer.FROM) {
-                            foundFrom = true;
-                            tableNames.add(getTableTargetChunk(iter,
-                                    Arrays.asList(SQLServerLexer.WHERE, SQLServerLexer.OPTION)));
-                        } else if (openingBrackets.contains(t.getText())) {
-                            skipBracket(iter, t.getType());
+                    try {
+                        t = skipTop(iter);
+                        // Check for optional keyword INTO and move the iterator back if it isn't there
+                        if (t.getType() != SQLServerLexer.FROM) {
+                            t = iter.previous();
                         }
-                    }
-                    if (!foundFrom) {
-                        // Go back to where we first found our DELETE
-                        iter = tokenList.listIterator(deleteIndex);
-                        try {
-                            // Get next chunk
-                            tableNames.add(getTableTargetChunk(iter,
-                                    Arrays.asList(SQLServerLexer.OPTION, SQLServerLexer.WHERE, SQLServerLexer.OUTPUT)));
-                        } catch (NoSuchElementException e) {
-                            SQLServerException.makeFromDriverError(null, tokenList, e.getLocalizedMessage(), "", false);
-                        }
+                        tableNames.add(getTableTargetChunk(iter,
+                                Arrays.asList(SQLServerLexer.OPTION, SQLServerLexer.WHERE, SQLServerLexer.OUTPUT, SQLServerLexer.FROM)));
+                    } catch (NoSuchElementException e) {
+                        SQLServerException.makeFromDriverError(null, tokenList, e.getLocalizedMessage(), "", false);
                     }
                     break;
                 case SQLServerLexer.UPDATE:
@@ -226,8 +210,9 @@ class SQLServerParser {
             SQLServerException.makeFromDriverError(null, SQLServerLexer.AS,
                     "Invalid syntax: WITH <cte> expressions must contain 'AS' keyword.", "", false);
         }
-        sb.append("AS ");
+        iter.next();
         Token t = iter.next();
+        sb.append(" AS ");
         if (t.getType() != SQLServerLexer.LR_BRACKET) {
             SQLServerException.makeFromDriverError(null, SQLServerLexer.AS,
                     "Invalid syntax: AS must be followed by ( ) in <ctw> expressions.", "", false);
@@ -387,7 +372,9 @@ class SQLServerParser {
                 break;
             }
         } while (!delimiters.contains(t.getType()) && t.getType() != SQLServerLexer.SEMI);
-
+        if (iter.hasNext()) {
+            iter.previous();
+        }
         return sb.toString().trim();
     }
 }
@@ -422,8 +409,8 @@ class useFmtOnlyQuery {
         StringBuilder sb = new StringBuilder("SET FMTONLY ON;");
         if (prefix != "")
             sb.append(prefix).append("\n");
-        sb.append("SELECT * FROM ");
-        //sb.append(columns.stream().distinct().collect(Collectors.joining(","))).append(" FROM ");
+        //sb.append("SELECT * FROM ");
+        sb.append(columns.stream().distinct().collect(Collectors.joining(","))).append(" FROM ");
         sb.append(tableTarget.stream().distinct().collect(Collectors.joining(","))).append(";");
         sb.append("SET FMTONLY OFF;");
         return sb.toString();
