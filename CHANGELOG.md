@@ -6,10 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ## [7.3.0] Preview Release
 ### Added
 - Added support in SQLServerBulkCopy to allow Pooled/XA Connection instances during object creation [#968](https://github.com/Microsoft/mssql-jdbc/pull/968)
-- Added Support for FLOAT data type for bulk copy operation when using RowSet [#986](https://github.com/Microsoft/mssql-jdbc/pull/986)
+- Added support for FLOAT data type for bulk copy operation when using RowSet [#986](https://github.com/Microsoft/mssql-jdbc/pull/986)
 
 ### Fixed Issues
-- Fixed possible Statement Leak in SQLServerConnection.isValid() API [#955](https://github.com/Microsoft/mssql-jdbc/pull/955)
+- Fixed a possible Statement leak in SQLServerConnection.isValid() API [#955](https://github.com/Microsoft/mssql-jdbc/pull/955)
 - Fixed rounding behavior when inserting datetime values into SQL Server version 2016 and later [#962](https://github.com/Microsoft/mssql-jdbc/pull/962)
 - Fixed SQLServerConnection.abort() API behavior to clear resources consistently [#983](https://github.com/Microsoft/mssql-jdbc/pull/983)
 - Fixed SQLServerConnection documentation [#984](https://github.com/Microsoft/mssql-jdbc/pull/984)
