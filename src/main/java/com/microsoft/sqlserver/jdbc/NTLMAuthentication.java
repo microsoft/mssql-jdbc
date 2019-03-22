@@ -262,7 +262,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
             if (context == null) {
                 this.context = new NTLMContext(con, serverName, domainName, workstation);
             }
-        } catch (NoSuchAlgorithmException e) {
+        } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmInitError"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(form.format(msgArgs), e);
@@ -294,7 +294,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * Get the NTLM Challenge message from server
      * @param inToken - SSPI input blob
      */
-    private void getNtlmChallenge(byte[] inToken) throws SQLServerException, IOException {
+    private void getNtlmChallenge(byte[] inToken) throws SQLServerException {
 
         context.token = ByteBuffer.wrap(inToken).order(ByteOrder.LITTLE_ENDIAN);
 
@@ -303,7 +303,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.get(signature);
         if (!Arrays.equals(signature, NTLM_HEADER_SIGNATURE)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmSignatureError"));
-            Object[] msgArgs = {signature};
+            Object[] msgArgs = {(new String(signature))};
             throw new SQLServerException(form.format(msgArgs), null);
         }
 
@@ -344,6 +344,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // verfy targetInfo - was requested so should always be sent
         context.targetInfo = new byte[targetInfoLen];
         context.token.get(context.targetInfo);
+
         if (context.targetInfo.length == 0) {
             throw new SQLServerException(SQLServerException.getErrString("R_ntlmNoTargetInfo"), null);
         }
@@ -420,8 +421,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
                 done[0] = true;
                 return getNtlmAuthenticateMsg();
             }
-        } catch (IOException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmNegotiateError"));
+        } catch (Exception e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmAuthError"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(form.format(msgArgs), e);
         }
@@ -521,8 +522,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @param responseKeyNT - response hash key
      * @param clientChallenge - client challenge
      */
-    private byte[] computeResponse(byte[] responseKeyNT,
-            byte[] clientChallenge) throws NoSuchAlgorithmException, InvalidKeyException {
+    private byte[] computeResponse(byte[] responseKeyNT, byte[] clientChallenge) throws InvalidKeyException {
 
         // concatenate client and server challenge
         int clientChallengeLen = clientChallenge.length;
@@ -657,7 +657,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
             // context.mac.update(msg);
             mic = context.mac.doFinal(msg);
 
-            // put calculated MIC into Authenticate msg
+            // put calcuated MIC into Authenticate msg
             System.arraycopy(mic, 0, msg, NTLM_AUTHENTICATE_MIC_OFFSET, NTLM_MIC_LENGTH);
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmAuthError"));
@@ -671,46 +671,52 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * Get NTLM Negotiate message
      */
     private byte[] getNtlmNegotiateMsg() throws SQLServerException, IOException {
-        context.token = ByteBuffer
-                .allocate(NTLM_NEGOTIATE_PAYLOAD_OFFSET + context.domainBytes.length + context.workstationBytes.length)
-                .order(ByteOrder.LITTLE_ENDIAN);
+        try {
+            context.token = ByteBuffer.allocate(
+                    NTLM_NEGOTIATE_PAYLOAD_OFFSET + context.domainBytes.length + context.workstationBytes.length)
+                    .order(ByteOrder.LITTLE_ENDIAN);
 
-        // signature and message type
-        context.token.put(NTLM_HEADER_SIGNATURE, 0, NTLM_HEADER_SIGNATURE.length);
-        context.token.putInt(NTLM_MESSAGE_TYPE_NEGOTIATE);
+            // signature and message type
+            context.token.put(NTLM_HEADER_SIGNATURE, 0, NTLM_HEADER_SIGNATURE.length);
+            context.token.putInt(NTLM_MESSAGE_TYPE_NEGOTIATE);
 
-        // NTLM negotiate flags - only NTLMV2 supported
-        context.negotiateFlags = NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
-                | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_TARGET_INFO | NTLMSSP_NEGOTIATE_UNICODE
-                | NTLMSSP_NEGOTIATE_ALWAYS_SIGN | NTLMSSP_NEGOTIATE_SIGN;
-        context.token.putInt((int) context.negotiateFlags);
+            // NTLM negotiate flags - only NTLMV2 supported
+            context.negotiateFlags = NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
+                    | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_TARGET_INFO | NTLMSSP_NEGOTIATE_UNICODE
+                    | NTLMSSP_NEGOTIATE_ALWAYS_SIGN | NTLMSSP_NEGOTIATE_SIGN;
+            context.token.putInt((int) context.negotiateFlags);
 
-        // domain name fields
-        int len = context.domainBytes.length;
-        int offset = NTLM_NEGOTIATE_PAYLOAD_OFFSET;
-        context.token.putShort((short) len);
-        context.token.putShort((short) len);
-        context.token.putInt(offset);
-        offset += len;
+            // domain name fields
+            int len = context.domainBytes.length;
+            int offset = NTLM_NEGOTIATE_PAYLOAD_OFFSET;
+            context.token.putShort((short) len);
+            context.token.putShort((short) len);
+            context.token.putInt(offset);
+            offset += len;
 
-        // workstation field
-        len = context.workstationBytes.length;
-        context.token.putShort((short) len);
-        context.token.putShort((short) len);
-        context.token.putInt(offset);
-        offset += len;
+            // workstation field
+            len = context.workstationBytes.length;
+            context.token.putShort((short) len);
+            context.token.putShort((short) len);
+            context.token.putInt(offset);
+            offset += len;
 
-        // version not used - for debug only
+            // version not used - for debug only
 
-        // payload
-        context.token.put(context.domainBytes, 0, context.domainBytes.length);
-        context.token.put(context.workstationBytes, 0, context.workstationBytes.length);
+            // payload
+            context.token.put(context.domainBytes, 0, context.domainBytes.length);
+            context.token.put(context.workstationBytes, 0, context.workstationBytes.length);
 
-        // save msg for calculating MIC in Authenticate msg
-        byte[] msg = context.token.array();
-        context.negotiateMsg = new byte[msg.length];
-        System.arraycopy(msg, 0, context.negotiateMsg, 0, msg.length);
+            // save msg for calculating MIC in Authenticate msg
+            byte[] msg = context.token.array();
+            context.negotiateMsg = new byte[msg.length];
+            System.arraycopy(msg, 0, context.negotiateMsg, 0, msg.length);
 
-        return msg;
+            return msg;
+        } catch (Exception e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmNegotiateError"));
+            Object[] msgArgs = {e.getMessage()};
+            throw new SQLServerException(form.format(msgArgs), e);
+        }
     }
 }
