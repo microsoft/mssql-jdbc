@@ -3,6 +3,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.3.0] Preview Release
+### Added
+- Added support in SQLServerBulkCopy to allow Pooled/XA Connection instances during object creation [#968](https://github.com/Microsoft/mssql-jdbc/pull/968)
+- Added SQLServerParameterMetadata improvements with improved code coverage [#973](https://github.com/Microsoft/mssql-jdbc/pull/973)
+- Added @Override tags in SQLServerDriver [#979](https://github.com/Microsoft/mssql-jdbc/pull/979)
+- Added Support for FLOAT data type for bulk copy operation when using RowSet [#986](https://github.com/Microsoft/mssql-jdbc/pull/986)
+
+### Fixed Issues
+- Fixed possible Statement Leak in SQLServerConnection.isValid() API [#955](https://github.com/Microsoft/mssql-jdbc/pull/955)
+- Fixed rounding behavior for datetime values introduced in SQL Server 2016 [#962](https://github.com/Microsoft/mssql-jdbc/pull/962)
+- Fixed SQLServerConnection.abort() API behavior to clear resources consistently [#983](https://github.com/Microsoft/mssql-jdbc/pull/983)
+- Fixed SQLServerConnection documentation [#984](https://github.com/Microsoft/mssql-jdbc/pull/984)
+- Fixed SQL Exception Error State length to respect SQLSTATE Standards [#977](https://github.com/Microsoft/mssql-jdbc/pull/977)
+
+### Changed
+- Refactored SELECT_METHOD in SQLServerConnection [#987](https://github.com/Microsoft/mssql-jdbc/pull/987)
+- Changed Maven configurations to exclude non-exported packages from Javadocs [#988](https://github.com/Microsoft/mssql-jdbc/pull/988)
+- Updated Maven dependency version [#989](https://github.com/Microsoft/mssql-jdbc/pull/989)
+
 ## [7.2.1] HotFix & Stable Release
 ### Fixed Issues
 - Fixed parsing issues with certain parameterized queries [#950](https://github.com/Microsoft/mssql-jdbc/pull/950)
