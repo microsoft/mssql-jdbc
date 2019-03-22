@@ -110,7 +110,7 @@ public class UTF8SupportTest extends AbstractTest {
         connection = PrepUtil.getConnection(getConnectionString());
         if (TestUtils.serverSupportsUTF8(connection)) {
             databaseName = RandomUtil.getIdentifier("UTF8Database");
-            tableName = RandomUtil.getIdentifier("RequestBoundaryTable");
+            tableName = RandomUtil.getIdentifier("UTF8Table");
             createDatabaseWithUTF8Collation();
             connection.setCatalog(databaseName);
         }

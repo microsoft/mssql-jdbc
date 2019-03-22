@@ -270,13 +270,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     public SQLServerBulkCopy(Connection connection) throws SQLServerException {
         loggerExternal.entering(loggerClassName, "SQLServerBulkCopy", connection);
 
-        if (null == connection || !(connection instanceof SQLServerConnection)) {
+        if (null == connection || !(connection instanceof ISQLServerConnection)) {
             SQLServerException.makeFromDriverError(null, null,
                     SQLServerException.getErrString("R_invalidDestConnection"), null, false);
         }
 
         if (connection instanceof SQLServerConnection) {
             this.connection = (SQLServerConnection) connection;
+        } else if (connection instanceof SQLServerConnectionPoolProxy) {
+            this.connection = ((SQLServerConnectionPoolProxy) connection).getWrappedConnection();
         } else {
             SQLServerException.makeFromDriverError(null, null,
                     SQLServerException.getErrString("R_invalidDestConnection"), null, false);
@@ -885,6 +887,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
                 break;
 
+            case java.sql.Types.FLOAT:
             case java.sql.Types.DOUBLE: // (FLT8TYPE) 0x3E
                 if (!srcNullable) {
                     tdsWriter.writeByte(TDSType.FLOAT8.byteValue());
@@ -1241,6 +1244,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.TINYINT:
                 return "tinyint";
 
+            case java.sql.Types.FLOAT:
             case java.sql.Types.DOUBLE:
                 return "float";
 
@@ -1926,6 +1930,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.BIGINT:
             case java.sql.Types.REAL:
             case java.sql.Types.DOUBLE:
+            case java.sql.Types.FLOAT:
             case java.sql.Types.DECIMAL:
             case java.sql.Types.NUMERIC:
             case java.sql.Types.TIMESTAMP:
@@ -1962,9 +1967,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             bulkJdbcType = java.sql.Types.VARBINARY;
         }
         /*
-         * if source is encrypted and destination is unencrypted, use destination sql type to send since there is no
-         * way of finding if source is encrypted without accessing the resultset, send destination type if source
-         * resultset set is of type SQLServer and encryption is enabled
+         * if source is encrypted and destination is unencrypted, use destination sql type to send since there is no way
+         * of finding if source is encrypted without accessing the resultset, send destination type if source resultset
+         * set is of type SQLServer and encryption is enabled
          */
         else if (null != sourceCryptoMeta) {
             bulkJdbcType = destColumnMetadata.get(destColOrdinal).jdbcType;
@@ -2048,6 +2053,17 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     }
                     break;
 
+                case java.sql.Types.FLOAT:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    } else {
+                        if (bulkNullable) {
+                            tdsWriter.writeByte((byte) 0x08);
+                        }
+                        tdsWriter.writeDouble((float) colValue);
+                    }
+                    break;
+                    
                 case java.sql.Types.DOUBLE:
                     if (null == colValue) {
                         writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
@@ -2698,6 +2714,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.TINYINT:
                 case java.sql.Types.DOUBLE:
                 case java.sql.Types.REAL:
+                case java.sql.Types.FLOAT:
                     return sourceResultSet.getObject(srcColOrdinal);
 
                 case microsoft.sql.Types.MONEY:
@@ -3331,12 +3348,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return ((String) value).getBytes(UTF_16LE);
 
                 case REAL:
-                case FLOAT:
-
                     Float floatValue = (value instanceof String) ? Float.parseFloat((String) value) : (Float) value;
                     return ByteBuffer.allocate((Float.SIZE / Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN)
                             .putFloat(floatValue).array();
-
+                    
+                case FLOAT:
                 case DOUBLE:
                     Double doubleValue = (value instanceof String) ? Double.parseDouble((String) value)
                                                                    : (Double) value;

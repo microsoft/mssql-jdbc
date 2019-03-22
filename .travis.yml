@@ -10,8 +10,9 @@ services:
 env:
  global:
   - mssql_jdbc_logging='true'
-  # Enabling logging with console / file handler for JUnit Test Framework. 
-  #- mssql_jdbc_logging_handler='console'|'file'
+
+# Enabling logging with console / file handler for JUnit Test Framework. 
+# - mssql_jdbc_logging_handler='console'|'file'
   
 #Cache the .m2 folder
 cache:
@@ -33,7 +34,7 @@ install:
 
 before_script:
   - docker pull mcr.microsoft.com/mssql/server:latest
-  - export SQLPWD=$(</dev/urandom tr -dc 'A-Za-z0-9#!' | head -c 15;)
+  - export SQLPWD=$(</dev/urandom tr -dc 'A-Za-z0-9!' | head -c 15;)
   - export mssql_jdbc_test_connection_properties="jdbc:sqlserver://localhost:1433;databaseName=master;username=sa;password=$SQLPWD"
   - docker run -e 'ACCEPT_EULA=Y' -e "SA_PASSWORD=$SQLPWD" -p 1433:1433 -d mcr.microsoft.com/mssql/server:latest
 

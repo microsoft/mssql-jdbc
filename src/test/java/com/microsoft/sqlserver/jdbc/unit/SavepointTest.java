@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 
@@ -36,14 +35,14 @@ public class SavepointTest extends AbstractTest {
      */
     @Test
     public void testSavePointName() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString)) {
+        try (Connection connection = getConnection()) {
 
             connection.setAutoCommit(false);
 
             SQLServerSavepoint savePoint = (SQLServerSavepoint) connection.setSavepoint(savePointName);
             MessageFormat form = new MessageFormat(TestResource.getResource("R_savePointError"));
             Object[][] msgArgs = {{"Name", "same"}, {"Label", "Savepoint Name"},
-                    {"SQLServerSavepoint.isNamed", "true"}};
+                    {"SQLServerSavepoint.isNamed", Boolean.TRUE.toString()}};
 
             assertTrue(savePointName.equals(savePoint.getSavepointName()), form.format(msgArgs[0]));
             assertTrue(savePointName.equals(savePoint.getLabel()), form.format(msgArgs[1]));
@@ -65,7 +64,7 @@ public class SavepointTest extends AbstractTest {
      */
     @Test
     public void testSavePointId() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString)) {
+        try (Connection connection = getConnection()) {
 
             connection.setAutoCommit(false);
 
@@ -94,7 +93,7 @@ public class SavepointTest extends AbstractTest {
      */
     @Test
     public void testSavePointIsNamed() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString)) {
+        try (Connection connection = getConnection()) {
 
             connection.setAutoCommit(false);
 
@@ -114,7 +113,7 @@ public class SavepointTest extends AbstractTest {
      */
     @Test
     public void testSavePointWithAutoCommit() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString)) {
+        try (Connection connection = getConnection()) {
 
             connection.setAutoCommit(true);
 
