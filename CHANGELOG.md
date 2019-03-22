@@ -7,7 +7,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Added
 - Added support in SQLServerBulkCopy to allow Pooled/XA Connection instances during object creation [#968](https://github.com/Microsoft/mssql-jdbc/pull/968)
 - Added SQLServerParameterMetadata improvements with improved code coverage [#973](https://github.com/Microsoft/mssql-jdbc/pull/973)
-- Added @Override tags in SQLServerDriver [#979](https://github.com/Microsoft/mssql-jdbc/pull/979)
 - Added Support for FLOAT data type for bulk copy operation when using RowSet [#986](https://github.com/Microsoft/mssql-jdbc/pull/986)
 
 ### Fixed Issues
