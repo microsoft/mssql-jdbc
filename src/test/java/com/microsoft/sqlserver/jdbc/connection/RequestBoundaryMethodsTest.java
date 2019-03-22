@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -36,6 +37,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  * A class for testing Request Boundary Methods.
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class RequestBoundaryMethodsTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("RequestBoundaryTable");

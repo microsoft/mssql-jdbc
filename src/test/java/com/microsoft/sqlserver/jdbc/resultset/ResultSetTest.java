@@ -42,6 +42,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class ResultSetTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("StatementParam");
 

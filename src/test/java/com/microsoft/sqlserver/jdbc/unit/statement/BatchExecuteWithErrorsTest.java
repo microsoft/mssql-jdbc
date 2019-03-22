@@ -38,6 +38,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @Tag("AzureDWTest")
 public class BatchExecuteWithErrorsTest extends AbstractTest {
 

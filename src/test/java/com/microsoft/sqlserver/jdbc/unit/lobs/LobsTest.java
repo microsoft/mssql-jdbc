@@ -28,6 +28,7 @@ import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.function.Executable;
@@ -57,6 +58,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class LobsTest extends AbstractTest {
     static String tableName;
     static String escapedTableName;

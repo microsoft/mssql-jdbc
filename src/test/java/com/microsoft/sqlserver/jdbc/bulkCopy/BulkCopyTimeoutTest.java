@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.sql.SQLException;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -21,6 +22,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  * Test the timeout in SQLServerBulkCopyOptions. Source table is created with large row count so skip data validation.
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @DisplayName("BulkCopy Timeout Test")
 public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
 

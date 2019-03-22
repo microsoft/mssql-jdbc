@@ -14,6 +14,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -28,6 +29,7 @@ import microsoft.sql.DateTimeOffset;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class DTOSerialTest extends AbstractTest {
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss XXX");
     private static String dateString;

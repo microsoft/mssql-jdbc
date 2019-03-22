@@ -24,6 +24,7 @@ import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
@@ -53,6 +54,7 @@ import microsoft.sql.DateTimeOffset;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class AESetup extends AbstractTest {
 
     static String filePath = null;

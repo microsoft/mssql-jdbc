@@ -20,6 +20,7 @@ import java.util.Arrays;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -48,6 +49,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  * Destination table contains one column for each datatype name in the csv header(first line of csv)
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @DisplayName("Test bulkCopy with CSV")
 public class BulkCopyCSVTest extends AbstractTest {
 

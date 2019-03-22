@@ -14,6 +14,7 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -30,6 +31,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class ExceptionTest extends AbstractTest {
     static String inputFile = "BulkCopyCSVTestInput.csv";
 

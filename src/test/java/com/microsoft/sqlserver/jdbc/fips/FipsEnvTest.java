@@ -33,6 +33,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  * @since 6.1.2
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @Tag("AzureDWTest")
 public class FipsEnvTest extends AbstractTest {
 

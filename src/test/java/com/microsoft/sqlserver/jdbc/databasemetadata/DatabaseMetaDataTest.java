@@ -46,6 +46,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  * Test class for testing DatabaseMetaData.
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class DatabaseMetaDataTest extends AbstractTest {
 
     /**

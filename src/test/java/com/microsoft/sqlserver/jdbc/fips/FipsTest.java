@@ -28,6 +28,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;;
  * Test class for testing FIPS property settings.
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @Tag("AzureDWTest")
 public class FipsTest extends AbstractTest {
 

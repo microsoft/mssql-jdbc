@@ -46,6 +46,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @Tag("AzureDWTest")
 public class ConnectionDriverTest extends AbstractTest {
     // If no retry is done, the function should at least exit in 5 seconds

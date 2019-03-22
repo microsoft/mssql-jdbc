@@ -48,6 +48,7 @@ import microsoft.sql.DateTimeOffset;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @Tag("AzureDWTest")
 public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 

@@ -32,6 +32,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @Tag("AzureDWTest")
 public class TimeoutTest extends AbstractTest {
     private static final int TIMEOUT_SECONDS = 2;

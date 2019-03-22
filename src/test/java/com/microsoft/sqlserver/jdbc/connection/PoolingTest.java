@@ -42,6 +42,7 @@ import com.zaxxer.hikari.HikariDataSource;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @Tag("AzureDWTest")
 public class PoolingTest extends AbstractTest {
     static String tempTableName = RandomUtil.getIdentifier("#poolingtest");

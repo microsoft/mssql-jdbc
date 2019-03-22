@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @Tag("AzureDWTest")
 public class SSLCertificateValidation {
 

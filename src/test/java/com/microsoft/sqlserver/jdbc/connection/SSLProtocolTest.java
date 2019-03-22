@@ -28,6 +28,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * Tests new connection property sslProtocol
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @Tag("AzureDWTest")
 public class SSLProtocolTest extends AbstractTest {
 

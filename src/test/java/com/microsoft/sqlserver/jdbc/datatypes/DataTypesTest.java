@@ -27,6 +27,7 @@ import java.util.Locale;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -51,6 +52,7 @@ import microsoft.sql.DateTimeOffset;
  * date/time/datetime2/datetimeoffset data types. Also includes tests for data type mappings.
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class DataTypesTest extends AbstractTest {
 
     final static String tableName = RandomUtil.getIdentifier("KatmaiDataTypesTable");

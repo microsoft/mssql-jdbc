@@ -32,6 +32,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class NativeMSSQLDataSourceTest extends AbstractTest {
 
     @Test

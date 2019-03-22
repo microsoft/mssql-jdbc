@@ -34,6 +34,7 @@ import com.microsoft.sqlserver.testframework.DBTable;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @DisplayName("BVT Test")
 @Tag("AzureDWTest")
 public class BvtTest extends AbstractTest {

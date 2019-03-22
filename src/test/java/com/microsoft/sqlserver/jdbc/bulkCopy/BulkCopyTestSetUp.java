@@ -8,6 +8,7 @@ import java.sql.SQLException;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -22,6 +23,7 @@ import com.microsoft.sqlserver.testframework.DBTable;;
  * Create and drop source table needed for testing bulk copy
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class BulkCopyTestSetUp extends AbstractTest {
 
     static DBTable sourceTable;

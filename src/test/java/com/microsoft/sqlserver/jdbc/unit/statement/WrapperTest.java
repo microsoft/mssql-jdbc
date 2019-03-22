@@ -31,6 +31,7 @@ import com.microsoft.sqlserver.testframework.DBConnection;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @Tag("AzureDWTest")
 public class WrapperTest extends AbstractTest {
 

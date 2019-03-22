@@ -14,6 +14,7 @@ import java.sql.Types;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -30,6 +31,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class NamedParamMultiPartTest extends AbstractTest {
     private static final String dataPut = RandomUtil.getIdentifier("dataPut");
     static String procedureName;

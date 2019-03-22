@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -32,6 +33,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  * Test bulkcopy decimal sacle and precision
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @DisplayName("Test ISQLServerBulkRecord")
 public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
 

@@ -14,6 +14,7 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -33,6 +34,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  * Test BulkCopy Column Mapping
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @DisplayName("BulkCopy Column Mapping Test")
 public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 

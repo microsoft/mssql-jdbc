@@ -59,6 +59,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class StatementTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("StatementTest");
 

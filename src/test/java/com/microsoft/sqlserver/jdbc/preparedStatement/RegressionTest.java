@@ -38,6 +38,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class RegressionTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("PrepareDStatementTestTable");

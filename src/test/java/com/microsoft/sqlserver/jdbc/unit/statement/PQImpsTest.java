@@ -17,6 +17,7 @@ import java.sql.Statement;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -36,6 +37,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 public class PQImpsTest extends AbstractTest {
     private static final int SQL_SERVER_2012_VERSION = 11;
 

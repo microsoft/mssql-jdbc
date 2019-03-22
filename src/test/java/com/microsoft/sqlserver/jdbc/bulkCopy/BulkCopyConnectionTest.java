@@ -17,6 +17,7 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.platform.runner.JUnitPlatform;
@@ -32,6 +33,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  * Test BulkCopy Connection Constructor and BulkCopyOption
  */
 @RunWith(JUnitPlatform.class)
+@Tag("AzureTest")
 @DisplayName("BulkCopy Connection Test")
 public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
 
