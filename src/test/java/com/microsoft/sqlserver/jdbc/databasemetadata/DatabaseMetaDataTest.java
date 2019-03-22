@@ -138,6 +138,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testDBUserLogin() throws SQLException {
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
         try (Connection conn = getConnection()) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
             String connectionString = getConnectionString();
@@ -195,6 +196,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testDBSchemasForDashedCatalogName() throws SQLException {
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
         String testSchema = "some-schema" + id;
@@ -247,6 +249,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testDBSchemasForDashedCatalogNameWithPattern() throws SQLException {
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
         String testSchema = "some-schema" + id;
@@ -501,6 +504,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
     @Test
     public void testPreparedStatementMetadataCaching() throws SQLException {
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
         try (Connection connection = getConnection()) {
 
             DatabaseMetaData databaseMetaData = connection.getMetaData();

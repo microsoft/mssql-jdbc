@@ -9,6 +9,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -28,6 +29,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -50,6 +52,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
 
     @Test
     public void testModifiableConnectionProperties() throws SQLException {
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
         // List of SQLServerConnection fields that can be modified through public APIs.
         boolean autoCommitMode1 = true;
         int transactionIsolationLevel1 = SQLServerConnection.TRANSACTION_READ_COMMITTED;

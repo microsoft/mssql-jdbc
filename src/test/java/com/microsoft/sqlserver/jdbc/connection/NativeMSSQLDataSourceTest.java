@@ -6,6 +6,7 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,10 +34,10 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag("AzureTest")
+@Tag("AzureDWTest")
 public class NativeMSSQLDataSourceTest extends AbstractTest {
 
     @Test
-    @Tag("AzureDWTest")
     public void testNativeMSSQLDataSource() throws SQLException {
         SQLServerXADataSource ds = new SQLServerXADataSource();
         ds.setLastUpdateCount(true);
@@ -44,7 +45,6 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
-    @Tag("AzureDWTest")
     public void testSerialization() throws IOException {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
                 ObjectOutput objectOutput = new ObjectOutputStream(outputStream)) {
@@ -57,7 +57,6 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
-    @Tag("AzureDWTest")
     public void testDSNormal() throws ClassNotFoundException, IOException, SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
@@ -68,6 +67,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 
     @Test
     public void testDSTSPassword() throws ClassNotFoundException, IOException, SQLException {
+        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
         SQLServerDataSource ds = new SQLServerDataSource();
         System.setProperty("java.net.preferIPv6Addresses", Boolean.TRUE.toString());
         ds.setURL(connectionString);
@@ -80,7 +80,6 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
-    @Tag("AzureDWTest")
     public void testInterfaceWrapping() throws ClassNotFoundException, SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         assertEquals(true, ds.isWrapperFor(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".ISQLServerDataSource")));
