@@ -100,12 +100,11 @@ public class ExceptionTest extends AbstractTest {
         String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ISSUE659PROC"));
         String expectedException = "Error occured during the insert";
         int outputValue = 5;
-        String createTableSql = "CREATE TABLE " + tableName + "(ID INT IDENTITY NOT NULL,"
-                + "FIELD1 VARCHAR (255) NOT NULL," + "FIELD2 VARCHAR (255) NOT NULL);";
+        String createTableSql = "CREATE TABLE " + tableName + "(FIELD1 VARCHAR (255) NOT NULL);";
         String createProcSql = "CREATE PROCEDURE " + procName
-                + " AS BEGIN TRANSACTION\n BEGIN TRY SET NOCOUNT ON; INSERT INTO " + tableName
-                + " (FIELD1, FIELD2) OUTPUT " + outputValue + " VALUES ('test', 'test'); INSERT INTO" + tableName
-                + " (FIELD1, FIELD2) VALUES (NULL, NULL); COMMIT TRANSACTION; END TRY BEGIN CATCH DECLARE @errorMessage NVARCHAR(4000) = ERROR_MESSAGE(); ROLLBACK TRANSACTION; RAISERROR('"
+                + " AS BEGIN TRANSACTION\n BEGIN TRY SET NOCOUNT ON; INSERT INTO " + tableName + " (FIELD1) OUTPUT "
+                + outputValue + " VALUES ('test'); INSERT INTO" + tableName
+                + " (FIELD1) VALUES (NULL); COMMIT TRANSACTION; END TRY BEGIN CATCH DECLARE @errorMessage NVARCHAR(4000) = ERROR_MESSAGE(); ROLLBACK TRANSACTION; RAISERROR('"
                 + expectedException + ": %s', 16, 1, @errorMessage); END CATCH;";
         String execProcSql = "EXECUTE " + procName;
 
