@@ -21,7 +21,7 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
      * Always update serialVersionUID when prompted.
      */
     private static final long serialVersionUID = -5747558730471411712L;
-    
+
     private SQLServerConnection con;
     private final SQLServerResultSet rs;
     static final private java.util.logging.Logger logger = java.util.logging.Logger

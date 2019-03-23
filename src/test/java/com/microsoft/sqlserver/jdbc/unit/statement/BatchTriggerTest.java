@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -26,6 +25,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -46,8 +46,7 @@ public class BatchTriggerTest extends AbstractTest {
      */
     @Test
     public void statementTest() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
             stmt.addBatch(insertQuery);
             stmt.executeBatch();
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
@@ -63,7 +62,7 @@ public class BatchTriggerTest extends AbstractTest {
      */
     @Test
     public void preparedStatementTest() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = getConnection();
                 PreparedStatement pstmt = connection.prepareStatement(insertQuery)) {
 
             pstmt.addBatch();
@@ -82,8 +81,7 @@ public class BatchTriggerTest extends AbstractTest {
      * @throws SQLException
      */
     private static void createTrigger(String triggerName) throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
             String sql = "create trigger " + triggerName + " on " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " for insert " + "as " + "begin " + "if (select col1 from "
                     + AbstractSQLGenerator.escapeIdentifier(tableName) + ") > 10 " + "begin " + "return " + "end "
@@ -99,8 +97,7 @@ public class BatchTriggerTest extends AbstractTest {
      * @throws SQLException
      */
     private static void createTable() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
             String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " ( col1 int, col2 varchar(50), col3 varchar(10), col4 int)";
             stmt.execute(sql);
@@ -120,26 +117,12 @@ public class BatchTriggerTest extends AbstractTest {
         insertQuery = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " (col1, col2, col3, col4) values (1, '22-08-2017 17:30:00.000', 'R4760', 31)";
 
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = getConnection();
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
-            stmt.execute("IF EXISTS (\r\n" + "    SELECT *\r\n" + "    FROM sys.objects\r\n"
-                    + "    WHERE [type] = 'TR' AND [name] = '" + TestUtils.escapeSingleQuotes(triggerName) + "'\r\n"
-                    + "    )\r\n" + "    DROP TRIGGER " + AbstractSQLGenerator.escapeIdentifier(triggerName) + ";");
-            dropTable();
+            TestUtils.dropTriggerIfExists(triggerName, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             createTable();
             createTrigger(AbstractSQLGenerator.escapeIdentifier(triggerName));
-        }
-    }
-
-    /**
-     * Drop the table
-     * 
-     * @throws SQLException
-     */
-    private static void dropTable() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }
 
@@ -150,13 +133,13 @@ public class BatchTriggerTest extends AbstractTest {
      */
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = getConnection();
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
-
-            dropTable();
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             stmt.execute("IF EXISTS (\r\n" + "    SELECT *\r\n" + "    FROM sys.objects\r\n"
                     + "    WHERE [type] = 'TR' AND [name] = '" + TestUtils.escapeSingleQuotes(triggerName) + "'\r\n"
-                    + "    )\r\n" + "    DROP TRIGGER " + AbstractSQLGenerator.escapeIdentifier(triggerName) + ";");
+                    + "    )\r\n" + "    DROP TRIGGER " + AbstractSQLGenerator.escapeIdentifier(triggerName)
+                    + Constants.SEMI_COLON);
         }
     }
 }

@@ -37,7 +37,7 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
     private PooledConnection pooledConnection = null;
 
     /**
-     * establishes connection using the input
+     * DBConnection Constructor using provided connection string
      * 
      * @param connectionString
      */
@@ -46,6 +46,11 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
         getConnection(connectionString);
     }
 
+    /**
+     * DBConnection Constructor using provided Connection object
+     * 
+     * @param connection
+     */
     public DBConnection(Connection connection) {
         super(null, null, "connection");
         this.connection = connection;
@@ -53,9 +58,9 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
     }
 
     /**
-     * establishes connection using the input
+     * DBConnection Constructor using provided DataSource
      * 
-     * @param connectionString
+     * @param dataSource
      */
     public DBConnection(ISQLServerDataSource dataSource) {
         super(null, null, "connection");
@@ -63,7 +68,7 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
     }
 
     /**
-     * establish connection
+     * Creates connection instance using the connection string provided.
      * 
      * @param connectionString
      */
@@ -73,15 +78,13 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
             setInternal(connection);
         } catch (SQLException ex) {
             fail(ex.getMessage());
-        } catch (ClassNotFoundException ex) {
-            fail(ex.getMessage());
         }
     }
 
     /**
-     * establish connection
+     * Creates connection instance based on the provided DataSource
      * 
-     * @param connectionString
+     * @param dataSource
      */
     void getConnection(ISQLServerDataSource dataSource) {
         try {
@@ -233,12 +236,8 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
      */
     public double getServerVersion() throws Exception {
         if (0 == serverversion) {
-            DBStatement stmt = null;
-            DBResultSet rs = null;
-
-            try {
-                stmt = this.createStatement(DBResultSet.TYPE_DIRECT_FORWARDONLY, ResultSet.CONCUR_READ_ONLY);
-                rs = stmt.executeQuery("SELECT @@VERSION");
+            try (DBStatement stmt = this.createStatement(DBConstants.RESULTSET_TYPE_DIRECT_FORWARDONLY,
+                    ResultSet.CONCUR_READ_ONLY); DBResultSet rs = stmt.executeQuery("SELECT @@VERSION")) {
                 rs.next();
 
                 String version = rs.getString(1);
@@ -254,9 +253,6 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
                 }
             } catch (Exception e) {
                 throw new Exception("Unable to get dbms major version", e);
-            } finally {
-                rs.close();
-                stmt.close();
             }
         }
         return serverversion;

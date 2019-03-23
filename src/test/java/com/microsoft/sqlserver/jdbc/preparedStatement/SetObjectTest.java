@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc.preparedStatement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -38,7 +37,7 @@ public class SetObjectTest extends AbstractTest {
      */
     @Test
     public void testSetObjectWithOffsetDateTime() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString)) {
+        try (Connection con = getConnection()) {
             final String testValue = "2018-01-02T11:22:33.123456700+12:34";
             try (Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -70,8 +69,8 @@ public class SetObjectTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testSetObjectWithOffsetTime_sendTimeAsDatetimeEnabled() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString + "sendTimeAsDatetime=true")) {
+    public void testSetObjectWithOffsetTime() throws SQLException {
+        try (Connection con = getConnection()) {
             final String testValue = "11:22:33.123456700+12:34";
             final String expectedDto = "1970-01-01T" + testValue;
             try (Statement stmt = con.createStatement()) {
@@ -105,7 +104,7 @@ public class SetObjectTest extends AbstractTest {
      */
     @Test
     public void testSetObjectWithOffsetTime_sendTimeAsDatetimeDisabled() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString)) {
+        try (Connection con = getConnection()) {
             ((SQLServerConnection) con).setSendTimeAsDatetime(false);
             final String testValue = "11:22:33.123456700+12:34";
             final String expectedDto = "1900-01-01T" + testValue;

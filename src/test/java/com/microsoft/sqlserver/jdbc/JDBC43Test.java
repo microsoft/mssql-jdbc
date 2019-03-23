@@ -6,15 +6,10 @@ package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.JDBCType;
 import java.sql.SQLException;
 import java.sql.ShardingKey;
 import javax.sql.ConnectionPoolDataSource;
-import javax.sql.PooledConnection;
-import javax.sql.XAConnection;
-
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -59,7 +54,7 @@ public class JDBC43Test extends AbstractTest {
         }
 
         try {
-            Connection con = ds.createConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
+            ds.createConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
                     .superShardingKey(superShardingKey).build();
         } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
@@ -91,7 +86,7 @@ public class JDBC43Test extends AbstractTest {
         }
 
         try {
-            XAConnection con = ds.createXAConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
+            ds.createXAConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
                     .superShardingKey(superShardingKey).build();
         } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
@@ -121,8 +116,8 @@ public class JDBC43Test extends AbstractTest {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
         try {
-            PooledConnection con = ds.createPooledConnectionBuilder().user("rafa").password("tennis")
-                    .shardingKey(shardingKey).superShardingKey(superShardingKey).build();
+            ds.createPooledConnectionBuilder().user("rafa").password("tennis").shardingKey(shardingKey)
+                    .superShardingKey(superShardingKey).build();
         } catch (SQLException e) {
             assert (e.getMessage().contains(TestResource.getResource("R_notImplemented")));
         }
@@ -138,7 +133,7 @@ public class JDBC43Test extends AbstractTest {
     @Test
     public void setShardingKeyIfValidTest() throws TestAbortedException, SQLException {
         assumeTrue(TestUtils.supportJDBC43(connection));
-        try (SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection connection43 = (SQLServerConnection43) getConnection()) {
             try {
                 connection43.setShardingKeyIfValid(shardingKey, 10);
             } catch (SQLException e) {
@@ -162,7 +157,7 @@ public class JDBC43Test extends AbstractTest {
     @Test
     public void setShardingKeyTest() throws TestAbortedException, SQLException {
         assumeTrue(TestUtils.supportJDBC43(connection));
-        try (SQLServerConnection connection43 = (SQLServerConnection43) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection connection43 = (SQLServerConnection43) getConnection()) {
             try {
                 connection43.setShardingKey(shardingKey);
             } catch (SQLException e) {

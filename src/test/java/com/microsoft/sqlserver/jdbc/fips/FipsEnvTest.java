@@ -24,6 +24,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -123,7 +124,7 @@ public class FipsEnvTest extends AbstractTest {
     @Test
     @Disabled
     public void testFIPSEnv() {
-        assumeTrue("FIPS".equals(TestUtils.getConfiguredProperty("FIPS_ENV")),
+        assumeTrue(Constants.FIPS.equals(TestUtils.getConfiguredProperty(Constants.FIPS_ENV)),
                 TestResource.getResource("R_fipsPropertyNotSet"));
 
         // As JDK 1.7 is not supporting lambda for time being commenting.

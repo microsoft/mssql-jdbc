@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -29,6 +28,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -64,7 +64,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private void serverCursorsTest(int resultSetType, int resultSetConcurrency) throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
 
             dropTVPS();
             dropTables();
@@ -74,8 +74,8 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
             populateSourceTable();
 
-            try (ResultSet rs = conn.createStatement(resultSetType, resultSetConcurrency)
-                    .executeQuery("select c1,c2,c3,c4 from " + AbstractSQLGenerator.escapeIdentifier(srcTable) + " ORDER BY id ASC");
+            try (ResultSet rs = conn.createStatement(resultSetType, resultSetConcurrency).executeQuery(
+                    "select c1,c2,c3,c4 from " + AbstractSQLGenerator.escapeIdentifier(srcTable) + " ORDER BY id ASC");
                     SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
                             "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
                 pstmt.setStructured(1, AbstractSQLGenerator.escapeIdentifier(tvpName), rs);
@@ -96,7 +96,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     public void testSelectMethodSetToCursor() throws SQLException {
         Properties info = new Properties();
         info.setProperty("SelectMethod", "cursor");
-        try (Connection conn = DriverManager.getConnection(connectionString, info);
+        try (Connection conn = PrepUtil.getConnection(connectionString, info);
                 Statement stmt = conn.createStatement()) {
 
             dropTVPS();
@@ -129,7 +129,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     public void testSelectMethodSetToCursorWithSP() throws SQLException {
         Properties info = new Properties();
         info.setProperty("SelectMethod", "cursor");
-        try (Connection conn = DriverManager.getConnection(connectionString, info);
+        try (Connection conn = PrepUtil.getConnection(connectionString, info);
                 Statement stmt = conn.createStatement()) {
 
             dropProcedure();
@@ -166,7 +166,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     public void testInvalidTVPName() throws SQLException {
         Properties info = new Properties();
         info.setProperty("SelectMethod", "cursor");
-        try (Connection conn = DriverManager.getConnection(connectionString, info);
+        try (Connection conn = PrepUtil.getConnection(connectionString, info);
                 Statement stmt = conn.createStatement()) {
 
             dropTVPS();
@@ -203,7 +203,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     public void testInvalidStoredProcedureName() throws SQLException {
         Properties info = new Properties();
         info.setProperty("SelectMethod", "cursor");
-        try (Connection conn = DriverManager.getConnection(connectionString, info);
+        try (Connection conn = PrepUtil.getConnection(connectionString, info);
                 Statement stmt = conn.createStatement()) {
 
             dropProcedure();
@@ -241,7 +241,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
      */
     @Test
     public void testMultiplePreparedStatementAndResultSet() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = getConnection()) {
 
             dropTVPS();
             dropTables();
@@ -308,7 +308,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void verifyDestinationTableData(int expectedNumberOfRows) throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
                 ResultSet rs = conn.createStatement().executeQuery("select c1,c2,c3,c4 from "
                         + AbstractSQLGenerator.escapeIdentifier(desTable) + " ORDER BY id ASC;")) {
 
@@ -336,7 +336,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
         Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement();
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
 
             for (int i = 0; i < expectedBigDecimals.length; i++) {
@@ -350,14 +350,14 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void dropTables() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(desTable), stmt);
         }
     }
 
     private static void createTables() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(srcTable)
                     + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000), id int not null identity);";
             stmt.execute(sql);
@@ -369,7 +369,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void createTVPS() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName)
                     + " as table (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000) null)";
             stmt.execute(TVPCreateCmd);
@@ -377,7 +377,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void dropTVPS() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
                     + TestUtils.escapeSingleQuotes(tvpName) + "') " + " drop type "
                     + AbstractSQLGenerator.escapeIdentifier(tvpName));
@@ -385,17 +385,17 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void dropProcedure() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
         }
     }
 
     private static void createProcedure() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
                     + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN "
-                    + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + "(c1,c2,c3,c4) SELECT * FROM @InputData ORDER BY c1 ASC"
-                    + " END";
+                    + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable)
+                    + "(c1,c2,c3,c4) SELECT * FROM @InputData ORDER BY c1 ASC" + " END";
 
             stmt.execute(sql);
         }
