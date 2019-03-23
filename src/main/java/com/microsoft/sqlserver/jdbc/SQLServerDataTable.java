@@ -165,7 +165,7 @@ public final class SQLServerDataTable {
 
                 case BIT:
                     if (val instanceof Boolean) {
-                        rowValues[pair.getKey()] = (boolean) val;
+                        rowValues[pair.getKey()] = val;
                     } else if (val.toString().equals("0")
                             || val.toString().equalsIgnoreCase(Boolean.FALSE.toString())) {
                         rowValues[pair.getKey()] = Boolean.FALSE;
