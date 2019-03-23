@@ -160,7 +160,7 @@ public final class SQLServerDataTable {
             int nValueLen;
             switch (jdbcType) {
                 case BIGINT:
-                    rowValues[pair.getKey()] = (val instanceof Long) ? (long) val : Long.parseLong(val.toString());
+                    rowValues[pair.getKey()] = (val instanceof Long) ? val : Long.parseLong(val.toString());
                     break;
 
                 case BIT:
@@ -180,12 +180,12 @@ public final class SQLServerDataTable {
                     break;
 
                 case INTEGER:
-                    rowValues[pair.getKey()] = (val instanceof Integer) ? (int) val : Integer.parseInt(val.toString());
+                    rowValues[pair.getKey()] = (val instanceof Integer) ? val : Integer.parseInt(val.toString());
                     break;
 
                 case SMALLINT:
                 case TINYINT:
-                    rowValues[pair.getKey()] = (val instanceof Short) ? (short) val : Short.parseShort(val.toString());
+                    rowValues[pair.getKey()] = (val instanceof Short) ? val : Short.parseShort(val.toString());
                     break;
 
                 case DECIMAL:
@@ -221,13 +221,12 @@ public final class SQLServerDataTable {
                     break;
 
                 case DOUBLE:
-                    rowValues[pair.getKey()] = (val instanceof Double) ? (double) val
-                                                                       : Double.parseDouble(val.toString());
+                    rowValues[pair.getKey()] = (val instanceof Double) ? val : Double.parseDouble(val.toString());
                     break;
 
                 case FLOAT:
                 case REAL:
-                    rowValues[pair.getKey()] = (val instanceof Float) ? (float) val : Float.parseFloat(val.toString());
+                    rowValues[pair.getKey()] = (val instanceof Float) ? val : Float.parseFloat(val.toString());
                     break;
 
                 case TIMESTAMP_WITH_TIMEZONE:
@@ -247,7 +246,7 @@ public final class SQLServerDataTable {
                             || val instanceof OffsetDateTime || val instanceof OffsetTime)
                         rowValues[pair.getKey()] = val.toString();
                     else
-                        rowValues[pair.getKey()] = (String) val;
+                        rowValues[pair.getKey()] = val;
                     break;
 
                 case BINARY:
@@ -259,25 +258,25 @@ public final class SQLServerDataTable {
                         currentColumnMetadata.precision = nValueLen;
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
-                    rowValues[pair.getKey()] = (byte[]) val;
+                    rowValues[pair.getKey()] = val;
                     break;
 
                 case CHAR:
-                    if (val instanceof UUID)
-                        val = val.toString();
                 case VARCHAR:
                 case NCHAR:
                 case NVARCHAR:
                 case LONGVARCHAR:
                 case LONGNVARCHAR:
                 case SQLXML:
+                    if (val instanceof UUID)
+                        val = val.toString();
                     nValueLen = (2 * ((String) val).length());
 
                     if (nValueLen > currentColumnMetadata.precision) {
                         currentColumnMetadata.precision = nValueLen;
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
-                    rowValues[pair.getKey()] = (String) val;
+                    rowValues[pair.getKey()] = val;
                     break;
 
                 case SQL_VARIANT:
