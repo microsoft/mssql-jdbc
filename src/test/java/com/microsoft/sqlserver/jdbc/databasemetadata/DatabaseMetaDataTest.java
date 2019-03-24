@@ -546,4 +546,21 @@ public class DatabaseMetaDataTest extends AbstractTest {
             }
         }
     }
+
+    @Test
+    public void testGetMaxConnections() throws SQLException {
+        try (Statement stmt = connection.createStatement(); ResultSet rs = stmt
+                .executeQuery("select maximum from sys.configurations where name = 'user connections'")) {
+            assert (null != rs);
+            rs.next();
+
+            DatabaseMetaData databaseMetaData = connection.getMetaData();
+            int maxConn = databaseMetaData.getMaxConnections();
+            
+            assert (0 != maxConn);
+            assertEquals(maxConn, rs.getInt(1));
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+    }
 }

@@ -1015,7 +1015,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     public int getMaxConnections() throws SQLException, SQLTimeoutException {
         checkClosed();
         try {
-            String s = "sp_configure 'user connections'";
+            String s = "select maximum from sys.configurations where name = 'user connections'";
             SQLServerResultSet rs = getResultSetFromInternalQueries(null, s);
             if (!rs.next())
                 return 0;
