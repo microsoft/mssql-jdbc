@@ -12,7 +12,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -26,6 +25,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -153,7 +153,9 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
     @DisplayName("BulkCopy:test null SQLServerBulkCopyOptions")
     public void testEmptyBulkCopyOptions() {
         BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+        bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+        bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+        bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
         SQLServerBulkCopyOptions option = null;
         bulkWrapper.useBulkCopyOptions(true);
         bulkWrapper.setBulkOptions(option);
@@ -170,13 +172,31 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
         List<BulkCopyTestWrapper> testData = new ArrayList<>();
         BulkCopyTestWrapper bulkWrapper1 = new BulkCopyTestWrapper(connectionString);
         bulkWrapper1.testName = testCaseName;
-        bulkWrapper1.setUsingConnection(true);
+        bulkWrapper1.setUsingConnection(true, ds);
+        bulkWrapper1.setUsingXAConnection(true, dsXA);
+        bulkWrapper1.setUsingPooledConnection(true, dsPool);
         testData.add(bulkWrapper1);
 
         BulkCopyTestWrapper bulkWrapper2 = new BulkCopyTestWrapper(connectionString);
         bulkWrapper2.testName = testCaseName;
-        bulkWrapper2.setUsingConnection(false);
+        bulkWrapper2.setUsingConnection(true, ds);
+        bulkWrapper2.setUsingXAConnection(true, dsXA);
+        bulkWrapper2.setUsingPooledConnection(false, dsPool);
         testData.add(bulkWrapper2);
+
+        BulkCopyTestWrapper bulkWrapper3 = new BulkCopyTestWrapper(connectionString);
+        bulkWrapper3.testName = testCaseName;
+        bulkWrapper3.setUsingConnection(false, ds);
+        bulkWrapper3.setUsingXAConnection(false, dsXA);
+        bulkWrapper3.setUsingPooledConnection(false, dsPool);
+        testData.add(bulkWrapper3);
+
+        BulkCopyTestWrapper bulkWrapper4 = new BulkCopyTestWrapper(connectionString);
+        bulkWrapper4.testName = testCaseName;
+        bulkWrapper4.setUsingConnection(true, ds);
+        bulkWrapper4.setUsingXAConnection(false, dsXA);
+        bulkWrapper4.setUsingPooledConnection(true, dsPool);
+        testData.add(bulkWrapper4);
 
         return testData;
     }
@@ -200,7 +220,9 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
 
                     BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
                     bulkWrapper.testName = testCaseName;
-                    bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+                    bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+                    bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+                    bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
 
                     SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
                     if (!(method.getName()).equalsIgnoreCase("setUseInternalTransaction")
@@ -208,7 +230,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
                         method.invoke(option, true);
                         bulkWrapper.useBulkCopyOptions(true);
                         bulkWrapper.setBulkOptions(option);
-                        bulkWrapper.testName += method.getName() + ";";
+                        bulkWrapper.testName += method.getName() + Constants.SEMI_COLON;
                         testData.add(bulkWrapper);
                     }
                 } catch (Exception ex) {

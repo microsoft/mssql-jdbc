@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -41,7 +40,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
 
-    // static Statement stmt = null;
     static String query;
     static String srcTable = RandomUtil.getIdentifier("sourceTable");
     static String destTable = RandomUtil.getIdentifier("destTable");
@@ -58,7 +56,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         variation = "testVarchar";
         BulkData bData = new BulkData(variation);
         query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (smallDATA varchar(2))";
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
@@ -69,7 +67,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
             } catch (Exception e) {
                 if (e instanceof SQLException) {
                     assertTrue(e.getMessage().contains(TestResource.getResource("R_givenValueType")),
-                            TestResource.getResource("R_invalidErrorMessage") + e.toString());
+                            TestResource.getResource("R_invalidErrorMessage") + e.getMessage());
                 } else {
                     fail(e.getMessage());
                 }
@@ -88,7 +86,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         BulkData bData = new BulkData(variation);
         String value = ("1954-05-22 02:44:00.0").toString();
         query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (smallDATA smalldatetime)";
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
@@ -116,7 +114,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         BulkData bData = new BulkData(variation);
 
         query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (smallDATA smalldatetime)";
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
@@ -129,7 +127,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
                     Object[] msgArgs = {"character string", "smalldatetime"};
 
                     assertTrue(e.getMessage().contains(form.format(msgArgs)),
-                            TestResource.getResource("R_invalidErrorMessage") + e.toString());
+                            TestResource.getResource("R_invalidErrorMessage") + e.getMessage());
                 } else {
                     fail(e.getMessage());
                 }
@@ -147,7 +145,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         variation = "testBinaryColumnAsByte";
         BulkData bData = new BulkData(variation);
         query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (col1 binary(5))";
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
@@ -157,7 +155,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
             } catch (Exception e) {
                 if (e instanceof SQLException) {
                     assertTrue(e.getMessage().contains(TestResource.getResource("R_givenValueType")),
-                            TestResource.getResource("R_invalidErrorMessage") + e.toString());
+                            TestResource.getResource("R_invalidErrorMessage") + e.getMessage());
                 } else {
                     fail(e.getMessage());
                 }
@@ -175,7 +173,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         variation = "testBinaryColumnAsString";
         BulkData bData = new BulkData(variation);
         query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (col1 binary(5))";
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
@@ -185,7 +183,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
             } catch (Exception e) {
                 if (e instanceof SQLException) {
                     assertTrue(e.getMessage().contains(TestResource.getResource("R_givenValueType")),
-                            TestResource.getResource("R_invalidErrorMessage") + e.toString());
+                            TestResource.getResource("R_invalidErrorMessage") + e.getMessage());
                 } else {
                     fail(e.getMessage());
                 }
@@ -203,7 +201,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         variation = "testSendValidValueforBinaryColumnAsString";
         BulkData bData = new BulkData(variation);
         query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (col1 binary(5))";
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
@@ -231,7 +229,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
      */
     @BeforeAll
     public static void setupHere() throws SQLException, SecurityException, IOException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTable), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable), stmt);
         }
@@ -244,7 +242,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
      */
     @AfterEach
     public void afterEachTests() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTable), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable), stmt);
         }
@@ -253,6 +251,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
 
 
 class BulkData implements ISQLServerBulkRecord {
+    private static final long serialVersionUID = 1L;
     boolean isStringData = false;
 
     private class ColumnMetadata {

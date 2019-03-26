@@ -73,7 +73,7 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
  * participate in XA distributed transactions managed via an XAResource adapter.
  * <p>
  * SQLServerConnection instantiates a new TDSChannel object for use by itself and all statement objects that are created
- * under this connection. SQLServerConnection is thread safe.
+ * under this connection.
  * <p>
  * SQLServerConnection manages a pool of prepared statement handles. Prepared statements are prepared once and typically
  * executed many times with different data values for their parameters. Prepared statements are also maintained across
@@ -140,7 +140,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private String originalHostNameInCertificate = null;
 
+    final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+    final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+    final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
+    private Boolean isAzure = null;
     private Boolean isAzureDW = null;
+    private Boolean isAzureMI = null;
 
     private SharedTimer sharedTimer;
 
@@ -1484,7 +1489,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (sPropValue == null)
                 sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
             if ("cursor".equalsIgnoreCase(sPropValue) || "direct".equalsIgnoreCase(sPropValue)) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
+                sPropValue = sPropValue.toLowerCase(Locale.ENGLISH);
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                selectMethod = sPropValue;
             } else {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidselectMethod"));
                 Object[] msgArgs = {sPropValue};
@@ -1754,13 +1761,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             lastUpdateCount = booleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
             sPropKey = SQLServerDriverBooleanProperty.XOPEN_STATES.toString();
             xopenStates = booleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
-
-            sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
-            selectMethod = null;
-            if (activeConnectionProperties.getProperty(sPropKey) != null
-                    && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                selectMethod = activeConnectionProperties.getProperty(sPropKey);
-            }
 
             sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
             responseBuffering = null;
@@ -2911,31 +2911,41 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     boolean executeCommand(TDSCommand newCommand) throws SQLServerException {
         synchronized (schedulerLock) {
-            // Detach (buffer) the response from any previously executing
-            // command so that we can execute the new command.
-            //
-            // Note that detaching the response does not process it. Detaching just
-            // buffers the response off of the wire to clear the TDS channel.
+            /*
+             * Detach (buffer) the response from any previously executing command so that we can execute the new
+             * command. Note that detaching the response does not process it. Detaching just buffers the response off of
+             * the wire to clear the TDS channel.
+             */
             if (null != currentCommand) {
-                currentCommand.detach();
-                currentCommand = null;
+                try {
+                    currentCommand.detach();
+                } catch (SQLServerException e) {
+                    /*
+                     * If any exception occurs during detach, need not do anything, simply log it. Our purpose to detach
+                     * the response and empty buffer is done here. If there is anything wrong with the connection
+                     * itself, let the exception pass below to be thrown during 'execute()'.
+                     */
+                    if (connectionlogger.isLoggable(Level.FINE)) {
+                        connectionlogger.fine("Failed to detach current command : " + e.getMessage());
+                    }
+                } finally {
+                    currentCommand = null;
+                }
             }
 
-            // The implementation of this scheduler is pretty simple...
-            // Since only one command at a time may use a connection
-            // (to avoid TDS protocol errors), just synchronize to
-            // serialize command execution.
+            /*
+             * The implementation of this scheduler is pretty simple... Since only one command at a time may use a
+             * connection (to avoid TDS protocol errors), just synchronize to serialize command execution.
+             */
             boolean commandComplete = false;
             try {
                 commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
             } finally {
-                // We should never displace an existing currentCommand
-                // assert null == currentCommand;
-
-                // If execution of the new command left response bytes on the wire
-                // (e.g. a large ResultSet or complex response with multiple results)
-                // then remember it as the current command so that any subsequent call
-                // to executeCommand will detach it before executing another new command.
+                /*
+                 * If execution of the new command left response bytes on the wire (e.g. a large ResultSet or complex
+                 * response with multiple results) then remember it as the current command so that any subsequent call
+                 * to executeCommand will detach it before executing another new command.
+                 */
                 if (!commandComplete && !isSessionUnAvailable())
                     currentCommand = newCommand;
             }
@@ -3159,15 +3169,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void abort(Executor executor) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "abort", executor);
 
-        // nop if connection is closed
+        // no-op if connection is closed
         if (isClosed())
             return;
-
-        if (null == executor) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-            Object[] msgArgs = {"executor"};
-            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
-        }
 
         // check for callAbort permission
         SecurityManager secMgr = System.getSecurityManager();
@@ -3181,11 +3185,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, true);
             }
         }
+        if (null == executor) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
+            Object[] msgArgs = {"executor"};
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
+        } else {
 
-        setState(State.Closed);
+            /*
+             * Always report the connection as closed for any further use, no matter what happens when we try to clean
+             * up the physical resources associated with the connection using executor.
+             */
+            setState(State.Closed);
 
-        if (null != tdsChannel && null != executor)
-            executor.execute(() -> tdsChannel.close());
+            executor.execute(() -> clearConnectionResources());
+        }
 
         loggerExternal.exiting(getClassNameLogging(), "abort");
     }
@@ -3194,19 +3207,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void close() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "close");
 
-        // Always report the connection as closed for any further use, no matter
-        // what happens when we try to clean up the physical resources associated
-        // with the connection.
+        /*
+         * Always report the connection as closed for any further use, no matter what happens when we try to clean up
+         * the physical resources associated with the connection.
+         */
         setState(State.Closed);
 
+        clearConnectionResources();
+
+        loggerExternal.exiting(getClassNameLogging(), "close");
+    }
+
+    private void clearConnectionResources() {
         if (sharedTimer != null) {
             sharedTimer.removeRef();
             sharedTimer = null;
         }
 
-        // Close the TDS channel. When the channel is closed, the server automatically
-        // rolls back any pending transactions and closes associated resources like
-        // prepared handles.
+        /*
+         * Close the TDS channel. When the channel is closed, the server automatically rolls back any pending
+         * transactions and closes associated resources like prepared handles.
+         */
         if (null != tdsChannel) {
             tdsChannel.close();
         }
@@ -3222,8 +3243,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         cleanupPreparedStatementDiscardActions();
 
         ActivityCorrelator.cleanupActivityId();
-
-        loggerExternal.exiting(getClassNameLogging(), "close");
     }
 
     // This function is used by the proxy for notifying the pool manager that this connection proxy is closed
@@ -5553,8 +5572,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     @Override
     public boolean isValid(int timeout) throws SQLException {
-        boolean isValid = false;
-
         loggerExternal.entering(getClassNameLogging(), "isValid", timeout);
 
         // Throw an exception if the timeout is invalid
@@ -5568,25 +5585,26 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (isSessionUnAvailable())
             return false;
 
-        try {
-            SQLServerStatement stmt = new SQLServerStatement(this, ResultSet.TYPE_FORWARD_ONLY,
-                    ResultSet.CONCUR_READ_ONLY, SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
+        boolean isValid = true;
+        try (SQLServerStatement stmt = new SQLServerStatement(this, ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY, SQLServerStatementColumnEncryptionSetting.UseConnectionSetting)) {
 
             // If asked, limit the time to wait for the query to complete.
             if (0 != timeout)
                 stmt.setQueryTimeout(timeout);
 
-            // Try to execute the query. If this succeeds, then the connection is valid.
-            // If it fails (throws an exception), then the connection is not valid.
-            // If a timeout was provided, execution throws an "query timed out" exception
-            // if the query fails to execute in that time.
+            /*
+             * Try to execute the query. If this succeeds, then the connection is valid. If it fails (throws an
+             * exception), then the connection is not valid. If a timeout was provided, execution throws an
+             * "query timed out" exception if the query fails to execute in that time.
+             */
             stmt.executeQueryInternal("SELECT 1");
-            stmt.close();
-            isValid = true;
         } catch (SQLException e) {
-            // Do not propagate SQLExceptions from query execution or statement closure.
-            // The connection is considered to be invalid if the statement fails to close,
-            // even though query execution succeeded.
+            isValid = false;
+            /*
+             * Do not propagate SQLExceptions from query execution or statement closure. The connection is considered to
+             * be invalid if the statement fails to close, even though query execution succeeded.
+             */
             connectionlogger.fine(toString() + " Exception checking connection validity: " + e.getMessage());
         }
 
@@ -6223,33 +6241,55 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
     }
-
-    boolean isAzureDW() throws SQLServerException, SQLException {
-        if (null == isAzureDW) {
-            try (Statement stmt = this.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
-                // SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
-                // It should return 6 for SQL Azure DW. This is more reliable than @@version or
-                // serverproperty('edition').
-                // Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
-                //
-                // SERVERPROPERTY('EngineEdition') means
-                // Database Engine edition of the instance of SQL Server installed on the server.
-                // 1 = Personal or Desktop Engine (Not available for SQL Server.)
-                // 2 = Standard (This is returned for Standard and Workgroup.)
-                // 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
-                // 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
-                // 5 = SQL Azure
-                // 6 = SQL Azure DW
-                // Base data type: int
-                final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+    
+    /*
+     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
+     * It should return 6 for SQL Azure DW. This is more reliable than @@version or
+     * serverproperty('edition').
+     * Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
+     * 
+     * SERVERPROPERTY('EngineEdition') means
+     * Database Engine edition of the instance of SQL Server installed on the server.
+     * 1 = Personal or Desktop Engine (Not available for SQL Server.)
+     * 2 = Standard (This is returned for Standard and Workgroup.)
+     * 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
+     * 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
+     * 5 = SQL Azure
+     * 6 = SQL Azure DW
+     * 8 = Managed Instance
+     * Base data type: int
+     */
+    boolean isAzure() {
+        if (null == isAzure) {
+            try (Statement stmt = this.createStatement(); ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
                 rs.next();
-                isAzureDW = rs.getInt(1) == ENGINE_EDITION_FOR_SQL_AZURE_DW;
+
+                int engineEdition = rs.getInt(1);
+                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+                isAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+                isAzureMI = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+
+            } catch (SQLException e) {
+                if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+                    loggerExternal.log(Level.FINER, this + ": Error retrieving server type", e);
+                isAzure = false;
+                isAzureDW = false;
+                isAzureMI = false;
             }
-            return isAzureDW;
+            return isAzure;
         } else {
-            return isAzureDW;
+            return isAzure;
         }
+    }
+
+    boolean isAzureDW() {
+        isAzure();
+        return isAzureDW;
+    }
+
+    boolean isAzureMI() {
+        isAzure();
+        return isAzureMI;
     }
 
     /**

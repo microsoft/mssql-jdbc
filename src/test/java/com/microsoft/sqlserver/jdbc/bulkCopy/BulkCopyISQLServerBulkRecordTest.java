@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +21,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
@@ -44,7 +44,9 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             BulkData Bdata = new BulkData(dstTable);
 
             BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == ThreadLocalRandom.current().nextInt(2)) ? true : false);
+            bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+            bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+            bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
             BulkCopyTestUtil.performBulkCopy(bulkWrapper, Bdata, dstTable);
         } finally {
             if (null != dstTable) {
@@ -56,6 +58,8 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     }
 
     class BulkData implements ISQLServerBulkRecord {
+
+        private static final long serialVersionUID = 1L;
 
         private class ColumnMetadata {
             String columnName;
@@ -101,7 +105,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 for (int j = 0; j < totalColumn; j++) {
                     SqlType sqlType = dstTable.getSqlType(j);
                     if (JDBCType.BIT == sqlType.getJdbctype()) {
-                        CurrentRow[j] = ((0 == ThreadLocalRandom.current().nextInt(2)) ? Boolean.FALSE : Boolean.TRUE);
+                        CurrentRow[j] = ((0 == Constants.RANDOM.nextInt(2)) ? Boolean.FALSE : Boolean.TRUE);
                     } else {
                         if (j == 0) {
                             CurrentRow[j] = i + 1;

@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
@@ -26,7 +25,7 @@ public class SparseTest extends AbstractTest {
 
     @Test
     public void testSparse() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = getConnection()) {
             assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
             try (Statement stmt = conn.createStatement()) {
 

@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.JDBCType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -42,8 +41,7 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testServerCursorPStmt() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
 
             // expected values
             int numRowsInResult = 1;
@@ -111,7 +109,7 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testSelectIntoUpdateCount() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
 
             // Azure does not do SELECT INTO
             if (!isSqlAzure()) {
@@ -153,8 +151,7 @@ public class RegressionTest extends AbstractTest {
         assumeTrue("JDBC41".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                 TestResource.getResource("R_incompatJDBC"));
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String sql;
             JDBCType[] targets = {JDBCType.INTEGER, JDBCType.SMALLINT};
             int rows = 3;
@@ -214,8 +211,7 @@ public class RegressionTest extends AbstractTest {
         assumeTrue("JDBC41".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
                 TestResource.getResource("R_incompatJDBC"));
 
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
             createTable(stmt);
 
@@ -254,8 +250,7 @@ public class RegressionTest extends AbstractTest {
 
     @AfterAll
     public static void terminate() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
         }

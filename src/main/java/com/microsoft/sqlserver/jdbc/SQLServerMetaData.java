@@ -61,8 +61,8 @@ public class SQLServerMetaData {
     }
 
     /**
-     * Constructs a SQLServerMetaData with the column name, SQL type, and length (for String data).
-     * The length is used to differentiate large strings from strings with length less than 4000 characters.
+     * Constructs a SQLServerMetaData with the column name, SQL type, and length (for String data). The length is used
+     * to differentiate large strings from strings with length less than 4000 characters.
      * 
      * @param columnName
      *        the name of the column
