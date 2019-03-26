@@ -702,8 +702,6 @@ public class TestUtils {
 
     public static String formatErrorMsg(String s) {
         // Creates a regex where all '{#}' fields will return true for any value when calling match()
-        String str = ("regex: "+ "\\Q" + TestUtils.rBundle.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
-        System.out.println(str);
-        return ("\\Q" + TestUtils.rBundle.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
-    }
+        return (".*\\Q" + TestUtils.rBundle.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
+   }
 }

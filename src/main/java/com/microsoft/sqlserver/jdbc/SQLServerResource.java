@@ -557,10 +557,10 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_ntlmInitError", "Unable to initialize NTLM authentication: {0}"},
             {"R_ntlmSignatureError", "NTLM Challenge Message signature error: {0}"},
             {"R_ntlmMessageTypeError", "NTLM Challenge Message type error: {0}"},
-            {"R_ntlmNegotiateError", "NTLM authentication error constructing Negotiate Message: {0}"},
+            {"R_ntlmAuthenticateError", "NTLM error constructing Authenticate Message: {0}"},
             {"R_ntlmNoTargetInfo", "NTLM Challenge Message is missing target info."},
-            {"R_ntlmNoDomain", "NTLM Challenge Message error: missing domain name"},
-            {"R_ntlmNoComputer", "NTLM Challenge Message target info error: missing computer name"},
+            {"R_ntlmBadDomain", "NTLM Challenge Message error: bad domain name"},
+            {"R_ntlmBadComputer", "NTLM Challenge Message target info error: bad computer name"},
             {"R_ntlmNoTimestamp", "NTLM Challenge Message target info error: missing timestamp"},
             {"R_ntlmUnknownValue", "NTLM Challenge Message target info error: unknown value"},
             {"R_ntlmAuthError", "NTLM authentication error: {0}"},};
