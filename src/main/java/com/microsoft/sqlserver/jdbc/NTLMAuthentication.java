@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
@@ -496,7 +495,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * Get MD4 hash of input string
      * @param str - input string
      */
-    private static byte[] MD4(byte[] str) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    private static byte[] MD4(byte[] str) {
         MD4 md = new MD4();
         md.reset();
         md.update(str);
@@ -514,7 +513,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
     /*
      * Generate key from password to get NTLMv2 hash
      */
-    private byte[] ntowfv2() throws InvalidKeyException, UnsupportedEncodingException, NoSuchAlgorithmException {
+    private byte[] ntowfv2() throws InvalidKeyException {
 
         return hmacMD5(MD4(unicode(context.password)), unicode(context.userName.toUpperCase() + context.domainName));
     }
@@ -547,8 +546,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * Get NT Challenge response to server challenge
      * @param clientNonce - client challenge nonce
      */
-    private byte[] getNtChallengeResp(
-            byte[] clientNonce) throws InvalidKeyException, UnsupportedEncodingException, NoSuchAlgorithmException {
+    private byte[] getNtChallengeResp(byte[] clientNonce) throws InvalidKeyException {
         byte[] responseKeyNT = ntowfv2();
         return computeResponse(responseKeyNT, getClientChallenge(clientNonce));
     }
@@ -661,7 +659,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
             // put calculated MIC into Authenticate msg
             System.arraycopy(mic, 0, msg, NTLM_AUTHENTICATE_MIC_OFFSET, NTLM_MIC_LENGTH);
-        } catch (InvalidKeyException | NoSuchAlgorithmException | UnsupportedEncodingException e) {
+        } catch (InvalidKeyException | NoSuchAlgorithmException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmAuthenticateError"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(form.format(msgArgs), e);
