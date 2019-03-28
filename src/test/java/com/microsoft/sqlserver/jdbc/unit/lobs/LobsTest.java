@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.lobs;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -156,6 +157,7 @@ public class LobsTest extends AbstractTest {
                     }
                     try {
                         this.updateLob(lob, updater, 1);
+                        fail(TestResource.getResource("R_expectedFailPassed"));
                     } catch (SQLException e) {
                         boolean verified = false;
 
@@ -199,7 +201,7 @@ public class LobsTest extends AbstractTest {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                fail(e.getMessage());
             } finally {
                 dropTables(table, stmt1);
                 if (null != updater) {
@@ -245,17 +247,20 @@ public class LobsTest extends AbstractTest {
                                 stream.read();
                             blob.free();
                         }
-                        try (InputStream stream = blob.getBinaryStream()) {} catch (SQLException e) {
-                            System.err.println(e.getMessage());
+                        try (InputStream stream = blob.getBinaryStream()) {
+                            fail(TestResource.getResource("R_expectedFailPassed"));
+                        } catch (SQLException e) {
                             assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
                         }
                     }
                 }
-                try (InputStream stream = blob.getBinaryStream()) {} catch (SQLException e) {
+                try (InputStream stream = blob.getBinaryStream()) {
+                    fail(TestResource.getResource("R_expectedFailPassed"));
+                } catch (SQLException e) {
                     assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                fail(e.getMessage());
             } finally {
                 dropTables(table, stmt);
             }
