@@ -181,8 +181,7 @@ enum AuthenticationScheme {
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(AuthenticationScheme.nativeAuthentication.toString())) {
             scheme = AuthenticationScheme.nativeAuthentication;
-        } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(AuthenticationScheme.ntlm.toString())) {
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(AuthenticationScheme.ntlm.toString())) {
             scheme = AuthenticationScheme.ntlm;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidAuthenticationScheme"));
@@ -488,10 +487,11 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.getDefaultValue(), false,
                     new String[] {AuthenticationScheme.javaKerberos.toString(),
                             AuthenticationScheme.nativeAuthentication.toString(),
-            AuthenticationScheme.ntlm.toString()}),
+                            AuthenticationScheme.ntlm.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION.toString(),
                     SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(), false,
                     new String[] {SqlAuthentication.NotSpecified.toString(), SqlAuthentication.SqlPassword.toString(),
+                            SqlAuthentication.ActiveDirectoryPassword.toString(),
                             SqlAuthentication.ActiveDirectoryIntegrated.toString(),
                             SqlAuthentication.ActiveDirectoryMSI.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),

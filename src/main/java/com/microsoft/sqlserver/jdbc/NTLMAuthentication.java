@@ -5,8 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import static java.nio.charset.StandardCharsets.UTF_16LE;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
@@ -26,20 +24,20 @@ import mssql.security.provider.MD4;
 /**
  * Provides an implementation of NTLM authentication
  * 
- * <pre>
- * See <a href=https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/b38c36ed-2804-4868-a9ff-8dd3182128e4">MS-NLMP:NTLM Authentication Protocol</a>
- * </pre>
+ * @see <a
+ *      href=https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/b38c36ed-2804-4868-a9ff-8dd3182128e4">MS-NLMP:NTLM
+ *      Authentication Protocol</a>
  */
 final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
-     * <pre>
      * Section 2.2.1.1 NEGOTIATE_MESSAGE
+     * 
      * Section 2.2.1.2 CHALLENGE_MESSAGE
+     * 
      * Section 2.2.1.3 AUTHENCIATE_MESSAGE
      * 
      * NTLM signature for all 3 messages - "NTLMSSP\0"
-     * </pre>
      */
     private static final byte[] NTLM_HEADER_SIGNATURE = {0x4e, 0x54, 0x4c, 0x4d, 0x53, 0x53, 0x50, 0x00};
 
@@ -49,34 +47,58 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final int NTLM_MESSAGE_TYPE_AUTHENTICATE = 0x00000003;
 
     /**
-     * <pre>
      * Section 2.2.2.7 NTLM v2: NTLMv2_CLIENT_CHALLENGE
      * 
-     * RespType - current version of the challenge response type. This field MUST be 0x01
-     * HiRespType - max supported version (HiRespType) of the client response type.
+     * <pre>
+     * RespType   current version(aka Responsreversion) of the challenge response type. This field MUST be 0x01
+     * HiRespType max supported version (aka HiResponserversion) of the client response type.
      * </pre>
      */
     private static final byte[] NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE = {0x01, 0x01};
 
     /**
-     * <pre>
      * Section 2.2.2.7 NTLM v2: NTLMv2_CLIENT_CHALLENGE
      * 
+     * <pre>
      * Reserved1  SHOULD be 0x0000
      * Reserved2  SHOULD be 0x00000000  
      * Reserved3  SHOULD be 0x00000000
      * </pre>
      */
     private static final byte[] NTLM_CLIENT_CHALLENGE_RESERVED1 = {0x00, 0x00};
-    private static final byte[] NTLM_CLIENT_CHALLENGE_RESERVED2 = {0x00, 0x00, 0x00, 0x00};;
-    private static final byte[] NTLM_CLIENT_CHALLENGE_RESERVED3 = {0x00, 0x00, 0x00, 0x00};;
+    private static final byte[] NTLM_CLIENT_CHALLENGE_RESERVED2 = {0x00, 0x00, 0x00, 0x00};
+    private static final byte[] NTLM_CLIENT_CHALLENGE_RESERVED3 = {0x00, 0x00, 0x00, 0x00};
 
     /**
-     * <pre>
+     * Section 3.1.5.1.1 Client Initiates the NEGOTIATE_MESSAGE
+     * 
+     * If NTLM v2 authentication is used and the CHALLENGE_MESSAGE TargetInfo field (section 2.2.1.2) has an
+     * MsvAvTimestamp present, the client SHOULD NOT send the LmChallengeResponse and SHOULD send Z(24) instead.
+     * 
+     * Section 2.2.2.1 AV_PAIR
+     * 
+     * MsvAvTimestamp is always sent in the CHALLENGE_MESSAGE.
+     * 
+     * Section 7 Appendix B: Product Behavior
+     * 
+     * MsvAvTimestamp AV_PAIR type is not supported in Windows NT, Windows 2000, Windows XP, and Windows Server 2003.
+     */
+    private static final byte[] NTLM_LMCHALLENAGERESPONSE = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+    /**
+     * Section 2.2.2.10 VERSION
+     * 
+     * used for debugging purposes only and its value does not affect NTLM message processing
+     */
+    private static final byte[] NTLMSSP_VERSION = new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+    /**
      * Section 2.2.5 NEGOTIATE
      * 
+     * <pre>
      * NTLM negotiate flags
-     * NTLMSSP_NEGOTIATE_UNICODE                  A bit requests Unicode character set encoding
+     * NTLMSSP_NEGOTIATE_UNICODE                  A bit requests unicode character set encoding
      * NTLMSSP_REQUEST_TARGET                     C bit TargetName field of the CHALLENGE_MESSAGE
      * NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED      K bit indicates whether the domain name is provided
      * NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED L bit indicates whether the Workstation field is present
@@ -92,13 +114,12 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final long NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED = 0x00001000;
     private static final long NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED = 0x00002000;
     private static final long NTLMSSP_NEGOTIATE_TARGET_INFO = 0x00800000;
-    private static final long NTLMSSP_NEGOTIATE_SIGN = 0x00000010;
     private static final long NTLMSSP_NEGOTIATE_ALWAYS_SIGN = 0x00008000;
 
     /**
-     * <pre>
      * Section 2.2.2.1 AV_PAIR
      * 
+     * <pre>
      * AAvId (2bytes)
      * A 16-bit unsigned integer that defines the information type in the Value field. The contents of this field MUST
      * be a value from the following table. The corresponding Value field in this AV_PAIR MUST contain the information
@@ -127,23 +148,22 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final short NTLM_AVID_MSVAVTARGETNAME = 0x0009;
 
     /**
-     * <pre>
      * Section 2.2.2.1 AV_PAIR
+     * 
      * value of NTLM_AVID_MSVAVFLAGS that indicates a MIC is provided
      * 
      * Section 3.1.5.1.2 Client Receives a CHALLENGE_MESSAGE from the Server
+     * 
      * If the CHALLENGE_MESSAGE TargetInfo field has an MsvAvTimestamp present, the client SHOULD provide a MIC
-     * </pre>
      */
-    private static final short NTLM_AVID_VALUE_MIC = 0x00000002;
-
-    // length of MIC field
-    private static final int NTLM_MIC_LENGTH = 16;
+    private static final short NTLM_AVID_VALUE_MIC = 0x00000002; // value of NTLM_AVID_MSVAVFLAGS
+    private static final int NTLM_MIC_LENGTH = 16; // length of MIC field
+    private static final int NTLM_MIC_AVP_LENGTH = 8; // length of the MIC AV pair
 
     /**
-     * <pre>
      * Section 2.2.1.1 NEGOTIATE_MESSAGE
      *
+     * <pre>
      * offset to payload in Negotiate message
      *     8 (signature) + 
      *     4 (message type) + 
@@ -156,9 +176,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final int NTLM_NEGOTIATE_PAYLOAD_OFFSET = 32;
 
     /**
-     * <pre>
      * Section 2.2.1.3 AUTHENTICATE_MESSAGE
      * 
+     * <pre>
      * offsets in Authenticate message
      *     8 (signature) + 
      *     4 (message type) + 
@@ -169,12 +189,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *     8 (workstation) + 
      *     8 (encrypted random session key) + 
      *     4 (negotiate flags) + 
-     *     0 (version) + 
-     *     16 (mic)
+     *     8 (version) + 
+     *     16 (MIC)
      * </pre>
      */
-    private static final int NTLM_AUTHENTICATE_MIC_OFFSET = 64;
-    private static final int NTLM_AUTHENTICATE_PAYLOAD_OFFSET = 80;
+    private static final int NTLM_AUTHENTICATE_PAYLOAD_OFFSET = 88;
 
     // challenge lengths
     private static final int NTLM_CLIENT_NONCE_LENGTH = 8;
@@ -197,10 +216,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // user credentials
         private final String userName;
         private final String password;
-        private final byte[] userBytes;
 
-        private final String serverName;
-        private final String workstation;
+        // upper cased unicode bytes
+        private final byte[] userNameBytes;
+        private final byte[] serverNameBytes;
         private final byte[] workstationBytes;
 
         // message authentication code
@@ -209,7 +228,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // negotiate flags
         long negotiateFlags = 0x00000000;
 
-        // session key calculated from user's password
+        // session key calculated from password
         byte[] sessionBaseKey = null;
 
         // Windows FileTime timestamp - number of 100 nanosecond ticks since Windows Epoch time
@@ -225,8 +244,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
         private byte[] serverChallenge = new byte[NTLM_SERVER_CHALLENGE_LENGTH];
 
         /**
-         * </pre>
-         * Section 3.1.5.1.2 Client Receives a CHALLENGE_MESSAGE from the Server saved messages for calculatling MIC
+         * Section 3.1.5.1.2 Client Receives a CHALLENGE_MESSAGE from the Server
+         * 
+         * Save messages for calculating MIC
          */
         private byte[] negotiateMsg = null;
         private byte[] challengeMsg = null;
@@ -234,14 +254,13 @@ final class NTLMAuthentication extends SSPIAuthentication {
         NTLMContext(SQLServerConnection con, String serverName, String domainName,
                 String workstation) throws NoSuchAlgorithmException {
             this.domainName = null != domainName ? domainName.toUpperCase() : "\0";
-            this.domainBytes = this.domainName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            this.domainBytes = unicode(this.domainName);
             this.userName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
-            this.userBytes = userName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            this.userNameBytes = unicode(userName);
             this.password = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
-            this.serverName = serverName;
-            this.workstation = workstation;
-            this.workstationBytes = workstation.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            this.serverNameBytes = unicode(serverName.toUpperCase());
+            this.workstationBytes = unicode(workstation.toUpperCase());// workstation.getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
             mac = Mac.getInstance("HmacMD5");
         }
@@ -249,10 +268,13 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     private NTLMContext context = null;
 
-    /*
+    /**
      * Creates an instance of the NTLM authentication
-     * @param con - connection
-     * @param domainName - domain name to connect to
+     * 
+     * @param con
+     *        connection
+     * @param domainName
+     *        domain name to connect to
      */
     NTLMAuthentication(SQLServerConnection con, String serverName, String domainName,
             String workstation) throws SQLServerException {
@@ -267,11 +289,14 @@ final class NTLMAuthentication extends SSPIAuthentication {
         }
     }
 
-    /*
+    /**
      * Generate SSPI client context
+     * 
      * @see com.microsoft.sqlserver.jdbc.SSPIAuthentication#generateClientContext(byte[], boolean[])
-     * @param inToken -SSPI input blob
-     * @param done - indicates processing is done
+     * @param inToken
+     *        SSPI input blob
+     * @param done
+     *        indicates processing is done
      */
     @Override
     byte[] generateClientContext(byte[] inToken, boolean[] done) throws SQLServerException {
@@ -279,8 +304,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
         return initializeSecurityContext(inToken, done);
     }
 
-    /*
+    /**
      * Release SSPI client context
+     * 
      * @see com.microsoft.sqlserver.jdbc.SSPIAuthentication#releaseClientContext()
      */
     @Override
@@ -289,11 +315,15 @@ final class NTLMAuthentication extends SSPIAuthentication {
         return 0;
     }
 
-    /*
-     * Get the NTLM Challenge message from server
-     * @param inToken - SSPI input blob
+    /**
+     * Parse the NTLM Challenge message from server
+     * 
+     * Section 2.2.1.2 CHALLENGE_MESSAGE
+     * 
+     * @param inToken
+     *        SSPI input blob
      */
-    private void getNtlmChallenge(byte[] inToken) throws SQLServerException {
+    private void parseNtlmChallenge(byte[] inToken) throws SQLServerException {
 
         context.token = ByteBuffer.wrap(inToken).order(ByteOrder.LITTLE_ENDIAN);
 
@@ -320,7 +350,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.getInt(); // targetNameOffset
 
         // negotiate flags
-        int flags = context.token.getInt();
+        context.token.getInt();
 
         // get server challenge
         context.token.get(context.serverChallenge);
@@ -343,24 +373,22 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // verify targetInfo - was requested so should always be sent
         context.targetInfo = new byte[targetInfoLen];
         context.token.get(context.targetInfo);
-
-        if (context.targetInfo.length == 0) {
+        if (0 == context.targetInfo.length) {
             throw new SQLServerException(SQLServerException.getErrString("R_ntlmNoTargetInfo"), null);
         }
 
+        // verify target info av pairs
         ByteBuffer targetInfoBuf = ByteBuffer.wrap(context.targetInfo).order(ByteOrder.LITTLE_ENDIAN);
         boolean done = false;
         for (int i = 0; i < context.targetInfo.length && !done;) {
             int id = targetInfoBuf.getShort();
-            int len = targetInfoBuf.getShort();
-            byte[] value = new byte[len];
+            byte[] value = new byte[targetInfoBuf.getShort()];
             targetInfoBuf.get(value);
 
             switch (id) {
                 // verify domain name
                 case NTLM_AVID_MSVAVDNSDOMAINNAME:
-                    if (!Arrays.equals(unicode(context.domainName.toUpperCase()),
-                            (new String(value).toUpperCase()).getBytes())) {
+                    if (!Arrays.equals(context.domainBytes, (new String(value).toUpperCase()).getBytes())) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadDomain"));
                         Object[] msgArgs = {new String(value)};
                         throw new SQLServerException(form.format(msgArgs), null);
@@ -368,7 +396,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
                     break;
                 case NTLM_AVID_MSVAVDNSCOMPUTERNAME:
                     // verify server name
-                    if (!Arrays.equals(unicode(context.serverName.toUpperCase()),
+                    if (!Arrays.equals(context.serverNameBytes,
+
                             (new String(value).toUpperCase()).getBytes())) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadComputer"));
                         Object[] msgArgs = {new String(value)};
@@ -383,12 +412,12 @@ final class NTLMAuthentication extends SSPIAuthentication {
                 case NTLM_AVID_MSVAVEOL:
                     done = true;
                     break;
+                // ignore others not supported
                 case NTLM_AVID_MSVAVNBCOMPUTERNAME:
                 case NTLM_AVID_MSVAVNBDOMAINNAME:
                 case NTLM_AVID_MSVAVDNSTREENAME:
                 case NTLM_AVID_MSVAVSINGLEHOST:
                 case NTLM_AVID_MSVAVTARGETNAME:
-                    // ignore others
                     break;
                 default:
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmUnknownValue"));
@@ -397,9 +426,13 @@ final class NTLMAuthentication extends SSPIAuthentication {
             }
         }
 
-        /*
-         * Section 2.2.2.1 AV_PAIR, Section 7 Appendix B: Product Behavior This structure is always sent in the
-         * CHALLENGE_MESSAGE not supported in Windows NT, Windows 2000, Windows XP, and Windows Server 2003
+        /**
+         * Section 2.2.2.1 AV_PAIR
+         * 
+         * Section 7 Appendix B Product Behavior
+         * 
+         * This structure is always sent in the CHALLENGE_MESSAGE not supported in Windows NT, Windows 2000, Windows XP,
+         * and Windows Server 2003
          */
         if (null == context.timestamp || context.timestamp[0] == '\0') {
             throw new SQLServerException(SQLServerException.getErrString("R_ntlmNoTimestamp"), null);
@@ -410,18 +443,21 @@ final class NTLMAuthentication extends SSPIAuthentication {
         System.arraycopy(inToken, 0, context.challengeMsg, 0, inToken.length);
     }
 
-    /*
+    /**
      * Initializes a security context
-     * @param inToken - SSPI input blob
-     * @param done - indicates processing is done
+     * 
+     * @param inToken
+     *        SSPI input blob
+     * @param done
+     *        indicates processing is done
      */
     private byte[] initializeSecurityContext(byte[] inToken, boolean[] done) throws SQLServerException {
 
         if (null == inToken || 0 == inToken.length) {
             return getNtlmNegotiateMsg();
         } else {
-            // server challenge msg
-            getNtlmChallenge(inToken);
+            // get challenge msg from server
+            parseNtlmChallenge(inToken);
 
             // get authenticate msg
             done[0] = true;
@@ -429,11 +465,27 @@ final class NTLMAuthentication extends SSPIAuthentication {
         }
     }
 
-    /*
-     * Get NTLMv2 Client Challenge
-     * @param clientNonce - client challenge nonce
+    /**
+     * Get NTLMv2 Client Challenge blob
+     * 
+     * <pre>
+     * Section 2.2.2.7 NTLM v2: NTLMv2_CLIENT_CHALLENGE:
+     *
+     * clientChallenge blob consists of:
+     *     Responserversion,
+     *     HiResponserversion,    NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE,
+     *     Z(6),                  NTLM_CLIENT_CHALLENGE_RESERVED1, NTLM_CLIENT_CHALLENGE_RESERVED2
+     *     Time,                  current timestamp
+     *     ClientChallenge,       clientNonce
+     *     Z(4),                  NTLM_CLIENT_CHALLENGE_RESERVED2
+     *     ServerName,            CHALLENGE_MESSAGE.TargetInfo (from 3.1.5.1.2 Client Receives a CHALLENGE_MESSAGE from the Server)
+     *     Z(4))                  EOL
+     * </pre>
+     * 
+     * @param clientNonce
+     *        client challenge nonce
      */
-    private byte[] getClientChallenge(byte[] clientNonce) {
+    private byte[] getClientChallengeBlob(byte[] clientNonce) {
 
         // timestamp is number of 100 nanosecond ticks since Windows Epoch
         ByteBuffer time = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
@@ -443,7 +495,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token = ByteBuffer
                 .allocate(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE.length + NTLM_CLIENT_CHALLENGE_RESERVED1.length
                         + NTLM_CLIENT_CHALLENGE_RESERVED2.length + currentTime.length + NTLM_CLIENT_NONCE_LENGTH
-                        + NTLM_CLIENT_CHALLENGE_RESERVED3.length + context.targetInfo.length + 8)
+                        + NTLM_CLIENT_CHALLENGE_RESERVED3.length + context.targetInfo.length + NTLM_MIC_AVP_LENGTH)
                 .order(ByteOrder.LITTLE_ENDIAN);
 
         context.token.put(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE);
@@ -455,21 +507,20 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.put(NTLM_CLIENT_CHALLENGE_RESERVED3);
 
         /**
-         * <pre>
          * Section 3.1.5.1.2 Client Receives a CHALLENGE_MESSAGE from the Server
+         * 
          * If the CHALLENGE_MESSAGE TargetInfo field has an MsvAvTimestamp present, the client SHOULD provide a MIC
-         * </pre>
          */
-        ByteBuffer newTargetInfo = ByteBuffer.allocate(context.targetInfo.length + 8).order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer newTargetInfo = ByteBuffer.allocate(context.targetInfo.length + NTLM_MIC_AVP_LENGTH)
+                .order(ByteOrder.LITTLE_ENDIAN);
 
         // copy targetInfo up to NTLM_AVID_MSVAVEOL
         newTargetInfo.put(context.targetInfo, 0, context.targetInfo.length - 4);
 
         // MIC flag
-        // TODO: add to include MIC
-        // newTargetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
-        // newTargetInfo.putShort((short) 4);
-        // newTargetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
+        newTargetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
+        newTargetInfo.putShort((short) 4);
+        newTargetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
 
         // EOL
         newTargetInfo.putShort(NTLM_AVID_MSVAVEOL);
@@ -480,10 +531,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
         return context.token.array();
     }
 
-    /*
-     * Get HMAC MD5 hash https://www.ietf.org/rfc/rfc2104.txt
-     * @param key - key
-     * @param data - data
+    /**
+     * Get HMAC MD5 hash @see <a href="https://www.ietf.org/rfc/rfc2104.txt">https://www.ietf.org/rfc/rfc2104.txt</a>
+     * 
+     * @param key
+     * @param data
      */
     private byte[] hmacMD5(byte[] key, byte[] data) throws InvalidKeyException {
         SecretKeySpec keySpec = new SecretKeySpec(key, "HmacMD5");
@@ -491,9 +543,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
         return context.mac.doFinal(data);
     }
 
-    /*
+    /**
      * Get MD4 hash of input string
-     * @param str - input string
+     * 
+     * @param str
+     *        input string
      */
     private static byte[] MD4(byte[] str) {
         MD4 md = new MD4();
@@ -502,163 +556,188 @@ final class NTLMAuthentication extends SSPIAuthentication {
         return md.digest();
     }
 
-    /*
+    /**
      * Get unicode of string
-     * @param str - string to convert to unicode
+     * 
+     * @param str
+     *        string to convert to unicode
      */
     private byte[] unicode(String str) {
-        return str.getBytes(UTF_16LE);
+        return str.getBytes(java.nio.charset.StandardCharsets.UTF_16LE);
     }
 
-    /*
+    /**
+     * Concatenate 2 byte arrays
+     * 
+     * @param arr1
+     * @param arr2
+     */
+    private byte[] concat(byte[] arr1, byte[] arr2) {
+        if (null == arr1 || null == arr2) {
+            return null;
+        }
+
+        byte[] temp = new byte[arr1.length + arr2.length];
+        System.arraycopy(arr1, 0, temp, 0, arr1.length);
+        System.arraycopy(arr2, 0, temp, arr1.length, arr2.length);
+        return temp;
+    }
+
+    /**
      * Generate key from password to get NTLMv2 hash
+     * 
+     * Section 3.3.2 NTLM v2 Authentication
      */
     private byte[] ntowfv2() throws InvalidKeyException {
 
         return hmacMD5(MD4(unicode(context.password)), unicode(context.userName.toUpperCase() + context.domainName));
     }
 
-    /*
-     * Compute challenge response
-     * @param responseKeyNT - response hash key
-     * @param clientChallenge - client challenge
+    /**
+     * ComputeResponse
+     * 
+     * Section 3.3.2 NTLM v2 Authentication
+     * 
+     * <pre>
+     * Set temp to ConcatenationOf(Responserversion, HiResponserversion, 
+     * Z(6), Time, ClientChallenge, Z(4), ServerName, Z(4)) 
+     * Set NTProofStr to HMAC_MD5(ResponseKeyNT,  
+     * ConcatenationOf(CHALLENGE_MESSAGE.ServerChallenge,temp)) 
+     * Set NtChallengeResponse to ConcatenationOf(NTProofStr, temp) 
+     * Set LmChallengeResponse to ConcatenationOf(HMAC_MD5(ResponseKeyLM,  
+     * ConcatenationOf(CHALLENGE_MESSAGE.ServerChallenge, ClientChallenge)), 
+     * ClientChallenge )
+     * </pre>
+     * 
+     * @param responseKeyNT
+     *        NT response hash key
+     * 
      */
-    private byte[] computeResponse(byte[] responseKeyNT, byte[] clientChallenge) throws InvalidKeyException {
+    private byte[] computeResponse(byte[] responseKeyNT) throws InvalidKeyException, NoSuchAlgorithmException {
 
-        // concatenate client and server challenge
-        int clientChallengeLen = clientChallenge.length;
-        byte[] temp = new byte[NTLM_SERVER_CHALLENGE_LENGTH + clientChallengeLen];
-        System.arraycopy(context.serverChallenge, 0, temp, 0, NTLM_SERVER_CHALLENGE_LENGTH);
-        System.arraycopy(clientChallenge, 0, temp, NTLM_SERVER_CHALLENGE_LENGTH, clientChallengeLen);
+        // get random client challenge nonce
+        byte[] clientNonce = new byte[NTLM_CLIENT_NONCE_LENGTH];
+        SecureRandom.getInstanceStrong().nextBytes(clientNonce);
 
-        byte[] ntProofStr = hmacMD5(responseKeyNT, temp);
-        int ntProofStrLen = ntProofStr.length;
+        // get client challenge blob
+        byte[] temp = getClientChallengeBlob(clientNonce);
+
+        byte[] ntProofStr = hmacMD5(responseKeyNT, concat(context.serverChallenge, temp));
 
         context.sessionBaseKey = hmacMD5(responseKeyNT, ntProofStr);
 
-        byte[] ntlmv2resp = new byte[ntProofStr.length + clientChallengeLen];
-        System.arraycopy(ntProofStr, 0, ntlmv2resp, 0, ntProofStrLen);
-        System.arraycopy(clientChallenge, 0, ntlmv2resp, ntProofStrLen, clientChallengeLen);
-        return ntlmv2resp;
+        return concat(ntProofStr, temp);
     }
 
-    /*
+    /**
      * Get NT Challenge response to server challenge
-     * @param clientNonce - client challenge nonce
+     * 
+     * Section 3.3.2 NTLM v2 Authentication
+     * 
+     * @param clientNonce
+     *        client challenge nonce
      */
-    private byte[] getNtChallengeResp(byte[] clientNonce) throws InvalidKeyException {
+    private byte[] getNtChallengeResp() throws InvalidKeyException, NoSuchAlgorithmException {
         byte[] responseKeyNT = ntowfv2();
-        return computeResponse(responseKeyNT, getClientChallenge(clientNonce));
+        return computeResponse(responseKeyNT);
     }
 
-    /*
+    /**
      * Get NTLM Authentication message
+     * 
+     * Section 2.2.1.3 AUTHENTICATE_MESSAGE
      */
     private byte[] getNtlmAuthenticateMsg() throws SQLServerException {
-        int domainNameLen = context.domainBytes.length * 2;
-        int userNameLen = context.userBytes.length * 2;
-        int workstationLen = context.workstationBytes.length * 2;
-        byte[] clientNonce = new byte[NTLM_CLIENT_NONCE_LENGTH];
+        int domainNameLen = context.domainBytes.length;
+        int userNameLen = context.userNameBytes.length;
+        int workstationLen = context.workstationBytes.length;
         byte[] msg = null;
 
         try {
-            // get random client challenge nonce
-            SecureRandom.getInstanceStrong().nextBytes(clientNonce);
+            // get NT challenge response
+            byte[] ntChallengeResp = getNtChallengeResp();
+            int ntChallengeLen = ntChallengeResp.length;
 
-            // LM Challenge response is only sent if no MsAvTimestamp
-
-            byte[] ntChallengeResp = getNtChallengeResp(clientNonce);
-
-            context.token = ByteBuffer.allocate(NTLM_AUTHENTICATE_PAYLOAD_OFFSET + domainNameLen + userNameLen
-                    + workstationLen + ntChallengeResp.length).order(ByteOrder.LITTLE_ENDIAN);
+            context.token = ByteBuffer
+                    .allocate(NTLM_AUTHENTICATE_PAYLOAD_OFFSET + NTLM_LMCHALLENAGERESPONSE.length
+                            + ntChallengeResp.length + domainNameLen + userNameLen + workstationLen)
+                    .order(ByteOrder.LITTLE_ENDIAN);
 
             // set NTLM signature and message type
             context.token.put(NTLM_HEADER_SIGNATURE, 0, NTLM_HEADER_SIGNATURE.length);
             context.token.putInt(NTLM_MESSAGE_TYPE_AUTHENTICATE);
 
-            int offset = NTLM_AUTHENTICATE_PAYLOAD_OFFSET + domainNameLen + userNameLen + workstationLen;
+            // start of payload data
+            int offset = NTLM_AUTHENTICATE_PAYLOAD_OFFSET;
 
-            /**
-             * <pre>
-             * Section 3.1.5.1.1 Client Initiates the NEGOTIATE_MESSAGE
-             * If NTLM v2 authentication is used and the CHALLENGE_MESSAGE TargetInfo field (section 2.2.1.2) has an
-             * MsvAvTimestamp present, the client SHOULD NOT send the LmChallengeResponse and SHOULD send Z(24)
-             * instead.
-             * </pre>
-             */
+            // LM challenge response
             context.token.putShort((short) 0);
             context.token.putShort((short) 0);
             context.token.putInt(offset);
+            offset += NTLM_LMCHALLENAGERESPONSE.length;
 
             // NT challenge response
-            int len = ntChallengeResp.length;
-            context.token.putShort((short) len);
-            context.token.putShort((short) len);
+            context.token.putShort((short) ntChallengeLen);
+            context.token.putShort((short) ntChallengeLen);
             context.token.putInt(offset);
-
-            // start of payload data
-            offset = NTLM_AUTHENTICATE_PAYLOAD_OFFSET;
+            offset += ntChallengeLen;
 
             // domain name fields
-            len = domainNameLen;
-            context.token.putShort((short) len);
-            context.token.putShort((short) len);
+            context.token.putShort((short) domainNameLen);
+            context.token.putShort((short) domainNameLen);
             context.token.putInt(offset);
-            offset += len;
+            offset += domainNameLen;
 
             // user name fields
-            len = userNameLen;
-            context.token.putShort((short) len);
-            context.token.putShort((short) len);
+            context.token.putShort((short) userNameLen);
+            context.token.putShort((short) userNameLen);
             context.token.putInt(offset);
-            offset += len;
+            offset += userNameLen;
 
             // workstation fields
-            len = workstationLen;
-            context.token.putShort((short) len);
-            context.token.putShort((short) len);
+            context.token.putShort((short) workstationLen);
+            context.token.putShort((short) workstationLen);
             context.token.putInt(offset);
-            offset += len;
+            offset += workstationLen;
 
             // not used = encrypted random session key fields
-            len = 0; // do not send
-            context.token.putShort((short) len);
-            context.token.putShort((short) len);
+            context.token.putShort((short) 0);
+            context.token.putShort((short) 0);
             context.token.putInt(offset);
 
             // same negotiate flags sent in negotiate message
             context.token.putInt((int) context.negotiateFlags);
 
-            // version not used - for debug only
+            // version
+            context.token.put(NTLMSSP_VERSION, 0, NTLMSSP_VERSION.length);
 
             // 0 the MIC field first for calculation
             byte[] mic = new byte[NTLM_MIC_LENGTH];
+            int micPosition = context.token.position(); // save position
             context.token.put(mic, 0, NTLM_MIC_LENGTH);
 
-            // payload
-            context.token.put(unicode(context.domainName), 0, domainNameLen);
-            context.token.put(unicode(context.userName), 0, userNameLen);
-            context.token.put(unicode(context.workstation), 0, workstationLen);
-            context.token.put(ntChallengeResp, 0, ntChallengeResp.length);
+            // payload data
+            context.token.put(NTLM_LMCHALLENAGERESPONSE, 0, NTLM_LMCHALLENAGERESPONSE.length);
+            context.token.put(ntChallengeResp, 0, ntChallengeLen);
+            context.token.put(context.domainBytes, 0, domainNameLen);
+            context.token.put(context.userNameBytes, 0, userNameLen);
+            context.token.put(context.workstationBytes, 0, workstationLen);
 
             /**
-             * <pre>
              * Section 3.1.5.1.2 Client Receives a CHALLENGE_MESSAGE from the Server
+             * 
              * MIC is calculated by concatenating of all 3 msgs with 0 MIC then hmacMD5 of session key and concat of the
              * 3 msgs
-             * </pre>
              */
-            // TODO: verify
             msg = context.token.array();
             SecretKeySpec keySpec = new SecretKeySpec(context.sessionBaseKey, "HmacMD5");
             context.mac.init(keySpec);
             context.mac.update(context.negotiateMsg);
             context.mac.update(context.challengeMsg);
-            // context.mac.update(msg);
             mic = context.mac.doFinal(msg);
 
             // put calculated MIC into Authenticate msg
-            System.arraycopy(mic, 0, msg, NTLM_AUTHENTICATE_MIC_OFFSET, NTLM_MIC_LENGTH);
+            System.arraycopy(mic, 0, msg, micPosition, NTLM_MIC_LENGTH);
         } catch (InvalidKeyException | NoSuchAlgorithmException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmAuthenticateError"));
             Object[] msgArgs = {e.getMessage()};
@@ -668,13 +747,16 @@ final class NTLMAuthentication extends SSPIAuthentication {
         return msg;
     }
 
-    /*
+    /**
      * Get NTLM Negotiate message
+     * 
+     * Section 2.2.1.1 NEGOTIATE_MESSAGE
      */
     private byte[] getNtlmNegotiateMsg() {
+        int domainNameLen = context.domainBytes.length;
+        int workstationLen = context.workstationBytes.length;
 
-        context.token = ByteBuffer
-                .allocate(NTLM_NEGOTIATE_PAYLOAD_OFFSET + context.domainBytes.length + context.workstationBytes.length)
+        context.token = ByteBuffer.allocate(NTLM_NEGOTIATE_PAYLOAD_OFFSET + domainNameLen + workstationLen)
                 .order(ByteOrder.LITTLE_ENDIAN);
 
         // signature and message type
@@ -684,29 +766,28 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // NTLM negotiate flags - only NTLMV2 supported
         context.negotiateFlags = NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
                 | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_TARGET_INFO | NTLMSSP_NEGOTIATE_UNICODE
-                | NTLMSSP_NEGOTIATE_ALWAYS_SIGN | NTLMSSP_NEGOTIATE_SIGN;
+                | NTLMSSP_NEGOTIATE_ALWAYS_SIGN;
         context.token.putInt((int) context.negotiateFlags);
 
-        // domain name fields
-        int len = context.domainBytes.length;
         int offset = NTLM_NEGOTIATE_PAYLOAD_OFFSET;
-        context.token.putShort((short) len);
-        context.token.putShort((short) len);
+
+        // domain name fields
+        context.token.putShort((short) domainNameLen);
+        context.token.putShort((short) domainNameLen);
         context.token.putInt(offset);
-        offset += len;
+        offset += domainNameLen;
 
         // workstation field
-        len = context.workstationBytes.length;
-        context.token.putShort((short) len);
-        context.token.putShort((short) len);
+        context.token.putShort((short) workstationLen);
+        context.token.putShort((short) workstationLen);
         context.token.putInt(offset);
-        offset += len;
+        offset += workstationLen;
 
         // version not used - for debug only
 
         // payload
-        context.token.put(context.domainBytes, 0, context.domainBytes.length);
-        context.token.put(context.workstationBytes, 0, context.workstationBytes.length);
+        context.token.put(context.domainBytes, 0, domainNameLen);
+        context.token.put(context.workstationBytes, 0, workstationLen);
 
         // save msg for calculating MIC in Authenticate msg
         byte[] msg = context.token.array();

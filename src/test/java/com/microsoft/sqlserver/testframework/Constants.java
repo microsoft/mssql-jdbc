@@ -39,6 +39,8 @@ public class Constants {
     // Environment properties
     public static final String FIPS_ENV = "FIPS_ENV";
     public static final String MSSQL_JDBC_TEST_CONNECTION_PROPERTIES = "mssql_jdbc_test_connection_properties";
+    public static final String MSSQL_JDBC_TEST_CONNECTION_PROPERTIES_NTLM = "mssql_jdbc_test_connection_properties_ntlm";
+    
     public static final String MSSQL_JDBC_LOGGING = "mssql_jdbc_logging";
     public static final String MSSQL_JDBC_LOGGING_HANDLER = "mssql_jdbc_logging_handler";
 
