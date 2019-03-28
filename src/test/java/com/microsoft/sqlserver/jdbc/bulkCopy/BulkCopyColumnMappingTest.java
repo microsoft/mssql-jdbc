@@ -367,10 +367,10 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
     private void validateValuesRepetitiveCM(DBConnection con, DBTable sourceTable,
             DBTable destinationTable) throws SQLException {
         try (DBStatement srcStmt = con.createStatement(); DBStatement dstStmt = con.createStatement();
-                DBResultSet srcResultSet = srcStmt
-                        .executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName() + Constants.SEMI_COLON);
-                DBResultSet dstResultSet = dstStmt.executeQuery(
-                        "SELECT * FROM " + destinationTable.getEscapedTableName() + Constants.SEMI_COLON)) {
+                DBResultSet srcResultSet = srcStmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName()
+                        + " ORDER BY" + sourceTable.getEscapedColumnName(0));
+                DBResultSet dstResultSet = dstStmt.executeQuery("SELECT * FROM "
+                        + destinationTable.getEscapedTableName() + " ORDER BY" + destinationTable.getEscapedColumnName(0))) {
             ResultSetMetaData sourceMeta = ((ResultSet) srcResultSet.product()).getMetaData();
             int totalColumns = sourceMeta.getColumnCount();
 
