@@ -69,6 +69,7 @@ public class PreparedStatementTest extends AbstractTest {
      */
     @Test
     @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLDB")
     public void testBatchedUnprepare() throws SQLException {
         SQLServerConnection conOuter = null;
 
