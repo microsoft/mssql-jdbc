@@ -15,7 +15,6 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Token;
 
 
@@ -63,16 +62,21 @@ class SQLServerParser {
                     if (iter.next().getType() == SQLServerLexer.WITH) {
                         iter.next();
                         skipBracket(iter, SQLServerLexer.LR_BRACKET);
+                    } else {
+                        iter.previous();
                     }
                     List<String> tableValues = getValuesList(iter);
                     List<List<String>> userValues = new ArrayList<>();
                     // VALUES case
                     boolean valuesFound = false;
-                    int index = iter.nextIndex() - 1;
+                    int valuesMarker = iter.nextIndex();
                     while (!valuesFound && iter.hasNext()) {
                         t = iter.next();
                         if (t.getType() == SQLServerLexer.VALUES) {
                             valuesFound = true;
+                            if (tableValues.isEmpty()) {
+                                columns.add("*");
+                            }
                             do {
                                 userValues.add(getValuesList(iter));
                             } while (iter.hasNext() && iter.next().getType() == SQLServerLexer.COMMA);
@@ -80,13 +84,13 @@ class SQLServerParser {
                         }
                     }
                     if (!valuesFound) {
-                        iter = tokenList.listIterator(index);
+                        resetIteratorIndex(iter, valuesMarker);
                     }
                     if (!userValues.isEmpty()) {
                         for (List<String> ls : userValues) {
                             for (int i = 0; i < ls.size(); i++) {
                                 if (ls.get(i).equalsIgnoreCase("?")) {
-                                    columns.add((tableValues.size()) == 0 ? "?" : tableValues.get(i));
+                                    columns.add((tableValues.size() == 0) ? "?" : tableValues.get(i));
                                 }
                             }
                         }
@@ -131,7 +135,7 @@ class SQLServerParser {
     }
 
     /*
-     * Doesn't only cover brackets. Covers ', ", (, [, and {.
+     * Covers ', ", (, [, and {.
      */
     private static void skipBracket(ListIterator<? extends Token> iter, int firstBracket) throws SQLServerException {
         Deque<Integer> d = new ArrayDeque<>();
@@ -155,51 +159,145 @@ class SQLServerParser {
             SQLServerLexer.PLUS_ASSIGN, SQLServerLexer.MINUS_ASSIGN, SQLServerLexer.MULT_ASSIGN,
             SQLServerLexer.DIV_ASSIGN, SQLServerLexer.MOD_ASSIGN, SQLServerLexer.AND_ASSIGN, SQLServerLexer.XOR_ASSIGN,
             SQLServerLexer.OR_ASSIGN, SQLServerLexer.STAR, SQLServerLexer.DIVIDE, SQLServerLexer.MODULE,
-            SQLServerLexer.PLUS, SQLServerLexer.MINUS);
+            SQLServerLexer.PLUS, SQLServerLexer.MINUS, SQLServerLexer.LIKE, SQLServerLexer.DOLLAR, SQLServerLexer.IN);
 
     static String findColumnAroundParameter(ListIterator<? extends Token> iter) {
-        StringBuilder sb = new StringBuilder();
-        Token operatorToken = null;
-        if (iter.hasNext()) {
-            operatorToken = iter.next();
+        int index = iter.nextIndex();
+        String value = findColumnAfterParameter(iter);
+        resetIteratorIndex(iter, index - 1);
+        if (value.equalsIgnoreCase("")) {
+            value = findColumnBeforeParameter(iter);
+            resetIteratorIndex(iter, index);
         }
-        if (operatorToken != null && OPERATORS.contains(operatorToken.getType())) {
-            sb.append(iter.next().getText());
-            // Linked-servers can have a maximum of 4 parts
-            for (int i = 0; i < 3; i++) {
-                Token t = iter.next();
-                if (t.getType() == SQLServerLexer.DOT) {
-                    sb.append(".");
-                    sb.append(iter.next().getText());
-                } else {
-                    break;
-                }
+        return value;
+    }
+
+    static void resetIteratorIndex(ListIterator<? extends Token> iter, int index) {
+        if (iter.nextIndex() < index) {
+            while (iter.nextIndex() != index) {
+                iter.next();
             }
-            return sb.toString();
+        } else if (iter.nextIndex() > index) {
+            while (iter.nextIndex() != index) {
+                iter.previous();
+            }
         } else {
-            if (operatorToken != null) {
-                iter.previous();// undo our peek
+            return;
+        }
+    }
+
+    private static String getRoundBracketChunk(ListIterator<? extends Token> iter, Token t) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('(');
+        Stack<String> s = new Stack<>();
+        s.push("(");
+        while (!s.empty()) {
+            t = iter.next();
+            if (t.getType() == SQLServerLexer.RR_BRACKET) {
+                sb.append(")");
+                s.pop();
+            } else if (t.getType() == SQLServerLexer.LR_BRACKET) {
+                sb.append("(");
+                s.push("(");
+            } else {
+                sb.append(t.getText()).append(" ");
             }
-            iter.previous();// parameter '?' location
-            operatorToken = iter.previous();// token before parameter
-            if (OPERATORS.contains(operatorToken.getType())) {
-                Deque<String> d = new ArrayDeque<>();
-                d.push(iter.previous().getText());
-                // Linked-servers can have a maximum of 4 parts
-                for (int i = 0; i < 3; i++) {
-                    Token t = iter.previous();
-                    if (t.getType() == SQLServerLexer.DOT) {
-                        d.push(".");
-                        d.push(iter.previous().getText());
+        }
+        return sb.toString();
+    }
+
+    private static String getRoundBracketChunkBefore(ListIterator<? extends Token> iter, Token t) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('(');
+        Stack<String> s = new Stack<>();
+        s.push(")");
+        while (!s.empty()) {
+            t = iter.previous();
+            if (t.getType() == SQLServerLexer.RR_BRACKET) {
+                sb.append("(");
+                s.push(")");
+            } else if (t.getType() == SQLServerLexer.LR_BRACKET) {
+                sb.append(")");
+                s.pop();
+            } else {
+                sb.append(t.getText()).append(" ");
+            }
+        }
+        return sb.toString();
+    }
+
+    private static String findColumnAfterParameter(ListIterator<? extends Token> iter) {
+        StringBuilder sb = new StringBuilder();
+        while (sb.length() == 0 && iter.hasNext()) {
+            Token t = iter.next();
+            if (OPERATORS.contains(t.getType()) && iter.hasNext()) {
+                t = iter.next();
+                if (t.getType() != SQLServerLexer.PARAMETER) {
+                    if (t.getType() == SQLServerLexer.LR_BRACKET) {
+                        sb.append(getRoundBracketChunk(iter, t));
                     } else {
-                        break;
+                        sb.append(t.getText());
+                    }
+                    for (int i = 0; i < 3; i++) {
+                        t = iter.next();
+                        if (t.getType() == SQLServerLexer.DOT) {
+                            sb.append(".");
+                            t = iter.next();
+                            if (t.getType() == SQLServerLexer.LR_BRACKET) {
+                                sb.append(getRoundBracketChunk(iter, t));
+                            } else {
+                                sb.append(t.getText());
+                            }
+                        } else {
+                            break;
+                        }
                     }
                 }
-                d.stream().forEach(sb::append);
-                return sb.toString();
+            } else {
+                break;
             }
         }
-        return "";
+        return sb.toString();
+    }
+
+    private static String findColumnBeforeParameter(ListIterator<? extends Token> iter) {
+        StringBuilder sb = new StringBuilder();
+        while (sb.length() == 0 && iter.hasPrevious()) {
+            Token t = iter.previous();
+            if (OPERATORS.contains(t.getType()) && iter.hasPrevious()) {
+                if (t.getType() == SQLServerLexer.DOLLAR) {
+                    iter.previous(); // skip if it's a $ sign
+                }
+                t = iter.previous();
+                if (t.getType() != SQLServerLexer.PARAMETER) {
+                    Deque<String> d = new ArrayDeque<>();
+                    if (t.getType() == SQLServerLexer.RR_BRACKET) {
+                        d.push(getRoundBracketChunkBefore(iter, t));
+                    } else {
+                        d.push(t.getText());
+                    }
+                    // Linked-servers can have a maximum of 4 parts
+                    for (int i = 0; i < 3; i++) {
+                        t = iter.previous();
+                        if (t.getType() == SQLServerLexer.DOT) {
+                            d.push(".");
+                            t = iter.previous();
+                            if (t.getType() == SQLServerLexer.RR_BRACKET) {
+                                d.push(getRoundBracketChunkBefore(iter, t));
+                            } else {
+                                d.push(t.getText());
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    d.stream().forEach(sb::append);
+                }
+            } else {
+                break;
+            }
+        }
+        return sb.toString();
     }
 
     /*
@@ -441,26 +539,7 @@ class SQLServerParser {
         do {
             switch (t.getType()) {
                 case SQLServerLexer.LR_BRACKET:
-                    sb.append("(");
-                    Stack<String> s = new Stack<>();
-                    s.push("(");
-                    try {
-                        while (!s.empty()) {
-                            t = iter.next();
-                            if (t.getType() == SQLServerLexer.RR_BRACKET) {
-                                sb.append(")");
-                                s.pop();
-                            } else if (t.getType() == SQLServerLexer.LR_BRACKET) {
-                                sb.append("(");
-                                s.push("(");
-                            } else {
-                                sb.append(t.getText()).append(" ");
-                            }
-                        }
-                    } catch (IndexOutOfBoundsException e) {
-                        // TODO: throw index out of bounds
-                        SQLServerException.makeFromDriverError(null, null, e.getLocalizedMessage(), "", false);
-                    }
+                    sb.append(getRoundBracketChunk(iter, t));
                     break;
                 case SQLServerLexer.DOUBLE_QUOTE:
                     do {
@@ -498,23 +577,15 @@ class SQLServerParser {
 
 class useFmtOnlyQuery {
     private String prefix;
-    private List<String> columns;
+    private List<String> userColumns;
     private List<String> tableTarget;
-    private List<String> parameterDeclarations;
 
     String getPrefix() {
         return prefix;
     }
 
-    String getPostfix() {
-        StringBuilder sb = new StringBuilder();
-        parameterDeclarations.stream().forEach(s -> sb.append("N'").append(s).append("',"));
-        sb.setLength(sb.length() - 1);
-        return sb.toString();
-    }
-
     List<String> getColumns() {
-        return columns;
+        return userColumns;
     }
 
     List<String> getTableTarget() {
@@ -526,7 +597,8 @@ class useFmtOnlyQuery {
         if (prefix != "")
             sb.append(prefix);
         sb.append("SELECT ");
-        sb.append(columns.isEmpty() ? "*" : columns.stream().collect(Collectors.joining(",")));
+        sb.append(userColumns.isEmpty() ? "*" : userColumns.stream().filter(s -> !s.equalsIgnoreCase("?"))
+                .collect(Collectors.joining(",")));
         if (!tableTarget.isEmpty()) {
             sb.append(" FROM ");
             sb.append(tableTarget.stream().distinct().collect(Collectors.joining(",")));
@@ -539,7 +611,7 @@ class useFmtOnlyQuery {
 
     private useFmtOnlyQuery(String prefix, List<String> columns, List<String> tableTarget) {
         this.prefix = prefix;
-        this.columns = columns;
+        this.userColumns = columns;
         this.tableTarget = tableTarget;
     };
 
