@@ -179,6 +179,7 @@ public class AESetup extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
+            stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -250,6 +251,7 @@ public class AESetup extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
+            stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -303,6 +305,7 @@ public class AESetup extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
+            stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -363,6 +366,7 @@ public class AESetup extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
+            stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -399,6 +403,7 @@ public class AESetup extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
+            stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -512,6 +517,7 @@ public class AESetup extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
+            stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -549,6 +555,7 @@ public class AESetup extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
+            stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
             fail(e.getMessage());
         }

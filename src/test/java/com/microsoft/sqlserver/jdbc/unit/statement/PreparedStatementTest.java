@@ -78,6 +78,9 @@ public class PreparedStatementTest extends AbstractTest {
             // Turn off use of prepared statement cache.
             con.setStatementPoolingCacheSize(0);
 
+            // Clean-up proc cache
+            this.executeSQL(con, "DBCC FREEPROCCACHE;");
+
             String lookupUniqueifier = UUID.randomUUID().toString();
 
             String queryCacheLookup = String.format("%%/*unpreparetest_%s%%*/SELECT 1;", lookupUniqueifier);

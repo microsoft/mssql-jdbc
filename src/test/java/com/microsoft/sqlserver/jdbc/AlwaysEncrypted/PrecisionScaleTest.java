@@ -39,6 +39,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 @Tag("xSQLv12")
 @Tag("xAzureSQLDW")
+@Tag("xAzureSQLDB")
 public class PrecisionScaleTest extends AESetup {
 
     private static java.util.Date date = null;
