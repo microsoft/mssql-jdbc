@@ -1573,7 +1573,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     isUserCreatedCredential = true;
                 }
             } else if (intAuthScheme == AuthenticationScheme.ntlm) {
-                String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN_NAME.toString();
+                String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN.toString();
                 String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
                 domainName = sPropValueDomain;
 

@@ -27,15 +27,42 @@ import com.zaxxer.hikari.HikariDataSource;
 public class NTLMConnectionTest extends AbstractTest {
     private static SQLServerDataSource dsNTLMLocal = null;
 
+    private static boolean ntlmPropsDefined = false;
+
+    private static String connectionStringNTLM = connectionString;
+
     @BeforeAll
     public static void setUp() {
-        if (connectionStringNTLM != null) {
+        java.util.logging.Logger logger = java.util.logging.Logger.getLogger("");
+        logger.removeHandler(logger.getHandlers()[0]);
+
+        // if these properties are defined then NTLM is desired, modify connection string accordingly
+        String domain = System.getProperty("domain");
+        String user = System.getProperty("userNTLM");
+        String password = System.getProperty("passwordNTLM");
+
+        if (null != domain) {
+            connectionStringNTLM = addOrOverrideProperty(connectionStringNTLM, "domain", domain);
+            ntlmPropsDefined = true;
+        }
+
+        if (null != user) {
+            connectionStringNTLM = addOrOverrideProperty(connectionStringNTLM, "user", user);
+            ntlmPropsDefined = true;
+        }
+
+        if (null != password) {
+            connectionStringNTLM = addOrOverrideProperty(connectionStringNTLM, "password", password);
+            ntlmPropsDefined = true;
+        }
+
+        if (ntlmPropsDefined) {
+            connectionStringNTLM = addOrOverrideProperty(connectionStringNTLM, "authenticationScheme", "NTLM");
+            connectionStringNTLM = addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");
+
             dsNTLMLocal = new SQLServerDataSource();
             updateDataSource(connectionStringNTLM, dsNTLMLocal);
         }
-
-        java.util.logging.Logger logger = java.util.logging.Logger.getLogger("");
-        logger.removeHandler(logger.getHandlers()[0]);
     }
 
     /**
@@ -45,7 +72,7 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMBasicConnection() throws SQLException {
-        if (connectionStringNTLM != null) {
+        if (ntlmPropsDefined) {
             try (Connection conn1 = dsNTLMLocal.getConnection();
                     Connection conn2 = DriverManager.getConnection(connectionStringNTLM)) {
                 verifyNTLM(conn1);
@@ -59,7 +86,7 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMInvalidProperties() {
-        if (connectionStringNTLM != null) {
+        if (ntlmPropsDefined) {
             // NTLM without user name
             testInvalidProperties(addOrOverrideProperty(connectionStringNTLM, "user", ""),
                     "R_NtlmNoUserPasswordDomain");
@@ -82,7 +109,7 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMEncryptedConnection() throws SQLException {
-        if (connectionStringNTLM != null) {
+        if (ntlmPropsDefined) {
             try (Connection conn = DriverManager
                     .getConnection(connectionStringNTLM + ";encrypt=true;trustServerCertificate=true")) {
                 verifyNTLM(conn);
@@ -97,7 +124,7 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMNonDeafultDatabase() throws SQLException {
-        if (connectionStringNTLM != null) {
+        if (ntlmPropsDefined) {
             String databaseName = "tempdb";
             try (Connection conn = DriverManager
                     .getConnection(addOrOverrideProperty(connectionStringNTLM, "database", databaseName))) {
@@ -114,7 +141,7 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMHikariCP() throws SQLException {
-        if (connectionStringNTLM != null) {
+        if (ntlmPropsDefined) {
             HikariConfig config1 = new HikariConfig();
             HikariConfig config2 = new HikariConfig();
             config1.setDataSource(dsNTLMLocal);
@@ -133,7 +160,7 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     // @Test
     public void testNTLMLoginTimeout() {
-        if (connectionStringNTLM != null) {
+        if (ntlmPropsDefined) {
             long timerStart = 0;
             long timerEnd = 0;
             int loginTimeout = 10;
@@ -165,7 +192,7 @@ public class NTLMConnectionTest extends AbstractTest {
     @Test
     public void testNTLMBadBlob() throws SQLException {
 
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
             SSPIAuthentication auth = new NTLMAuthentication(conn, "serverName", "domainName", "hostname");
             boolean[] done = {false};
 
@@ -428,7 +455,7 @@ public class NTLMConnectionTest extends AbstractTest {
      *        value of the property
      * @return The updated connection string
      */
-    private String addOrOverrideProperty(String connectionString, String property, String value) {
+    private static String addOrOverrideProperty(String connectionString, String property, String value) {
         return connectionString + ";" + property + "=" + value + ";";
     }
 }

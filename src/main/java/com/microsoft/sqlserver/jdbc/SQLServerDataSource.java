@@ -879,13 +879,13 @@ public class SQLServerDataSource
 
     @Override
     public void setDomain(String domain) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN_NAME.toString(), domain);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(), domain);
     }
 
     @Override
     public String getDomain() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN_NAME.toString(),
-                SQLServerDriverStringProperty.DOMAIN_NAME.getDefaultValue());
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(),
+                SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
     }
 
     /**

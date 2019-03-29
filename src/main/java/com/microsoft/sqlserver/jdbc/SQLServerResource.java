@@ -180,7 +180,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_userPropertyDescription", "The database user."},
             {"R_passwordPropertyDescription", "The database password."},
             {"R_databaseNamePropertyDescription", "The name of the database to connect to."},
-            {"R_domainNamePropertyDescription", "The name of the domain that contains the user account."},
+            {"R_domainPropertyDescription", "The name of the domain that contains the user account."},
             {"R_serverNamePropertyDescription", "The computer running SQL Server."},
             {"R_portNumberPropertyDescription", "The TCP port where an instance of SQL Server is listening."},
             {"R_serverSpnPropertyDescription", "SQL Server SPN."},
