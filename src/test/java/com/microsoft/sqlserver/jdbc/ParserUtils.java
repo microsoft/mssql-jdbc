@@ -19,11 +19,11 @@ public class ParserUtils {
         try {
             useFmtOnlyQuery u = useFmtOnlyQuery.getFmtQuery(s);
             
-//            String fmtQuery = u.getFMTQuery();
-//            System.out.println(fmtQuery+"\n");
+            String fmtQuery = u.getFMTQuery();
+            System.out.println(fmtQuery+"\n");
             
-            String tableName = u.getTableTarget().stream().map(String::trim).distinct().collect(Collectors.joining(","));
-            System.out.println(tableName);
+            String tableName = u.getTableTarget().stream().map(String::trim).collect(Collectors.joining(","));
+//            System.out.println(tableName);
 
             return tableName;
         } catch (SQLServerException e) {

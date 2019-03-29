@@ -33,11 +33,6 @@ public class InsertTest extends AbstractTest {
         valuePair.add(Pair.of("INSERT INTO jdbctest VALUES (?,?,?)", "jdbctest"));
         valuePair.add(Pair.of("INSERT INTO jdbctest VALUES (?,?,?);", "jdbctest"));
         valuePair.add(Pair.of("INSERT INTO /*hello this is a comment*/jdbctest VALUES (1);", "jdbctest"));
-//        valuePair.add(Pair.of("SELECT * FROM jdbctest ORDER BY blah...", "jdbctest"));
-//        valuePair.add(Pair.of("SELECT * FROM jdbctest WHERE blah...", "jdbctest"));
-//        valuePair.add(Pair.of("SELECT * FROM jdbctest HAVING blah...", "jdbctest"));
-//        valuePair.add(Pair.of("SELECT * FROM jdbctest OPTION blah...", "jdbctest"));
-//        valuePair.add(Pair.of("SELECT * FROM jdbctest GROUP BY blah...", "jdbctest"));
 
         // double quote literal
         valuePair.add(Pair.of("INSERT INTO \"jdbc test\"", "\"jdbc test\""));
@@ -71,19 +66,13 @@ public class InsertTest extends AbstractTest {
         valuePair.add(Pair.of("INSERT jdbctest VALUES ([((c)1{}],\"{{c}2)(\")", "jdbctest"));
 
         // with sub queries
-        valuePair.add(Pair.of("INSERT INTO jdbctest SELECT c1,c2,c3 FROM jdbctest2 "
-                + "WHERE c1 > 4.0","jdbctest,jdbctest2"));
-//        valuePair.add(Pair.of(
-//                "SELECT t.*, a+b AS total_sum FROM (SELECT SUM(col1) as a, SUM(col2) AS b FROM table ORDER BY a ASC) t ORDER BY total_sum DSC",
-//                "(SELECT SUM (col1 )as a , SUM (col2 )AS b FROM table ORDER BY a ASC ) t"));
-//        valuePair.add(Pair.of("SELECT col1 FROM myTestInts UNION "
-//                + "SELECT top 1 (select top 1 CONVERT(char(10), max(col1),121) a FROM myTestInts Order by a) FROM myTestInts Order by col1",
-//                "myTestInts UNION SELECT top 1 (select top 1 CONVERT (char (10 ), max (col1 ), 121 )a FROM myTestInts Order by a ) FROM myTestInts"));
+        valuePair.add(Pair.of("INSERT INTO jdbctest SELECT c1,c2,c3 FROM jdbctest2 " + "WHERE c1 > 4.0",
+                "jdbctest,jdbctest2"));
 
         // Multiple Selects
         valuePair.add(Pair.of("INSERT INTO table1 VALUES (1);INSERT INTO table2 VALUES (1)", "table1,table2"));
         valuePair.add(Pair.of("INSERT INTO table1 VALUES (1);INSERT INTO table1 VALUES (1)", "table1"));
-        
+
         // Special cases
         valuePair.add(Pair.of("INSERT INTO dbo.FastCustomers2009\r\n"
                 + "SELECT T1.FirstName, T1.LastName, T1.YearlyIncome, T1.MaritalStatus FROM Insured_Customers T1 JOIN CarSensor_Data T2\r\n"
@@ -96,6 +85,7 @@ public class InsertTest extends AbstractTest {
     /*
      * https://docs.microsoft.com/en-us/sql/t-sql/statements/insert-transact-sql?view=sql-server-2017
      */
+    @Test
     public void insertExamplesTest() {
         ArrayList<Pair<String, String>> valuePair = new ArrayList<>();
         // A. Inserting a single row of data
@@ -241,18 +231,18 @@ public class InsertTest extends AbstractTest {
                         + "    WHERE sp.BusinessEntityID LIKE '2%'  \r\n" + "    ORDER BY c.LastName, c.FirstName;",
                 "dbo . EmployeeSales,Sales . SalesPerson AS sp INNER JOIN Person . Person AS c ON sp . BusinessEntityID = c . BusinessEntityID"));
 
-        // V. Inserting data returned from an OUTPUT clause
-        // TODO: Ice-cream machine broke
-        // valuePair.add(Pair.of("INSERT INTO Production.ZeroInventory (DeletedProductID, RemovedOnDate) \r\n"
-        // + "SELECT ProductID, GETDATE() \r\n" + "FROM \r\n" + "( MERGE Production.ProductInventory AS pi \r\n"
-        // + " USING (SELECT ProductID, SUM(OrderQty) FROM Sales.SalesOrderDetail AS sod \r\n"
-        // + " JOIN Sales.SalesOrderHeader AS soh \r\n" + " ON sod.SalesOrderID = soh.SalesOrderID \r\n"
-        // + " AND soh.OrderDate = '20070401' \r\n" + " GROUP BY ProductID) AS src (ProductID, OrderQty) \r\n"
-        // + " ON (pi.ProductID = src.ProductID) \r\n" + " WHEN MATCHED AND pi.Quantity - src.OrderQty <= 0 \r\n"
-        // + " THEN DELETE \r\n" + " WHEN MATCHED \r\n"
-        // + " THEN UPDATE SET pi.Quantity = pi.Quantity - src.OrderQty \r\n"
-        // + " OUTPUT $action, deleted.ProductID) AS Changes (Action, ProductID) \r\n"
-        // + "WHERE Action = 'DELETE'; ", "Production . ZeroInventory"));
+        /*
+         * V. Inserting data returned from an OUTPUT clause TODO: Fix
+         * valuePair.add(Pair.of("INSERT INTO Production.ZeroInventory (DeletedProductID, RemovedOnDate) \r\n" +
+         * "SELECT ProductID, GETDATE() \r\n" + "FROM \r\n" + "( MERGE Production.ProductInventory AS pi \r\n" +
+         * " USING (SELECT ProductID, SUM(OrderQty) FROM Sales.SalesOrderDetail AS sod \r\n" +
+         * " JOIN Sales.SalesOrderHeader AS soh \r\n" + " ON sod.SalesOrderID = soh.SalesOrderID \r\n" +
+         * " AND soh.OrderDate = '20070401' \r\n" + " GROUP BY ProductID) AS src (ProductID, OrderQty) \r\n" +
+         * " ON (pi.ProductID = src.ProductID) \r\n" + " WHEN MATCHED AND pi.Quantity - src.OrderQty <= 0 \r\n" +
+         * " THEN DELETE \r\n" + " WHEN MATCHED \r\n" + " THEN UPDATE SET pi.Quantity = pi.Quantity - src.OrderQty \r\n"
+         * + " OUTPUT $action, deleted.ProductID) AS Changes (Action, ProductID) \r\n" + "WHERE Action = 'DELETE'; ",
+         * "Production . ZeroInventory"));
+         */
 
         // W. Inserting data using the SELECT option
         valuePair.add(Pair.of(
