@@ -95,6 +95,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xSQLv12")
     public void testAddbatch2AEOnConnection() throws SQLException {
         try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
             testAddBatch2();
