@@ -27,7 +27,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class ConnectionWrapper43Test extends AbstractTest {
     static Connection connection = null;
     double javaVersion = Double.parseDouble(System.getProperty("java.specification.version"));

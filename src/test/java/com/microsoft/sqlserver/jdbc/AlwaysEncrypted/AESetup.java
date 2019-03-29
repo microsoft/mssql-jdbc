@@ -5,7 +5,6 @@
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -35,12 +34,10 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
-import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
-import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 import microsoft.sql.DateTimeOffset;
@@ -74,10 +71,6 @@ public class AESetup extends AbstractTest {
      */
     @BeforeAll
     public static void setUpConnection() throws TestAbortedException, Exception {
-        try (DBConnection con = new DBConnection(connectionString)) {
-            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
-        }
-
         AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString);
@@ -108,10 +101,6 @@ public class AESetup extends AbstractTest {
      */
     @AfterAll
     public static void dropAll() throws Exception {
-        try (DBConnection con = new DBConnection(connectionString)) {
-            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
-        }
-
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             dropTables(stmt);
             dropCEK(stmt);
@@ -131,7 +120,6 @@ public class AESetup extends AbstractTest {
         filePath = TestUtils.getCurrentClassPath();
         try {
             File f = new File(filePath + inputFile);
-            assumeTrue(f.exists(), TestResource.getResource("R_noKeyStore"));
             try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
                 String readLine = "";
                 String[] linecontents;

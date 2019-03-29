@@ -7,16 +7,13 @@ package com.microsoft.sqlserver.jdbc.connection;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.sql.Connection;
-import java.sql.DriverPropertyInfo;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.text.MessageFormat;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -37,7 +34,6 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -46,7 +42,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class ConnectionDriverTest extends AbstractTest {
     // If no retry is done, the function should at least exit in 5 seconds
     static int threshHoldForNoRetryInMilliseconds = 5000;
@@ -118,9 +113,9 @@ public class ConnectionDriverTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLDB")
     public void testConnectionEvents() throws SQLException {
-        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
-
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
         PooledConnection pooledConnection = mds.getPooledConnection();
@@ -152,9 +147,9 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
+    @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLDB")
     public void testConnectionPoolGetTwice() throws SQLException {
-        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
-
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
         PooledConnection pooledConnection = mds.getPooledConnection();
@@ -183,9 +178,9 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
+    @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLDB")
     public void testConnectionClosed() throws SQLException {
-        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
-
         SQLServerDataSource mds = new SQLServerDataSource();
         mds.setURL(connectionString);
         try (Connection con = mds.getConnection();
@@ -260,9 +255,9 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
+    @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLDB")
     public void testDeadConnection() throws SQLException {
-        assumeFalse(isSqlAzure(), TestResource.getResource("R_skipAzure"));
-
         String tableName = RandomUtil.getIdentifier("ConnectionTestTable");
         try (Connection conn = PrepUtil.getConnection(connectionString + ";responseBuffering=adaptive");
                 Statement stmt = conn.createStatement()) {

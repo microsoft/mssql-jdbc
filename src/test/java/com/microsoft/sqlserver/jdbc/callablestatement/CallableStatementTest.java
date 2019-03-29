@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -32,6 +33,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  * Test CallableStatement
  */
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class CallableStatementTest extends AbstractTest {
     private static String tableNameGUID = RandomUtil.getIdentifier("uniqueidentifier_Table");
     private static String outputProcedureNameGUID = RandomUtil.getIdentifier("uniqueidentifier_SP");

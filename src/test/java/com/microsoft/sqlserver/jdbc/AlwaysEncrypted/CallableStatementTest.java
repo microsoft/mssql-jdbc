@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -19,6 +18,7 @@ import java.util.LinkedList;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -34,7 +34,6 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
-import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 import microsoft.sql.DateTimeOffset;
@@ -45,6 +44,8 @@ import microsoft.sql.DateTimeOffset;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("xSQLv12")
+@Tag("xAzureSQLDW")
 public class CallableStatementTest extends AESetup {
 
     private static String multiStatementsProcedure = RandomUtil.getIdentifier("multiStatementsProcedure");
@@ -88,10 +89,6 @@ public class CallableStatementTest extends AESetup {
      */
     @BeforeAll
     public static void initCallableStatementTest() throws Exception {
-        try (DBConnection con = new DBConnection(connectionString)) {
-            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
-        }
-
         dropTables();
 
         numericValues = createNumericValues(nullable);
@@ -118,9 +115,6 @@ public class CallableStatementTest extends AESetup {
 
     @AfterAll
     public static void dropAll() throws Exception {
-        try (DBConnection con = new DBConnection(connectionString)) {
-            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
-        }
         dropTables();
         dropProcedures();
     }

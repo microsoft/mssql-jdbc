@@ -1,18 +1,17 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -24,9 +23,9 @@ public class SparseTest extends AbstractTest {
     final static String escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
 
     @Test
+    @Tag("xAzureSQLDW")
     public void testSparse() throws Exception {
         try (Connection conn = getConnection()) {
-            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
             try (Statement stmt = conn.createStatement()) {
 
                 // Create the test table

@@ -28,7 +28,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class DriverVersionTest extends AbstractTest {
     Random rand = new Random();
     int major = rand.nextInt(256);

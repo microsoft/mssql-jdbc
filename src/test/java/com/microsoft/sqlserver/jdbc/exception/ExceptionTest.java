@@ -14,6 +14,7 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -67,6 +68,7 @@ public class ExceptionTest extends AbstractTest {
      * 
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testSocketTimeoutExceptionCause() throws Exception {
         try (SQLServerConnection conn = (SQLServerConnection) getConnection();
                 Statement stmt = conn.createStatement()) {

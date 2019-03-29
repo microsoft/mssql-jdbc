@@ -5,7 +5,6 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -18,6 +17,7 @@ import java.sql.Timestamp;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -30,11 +30,11 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class DateAndTimeTypeTest extends AbstractTest {
 
     private static final Date DATE_TO_TEST = new java.sql.Date(61494793200000L);
@@ -194,10 +194,6 @@ public class DateAndTimeTypeTest extends AbstractTest {
 
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
-        try (DBConnection dbc = new DBConnection(connectionString)) {
-            assumeTrue(9 <= dbc.getServerVersion(), "Aborting test case as SQL Server version does not support TIME");
-        }
-
         // To get TIME & setTime working on Servers >= 2008, we must add 'sendTimeAsDatetime=false'
         // by default to the connection. See issue https://github.com/Microsoft/mssql-jdbc/issues/559
         try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false");

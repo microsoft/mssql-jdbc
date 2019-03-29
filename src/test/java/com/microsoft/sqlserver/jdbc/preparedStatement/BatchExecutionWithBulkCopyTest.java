@@ -3,7 +3,6 @@ package com.microsoft.sqlserver.jdbc.preparedStatement;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -48,7 +47,6 @@ import microsoft.sql.DateTimeOffset;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("BulkCopyParseTest");
@@ -650,8 +648,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     @Test
+    @Tag("xAzureSQLDW")
     public void testNonSupportedColumns() throws Exception {
-        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_spatialDWNotSupported"));
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName)
                 + " values (?, ?, ?, ?)";
 

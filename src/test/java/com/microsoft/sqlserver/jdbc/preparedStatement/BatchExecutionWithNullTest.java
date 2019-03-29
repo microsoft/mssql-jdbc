@@ -5,7 +5,6 @@
 package com.microsoft.sqlserver.jdbc.preparedStatement;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -27,12 +26,11 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
+@Tag("xAzureSQLDW")
 public class BatchExecutionWithNullTest extends AbstractTest {
 
     private static final String tableName = RandomUtil.getIdentifier("batchNull");
@@ -104,11 +102,8 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     }
 
     @BeforeEach
+    @Tag("xSQLv12")
     public void testSetup() throws TestAbortedException, Exception {
-        try (DBConnection con = new DBConnection(connectionString)) {
-            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
-        }
-
         try (Connection connection = getConnection();
                 SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -116,7 +111,6 @@ public class BatchExecutionWithNullTest extends AbstractTest {
                     + " (id integer not null, name varchar(255), constraint "
                     + AbstractSQLGenerator.escapeIdentifier(primaryKeyConstraintName) + " primary key (id))";
             stmt.execute(sql1);
-            stmt.close();
         }
     }
 

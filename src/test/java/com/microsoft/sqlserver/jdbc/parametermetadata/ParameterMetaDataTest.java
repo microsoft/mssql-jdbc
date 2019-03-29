@@ -13,6 +13,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -33,6 +34,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testParameterMetaDataWrapper() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
@@ -75,6 +77,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testNameWithBraces() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
@@ -99,6 +102,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testParameterMetaData() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
@@ -135,6 +139,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testParameterMetaDataProc() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String query = "exec sp_help (" + AbstractSQLGenerator.escapeIdentifier(tableName) + ")";

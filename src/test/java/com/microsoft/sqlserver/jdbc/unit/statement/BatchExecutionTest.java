@@ -6,7 +6,6 @@ package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -17,6 +16,7 @@ import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -29,7 +29,6 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
@@ -38,6 +37,8 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("xSQLv12")
+@Tag("xAzureSQLDW")
 public class BatchExecutionTest extends AbstractTest {
 
     static String ctstable1;
@@ -233,10 +234,6 @@ public class BatchExecutionTest extends AbstractTest {
         ctstable1 = RandomUtil.getIdentifier("ctstable1");
         ctstable2 = RandomUtil.getIdentifier("ctstable2");
 
-        try (DBConnection con = new DBConnection(connectionString)) {
-            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
-        }
-
         dropTable();
         createTable();
     }
@@ -251,10 +248,6 @@ public class BatchExecutionTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws Exception {
-        try (DBConnection con = new DBConnection(connectionString)) {
-            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
-        }
-
         dropTable();
     }
 }

@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -67,6 +68,7 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testBatchedUnprepare() throws SQLException {
         SQLServerConnection conOuter = null;
 
@@ -145,6 +147,7 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testStatementPooling() throws Exception {
         testStatementPoolingInternal("batchInsert");
     }
@@ -159,6 +162,7 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws IllegalArgumentException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testStatementPoolingUseBulkCopyAPI() throws Exception {
         testStatementPoolingInternal("BulkCopy");
     }

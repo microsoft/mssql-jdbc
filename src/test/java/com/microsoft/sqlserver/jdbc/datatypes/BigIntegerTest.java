@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -23,6 +24,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  * This test is for testing the setObject methods for the data type mappings in JDBC for java.math.BigInteger
  */
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class BigIntegerTest extends AbstractTest {
 
     enum TestType {
@@ -100,7 +102,7 @@ public class BigIntegerTest extends AbstractTest {
         }
     }
 
-    static void testSetObject(String tableName, BigInteger obj, int id, PreparedStatement pstmt,
+    private void testSetObject(String tableName, BigInteger obj, int id, PreparedStatement pstmt,
             TestType testType) throws SQLException {
         if (TestType.SETOBJECT_WITHTYPE == testType) {
             callSetObjectWithType(obj, pstmt);
@@ -172,7 +174,7 @@ public class BigIntegerTest extends AbstractTest {
         }
     }
 
-    static void callSetObjectWithType(BigInteger obj, PreparedStatement pstmt) throws SQLException {
+    private void callSetObjectWithType(BigInteger obj, PreparedStatement pstmt) throws SQLException {
         pstmt.setObject(1, obj, java.sql.Types.VARCHAR);
         pstmt.setObject(2, obj, java.sql.Types.BIGINT);
         pstmt.setObject(3, obj, java.sql.Types.FLOAT);
@@ -199,7 +201,7 @@ public class BigIntegerTest extends AbstractTest {
         pstmt.setObject(9, obj, java.sql.Types.LONGVARCHAR);
     }
 
-    static void callSetObjectWithoutType(BigInteger obj, PreparedStatement pstmt) throws SQLException {
+    private void callSetObjectWithoutType(BigInteger obj, PreparedStatement pstmt) throws SQLException {
         /*
          * Cannot send a long value to a column of type int/smallint (even if the long value is small enough to fit in
          * those types)
@@ -231,7 +233,7 @@ public class BigIntegerTest extends AbstractTest {
         pstmt.setObject(9, obj);
     }
 
-    static void callSetNull(BigInteger obj, PreparedStatement pstmt) throws SQLException {
+    private void callSetNull(BigInteger obj, PreparedStatement pstmt) throws SQLException {
         pstmt.setNull(1, java.sql.Types.VARCHAR);
         pstmt.setNull(2, java.sql.Types.BIGINT);
         pstmt.setNull(3, java.sql.Types.FLOAT);

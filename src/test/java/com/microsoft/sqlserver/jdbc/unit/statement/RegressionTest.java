@@ -5,7 +5,6 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.JDBCType;
@@ -16,6 +15,7 @@ import java.sql.Statement;
 import java.sql.Types;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -40,6 +40,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testServerCursorPStmt() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
 
@@ -147,16 +148,13 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testUpdateQuery() throws SQLException {
-        assumeTrue("JDBC41".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
-                TestResource.getResource("R_incompatJDBC"));
-
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String sql;
             JDBCType[] targets = {JDBCType.INTEGER, JDBCType.SMALLINT};
             int rows = 3;
-            tableName = RandomUtil.getIdentifier("[updateQuery]");
-
+            tableName = RandomUtil.getIdentifier("updateQuery");
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ("
                     + "c1 int null," + "PK int NOT NULL PRIMARY KEY" + ")");
@@ -207,15 +205,12 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testXmlQuery() throws SQLException {
-        assumeTrue("JDBC41".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
-                TestResource.getResource("R_incompatJDBC"));
-
         try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(tableName, stmt);
-            createTable(stmt);
-
             tableName = RandomUtil.getIdentifier("try_SQLXML_Table");
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            createTable(stmt);
 
             String sql = "UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET [c2] = ?, [c3] = ?";
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
@@ -235,7 +230,7 @@ public class RegressionTest extends AbstractTest {
                 pstmt.setObject(2, null, Types.SQLXML);
                 pstmt.executeUpdate();
             } finally {
-                TestUtils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
     }

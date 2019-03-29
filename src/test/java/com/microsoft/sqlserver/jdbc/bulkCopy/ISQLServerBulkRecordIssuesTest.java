@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -81,6 +82,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
      * @throws Exception
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testSmalldatetime() throws Exception {
         variation = "testSmalldatetime";
         BulkData bData = new BulkData(variation);
@@ -109,6 +111,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
      * @throws Exception
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testSmalldatetimeOutofRange() throws Exception {
         variation = "testSmalldatetimeOutofRange";
         BulkData bData = new BulkData(variation);

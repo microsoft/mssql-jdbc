@@ -18,6 +18,7 @@ import java.util.Arrays;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -52,6 +53,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readInt() throws SQLException, SecurityException, IOException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
 
@@ -72,6 +74,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * 
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readMoney() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             Double value = 123.12;
@@ -90,6 +93,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readSmallMoney() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             Double value = 123.12;
@@ -108,6 +112,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readGUID() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "1AE740A2-2272-4B0F-8086-3DDAC595BC11";
@@ -126,6 +131,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readDate() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "'2015-05-08'";
@@ -144,6 +150,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readTime() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "'12:26:27.123345'";
@@ -162,6 +169,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readDateTime() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "'2015-05-08 12:26:24'";
@@ -180,6 +188,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readSmallDateTime() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "'2015-05-08 12:26:24'";
@@ -198,6 +207,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readVarChar8000() throws SQLException {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < 8000; i++) {
@@ -219,6 +229,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readFloat() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             float value = 5;
@@ -237,6 +248,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readBigInt() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             long value = 5;
@@ -255,6 +267,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readSmallInt() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             short value = 5;
@@ -273,6 +286,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readTinyInt() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             short value = 5;
@@ -291,6 +305,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readBit() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             int value = 50000;
@@ -309,6 +324,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readReal() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             float value = 5;
@@ -327,6 +343,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readNChar() throws SQLException, SecurityException, IOException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "a";
@@ -347,6 +364,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readNVarChar() throws SQLException, SecurityException, IOException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "nvarchar";
@@ -367,6 +385,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readBinary20() throws SQLException, SecurityException, IOException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "hi";
@@ -387,6 +406,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readVarBinary20() throws SQLException, SecurityException, IOException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "hi";
@@ -407,6 +427,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readBinary512() throws SQLException, SecurityException, IOException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "hi";
@@ -427,6 +448,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readBinary8000() throws SQLException, SecurityException, IOException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "hi";
@@ -447,6 +469,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readvarBinary8000() throws SQLException, SecurityException, IOException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "hi";
@@ -467,6 +490,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readSQLVariantProperty() throws SQLException, SecurityException, IOException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "hi";
@@ -487,6 +511,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void insertVarChar8001() throws SQLException {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < 8001; i++) {
@@ -514,6 +539,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readNvarChar4000() throws SQLException {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < 4000; i++) {
@@ -538,6 +564,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void UpdateInt() throws SQLException, SecurityException, IOException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
@@ -567,6 +594,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void UpdateNChar() throws SQLException, SecurityException, IOException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
@@ -598,6 +626,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void updateBinary20() throws SQLException, SecurityException, IOException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
@@ -626,6 +655,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void insertTest() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -662,6 +692,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void insertTestNull() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -688,6 +719,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws ParseException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void insertSetObject() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -714,6 +746,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void callableStatementOutputIntTest() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             int value = 5;
@@ -744,6 +777,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void callableStatementOutputDateTest() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "2015-05-08";
@@ -775,6 +809,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void callableStatementOutputTimeTest() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String value = "12:26:27.123345";
@@ -806,6 +841,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void callableStatementOutputBinaryTest() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             byte[] binary20 = RandomData.generateBinaryTypes("20", false, false);
@@ -842,6 +878,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void callableStatementInputOutputIntTest() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             int col1Value = 5;
@@ -873,6 +910,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void callableStatementInputOutputReturnIntTest() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             int col1Value = 5;
@@ -907,6 +945,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void callableStatementInputOutputReturnStringTest() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String col1Value = "aa";
@@ -943,6 +982,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void readSeveralRows() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             short value1 = 5;

@@ -20,7 +20,6 @@ import org.junit.runner.RunWith;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class UtilTest {
 
     @Test

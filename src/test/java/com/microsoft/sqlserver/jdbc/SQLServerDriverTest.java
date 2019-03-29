@@ -27,7 +27,6 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class SQLServerDriverTest extends AbstractTest {
 
     String randomServer = RandomUtil.getIdentifier("Server");

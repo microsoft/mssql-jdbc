@@ -8,7 +8,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
@@ -38,7 +37,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class BatchExecuteWithErrorsTest extends AbstractTest {
 
     public static final Logger log = Logger.getLogger("BatchExecuteWithErrors");
@@ -73,18 +71,20 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
     }
 
     /**
-     * Tests large methods, supported in 42
+     * Tests large methods
      * 
      * @throws Exception
      */
     @Test
     @DisplayName("Regression test for using 'large' methods")
+    @Tag("xAzureSQLDW")
     public void Repro47239large() throws Exception {
         Repro47239largeInternal("BatchInsert");
     }
 
     @Test
     @DisplayName("Regression test for using 'large' methods using bulk copy API")
+    @Tag("xAzureSQLDW")
     public void Repro47239largeUseBulkCopyAPI() throws Exception {
         Repro47239largeInternal("BulkCopy");
     }
@@ -93,8 +93,7 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         try (Connection con = getConnection()) {
             if (isSqlAzure()) {
                 // SQL Azure will throw exception for "raiserror WITH LOG", so the following RAISERROR statements have
-                // not
-                // "with log" option
+                // not "with log" option
                 warning = "RAISERROR ('raiserror level 4',4,1)";
                 error = "RAISERROR ('raiserror level 11',11,1)";
                 // On SQL Azure, raising FATAL error by RAISERROR() is not supported and there is no way to
@@ -120,186 +119,168 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
         int[] expectedUpdateCounts;
         String actualExceptionText;
 
-        try (Connection conn = getConnection()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI((SQLServerConnection) conn);
             }
-            try (Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (c1_int int, c2_varchar varchar(20), c3_date datetime, c4_int int identity(1,1))");
 
+            // Regular Statement batch update
+            expectedUpdateCounts = new int[] {1, -2, 1, -2, 1, -2};
+            try (Statement batchStmt = conn.createStatement()) {
+                batchStmt.addBatch(insertStmt);
+                batchStmt.addBatch(warning);
+                batchStmt.addBatch(insertStmt);
+                batchStmt.addBatch(warning);
+                batchStmt.addBatch(insertStmt);
+                batchStmt.addBatch(warning);
                 try {
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                } catch (Exception ignored) {}
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (c1_int int, c2_varchar varchar(20), c3_date datetime, c4_int int identity(1,1))");
-
-                // Regular Statement batch update
-                expectedUpdateCounts = new int[] {1, -2, 1, -2, 1, -2};
-                try (Statement batchStmt = conn.createStatement()) {
-                    batchStmt.addBatch(insertStmt);
-                    batchStmt.addBatch(warning);
-                    batchStmt.addBatch(insertStmt);
-                    batchStmt.addBatch(warning);
-                    batchStmt.addBatch(insertStmt);
-                    batchStmt.addBatch(warning);
-                    try {
-                        actualUpdateCounts = batchStmt.executeBatch();
-                        actualExceptionText = "";
-                    } catch (BatchUpdateException bue) {
-                        actualUpdateCounts = bue.getUpdateCounts();
-                        actualExceptionText = bue.getMessage();
-                        if (log.isLoggable(Level.FINE)) {
-                            log.fine("BatchUpdateException occurred. Message:" + actualExceptionText);
-                        }
-                    } finally {
-                        batchStmt.close();
+                    actualUpdateCounts = batchStmt.executeBatch();
+                    actualExceptionText = "";
+                } catch (BatchUpdateException bue) {
+                    actualUpdateCounts = bue.getUpdateCounts();
+                    actualExceptionText = bue.getMessage();
+                    if (log.isLoggable(Level.FINE)) {
+                        log.fine("BatchUpdateException occurred. Message:" + actualExceptionText);
                     }
+                } finally {
+                    batchStmt.close();
                 }
-                if (log.isLoggable(Level.FINE)) {
-                    log.fine("UpdateCounts:");
-                }
-                for (int updateCount : actualUpdateCounts) {
-                    log.fine("" + updateCount + ",");
-                }
-                log.fine("");
-                assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts),
-                        TestResource.getResource("R_testInterleaved"));
+            }
+            if (log.isLoggable(Level.FINE)) {
+                log.fine("UpdateCounts:");
+            }
+            for (int updateCount : actualUpdateCounts) {
+                log.fine("" + updateCount + ",");
+            }
 
-                expectedUpdateCounts = new int[] {-3, 1, 1, 1};
+            assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts),
+                    TestResource.getResource("R_testInterleaved"));
+
+            expectedUpdateCounts = new int[] {-3, 1, 1, 1};
+            stmt.addBatch(error);
+            stmt.addBatch(insertStmt);
+            stmt.addBatch(insertStmt);
+            stmt.addBatch(insertStmt);
+            try {
+                actualUpdateCounts = stmt.executeBatch();
+                actualExceptionText = "";
+            } catch (BatchUpdateException bue) {
+                actualUpdateCounts = bue.getUpdateCounts();
+                actualExceptionText = bue.getMessage();
+            }
+            log.fine("UpdateCounts:");
+            for (int updateCount : actualUpdateCounts) {
+                log.fine("" + updateCount + ",");
+            }
+
+            assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts),
+                    TestResource.getResource("R_errorFollowInserts"));
+            // 50280
+            expectedUpdateCounts = new int[] {1, -3};
+            stmt.addBatch(insertStmt);
+            stmt.addBatch(error16);
+            try {
+                actualUpdateCounts = stmt.executeBatch();
+                actualExceptionText = "";
+            } catch (BatchUpdateException bue) {
+                actualUpdateCounts = bue.getUpdateCounts();
+                actualExceptionText = bue.getMessage();
+            }
+            for (int updateCount : actualUpdateCounts) {
+                log.fine("" + updateCount + ",");
+            }
+
+            assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts),
+                    TestResource.getResource("R_errorFollow50280"));
+
+            // Test "soft" errors
+            conn.setAutoCommit(false);
+            stmt.addBatch(select);
+            stmt.addBatch(insertStmt);
+            stmt.addBatch(select);
+            stmt.addBatch(insertStmt);
+            try {
+                stmt.executeBatch();
+                // Soft error test: executeBatch unexpectedly succeeded
+                assertEquals(true, false, TestResource.getResource("R_shouldThrowException"));
+            } catch (BatchUpdateException bue) {
+                assertEquals("A result set was generated for update.", bue.getMessage(),
+                        TestResource.getResource("R_unexpectedExceptionContent"));
+                assertEquals(Arrays.equals(bue.getUpdateCounts(), new int[] {-3, 1, -3, 1}), true,
+                        TestResource.getResource("R_incorrectUpdateCount"));
+            }
+            conn.rollback();
+            stmt.addBatch(dateConversionError);
+            stmt.addBatch(insertStmt);
+            stmt.addBatch(insertStmt);
+            stmt.addBatch(insertStmt);
+            try {
+                stmt.executeBatch();
+            } catch (BatchUpdateException bue) {
+                if (isSqlAzureDW()) {
+                    assertThat(bue.getMessage(),
+                            containsString(TestResource.getResource("R_syntaxErrorDateConvertDW")));
+                } else {
+                    assertThat(bue.getMessage(), containsString(TestResource.getResource("R_syntaxErrorDateConvert")));
+                }
+            } catch (SQLException e) {
+                assertThat(e.getMessage(), containsString(TestResource.getResource("R_dateConvertError")));
+            }
+
+            conn.setAutoCommit(true);
+
+            // On SQL Azure, raising FATAL error by RAISERROR() is not supported and there is no way to
+            // cut the current connection by a statement inside a SQL batch.
+            // Details: Although one can simulate a fatal error (that cuts the connections) by dropping the
+            // database,
+            // this simulation cannot be written entirely in TSQL (because it needs a new connection),
+            // and thus it cannot be put into a TSQL batch and it is useless here.
+            // So we have to skip the last scenario of this test case, i.e. "Test Severe (connection-closing)
+            // errors"
+            // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have best
+            // test coverage.
+            if (!isSqlAzure()) {
+                // Test Severe (connection-closing) errors
                 stmt.addBatch(error);
                 stmt.addBatch(insertStmt);
-                stmt.addBatch(insertStmt);
-                stmt.addBatch(insertStmt);
-                try {
-                    actualUpdateCounts = stmt.executeBatch();
-                    actualExceptionText = "";
-                } catch (BatchUpdateException bue) {
-                    actualUpdateCounts = bue.getUpdateCounts();
-                    actualExceptionText = bue.getMessage();
-                }
-                log.fine("UpdateCounts:");
-                for (int updateCount : actualUpdateCounts) {
-                    log.fine("" + updateCount + ",");
-                }
-                log.fine("");
-                assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts),
-                        TestResource.getResource("R_errorFollowInserts"));
-                // 50280
-                expectedUpdateCounts = new int[] {1, -3};
-                stmt.addBatch(insertStmt);
-                stmt.addBatch(error16);
-                try {
-                    actualUpdateCounts = stmt.executeBatch();
-                    actualExceptionText = "";
-                } catch (BatchUpdateException bue) {
-                    actualUpdateCounts = bue.getUpdateCounts();
-                    actualExceptionText = bue.getMessage();
-                }
-                for (int updateCount : actualUpdateCounts) {
-                    log.fine("" + updateCount + ",");
-                }
-                log.fine("");
-                assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts),
-                        TestResource.getResource("R_errorFollow50280"));
-
-                // Test "soft" errors
-                conn.setAutoCommit(false);
+                stmt.addBatch(warning);
                 stmt.addBatch(select);
                 stmt.addBatch(insertStmt);
-                stmt.addBatch(select);
-                stmt.addBatch(insertStmt);
-                try {
-                    stmt.executeBatch();
-                    // Soft error test: executeBatch unexpectedly succeeded
-                    assertEquals(true, false, TestResource.getResource("R_shouldThrowException"));
-                } catch (BatchUpdateException bue) {
-                    assertEquals("A result set was generated for update.", bue.getMessage(),
-                            TestResource.getResource("R_unexpectedExceptionContent"));
-                    assertEquals(Arrays.equals(bue.getUpdateCounts(), new int[] {-3, 1, -3, 1}), true,
-                            TestResource.getResource("R_incorrectUpdateCount"));
-                }
-                conn.rollback();
-
-                // Defect 128801: Rollback (with conversion error) should throw SQLException
-                stmt.addBatch(dateConversionError);
-                stmt.addBatch(insertStmt);
+                stmt.addBatch(severe);
                 stmt.addBatch(insertStmt);
                 stmt.addBatch(insertStmt);
                 try {
                     stmt.executeBatch();
+                    // Test fatal errors batch execution succeeded (should have failed)
+                    assertEquals(false, true, TestResource.getResource("R_shouldThrowException"));
                 } catch (BatchUpdateException bue) {
-                    if (isSqlAzureDW()) {
-                        assertThat(bue.getMessage(),
-                                containsString(TestResource.getResource("R_syntaxErrorDateConvertDW")));
-                    } else {
-                        assertThat(bue.getMessage(),
-                                containsString(TestResource.getResource("R_syntaxErrorDateConvert")));
-                    }
-                    // CTestLog.CompareStartsWith(bue.getMessage(), "Syntax error converting date", "Transaction
-                    // rollback with conversion error threw wrong
-                    // BatchUpdateException");
+                    // Test fatal errors returned BatchUpdateException rather than SQLException
+                    assertEquals(false, true, TestResource.getResource("R_unexpectedException") + bue.getMessage());
+
                 } catch (SQLException e) {
-                    assertThat(e.getMessage(), containsString(TestResource.getResource("R_dateConvertError")));
-                    // CTestLog.CompareStartsWith(e.getMessage(), "Conversion failed when converting date", "Transaction
-                    // rollback with conversion error threw
-                    // wrong SQLException");
-                }
+                    actualExceptionText = e.getMessage();
 
-                conn.setAutoCommit(true);
-
-                // On SQL Azure, raising FATAL error by RAISERROR() is not supported and there is no way to
-                // cut the current connection by a statement inside a SQL batch.
-                // Details: Although one can simulate a fatal error (that cuts the connections) by dropping the
-                // database,
-                // this simulation cannot be written entirely in TSQL (because it needs a new connection),
-                // and thus it cannot be put into a TSQL batch and it is useless here.
-                // So we have to skip the last scenario of this test case, i.e. "Test Severe (connection-closing)
-                // errors"
-                // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have best
-                // test coverage.
-                if (!isSqlAzure()) {
-                    // Test Severe (connection-closing) errors
-                    stmt.addBatch(error);
-                    stmt.addBatch(insertStmt);
-                    stmt.addBatch(warning);
-                    // TODO Removed until ResultSet refactoring task (45832) is complete.
-                    // stmt.addBatch(select); // error: select not permitted in batch
-                    stmt.addBatch(insertStmt);
-                    stmt.addBatch(severe);
-                    stmt.addBatch(insertStmt);
-                    stmt.addBatch(insertStmt);
-                    try {
-                        stmt.executeBatch();
-                        // Test fatal errors batch execution succeeded (should have failed)
-                        assertEquals(false, true, TestResource.getResource("R_shouldThrowException"));
-                    } catch (BatchUpdateException bue) {
-                        // Test fatal errors returned BatchUpdateException rather than SQLException
-                        assertEquals(false, true, TestResource.getResource("R_unexpectedException") + bue.getMessage());
-
-                    } catch (SQLException e) {
-                        actualExceptionText = e.getMessage();
-
-                        if (actualExceptionText.endsWith("reset")) {
-                            assertTrue(actualExceptionText.equalsIgnoreCase("Connection reset"),
-                                    TestResource.getResource("R_unexpectedExceptionContent") + ": "
-                                            + actualExceptionText);
-                        } else {
-                            assertTrue(actualExceptionText.equalsIgnoreCase("raiserror level 20"),
-                                    TestResource.getResource("R_unexpectedExceptionContent") + ": "
-                                            + actualExceptionText);
-                        }
+                    if (actualExceptionText.endsWith("reset")) {
+                        assertTrue(actualExceptionText.equalsIgnoreCase("Connection reset"),
+                                TestResource.getResource("R_unexpectedExceptionContent") + ": " + actualExceptionText);
+                    } else {
+                        assertTrue(actualExceptionText.equalsIgnoreCase("raiserror level 20"),
+                                TestResource.getResource("R_unexpectedExceptionContent") + ": " + actualExceptionText);
                     }
                 }
             }
         } finally {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
     }
 
     private void Repro47239largeInternal(String mode) throws Exception {
-        assumeTrue("JDBC42".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
-                TestResource.getResource("R_incompatJDBC"));
         // the DBConnection for detecting whether the server is SQL Azure or SQL Server.
         try (Connection con = getConnection()) {
             if (isSqlAzure()) {
@@ -331,168 +312,160 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
             long[] expectedUpdateCounts;
             String actualExceptionText;
 
-            try (Connection conn = getConnection()) {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+
                 if (mode.equalsIgnoreCase("bulkcopy")) {
                     modifyConnectionForBulkCopyAPI((SQLServerConnection) conn);
                 }
-                try (Statement stmt = conn.createStatement()) {
-
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+                stmt.executeLargeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (c1_int int, c2_varchar varchar(20), c3_date datetime, c4_int int identity(1,1) primary key)");
+                // Regular Statement batch update
+                expectedUpdateCounts = new long[] {1, -2, 1, -2, 1, -2};
+                try (Statement batchStmt = conn.createStatement()) {
+                    batchStmt.addBatch(insertStmt);
+                    batchStmt.addBatch(warning);
+                    batchStmt.addBatch(insertStmt);
+                    batchStmt.addBatch(warning);
+                    batchStmt.addBatch(insertStmt);
+                    batchStmt.addBatch(warning);
                     try {
-                        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                    } catch (Exception ignored) {}
-                    try {
-                        stmt.executeLargeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                                + " (c1_int int, c2_varchar varchar(20), c3_date datetime, c4_int int identity(1,1) primary key)");
-                    } catch (Exception ignored) {}
-                    // Regular Statement batch update
-                    expectedUpdateCounts = new long[] {1, -2, 1, -2, 1, -2};
-                    try (Statement batchStmt = conn.createStatement()) {
-                        batchStmt.addBatch(insertStmt);
-                        batchStmt.addBatch(warning);
-                        batchStmt.addBatch(insertStmt);
-                        batchStmt.addBatch(warning);
-                        batchStmt.addBatch(insertStmt);
-                        batchStmt.addBatch(warning);
-                        try {
-                            actualUpdateCounts = batchStmt.executeLargeBatch();
-                            actualExceptionText = "";
-                        } catch (BatchUpdateException bue) {
-                            actualUpdateCounts = bue.getLargeUpdateCounts();
-                            actualExceptionText = bue.getMessage();
-                            log.fine("BatchUpdateException occurred. Message:" + actualExceptionText);
-                        }
+                        actualUpdateCounts = batchStmt.executeLargeBatch();
+                        actualExceptionText = "";
+                    } catch (BatchUpdateException bue) {
+                        actualUpdateCounts = bue.getLargeUpdateCounts();
+                        actualExceptionText = bue.getMessage();
+                        log.fine("BatchUpdateException occurred. Message:" + actualExceptionText);
                     }
+                }
 
-                    log.fine("UpdateCounts:");
-                    for (long updateCount : actualUpdateCounts) {
-                        log.fine("" + updateCount + ",");
-                    }
-                    log.fine("");
-                    assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts),
-                            TestResource.getResource("R_testInterleaved"));
+                log.fine("UpdateCounts:");
+                for (long updateCount : actualUpdateCounts) {
+                    log.fine("" + updateCount + ",");
+                }
 
-                    expectedUpdateCounts = new long[] {-3, 1, 1, 1};
+                assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts),
+                        TestResource.getResource("R_testInterleaved"));
+
+                expectedUpdateCounts = new long[] {-3, 1, 1, 1};
+                stmt.addBatch(error);
+                stmt.addBatch(insertStmt);
+                stmt.addBatch(insertStmt);
+                stmt.addBatch(insertStmt);
+                try {
+                    actualUpdateCounts = stmt.executeLargeBatch();
+                    actualExceptionText = "";
+                } catch (BatchUpdateException bue) {
+                    actualUpdateCounts = bue.getLargeUpdateCounts();
+                    actualExceptionText = bue.getMessage();
+                }
+                log.fine("UpdateCounts:");
+                for (long updateCount : actualUpdateCounts) {
+                    log.fine("" + updateCount + ",");
+                }
+
+                assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts),
+                        TestResource.getResource("R_errorFollowInserts"));
+
+                // 50280
+                expectedUpdateCounts = new long[] {1, -3};
+                stmt.addBatch(insertStmt);
+                stmt.addBatch(error16);
+                try {
+                    actualUpdateCounts = stmt.executeLargeBatch();
+                    actualExceptionText = "";
+                } catch (BatchUpdateException bue) {
+                    actualUpdateCounts = bue.getLargeUpdateCounts();
+                    actualExceptionText = bue.getMessage();
+                }
+                for (long updateCount : actualUpdateCounts) {
+                    log.fine("" + updateCount + ",");
+                }
+
+                assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts),
+                        TestResource.getResource("R_errorFollow50280"));
+
+                // Test "soft" errors
+                conn.setAutoCommit(false);
+                stmt.addBatch(select);
+                stmt.addBatch(insertStmt);
+                stmt.addBatch(select);
+                stmt.addBatch(insertStmt);
+                try {
+                    stmt.executeLargeBatch();
+                    // Soft error test: executeLargeBatch unexpectedly succeeded
+                    assertEquals(false, true, TestResource.getResource("R_shouldThrowException"));
+                } catch (BatchUpdateException bue) {
+                    // Soft error test: wrong error message in BatchUpdateException
+                    assertEquals("A result set was generated for update.", bue.getMessage(),
+                            TestResource.getResource("R_unexpectedExceptionContent"));
+                    // Soft error test: wrong update counts in BatchUpdateException
+                    assertEquals(Arrays.equals(bue.getLargeUpdateCounts(), new long[] {-3, 1, -3, 1}), true,
+                            TestResource.getResource("R_incorrectUpdateCount"));
+                }
+                conn.rollback();
+
+                // Defect 128801: Rollback (with conversion error) should throw SQLException
+                stmt.addBatch(dateConversionError);
+                stmt.addBatch(insertStmt);
+                stmt.addBatch(insertStmt);
+                stmt.addBatch(insertStmt);
+                try {
+                    stmt.executeLargeBatch();
+                } catch (BatchUpdateException bue) {
+                    assertThat(bue.getMessage(), containsString(TestResource.getResource("R_syntaxErrorDateConvert")));
+                } catch (SQLException e) {
+                    assertThat(e.getMessage(), containsString(TestResource.getResource("R_dateConvertError")));
+                }
+
+                conn.setAutoCommit(true);
+
+                // On SQL Azure, raising FATAL error by RAISERROR() is not supported and there is no way to
+                // cut the current connection by a statement inside a SQL batch.
+                // Details: Although one can simulate a fatal error (that cuts the connections) by dropping the
+                // database,
+                // this simulation cannot be written entirely in TSQL (because it needs a new connection),
+                // and thus it cannot be put into a TSQL batch and it is useless here.
+                // So we have to skip the last scenario of this test case, i.e. "Test Severe (connection-closing)
+                // errors"
+                // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have
+                // best
+                // test coverage.
+                if (!isSqlAzure()) {
+                    // Test Severe (connection-closing) errors
                     stmt.addBatch(error);
                     stmt.addBatch(insertStmt);
-                    stmt.addBatch(insertStmt);
-                    stmt.addBatch(insertStmt);
-                    try {
-                        actualUpdateCounts = stmt.executeLargeBatch();
-                        actualExceptionText = "";
-                    } catch (BatchUpdateException bue) {
-                        actualUpdateCounts = bue.getLargeUpdateCounts();
-                        actualExceptionText = bue.getMessage();
-                    }
-                    log.fine("UpdateCounts:");
-                    for (long updateCount : actualUpdateCounts) {
-                        log.fine("" + updateCount + ",");
-                    }
-                    log.fine("");
-                    assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts),
-                            TestResource.getResource("R_errorFollowInserts"));
+                    stmt.addBatch(warning);
 
-                    // 50280
-                    expectedUpdateCounts = new long[] {1, -3};
                     stmt.addBatch(insertStmt);
-                    stmt.addBatch(error16);
-                    try {
-                        actualUpdateCounts = stmt.executeLargeBatch();
-                        actualExceptionText = "";
-                    } catch (BatchUpdateException bue) {
-                        actualUpdateCounts = bue.getLargeUpdateCounts();
-                        actualExceptionText = bue.getMessage();
-                    }
-                    for (long updateCount : actualUpdateCounts) {
-                        log.fine("" + updateCount + ",");
-                    }
-                    log.fine("");
-                    assertTrue(Arrays.equals(actualUpdateCounts, expectedUpdateCounts),
-                            TestResource.getResource("R_errorFollow50280"));
-
-                    // Test "soft" errors
-                    conn.setAutoCommit(false);
-                    stmt.addBatch(select);
+                    stmt.addBatch(severe);
                     stmt.addBatch(insertStmt);
-                    stmt.addBatch(select);
                     stmt.addBatch(insertStmt);
                     try {
                         stmt.executeLargeBatch();
-                        // Soft error test: executeLargeBatch unexpectedly succeeded
+                        // Test fatal errors batch execution succeeded (should have failed)
                         assertEquals(false, true, TestResource.getResource("R_shouldThrowException"));
                     } catch (BatchUpdateException bue) {
-                        // Soft error test: wrong error message in BatchUpdateException
-                        assertEquals("A result set was generated for update.", bue.getMessage(),
-                                TestResource.getResource("R_unexpectedExceptionContent"));
-                        // Soft error test: wrong update counts in BatchUpdateException
-                        assertEquals(Arrays.equals(bue.getLargeUpdateCounts(), new long[] {-3, 1, -3, 1}), true,
-                                TestResource.getResource("R_incorrectUpdateCount"));
-                    }
-                    conn.rollback();
-
-                    // Defect 128801: Rollback (with conversion error) should throw SQLException
-                    stmt.addBatch(dateConversionError);
-                    stmt.addBatch(insertStmt);
-                    stmt.addBatch(insertStmt);
-                    stmt.addBatch(insertStmt);
-                    try {
-                        stmt.executeLargeBatch();
-                    } catch (BatchUpdateException bue) {
-                        assertThat(bue.getMessage(),
-                                containsString(TestResource.getResource("R_syntaxErrorDateConvert")));
+                        // Test fatal errors returned BatchUpdateException rather than SQLException
+                        assertEquals(false, true, TestResource.getResource("R_unexpectedException") + bue.getMessage());
                     } catch (SQLException e) {
-                        assertThat(e.getMessage(), containsString(TestResource.getResource("R_dateConvertError")));
-                    }
+                        actualExceptionText = e.getMessage();
 
-                    conn.setAutoCommit(true);
+                        if (actualExceptionText.endsWith("reset")) {
+                            assertTrue(actualExceptionText.equalsIgnoreCase("Connection reset"),
+                                    TestResource.getResource("R_unexpectedExceptionContent") + ": "
+                                            + actualExceptionText);
+                        } else {
+                            assertTrue(actualExceptionText.equalsIgnoreCase("raiserror level 20"),
+                                    TestResource.getResource("R_unexpectedExceptionContent") + ": "
+                                            + actualExceptionText);
 
-                    // On SQL Azure, raising FATAL error by RAISERROR() is not supported and there is no way to
-                    // cut the current connection by a statement inside a SQL batch.
-                    // Details: Although one can simulate a fatal error (that cuts the connections) by dropping the
-                    // database,
-                    // this simulation cannot be written entirely in TSQL (because it needs a new connection),
-                    // and thus it cannot be put into a TSQL batch and it is useless here.
-                    // So we have to skip the last scenario of this test case, i.e. "Test Severe (connection-closing)
-                    // errors"
-                    // It is worthwhile to still execute the first 5 test scenarios of this test case, in order to have
-                    // best
-                    // test coverage.
-                    if (!isSqlAzure()) {
-                        // Test Severe (connection-closing) errors
-                        stmt.addBatch(error);
-                        stmt.addBatch(insertStmt);
-                        stmt.addBatch(warning);
-
-                        stmt.addBatch(insertStmt);
-                        stmt.addBatch(severe);
-                        stmt.addBatch(insertStmt);
-                        stmt.addBatch(insertStmt);
-                        try {
-                            stmt.executeLargeBatch();
-                            // Test fatal errors batch execution succeeded (should have failed)
-                            assertEquals(false, true, TestResource.getResource("R_shouldThrowException"));
-                        } catch (BatchUpdateException bue) {
-                            // Test fatal errors returned BatchUpdateException rather than SQLException
-                            assertEquals(false, true,
-                                    TestResource.getResource("R_unexpectedException") + bue.getMessage());
-                        } catch (SQLException e) {
-                            actualExceptionText = e.getMessage();
-
-                            if (actualExceptionText.endsWith("reset")) {
-                                assertTrue(actualExceptionText.equalsIgnoreCase("Connection reset"),
-                                        TestResource.getResource("R_unexpectedExceptionContent") + ": "
-                                                + actualExceptionText);
-                            } else {
-                                assertTrue(actualExceptionText.equalsIgnoreCase("raiserror level 20"),
-                                        TestResource.getResource("R_unexpectedExceptionContent") + ": "
-                                                + actualExceptionText);
-
-                            }
                         }
                     }
-
-                    try {
-                        stmt.executeLargeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
-                    } catch (Exception ignored) {}
+                }
+            } finally {
+                try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 }
             }
         }

@@ -21,7 +21,7 @@ import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -38,6 +38,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class LimitEscapeTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("LimitEscape");
     private static Vector<String> offsetQuery = new Vector<>();
@@ -270,7 +271,6 @@ public class LimitEscapeTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @DisplayName("initAndVerifyQueries")
     public void initAndVerifyQueries() throws Exception {
         Query qry;
         try (Connection conn = getConnection()) {
@@ -836,7 +836,6 @@ public class LimitEscapeTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @DisplayName("verifyOffsetException")
     public void verifyOffsetException() throws Exception {
         offsetQuery.addElement("select * from "
                 + AbstractSQLGenerator.escapeIdentifier(TestUtils.escapeSingleQuotes(table1)) + " {limit 2 offset 1}");
