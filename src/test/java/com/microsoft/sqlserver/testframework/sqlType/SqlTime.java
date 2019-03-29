@@ -46,7 +46,7 @@ public class SqlTime extends SqlDateTime {
     public Object createdata() {
         Time temp = new Time(
                 ThreadLocalRandom.current().nextLong(((Time) minvalue).getTime(), ((Time) maxvalue).getTime()));
-        String timeNano = temp.toString() + "." + generateRandomInt(this.scale);
+        String timeNano = temp.toString();
         return timeNano;
 
         // can pass String rather than converting to loacTime, but leaving it

@@ -20,6 +20,7 @@ import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,10 +76,13 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         // Datetime can only end in 0,3,7 and will be rounded to those numbers on the server. Manually set nanos
         Timestamp roundedDatetime = randomTimestamp;
         roundedDatetime.setNanos(0);
+
         // Smalldatetime does not have seconds. Manually set nanos and seconds.
-        Timestamp smallTimestamp = randomTimestamp;
-        smallTimestamp.setNanos(0);
-        smallTimestamp.setSeconds(0);
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(randomTimestamp.getTime());
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        Timestamp smallTimestamp = new Timestamp(cal.getTimeInMillis());
 
         Object[] expected = new Object[23];
         expected[0] = Constants.RANDOM.nextLong();

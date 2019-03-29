@@ -2186,7 +2186,7 @@ public class StatementTest extends AbstractTest {
     @Tag("xAzureSQLDW")
     public class TCUpdateCountAfterRaiseError {
         private final String tableName = RandomUtil.getIdentifier("TCUpdateCountAfterRaiseError");
-        private final String triggerName = "TCUpdateCountAfterRaiseErrorTrigger";
+        private final String triggerName = tableName + "Trigger";
         private final int NUM_ROWS = 3;
         private final String errorMessage50001InSqlAzure = "Error 50001, severity 17, state 1 was raised, but no message with that error number was found in sys.messages. If error is larger than 50000, make sure the user-defined message is added using sp_addmessage.";
 

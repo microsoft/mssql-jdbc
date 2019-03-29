@@ -281,7 +281,7 @@ public class BvtTest extends AbstractTest {
 
         String colName = table1.getEscapedColumnName(7);
         String value = table1.getRowData(7, 0).toString();
-        String query = "SELECT * from " + table1.getEscapedTableName() + " where " + colName + " = ? ";
+        String query = "SELECT * from " + table1.getEscapedTableName() + " where " + colName + " = ? "+ " ORDER BY " + table1.getEscapedColumnName(0);
 
         try (DBConnection conn = new DBConnection(connectionString);
                 DBPreparedStatement pstmt = conn.prepareStatement(query)) {
