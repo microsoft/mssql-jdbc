@@ -35,6 +35,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  */
 @RunWith(JUnitPlatform.class)
 @Tag("xAzureSQLDW")
+@Tag("xAzureSQLDB")
 public class UTF8SupportTest extends AbstractTest {
     private static Connection connection;
     private static String databaseName;

@@ -62,7 +62,6 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void createViewTest() throws SQLException {
         try (Connection con = getConnection();
                 PreparedStatement pstmt1 = con.prepareStatement(
@@ -83,7 +82,6 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void createSchemaTest() throws SQLException {
         try (Connection con = getConnection();
                 PreparedStatement pstmt1 = con
@@ -104,7 +102,6 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void createTableTest() throws SQLException {
         try (Connection con = getConnection();
                 PreparedStatement pstmt1 = con.prepareStatement(
@@ -125,7 +122,6 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void alterTableTest() throws SQLException {
         try (Connection con = getConnection();
                 PreparedStatement pstmt1 = con.prepareStatement(
@@ -149,7 +145,6 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void grantTest() throws SQLException {
         try (Connection con = getConnection();
                 PreparedStatement pstmt1 = con.prepareStatement(

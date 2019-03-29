@@ -258,7 +258,6 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testGetObjectAsLocalDateTime() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TimeZone prevTimeZone = TimeZone.getDefault();
@@ -337,7 +336,6 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testResultSetWrapper() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
@@ -363,7 +361,6 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testGetterOnNull() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("select null")) {

@@ -64,6 +64,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 
     @Test
     @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLDB")
     public void testDSTSPassword() throws ClassNotFoundException, IOException, SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         System.setProperty("java.net.preferIPv6Addresses", Boolean.TRUE.toString());

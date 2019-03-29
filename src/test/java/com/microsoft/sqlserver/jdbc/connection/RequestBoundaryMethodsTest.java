@@ -38,6 +38,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  */
 @RunWith(JUnitPlatform.class)
 @Tag("xAzureSQLDW")
+@Tag("xAzureSQLDB")
 public class RequestBoundaryMethodsTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("RequestBoundaryTable");

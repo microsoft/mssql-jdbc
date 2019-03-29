@@ -867,7 +867,6 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
-    @Tag("AzureDWTest")
     public class TCStatement {
         private final String table1Name = RandomUtil.getIdentifier("TCStatement1");
         private final String table2Name = RandomUtil.getIdentifier("TCStatement2");
@@ -1867,7 +1866,6 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
-    @Tag("AzureDWTest")
     public class TCStatementIsClosed {
         @Test
         public void testActiveStatement() throws Exception {
@@ -1931,7 +1929,6 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
-    @Tag("AzureDWTest")
     public class TCResultSetIsClosed {
 
         /**

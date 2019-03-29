@@ -78,9 +78,6 @@ public class PreparedStatementTest extends AbstractTest {
             // Turn off use of prepared statement cache.
             con.setStatementPoolingCacheSize(0);
 
-            // Clean-up proc cache
-            this.executeSQL(con, "DBCC FREEPROCCACHE;");
-
             String lookupUniqueifier = UUID.randomUUID().toString();
 
             String queryCacheLookup = String.format("%%/*unpreparetest_%s%%*/SELECT 1;", lookupUniqueifier);
@@ -148,6 +145,7 @@ public class PreparedStatementTest extends AbstractTest {
      */
     @Test
     @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLDB")
     public void testStatementPooling() throws Exception {
         testStatementPoolingInternal("batchInsert");
     }
@@ -163,6 +161,7 @@ public class PreparedStatementTest extends AbstractTest {
      */
     @Test
     @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLDB")
     public void testStatementPoolingUseBulkCopyAPI() throws Exception {
         testStatementPoolingInternal("BulkCopy");
     }
