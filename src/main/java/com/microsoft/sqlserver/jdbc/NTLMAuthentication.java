@@ -390,17 +390,16 @@ final class NTLMAuthentication extends SSPIAuthentication {
                 case NTLM_AVID_MSVAVDNSDOMAINNAME:
                     if (!Arrays.equals(context.domainBytes, (new String(value).toUpperCase()).getBytes())) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadDomain"));
-                        Object[] msgArgs = {new String(value)};
+                        Object[] msgArgs = {new String(value), new String(context.domainBytes)};
                         throw new SQLServerException(form.format(msgArgs), null);
                     }
                     break;
                 case NTLM_AVID_MSVAVDNSCOMPUTERNAME:
                     // verify server name
                     if (!Arrays.equals(context.serverNameBytes,
-
                             (new String(value).toUpperCase()).getBytes())) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadComputer"));
-                        Object[] msgArgs = {new String(value)};
+                        Object[] msgArgs = {new String(value), new String(context.serverNameBytes)};
                         throw new SQLServerException(form.format(msgArgs), null);
                     }
                     break;
