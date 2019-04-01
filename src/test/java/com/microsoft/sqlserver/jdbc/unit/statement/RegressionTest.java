@@ -30,8 +30,10 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class RegressionTest extends AbstractTest {
-    private static String tableName;
+    
+    private static String tableName = RandomUtil.getIdentifier("ServerCursorPStmt");
     private static String procName = RandomUtil.getIdentifier("ServerCursorProc");
 
     /**
@@ -40,7 +42,6 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
     public void testServerCursorPStmt() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
 
@@ -48,8 +49,6 @@ public class RegressionTest extends AbstractTest {
             int numRowsInResult = 1;
             String col3Value = "India";
             String col3Lookup = "IN";
-
-            tableName = RandomUtil.getIdentifier("ServerCursorPStmt");
 
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (col1 int primary key, col2 varchar(3), col3 varchar(128))");
@@ -148,7 +147,6 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
     public void testUpdateQuery() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
             String sql;
@@ -205,7 +203,6 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
     public void testXmlQuery() throws SQLException {
         try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
             tableName = RandomUtil.getIdentifier("try_SQLXML_Table");
@@ -246,7 +243,7 @@ public class RegressionTest extends AbstractTest {
     @AfterAll
     public static void terminate() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
-            TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
         }
     }

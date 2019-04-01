@@ -46,7 +46,7 @@
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-			Default testing enabled with SQL Server 2019 (SQLv14) in non-FIPS JVM -->
+			Default testing enabled with SQL Server 2019 (SQLv14) -->
 		<excludeGroups>xSQLv14</excludeGroups>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- Driver Dependencies -->
