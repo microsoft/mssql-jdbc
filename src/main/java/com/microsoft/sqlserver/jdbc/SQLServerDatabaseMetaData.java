@@ -630,7 +630,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                         + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN "
                         + "FROM @mssqljdbc_temp_sp_columns_result;");
 
-        pstmt.setString(1, (catalog != null && !catalog.isEmpty()) ? catalog : "%");
+        pstmt.setString(1, (catalog != null && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
         pstmt.setString(2, (schema != null && !schema.isEmpty()) ? schema : "%");
         pstmt.setString(3, (table != null && !table.isEmpty()) ? table : "%");
         pstmt.setString(4, (col != null && !col.isEmpty()) ? col : "%");
