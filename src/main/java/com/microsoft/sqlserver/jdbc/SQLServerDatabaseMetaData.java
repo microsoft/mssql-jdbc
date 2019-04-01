@@ -601,74 +601,40 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return outID.toString();
     }
 
-    private static final String[] getColumnsColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME,
-            /* 4 */ COLUMN_NAME, /* 5 */ DATA_TYPE, /* 6 */ TYPE_NAME, /* 7 */ COLUMN_SIZE, /* 8 */ BUFFER_LENGTH,
-            /* 9 */ DECIMAL_DIGITS, /* 10 */ NUM_PREC_RADIX, /* 11 */ NULLABLE, /* 12 */ REMARKS, /* 13 */ COLUMN_DEF,
-            /* 14 */ SQL_DATA_TYPE, /* 15 */ SQL_DATETIME_SUB, /* 16 */ CHAR_OCTET_LENGTH, /* 17 */ ORDINAL_POSITION,
-            /* 18 */ IS_NULLABLE};
-    // SQL10 columns not exahustive we only need to set until the one we want to
-    // change
-    // in this case we want to change SS_IS_IDENTITY 22nd column to
-    // IS_AUTOINCREMENT
-    // to be inline with JDBC spec
-    private static final String[] getColumnsColumnNamesKatmai = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
-            /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME, /* 5 */ DATA_TYPE, /* 6 */ TYPE_NAME, /* 7 */ COLUMN_SIZE,
-            /* 8 */ BUFFER_LENGTH, /* 9 */ DECIMAL_DIGITS, /* 10 */ NUM_PREC_RADIX, /* 11 */ NULLABLE, /* 12 */ REMARKS,
-            /* 13 */ COLUMN_DEF, /* 14 */ SQL_DATA_TYPE, /* 15 */ SQL_DATETIME_SUB, /* 16 */ CHAR_OCTET_LENGTH,
-            /* 17 */ ORDINAL_POSITION, /* 18 */ IS_NULLABLE, /* 20 */ SS_IS_SPARSE, /* 20 */ SS_IS_COLUMN_SET,
-            /* 21 */ IS_GENERATEDCOLUMN, /* 22 */ IS_AUTOINCREMENT};
-
     @Override
     public java.sql.ResultSet getColumns(String catalog, String schema, String table,
-            String col) throws SQLServerException, SQLTimeoutException {
+            String col) throws SQLException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
+        java.sql.PreparedStatement pstmt = this.connection.prepareStatement(
+                "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
+                        + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
+                        + "LENGTH INT, SCALE SMALLINT, RADIX SMALLINT, NULLABLE SMALLINT, REMARKS VARCHAR(254), COLUMN_DEF NVARCHAR(4000),"
+                        + "SQL_DATA_TYPE SMALLINT, SQL_DATETIME_SUB SMALLINT, CHAR_OCTET_LENGTH INT, ORDINAL_POSITION INT,"
+                        + "IS_NULLABLE VARCHAR(254), SS_IS_SPARSE SMALLINT, SS_IS_COLUMN_SET SMALLINT, SS_IS_COMPUTED SMALLINT,"
+                        + "SS_IS_IDENTITY SMALLINT, SS_UDT_CATALOG_NAME NVARCHAR(128), SS_UDT_SCHEMA_NAME NVARCHAR(128),"
+                        + "SS_UDT_ASSEMBLY_TYPE_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_CATALOG_NAME NVARCHAR(128),"
+                        + "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_NAME NVARCHAR(128),"
+                        + "SS_DATA_TYPE SMALLINT);"
 
-        // sp_columns supports wild carding schema table and columns
-        String column = EscapeIDName(col);
-        table = EscapeIDName(table);
-        schema = EscapeIDName(schema);
+                        + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC sp_columns_100 @table_qualifier = ?, @table_owner = ?,"
+                        + "@table_name = ?, @column_name = ?;"
 
-        /*
-         * sp_columns [ @table_name = ] object [ , [ @table_owner = ] owner ] [ , [ @table_qualifier = ] qualifier ] [ ,
-         * [ @column_name = ] column ] [ , [ @ODBCVer = ] ODBCVer ]
-         */
-        String[] arguments;
-        if (connection.isKatmaiOrLater())
-            arguments = new String[6];
-        else
-            arguments = new String[5];
-        arguments[0] = table;
-        arguments[1] = schema;
-        arguments[2] = catalog;
-        arguments[3] = column;
-        if (connection.isKatmaiOrLater()) {
-            arguments[4] = "2"; // give information about everything including
-                                // sparse columns
-            arguments[5] = "3"; // odbc version
-        } else
-            arguments[4] = "3"; // odbc version
-        SQLServerResultSet rs;
-        if (connection.isKatmaiOrLater())
-            rs = getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_COLUMNS, arguments,
-                    getColumnsColumnNamesKatmai);
-        else
-            rs = getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_COLUMNS, arguments,
-                    getColumnsColumnNames);
-        // Hook in a filter on the DATA_TYPE column of the result set we're
-        // going to return that converts the ODBC values from sp_columns
-        // into JDBC values.
-        rs.getColumn(5).setFilter(new DataTypeFilter());
+                        + "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, DATA_TYPE,"
+                        + "TYPE_NAME, PRECISION AS COLUMN_SIZE, LENGTH AS BUFFER_LENGTH, SCALE AS DECIMAL_DIGITS, RADIX AS NUM_PREC_RADIX,"
+                        + "NULLABLE, REMARKS, COLUMN_DEF, SQL_DATA_TYPE, SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE,"
+                        + "NULL AS SCOPE_CATALOG, NULL AS SCOPE_SCHEMA, NULL AS SCOPE_TABLE, SS_DATA_TYPE AS SOURCE_DATA_TYPE,"
+                        + "CASE SS_IS_IDENTITY WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_AUTOINCREMENT,"
+                        + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN "
+                        + "FROM @mssqljdbc_temp_sp_columns_result;");
 
-        if (connection.isKatmaiOrLater()) {
-            rs.getColumn(22).setFilter(new IntColumnIdentityFilter());
-            rs.getColumn(7).setFilter(new ZeroFixupFilter());
-            rs.getColumn(8).setFilter(new ZeroFixupFilter());
-            rs.getColumn(16).setFilter(new ZeroFixupFilter());
-        }
-        return rs;
+        pstmt.setString(1, (catalog != null && !catalog.isEmpty()) ? catalog : "%");
+        pstmt.setString(2, (schema != null && !schema.isEmpty()) ? schema : "%");
+        pstmt.setString(3, (table != null && !table.isEmpty()) ? table : "%");
+        pstmt.setString(4, (col != null && !col.isEmpty()) ? col : "%");
+        return pstmt.executeQuery();
     }
 
     private static final String[] getFunctionsColumnNames = {/* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
@@ -1330,34 +1296,26 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     private static String createSqlKeyWords() {
-        return "ADD,ALL,ALTER,AND,ANY,AS,ASC,AUTHORIZATION," +
-                "BACKUP,BEGIN,BETWEEN,BREAK,BROWSE,BULK,BY," +
-                "CASCADE,CASE,CHECK,CHECKPOINT,CLOSE,CLUSTERED,COALESCE,COLLATE,COLUMN,COMMIT," +
-                "COMPUTE,CONSTRAINT,CONTAINS,CONTAINSTABLE,CONTINUE,CONVERT,CREATE,CROSS,CURRENT," +
-                "CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURRENT_USER,CURSOR," +
-                "DATABASE,DBCC,DEALLOCATE,DECLARE,DEFAULT,DELETE,DENY,DESC,DISK," +
-                "DISTINCT,DISTRIBUTED,DOUBLE,DROP,DUMP," +
-                "ELSE,END,ERRLVL,ESCAPE,EXCEPT,EXEC,EXECUTE,EXISTS,EXIT,EXTERNAL," +
-                "FETCH,FILE,FILLFACTOR,FOR,FOREIGN,FREETEXT,FREETEXTTABLE,FROM,FULL,FUNCTION," +
-                "GOTO,GRANT,GROUP," +
-                "HAVING,HOLDLOCK," +
-                "IDENTITY,IDENTITY_INSERT,IDENTITYCOL,IF,IN,INDEX,INNER,INSERT,INTERSECT,INTO,IS," +
-                "JOIN," +
-                "KEY,KILL," +
-                "LEFT,LIKE,LINENO,LOAD," +
-                "MERGE," +
-                "NATIONAL,NOCHECK,NONCLUSTERED,NOT,NULL,NULLIF," +
-                "OF,OFF,OFFSETS,ON,OPEN,OPENDATASOURCE,OPENQUERY," +
-                "OPENROWSET,OPENXML,OPTION,OR,ORDER,OUTER,OVER," +
-                "PERCENT,PIVOT,PLAN,PRECISION,PRIMARY,PRINT,PROC,PROCEDURE,PUBLIC," +
-                "RAISERROR,READ,READTEXT,RECONFIGURE,REFERENCES,REPLICATION,RESTORE,RESTRICT," +
-                "RETURN,REVERT,REVOKE,RIGHT,ROLLBACK,ROWCOUNT,ROWGUIDCOL,RULE," +
-                "SAVE,SCHEMA,SECURITYAUDIT,SELECT,SEMANTICKEYPHRASETABLE,SEMANTICSIMILARITYDETAILSTABLE," +
-                "SEMANTICSIMILARITYTABLE,SESSION_USER,SET,SETUSER,SHUTDOWN,SOME,STATISTICS,SYSTEM_USER," +
-                "TABLE,TABLESAMPLE,TEXTSIZE,THEN,TO,TOP,TRAN,TRANSACTION,TRIGGER,TRUNCATE,TRY_CONVERT,TSEQUAL," +
-                "UNION,UNIQUE,UNPIVOT,UPDATE,UPDATETEXT,USE,USER," +
-                "VALUES,VARYING,VIEW," +
-                "WAITFOR,WHEN,WHERE,WHILE,WITH,WITHIN GROUP,WRITETEXT";
+        return "ADD,ALL,ALTER,AND,ANY,AS,ASC,AUTHORIZATION," + "BACKUP,BEGIN,BETWEEN,BREAK,BROWSE,BULK,BY,"
+                + "CASCADE,CASE,CHECK,CHECKPOINT,CLOSE,CLUSTERED,COALESCE,COLLATE,COLUMN,COMMIT,"
+                + "COMPUTE,CONSTRAINT,CONTAINS,CONTAINSTABLE,CONTINUE,CONVERT,CREATE,CROSS,CURRENT,"
+                + "CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURRENT_USER,CURSOR,"
+                + "DATABASE,DBCC,DEALLOCATE,DECLARE,DEFAULT,DELETE,DENY,DESC,DISK,"
+                + "DISTINCT,DISTRIBUTED,DOUBLE,DROP,DUMP,"
+                + "ELSE,END,ERRLVL,ESCAPE,EXCEPT,EXEC,EXECUTE,EXISTS,EXIT,EXTERNAL,"
+                + "FETCH,FILE,FILLFACTOR,FOR,FOREIGN,FREETEXT,FREETEXTTABLE,FROM,FULL,FUNCTION," + "GOTO,GRANT,GROUP,"
+                + "HAVING,HOLDLOCK,"
+                + "IDENTITY,IDENTITY_INSERT,IDENTITYCOL,IF,IN,INDEX,INNER,INSERT,INTERSECT,INTO,IS," + "JOIN,"
+                + "KEY,KILL," + "LEFT,LIKE,LINENO,LOAD," + "MERGE," + "NATIONAL,NOCHECK,NONCLUSTERED,NOT,NULL,NULLIF,"
+                + "OF,OFF,OFFSETS,ON,OPEN,OPENDATASOURCE,OPENQUERY," + "OPENROWSET,OPENXML,OPTION,OR,ORDER,OUTER,OVER,"
+                + "PERCENT,PIVOT,PLAN,PRECISION,PRIMARY,PRINT,PROC,PROCEDURE,PUBLIC,"
+                + "RAISERROR,READ,READTEXT,RECONFIGURE,REFERENCES,REPLICATION,RESTORE,RESTRICT,"
+                + "RETURN,REVERT,REVOKE,RIGHT,ROLLBACK,ROWCOUNT,ROWGUIDCOL,RULE,"
+                + "SAVE,SCHEMA,SECURITYAUDIT,SELECT,SEMANTICKEYPHRASETABLE,SEMANTICSIMILARITYDETAILSTABLE,"
+                + "SEMANTICSIMILARITYTABLE,SESSION_USER,SET,SETUSER,SHUTDOWN,SOME,STATISTICS,SYSTEM_USER,"
+                + "TABLE,TABLESAMPLE,TEXTSIZE,THEN,TO,TOP,TRAN,TRANSACTION,TRIGGER,TRUNCATE,TRY_CONVERT,TSEQUAL,"
+                + "UNION,UNIQUE,UNPIVOT,UPDATE,UPDATETEXT,USE,USER," + "VALUES,VARYING,VIEW,"
+                + "WAITFOR,WHEN,WHERE,WHILE,WITH,WITHIN GROUP,WRITETEXT";
     }
 
     @Override
