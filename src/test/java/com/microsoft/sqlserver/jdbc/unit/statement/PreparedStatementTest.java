@@ -582,7 +582,7 @@ public class PreparedStatementTest extends AbstractTest {
                     "CREATE PROC #updateProc2 AS UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName2)
                             + " SET col += 1; IF EXISTS (SELECT * FROM "
                             + AbstractSQLGenerator.escapeIdentifier(tableName2) + " WHERE col % 5 = 0) RAISERROR("
-                            + msgId + ");");
+                            + msgId + ",16,1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc2")) {
                 for (int i = 0; i < 100; ++i) {
                     pstmt.addBatch();
