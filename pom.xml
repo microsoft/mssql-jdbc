@@ -208,19 +208,6 @@
 						<groupId>org.jacoco</groupId>
 						<artifactId>jacoco-maven-plugin</artifactId>
 						<version>0.8.2</version>
-						<configuration>
-							<fileSets>
-								<!-- Implementation attribute not needed in Maven 3 -->
-								<fileSet>
-									<directory>${project.build.directory}/jacoco-execs/</directory>
-									<includes>
-										<include>*.exec</include>
-									</includes>
-								</fileSet>
-							</fileSets>
-							<!-- File containing the merged data -->
-							<destFile>${project.build.directory}/jacoco-merged/merged.exec</destFile>
-						</configuration>
 						<executions>
 							<execution>
 								<id>pre-test</id>
