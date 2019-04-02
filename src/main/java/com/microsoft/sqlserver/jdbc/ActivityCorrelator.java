@@ -74,7 +74,7 @@ class ActivityId {
         isSentToServer = false;
     }
     
-    public long getUniqueThreadId() {
+    long getUniqueThreadId() {
         return uniqueThreadId;
     }
 
