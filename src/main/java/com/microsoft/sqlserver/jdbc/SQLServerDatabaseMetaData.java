@@ -627,8 +627,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                         + "NULLABLE, REMARKS, COLUMN_DEF, SQL_DATA_TYPE, SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE,"
                         + "NULL AS SCOPE_CATALOG, NULL AS SCOPE_SCHEMA, NULL AS SCOPE_TABLE, SS_DATA_TYPE AS SOURCE_DATA_TYPE,"
                         + "CASE SS_IS_IDENTITY WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_AUTOINCREMENT,"
-                        + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN "
-                        + "FROM @mssqljdbc_temp_sp_columns_result;");
+                        + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN, "
+                        + "SS_IS_SPARSE, SS_IS_COLUMN_SET FROM @mssqljdbc_temp_sp_columns_result;");
 
         pstmt.setString(1, (catalog != null && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
         pstmt.setString(2, (schema != null && !schema.isEmpty()) ? schema : "%");
