@@ -17,10 +17,8 @@ final class ActivityCorrelator {
 
     private static Map<Long, ActivityId> activityIdTlsMap = new ConcurrentHashMap<>();
 
-    static void cleanupActivityId() {
+    static void cleanupActivityId(long uniqueThreadId) {
         // remove the ActivityId that belongs to this thread.
-        long uniqueThreadId = Thread.currentThread().getId();
-
         if (activityIdTlsMap.containsKey(uniqueThreadId)) {
             activityIdTlsMap.remove(uniqueThreadId);
         }
@@ -33,7 +31,7 @@ final class ActivityCorrelator {
 
         // Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
         if (!activityIdTlsMap.containsKey(uniqueThreadId)) {
-            activityIdTlsMap.put(uniqueThreadId, new ActivityId());
+            activityIdTlsMap.put(uniqueThreadId, new ActivityId(uniqueThreadId));
         }
 
         return activityIdTlsMap.get(uniqueThreadId);
@@ -65,13 +63,19 @@ final class ActivityCorrelator {
 
 class ActivityId {
     private final UUID id;
+    private final long uniqueThreadId;
     private long sequence;
     private boolean isSentToServer;
 
-    ActivityId() {
+    ActivityId(long uniqueThreadId) {
         id = UUID.randomUUID();
+        this.uniqueThreadId = uniqueThreadId;
         sequence = 0;
         isSentToServer = false;
+    }
+    
+    public long getUniqueThreadId() {
+        return uniqueThreadId;
     }
 
     UUID getId() {

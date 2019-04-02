@@ -108,6 +108,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static final int DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD = 10; // Used to set the initial default, can
                                                                                // be changed later.
     private int serverPreparedStatementDiscardThreshold = -1; // Current limit for this particular connection.
+    private long activityIdUniqueThreadId = -1;
 
     /**
      * The default for if prepared statements should execute sp_executesql before following the prepare, unprepare
@@ -2542,6 +2543,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String preloginErrorLogString = " Prelogin error: host " + serverName + " port " + portNumber;
 
         ActivityId activityId = ActivityCorrelator.getNext();
+        activityIdUniqueThreadId = activityId.getUniqueThreadId();
         final byte[] actIdByteArray = Util.asGuidByteArray(activityId.getId());
         final byte[] conIdByteArray = Util.asGuidByteArray(clientConnectionId);
 
@@ -3242,7 +3244,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
 
-        ActivityCorrelator.cleanupActivityId();
+        ActivityCorrelator.cleanupActivityId(activityIdUniqueThreadId);
     }
 
     // This function is used by the proxy for notifying the pool manager that this connection proxy is closed
@@ -3261,12 +3263,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 connectionCommand("IF @@TRANCOUNT > 0 ROLLBACK TRAN" /* +close connection */, "close connection");
             }
             notifyPooledConnection(null);
-            ActivityCorrelator.cleanupActivityId();
+            ActivityCorrelator.cleanupActivityId(activityIdUniqueThreadId);
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " Connection closed and returned to connection pool");
             }
         }
-
     }
 
     @Override
