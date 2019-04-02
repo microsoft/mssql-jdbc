@@ -24,6 +24,8 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
 @Tag("xAzureSQLDW")
+@Tag("xSQLv12")
+@Tag("xSQLv13")
 public class DataClassificationTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("DataClassification");
 
