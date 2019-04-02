@@ -5,6 +5,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
@@ -211,13 +213,13 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private class NTLMContext {
         // domain name to connect to
         private final String domainName;
-        private final byte[] domainBytes;
 
         // user credentials
         private final String userName;
         private final String password;
 
         // upper cased unicode bytes
+        private final byte[] domainBytes;
         private final byte[] userNameBytes;
         private final byte[] serverNameBytes;
         private final byte[] workstationBytes;
@@ -252,17 +254,40 @@ final class NTLMAuthentication extends SSPIAuthentication {
         private byte[] challengeMsg = null;
 
         NTLMContext(SQLServerConnection con, String serverName, String domainName,
-                String workstation) throws NoSuchAlgorithmException {
+                String workstation) throws SQLServerException {
+
+            String serverFqdn = "\0";
+            try {
+                if (null != serverName) {
+                    InetAddress addr = InetAddress.getByName(serverName);
+                    serverFqdn = addr.getCanonicalHostName().toUpperCase();
+                }
+            } catch (UnknownHostException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmUnknownServer"));
+                Object[] msgArgs = {serverName, e.getMessage()};
+                throw new SQLServerException(form.format(msgArgs), e);
+            }
+
+            this.serverNameBytes = unicode(serverFqdn.toUpperCase());
+
             this.domainName = null != domainName ? domainName.toUpperCase() : "\0";
             this.domainBytes = unicode(this.domainName);
+
             this.userName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
             this.userNameBytes = unicode(userName);
+
             this.password = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
-            this.serverNameBytes = unicode(serverName.toUpperCase());
-            this.workstationBytes = unicode(workstation.toUpperCase());// workstation.getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
-            mac = Mac.getInstance("HmacMD5");
+            this.workstationBytes = unicode(workstation.toUpperCase());
+
+            try {
+                mac = Mac.getInstance("HmacMD5");
+            } catch (NoSuchAlgorithmException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmHmacMD5Error"));
+                Object[] msgArgs = {domainName, e.getMessage()};
+                throw new SQLServerException(form.format(msgArgs), e);
+            }
         }
     };
 
@@ -278,14 +303,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     NTLMAuthentication(SQLServerConnection con, String serverName, String domainName,
             String workstation) throws SQLServerException {
-        try {
-            if (null == context) {
-                this.context = new NTLMContext(con, serverName, domainName, workstation);
-            }
-        } catch (Exception e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmInitError"));
-            Object[] msgArgs = {e.getMessage()};
-            throw new SQLServerException(form.format(msgArgs), e);
+        if (null == context) {
+            this.context = new NTLMContext(con, serverName, domainName, workstation);
         }
     }
 
@@ -396,8 +415,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
                     break;
                 case NTLM_AVID_MSVAVDNSCOMPUTERNAME:
                     // verify server name
-                    if (!Arrays.equals(context.serverNameBytes,
-                            (new String(value).toUpperCase()).getBytes())) {
+                    if (!Arrays.equals(context.serverNameBytes, (new String(value).toUpperCase()).getBytes())) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadComputer"));
                         Object[] msgArgs = {new String(value), new String(context.serverNameBytes)};
                         throw new SQLServerException(form.format(msgArgs), null);
@@ -406,10 +424,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
                 case NTLM_AVID_MSVAVTIMESTAMP:
                     System.arraycopy(value, 0, context.timestamp, 0, NTLM_TIMESTAMP_LENGTH);
                     break;
-                case NTLM_AVID_MSVAVFLAGS:
-                    targetInfoBuf.putInt(NTLM_AVID_VALUE_MIC);
                 case NTLM_AVID_MSVAVEOL:
                     done = true;
+                    break;
+                // do nothing, MIC is always sent in response regardless
+                case NTLM_AVID_MSVAVFLAGS:
                     break;
                 // ignore others not supported
                 case NTLM_AVID_MSVAVNBCOMPUTERNAME:

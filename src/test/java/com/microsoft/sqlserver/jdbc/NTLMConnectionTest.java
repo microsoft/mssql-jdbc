@@ -4,6 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -184,7 +188,7 @@ public class NTLMConnectionTest extends AbstractTest {
             SSPIAuthentication auth = new NTLMAuthentication(new SQLServerConnection(""), "serverName", "domainName",
                     "hostname");
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmInitError")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownServer")));
 
         }
     }
@@ -193,22 +197,37 @@ public class NTLMConnectionTest extends AbstractTest {
     public void testNTLMBadBlob() throws SQLException {
 
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
-            SSPIAuthentication auth = new NTLMAuthentication(conn, "serverName", "domainName", "hostname");
+
+            String serverFqdn = InetAddress.getByName(conn.currentConnectPlaceHolder.getServerName())
+                    .getCanonicalHostName().toUpperCase();
+            byte[] serverBytes = serverFqdn.getBytes(java.nio.charset.StandardCharsets.UTF_16LE);
+
+            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
             boolean[] done = {false};
 
             byte[] secBlobOut;
             try {
-                // start with a good blob with a MIC flag
-                byte[] sspiBlob = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126, -127,
-                        2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -108, 0, -108, 0, 68, 0, 0, 0,
-                        6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0, 65,
-                        0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0, 54,
-                        0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77,
-                        0, 69, 0, 3, 0, 20, 0, 115, 0, 101, 0, 114, 0, 118, 0, 101, 0, 114, 0, 78, 0, 97, 0, 109, 0,
-                        101, 0, 5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7, 0,
-                        8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 6, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                secBlobOut = auth.generateClientContext(sspiBlob, done);
+                // start with a good blob
+                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
+                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
+                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
+                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
+                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
+                        77, 0, 69, 0, 3, 0};
+
+                // rest of blob after server name
+                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
+                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
+
+                // avlen = 4
+                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
+                        .order(ByteOrder.LITTLE_ENDIAN);
+                sspiBlob.put(sspiBlob1);
+                sspiBlob.putShort((short) serverBytes.length);
+                sspiBlob.put(serverBytes);
+                sspiBlob.put(sspiBlob2);
+
+                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
 
             } catch (Exception e) {
                 fail(e.getMessage());
@@ -216,16 +235,26 @@ public class NTLMConnectionTest extends AbstractTest {
 
             try {
                 // blob with a bad signature
-                byte[] sspiBlob = {88, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126, -127,
-                        2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -108, 0, -108, 0, 68, 0, 0, 0,
-                        6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0, 65,
-                        0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0, 54,
-                        0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77,
-                        0, 69, 0, 3, 0, 20, 0, 115, 0, 101, 0, 114, 0, 118, 0, 101, 0, 114, 0, 78, 0, 97, 0, 109, 0,
-                        101, 0, 5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7, 0,
-                        8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 6, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                secBlobOut = auth.generateClientContext(sspiBlob, done);
+                byte[] sspiBlob1 = {88, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
+                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
+                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
+                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
+                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
+                        77, 0, 69, 0, 3, 0};
+
+                // rest of blob after server name
+                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
+                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
+
+                // avlen = 4
+                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
+                        .order(ByteOrder.LITTLE_ENDIAN);
+                sspiBlob.put(sspiBlob1);
+                sspiBlob.putShort((short) serverBytes.length);
+                sspiBlob.put(serverBytes);
+                sspiBlob.put(sspiBlob2);
+
+                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
 
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmSignatureError")));
@@ -233,67 +262,109 @@ public class NTLMConnectionTest extends AbstractTest {
 
             try {
                 // blob with a bad message type
-                byte[] sspiBlob = {78, 84, 76, 77, 83, 83, 80, 0, 0, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126, -127,
-                        2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -108, 0, -108, 0, 68, 0, 0, 0,
-                        6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0, 65,
-                        0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0, 54,
-                        0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77,
-                        0, 69, 0, 3, 0, 20, 0, 115, 0, 101, 0, 114, 0, 118, 0, 101, 0, 114, 0, 78, 0, 97, 0, 109, 0,
-                        101, 0, 5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7, 0,
-                        8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 6, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                secBlobOut = auth.generateClientContext(sspiBlob, done);
+                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 0, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
+                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
+                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
+                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
+                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
+                        77, 0, 69, 0, 3, 0};
 
+                // rest of blob after server name
+                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
+                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
+
+                // avlen = 4
+                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
+                        .order(ByteOrder.LITTLE_ENDIAN);
+                sspiBlob.put(sspiBlob1);
+                sspiBlob.putShort((short) serverBytes.length);
+                sspiBlob.put(serverBytes);
+                sspiBlob.put(sspiBlob2);
+
+                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmMessageTypeError")));
             }
 
             try {
                 // blob with a bad target info len
-                byte[] sspiBlob = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126, -127,
-                        2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -108, 0, 68, 0, 0, 0, 6,
-                        3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0, 65, 0,
-                        76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0, 54, 0,
-                        45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77, 0,
-                        69, 0, 3, 0, 20, 0, 115, 0, 101, 0, 114, 0, 118, 0, 101, 0, 114, 0, 78, 0, 97, 0, 109, 0, 101,
-                        0, 5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7, 0, 8, 0,
-                        122, -115, 18, 50, -5, -32, -44, 1, 6, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                secBlobOut = auth.generateClientContext(sspiBlob, done);
+                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
+                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, 68, 0, 0,
+                        0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
+                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
+                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
+                        77, 0, 69, 0, 3, 0};
 
+                // rest of blob after server name
+                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
+                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
+
+                // avlen = 4
+                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
+                        .order(ByteOrder.LITTLE_ENDIAN);
+                sspiBlob.put(sspiBlob1);
+                sspiBlob.putShort((short) serverBytes.length);
+                sspiBlob.put(serverBytes);
+                sspiBlob.put(sspiBlob2);
+
+                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTargetInfo")));
             }
 
             try {
                 // blob with bad domain
-                byte[] sspiBlob = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126, -127,
-                        2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -108, 0, -108, 0, 68, 0, 0, 0,
-                        6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0, 65,
-                        0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0, 54,
-                        0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 0, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77,
-                        0, 69, 0, 3, 0, 20, 0, 115, 0, 101, 0, 114, 0, 118, 0, 101, 0, 114, 0, 78, 0, 97, 0, 109, 0,
-                        101, 0, 5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7, 0,
-                        8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 6, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                secBlobOut = auth.generateClientContext(sspiBlob, done);
+                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
+                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
+                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
+                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
+                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 3, 0};
 
+                // rest of blob after server name
+                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
+                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
+
+                // avlen = 4
+                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
+                        .order(ByteOrder.LITTLE_ENDIAN);
+                sspiBlob.put(sspiBlob1);
+                sspiBlob.putShort((short) serverBytes.length);
+                sspiBlob.put(serverBytes);
+                sspiBlob.put(sspiBlob2);
+
+                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmBadDomain")));
             }
 
             try {
                 // blob with bad computer name
-                byte[] sspiBlob = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126, -127,
-                        2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -108, 0, -108, 0, 68, 0, 0, 0,
-                        6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0, 65,
-                        0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0, 54,
-                        0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77,
-                        0, 69, 0, 3, 0, 20, 0, 0, 0, 101, 0, 114, 0, 118, 0, 101, 0, 114, 0, 78, 0, 97, 0, 109, 0, 101,
-                        0, 5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7, 0, 8, 0,
-                        122, -115, 18, 50, -5, -32, -44, 1, 6, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                secBlobOut = auth.generateClientContext(sspiBlob, done);
+                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
+                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
+                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
+                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
+                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
+                        77, 0, 69, 0, 3, 0};
+
+                // rest of blob after server name
+                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
+                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
+
+                // avlen = 4
+                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
+                        .order(ByteOrder.LITTLE_ENDIAN);
+                sspiBlob.put(sspiBlob1);
+                sspiBlob.putShort((short) 0);
+                sspiBlob.put(serverBytes);
+                sspiBlob.put(sspiBlob2);
+
+                // update targetinfo len and max len at position 40, 42
+                // int len = sspiBlob.getShort(40);
+                // sspiBlob.putShort(40, (short) (len+serverBytes.length));
+                // sspiBlob.putShort(42, (short) (len+serverBytes.length));
+
+                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
 
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmBadComputer")));
@@ -301,37 +372,58 @@ public class NTLMConnectionTest extends AbstractTest {
 
             try {
                 // blob with bad avid
-                byte[] sspiBlob = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126, -127,
-                        2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -108, 0, -108, 0, 68, 0, 0, 0,
-                        6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, -1, 0, 12, 0, 71, 0, 65,
-                        0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0, 54,
-                        0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77,
-                        0, 69, 0, 3, 0, 20, 0, 115, 0, 101, 0, 114, 0, 118, 0, 101, 0, 114, 0, 78, 0, 97, 0, 109, 0,
-                        101, 0, 5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7, 0,
-                        8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 6, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                secBlobOut = auth.generateClientContext(sspiBlob, done);
+                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
+                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
+                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
+                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
+                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
+                        77, 0, 69, 0, -1, 0};
 
+                // rest of blob after server name
+                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
+                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
+
+                // avlen = 4
+                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
+                        .order(ByteOrder.LITTLE_ENDIAN);
+                sspiBlob.put(sspiBlob1);
+                sspiBlob.putShort((short) serverBytes.length);
+                sspiBlob.put(serverBytes);
+                sspiBlob.put(sspiBlob2);
+
+                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownValue")));
             }
 
             try {
                 // blob with no timestamp
-                byte[] sspiBlob = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126, -127,
-                        2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -108, 0, -108, 0, 68, 0, 0, 0,
-                        6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0, 65,
-                        0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0, 54,
-                        0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77,
-                        0, 69, 0, 3, 0, 20, 0, 115, 0, 101, 0, 114, 0, 118, 0, 101, 0, 114, 0, 78, 0, 97, 0, 109, 0,
-                        101, 0, 5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7, 0,
-                        8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0};
-                secBlobOut = auth.generateClientContext(sspiBlob, done);
+                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
+                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
+                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
+                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
+                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
+                        77, 0, 69, 0, 3, 0};
+
+                // rest of blob after server name
+                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
+                        0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+                // avlen = 4
+                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
+                        .order(ByteOrder.LITTLE_ENDIAN);
+                sspiBlob.put(sspiBlob1);
+                sspiBlob.putShort((short) serverBytes.length);
+                sspiBlob.put(serverBytes);
+                sspiBlob.put(sspiBlob2);
+
+                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
 
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTimestamp")));
             }
+        } catch (UnknownHostException e) {
+            fail();
         }
 
     }
