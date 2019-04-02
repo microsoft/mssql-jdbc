@@ -35,6 +35,9 @@ public class NTLMConnectionTest extends AbstractTest {
 
     private static String connectionStringNTLM = connectionString;
 
+    private static String serverFqdn;
+    private static byte[] serverBytes;
+
     @BeforeAll
     public static void setUp() {
         java.util.logging.Logger logger = java.util.logging.Logger.getLogger("");
@@ -160,7 +163,8 @@ public class NTLMConnectionTest extends AbstractTest {
     }
 
     /**
-     * Validates that loginTimeout connection property works with NTLM authentication.
+     * TODO: random timeout failure with this test Validates that loginTimeout connection property works with NTLM
+     * authentication.
      */
     // @Test
     public void testNTLMLoginTimeout() {
@@ -189,243 +193,250 @@ public class NTLMConnectionTest extends AbstractTest {
                     "hostname");
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownServer")));
-
         }
     }
 
-    @Test
-    public void testNTLMBadBlob() throws SQLException {
+    /**
+     * <pre>
+     * The following tests use a hardcoded challenge message token as follows and modifies the fields tested to
+     * trigger errors. 
+     * The good token to start: 
+     * {
+     * 78, 84, 76, 77, 83, 83, 80, 0,                                               // NTLMSSP\0
+     * 2, 0, 0, 0,                                                                  // messageType (2 for challenge msg)              
+     * 12, 0,                                                                       // target name len
+     * 12, 0,                                                                       // target name max len
+     * 56, 0, 0, 0,                                                                 // target name buffer offset
+     * 21, -126, -127, 2,                                                           // negotiate flags
+     * 78, -76, 68, 118, 41, -30, -71, 100,                                         // server challenge
+     * 0, 0, 0, 0, 0, 0, 0, 0,                                                      // reserved
+     * -88, 0,                                                                      // target info len
+     * -88, 0,                                                                      // target info max len
+     * 68, 0, 0, 0,                                                                 // target info buffer offset
+     * 0, 0, 0, 0, 0, 0, 0, 0,                                                      // version
+     * 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0,                                    // target name
+     * 2, 0,                                                                        // MsvAvNbDomainName avid
+     * 12, 0,                                                                       // MsvAvNbDomainName avlen
+     * 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0,                                    // domain name
+     * 1, 0,                                                                        // MsvAvNbComputerName avid
+     * 30, 0,                                                                       // MsvAvNbComputerName avlen
+     * 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // computer name
+     * 4, 0,                                                                        // MsvAvDnsDomainName avid
+     * 20, 0,                                                                       // MsvAvDnsDomainName avlen
+     * 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77, 0, 69, 0,        // domain name
+     * 3, 0,                                                                        // MsvAvDnsComputerName avid
+     * [filed in test]                                                              // MsvAvDnsComputerName len                                     
+     * [filed in test]                                                              // computer name
+     * 5, 0,                                                                        // MsvAvDnsTreeName avid
+     * 18, 0,                                                                       // MsvAvDnsTreeName avlen
+     * 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0,          // tree name
+     * 7, 0,                                                                        // MsvAvTimestamp avid
+     * 8, 0,                                                                        // MsvAvTimestamp avlen
+     * 122, -115, 18, 50, -5, -32, -44, 1,                                          // timestamp
+     * 0, 0, 0, 0                                                                   // MsvAvEOL avid
+     * };
+     * 
+     * challengeTokenPart1 is everything up to MsvAvDnsComputerName id 
+     * test will then fill in server name from connection string
+     * challengeTokenPart2 is everything after MsvAvDnsComputerName value
+     * </pre>
+     */
+    private byte[] challengeTokenPart1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21,
+            -126, -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -96, 0, -96, 0, 68, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0, 65, 0, 76, 0, 65, 0, 88,
+            0, 89, 0, 1, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77, 0, 69, 0, 3, 0};
 
+    private byte[] challengeTokenPart2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100,
+            0, 7, 0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
+
+    @Test
+    public void testNTLMBadSignature() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
 
-            String serverFqdn = InetAddress.getByName(conn.currentConnectPlaceHolder.getServerName())
-                    .getCanonicalHostName().toUpperCase();
-            byte[] serverBytes = serverFqdn.getBytes(java.nio.charset.StandardCharsets.UTF_16LE);
-
+            getServerFqdn(conn);
             SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
             boolean[] done = {false};
 
-            byte[] secBlobOut;
             try {
-                // start with a good blob
-                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
-                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
-                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
-                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
-                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
-                        77, 0, 69, 0, 3, 0};
+                // modify token with a bad signature
+                byte[] badSignature = {0, 0, 0, 0, 0, 0, 0, 0};
+                ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
+                badToken.put(badSignature);
 
-                // rest of blob after server name
-                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
-                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
-
-                // avlen = 4
-                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
-                        .order(ByteOrder.LITTLE_ENDIAN);
-                sspiBlob.put(sspiBlob1);
-                sspiBlob.putShort((short) serverBytes.length);
-                sspiBlob.put(serverBytes);
-                sspiBlob.put(sspiBlob2);
-
-                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
-
-            } catch (Exception e) {
-                fail(e.getMessage());
-            }
-
-            try {
-                // blob with a bad signature
-                byte[] sspiBlob1 = {88, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
-                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
-                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
-                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
-                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
-                        77, 0, 69, 0, 3, 0};
-
-                // rest of blob after server name
-                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
-                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
-
-                // avlen = 4
-                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
-                        .order(ByteOrder.LITTLE_ENDIAN);
-                sspiBlob.put(sspiBlob1);
-                sspiBlob.putShort((short) serverBytes.length);
-                sspiBlob.put(serverBytes);
-                sspiBlob.put(sspiBlob2);
-
-                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
+                auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmSignatureError")));
             }
+        }
+    }
+
+    @Test
+    public void testNTLMBadMessageType() throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+
+            getServerFqdn(conn);
+            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+            boolean[] done = {false};
 
             try {
-                // blob with a bad message type
-                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 0, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
-                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
-                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
-                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
-                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
-                        77, 0, 69, 0, 3, 0};
+                // modify with a bad message type
+                byte[] badMessageType = {0, 0, 0, 0};
+                ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
+                badToken.position(8);
+                badToken.put(badMessageType);
 
-                // rest of blob after server name
-                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
-                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
+                auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
-                // avlen = 4
-                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
-                        .order(ByteOrder.LITTLE_ENDIAN);
-                sspiBlob.put(sspiBlob1);
-                sspiBlob.putShort((short) serverBytes.length);
-                sspiBlob.put(serverBytes);
-                sspiBlob.put(sspiBlob2);
-
-                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmMessageTypeError")));
             }
+        }
+    }
 
+    @Test
+    public void testNTLMBadTargetInfo() throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+
+            getServerFqdn(conn);
+            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+            boolean[] done = {false};
             try {
-                // blob with a bad target info len
-                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
-                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, 68, 0, 0,
-                        0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
-                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
-                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
-                        77, 0, 69, 0, 3, 0};
+                // modify token with a bad target info len
+                byte[] badTargetInfoLen = {0, 0};
+                ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
+                badToken.position(40);
+                badToken.put(badTargetInfoLen);
 
-                // rest of blob after server name
-                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
-                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
+                auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
-                // avlen = 4
-                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
-                        .order(ByteOrder.LITTLE_ENDIAN);
-                sspiBlob.put(sspiBlob1);
-                sspiBlob.putShort((short) serverBytes.length);
-                sspiBlob.put(serverBytes);
-                sspiBlob.put(sspiBlob2);
-
-                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTargetInfo")));
             }
+        }
+    }
+
+    @Test
+    public void testNTLMBadDomain() throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+
+            getServerFqdn(conn);
+            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+            boolean[] done = {false};
 
             try {
-                // blob with bad domain
-                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
-                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
-                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
-                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
-                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 3, 0};
+                // modify token with bad domain
+                byte[] badDomain = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
+                badToken.position(122);
+                badToken.put(badDomain);
 
-                // rest of blob after server name
-                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
-                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
+                auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
-                // avlen = 4
-                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
-                        .order(ByteOrder.LITTLE_ENDIAN);
-                sspiBlob.put(sspiBlob1);
-                sspiBlob.putShort((short) serverBytes.length);
-                sspiBlob.put(serverBytes);
-                sspiBlob.put(sspiBlob2);
-
-                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmBadDomain")));
             }
+        }
+    }
 
+    @Test
+    public void testNTLMBadComputerMame() throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+
+            getServerFqdn(conn);
+            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+            boolean[] done = {false};
             try {
-                // blob with bad computer name
-                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
-                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
-                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
-                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
-                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
-                        77, 0, 69, 0, 3, 0};
-
-                // rest of blob after server name
-                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
-                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
-
-                // avlen = 4
-                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
+                // modify token with bad computer name
+                byte[] badComputer = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+                ByteBuffer badToken = ByteBuffer.wrap(getChallengeToken(challengeTokenPart1, challengeTokenPart2))
                         .order(ByteOrder.LITTLE_ENDIAN);
-                sspiBlob.put(sspiBlob1);
-                sspiBlob.putShort((short) 0);
-                sspiBlob.put(serverBytes);
-                sspiBlob.put(sspiBlob2);
+                badToken.position(146);
+                badToken.put(badComputer);
 
-                // update targetinfo len and max len at position 40, 42
-                // int len = sspiBlob.getShort(40);
-                // sspiBlob.putShort(40, (short) (len+serverBytes.length));
-                // sspiBlob.putShort(42, (short) (len+serverBytes.length));
-
-                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
+                auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmBadComputer")));
             }
+        }
+    }
 
+    @Test
+    public void testNTLMBadAvid() throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+
+            getServerFqdn(conn);
+            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+            boolean[] done = {false};
             try {
-                // blob with bad avid
-                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
-                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
-                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
-                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
-                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
-                        77, 0, 69, 0, -1, 0};
+                // modify token with bad avid
+                byte[] badAvid = {-1, 0};
+                ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
+                badToken.position(68);
+                badToken.put(badAvid);
 
-                // rest of blob after server name
-                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
-                        0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
+                auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
-                // avlen = 4
-                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
-                        .order(ByteOrder.LITTLE_ENDIAN);
-                sspiBlob.put(sspiBlob1);
-                sspiBlob.putShort((short) serverBytes.length);
-                sspiBlob.put(serverBytes);
-                sspiBlob.put(sspiBlob2);
-
-                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownValue")));
             }
+        }
+    }
 
+    @Test
+    public void testNTLMBadTimestamp() throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+
+            getServerFqdn(conn);
+            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+            boolean[] done = {false};
             try {
-                // blob with no timestamp
-                byte[] sspiBlob1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21, -126,
-                        -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -104, 0, -104, 0, 68, 0,
-                        0, 0, 6, 3, -128, 37, 0, 0, 0, 15, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0,
-                        65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 22, 0, 83, 0, 81, 0, 76, 0, 45, 0, 50, 0, 75, 0, 49, 0,
-                        54, 0, 45, 0, 48, 0, 49, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0,
-                        77, 0, 69, 0, 3, 0};
+                // modify token with no timestamp
+                byte[] badTimestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart2).order(ByteOrder.LITTLE_ENDIAN);
+                badToken.position(24);
+                badToken.put(badTimestamp);
 
-                // rest of blob after server name
-                byte[] sspiBlob2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0, 7,
-                        0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-                // avlen = 4
-                ByteBuffer sspiBlob = ByteBuffer.allocate(sspiBlob1.length + 4 + serverBytes.length + sspiBlob2.length)
-                        .order(ByteOrder.LITTLE_ENDIAN);
-                sspiBlob.put(sspiBlob1);
-                sspiBlob.putShort((short) serverBytes.length);
-                sspiBlob.put(serverBytes);
-                sspiBlob.put(sspiBlob2);
-
-                secBlobOut = auth.generateClientContext(sspiBlob.array(), done);
+                auth.generateClientContext(getChallengeToken(challengeTokenPart1, badToken.array()), done);
 
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTimestamp")));
             }
-        } catch (UnknownHostException e) {
-            fail();
         }
+    }
 
+    /**
+     * Get Server FQDN from connection
+     * 
+     * @param conn
+     * @throws SQLException
+     */
+    private void getServerFqdn(SQLServerConnection conn) throws SQLException {
+        try {
+            serverFqdn = InetAddress.getByName(conn.currentConnectPlaceHolder.getServerName()).getCanonicalHostName()
+                    .toUpperCase();
+        } catch (UnknownHostException e) {
+            fail("Error getting server FQDN: " + e.getMessage());
+            e.printStackTrace();
+        }
+        serverBytes = serverFqdn.getBytes(java.nio.charset.StandardCharsets.UTF_16LE);
+    }
+
+    /*
+     * 
+     */
+    private byte[] getChallengeToken(byte[] token1, byte[] token2) {
+
+        // add 4 for avlen
+        ByteBuffer token = ByteBuffer.allocate(token1.length + 4 + serverBytes.length + token2.length)
+                .order(ByteOrder.LITTLE_ENDIAN);
+        token.put(token1);
+        token.putShort((short) serverBytes.length);
+        token.put(serverBytes);
+        token.put(token2);
+        return token.array();
     }
 
     private void testInvalidProperties(String connectionString, String resourceKeyword) {

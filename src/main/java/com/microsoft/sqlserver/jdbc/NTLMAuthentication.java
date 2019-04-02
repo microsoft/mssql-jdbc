@@ -422,7 +422,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
                     }
                     break;
                 case NTLM_AVID_MSVAVTIMESTAMP:
-                    System.arraycopy(value, 0, context.timestamp, 0, NTLM_TIMESTAMP_LENGTH);
+                    if (value.length > 0) {
+                        System.arraycopy(value, 0, context.timestamp, 0, NTLM_TIMESTAMP_LENGTH);
+                    }
                     break;
                 case NTLM_AVID_MSVAVEOL:
                     done = true;
