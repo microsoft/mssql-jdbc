@@ -448,6 +448,23 @@
 					<rulesUri>file:///${session.executionRootDirectory}/maven-version-rules.xml</rulesUri>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.2</version>
+				<configuration>
+					<fileSets>
+						<fileSet>
+							<directory>jacoco-execs/</directory>
+							<includes>
+								<include>*.exec</include>
+							</includes>
+						</fileSet>
+					</fileSets>
+					<!-- File containing the merged coverage data -->
+					<destFile>${project.build.directory}/jacoco.exec</destFile>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 </project>
