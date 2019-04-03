@@ -57,7 +57,6 @@ public abstract class AbstractTest {
 
     protected static Connection connectionAzure = null;
     protected static String connectionString = null;
-    protected static String connectionStringNTLM = null;
 
     protected static Properties info = new Properties();
 
@@ -80,7 +79,6 @@ public abstract class AbstractTest {
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
 
         connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
-        connectionStringNTLM = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES_NTLM);
 
         ds = updateDataSource(new SQLServerDataSource());
         dsXA = updateDataSource(new SQLServerXADataSource());

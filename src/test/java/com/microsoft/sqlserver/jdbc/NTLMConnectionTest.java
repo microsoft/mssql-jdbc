@@ -252,166 +252,171 @@ public class NTLMConnectionTest extends AbstractTest {
 
     @Test
     public void testNTLMBadSignature() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+        if (ntlmPropsDefined) {
+            try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
 
-            getServerFqdn(conn);
-            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
-            boolean[] done = {false};
+                getServerFqdn(conn);
+                SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+                boolean[] done = {false};
 
-            try {
-                // modify token with a bad signature
-                byte[] badSignature = {0, 0, 0, 0, 0, 0, 0, 0};
-                ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
-                badToken.put(badSignature);
+                try {
+                    // modify token with a bad signature
+                    byte[] badSignature = {0, 0, 0, 0, 0, 0, 0, 0};
+                    ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
+                    badToken.put(badSignature);
 
-                auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
+                    auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
-            } catch (Exception e) {
-                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmSignatureError")));
+                } catch (Exception e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmSignatureError")));
+                }
             }
         }
     }
 
     @Test
     public void testNTLMBadMessageType() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+        if (ntlmPropsDefined) {
+            try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+                getServerFqdn(conn);
+                SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+                boolean[] done = {false};
 
-            getServerFqdn(conn);
-            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
-            boolean[] done = {false};
+                try {
+                    // modify with a bad message type
+                    byte[] badMessageType = {0, 0, 0, 0};
+                    ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
+                    badToken.position(8);
+                    badToken.put(badMessageType);
 
-            try {
-                // modify with a bad message type
-                byte[] badMessageType = {0, 0, 0, 0};
-                ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
-                badToken.position(8);
-                badToken.put(badMessageType);
+                    auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
-                auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
-
-            } catch (Exception e) {
-                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmMessageTypeError")));
+                } catch (Exception e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmMessageTypeError")));
+                }
             }
         }
     }
 
     @Test
     public void testNTLMBadTargetInfo() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+        if (ntlmPropsDefined) {
+            try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+                getServerFqdn(conn);
+                SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+                boolean[] done = {false};
+                try {
+                    // modify token with a bad target info len
+                    byte[] badTargetInfoLen = {0, 0};
+                    ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
+                    badToken.position(40);
+                    badToken.put(badTargetInfoLen);
 
-            getServerFqdn(conn);
-            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
-            boolean[] done = {false};
-            try {
-                // modify token with a bad target info len
-                byte[] badTargetInfoLen = {0, 0};
-                ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
-                badToken.position(40);
-                badToken.put(badTargetInfoLen);
+                    auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
-                auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
-
-            } catch (Exception e) {
-                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTargetInfo")));
+                } catch (Exception e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTargetInfo")));
+                }
             }
         }
     }
 
     @Test
     public void testNTLMBadDomain() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+        if (ntlmPropsDefined) {
+            try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+                getServerFqdn(conn);
+                SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+                boolean[] done = {false};
 
-            getServerFqdn(conn);
-            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
-            boolean[] done = {false};
+                try {
+                    // modify token with bad domain
+                    byte[] badDomain = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                    ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
+                    badToken.position(122);
+                    badToken.put(badDomain);
 
-            try {
-                // modify token with bad domain
-                byte[] badDomain = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
-                badToken.position(122);
-                badToken.put(badDomain);
+                    auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
-                auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
-
-            } catch (Exception e) {
-                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmBadDomain")));
+                } catch (Exception e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmBadDomain")));
+                }
             }
         }
     }
 
     @Test
     public void testNTLMBadComputerMame() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+        if (ntlmPropsDefined) {
+            try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+                getServerFqdn(conn);
+                SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+                boolean[] done = {false};
+                try {
+                    // modify token with bad computer name
+                    byte[] badComputer = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+                    ByteBuffer badToken = ByteBuffer.wrap(getChallengeToken(challengeTokenPart1, challengeTokenPart2))
+                            .order(ByteOrder.LITTLE_ENDIAN);
+                    badToken.position(146);
+                    badToken.put(badComputer);
 
-            getServerFqdn(conn);
-            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
-            boolean[] done = {false};
-            try {
-                // modify token with bad computer name
-                byte[] badComputer = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-                ByteBuffer badToken = ByteBuffer.wrap(getChallengeToken(challengeTokenPart1, challengeTokenPart2))
-                        .order(ByteOrder.LITTLE_ENDIAN);
-                badToken.position(146);
-                badToken.put(badComputer);
+                    auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
-                auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
-
-            } catch (Exception e) {
-                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmBadComputer")));
+                } catch (Exception e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmBadComputer")));
+                }
             }
         }
     }
 
     @Test
     public void testNTLMBadAvid() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+        if (ntlmPropsDefined) {
+            try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+                getServerFqdn(conn);
+                SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+                boolean[] done = {false};
+                try {
+                    // modify token with bad avid
+                    byte[] badAvid = {-1, 0};
+                    ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
+                    badToken.position(68);
+                    badToken.put(badAvid);
 
-            getServerFqdn(conn);
-            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
-            boolean[] done = {false};
-            try {
-                // modify token with bad avid
-                byte[] badAvid = {-1, 0};
-                ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
-                badToken.position(68);
-                badToken.put(badAvid);
+                    auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
-                auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
-
-            } catch (Exception e) {
-                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownValue")));
+                } catch (Exception e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownValue")));
+                }
             }
         }
     }
 
     @Test
     public void testNTLMBadTimestamp() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+        if (ntlmPropsDefined) {
+            try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+                getServerFqdn(conn);
+                SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
+                boolean[] done = {false};
+                try {
+                    // modify token with no timestamp
+                    byte[] badTimestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                    ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart2).order(ByteOrder.LITTLE_ENDIAN);
+                    badToken.position(24);
+                    badToken.put(badTimestamp);
 
-            getServerFqdn(conn);
-            SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
-            boolean[] done = {false};
-            try {
-                // modify token with no timestamp
-                byte[] badTimestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart2).order(ByteOrder.LITTLE_ENDIAN);
-                badToken.position(24);
-                badToken.put(badTimestamp);
+                    auth.generateClientContext(getChallengeToken(challengeTokenPart1, badToken.array()), done);
 
-                auth.generateClientContext(getChallengeToken(challengeTokenPart1, badToken.array()), done);
-
-            } catch (Exception e) {
-                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTimestamp")));
+                } catch (Exception e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTimestamp")));
+                }
             }
         }
     }
 
-    /**
+    /*
      * Get Server FQDN from connection
-     * 
-     * @param conn
-     * @throws SQLException
      */
     private void getServerFqdn(SQLServerConnection conn) throws SQLException {
         try {
@@ -425,7 +430,7 @@ public class NTLMConnectionTest extends AbstractTest {
     }
 
     /*
-     * 
+     * Get combined challenge token for testNTLMBad* tests
      */
     private byte[] getChallengeToken(byte[] token1, byte[] token2) {
 
