@@ -3266,7 +3266,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 connectionlogger.finer(toString() + " Connection closed and returned to connection pool");
             }
         }
-
     }
 
     @Override
