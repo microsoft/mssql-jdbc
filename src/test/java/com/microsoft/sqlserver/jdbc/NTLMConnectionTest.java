@@ -70,15 +70,6 @@ public class NTLMConnectionTest extends AbstractTest {
             dsNTLMLocal = new SQLServerDataSource();
             updateDataSource(connectionStringNTLM, dsNTLMLocal);
         }
-        
-        System.out.println("connectionStringNTLM="+connectionStringNTLM);
-        System.out.println("domain="+domain);
-        System.out.println("user="+user);
-        System.out.println("password="+password);
-        System.out.println("connectionStringNTLM="+connectionStringNTLM);
-
-
-
     }
 
     /**
