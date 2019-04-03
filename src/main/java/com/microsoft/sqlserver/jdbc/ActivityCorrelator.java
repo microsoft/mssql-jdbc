@@ -27,16 +27,11 @@ final class ActivityCorrelator {
     static ActivityId getCurrent() {
         // get the value in TLS, not reference
         Thread thread = Thread.currentThread();
-        if (Util.IsActivityTraceOn()) {
-            if (!activityIdTlsMap.containsKey(thread.getId())) {
-                activityIdTlsMap.put(thread.getId(), new ActivityId(thread));
-            }
-            
-            return activityIdTlsMap.get(thread.getId());
-        } else {
-            return new ActivityId(thread);
+        if (!activityIdTlsMap.containsKey(thread.getId())) {
+            activityIdTlsMap.put(thread.getId(), new ActivityId(thread));
         }
-
+        
+        return activityIdTlsMap.get(thread.getId());
     }
 
     // Increment the Sequence number of the ActivityId in TLS
