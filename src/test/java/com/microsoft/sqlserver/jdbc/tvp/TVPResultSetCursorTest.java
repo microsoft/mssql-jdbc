@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.tvp;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
@@ -82,7 +83,6 @@ public class TVPResultSetCursorTest extends AbstractTest {
                             "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
                 pstmt.setStructured(1, AbstractSQLGenerator.escapeIdentifier(tvpName), rs);
                 pstmt.execute();
-
                 verifyDestinationTableData(expectedBigDecimals.length);
             }
         }
@@ -115,7 +115,6 @@ public class TVPResultSetCursorTest extends AbstractTest {
                             "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable) + " select * from ? ;")) {
                 pstmt.setStructured(1, AbstractSQLGenerator.escapeIdentifier(tvpName), rs);
                 pstmt.execute();
-
                 verifyDestinationTableData(expectedBigDecimals.length);
             }
         }
@@ -149,9 +148,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
                     SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn
                             .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}")) {
                 pstmt.setStructured(1, AbstractSQLGenerator.escapeIdentifier(tvpName), rs);
-
                 pstmt.execute();
-
                 verifyDestinationTableData(expectedBigDecimals.length);
             } finally {
                 dropProcedure();
@@ -190,7 +187,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
                 pstmt.execute();
             } catch (SQLException e) {
                 if (!e.getMessage().contains(TestResource.getResource("R_dataTypeNotFound"))) {
-                    throw e;
+                    fail(e.getMessage());
                 }
             }
         }
@@ -223,14 +220,12 @@ public class TVPResultSetCursorTest extends AbstractTest {
                     SQLServerCallableStatement pstmt = (SQLServerCallableStatement) conn.prepareCall(
                             "{call invalid" + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}")) {
                 pstmt.setStructured(1, tvpName, rs);
-
                 pstmt.execute();
             } catch (SQLException e) {
                 if (!e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound"))) {
-                    throw e;
+                    fail(e.getMessage());
                 }
             } finally {
-
                 dropProcedure();
             }
         }
@@ -352,14 +347,14 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void dropTables() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(desTable), stmt);
         }
     }
 
     private static void createTables() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(srcTable)
                     + " (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000), id int not null identity);";
             stmt.execute(sql);
@@ -371,7 +366,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void createTVPS() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName)
                     + " as table (c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000) null)";
             stmt.execute(TVPCreateCmd);
@@ -379,7 +374,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void dropTVPS() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             stmt.execute("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
                     + TestUtils.escapeSingleQuotes(tvpName) + "') " + " drop type "
                     + AbstractSQLGenerator.escapeIdentifier(tvpName));
@@ -387,13 +382,13 @@ public class TVPResultSetCursorTest extends AbstractTest {
     }
 
     private static void dropProcedure() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
         }
     }
 
     private static void createProcedure() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
                     + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN "
                     + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable)

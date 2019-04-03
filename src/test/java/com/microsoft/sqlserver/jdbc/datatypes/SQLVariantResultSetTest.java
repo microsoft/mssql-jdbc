@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -25,7 +26,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
@@ -55,7 +55,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readInt() throws SQLException, SecurityException, IOException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             int value = 2;
             createAndPopulateTable("int", value);
@@ -76,7 +76,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readMoney() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             Double value = 123.12;
             createAndPopulateTable("Money", value);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -95,7 +95,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readSmallMoney() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             Double value = 123.12;
             createAndPopulateTable("smallmoney", value);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -114,7 +114,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readGUID() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "1AE740A2-2272-4B0F-8086-3DDAC595BC11";
             createAndPopulateTable("uniqueidentifier", "'" + value + "'");
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -133,7 +133,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readDate() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "'2015-05-08'";
             createAndPopulateTable("date", value);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -152,7 +152,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readTime() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "'12:26:27.123345'";
             createAndPopulateTable("time(3)", value);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -171,7 +171,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readDateTime() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "'2015-05-08 12:26:24'";
             createAndPopulateTable("datetime", value);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -190,7 +190,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readSmallDateTime() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "'2015-05-08 12:26:24'";
             createAndPopulateTable("smalldatetime", value);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -215,7 +215,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         }
         String value = "'" + buffer.toString() + "'";
         createAndPopulateTable("VARCHAR(8000)", value);
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement();
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
             rs.next();
@@ -231,7 +231,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readFloat() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             float value = 5;
             createAndPopulateTable("float", value);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -250,7 +250,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readBigInt() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             long value = 5;
             createAndPopulateTable("bigint", value);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -269,7 +269,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readSmallInt() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             short value = 5;
             createAndPopulateTable("smallint", value);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -288,7 +288,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readTinyInt() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             short value = 5;
             createAndPopulateTable("tinyint", value);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -307,7 +307,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readBit() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             int value = 50000;
             createAndPopulateTable("bit", value);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -326,7 +326,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readReal() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             float value = 5;
             createAndPopulateTable("Real", value);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -345,7 +345,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readNChar() throws SQLException, SecurityException, IOException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "a";
             createAndPopulateTable("nchar(5)", "'" + value + "'");
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -366,7 +366,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readNVarChar() throws SQLException, SecurityException, IOException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "nvarchar";
             createAndPopulateTable("nvarchar(10)", "'" + value + "'");
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -387,7 +387,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readBinary20() throws SQLException, SecurityException, IOException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "hi";
             createAndPopulateTable("binary(20)", "'" + value + "'");
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -408,7 +408,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readVarBinary20() throws SQLException, SecurityException, IOException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "hi";
             createAndPopulateTable("varbinary(20)", "'" + value + "'");
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -429,7 +429,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readBinary512() throws SQLException, SecurityException, IOException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "hi";
             createAndPopulateTable("binary(512)", "'" + value + "'");
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -450,7 +450,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readBinary8000() throws SQLException, SecurityException, IOException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "hi";
             createAndPopulateTable("binary(8000)", "'" + value + "'");
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -471,7 +471,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readvarBinary8000() throws SQLException, SecurityException, IOException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "hi";
             createAndPopulateTable("varbinary(8000)", "'" + value + "'");
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -492,7 +492,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readSQLVariantProperty() throws SQLException, SecurityException, IOException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "hi";
             createAndPopulateTable("binary(8000)", "'" + value + "'");
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery(
@@ -517,7 +517,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         for (int i = 0; i < 8001; i++) {
             buffer.append("a");
         }
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             stmt.executeUpdate(
                     "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 sql_variant)");
@@ -547,7 +547,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
         }
         String value = "'" + buffer.toString() + "'";
         createAndPopulateTable("NVARCHAR(4000)", value);
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
@@ -566,7 +566,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void UpdateInt() throws SQLException, SecurityException, IOException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection();
+        try (Connection con = getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
             int value = 2;
             int updatedValue = 3;
@@ -596,7 +596,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void UpdateNChar() throws SQLException, SecurityException, IOException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection();
+        try (Connection con = getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
             String value = "a";
             String updatedValue = "b";
@@ -628,7 +628,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void updateBinary20() throws SQLException, SecurityException, IOException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection();
+        try (Connection con = getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
             String value = "hi";
             String updatedValue = "bye";
@@ -657,7 +657,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void insertTest() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (col1 sql_variant, col2 int)");
@@ -694,7 +694,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void insertTestNull() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             stmt.executeUpdate(
                     "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 sql_variant)");
@@ -721,7 +721,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void insertSetObject() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             stmt.executeUpdate(
                     "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 sql_variant)");
@@ -748,7 +748,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void callableStatementOutputIntTest() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             int value = 5;
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             stmt.executeUpdate(
@@ -779,7 +779,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void callableStatementOutputDateTest() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "2015-05-08";
 
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -811,7 +811,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void callableStatementOutputTimeTest() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String value = "12:26:27.123345";
             String returnValue = "12:26:27";
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -843,7 +843,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void callableStatementOutputBinaryTest() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             byte[] binary20 = RandomData.generateBinaryTypes("20", false, false);
             byte[] secondBinary20 = RandomData.generateBinaryTypes("20", false, false);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -880,7 +880,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void callableStatementInputOutputIntTest() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             int col1Value = 5;
             int col2Value = 2;
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -912,7 +912,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void callableStatementInputOutputReturnIntTest() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             int col1Value = 5;
             int col2Value = 2;
             int returnValue = 12;
@@ -947,7 +947,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void callableStatementInputOutputReturnStringTest() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String col1Value = "aa";
             String col2Value = "bb";
             int returnValue = 12;
@@ -984,7 +984,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void readSeveralRows() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             short value1 = 5;
             int value2 = 10;
             String value3 = "hi";
@@ -1012,7 +1012,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      */
     @Test
     public void readVarcharInteger() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             Object expected[] = {"abc", 42};
             int index = 0;
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
@@ -1031,7 +1031,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      */
     @Test
     public void testUnsupportedDatatype() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement();
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery(
                         "select cast(cast('2017-08-16 17:31:09.995 +07:00' as datetimeoffset) as sql_variant)")) {
             rs.next();
@@ -1052,7 +1052,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      */
     @Test
     public void testTimeClassAsSqlVariant() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement();
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select cast(cast('17:31:09.995' as time(3)) as sql_variant)")) {
             rs.next();
@@ -1078,7 +1078,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     private void createAndPopulateTable(String columnType, Object value) throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             stmt.executeUpdate(
                     "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 sql_variant)");
@@ -1107,7 +1107,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputProc), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }

@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,7 +38,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag("xSQLv12")
 @Tag("xSQLv13")
 public class UTF8SupportTest extends AbstractTest {
-    private static Connection connection;
     private static String databaseName;
     private static String tableName;
 
@@ -112,7 +110,6 @@ public class UTF8SupportTest extends AbstractTest {
 
     @BeforeAll
     public static void setUp() throws ClassNotFoundException, SQLException {
-        connection = PrepUtil.getConnection(getConnectionString());
         if (TestUtils.serverSupportsUTF8(connection)) {
             databaseName = RandomUtil.getIdentifier("UTF8Database");
             tableName = RandomUtil.getIdentifier("UTF8Table");
@@ -127,9 +124,6 @@ public class UTF8SupportTest extends AbstractTest {
             if (TestUtils.serverSupportsUTF8(connection)) {
                 TestUtils.dropDatabaseIfExists(databaseName, stmt);
             }
-        }
-        if (null != connection) {
-            connection.close();
         }
     }
 

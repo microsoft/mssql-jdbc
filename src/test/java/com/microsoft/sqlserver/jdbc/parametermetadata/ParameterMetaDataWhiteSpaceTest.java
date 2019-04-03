@@ -20,7 +20,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -38,15 +37,13 @@ public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
 
     @AfterAll
     public static void dropTables() throws SQLException {
-        try (SQLServerConnection connection = (SQLServerConnection) getConnection();
-                Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }
 
     private static void createCharTable() throws SQLException {
-        try (SQLServerConnection connection = (SQLServerConnection) getConnection();
-                Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1 int)");
         }
     }

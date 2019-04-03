@@ -239,8 +239,7 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     private static void dropTable() throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
-                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable1), stmt);
         }

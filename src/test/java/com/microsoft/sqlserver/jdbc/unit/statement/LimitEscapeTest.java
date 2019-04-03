@@ -15,6 +15,7 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Vector;
 import java.util.logging.Logger;
@@ -891,8 +892,8 @@ public class LimitEscapeTest extends AbstractTest {
      */
     @BeforeAll
     public static void beforeAll() {
-        try (Connection conn = getConnection()) {
-            createAndPopulateTables(conn);
+        try {
+            createAndPopulateTables(connection);
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -904,15 +905,13 @@ public class LimitEscapeTest extends AbstractTest {
      * @throws Exception
      */
     @AfterAll
-    public static void afterAll() throws Exception {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+    public static void afterAll() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table4), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
-        } catch (Exception ex) {
-            fail(ex.toString());
         }
     }
 }

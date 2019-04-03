@@ -12,7 +12,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -42,8 +41,7 @@ public class CallableMixedTest extends AbstractTest {
      */
     @Test
     public void datatypesTest() throws SQLException {
-        try (Connection connection = getConnection(); Statement statement = connection.createStatement();) {
-
+        try (Statement statement = connection.createStatement();) {
             statement.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (c1_int int primary key, col2 int)");
             statement

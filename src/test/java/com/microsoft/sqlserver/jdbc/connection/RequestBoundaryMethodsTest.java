@@ -7,12 +7,14 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.sql.CallableStatement;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -136,7 +138,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 con.setCatalog("master");
             }
         } finally {
-            try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 TestUtils.dropDatabaseIfExists(sCatalog2, stmt);
             }
         }
@@ -149,7 +151,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
      */
     @Test
     public void testWarnings() throws SQLException {
-        try (SQLServerConnection con = getConnection()) {
+        try (Connection con = getConnection()) {
             if (TestUtils.isJDBC43OrGreater(con)) {
                 con.beginRequest();
                 generateWarning(con);
@@ -178,7 +180,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
      */
     @Test
     public void testOpenTransactions() throws SQLException {
-        try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             if (TestUtils.isJDBC43OrGreater(con)) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col int)");
@@ -199,7 +201,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            fail(e.getMessage());
         }
     }
 
@@ -210,7 +212,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
      */
     @Test
     public void testStatements() throws SQLException {
-        try (SQLServerConnection con = getConnection();) {
+        try (Connection con = getConnection();) {
             if (TestUtils.isJDBC43OrGreater(con)) {
                 try (Statement stmt1 = con.createStatement()) {
                     con.beginRequest();
@@ -278,7 +280,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
     @Test
     public void testThreads() throws SQLException {
         class Variables {
-            volatile SQLServerConnection con = null;
+            volatile Connection con = null;
             volatile Statement stmt = null;
             volatile PreparedStatement pstmt = null;
         }
@@ -349,8 +351,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 assertTrue(sharedVariables.pstmt.isClosed());
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
             Thread.currentThread().interrupt();
+            fail(e.getMessage());
         } finally {
             if (null != sharedVariables.stmt) {
                 sharedVariables.stmt.close();
@@ -427,7 +429,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 "useBulkCopyForBatchInsert" + description);
     }
 
-    private void generateWarning(SQLServerConnection con) throws SQLException {
+    private void generateWarning(Connection con) throws SQLException {
         con.setClientInfo("name", "value");
     }
 

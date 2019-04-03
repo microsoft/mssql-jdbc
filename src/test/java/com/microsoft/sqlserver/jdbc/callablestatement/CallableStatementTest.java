@@ -48,7 +48,7 @@ public class CallableStatementTest extends AbstractTest {
     @BeforeAll
     public static void setupTest() throws SQLException {
 
-        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
@@ -174,7 +174,7 @@ public class CallableStatementTest extends AbstractTest {
      */
     @AfterAll
     public static void cleanup() throws SQLException {
-        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);

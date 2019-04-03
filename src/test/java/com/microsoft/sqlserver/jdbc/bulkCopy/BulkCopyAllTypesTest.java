@@ -39,7 +39,7 @@ public class BulkCopyAllTypesTest extends AbstractTest {
     @Tag("xAzureSQLDW")
     public void testTVPResultSet() throws SQLException {
         if (isSqlAzureDW()) {
-            //TODO : Fix this test to run with Azure DW
+            // TODO : Fix this test to run with Azure DW
             testBulkCopyResultSet(false, null, null);
             testBulkCopyResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         } else {
@@ -88,8 +88,7 @@ public class BulkCopyAllTypesTest extends AbstractTest {
     }
 
     private void terminateVariation() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
             TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
         }

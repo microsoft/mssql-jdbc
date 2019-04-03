@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
@@ -363,7 +364,7 @@ public class PrecisionScaleTest extends AESetup {
             }
 
             else {
-                throw new Exception(TestResource.getResource("R_resultsetNotInstance"));
+                fail(TestResource.getResource("R_resultsetNotInstance"));
             }
         }
     }

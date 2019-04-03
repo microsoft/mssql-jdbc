@@ -12,7 +12,6 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.text.MessageFormat;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;

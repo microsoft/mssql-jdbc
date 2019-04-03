@@ -25,34 +25,32 @@ public class SparseTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void testSparse() throws Exception {
-        try (Connection conn = getConnection()) {
-            try (Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
 
-                // Create the test table
+            // Create the test table
+            TestUtils.dropTableIfExists(escapedTableName, stmt);
+
+            StringBuilder bd = new StringBuilder();
+            bd.append("create table " + escapedTableName + " (col1 int, col2 varbinary(max)");
+            for (int i = 3; i <= 1024; i++) {
+                bd.append(", col" + i + " varchar(20) SPARSE NULL");
+            }
+            bd.append(")");
+            String query = bd.toString();
+
+            stmt.executeUpdate(query);
+
+            stmt.executeUpdate("insert into " + escapedTableName + " (col1, col2, col1023)values(1, 0x45, 'yo')");
+
+            try (ResultSet rs = stmt.executeQuery("Select * from   " + escapedTableName)) {
+                rs.next();
+                assertEquals("yo", rs.getString("col1023"));
+                assertEquals(1, rs.getInt("col1"));
+                assertEquals(0x45, rs.getBytes("col2")[0]);
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
-
-                StringBuilder bd = new StringBuilder();
-                bd.append("create table " + escapedTableName + " (col1 int, col2 varbinary(max)");
-                for (int i = 3; i <= 1024; i++) {
-                    bd.append(", col" + i + " varchar(20) SPARSE NULL");
-                }
-                bd.append(")");
-                String query = bd.toString();
-
-                stmt.executeUpdate(query);
-
-                stmt.executeUpdate("insert into " + escapedTableName + " (col1, col2, col1023)values(1, 0x45, 'yo')");
-
-                try (ResultSet rs = stmt.executeQuery("Select * from   " + escapedTableName)) {
-                    rs.next();
-                    assertEquals("yo", rs.getString("col1023"));
-                    assertEquals(1, rs.getInt("col1"));
-                    assertEquals(0x45, rs.getBytes("col2")[0]);
-                }
-            } finally {
-                try (Statement stmt = conn.createStatement()) {
-                    TestUtils.dropTableIfExists(escapedTableName, stmt);
-                }
             }
         }
     }

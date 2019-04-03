@@ -232,7 +232,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
      */
     @BeforeAll
     public static void setupHere() throws SQLException, SecurityException, IOException {
-        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTable), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable), stmt);
         }
@@ -245,7 +245,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
      */
     @AfterEach
     public void afterEachTests() throws SQLException {
-        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTable), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable), stmt);
         }

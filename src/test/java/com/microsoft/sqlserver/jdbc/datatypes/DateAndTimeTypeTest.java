@@ -223,8 +223,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false");
-                Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }

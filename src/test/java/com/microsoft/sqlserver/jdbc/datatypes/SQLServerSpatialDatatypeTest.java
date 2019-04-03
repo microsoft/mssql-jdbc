@@ -27,7 +27,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.Geography;
 import com.microsoft.sqlserver.jdbc.Geometry;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
@@ -315,7 +314,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void testFullGlobeWkt() throws SQLException {
-        try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             if (isDenaliOrLater) {
                 beforeEachSetup();
 
@@ -491,7 +490,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             Geography geogWKT;
 
             // Geometry
-            try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                         "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)")) {
@@ -646,7 +645,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             Geometry geomWKT;
             Geography geogWKT;
 
-            try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                         "insert into " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName)
                                 + " values (?, ?, ?, ?, ?)");) {
@@ -787,7 +786,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         Geometry geomWKT = Geometry.parse(geoWKT);
         Geography geogWKT = Geography.parse(geoWKT);
 
-        try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                     "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
@@ -828,7 +827,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         Geometry geomWKT = Geometry.point(1, 2, 0);
         Geography geogWKT = Geography.point(2, 1, 4326);
 
-        try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                     "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
@@ -869,7 +868,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         Geometry geomWKT = Geometry.STGeomFromText(geoWKT, 0);
         Geography geogWKT = Geography.STGeomFromText(geoWKT, 4326);
 
-        try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                     "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
@@ -926,7 +925,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     public void testCheckGeomMetaData() throws SQLException {
         beforeEachSetup();
 
-        try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement();
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
                         "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " (c1) VALUES (?)")) {
             ParameterMetaData paramMetaData = pstmt.getParameterMetaData();
@@ -951,7 +950,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     public void testCheckGeogMetaData() throws SQLException {
         beforeEachSetup();
 
-        try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement();
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
                         "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " (c1) VALUES (?)")) {
             ParameterMetaData paramMetaData = pstmt.getParameterMetaData();
@@ -1016,7 +1015,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             Geometry geomWKT;
             Geography geogWKT;
 
-            try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                         "insert into " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName)
@@ -1065,7 +1064,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         Geometry geomWKT = Geometry.point(1, 2, 0);
         Geography geogWKT = Geography.point(2, 1, 4326);
 
-        try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                     "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
@@ -1102,7 +1101,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     private void beforeEachSetup() throws SQLException {
-        try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(geomTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(geogTableName), stmt);
             stmt.executeUpdate(
@@ -1113,7 +1112,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     private void beforeEachSetupSpatialDatatype() throws SQLException {
-        try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName), stmt);
             stmt.executeUpdate("Create table " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName)
                     + " (c1 geometry," + "c2 geography," + "c3 nvarchar(512)," + "c4 decimal(28,4)," + "c5 int)");
@@ -1128,7 +1127,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         Geometry geomWKT = Geometry.STGeomFromText(geoWKT, 0);
         Geography geogWKT = Geography.STGeomFromText(geoWKT, 4326);
 
-        try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                     "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
@@ -1179,21 +1178,15 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         geogTableName = RandomUtil.getIdentifier("geographyTestTable");
         spatialDatatypeTableName = RandomUtil.getIdentifier("spatialDatatypeTestTable");
 
-        try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement();
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select SERVERPROPERTY ( 'ProductVersion' )")) {
-
             rs.next();
+            int version = Integer.parseInt(rs.getString(1).substring(0, 2));
 
-            try {
-                int version = Integer.parseInt(rs.getString(1).substring(0, 2));
-
-                // if major version is greater than or equal to 11, it's SQL Server 2012 or above.
-                if (version >= 11) {
-                    isDenaliOrLater = true;
-                }
-            } catch (Exception e) {
-                // Do nothing.
+            // if major version is greater than or equal to 11, it's SQL Server 2012 or above.
+            if (version >= 11) {
+                isDenaliOrLater = true;
             }
         }
     }
@@ -1205,7 +1198,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws SQLException {
-        try (Connection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(geomTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(geogTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName), stmt);

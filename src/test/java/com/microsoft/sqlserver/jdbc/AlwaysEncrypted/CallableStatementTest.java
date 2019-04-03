@@ -9,9 +9,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.Date;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.LinkedList;
@@ -26,7 +29,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
@@ -277,8 +279,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     private static void dropProcedures() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(multiStatementsProcedure), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputProcedure), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputProcedure2), stmt);
@@ -302,8 +303,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     private static void dropTables() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
@@ -331,8 +331,8 @@ public class CallableStatementTest extends AESetup {
                 + "DeterministicVarchar varchar(50) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + Constants.CEK_NAME + ") NULL" + ");";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -352,8 +352,8 @@ public class CallableStatementTest extends AESetup {
 
                 + ");";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -463,8 +463,8 @@ public class CallableStatementTest extends AESetup {
 
                 + ");";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -476,8 +476,8 @@ public class CallableStatementTest extends AESetup {
                 + "DeterministicInt int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + Constants.CEK_NAME + ") NULL," + ");";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -491,8 +491,8 @@ public class CallableStatementTest extends AESetup {
                 + "c3 bigint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + Constants.CEK_NAME + ") NULL," + ");";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -506,8 +506,8 @@ public class CallableStatementTest extends AESetup {
                 + "c3 bigint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + Constants.CEK_NAME + ") NULL," + ");";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -517,9 +517,8 @@ public class CallableStatementTest extends AESetup {
     private static void populateTable4() throws SQLException {
         String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(table4) + " values( " + "?,?,?" + ")";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                        stmtColEncSetting)) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                PreparedStatement pstmt = TestUtils.getPreparedStmt(con, sql, stmtColEncSetting)) {
 
             // bit
             for (int i = 1; i <= 3; i++) {
@@ -535,7 +534,7 @@ public class CallableStatementTest extends AESetup {
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -643,7 +642,7 @@ public class CallableStatementTest extends AESetup {
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE "
                 + AbstractSQLGenerator.escapeIdentifier(multiStatementsProcedure);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -662,7 +661,7 @@ public class CallableStatementTest extends AESetup {
     private void MultiInsertionSelection() throws SQLException {
 
         String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(multiStatementsProcedure) + " (?,?,?,?,?,?)}";
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -716,7 +715,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(inputProcedure) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputProcedure);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -738,7 +737,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void testInputProcedure(String sql, String[] values) throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -781,7 +780,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(inputProcedure2) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputProcedure2);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -799,7 +798,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testInputProcedure2(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -834,7 +833,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedure3) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -849,7 +848,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure3RandomOrder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -879,7 +878,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure3Inorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -900,7 +899,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure3ReverseOrder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -924,7 +923,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedure2) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure2);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -941,7 +940,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure2RandomOrder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -994,7 +993,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure2Inorder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1047,7 +1046,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure2ReverseOrder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1104,7 +1103,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedure) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -1121,7 +1120,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureRandomOrder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1170,7 +1169,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureInorder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1212,7 +1211,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureReverseOrder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1256,7 +1255,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(inoutProcedure) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inoutProcedure);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -1270,7 +1269,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testInOutProcedure(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1291,7 +1290,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(mixedProcedure) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -1307,7 +1306,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1339,7 +1338,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(mixedProcedure2) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure2);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -1355,7 +1354,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure2RandomOrder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1390,7 +1389,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure2Inorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1415,7 +1414,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(mixedProcedure3) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure3);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -1430,7 +1429,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure3RandomOrder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1465,7 +1464,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure3Inorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1487,7 +1486,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure3ReverseOrder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1513,7 +1512,7 @@ public class CallableStatementTest extends AESetup {
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE "
                 + AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -1530,7 +1529,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedureNumericPrcisionScaleInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1561,7 +1560,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedureNumericPrcisionScaleParameterName(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1595,7 +1594,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedureChar) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureChar);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -1613,7 +1612,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureCharInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1663,7 +1662,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureCharInorderObject(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1720,7 +1719,7 @@ public class CallableStatementTest extends AESetup {
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE "
                 + AbstractSQLGenerator.escapeIdentifier(outputProcedureNumeric);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -1741,7 +1740,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureNumericInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1830,7 +1829,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testcoerctionsOutputProcedureNumericInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2116,7 +2115,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedureBinary) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -2133,7 +2132,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureBinaryInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2181,7 +2180,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureBinaryInorderObject(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2222,7 +2221,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureBinaryInorderString(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2318,7 +2317,7 @@ public class CallableStatementTest extends AESetup {
 
                 + ");";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
@@ -2357,7 +2356,7 @@ public class CallableStatementTest extends AESetup {
         String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " values( "
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement sqlPstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -2414,7 +2413,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedureDate) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDate);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -2437,7 +2436,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureDateInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2488,7 +2487,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureDateInorderObject(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2542,7 +2541,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedureBatch) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBatch);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -2562,7 +2561,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureBatchInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2593,7 +2592,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedure4) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure4);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -2616,7 +2615,7 @@ public class CallableStatementTest extends AESetup {
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE "
                 + AbstractSQLGenerator.escapeIdentifier(outputProcedureDateScale);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -2635,7 +2634,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedureDateScaleInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2666,7 +2665,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedureDateScaleWithParameterName(String sql) throws SQLException {
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 

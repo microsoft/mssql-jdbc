@@ -41,63 +41,60 @@ public class BigIntegerTest extends AbstractTest {
      */
     @Test
     public void testBigInteger() throws Exception {
-        try (Connection conn = getConnection()) {
-            try (Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
 
-                // Create the test table
+            // Create the test table
+            TestUtils.dropTableIfExists(escapedTableName, stmt);
+
+            String query = "create table " + escapedTableName
+                    + " (col1 varchar(100), col2 bigint, col3 real, col4 float, "
+                    + "col5 numeric(38,0), col6 int, col7 smallint, col8 char(100), col9 varchar(max), "
+                    + "id int IDENTITY primary key)";
+            stmt.executeUpdate(query);
+
+            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + escapedTableName
+                    + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) SELECT * FROM " + escapedTableName + " where id = ?")) {
+
+                /*
+                 * test conversion of BigInteger values greater than LONG.MAX_VALUE and lesser than LONG.MIN_VALUE
+                 */
+
+                // A random value that is bigger than LONG.MAX_VALUE
+                BigInteger bigIntPos = new BigInteger("922337203685477580776767676");
+                // A random value that is smaller than LONG.MIN_VALUE
+                BigInteger bigIntNeg = new BigInteger("-922337203685477580776767676");
+
+                // Test the setObject method for different types of BigInteger values
+                int row = 1;
+                testSetObject(escapedTableName, BigInteger.valueOf(Long.MAX_VALUE), row++, pstmt,
+                        TestType.SETOBJECT_WITHTYPE);
+
+                testSetObject(escapedTableName, BigInteger.valueOf(Long.MIN_VALUE), row++, pstmt,
+                        TestType.SETOBJECT_WITHTYPE);
+                testSetObject(escapedTableName, BigInteger.valueOf(10), row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                testSetObject(escapedTableName, BigInteger.valueOf(-10), row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                testSetObject(escapedTableName, BigInteger.ZERO, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                testSetObject(escapedTableName, bigIntPos, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+                testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
+
+                // Test setObject method with SQL TYPE parameter
+                testSetObject(escapedTableName, BigInteger.valueOf(Long.MAX_VALUE), row++, pstmt,
+                        TestType.SETOBJECT_WITHOUTTYPE);
+                testSetObject(escapedTableName, BigInteger.valueOf(Long.MIN_VALUE), row++, pstmt,
+                        TestType.SETOBJECT_WITHOUTTYPE);
+                testSetObject(escapedTableName, BigInteger.valueOf(1000), row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
+                testSetObject(escapedTableName, BigInteger.valueOf(-1000), row++, pstmt,
+                        TestType.SETOBJECT_WITHOUTTYPE);
+                testSetObject(escapedTableName, BigInteger.ZERO, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
+                testSetObject(escapedTableName, bigIntPos, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
+                testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
+
+                // Test setNull
+                testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETNULL);
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
-
-                String query = "create table " + escapedTableName
-                        + " (col1 varchar(100), col2 bigint, col3 real, col4 float, "
-                        + "col5 numeric(38,0), col6 int, col7 smallint, col8 char(100), col9 varchar(max), "
-                        + "id int IDENTITY primary key)";
-                stmt.executeUpdate(query);
-
-                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + escapedTableName
-                        + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) SELECT * FROM " + escapedTableName + " where id = ?")) {
-
-                    /*
-                     * test conversion of BigInteger values greater than LONG.MAX_VALUE and lesser than LONG.MIN_VALUE
-                     */
-
-                    // A random value that is bigger than LONG.MAX_VALUE
-                    BigInteger bigIntPos = new BigInteger("922337203685477580776767676");
-                    // A random value that is smaller than LONG.MIN_VALUE
-                    BigInteger bigIntNeg = new BigInteger("-922337203685477580776767676");
-
-                    // Test the setObject method for different types of BigInteger values
-                    int row = 1;
-                    testSetObject(escapedTableName, BigInteger.valueOf(Long.MAX_VALUE), row++, pstmt,
-                            TestType.SETOBJECT_WITHTYPE);
-
-                    testSetObject(escapedTableName, BigInteger.valueOf(Long.MIN_VALUE), row++, pstmt,
-                            TestType.SETOBJECT_WITHTYPE);
-                    testSetObject(escapedTableName, BigInteger.valueOf(10), row++, pstmt, TestType.SETOBJECT_WITHTYPE);
-                    testSetObject(escapedTableName, BigInteger.valueOf(-10), row++, pstmt, TestType.SETOBJECT_WITHTYPE);
-                    testSetObject(escapedTableName, BigInteger.ZERO, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
-                    testSetObject(escapedTableName, bigIntPos, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
-                    testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETOBJECT_WITHTYPE);
-
-                    // Test setObject method with SQL TYPE parameter
-                    testSetObject(escapedTableName, BigInteger.valueOf(Long.MAX_VALUE), row++, pstmt,
-                            TestType.SETOBJECT_WITHOUTTYPE);
-                    testSetObject(escapedTableName, BigInteger.valueOf(Long.MIN_VALUE), row++, pstmt,
-                            TestType.SETOBJECT_WITHOUTTYPE);
-                    testSetObject(escapedTableName, BigInteger.valueOf(1000), row++, pstmt,
-                            TestType.SETOBJECT_WITHOUTTYPE);
-                    testSetObject(escapedTableName, BigInteger.valueOf(-1000), row++, pstmt,
-                            TestType.SETOBJECT_WITHOUTTYPE);
-                    testSetObject(escapedTableName, BigInteger.ZERO, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
-                    testSetObject(escapedTableName, bigIntPos, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
-                    testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETOBJECT_WITHOUTTYPE);
-
-                    // Test setNull
-                    testSetObject(escapedTableName, bigIntNeg, row++, pstmt, TestType.SETNULL);
-                }
-            } finally {
-                try (Statement stmt = conn.createStatement()) {
-                    TestUtils.dropTableIfExists(escapedTableName, stmt);
-                }
             }
         }
     }

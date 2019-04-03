@@ -89,7 +89,7 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
@@ -926,7 +926,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testConsecutiveQueries() throws Exception {
+        public void testConsecutiveQueries() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 // enable isCloseOnCompletion
                 try {
@@ -935,12 +935,8 @@ public class StatementTest extends AbstractTest {
                     throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
                 }
 
-                try {
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1Name), stmt);
-                } catch (SQLException e) {}
-                try {
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2Name), stmt);
-                } catch (SQLException e) {}
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1Name), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2Name), stmt);
 
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table1Name) + " (col1 INT)");
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table2Name) + " (col1 INT)");
@@ -1509,14 +1505,10 @@ public class StatementTest extends AbstractTest {
         }
 
         @AfterEach
-        public void terminate() throws Exception {
-            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                try {
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
-                } catch (SQLException e) {
-                    fail(e.getMessage());
-                }
+        public void terminate() throws SQLException {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
             }
         }
     }
@@ -2169,15 +2161,11 @@ public class StatementTest extends AbstractTest {
         }
 
         @AfterEach
-        public void terminate() throws Exception {
-            try (Connection con = getConnection(); Statement stmt = con.createStatement();) {
-                try {
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2Name), stmt);
-                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(sprocName), stmt);
-                } catch (SQLException e) {
-                    fail(e.getMessage());
-                }
+        public void terminate() throws SQLException {
+            try (Statement stmt = connection.createStatement();) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2Name), stmt);
+                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(sprocName), stmt);
             }
         }
     }

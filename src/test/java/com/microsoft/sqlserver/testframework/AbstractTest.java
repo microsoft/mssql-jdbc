@@ -9,7 +9,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -57,7 +56,6 @@ public abstract class AbstractTest {
 
     protected static Connection connectionAzure = null;
     protected static String connectionString = null;
-    protected static Properties info = new Properties();
 
     private static boolean _determinedSqlAzureOrSqlServer = false;
     private static boolean _isSqlAzure = false;
@@ -76,28 +74,16 @@ public abstract class AbstractTest {
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
-
         connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
+
         ds = updateDataSource(new SQLServerDataSource());
         dsXA = updateDataSource(new SQLServerXADataSource());
         dsPool = updateDataSource(new SQLServerConnectionPoolDataSource());
 
-        jksPaths = getConfiguredProperty("jksPaths", "").split(Constants.SEMI_COLON);
-        javaKeyAliases = getConfiguredProperty("javaKeyAliases", "").split(Constants.SEMI_COLON);
-        windowsKeyPath = getConfiguredProperty("windowsKeyPath");
-
-        // info.setProperty("ColumnEncryptionSetting", "Enabled"); // May be we
-        // can use parameterized way to change this value
-        if (!jksPaths[0].isEmpty()) {
-            info.setProperty("keyStoreAuthentication", Constants.JAVA_KEY_STORE_PASSWORD);
-            info.setProperty("keyStoreLocation", jksPaths[0]);
-            info.setProperty("keyStoreSecret", Constants.JKS_SECRET_STRING);
-        }
-
         try {
             Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
             Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
-            connection = PrepUtil.getConnection(connectionString, info);
+            connection = getConnection();
             isSqlAzureOrAzureDW(connection);
         } catch (Exception e) {
             throw e;
@@ -220,8 +206,6 @@ public abstract class AbstractTest {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
             }
-        } catch (Exception e) {
-            connection.close();
         } finally {
             connection = null;
         }

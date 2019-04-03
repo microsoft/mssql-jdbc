@@ -7,7 +7,9 @@ package com.microsoft.sqlserver.jdbc;
 import java.sql.JDBCType;
 import java.sql.SQLException;
 import java.sql.ShardingKey;
+
 import javax.sql.ConnectionPoolDataSource;
+
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;

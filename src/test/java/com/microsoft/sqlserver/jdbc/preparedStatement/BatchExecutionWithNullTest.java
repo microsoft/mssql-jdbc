@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 
 import org.junit.jupiter.api.AfterAll;
@@ -42,8 +43,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      * 
      * @throws SQLException
      */
-    @Test
-    public void testAddBatch2() throws SQLException {
+    public void testAddBatch2(Connection conn) throws SQLException {
         // try {
         String sPrepStmt = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " (id, name) values (?, ?)";
@@ -51,7 +51,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         int key = 42;
 
         // this is the minimum sequence, I've found to trigger the error\
-        try (Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sPrepStmt)) {
+        try (PreparedStatement pstmt = conn.prepareStatement(sPrepStmt)) {
             pstmt.setInt(1, key++);
             pstmt.setNull(2, Types.VARCHAR);
             pstmt.addBatch();
@@ -80,17 +80,16 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
             assertTrue(updateCountlen == 5, TestResource.getResource("R_addBatchFailed"));
         }
-        String sPrepStmt1 = "select count(*) from " + AbstractSQLGenerator.escapeIdentifier(tableName);
 
-        try (PreparedStatement pstmt1 = connection.prepareStatement(sPrepStmt1); ResultSet rs = pstmt1.executeQuery()) {
+        String sPrepStmt1 = "select count(*) from " + AbstractSQLGenerator.escapeIdentifier(tableName);
+        try (PreparedStatement pstmt1 = conn.prepareStatement(sPrepStmt1); ResultSet rs = pstmt1.executeQuery()) {
             rs.next();
             assertTrue(rs.getInt(1) == 5, TestResource.getResource("R_insertBatchFailed"));
-            pstmt1.close();
         }
     }
 
     /**
-     * Tests the same as addBatch2, only with AE on the connection string
+     * Tests with AE enabled on the connection
      * 
      * @throws SQLException
      */
@@ -98,15 +97,24 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     @Tag("xSQLv12")
     public void testAddbatch2AEOnConnection() throws SQLException {
         try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
-            testAddBatch2();
+            testAddBatch2(connection);
         }
+    }
+
+    /**
+     * Tests the same as testAddbatch2AEOnConnection, with AE disabled
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testAddbatch2() throws SQLException {
+        testAddBatch2(getConnection());
     }
 
     @BeforeEach
     @Tag("xSQLv12")
     public void testSetup() throws TestAbortedException, Exception {
-        try (Connection connection = getConnection();
-                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (id integer not null, name varchar(255), constraint "
@@ -117,7 +125,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (Connection conn = getConnection(); SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }

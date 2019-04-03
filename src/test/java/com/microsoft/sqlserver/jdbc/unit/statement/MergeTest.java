@@ -5,14 +5,11 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
-
-import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -91,15 +88,10 @@ public class MergeTest extends AbstractTest {
      * @throws Exception
      */
     @AfterAll
-    public static void afterAll() throws Exception {
-
-        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-            try {
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(cricketTeams), stmt);
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated), stmt);
-            } catch (Exception ex) {
-                fail(ex.toString());
-            }
+    public static void afterAll() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(cricketTeams), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated), stmt);
         }
     }
 }

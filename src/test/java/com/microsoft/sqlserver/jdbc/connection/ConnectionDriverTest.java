@@ -244,7 +244,7 @@ public class ConnectionDriverTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             try {
                 conn.isValid(-42);
-                throw new Exception(TestResource.getResource("R_noExceptionNegativeTimeout"));
+                fail(TestResource.getResource("R_noExceptionNegativeTimeout"));
             } catch (SQLException e) {
                 MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidQueryTimeout"));
                 Object[] msgArgs = {"-42"};
@@ -284,8 +284,7 @@ public class ConnectionDriverTest extends AbstractTest {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         } finally {
             if (null != tableName) {
-                try (SQLServerConnection conn = (SQLServerConnection) PrepUtil
-                        .getConnection(connectionString + ";responseBuffering=adaptive");
+                try (Connection conn = PrepUtil.getConnection(connectionString + ";responseBuffering=adaptive");
                         Statement stmt = conn.createStatement()) {
                     stmt.execute("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
                 }
@@ -301,7 +300,7 @@ public class ConnectionDriverTest extends AbstractTest {
             try {
                 // Call getClientConnectionId on a closed connection, should raise exception
                 conn.getClientConnectionId();
-                throw new Exception(TestResource.getResource("R_noExceptionClosedConnection"));
+                fail(TestResource.getResource("R_noExceptionClosedConnection"));
             } catch (SQLException e) {
                 assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"),
                         TestResource.getResource("R_wrongExceptionMessage"));
@@ -309,7 +308,7 @@ public class ConnectionDriverTest extends AbstractTest {
         }
 
         // Wrong database, ClientConnectionId should be available in error message
-        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString + ";databaseName="
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";databaseName="
                 + RandomUtil.getIdentifierForDB("DataBase") + Constants.SEMI_COLON)) {
             conn.close();
 
@@ -319,7 +318,7 @@ public class ConnectionDriverTest extends AbstractTest {
         }
 
         // Nonexist host, ClientConnectionId should not be available in error message
-        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(
+        try (Connection conn = PrepUtil.getConnection(
                 connectionString + ";instanceName=" + RandomUtil.getIdentifier("Instance") + ";logintimeout=5;")) {
             conn.close();
 

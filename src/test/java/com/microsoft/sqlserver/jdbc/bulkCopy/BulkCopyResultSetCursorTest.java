@@ -235,7 +235,7 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
      */
     @AfterAll
     public static void terminate() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             dropTables(stmt);
         }
     }

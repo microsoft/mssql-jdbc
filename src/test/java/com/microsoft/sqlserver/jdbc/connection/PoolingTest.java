@@ -236,7 +236,7 @@ public class PoolingTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws SQLException {
-        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tempTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }

@@ -90,8 +90,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);

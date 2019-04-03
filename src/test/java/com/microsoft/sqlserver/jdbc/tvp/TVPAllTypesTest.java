@@ -214,7 +214,7 @@ public class TVPAllTypesTest extends AbstractTest {
     }
 
     private void terminateVariation() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
             TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
             TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);

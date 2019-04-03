@@ -21,7 +21,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -43,7 +42,7 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testServerCursorPStmt() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             // expected values
             int numRowsInResult = 1;
@@ -109,7 +108,7 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testSelectIntoUpdateCount() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+        try (Connection con = getConnection()) {
 
             // Azure does not do SELECT INTO
             if (!isSqlAzure()) {
@@ -148,7 +147,7 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testUpdateQuery() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String sql;
             JDBCType[] targets = {JDBCType.INTEGER, JDBCType.SMALLINT};
             int rows = 3;
@@ -242,7 +241,7 @@ public class RegressionTest extends AbstractTest {
 
     @AfterAll
     public static void terminate() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
         }

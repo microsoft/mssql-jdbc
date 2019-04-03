@@ -36,14 +36,13 @@ public class ParameterMetaDataTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void testParameterMetaDataWrapper() throws SQLException {
-        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-
+        try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (col1 int identity(1,1) primary key)");
             try {
                 String query = "SELECT * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where col1 = ?";
 
-                try (PreparedStatement pstmt = con.prepareStatement(query)) {
+                try (PreparedStatement pstmt = connection.prepareStatement(query)) {
                     ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
                     assertTrue(parameterMetaData.isWrapperFor(ParameterMetaData.class));
                     assertSame(parameterMetaData, parameterMetaData.unwrap(ParameterMetaData.class));
@@ -61,9 +60,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      */
     @Test
     public void testSQLServerExceptionNotWrapped() throws SQLException {
-        try (Connection con = getConnection();
-                PreparedStatement pstmt = connection.prepareStatement("invalid query :)");) {
-
+        try (PreparedStatement pstmt = connection.prepareStatement("invalid query :)");) {
             pstmt.getParameterMetaData();
         } catch (SQLException e) {
             assertTrue(!e.getMessage().contains("com.microsoft.sqlserver.jdbc.SQLException"),
@@ -79,7 +76,7 @@ public class ParameterMetaDataTest extends AbstractTest {
     @Test
     @Tag("xAzureSQLDW")
     public void testNameWithBraces() throws SQLException {
-        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " ([c1_varchar(max)] varchar(max))");
@@ -87,7 +84,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                 String query = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " ([c1_varchar(max)]) values (?)";
 
-                try (PreparedStatement pstmt = con.prepareStatement(query)) {
+                try (PreparedStatement pstmt = connection.prepareStatement(query)) {
                     pstmt.getParameterMetaData();
                 }
             } finally {
