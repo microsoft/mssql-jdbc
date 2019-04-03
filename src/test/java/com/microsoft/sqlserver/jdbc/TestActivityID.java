@@ -3,7 +3,7 @@ package com.microsoft.sqlserver.jdbc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -71,7 +71,8 @@ public class TestActivityID extends AbstractTest {
     
     @BeforeAll
     public static void testSetup() throws Exception {
-        try (InputStream is = new FileInputStream("src\\test\\resources\\logging.properties")) {
+        String ActivityIDTraceOn = Util.ActivityIdTraceProperty + "=on";
+        try (InputStream is = new ByteArrayInputStream(ActivityIDTraceOn.getBytes());) {
             LogManager lm = LogManager.getLogManager();
             lm.readConfiguration(is);
         }
