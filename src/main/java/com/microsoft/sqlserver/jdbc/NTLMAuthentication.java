@@ -31,6 +31,8 @@ import mssql.security.provider.MD4;
  *      Authentication Protocol</a>
  */
 final class NTLMAuthentication extends SSPIAuthentication {
+    private final static java.util.logging.Logger logger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.internals.NTLMAuthentication");
 
     /**
      * Section 2.2.1.1 NEGOTIATE_MESSAGE
@@ -234,7 +236,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         byte[] sessionBaseKey = null;
 
         // Windows FileTime timestamp - number of 100 nanosecond ticks since Windows Epoch time
-        byte[] timestamp = new byte[NTLM_TIMESTAMP_LENGTH];
+        byte[] timestamp = null;
 
         // output token
         private ByteBuffer token = null;
@@ -410,6 +412,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
                     if (!Arrays.equals(context.domainBytes, (new String(value).toUpperCase()).getBytes())) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadDomain"));
                         Object[] msgArgs = {new String(value), new String(context.domainBytes)};
+                        
+                        // TODO: investigate if we should just log warning and not fail?
+                        logger.warning(form.format(msgArgs));
                         throw new SQLServerException(form.format(msgArgs), null);
                     }
                     break;
@@ -418,11 +423,15 @@ final class NTLMAuthentication extends SSPIAuthentication {
                     if (!Arrays.equals(context.serverNameBytes, (new String(value).toUpperCase()).getBytes())) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadComputer"));
                         Object[] msgArgs = {new String(value), new String(context.serverNameBytes)};
+                        
+                        // TODO: investigate if we should just log warning and not fail?
+                        logger.warning(form.format(msgArgs));           
                         throw new SQLServerException(form.format(msgArgs), null);
                     }
                     break;
                 case NTLM_AVID_MSVAVTIMESTAMP:
                     if (value.length > 0) {
+                        context.timestamp = new byte[NTLM_TIMESTAMP_LENGTH];
                         System.arraycopy(value, 0, context.timestamp, 0, NTLM_TIMESTAMP_LENGTH);
                     }
                     break;
@@ -455,6 +464,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
          * and Windows Server 2003
          */
         if (null == context.timestamp || context.timestamp[0] == '\0') {
+            // TODO: investigate if we should just log warning and not fail?
+            logger.warning(SQLServerException.getErrString("R_ntlmNoTimestamp"));
             throw new SQLServerException(SQLServerException.getErrString("R_ntlmNoTimestamp"), null);
         }
 
@@ -531,22 +542,26 @@ final class NTLMAuthentication extends SSPIAuthentication {
          * 
          * If the CHALLENGE_MESSAGE TargetInfo field has an MsvAvTimestamp present, the client SHOULD provide a MIC
          */
-        ByteBuffer newTargetInfo = ByteBuffer.allocate(context.targetInfo.length + NTLM_MIC_AVP_LENGTH)
-                .order(ByteOrder.LITTLE_ENDIAN);
+        if (null == context.timestamp || 0 >= context.timestamp.length) {
+            context.token.put(context.targetInfo, 0, context.targetInfo.length);
+        } else {
+            ByteBuffer newTargetInfo = ByteBuffer.allocate(context.targetInfo.length + NTLM_MIC_AVP_LENGTH)
+                    .order(ByteOrder.LITTLE_ENDIAN);
 
-        // copy targetInfo up to NTLM_AVID_MSVAVEOL
-        newTargetInfo.put(context.targetInfo, 0, context.targetInfo.length - 4);
+            // copy targetInfo up to NTLM_AVID_MSVAVEOL
+            newTargetInfo.put(context.targetInfo, 0, context.targetInfo.length - 4);
 
-        // MIC flag
-        newTargetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
-        newTargetInfo.putShort((short) 4);
-        newTargetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
+            // MIC flag
+            newTargetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
+            newTargetInfo.putShort((short) 4);
+            newTargetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
 
-        // EOL
-        newTargetInfo.putShort(NTLM_AVID_MSVAVEOL);
-        newTargetInfo.putShort((short) 0);
+            // EOL
+            newTargetInfo.putShort(NTLM_AVID_MSVAVEOL);
+            newTargetInfo.putShort((short) 0);
 
-        context.token.put(newTargetInfo.array(), 0, newTargetInfo.array().length);
+            context.token.put(newTargetInfo.array(), 0, newTargetInfo.array().length);
+        }
 
         return context.token.array();
     }
@@ -743,21 +758,25 @@ final class NTLMAuthentication extends SSPIAuthentication {
             context.token.put(context.userNameBytes, 0, userNameLen);
             context.token.put(context.workstationBytes, 0, workstationLen);
 
+            msg = context.token.array();
+
             /**
              * Section 3.1.5.1.2 Client Receives a CHALLENGE_MESSAGE from the Server
              * 
              * MIC is calculated by concatenating of all 3 msgs with 0 MIC then hmacMD5 of session key and concat of the
              * 3 msgs
              */
-            msg = context.token.array();
-            SecretKeySpec keySpec = new SecretKeySpec(context.sessionBaseKey, "HmacMD5");
-            context.mac.init(keySpec);
-            context.mac.update(context.negotiateMsg);
-            context.mac.update(context.challengeMsg);
-            mic = context.mac.doFinal(msg);
 
-            // put calculated MIC into Authenticate msg
-            System.arraycopy(mic, 0, msg, micPosition, NTLM_MIC_LENGTH);
+            if (null != context.timestamp && 0 < context.timestamp.length) {
+                SecretKeySpec keySpec = new SecretKeySpec(context.sessionBaseKey, "HmacMD5");
+                context.mac.init(keySpec);
+                context.mac.update(context.negotiateMsg);
+                context.mac.update(context.challengeMsg);
+                mic = context.mac.doFinal(msg);
+
+                // put calculated MIC into Authenticate msg
+                System.arraycopy(mic, 0, msg, micPosition, NTLM_MIC_LENGTH);
+            }
         } catch (InvalidKeyException | NoSuchAlgorithmException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmAuthenticateError"));
             Object[] msgArgs = {e.getMessage()};
