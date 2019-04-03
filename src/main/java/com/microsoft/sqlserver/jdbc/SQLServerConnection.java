@@ -2541,8 +2541,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         final byte[] preloginResponse = new byte[TDS.INITIAL_PACKET_SIZE];
         String preloginErrorLogString = " Prelogin error: host " + serverName + " port " + portNumber;
 
-        ActivityId activityId = ActivityCorrelator.getNext();
-        final byte[] actIdByteArray = Util.asGuidByteArray(activityId.getId());
         final byte[] conIdByteArray = Util.asGuidByteArray(clientConnectionId);
 
         int offset;
@@ -2558,18 +2556,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         System.arraycopy(conIdByteArray, 0, preloginRequest, offset, conIdByteArray.length);
         offset += conIdByteArray.length;
 
-        // copy ActivityId
-        System.arraycopy(actIdByteArray, 0, preloginRequest, offset, actIdByteArray.length);
-        offset += actIdByteArray.length;
-
-        long seqNum = activityId.getSequence();
-        Util.writeInt((int) seqNum, preloginRequest, offset);
-        offset += 4;
+        if (Util.IsActivityTraceOn()) {
+            ActivityId activityId = ActivityCorrelator.getNext();
+            final byte[] actIdByteArray = Util.asGuidByteArray(activityId.getId());
+            System.arraycopy(actIdByteArray, 0, preloginRequest, offset, actIdByteArray.length);
+            offset += actIdByteArray.length;
+            long seqNum = activityId.getSequence();
+            Util.writeInt((int) seqNum, preloginRequest, offset);
+            offset += 4;
+            
+            if (connectionlogger.isLoggable(Level.FINER)) {
+                connectionlogger.finer(toString() + " ActivityId " + activityId.toString());
+            }
+        }
 
         if (connectionlogger.isLoggable(Level.FINER)) {
             connectionlogger.finer(
                     toString() + " Requesting encryption level:" + TDS.getEncryptionLevel(requestedEncryptionLevel));
-            connectionlogger.finer(toString() + " ActivityId " + activityId.toString());
         }
 
         // Write the entire prelogin request
@@ -2585,7 +2588,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             throw e;
         }
 
-        ActivityCorrelator.setCurrentActivityIdSentFlag(); // indicate current ActivityId is sent
+        if (Util.IsActivityTraceOn()) {
+            ActivityCorrelator.setCurrentActivityIdSentFlag(); // indicate current ActivityId is sent
+        }
 
         // Read the entire prelogin response
         int responseLength = preloginResponse.length;

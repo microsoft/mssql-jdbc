@@ -19,20 +19,24 @@ final class ActivityCorrelator {
 
     static void cleanupActivityId() {
         // remove ActivityIds that belongs to this thread or no longer have an associated thread.
-        activityIdTlsMap.entrySet().removeIf(e -> !e.getValue().getThread().isAlive() || e.getValue().getThread() == Thread.currentThread());
+        activityIdTlsMap.entrySet().removeIf(e -> !e.getValue().getThread().isAlive()
+                || e.getValue().getThread() == Thread.currentThread());
     }
 
     // Get the current ActivityId in TLS
     static ActivityId getCurrent() {
         // get the value in TLS, not reference
         Thread thread = Thread.currentThread();
-
-        // Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
-        if (!activityIdTlsMap.containsKey(thread.getId())) {
-            activityIdTlsMap.put(thread.getId(), new ActivityId(thread));
+        if (Util.IsActivityTraceOn()) {
+            if (!activityIdTlsMap.containsKey(thread.getId())) {
+                activityIdTlsMap.put(thread.getId(), new ActivityId(thread));
+            }
+            
+            return activityIdTlsMap.get(thread.getId());
+        } else {
+            return new ActivityId(thread);
         }
 
-        return activityIdTlsMap.get(thread.getId());
     }
 
     // Increment the Sequence number of the ActivityId in TLS
@@ -50,6 +54,10 @@ final class ActivityCorrelator {
     static void setCurrentActivityIdSentFlag() {
         ActivityId activityId = getCurrent();
         activityId.setSentFlag();
+    }
+    
+    public static Map<Long, ActivityId> getActivityIdTlsMap() {
+        return activityIdTlsMap;
     }
     
     /*

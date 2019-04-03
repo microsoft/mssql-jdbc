@@ -156,21 +156,27 @@ public final class SQLServerException extends java.sql.SQLException {
         super(errText, errState, errNum);
         initCause(cause);
         logException(null, errText, true);
-        ActivityCorrelator.setCurrentActivityIdSentFlag(); // set the activityid flag so that we don't send the current
-                                                           // ActivityId later.
+        if (Util.IsActivityTraceOn()) {
+            // set the activityid flag so that we don't send the current  ActivityId later.
+            ActivityCorrelator.setCurrentActivityIdSentFlag(); 
+        }
     }
 
     SQLServerException(String errText, Throwable cause) {
         super(errText);
         initCause(cause);
         logException(null, errText, true);
-        ActivityCorrelator.setCurrentActivityIdSentFlag();
+        if (Util.IsActivityTraceOn()) {
+            ActivityCorrelator.setCurrentActivityIdSentFlag(); 
+        }
     }
 
     SQLServerException(Object obj, String errText, String errState, int errNum, boolean bStack) {
         super(errText, errState, errNum);
         logException(obj, errText, bStack);
-        ActivityCorrelator.setCurrentActivityIdSentFlag();
+        if (Util.IsActivityTraceOn()) {
+            ActivityCorrelator.setCurrentActivityIdSentFlag(); 
+        }
     }
 
     /**
