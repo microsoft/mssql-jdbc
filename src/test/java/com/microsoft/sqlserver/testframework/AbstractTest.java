@@ -83,7 +83,11 @@ public abstract class AbstractTest {
         try {
             Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
             Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
-            connection = getConnection();
+            if (!SQLServerDriver.isRegistered())
+                SQLServerDriver.register();
+            if (null == connection || connection.isClosed()) {
+                connection = getConnection();
+            }
             isSqlAzureOrAzureDW(connection);
         } catch (Exception e) {
             throw e;
@@ -203,17 +207,12 @@ public abstract class AbstractTest {
     @AfterAll
     public static void teardown() throws Exception {
         try {
-            if (connection != null && !connection.isClosed()) {
+            if (null != connection && !connection.isClosed()) {
                 connection.close();
             }
         } finally {
             connection = null;
         }
-    }
-
-    @BeforeAll
-    public static void registerDriver() throws Exception {
-        SQLServerDriver.register();
     }
 
     /**
