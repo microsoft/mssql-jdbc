@@ -608,33 +608,54 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        java.sql.PreparedStatement pstmt = this.connection.prepareStatement(
-                "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
-                        + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
-                        + "LENGTH INT, SCALE SMALLINT, RADIX SMALLINT, NULLABLE SMALLINT, REMARKS VARCHAR(254), COLUMN_DEF NVARCHAR(4000),"
-                        + "SQL_DATA_TYPE SMALLINT, SQL_DATETIME_SUB SMALLINT, CHAR_OCTET_LENGTH INT, ORDINAL_POSITION INT,"
-                        + "IS_NULLABLE VARCHAR(254), SS_IS_SPARSE SMALLINT, SS_IS_COLUMN_SET SMALLINT, SS_IS_COMPUTED SMALLINT,"
-                        + "SS_IS_IDENTITY SMALLINT, SS_UDT_CATALOG_NAME NVARCHAR(128), SS_UDT_SCHEMA_NAME NVARCHAR(128),"
-                        + "SS_UDT_ASSEMBLY_TYPE_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_CATALOG_NAME NVARCHAR(128),"
-                        + "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_NAME NVARCHAR(128),"
-                        + "SS_DATA_TYPE SMALLINT);"
+        String originalCatalog = null;
+        originalCatalog = switchCatalogs(catalog);
+        String spColumnsSql = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
+                + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
+                + "LENGTH INT, SCALE SMALLINT, RADIX SMALLINT, NULLABLE SMALLINT, REMARKS VARCHAR(254), COLUMN_DEF NVARCHAR(4000),"
+                + "SQL_DATA_TYPE SMALLINT, SQL_DATETIME_SUB SMALLINT, CHAR_OCTET_LENGTH INT, ORDINAL_POSITION INT,"
+                + "IS_NULLABLE VARCHAR(254), SS_IS_SPARSE SMALLINT, SS_IS_COLUMN_SET SMALLINT, SS_IS_COMPUTED SMALLINT,"
+                + "SS_IS_IDENTITY SMALLINT, SS_UDT_CATALOG_NAME NVARCHAR(128), SS_UDT_SCHEMA_NAME NVARCHAR(128),"
+                + "SS_UDT_ASSEMBLY_TYPE_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_CATALOG_NAME NVARCHAR(128),"
+                + "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_NAME NVARCHAR(128),"
+                + "SS_DATA_TYPE SMALLINT);"
 
-                        + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC sp_columns_100 @table_qualifier = ?, @table_owner = ?,"
-                        + "@table_name = ?, @column_name = ?;"
+                + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC sp_columns_100 ?,?,?,?,?,?;"
 
-                        + "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, DATA_TYPE,"
-                        + "TYPE_NAME, PRECISION AS COLUMN_SIZE, LENGTH AS BUFFER_LENGTH, SCALE AS DECIMAL_DIGITS, RADIX AS NUM_PREC_RADIX,"
-                        + "NULLABLE, REMARKS, COLUMN_DEF, SQL_DATA_TYPE, SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE,"
-                        + "NULL AS SCOPE_CATALOG, NULL AS SCOPE_SCHEMA, NULL AS SCOPE_TABLE, SS_DATA_TYPE AS SOURCE_DATA_TYPE,"
-                        + "CASE SS_IS_IDENTITY WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_AUTOINCREMENT,"
-                        + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN, "
-                        + "SS_IS_SPARSE, SS_IS_COLUMN_SET FROM @mssqljdbc_temp_sp_columns_result;");
+                + "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, DATA_TYPE,"
+                + "TYPE_NAME, PRECISION AS COLUMN_SIZE, LENGTH AS BUFFER_LENGTH, SCALE AS DECIMAL_DIGITS, RADIX AS NUM_PREC_RADIX,"
+                + "NULLABLE, REMARKS, COLUMN_DEF, SQL_DATA_TYPE, SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE,"
+                + "NULL AS SCOPE_CATALOG, NULL AS SCOPE_SCHEMA, NULL AS SCOPE_TABLE, SS_DATA_TYPE AS SOURCE_DATA_TYPE,"
+                + "CASE SS_IS_IDENTITY WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_AUTOINCREMENT,"
+                + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN, "
+                + "SS_IS_SPARSE, SS_IS_COLUMN_SET, SS_UDT_CATALOG_NAME, SS_UDT_SCHEMA_NAME, SS_UDT_ASSEMBLY_TYPE_NAME,"
+                + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
+                + "FROM @mssqljdbc_temp_sp_columns_result;";
+        SQLServerResultSet rs = null;
+        java.sql.PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
+        pstmt.closeOnCompletion();
+        try {
+            pstmt.setString(1, (table != null && !table.isEmpty()) ? table : "%");
+            pstmt.setString(2, (schema != null && !schema.isEmpty()) ? schema : "%");
+            pstmt.setString(3, (catalog != null && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
+            pstmt.setString(4, (col != null && !col.isEmpty()) ? col : "%");
+            pstmt.setInt(5, 2);// show sparse columns
+            pstmt.setInt(6, 3);// odbc version
 
-        pstmt.setString(1, (catalog != null && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
-        pstmt.setString(2, (schema != null && !schema.isEmpty()) ? schema : "%");
-        pstmt.setString(3, (table != null && !table.isEmpty()) ? table : "%");
-        pstmt.setString(4, (col != null && !col.isEmpty()) ? col : "%");
-        return pstmt.executeQuery();
+            rs = (SQLServerResultSet) pstmt.executeQuery();
+            rs.getColumn(5).setFilter(new DataTypeFilter());
+            rs.getColumn(7).setFilter(new ZeroFixupFilter());
+            rs.getColumn(8).setFilter(new ZeroFixupFilter());
+            rs.getColumn(16).setFilter(new ZeroFixupFilter());
+        } catch (SQLException e) {
+            pstmt.close();
+            throw e;
+        } finally {
+            if (null != originalCatalog) {
+                connection.setCatalog(originalCatalog);
+            }
+        }
+        return rs;
     }
 
     private static final String[] getFunctionsColumnNames = {/* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
@@ -2350,12 +2371,10 @@ final class DataTypeFilter extends IntColumnFilter {
                 return SSType.XML.getJDBCType().asJavaSqlType();
             case ODBC_SQL_UDT:
                 return SSType.UDT.getJDBCType().asJavaSqlType();
-
             default:
                 return odbcType;
         }
     }
-
 }
 
 
