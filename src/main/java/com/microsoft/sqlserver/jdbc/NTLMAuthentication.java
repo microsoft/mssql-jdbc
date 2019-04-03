@@ -11,10 +11,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Mac;
@@ -652,7 +652,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         // get random client challenge nonce
         byte[] clientNonce = new byte[NTLM_CLIENT_NONCE_LENGTH];
-        SecureRandom.getInstanceStrong().nextBytes(clientNonce);
+        (new Random()).nextBytes(clientNonce);
 
         // get client challenge blob
         byte[] temp = getClientChallengeBlob(clientNonce);
