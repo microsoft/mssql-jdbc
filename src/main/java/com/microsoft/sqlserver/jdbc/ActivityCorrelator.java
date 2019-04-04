@@ -19,8 +19,11 @@ final class ActivityCorrelator {
 
     static void cleanupActivityId() {
         // remove ActivityIds that belongs to this thread or no longer have an associated thread.
-        activityIdTlsMap.entrySet().removeIf(e -> !e.getValue().getThread().isAlive()
-                || e.getValue().getThread() == Thread.currentThread());
+        activityIdTlsMap.entrySet().removeIf(e ->
+                e.getValue() == null ||
+                e.getValue().getThread() == null ||
+                e.getValue().getThread() == Thread.currentThread() ||
+                !e.getValue().getThread().isAlive());
     }
 
     // Get the current ActivityId in TLS
