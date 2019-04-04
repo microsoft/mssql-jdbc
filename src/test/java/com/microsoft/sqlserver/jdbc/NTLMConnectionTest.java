@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -13,6 +15,9 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.logging.Formatter;
+import java.util.logging.LogRecord;
+import java.util.logging.StreamHandler;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -29,6 +34,17 @@ import com.zaxxer.hikari.HikariDataSource;
  */
 @RunWith(JUnitPlatform.class)
 public class NTLMConnectionTest extends AbstractTest {
+
+    // custom formatter that contains nothing but the log message only
+    private static class CustomFormatter extends Formatter {
+        @Override
+        public String format(LogRecord record) {
+            StringBuffer sb = new StringBuffer();
+            sb.append(record.getMessage());
+            return sb.toString();
+        }
+    }
+
     private static SQLServerDataSource dsNTLMLocal = null;
 
     private static boolean ntlmPropsDefined = false;
@@ -38,10 +54,18 @@ public class NTLMConnectionTest extends AbstractTest {
     private static String serverFqdn;
     private static byte[] serverBytes;
 
+    private static java.util.logging.Logger ntlmLogger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.internals.NTLMAuthentication");
+
+    private static ByteArrayOutputStream loggerContent = new ByteArrayOutputStream();
+    private static StreamHandler handler = new StreamHandler(new PrintStream(loggerContent), new CustomFormatter());
+
     @BeforeAll
     public static void setUp() {
+        // remove all other logging and add our own handler
         java.util.logging.Logger logger = java.util.logging.Logger.getLogger("");
         logger.removeHandler(logger.getHandlers()[0]);
+        ntlmLogger.addHandler(handler);
 
         // if these properties are defined then NTLM is desired, modify connection string accordingly
         String domain = System.getProperty("domain");
@@ -186,8 +210,32 @@ public class NTLMConnectionTest extends AbstractTest {
     }
 
     @Test
-    public void testNTLMBadInit() throws SQLException {
+    public void testNTLMlocalhost() throws SQLException {
+        if (ntlmPropsDefined) {
+            try (Connection con = DriverManager.getConnection(connectionStringNTLM + ";servername=localhost")) {
+                verifyNTLM(con);
+            }
+        }
+    }
 
+    @Test
+    public void testNTLMipAddr() throws SQLException {
+        if (ntlmPropsDefined) {
+            String ipAddr;
+            try {
+                ipAddr = InetAddress.getByName(serverFqdn).getHostAddress();
+                try (Connection con = DriverManager.getConnection(connectionStringNTLM + ";servername=" + ipAddr)) {
+                    verifyNTLM(con);
+
+                }
+            } catch (UnknownHostException e) {
+                fail(e.getMessage());
+            }
+        }
+    }
+
+    @Test
+    public void testNTLMBadInit() throws SQLException {
         try {
             SSPIAuthentication auth = new NTLMAuthentication(new SQLServerConnection(""), "serverName", "domainName",
                     "hostname");
@@ -197,9 +245,10 @@ public class NTLMConnectionTest extends AbstractTest {
     }
 
     /**
+     * The following testNTLMBad* tests use a hardcoded challenge message token as follows and modifies the fields
+     * tested to trigger errors.
+     * 
      * <pre>
-     * The following tests use a hardcoded challenge message token as follows and modifies the fields tested to
-     * trigger errors. 
      * The good token to start: 
      * {
      * 78, 84, 76, 77, 83, 83, 80, 0,                                               // NTLMSSP\0
@@ -324,6 +373,8 @@ public class NTLMConnectionTest extends AbstractTest {
     @Test
     public void testNTLMBadDomain() throws SQLException {
         if (ntlmPropsDefined) {
+            loggerContent.reset();
+
             try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
                 getServerFqdn(conn);
                 SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
@@ -331,23 +382,29 @@ public class NTLMConnectionTest extends AbstractTest {
 
                 try {
                     // modify token with bad domain
-                    byte[] badDomain = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                    byte[] badDomain = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
                     ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
-                    badToken.position(122);
+                    badToken.position(124);
                     badToken.put(badDomain);
 
                     auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
                 } catch (Exception e) {
-                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmBadDomain")));
+                    // this should just generate a warning but not fail
+                    fail(e.getMessage());
                 }
             }
+
+            handler.flush();
+            assertTrue(loggerContent.toString().matches(TestUtils.formatErrorMsg("R_ntlmBadDomain")));
         }
     }
 
     @Test
     public void testNTLMBadComputerMame() throws SQLException {
         if (ntlmPropsDefined) {
+            loggerContent.reset();
+
             try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
                 getServerFqdn(conn);
                 SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
@@ -357,14 +414,18 @@ public class NTLMConnectionTest extends AbstractTest {
                     byte[] badComputer = {0, 0, 0, 0, 0, 0, 0, 0, 0};
                     ByteBuffer badToken = ByteBuffer.wrap(getChallengeToken(challengeTokenPart1, challengeTokenPart2))
                             .order(ByteOrder.LITTLE_ENDIAN);
-                    badToken.position(146);
+                    badToken.position(148);
                     badToken.put(badComputer);
 
                     auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
 
                 } catch (Exception e) {
-                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmBadComputer")));
+                    // this should just generate a warning but not fail
+                    fail(e.getMessage());
                 }
+
+                handler.flush();
+                assertTrue(loggerContent.toString().matches(TestUtils.formatErrorMsg("R_ntlmBadComputer")));
             }
         }
     }
@@ -395,10 +456,13 @@ public class NTLMConnectionTest extends AbstractTest {
     @Test
     public void testNTLMBadTimestamp() throws SQLException {
         if (ntlmPropsDefined) {
+            loggerContent.reset();
+
             try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
                 getServerFqdn(conn);
                 SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
                 boolean[] done = {false};
+
                 try {
                     // modify token with no timestamp
                     byte[] badTimestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -409,9 +473,18 @@ public class NTLMConnectionTest extends AbstractTest {
                     auth.generateClientContext(getChallengeToken(challengeTokenPart1, badToken.array()), done);
 
                 } catch (Exception e) {
-                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTimestamp")));
+                    // this should just generate a warning but not fail
+                    fail(e.getMessage());
                 }
             }
+
+            handler.flush();
+            // System.out.println("done1: [" + loggerContent.toString() + "]");
+            // System.out.println("error: "+SQLServerException.getErrString("R_ntlmNoTimestamp"));
+
+            assertTrue(loggerContent.toString().matches(SQLServerException.getErrString("R_ntlmNoTimestamp")));
+
+            // ntlmLogger.removeHandler(handler);
         }
     }
 

@@ -261,7 +261,13 @@ final class NTLMAuthentication extends SSPIAuthentication {
             String serverFqdn = "\0";
             try {
                 if (null != serverName) {
-                    InetAddress addr = InetAddress.getByName(serverName);
+                    InetAddress addr = serverName.equals("localhost") ? InetAddress.getByName(workstation)
+                                                                      : InetAddress.getByName(serverName);
+
+                    /*
+                     * note doc says getCanonicalHostName uses "Best effort method" only, meaning it may not be able to
+                     * return the fqdn
+                     */
                     serverFqdn = addr.getCanonicalHostName().toUpperCase();
                 }
             } catch (UnknownHostException e) {
@@ -270,7 +276,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
                 throw new SQLServerException(form.format(msgArgs), e);
             }
 
-            this.serverNameBytes = unicode(serverFqdn.toUpperCase());
+            this.serverNameBytes = null != serverFqdn ? unicode(serverFqdn.toUpperCase()) : null;
 
             this.domainName = null != domainName ? domainName.toUpperCase() : "\0";
             this.domainBytes = unicode(this.domainName);
@@ -412,10 +418,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
                     if (!Arrays.equals(context.domainBytes, (new String(value).toUpperCase()).getBytes())) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadDomain"));
                         Object[] msgArgs = {new String(value), new String(context.domainBytes)};
-                        
-                        // TODO: investigate if we should just log warning and not fail?
+
+                        // this may fail if we could not get the FQDN so just log a warning
                         logger.warning(form.format(msgArgs));
-                        throw new SQLServerException(form.format(msgArgs), null);
                     }
                     break;
                 case NTLM_AVID_MSVAVDNSCOMPUTERNAME:
@@ -423,10 +428,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
                     if (!Arrays.equals(context.serverNameBytes, (new String(value).toUpperCase()).getBytes())) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadComputer"));
                         Object[] msgArgs = {new String(value), new String(context.serverNameBytes)};
-                        
-                        // TODO: investigate if we should just log warning and not fail?
-                        logger.warning(form.format(msgArgs));           
-                        throw new SQLServerException(form.format(msgArgs), null);
+
+                        // this may fail if we could not get the FQDN so just log a warning
+                        logger.warning(form.format(msgArgs));
                     }
                     break;
                 case NTLM_AVID_MSVAVTIMESTAMP:
@@ -440,8 +444,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
                     break;
                 // do nothing, MIC is always sent in response regardless
                 case NTLM_AVID_MSVAVFLAGS:
-                    break;
-                // ignore others not supported
+                    // ignore others not supported
                 case NTLM_AVID_MSVAVNBCOMPUTERNAME:
                 case NTLM_AVID_MSVAVNBDOMAINNAME:
                 case NTLM_AVID_MSVAVDNSTREENAME:
@@ -464,9 +467,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
          * and Windows Server 2003
          */
         if (null == context.timestamp || context.timestamp[0] == '\0') {
-            // TODO: investigate if we should just log warning and not fail?
+            // this SHOULD always be present but for some reason occasionally this had seen to be missing
             logger.warning(SQLServerException.getErrString("R_ntlmNoTimestamp"));
-            throw new SQLServerException(SQLServerException.getErrString("R_ntlmNoTimestamp"), null);
         }
 
         // save msg for calculating MIC in Authenticate msg
@@ -743,7 +745,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
             // same negotiate flags sent in negotiate message
             context.token.putInt((int) context.negotiateFlags);
 
-            // version
+            // version - not used but need to send blank to separate from MIC otherwise server confuses this with MIC
             context.token.put(NTLMSSP_VERSION, 0, NTLMSSP_VERSION.length);
 
             // 0 the MIC field first for calculation
