@@ -79,7 +79,6 @@ public abstract class AbstractTest {
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
 
         connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
-
         ds = updateDataSource(new SQLServerDataSource());
         dsXA = updateDataSource(new SQLServerXADataSource());
         dsPool = updateDataSource(new SQLServerConnectionPoolDataSource());

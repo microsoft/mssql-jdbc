@@ -210,15 +210,6 @@ public class NTLMConnectionTest extends AbstractTest {
     }
 
     @Test
-    public void testNTLMlocalhost() throws SQLException {
-        if (ntlmPropsDefined) {
-            try (Connection con = DriverManager.getConnection(connectionStringNTLM + ";servername=localhost")) {
-                verifyNTLM(con);
-            }
-        }
-    }
-
-    @Test
     public void testNTLMipAddr() throws SQLException {
         if (ntlmPropsDefined) {
             String ipAddr;
