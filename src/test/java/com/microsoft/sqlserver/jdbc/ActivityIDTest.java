@@ -13,7 +13,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.LogManager;
 
+import javax.sql.PooledConnection;
+
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -23,11 +27,10 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 @RunWith(JUnitPlatform.class)
-public class TestActivityID extends AbstractTest {
+public class ActivityIDTest extends AbstractTest {
     
     @Test
     public void testActivityID() throws Exception {
-        ActivityCorrelator.emptyActivityId();
         int numExecution = 20;
         ExecutorService es = Executors.newFixedThreadPool(numExecution);
         CountDownLatch latch = new CountDownLatch(numExecution);
@@ -50,7 +53,6 @@ public class TestActivityID extends AbstractTest {
     
     @Test
     public void testActivityIDPooled() throws Exception {
-        ActivityCorrelator.emptyActivityId();
         int poolsize = 10;
         int numPooledExecution = 200;
         
@@ -85,6 +87,41 @@ public class TestActivityID extends AbstractTest {
 
         // Expect one for HikariDS thread's entry
         assertEquals(1, ActivityCorrelator.getActivityIdTlsMap().size());
+    }
+    
+    @Test
+    public void testActivityIDPooledConnection() throws Exception {
+        int poolsize = 10;
+        int numPooledExecution = 200;
+
+        PooledConnection pooledCon = ((SQLServerConnectionPoolDataSource) dsPool).getPooledConnection();
+        ExecutorService es = Executors.newFixedThreadPool(poolsize);
+        try {
+            CountDownLatch latchPool = new CountDownLatch(numPooledExecution);
+            es.execute(new Runnable() {
+                public void run() {
+                    for (int i = 0; i < numPooledExecution; i++) {
+                        try (Connection con = pooledCon.getConnection(); Statement stmt = con.createStatement()) {
+                            stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
+                        } catch (SQLException e) {
+                            fail(e.toString());
+                        }
+                        latchPool.countDown();
+                    }
+                }
+            });
+            latchPool.await();
+        } finally {
+            es.shutdown();
+            pooledCon.close();
+        }
+        assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
+    }
+    
+    @BeforeEach
+    @AfterEach
+    public void clearActivityId() {
+        ActivityCorrelator.clear();
     }
     
     @BeforeAll

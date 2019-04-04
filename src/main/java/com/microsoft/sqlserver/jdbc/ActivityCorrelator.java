@@ -17,8 +17,10 @@ final class ActivityCorrelator {
 
     private static Map<Long, ActivityId> activityIdTlsMap = new ConcurrentHashMap<>();
 
-    static void emptyActivityId() {
-        activityIdTlsMap.clear();
+    static void clear() {
+        if (null != activityIdTlsMap) {
+            activityIdTlsMap.clear();
+        }
     }
     
     static void cleanupActivityId() {
