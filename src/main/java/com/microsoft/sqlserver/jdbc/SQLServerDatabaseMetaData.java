@@ -618,7 +618,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 + "SS_IS_IDENTITY SMALLINT, SS_UDT_CATALOG_NAME NVARCHAR(128), SS_UDT_SCHEMA_NAME NVARCHAR(128),"
                 + "SS_UDT_ASSEMBLY_TYPE_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_CATALOG_NAME NVARCHAR(128),"
                 + "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_NAME NVARCHAR(128),"
-                + "SS_DATA_TYPE SMALLINT);"
+                + "SS_DATA_TYPE TINYINT);"
 
                 + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC sp_columns_100 ?,?,?,?,?,?;"
 
@@ -647,9 +647,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             rs.getColumn(7).setFilter(new ZeroFixupFilter());
             rs.getColumn(8).setFilter(new ZeroFixupFilter());
             rs.getColumn(16).setFilter(new ZeroFixupFilter());
-        } catch (SQLException e) {
-            pstmt.close();
-            throw e;
         } finally {
             if (null != originalCatalog) {
                 connection.setCatalog(originalCatalog);
@@ -1202,12 +1199,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 4 */ " cast(NULL as char(1)) as COLUMN_NAME," +
         /* 5 */ " cast(0 as int) as DATA_TYPE," +
         /* 6 */ " cast(0 as int) as COLUMN_SIZE," +
-        /* 8 */ " cast(0 as int) as DECIMAL_DIGITS," +
-        /* 9 */ " cast(0 as int) as NUM_PREC_RADIX," +
-        /* 10 */ " cast(NULL as char(1)) as COLUMN_USAGE," +
-        /* 11 */ " cast(NULL as char(1)) as REMARKS," +
-        /* 12 */ " cast(0 as int) as CHAR_OCTET_LENGTH," +
-        /* 13 */ " cast(NULL as char(1)) as IS_NULLABLE" + " where 0 = 1");
+        /* 7 */ " cast(0 as int) as DECIMAL_DIGITS," +
+        /* 8 */ " cast(0 as int) as NUM_PREC_RADIX," +
+        /* 9 */ " cast(NULL as char(1)) as COLUMN_USAGE," +
+        /* 10 */ " cast(NULL as char(1)) as REMARKS," +
+        /* 11 */ " cast(0 as int) as CHAR_OCTET_LENGTH," +
+        /* 12 */ " cast(NULL as char(1)) as IS_NULLABLE" + " where 0 = 1");
     }
 
     @Override
