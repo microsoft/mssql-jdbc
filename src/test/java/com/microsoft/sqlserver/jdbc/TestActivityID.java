@@ -27,6 +27,7 @@ public class TestActivityID extends AbstractTest {
     
     @Test
     public void testActivityID() throws Exception {
+        ActivityCorrelator.emptyActivityId();
         int numExecution = 20;
         ExecutorService es = Executors.newFixedThreadPool(numExecution);
         CountDownLatch latch = new CountDownLatch(numExecution);
@@ -49,6 +50,7 @@ public class TestActivityID extends AbstractTest {
     
     @Test
     public void testActivityIDPooled() throws Exception {
+        ActivityCorrelator.emptyActivityId();
         int poolsize = 10;
         int numPooledExecution = 200;
         
@@ -81,9 +83,8 @@ public class TestActivityID extends AbstractTest {
             }
         }
 
-        // Clean up the entry that corresponds to HikariDataSource
-        ActivityCorrelator.cleanupActivityId();
-        assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
+        // Expect one for HikariDS thread's entry
+        assertEquals(1, ActivityCorrelator.getActivityIdTlsMap().size());
     }
     
     @BeforeAll

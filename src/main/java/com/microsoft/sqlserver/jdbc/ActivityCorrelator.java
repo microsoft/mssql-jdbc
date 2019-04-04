@@ -17,7 +17,11 @@ final class ActivityCorrelator {
 
     private static Map<Long, ActivityId> activityIdTlsMap = new ConcurrentHashMap<>();
 
-    public static void cleanupActivityId() {
+    static void emptyActivityId() {
+        activityIdTlsMap.clear();
+    }
+    
+    static void cleanupActivityId() {
         // remove ActivityIds that belongs to this thread or no longer have an associated thread.
         activityIdTlsMap.entrySet().removeIf(e ->
                 e.getValue() == null ||
@@ -54,7 +58,7 @@ final class ActivityCorrelator {
         activityId.setSentFlag();
     }
     
-    public static Map<Long, ActivityId> getActivityIdTlsMap() {
+    static Map<Long, ActivityId> getActivityIdTlsMap() {
         return activityIdTlsMap;
     }
     
