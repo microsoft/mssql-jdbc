@@ -632,6 +632,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
                 + "FROM @mssqljdbc_temp_sp_columns_result;";
         SQLServerResultSet rs = null;
+        SQLException errorOnClose = null;
         java.sql.PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
         pstmt.closeOnCompletion();
         try {
@@ -647,9 +648,15 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             rs.getColumn(7).setFilter(new ZeroFixupFilter());
             rs.getColumn(8).setFilter(new ZeroFixupFilter());
             rs.getColumn(16).setFilter(new ZeroFixupFilter());
+        } catch (SQLException e) {
+            errorOnClose = e;
+            pstmt.close();
         } finally {
             if (null != originalCatalog) {
                 connection.setCatalog(originalCatalog);
+            }
+            if (errorOnClose != null) {
+                throw errorOnClose;
             }
         }
         return rs;
