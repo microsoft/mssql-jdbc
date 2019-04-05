@@ -3247,7 +3247,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
 
-        ActivityCorrelator.cleanupActivityId();
+        if (Util.IsActivityTraceOn()) {
+            ActivityCorrelator.cleanupActivityId();
+        }
     }
 
     // This function is used by the proxy for notifying the pool manager that this connection proxy is closed
@@ -3266,7 +3268,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 connectionCommand("IF @@TRANCOUNT > 0 ROLLBACK TRAN" /* +close connection */, "close connection");
             }
             notifyPooledConnection(null);
-            ActivityCorrelator.cleanupActivityId();
+            if (Util.IsActivityTraceOn()) {
+                ActivityCorrelator.cleanupActivityId();
+            }
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " Connection closed and returned to connection pool");
             }

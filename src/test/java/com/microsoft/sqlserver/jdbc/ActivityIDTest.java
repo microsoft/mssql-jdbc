@@ -89,7 +89,9 @@ public class ActivityIDTest extends AbstractTest {
                 } finally {
                     if (null != ds) {
                         es.shutdown();
+                        System.out.println("Thread " + Thread.currentThread().getId() + ": About to call ds.close()");
                         ds.close();
+                        System.out.println("Thread " + Thread.currentThread().getId() + ": ds.close() called.");
                     }
                 }
                 latchPoolOuterThread.countDown();
