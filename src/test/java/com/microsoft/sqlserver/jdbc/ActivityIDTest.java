@@ -54,7 +54,7 @@ public class ActivityIDTest extends AbstractTest {
     @Test
     public void testActivityIDPooled() throws Exception {
         int poolsize = 10;
-        int numPooledExecution = 200;
+        int numPooledExecution = 20;
         
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(connectionString);
@@ -97,6 +97,7 @@ public class ActivityIDTest extends AbstractTest {
         t.run();
         latchPoolOuterThread.await();
         // Expect 1 entry to be left over, that corresponds to the outer thread that ran everything
+        System.out.println("Map before check: " + ActivityCorrelator.getActivityIdTlsMap());
         assertEquals(1, ActivityCorrelator.getActivityIdTlsMap().size());
     }
     

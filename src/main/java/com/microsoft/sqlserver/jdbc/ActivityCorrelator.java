@@ -25,11 +25,13 @@ final class ActivityCorrelator {
     
     static void cleanupActivityId() {
         // remove ActivityIds that belongs to this thread or no longer have an associated thread.
+        System.out.println("Map before deleting entry: " + ActivityCorrelator.getActivityIdTlsMap());
         activityIdTlsMap.entrySet().removeIf(e ->
                 e.getValue() == null ||
                 e.getValue().getThread() == null ||
                 e.getValue().getThread() == Thread.currentThread() ||
                 !e.getValue().getThread().isAlive());
+        System.out.println("Map after deleting entry: " + ActivityCorrelator.getActivityIdTlsMap());
     }
 
     // Get the current ActivityId in TLS
@@ -38,6 +40,7 @@ final class ActivityCorrelator {
         Thread thread = Thread.currentThread();
         if (!activityIdTlsMap.containsKey(thread.getId())) {
             activityIdTlsMap.put(thread.getId(), new ActivityId(thread));
+            System.out.println("Map after adding entry: " + ActivityCorrelator.getActivityIdTlsMap());
         }
         
         return activityIdTlsMap.get(thread.getId());
