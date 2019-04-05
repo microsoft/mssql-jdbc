@@ -534,16 +534,23 @@ public class PreparedStatementTest extends AbstractTest {
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI(con);
             }
+
+            int msgId = Constants.RANDOM.nextInt(50000, 99999);
+
             // Test behavior with statement pooling.
             con.setStatementPoolingCacheSize(10);
-            this.executeSQL(con,
-                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
+
+            this.executeSQL(con, "IF EXISTS (SELECT * FROM sys.messages WHERE message_id = " + msgId
+                    + ") EXEC sp_dropmessage @msgnum = " + msgId + ", @lang = 'all';");
+            this.executeSQL(con, "EXEC sp_addmessage " + msgId + ", 16, 'Prepared handle GAH!';");
             // Test with missing handle failures (fake).
             this.executeSQL(con, "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (col INT);INSERT " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (1);");
-            this.executeSQL(con, "CREATE PROC #updateProc1 AS UPDATE "
-                    + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET col += 1; IF EXISTS (SELECT * FROM "
-                    + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE col % 5 = 0) RAISERROR(99586,16,1);");
+            this.executeSQL(con,
+                    "CREATE PROC #updateProc1 AS UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                            + " SET col += 1; IF EXISTS (SELECT * FROM "
+                            + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE col % 5 = 0) RAISERROR("
+                            + msgId + ",16,1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc1")) {
                 for (int i = 0; i < 100; ++i) {
                     try {
@@ -558,6 +565,9 @@ public class PreparedStatementTest extends AbstractTest {
                         }
                     }
                 }
+            } finally {
+                this.executeSQL(con, "IF EXISTS (SELECT * FROM sys.messages WHERE message_id = " + msgId
+                        + ") EXEC sp_dropmessage @msgnum = " + msgId + ", @lang = 'all';");
             }
 
             // test updated value, should be 1 + 100 = 101
@@ -569,13 +579,17 @@ public class PreparedStatementTest extends AbstractTest {
             }
 
             // Test batching with missing handle failures (fake).
-            this.executeSQL(con,
-                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
+
+            this.executeSQL(con, "IF EXISTS (SELECT * FROM sys.messages WHERE message_id = " + msgId
+                    + ") EXEC sp_dropmessage @msgnum = " + msgId + ", @lang = 'all';");
+            this.executeSQL(con, "EXEC sp_addmessage " + msgId + ", 16, 'Prepared handle GAH!';");
             this.executeSQL(con, "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName2)
                     + " (col INT);INSERT " + AbstractSQLGenerator.escapeIdentifier(tableName2) + " VALUES (1);");
-            this.executeSQL(con, "CREATE PROC #updateProc2 AS UPDATE "
-                    + AbstractSQLGenerator.escapeIdentifier(tableName2) + " SET col += 1; IF EXISTS (SELECT * FROM "
-                    + AbstractSQLGenerator.escapeIdentifier(tableName2) + " WHERE col % 5 = 0) RAISERROR(99586,16,1);");
+            this.executeSQL(con,
+                    "CREATE PROC #updateProc2 AS UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName2)
+                            + " SET col += 1; IF EXISTS (SELECT * FROM "
+                            + AbstractSQLGenerator.escapeIdentifier(tableName2) + " WHERE col % 5 = 0) RAISERROR("
+                            + msgId + ",16,1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc2")) {
                 for (int i = 0; i < 100; ++i) {
                     pstmt.addBatch();
@@ -604,6 +618,9 @@ public class PreparedStatementTest extends AbstractTest {
                     rs.next();
                     assertSame(101, rs.getInt(1));
                 }
+            } finally {
+                this.executeSQL(con, "IF EXISTS (SELECT * FROM sys.messages WHERE message_id = " + msgId
+                        + ") EXEC sp_dropmessage @msgnum = " + msgId + ", @lang = 'all';");
             }
 
             // Test behavior with statement pooling enabled
