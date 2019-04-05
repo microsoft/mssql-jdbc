@@ -205,12 +205,24 @@ public class SetObjectTest extends AbstractTest {
                         pstmt.setString(2, expectedDTOString);
                         pstmt.executeUpdate();
                     }
+                    
+                    for (int i = 1; i <= 5; i++) {
+                        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                                .executeQuery("SELECT dto FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                        + " WHERE id = " + i + " AND dto = '" + sqlDto + "'")) {
+                            while (rs.next()) {
+                                assertEquals(dateTimeOffset, rs.getObject(1));
+                                assertEquals(expectedDTOString, rs.getObject(1).toString());
 
-                    try (ResultSet rs = stmt
-                            .executeQuery("SELECT COUNT(*) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                                    + " WHERE id = 1 AND dto = '" + sqlDto + "'")) {
-                        while (rs.next()) {
-                            assertEquals(1, rs.getInt(1));
+                                assertEquals(dateTimeOffset, rs.getDateTimeOffset(1));
+                                assertEquals(expectedDTOString, rs.getDateTimeOffset(1).toString());
+
+                                assertEquals(dateTimeOffset, rs.getObject(1, DateTimeOffset.class));
+                                assertEquals(expectedDTOString, rs.getObject(1, DateTimeOffset.class).toString());
+
+                                assertEquals(offsetDateTime, rs.getObject(1, OffsetDateTime.class));
+                                assertEquals(sqlDto, rs.getObject(1, OffsetDateTime.class).toString());
+                            }
                         }
                     }
 
