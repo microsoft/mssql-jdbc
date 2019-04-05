@@ -61,31 +61,29 @@ public class ActivityIDTest extends AbstractTest {
         config.setJdbcUrl(connectionString);
         config.setMaximumPoolSize(poolsize);
         ExecutorService es = Executors.newFixedThreadPool(poolsize);
-        CountDownLatch latchPool = new CountDownLatch(numPooledExecution);
         CountDownLatch latchPoolOuterThread = new CountDownLatch(1);
         Thread t = new Thread(new Runnable() {
+            CountDownLatch latchPool = new CountDownLatch(numPooledExecution);
             public void run() {
                 HikariDataSource ds = new HikariDataSource(config);
-                try {
-                    for (int i = 0; i < numPooledExecution; i++) {
-                        es.execute(new Runnable() {
-                            public void run() {
-                                try {
-                                    try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {
-                                        stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
-                                    }
-                                } catch (SQLException e) {
-                                    fail(e.toString());
+                for (int i = 0; i < numPooledExecution; i++) {
+                    es.execute(new Runnable() {
+                        public void run() {
+                            try {
+                                try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {
+                                    stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
                                 }
-                                latchPool.countDown();
+                            } catch (SQLException e) {
+                                fail(e.toString());
                             }
-                        });
-                    }
-                    try {
-                        latchPool.await();
-                    } catch (InterruptedException e) {
-                        fail(e.toString());
-                    }
+                            latchPool.countDown();
+                        }
+                    });
+                }
+                try {
+                    latchPool.await();
+                } catch (InterruptedException e) {
+                    fail(e.toString());
                 } finally {
                     if (null != ds) {
                         es.shutdown();
@@ -101,9 +99,9 @@ public class ActivityIDTest extends AbstractTest {
         latchPoolOuterThread.await();
         // Expect 1 entry to be left over, that corresponds to the outer thread that ran everything
         System.out.println("Thread " + Thread.currentThread().getId() + ": Map before check: " + ActivityCorrelator.getActivityIdTlsMap());
-        ActivityCorrelator.cleanupActivityId();
+//        ActivityCorrelator.cleanupActivityId();
         System.out.println("Thread " + Thread.currentThread().getId() + ": Map before check2: " + ActivityCorrelator.getActivityIdTlsMap());
-        assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
+        assertEquals(1, ActivityCorrelator.getActivityIdTlsMap().size());
     }
     
     @Test
