@@ -164,18 +164,6 @@ public class LobsStreamingTest extends AbstractTest {
                     TestUtils.dropTableIfExists(tableName, stmt);
                 }
             }
-            for (int i = 0; i < lob_data.size(); i++) {
-                String received = getStringFromInputStream(lobsFromServer.get(i).getAsciiStream());// non-streaming
-                                                                                                   // string
-                assertEquals(received, lob_data.get(i));// compare static string to streamed string
-            }
-            for (Clob c : lobsFromServer) {
-                c.free();
-            }
-        } finally {
-            try (Statement stmt = connection.createStatement()) {
-                TestUtils.dropTableIfExists(tableName, stmt);
-            }
         }
 
     }
@@ -254,18 +242,6 @@ public class LobsStreamingTest extends AbstractTest {
                     TestUtils.dropTableIfExists(tableName, stmt);
                 }
             }
-            for (int i = 0; i < lob_data.size(); i++) {
-                String received = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
-                        lobsFromServer.get(i).length());// non-streaming string
-                assertEquals(received, lob_data.get(i));// compare static string to streamed string
-            }
-            for (Clob c : lobsFromServer) {
-                c.free();
-            }
-        } finally {
-            try (Statement stmt = connection.createStatement()) {
-                TestUtils.dropTableIfExists(tableName, stmt);
-            }
         }
     }
 
@@ -303,18 +279,6 @@ public class LobsStreamingTest extends AbstractTest {
                 try (Statement stmt = conn.createStatement()) {
                     TestUtils.dropTableIfExists(tableName, stmt);
                 }
-            }
-            for (int i = 0; i < lob_data.size(); i++) {
-                String received = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
-                        lobsFromServer.get(i).length());// non-streaming string
-                assertEquals(received, lob_data.get(i));// compare static string to streamed string
-            }
-            for (Clob c : lobsFromServer) {
-                c.free();
-            }
-        } finally {
-            try (Statement stmt = connection.createStatement()) {
-                TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
     }
