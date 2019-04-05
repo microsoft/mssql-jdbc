@@ -62,11 +62,10 @@ public class ActivityIDTest extends AbstractTest {
         config.setMaximumPoolSize(poolsize);
         ExecutorService es = Executors.newFixedThreadPool(poolsize);
         CountDownLatch latchPoolOuterThread = new CountDownLatch(1);
-        HikariDataSource ds = new HikariDataSource(config);
         Thread t = new Thread(new Runnable() {
             CountDownLatch latchPool = new CountDownLatch(numPooledExecution);
             public void run() {
-                
+                HikariDataSource ds = new HikariDataSource(config);
                 for (int i = 0; i < numPooledExecution; i++) {
                     es.execute(new Runnable() {
                         public void run() {
@@ -88,6 +87,7 @@ public class ActivityIDTest extends AbstractTest {
                 } finally {
                     if (null != ds) {
                         es.shutdown();
+                        ds.close();
                     }
                 }
                 latchPoolOuterThread.countDown();
@@ -95,8 +95,14 @@ public class ActivityIDTest extends AbstractTest {
         });
         t.run();
         latchPoolOuterThread.await();
-        ds.close();
-        ActivityCorrelator.cleanupActivityId();
+        
+        try {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
+            }
+        } catch (SQLException e) {
+            fail(e.toString());
+        }
         assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
     }
     
