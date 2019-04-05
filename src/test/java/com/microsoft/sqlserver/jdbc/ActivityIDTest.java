@@ -15,6 +15,7 @@ import java.util.logging.LogManager;
 
 import javax.sql.PooledConnection;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,8 +98,10 @@ public class ActivityIDTest extends AbstractTest {
         t.run();
         latchPoolOuterThread.await();
         // Expect 1 entry to be left over, that corresponds to the outer thread that ran everything
-        System.out.println("Map before check: " + ActivityCorrelator.getActivityIdTlsMap());
-        assertEquals(1, ActivityCorrelator.getActivityIdTlsMap().size());
+        System.out.println("Thread " + Thread.currentThread().getId() + ": Map before check: " + ActivityCorrelator.getActivityIdTlsMap());
+        ActivityCorrelator.cleanupActivityId();
+        System.out.println("Thread " + Thread.currentThread().getId() + ": Map before check2: " + ActivityCorrelator.getActivityIdTlsMap());
+        assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
     }
     
     @Test
@@ -134,6 +137,15 @@ public class ActivityIDTest extends AbstractTest {
     @AfterEach
     public void clearActivityId() {
         ActivityCorrelator.clear();
+    }
+    
+    @AfterAll
+    public static void teardown() throws Exception {
+        String ActivityIDTraceOff = Util.ActivityIdTraceProperty + "=off";
+        try (InputStream is = new ByteArrayInputStream(ActivityIDTraceOff.getBytes());) {
+            LogManager lm = LogManager.getLogManager();
+            lm.readConfiguration(is);
+        }
     }
     
     @BeforeAll
