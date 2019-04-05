@@ -31,16 +31,16 @@ import mssql.security.provider.MD4;
  *      Authentication Protocol</a>
  */
 final class NTLMAuthentication extends SSPIAuthentication {
-    private final static java.util.logging.Logger logger = java.util.logging.Logger
+    private final java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.NTLMAuthentication");
 
     /**
      * Section 2.2.1.1 NEGOTIATE_MESSAGE
-     * 
+     *
      * Section 2.2.1.2 CHALLENGE_MESSAGE
-     * 
+     *
      * Section 2.2.1.3 AUTHENCIATE_MESSAGE
-     * 
+     *
      * NTLM signature for all 3 messages - "NTLMSSP\0"
      */
     private final byte[] NTLM_HEADER_SIGNATURE = {0x4e, 0x54, 0x4c, 0x4d, 0x53, 0x53, 0x50, 0x00};
@@ -62,10 +62,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Section 2.2.2.7 NTLM v2: NTLMv2_CLIENT_CHALLENGE
-     * 
+     *
      * <pre>
      * Reserved1  SHOULD be 0x0000
-     * Reserved2  SHOULD be 0x00000000  
+     * Reserved2  SHOULD be 0x00000000
      * Reserved3  SHOULD be 0x00000000
      * </pre>
      */
@@ -78,13 +78,13 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * 
      * If NTLM v2 authentication is used and the CHALLENGE_MESSAGE TargetInfo field (section 2.2.1.2) has an
      * MsvAvTimestamp present, the client SHOULD NOT send the LmChallengeResponse and SHOULD send Z(24) instead.
-     * 
+     *
      * Section 2.2.2.1 AV_PAIR
-     * 
+     *
      * MsvAvTimestamp is always sent in the CHALLENGE_MESSAGE.
-     * 
+     *
      * Section 7 Appendix B: Product Behavior
-     * 
+     *
      * MsvAvTimestamp AV_PAIR type is not supported in Windows NT, Windows 2000, Windows XP, and Windows Server 2003.
      */
     private final byte[] NTLM_LMCHALLENAGERESPONSE = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -92,14 +92,14 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Section 2.2.2.10 VERSION
-     * 
+     *
      * used for debugging purposes only and its value does not affect NTLM message processing
      */
     private final byte[] NTLMSSP_VERSION = new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
     /**
      * Section 2.2.5 NEGOTIATE
-     * 
+     *
      * <pre>
      * NTLM negotiate flags
      * NTLMSSP_NEGOTIATE_UNICODE                  A bit requests unicode character set encoding
@@ -108,7 +108,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED L bit indicates whether the Workstation field is present
      * NTLMSSP_NEGOTIATE_TARGET_INFO              S bit indicates whether the TargetInfo fields are populated
      * NTLMSSP_NEGOTIATE_ALWAYS_SIGN              M bit requests the presence of a signature block on all messages.
-     * 
+     *
      * Note - This is not specified in spec but NTLMSSP_NEGOTIATE_ALWAYS_SIGN is required for server to verify MIC!!
      *        If not set, server ignores MIC field even tho MSVAVFLAGS is set!!
      * </pre>
@@ -122,7 +122,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Section 2.2.2.1 AV_PAIR
-     * 
+     *
      * <pre>
      * AAvId (2bytes)
      * A 16-bit unsigned integer that defines the information type in the Value field. The contents of this field MUST
@@ -153,7 +153,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Section 2.2.2.1 AV_PAIR
-     * 
+     *
      * value of NTLM_AVID_MSVAVFLAGS that indicates a MIC is provided
      * 
      * Section 3.1.5.1.2 Client Receives a CHALLENGE_MESSAGE from the Server
@@ -181,7 +181,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Section 2.2.1.3 AUTHENTICATE_MESSAGE
-     * 
+     *
      * <pre>
      * offsets in Authenticate message
      *     8 (signature) + 
@@ -230,13 +230,13 @@ final class NTLMAuthentication extends SSPIAuthentication {
         private Mac mac = null;
 
         // negotiate flags from Challenge msg
-        long negotiateFlags = 0x00000000;
+        private long negotiateFlags = 0x00000000;
 
         // session key calculated from password
-        byte[] sessionBaseKey = null;
+        private byte[] sessionBaseKey = null;
 
         // Windows FileTime timestamp - number of 100 nanosecond ticks since Windows Epoch time
-        byte[] timestamp = null;
+        private byte[] timestamp = null;
 
         // output token
         private ByteBuffer token = null;
@@ -257,15 +257,16 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         /**
          * Creates an NTLM client context
-         * 
+         *
          * @param con
          * @param serverName
          * @param domainName
          * @param workstation
+         * @return NTLM client context
          * @throws SQLServerException
          */
-        NTLMContext(SQLServerConnection con, String serverName, String domainName,
-                String workstation) throws SQLServerException {
+        NTLMContext(final SQLServerConnection con, final String serverName, final String domainName,
+                final String workstation) throws SQLServerException {
 
             // get server FQDN
             String serverFqdn = "\0";
@@ -314,15 +315,15 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Creates an instance of the NTLM authentication
-     * 
+     *
      * @param con
-     *        connection
+     * @param serverName
      * @param domainName
-     *        domain name to connect to
+     * @param workstation
      * @throws SQLServerException
      */
-    NTLMAuthentication(SQLServerConnection con, String serverName, String domainName,
-            String workstation) throws SQLServerException {
+    NTLMAuthentication(final SQLServerConnection con, final String serverName, final String domainName,
+            final String workstation) throws SQLServerException {
         if (null == context) {
             this.context = new NTLMContext(con, serverName, domainName, workstation);
         }
@@ -330,7 +331,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Generates the NTLM client context
-     * 
+     *
      * @see com.microsoft.sqlserver.jdbc.SSPIAuthentication#generateClientContext(byte[], boolean[])
      * @param inToken
      *        SSPI input blob
@@ -340,14 +341,14 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @throws SQLServerException
      */
     @Override
-    byte[] generateClientContext(byte[] inToken, boolean[] done) throws SQLServerException {
+    byte[] generateClientContext(final byte[] inToken, final boolean[] done) throws SQLServerException {
 
         return initializeSecurityContext(inToken, done);
     }
 
     /**
      * Releases the NTLM client context
-     * 
+     *
      * @see com.microsoft.sqlserver.jdbc.SSPIAuthentication#releaseClientContext()
      * @throws SQLServerException
      */
@@ -359,14 +360,14 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Parses the Type 2 NTLM Challenge message from server
-     * 
+     *
      * Section 2.2.1.2 CHALLENGE_MESSAGE
-     * 
+     *
      * @param inToken
      *        SSPI input blob
      * @throws SQLServerException
      */
-    private void parseNtlmChallenge(byte[] inToken) throws SQLServerException {
+    private void parseNtlmChallenge(final byte[] inToken) throws SQLServerException {
 
         context.token = ByteBuffer.wrap(inToken).order(ByteOrder.LITTLE_ENDIAN);
 
@@ -375,7 +376,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.get(signature);
         if (!Arrays.equals(signature, NTLM_HEADER_SIGNATURE)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmSignatureError"));
-            Object[] msgArgs = {(new String(signature))};
+            Object[] msgArgs = {new String(signature)};
             throw new SQLServerException(form.format(msgArgs), null);
         }
 
@@ -430,7 +431,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
             switch (id) {
                 // verify domain name
                 case NTLM_AVID_MSVAVDNSDOMAINNAME:
-                    if (!Arrays.equals(context.domainBytes, (new String(value).toUpperCase()).getBytes())) {
+                    if (!Arrays.equals(context.domainBytes, new String(value).toUpperCase().getBytes())) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadDomain"));
                         Object[] msgArgs = {new String(value), new String(context.domainBytes)};
 
@@ -440,7 +441,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
                     break;
                 case NTLM_AVID_MSVAVDNSCOMPUTERNAME:
                     // verify server name
-                    if (!Arrays.equals(context.serverNameBytes, (new String(value).toUpperCase()).getBytes())) {
+                    if (!Arrays.equals(context.serverNameBytes, new String(value).toUpperCase().getBytes())) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadComputer"));
                         Object[] msgArgs = {new String(value), new String(context.serverNameBytes)};
 
@@ -475,7 +476,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         /**
          * Section 2.2.2.1 AV_PAIR
-         * 
+         *
          * Section 7 Appendix B Product Behavior
          * 
          * This structure should always be sent in the CHALLENGE_MESSAGE not supported in Windows NT, Windows 2000,
@@ -493,7 +494,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Initializes the NTLM client security context
-     * 
+     *
      * @param inToken
      *        SSPI input blob
      * @param done
@@ -502,7 +503,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @throws SQLServerException
      * 
      */
-    private byte[] initializeSecurityContext(byte[] inToken, boolean[] done) throws SQLServerException {
+    private byte[] initializeSecurityContext(final byte[] inToken, final boolean[] done) throws SQLServerException {
 
         if (null == inToken || 0 == inToken.length) {
             return generateNtlmNegotiate();
@@ -518,7 +519,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Generates NTLMv2 Client Challenge blob
-     * 
+     *
      * <pre>
      * Section 2.2.2.7 NTLM v2: NTLMv2_CLIENT_CHALLENGE:
      *
@@ -532,12 +533,12 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *     ServerName,            CHALLENGE_MESSAGE.TargetInfo (from 3.1.5.1.2 Client Receives a CHALLENGE_MESSAGE from the Server)
      *     Z(4))                  EOL
      * </pre>
-     * 
+     *
      * @param clientNonce
      *        client challenge nonce
      * @return client challenge blob
      */
-    private byte[] genClientChallengeBlob(byte[] clientNonce) {
+    private byte[] genClientChallengeBlob(final byte[] clientNonce) {
 
         // timestamp is number of 100 nanosecond ticks since Windows Epoch
         ByteBuffer time = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
@@ -560,7 +561,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         /**
          * Section 3.1.5.1.2 Client Receives a CHALLENGE_MESSAGE from the Server
-         * 
+         *
          * If the CHALLENGE_MESSAGE TargetInfo field has an MsvAvTimestamp present, the client SHOULD provide a MIC
          */
         if (null == context.timestamp || 0 >= context.timestamp.length) {
@@ -589,7 +590,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Gets the HMAC MD5 hash
-     * 
+     *
      * @see <a href="https://www.ietf.org/rfc/rfc2104.txt">https://www.ietf.org/rfc/rfc2104.txt</a>
      * 
      * @param key
@@ -597,7 +598,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @return HMAC MD5 hash
      * @throws InvalidKeyException
      */
-    private byte[] hmacMD5(byte[] key, byte[] data) throws InvalidKeyException {
+    private byte[] hmacMD5(final byte[] key, final byte[] data) throws InvalidKeyException {
         SecretKeySpec keySpec = new SecretKeySpec(key, "HmacMD5");
         context.mac.init(keySpec);
         return context.mac.doFinal(data);
@@ -605,12 +606,12 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Gets the MD4 hash of input string
-     * 
+     *
      * @param str
      *        input string
      * @return MD4 hash
      */
-    private byte[] MD4(byte[] str) {
+    private byte[] MD4(final byte[] str) {
         MD4 md = new MD4();
         md.reset();
         md.update(str);
@@ -619,23 +620,23 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Gets the unicode of string
-     * 
+     *
      * @param str
      *        string to convert to unicode
      * @return unicode of string
      */
-    private byte[] unicode(String str) {
+    private byte[] unicode(final String str) {
         return str.getBytes(java.nio.charset.StandardCharsets.UTF_16LE);
     }
 
     /**
      * Concatenates 2 byte arrays
-     * 
+     *
      * @param arr1
      * @param arr2
      * @return concatenated array
      */
-    private byte[] concat(byte[] arr1, byte[] arr2) {
+    private byte[] concat(final byte[] arr1, final byte[] arr2) {
         if (null == arr1 || null == arr2) {
             return null;
         }
@@ -659,9 +660,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Computes the NT response and keys from the Challenge message
-     * 
+     *
      * Section 3.3.2 NTLM v2 Authentication
-     * 
+     *
      * <pre>
      * Set temp to ConcatenationOf(Responserversion, HiResponserversion, 
      * Z(6), Time, ClientChallenge, Z(4), ServerName, Z(4)) 
@@ -672,14 +673,14 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * ConcatenationOf(CHALLENGE_MESSAGE.ServerChallenge, ClientChallenge)), 
      * ClientChallenge )
      * </pre>
-     * 
+     *
      * @param responseKeyNT
      *        NT response hash key
      * @return computed response
-     * @throws InvalidKeyException,
-     *         NoSuchAlgorithmException
+     * @throws InvalidKeyException
+     * @throws NoSuchAlgorithmException
      */
-    private byte[] computeResponse(byte[] responseKeyNT) throws InvalidKeyException, NoSuchAlgorithmException {
+    private byte[] computeResponse(final byte[] responseKeyNT) throws InvalidKeyException, NoSuchAlgorithmException {
 
         // get random client challenge nonce
         byte[] clientNonce = new byte[NTLM_CLIENT_NONCE_LENGTH];
@@ -697,14 +698,14 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Generates the NT Challenge response to server Challenge
-     * 
+     *
      * Section 3.3.2 NTLM v2 Authentication
-     * 
+     *
      * @param clientNonce
      *        client challenge nonce
      * @return NT challenge response
-     * @throws InvalidKeyException,
-     *         NoSuchAlgorithmException
+     * @throws InvalidKeyException
+     * @throws NoSuchAlgorithmException
      */
     private byte[] getNtChallengeResp() throws InvalidKeyException, NoSuchAlgorithmException {
         byte[] responseKeyNT = ntowfv2();
@@ -713,9 +714,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Generates the Type 3 NTLM Authentication message
-     * 
+     *
      * Section 2.2.1.3 AUTHENTICATE_MESSAGE
-     * 
+     *
      * @return NTLM Authenticate message
      * @throws SQLServerException
      */
@@ -824,9 +825,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     /**
      * Generates the Type 1 NTLM Negotiate message
-     * 
+     *
      * Section 2.2.1.1 NEGOTIATE_MESSAGE
-     * 
+     *
      * @return NTLM Negotiate message
      */
     private byte[] generateNtlmNegotiate() {
