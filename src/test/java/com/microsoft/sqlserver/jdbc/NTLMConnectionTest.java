@@ -52,7 +52,16 @@ public class NTLMConnectionTest extends AbstractTest {
     private static String connectionStringNTLM = connectionString;
 
     private static String serverFqdn;
-    private static byte[] serverBytes;
+
+    private static final int NTLM_CHALLENGE_SIGNATURE_OFFSET = 0;
+    private static final int NTLM_CHALLENGE_MESSAGETYPE_OFFSET = 8;
+
+    private static final int NTLM_CHALLENGE_TARGETINFOLEN_OFFSET = 40;
+    private static final int NTLM_CHALLENGE_TARGETINFO_OFFSET = 68;
+
+    private static final int NTLM_CHALLENGE_MSVAVDNSDOMAINNAME_OFFSET = NTLM_CHALLENGE_TARGETINFO_OFFSET + 54;
+    private static final int NTLM_CHALLENGE_MSVAVDNSCOMPUTERNAME_OFFSET = NTLM_CHALLENGE_TARGETINFO_OFFSET + 78;
+    private static final int NTLM_CHALLENGE_MSVAVTIMESTAMP_OFFSET = -14;
 
     private static java.util.logging.Logger ntlmLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.NTLMAuthentication");
@@ -187,8 +196,9 @@ public class NTLMConnectionTest extends AbstractTest {
     }
 
     /**
-     * TODO: random timeout failure with this test Validates that loginTimeout connection property works with NTLM
-     * authentication.
+     * TODO: random timeout failure with this test
+     * 
+     * Validates that loginTimeout connection property works with NTLM authentication.
      */
     // @Test
     public void testNTLMLoginTimeout() {
@@ -210,6 +220,11 @@ public class NTLMConnectionTest extends AbstractTest {
     }
 
     @Test
+    /**
+     * Test NTLM connection with IP address
+     * 
+     * @throws SQLException
+     */
     public void testNTLMipAddr() throws SQLException {
         if (ntlmPropsDefined) {
             String ipAddr;
@@ -226,6 +241,11 @@ public class NTLMConnectionTest extends AbstractTest {
     }
 
     @Test
+    /**
+     * Test Bad NTLM Initialization
+     * 
+     * @throws SQLException
+     */
     public void testNTLMBadInit() throws SQLException {
         try {
             SSPIAuthentication auth = new NTLMAuthentication(new SQLServerConnection(""), "serverName", "domainName",
@@ -236,11 +256,11 @@ public class NTLMConnectionTest extends AbstractTest {
     }
 
     /**
-     * The following testNTLMBad* tests use a hardcoded challenge message token as follows and modifies the fields
+     * The following testNTLMBad* tests use the following hardcoded challenge message token and modifies the fields
      * tested to trigger errors.
      * 
      * <pre>
-     * The good token to start: 
+     * A good challenge token to start: 
      * {
      * 78, 84, 76, 77, 83, 83, 80, 0,                                               // NTLMSSP\0
      * 2, 0, 0, 0,                                                                  // messageType (2 for challenge msg)              
@@ -265,8 +285,8 @@ public class NTLMConnectionTest extends AbstractTest {
      * 20, 0,                                                                       // MsvAvDnsDomainName avlen
      * 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77, 0, 69, 0,        // domain name
      * 3, 0,                                                                        // MsvAvDnsComputerName avid
-     * [filed in test]                                                              // MsvAvDnsComputerName len                                     
-     * [filed in test]                                                              // computer name
+     * [filled in test]                                                             // MsvAvDnsComputerName len                                     
+     * [filled in test]                                                             // computer name
      * 5, 0,                                                                        // MsvAvDnsTreeName avid
      * 18, 0,                                                                       // MsvAvDnsTreeName avlen
      * 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100, 0,          // tree name
@@ -276,37 +296,35 @@ public class NTLMConnectionTest extends AbstractTest {
      * 0, 0, 0, 0                                                                   // MsvAvEOL avid
      * };
      * 
-     * challengeTokenPart1 is everything up to MsvAvDnsComputerName id 
-     * test will then fill in server name from connection string
-     * challengeTokenPart2 is everything after MsvAvDnsComputerName value
+     * challengeTokenPart1 is everything up to targetinfo
+     * challengeTargetInfo1 is everything in targetinfo up to MsvAvDnsComputerName id
+     * challengeTargetInfo2 is everything in targetinfo after computer (server) name
      * </pre>
      */
-    private byte[] challengeTokenPart1 = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21,
-            -126, -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -96, 0, -96, 0, 68, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 2, 0, 12, 0, 71, 0, 65, 0, 76, 0, 65, 0, 88,
-            0, 89, 0, 1, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 4, 0, 20, 0, 68, 0, 79, 0, 77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77, 0, 69, 0, 3, 0};
+    private byte[] challengeToken1stPart = {78, 84, 76, 77, 83, 83, 80, 0, 2, 0, 0, 0, 12, 0, 12, 0, 56, 0, 0, 0, 21,
+            -126, -127, 2, 78, -76, 68, 118, 41, -30, -71, 100, 0, 0, 0, 0, 0, 0, 0, 0, -88, 0, -88, 0, 68, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0};
 
-    private byte[] challengeTokenPart2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100,
+    private byte[] challengeTargetInfo1 = {2, 0, 12, 0, 71, 0, 65, 0, 76, 0, 65, 0, 88, 0, 89, 0, 1, 0, 30, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 20, 0, 68, 0, 79, 0,
+            77, 0, 65, 0, 73, 0, 78, 0, 78, 0, 65, 0, 77, 0, 69, 0, 3, 0};
+
+    private byte[] challengeTargetInfo2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100,
             0, 7, 0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
 
     @Test
     public void testNTLMBadSignature() throws SQLException {
         if (ntlmPropsDefined) {
             try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
-
                 getServerFqdn(conn);
                 SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
                 boolean[] done = {false};
 
                 try {
-                    // modify token with a bad signature
                     byte[] badSignature = {0, 0, 0, 0, 0, 0, 0, 0};
-                    ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
-                    badToken.put(badSignature);
+                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_SIGNATURE_OFFSET, badSignature);
 
-                    auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
-
+                    auth.generateClientContext(badToken, done);
                 } catch (Exception e) {
                     assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmSignatureError")));
                 }
@@ -323,13 +341,10 @@ public class NTLMConnectionTest extends AbstractTest {
                 boolean[] done = {false};
 
                 try {
-                    // modify with a bad message type
                     byte[] badMessageType = {0, 0, 0, 0};
-                    ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
-                    badToken.position(8);
-                    badToken.put(badMessageType);
+                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_MESSAGETYPE_OFFSET, badMessageType);
 
-                    auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
+                    auth.generateClientContext(badToken, done);
 
                 } catch (Exception e) {
                     assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmMessageTypeError")));
@@ -339,20 +354,18 @@ public class NTLMConnectionTest extends AbstractTest {
     }
 
     @Test
-    public void testNTLMBadTargetInfo() throws SQLException {
+    public void testNTLMBadTargetInfoLen() throws SQLException {
         if (ntlmPropsDefined) {
             try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
                 getServerFqdn(conn);
                 SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
                 boolean[] done = {false};
-                try {
-                    // modify token with a bad target info len
-                    byte[] badTargetInfoLen = {0, 0};
-                    ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
-                    badToken.position(40);
-                    badToken.put(badTargetInfoLen);
 
-                    auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
+                try {
+                    byte[] badTargetInfoLen = {0, 0};
+                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_TARGETINFOLEN_OFFSET, badTargetInfoLen);
+
+                    auth.generateClientContext(badToken, done);
 
                 } catch (Exception e) {
                     assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTargetInfo")));
@@ -372,13 +385,10 @@ public class NTLMConnectionTest extends AbstractTest {
                 boolean[] done = {false};
 
                 try {
-                    // modify token with bad domain
                     byte[] badDomain = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                    ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
-                    badToken.position(124);
-                    badToken.put(badDomain);
+                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_MSVAVDNSDOMAINNAME_OFFSET, badDomain);
 
-                    auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
+                    auth.generateClientContext(badToken, done);
 
                 } catch (Exception e) {
                     // this should just generate a warning but not fail
@@ -386,13 +396,14 @@ public class NTLMConnectionTest extends AbstractTest {
                 }
             }
 
+            // verify message was logged
             handler.flush();
             assertTrue(loggerContent.toString().matches(TestUtils.formatErrorMsg("R_ntlmBadDomain")));
         }
     }
 
     @Test
-    public void testNTLMBadComputerMame() throws SQLException {
+    public void testNTLMBadComputerName() throws SQLException {
         if (ntlmPropsDefined) {
             loggerContent.reset();
 
@@ -403,18 +414,16 @@ public class NTLMConnectionTest extends AbstractTest {
                 try {
                     // modify token with bad computer name
                     byte[] badComputer = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-                    ByteBuffer badToken = ByteBuffer.wrap(getChallengeToken(challengeTokenPart1, challengeTokenPart2))
-                            .order(ByteOrder.LITTLE_ENDIAN);
-                    badToken.position(148);
-                    badToken.put(badComputer);
+                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_MSVAVDNSCOMPUTERNAME_OFFSET, badComputer);
 
-                    auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
+                    auth.generateClientContext(badToken, done);
 
                 } catch (Exception e) {
                     // this should just generate a warning but not fail
                     fail(e.getMessage());
                 }
 
+                // verify message was logged
                 handler.flush();
                 assertTrue(loggerContent.toString().matches(TestUtils.formatErrorMsg("R_ntlmBadComputer")));
             }
@@ -429,13 +438,10 @@ public class NTLMConnectionTest extends AbstractTest {
                 SSPIAuthentication auth = new NTLMAuthentication(conn, serverFqdn, "domainName", "hostname");
                 boolean[] done = {false};
                 try {
-                    // modify token with bad avid
                     byte[] badAvid = {-1, 0};
-                    ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart1).order(ByteOrder.LITTLE_ENDIAN);
-                    badToken.position(68);
-                    badToken.put(badAvid);
+                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_TARGETINFO_OFFSET, badAvid);
 
-                    auth.generateClientContext(getChallengeToken(badToken.array(), challengeTokenPart2), done);
+                    auth.generateClientContext(badToken, done);
 
                 } catch (Exception e) {
                     assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownValue")));
@@ -455,13 +461,11 @@ public class NTLMConnectionTest extends AbstractTest {
                 boolean[] done = {false};
 
                 try {
-                    // modify token with no timestamp
-                    byte[] badTimestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                    ByteBuffer badToken = ByteBuffer.wrap(challengeTokenPart2).order(ByteOrder.LITTLE_ENDIAN);
-                    badToken.position(24);
-                    badToken.put(badTimestamp);
 
-                    auth.generateClientContext(getChallengeToken(challengeTokenPart1, badToken.array()), done);
+                    byte[] badTimestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_MSVAVTIMESTAMP_OFFSET, badTimestamp);
+
+                    auth.generateClientContext(badToken, done);
 
                 } catch (Exception e) {
                     // this should just generate a warning but not fail
@@ -469,13 +473,9 @@ public class NTLMConnectionTest extends AbstractTest {
                 }
             }
 
+            // verify message was logged
             handler.flush();
-            // System.out.println("done1: [" + loggerContent.toString() + "]");
-            // System.out.println("error: "+SQLServerException.getErrString("R_ntlmNoTimestamp"));
-
-            assertTrue(loggerContent.toString().matches(SQLServerException.getErrString("R_ntlmNoTimestamp")));
-
-            // ntlmLogger.removeHandler(handler);
+            assertTrue(loggerContent.toString().matches(TestUtils.formatErrorMsg("R_ntlmNoTimestamp")));
         }
     }
 
@@ -490,24 +490,54 @@ public class NTLMConnectionTest extends AbstractTest {
             fail("Error getting server FQDN: " + e.getMessage());
             e.printStackTrace();
         }
-        serverBytes = serverFqdn.getBytes(java.nio.charset.StandardCharsets.UTF_16LE);
     }
 
-    /*
-     * Get combined challenge token for testNTLMBad* tests
+    /**
+     * Get bad challenge token for testNTLMBad* tests
+     * 
+     * @param offset
+     *        if > 0 offset from beginning of token if < 0 offset from end of token
+     * @param badBytes
+     *        bad bytes to write to the challenge token
+     * @return
      */
-    private byte[] getChallengeToken(byte[] token1, byte[] token2) {
+    private byte[] getChallengeToken(int offset, byte[] badBytes) {
+        byte[] serverBytes = serverFqdn.getBytes(java.nio.charset.StandardCharsets.UTF_16LE);
 
-        // add 4 for avlen
-        ByteBuffer token = ByteBuffer.allocate(token1.length + 4 + serverBytes.length + token2.length)
-                .order(ByteOrder.LITTLE_ENDIAN);
-        token.put(token1);
+        // add 4 for MSVAVDNSCOMPUTERNAME avlen
+        int targetInfoLen = challengeTargetInfo1.length + 4 + serverBytes.length + challengeTargetInfo2.length;
+        int tokenLen = challengeToken1stPart.length + targetInfoLen;
+
+        ByteBuffer token = ByteBuffer.allocate(tokenLen).order(ByteOrder.LITTLE_ENDIAN);
+        token.put(challengeToken1stPart);
+
+        token.put(challengeTargetInfo1);
+
         token.putShort((short) serverBytes.length);
         token.put(serverBytes);
-        token.put(token2);
+
+        token.put(challengeTargetInfo2);
+
+        // update targetinfo len
+        token.position(NTLM_CHALLENGE_TARGETINFOLEN_OFFSET);
+        token.putShort((short) targetInfoLen); // len
+        token.putShort((short) targetInfoLen); // maxlen
+
+        // write bad bytes
+        if (0 <= offset) {
+            token.position(offset);
+            token.put(badBytes);
+        } else {
+            token.position(tokenLen + offset);
+            token.put(badBytes);
+        }
+
         return token.array();
     }
 
+    /*
+     * Test invalid properties
+     */
     private void testInvalidProperties(String connectionString, String resourceKeyword) {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             fail();
@@ -516,6 +546,9 @@ public class NTLMConnectionTest extends AbstractTest {
         }
     }
 
+    /*
+     * Verify NTLM authentication
+     */
     private void verifyNTLM(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt
                 .executeQuery("select auth_scheme from sys.dm_exec_connections where session_id=@@spid")) {
@@ -525,6 +558,9 @@ public class NTLMConnectionTest extends AbstractTest {
         }
     }
 
+    /*
+     * Verify Database name
+     */
     private void verifyDatabase(Connection conn, String databaseName) throws SQLException {
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT DB_NAME()")) {
             while (rs.next()) {
