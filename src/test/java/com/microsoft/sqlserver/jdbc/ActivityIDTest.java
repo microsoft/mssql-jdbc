@@ -55,7 +55,7 @@ public class ActivityIDTest extends AbstractTest {
     @Test
     public void testActivityIDPooled() throws Exception {
         int poolsize = 10;
-        int numPooledExecution = 20;
+        int numPooledExecution = 200;
         
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(connectionString);
@@ -87,9 +87,7 @@ public class ActivityIDTest extends AbstractTest {
                 } finally {
                     if (null != ds) {
                         es.shutdown();
-                        System.out.println("Thread " + Thread.currentThread().getId() + ": About to call ds.close()");
                         ds.close();
-                        System.out.println("Thread " + Thread.currentThread().getId() + ": ds.close() called.");
                     }
                 }
                 latchPoolOuterThread.countDown();
@@ -97,23 +95,8 @@ public class ActivityIDTest extends AbstractTest {
         });
         t.run();
         latchPoolOuterThread.await();
-        // Expect 1 entry to be left over, that corresponds to the outer thread that ran everything
-        System.out.println("Thread " + Thread.currentThread().getId() + ": Map before check: " + ActivityCorrelator.getActivityIdTlsMap());
-
-        try {
-            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
-            }
-        } catch (SQLException e) {
-            fail(e.toString());
-        }
-        
-        System.out.println("Thread " + Thread.currentThread().getId() + ": Map before check2: " + ActivityCorrelator.getActivityIdTlsMap());
-        try {
-            assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
-        } finally {
-            System.out.println("assertEquals has been completed");
-        }
+        ActivityCorrelator.cleanupActivityId();
+        assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
     }
     
     @Test
