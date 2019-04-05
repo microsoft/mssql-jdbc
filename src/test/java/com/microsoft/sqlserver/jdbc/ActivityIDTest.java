@@ -99,9 +99,21 @@ public class ActivityIDTest extends AbstractTest {
         latchPoolOuterThread.await();
         // Expect 1 entry to be left over, that corresponds to the outer thread that ran everything
         System.out.println("Thread " + Thread.currentThread().getId() + ": Map before check: " + ActivityCorrelator.getActivityIdTlsMap());
-//        ActivityCorrelator.cleanupActivityId();
+
+        try {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
+            }
+        } catch (SQLException e) {
+            fail(e.toString());
+        }
+        
         System.out.println("Thread " + Thread.currentThread().getId() + ": Map before check2: " + ActivityCorrelator.getActivityIdTlsMap());
-        assertEquals(1, ActivityCorrelator.getActivityIdTlsMap().size());
+        try {
+            assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
+        } finally {
+            System.out.println("assertEquals has been completed");
+        }
     }
     
     @Test
