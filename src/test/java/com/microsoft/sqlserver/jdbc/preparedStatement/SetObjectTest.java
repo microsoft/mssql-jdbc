@@ -224,8 +224,7 @@ public class SetObjectTest extends AbstractTest {
     }
 
     private void verifyDateTimeOffsetValues(Statement stmt, String query, DateTimeOffset dateTimeOffset,
-            OffsetDateTime offsetDateTime, String expectedDTOString,
-            String sqlDto) throws SQLServerException, SQLException {
+            OffsetDateTime offsetDateTime, String expectedDTOString, String sqlDto) throws SQLException {
         try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery(query)) {
             while (rs.next()) {
                 assertEquals(dateTimeOffset, rs.getObject(1));
