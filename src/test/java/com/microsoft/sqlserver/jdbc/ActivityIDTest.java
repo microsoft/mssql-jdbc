@@ -59,33 +59,44 @@ public class ActivityIDTest extends AbstractTest {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(connectionString);
         config.setMaximumPoolSize(poolsize);
-        HikariDataSource ds = new HikariDataSource(config);
-        try {
-            ExecutorService es = Executors.newFixedThreadPool(poolsize);
-            CountDownLatch latchPool = new CountDownLatch(numPooledExecution);
-            for (int i = 0; i < numPooledExecution; i++) {
-                es.execute(new Runnable() {
-                    public void run() {
-                        try {
-                            try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {
-                                stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
+        ExecutorService es = Executors.newFixedThreadPool(poolsize);
+        CountDownLatch latchPool = new CountDownLatch(numPooledExecution);
+        CountDownLatch latchPoolOuterThread = new CountDownLatch(1);
+        Thread t = new Thread(new Runnable() {
+            public void run() {
+                HikariDataSource ds = new HikariDataSource(config);
+                try {
+                    for (int i = 0; i < numPooledExecution; i++) {
+                        es.execute(new Runnable() {
+                            public void run() {
+                                try {
+                                    try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {
+                                        stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
+                                    }
+                                } catch (SQLException e) {
+                                    fail(e.toString());
+                                }
+                                latchPool.countDown();
                             }
-                        } catch (SQLException e) {
-                            fail(e.toString());
-                        }
-                        latchPool.countDown();
+                        });
                     }
-                });
+                    try {
+                        latchPool.await();
+                    } catch (InterruptedException e) {
+                        fail(e.toString());
+                    }
+                } finally {
+                    if (null != ds) {
+                        es.shutdown();
+                        ds.close();
+                    }
+                }
+                latchPoolOuterThread.countDown();
             }
-            latchPool.await();
-            es.shutdown();
-        } finally {
-            if (null != ds) {
-                ds.close();
-            }
-        }
-
-        // Expect one for HikariDS thread's entry
+        });
+        t.run();
+        latchPoolOuterThread.await();
+        // Expect 1 entry to be left over, that corresponds to the outer thread that ran everything
         assertEquals(1, ActivityCorrelator.getActivityIdTlsMap().size());
     }
     
