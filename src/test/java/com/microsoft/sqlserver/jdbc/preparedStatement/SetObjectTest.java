@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -205,46 +206,39 @@ public class SetObjectTest extends AbstractTest {
                         pstmt.setString(2, expectedDTOString);
                         pstmt.executeUpdate();
                     }
-                    
+
+                    String query = "SELECT dto FROM " + AbstractSQLGenerator.escapeIdentifier(tableName);
+                    verifyDateTimeOffsetValues(stmt, query, dateTimeOffset, offsetDateTime, expectedDTOString, sqlDto);
+
                     for (int i = 1; i <= 5; i++) {
-                        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
-                                .executeQuery("SELECT dto FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                                        + " WHERE id = " + i + " AND dto = '" + sqlDto + "'")) {
-                            while (rs.next()) {
-                                assertEquals(dateTimeOffset, rs.getObject(1));
-                                assertEquals(expectedDTOString, rs.getObject(1).toString());
-
-                                assertEquals(dateTimeOffset, rs.getDateTimeOffset(1));
-                                assertEquals(expectedDTOString, rs.getDateTimeOffset(1).toString());
-
-                                assertEquals(dateTimeOffset, rs.getObject(1, DateTimeOffset.class));
-                                assertEquals(expectedDTOString, rs.getObject(1, DateTimeOffset.class).toString());
-
-                                assertEquals(offsetDateTime, rs.getObject(1, OffsetDateTime.class));
-                                assertEquals(sqlDto, rs.getObject(1, OffsetDateTime.class).toString());
-                            }
-                        }
-                    }
-
-                    try (SQLServerResultSet rs = (SQLServerResultSet) stmt
-                            .executeQuery("SELECT dto FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-                        while (rs.next()) {
-                            assertEquals(dateTimeOffset, rs.getObject(1));
-                            assertEquals(expectedDTOString, rs.getObject(1).toString());
-
-                            assertEquals(dateTimeOffset, rs.getDateTimeOffset(1));
-                            assertEquals(expectedDTOString, rs.getDateTimeOffset(1).toString());
-
-                            assertEquals(dateTimeOffset, rs.getObject(1, DateTimeOffset.class));
-                            assertEquals(expectedDTOString, rs.getObject(1, DateTimeOffset.class).toString());
-
-                            assertEquals(offsetDateTime, rs.getObject(1, OffsetDateTime.class));
-                            assertEquals(sqlDto, rs.getObject(1, OffsetDateTime.class).toString());
-                        }
+                        query = "SELECT dto FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = "
+                                + i + " AND dto = '" + sqlDto + "'";
+                        verifyDateTimeOffsetValues(stmt, query, dateTimeOffset, offsetDateTime, expectedDTOString,
+                                sqlDto);
                     }
                 } finally {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 }
+            }
+        }
+    }
+
+    private void verifyDateTimeOffsetValues(Statement stmt, String query, DateTimeOffset dateTimeOffset,
+            OffsetDateTime offsetDateTime, String expectedDTOString,
+            String sqlDto) throws SQLServerException, SQLException {
+        try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery(query)) {
+            while (rs.next()) {
+                assertEquals(dateTimeOffset, rs.getObject(1));
+                assertEquals(expectedDTOString, rs.getObject(1).toString());
+
+                assertEquals(dateTimeOffset, rs.getDateTimeOffset(1));
+                assertEquals(expectedDTOString, rs.getDateTimeOffset(1).toString());
+
+                assertEquals(dateTimeOffset, rs.getObject(1, DateTimeOffset.class));
+                assertEquals(expectedDTOString, rs.getObject(1, DateTimeOffset.class).toString());
+
+                assertEquals(offsetDateTime, rs.getObject(1, OffsetDateTime.class));
+                assertEquals(sqlDto, rs.getObject(1, OffsetDateTime.class).toString());
             }
         }
     }
