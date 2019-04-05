@@ -200,10 +200,6 @@ public class LobsStreamingTest extends AbstractTest {
                     TestUtils.dropTableIfExists(tableName, stmt);
                 }
             }
-        } finally {
-            try (Statement stmt = connection.createStatement()) {
-                TestUtils.dropTableIfExists(tableName, stmt);
-            }
         }
     }
 
