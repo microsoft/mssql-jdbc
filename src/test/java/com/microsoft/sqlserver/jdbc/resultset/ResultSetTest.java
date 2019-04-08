@@ -514,7 +514,7 @@ public class ResultSetTest extends AbstractTest {
 
     @Test
     public void testMultipleResultSets() throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.execute(
                     "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1 int IDENTITY, c2 int)");
             String SQL = "exec sp_help 'dbo." + TestUtils.escapeSingleQuotes(tableName) + "'";

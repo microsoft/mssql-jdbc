@@ -1385,7 +1385,6 @@ public class SQLServerStatement implements ISQLServerStatement {
      * @return true if another result (ResultSet or update count) was available; false if there were no more results.
      */
     final boolean getNextResult(boolean clearFlag) throws SQLServerException {
-
         /**
          * TDS response token stream handler used to locate the next result in the TDS response token stream.
          */
