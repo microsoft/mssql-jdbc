@@ -68,7 +68,6 @@ public class ActivityIDTest extends AbstractTest {
         CountDownLatch latchPoolOuterThread = new CountDownLatch(1);
         Thread t = new Thread(new Runnable() {
             CountDownLatch latchPool = new CountDownLatch(numPooledExecution);
-
             public void run() {
                 HikariDataSource ds = new HikariDataSource(config);
                 es.execute(() -> {
