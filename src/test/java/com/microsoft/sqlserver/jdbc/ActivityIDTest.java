@@ -8,13 +8,16 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 import javax.sql.PooledConnection;
 
+import org.junit.ComparisonFailure;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,6 +32,8 @@ import com.zaxxer.hikari.HikariDataSource;
 
 @RunWith(JUnitPlatform.class)
 public class ActivityIDTest extends AbstractTest {
+    
+    static final Logger logger = Logger.getLogger("ActivityIDTest");
     
     @Test
     public void testActivityID() throws Exception {
@@ -103,7 +108,19 @@ public class ActivityIDTest extends AbstractTest {
         } catch (SQLException e) {
             fail(e.toString());
         }
-        assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
+        
+        try {
+            assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
+        } catch (ComparisonFailure e) {
+            Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+            logger.fine("List of threads alive:");
+            for (Thread thread: threadSet) {
+                logger.fine(String.valueOf(thread.getId()));
+            }
+            logger.fine("List of entries in the ActivityID map:");
+            logger.fine(ActivityCorrelator.getActivityIdTlsMap().toString());
+            throw new Exception(e);
+        }
     }
     
     @Test
