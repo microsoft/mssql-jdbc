@@ -31,7 +31,7 @@ final class Util {
     final static char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
     final static String WSIDNotAvailable = ""; // default string when WSID is not available
 
-    final static String ActivityIdTraceProperty = "com.microsoft.sqlserver.jdbc.traceactivity";
+    final static String ACTIVITY_ID_TRACE_PROPERTY = "com.microsoft.sqlserver.jdbc.traceactivity";
 
     // The JRE is identified by the string below so that the driver can make
     // any vendor or version specific decisions
@@ -769,7 +769,7 @@ final class Util {
 
     static boolean isActivityTraceOn() {
         LogManager lm = LogManager.getLogManager();
-        String activityTrace = lm.getProperty(ActivityIdTraceProperty);
+        String activityTrace = lm.getProperty(ACTIVITY_ID_TRACE_PROPERTY);
         return ("on".equalsIgnoreCase(activityTrace));
     }
 

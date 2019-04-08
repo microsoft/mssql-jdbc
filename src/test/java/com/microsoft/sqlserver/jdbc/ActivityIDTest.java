@@ -149,7 +149,7 @@ public class ActivityIDTest extends AbstractTest {
 
     @AfterAll
     public static void teardown() throws Exception {
-        String activityIDTraceOff = Util.ActivityIdTraceProperty + "=off";
+        String activityIDTraceOff = Util.ACTIVITY_ID_TRACE_PROPERTY + "=off";
         try (InputStream is = new ByteArrayInputStream(activityIDTraceOff.getBytes());) {
             LogManager lm = LogManager.getLogManager();
             lm.readConfiguration(is);
@@ -158,7 +158,7 @@ public class ActivityIDTest extends AbstractTest {
 
     @BeforeAll
     public static void testSetup() throws Exception {
-        String activityIDTraceOn = Util.ActivityIdTraceProperty + "=on";
+        String activityIDTraceOn = Util.ACTIVITY_ID_TRACE_PROPERTY + "=on";
         try (InputStream is = new ByteArrayInputStream(activityIDTraceOn.getBytes());) {
             LogManager lm = LogManager.getLogManager();
             lm.readConfiguration(is);
