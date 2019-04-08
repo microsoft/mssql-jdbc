@@ -45,4 +45,27 @@ public final class SQLServerDataColumn {
     public int getColumnType() {
         return javaSqlType;
     }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 31 * hash + javaSqlType;
+        hash = 31 * hash + precision;
+        hash = 31 * hash + scale;
+        hash = 31 * hash + numberOfDigitsIntegerPart;
+        hash = 31 * hash + (null != columnName ? columnName.hashCode() : 0);
+        return hash;
+    }
+
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (null != object && object instanceof SQLServerDataColumn) {
+            if (hashCode() == ((SQLServerDataColumn) object).hashCode())
+                return true;
+        }
+        return false;
+    }
 }

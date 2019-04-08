@@ -53,6 +53,7 @@ public final class SQLServerDataTable {
         rowCount = 0;
         columnCount = 0;
         columnMetadata.clear();
+        columnNames.clear(); 
         rows.clear();
     }
 
@@ -323,5 +324,28 @@ public final class SQLServerDataTable {
      */
     public void setTvpName(String tvpName) {
         this.tvpName = tvpName;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 31 * hash + rowCount;
+        hash = 31 * hash + columnCount;
+        hash = 31 * hash + (null != columnMetadata ? columnMetadata.hashCode() : 0);
+        hash = 31 * hash + (null != columnNames ? columnNames.hashCode() : 0);
+        hash = 31 * hash + (null != rows ? rows.hashCode() : 0);
+        return hash;
+    }
+
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (null != object && object instanceof SQLServerDataTable) {
+            if (hashCode() == ((SQLServerDataTable) object).hashCode())
+                return true;
+        }
+        return false;
     }
 }
