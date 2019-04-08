@@ -156,7 +156,7 @@ public final class SQLServerException extends java.sql.SQLException {
         super(errText, errState, errNum);
         initCause(cause);
         logException(null, errText, true);
-        if (Util.IsActivityTraceOn()) {
+        if (Util.isActivityTraceOn()) {
             // set the activityid flag so that we don't send the current  ActivityId later.
             ActivityCorrelator.setCurrentActivityIdSentFlag(); 
         }
@@ -166,7 +166,7 @@ public final class SQLServerException extends java.sql.SQLException {
         super(errText);
         initCause(cause);
         logException(null, errText, true);
-        if (Util.IsActivityTraceOn()) {
+        if (Util.isActivityTraceOn()) {
             ActivityCorrelator.setCurrentActivityIdSentFlag(); 
         }
     }
@@ -174,7 +174,7 @@ public final class SQLServerException extends java.sql.SQLException {
     SQLServerException(Object obj, String errText, String errState, int errNum, boolean bStack) {
         super(errText, errState, errNum);
         logException(obj, errText, bStack);
-        if (Util.IsActivityTraceOn()) {
+        if (Util.isActivityTraceOn()) {
             ActivityCorrelator.setCurrentActivityIdSentFlag(); 
         }
     }

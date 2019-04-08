@@ -17,19 +17,10 @@ final class ActivityCorrelator {
 
     private static Map<Long, ActivityId> activityIdTlsMap = new ConcurrentHashMap<>();
 
-    static void clear() {
-        if (null != activityIdTlsMap) {
-            activityIdTlsMap.clear();
-        }
-    }
-    
     static void cleanupActivityId() {
         // remove ActivityIds that belongs to this thread or no longer have an associated thread.
-        activityIdTlsMap.entrySet().removeIf(e ->
-                e.getValue() == null ||
-                e.getValue().getThread() == null ||
-                e.getValue().getThread() == Thread.currentThread() ||
-                !e.getValue().getThread().isAlive());
+        activityIdTlsMap.entrySet().removeIf(e -> e.getValue() == null || e.getValue().getThread() == null
+                || e.getValue().getThread() == Thread.currentThread() || !e.getValue().getThread().isAlive());
     }
 
     // Get the current ActivityId in TLS
@@ -39,7 +30,7 @@ final class ActivityCorrelator {
         if (!activityIdTlsMap.containsKey(thread.getId())) {
             activityIdTlsMap.put(thread.getId(), new ActivityId(thread));
         }
-        
+
         return activityIdTlsMap.get(thread.getId());
     }
 
@@ -59,11 +50,11 @@ final class ActivityCorrelator {
         ActivityId activityId = getCurrent();
         activityId.setSentFlag();
     }
-    
+
     static Map<Long, ActivityId> getActivityIdTlsMap() {
         return activityIdTlsMap;
     }
-    
+
     /*
      * Prevent instantiation.
      */
@@ -83,7 +74,7 @@ class ActivityId {
         sequence = 0;
         isSentToServer = false;
     }
-    
+
     Thread getThread() {
         return thread;
     }

@@ -14,7 +14,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.LogManager;
-import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
 import javax.sql.PooledConnection;
@@ -30,11 +29,10 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
+
 @RunWith(JUnitPlatform.class)
 public class ActivityIDTest extends AbstractTest {
-    
-    static final Logger logger = Logger.getLogger("ActivityIDTest");
-    
+
     @Test
     public void testActivityID() throws Exception {
         int numExecution = 20;
@@ -57,12 +55,12 @@ public class ActivityIDTest extends AbstractTest {
         es.shutdown();
         assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
     }
-    
+
     @Test
     public void testActivityIDPooled() throws Exception {
         int poolsize = 10;
         int numPooledExecution = 200;
-        
+
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(connectionString);
         config.setMaximumPoolSize(poolsize);
@@ -70,21 +68,22 @@ public class ActivityIDTest extends AbstractTest {
         CountDownLatch latchPoolOuterThread = new CountDownLatch(1);
         Thread t = new Thread(new Runnable() {
             CountDownLatch latchPool = new CountDownLatch(numPooledExecution);
+
             public void run() {
                 HikariDataSource ds = new HikariDataSource(config);
-                    es.execute(() -> {
-                        IntStream.range(0, numPooledExecution).forEach(i -> {
-                            try (Connection c = ds.getConnection(); Statement s = c.createStatement();
-                                    ResultSet rs = s.executeQuery("SELECT @@VERSION AS 'SQL Server Version'")) {
-                                while (rs.next()) {
-                                    rs.getString(1);
-                                }
-                            } catch (SQLException e) {
-                                fail(e.toString());
+                es.execute(() -> {
+                    IntStream.range(0, numPooledExecution).forEach(i -> {
+                        try (Connection c = ds.getConnection(); Statement s = c.createStatement();
+                                ResultSet rs = s.executeQuery("SELECT @@VERSION AS 'SQL Server Version'")) {
+                            while (rs.next()) {
+                                rs.getString(1);
                             }
-                            latchPool.countDown();
-                        });
+                        } catch (SQLException e) {
+                            fail(e.toString());
+                        }
+                        latchPool.countDown();
                     });
+                });
                 try {
                     latchPool.await();
                 } catch (InterruptedException e) {
@@ -100,7 +99,7 @@ public class ActivityIDTest extends AbstractTest {
         });
         t.run();
         latchPoolOuterThread.await();
-        
+
         try {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
@@ -108,21 +107,21 @@ public class ActivityIDTest extends AbstractTest {
         } catch (SQLException e) {
             fail(e.toString());
         }
-        
+
         try {
             assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
         } catch (ComparisonFailure e) {
             Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
-            logger.fine("List of threads alive:");
-            for (Thread thread: threadSet) {
-                logger.fine(thread.toString());
+            System.out.println("List of threads alive:");
+            for (Thread thread : threadSet) {
+                System.out.println(thread.toString());
             }
-            logger.fine("List of entries in the ActivityID map:");
-            logger.fine(ActivityCorrelator.getActivityIdTlsMap().toString());
-            throw new Exception(e);
+            System.out.println("List of entries in the ActivityID map:");
+            System.out.println(ActivityCorrelator.getActivityIdTlsMap().toString());
+            fail(e.toString());
         }
     }
-    
+
     @Test
     public void testActivityIDPooledConnection() throws Exception {
         int poolsize = 10;
@@ -134,9 +133,8 @@ public class ActivityIDTest extends AbstractTest {
             CountDownLatch latchPool = new CountDownLatch(numPooledExecution);
             es.execute(() -> {
                 IntStream.range(0, numPooledExecution).forEach(i -> {
-                    try (Connection c = pooledCon.getConnection(); Statement s = c.createStatement();
-                            ResultSet rs = s.executeQuery("SELECT @@VERSION AS 'SQL Server Version'")) {
-                    } catch (SQLException e) {
+                    try (Connection c = pooledCon.getConnection(); Statement s = c.createStatement(); ResultSet rs = s
+                            .executeQuery("SELECT @@VERSION AS 'SQL Server Version'")) {} catch (SQLException e) {
                         fail(e.toString());
                     }
                     latchPool.countDown();
@@ -149,23 +147,22 @@ public class ActivityIDTest extends AbstractTest {
         }
         assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
     }
-    
+
     @AfterAll
     public static void teardown() throws Exception {
-        String ActivityIDTraceOff = Util.ActivityIdTraceProperty + "=off";
-        try (InputStream is = new ByteArrayInputStream(ActivityIDTraceOff.getBytes());) {
+        String activityIDTraceOff = Util.ActivityIdTraceProperty + "=off";
+        try (InputStream is = new ByteArrayInputStream(activityIDTraceOff.getBytes());) {
             LogManager lm = LogManager.getLogManager();
             lm.readConfiguration(is);
         }
     }
-    
+
     @BeforeAll
     public static void testSetup() throws Exception {
-        String ActivityIDTraceOn = Util.ActivityIdTraceProperty + "=on";
-        try (InputStream is = new ByteArrayInputStream(ActivityIDTraceOn.getBytes());) {
+        String activityIDTraceOn = Util.ActivityIdTraceProperty + "=on";
+        try (InputStream is = new ByteArrayInputStream(activityIDTraceOn.getBytes());) {
             LogManager lm = LogManager.getLogManager();
             lm.readConfiguration(is);
         }
     }
 }
-

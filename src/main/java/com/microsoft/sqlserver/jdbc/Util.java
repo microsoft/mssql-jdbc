@@ -767,7 +767,7 @@ final class Util {
         return sb.toString();
     }
 
-    static boolean IsActivityTraceOn() {
+    static boolean isActivityTraceOn() {
         LogManager lm = LogManager.getLogManager();
         String activityTrace = lm.getProperty(ActivityIdTraceProperty);
         return ("on".equalsIgnoreCase(activityTrace));
