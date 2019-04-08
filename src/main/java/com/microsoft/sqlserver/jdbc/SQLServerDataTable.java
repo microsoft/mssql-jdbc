@@ -53,6 +53,7 @@ public final class SQLServerDataTable {
         rowCount = 0;
         columnCount = 0;
         columnMetadata.clear();
+        columnNames.clear();
         rows.clear();
     }
 
