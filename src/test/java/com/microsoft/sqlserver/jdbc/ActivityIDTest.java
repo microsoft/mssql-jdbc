@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Set;
@@ -14,6 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
 
 import javax.sql.PooledConnection;
 
@@ -38,18 +40,19 @@ public class ActivityIDTest extends AbstractTest {
         int numExecution = 20;
         ExecutorService es = Executors.newFixedThreadPool(numExecution);
         CountDownLatch latch = new CountDownLatch(numExecution);
-        for (int i = 0; i < numExecution; i++) {
-            es.execute(new Runnable() {
-                public void run() {
-                    try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                        stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
-                    } catch (SQLException e) {
-                        fail(e.toString());
+        es.execute(() -> {
+            IntStream.range(0, numExecution).forEach(i -> {
+                try (Connection c = getConnection(); Statement s = c.createStatement();
+                        ResultSet rs = s.executeQuery("SELECT @@VERSION AS 'SQL Server Version'")) {
+                    while (rs.next()) {
+                        rs.getString(1);
                     }
-                    latch.countDown();
+                } catch (SQLException e) {
+                    fail(e.toString());
                 }
+                latch.countDown();
             });
-        }
+        });
         latch.await();
         es.shutdown();
         assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
@@ -69,20 +72,19 @@ public class ActivityIDTest extends AbstractTest {
             CountDownLatch latchPool = new CountDownLatch(numPooledExecution);
             public void run() {
                 HikariDataSource ds = new HikariDataSource(config);
-                for (int i = 0; i < numPooledExecution; i++) {
-                    es.execute(new Runnable() {
-                        public void run() {
-                            try {
-                                try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {
-                                    stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
+                    es.execute(() -> {
+                        IntStream.range(0, numPooledExecution).forEach(i -> {
+                            try (Connection c = ds.getConnection(); Statement s = c.createStatement();
+                                    ResultSet rs = s.executeQuery("SELECT @@VERSION AS 'SQL Server Version'")) {
+                                while (rs.next()) {
+                                    rs.getString(1);
                                 }
                             } catch (SQLException e) {
                                 fail(e.toString());
                             }
                             latchPool.countDown();
-                        }
+                        });
                     });
-                }
                 try {
                     latchPool.await();
                 } catch (InterruptedException e) {
@@ -130,17 +132,15 @@ public class ActivityIDTest extends AbstractTest {
         ExecutorService es = Executors.newFixedThreadPool(poolsize);
         try {
             CountDownLatch latchPool = new CountDownLatch(numPooledExecution);
-            es.execute(new Runnable() {
-                public void run() {
-                    for (int i = 0; i < numPooledExecution; i++) {
-                        try (Connection con = pooledCon.getConnection(); Statement stmt = con.createStatement()) {
-                            stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
-                        } catch (SQLException e) {
-                            fail(e.toString());
-                        }
-                        latchPool.countDown();
+            es.execute(() -> {
+                IntStream.range(0, numPooledExecution).forEach(i -> {
+                    try (Connection c = pooledCon.getConnection(); Statement s = c.createStatement();
+                            ResultSet rs = s.executeQuery("SELECT @@VERSION AS 'SQL Server Version'")) {
+                    } catch (SQLException e) {
+                        fail(e.toString());
                     }
-                }
+                    latchPool.countDown();
+                });
             });
             latchPool.await();
         } finally {
