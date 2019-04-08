@@ -556,8 +556,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
             DatabaseMetaData databaseMetaData = connection.getMetaData();
             int maxConn = databaseMetaData.getMaxConnections();
-            
-            assert (0 != maxConn);
+
             assertEquals(maxConn, rs.getInt(1));
         } catch (SQLException e) {
             fail(e.getMessage());
