@@ -19,9 +19,7 @@ import javax.sql.PooledConnection;
 
 import org.junit.ComparisonFailure;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -115,7 +113,7 @@ public class ActivityIDTest extends AbstractTest {
             Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
             logger.fine("List of threads alive:");
             for (Thread thread: threadSet) {
-                logger.fine(String.valueOf(thread.getId()));
+                logger.fine(thread.toString());
             }
             logger.fine("List of entries in the ActivityID map:");
             logger.fine(ActivityCorrelator.getActivityIdTlsMap().toString());
@@ -150,12 +148,6 @@ public class ActivityIDTest extends AbstractTest {
             pooledCon.close();
         }
         assertEquals(0, ActivityCorrelator.getActivityIdTlsMap().size());
-    }
-    
-    @BeforeEach
-    @AfterEach
-    public void clearActivityId() {
-        ActivityCorrelator.clear();
     }
     
     @AfterAll
