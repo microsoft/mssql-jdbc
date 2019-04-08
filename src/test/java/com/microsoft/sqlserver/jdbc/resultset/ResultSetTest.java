@@ -526,41 +526,28 @@ public class ResultSetTest extends AbstractTest {
             while (results) {
                 try (ResultSet rs = stmt.getResultSet()) {
                     rsCount++;
-                    String firstColumnName = rs.getMetaData().getColumnName(1);
-                    switch (rsCount) {
-                        case 1:
-                            assert (firstColumnName.trim().equalsIgnoreCase("Name"));
-                            break;
-                        case 2:
-                            assert (firstColumnName.trim().equalsIgnoreCase("Column_name"));
-                            break;
-                        case 3:
-                            assert (firstColumnName.trim().equalsIgnoreCase("Identity"));
-                            break;
-                        case 4:
-                            assert (firstColumnName.trim().equalsIgnoreCase("RowGuidCol"));
-                            break;
-                        case 5:
-                            assert (firstColumnName.trim().equalsIgnoreCase("Data_located_on_filegroup"));
-                            break;
-                    }
                     int i = 1;
+                    String firstColumnValue = null;
                     while (rs.next()) {
-                        String firstColumnValue = rs.getString(1);
                         switch (rsCount) {
                             case 1:
+                                firstColumnValue = rs.getString("Name");
                                 assert (firstColumnValue.equals(tableName));
                                 break;
                             case 2:
+                                firstColumnValue = rs.getString("Column_name");
                                 assert (firstColumnValue.equalsIgnoreCase("c" + i++));
                                 break;
                             case 3:
+                                firstColumnValue = rs.getString("Identity");
                                 assert (firstColumnValue.equalsIgnoreCase("c1"));
                                 break;
                             case 4:
+                                firstColumnValue = rs.getString("RowGuidCol");
                                 assert (firstColumnValue.equalsIgnoreCase("No rowguidcol column defined."));
                                 break;
                             case 5:
+                                firstColumnValue = rs.getString("Data_located_on_filegroup");
                                 assert (firstColumnValue.equalsIgnoreCase("PRIMARY"));
                                 break;
                         }
