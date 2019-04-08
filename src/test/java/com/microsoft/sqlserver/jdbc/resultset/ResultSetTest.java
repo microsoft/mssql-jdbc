@@ -521,6 +521,7 @@ public class ResultSetTest extends AbstractTest {
 
             boolean results = stmt.execute(SQL);
             int rsCount = 0;
+            int warningCount = 0;
 
             // Loop through the available result sets.
             while (results) {
@@ -556,12 +557,14 @@ public class ResultSetTest extends AbstractTest {
 
                 SQLWarning warnings = stmt.getWarnings();
                 while (null != warnings) {
+                    warningCount++;
                     warnings = warnings.getNextWarning();
                 }
                 results = stmt.getMoreResults();
             }
             assert (!stmt.getMoreResults() && -1 == stmt.getUpdateCount());
             assert (rsCount == 5);
+            assert (warningCount == 26);
 
             /*
              * Testing Scenario: There are no more results when the following is true ............
