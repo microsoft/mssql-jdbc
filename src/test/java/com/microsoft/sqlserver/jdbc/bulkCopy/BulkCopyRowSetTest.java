@@ -3,7 +3,6 @@ package com.microsoft.sqlserver.jdbc.bulkCopy;
 import static org.junit.Assert.assertEquals;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -16,7 +15,10 @@ import javax.sql.rowset.RowSetProvider;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.platform.runner.JUnitPlatform;
+import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
@@ -26,14 +28,17 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
+
+@RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class BulkCopyRowSetTest extends AbstractTest {
-    
-    private static String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkCopyFloatTest"));
-    
+
+    private static String tableName = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("BulkCopyFloatTest"));
+
     @Test
     public void testBulkCopyFloatRowSet() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = connection.createStatement()) {
             RowSetFactory rsf = RowSetProvider.newFactory();
             CachedRowSet crs = rsf.createCachedRowSet();
             RowSetMetaData rsmd = new RowSetMetaDataImpl();
@@ -42,32 +47,32 @@ public class BulkCopyRowSetTest extends AbstractTest {
             rsmd.setColumnName(2, "c2");
             rsmd.setColumnType(1, java.sql.Types.FLOAT);
             rsmd.setColumnType(2, java.sql.Types.FLOAT);
-            
+
             Float floatData = RandomData.generateReal(false);
-            
+
             crs.setMetaData(rsmd);
             crs.moveToInsertRow();
             crs.updateFloat(1, floatData);
             crs.updateFloat(2, floatData);
             crs.insertRow();
             crs.moveToCurrentRow();
-            
+
             try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(con)) {
                 bcOperation.setDestinationTableName(tableName);
                 bcOperation.writeToServer(crs);
             }
-            
-            ResultSet rs = stmt.executeQuery("select * from " + tableName);
-            rs.next();
-            assertEquals(floatData, (Float) rs.getFloat(1));
-            assertEquals(floatData, (Float) rs.getFloat(2));
+
+            try (ResultSet rs = stmt.executeQuery("select * from " + tableName)) {
+                rs.next();
+                assertEquals(floatData, (Float) rs.getFloat(1));
+                assertEquals(floatData, (Float) rs.getFloat(2));
+            }
         }
     }
-    
+
     @BeforeAll
     public static void testSetup() throws TestAbortedException, Exception {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             String sql1 = "create table " + tableName + " (c1 float, c2 real)";
             stmt.execute(sql1);
         }
@@ -75,8 +80,7 @@ public class BulkCopyRowSetTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
         }
     }
