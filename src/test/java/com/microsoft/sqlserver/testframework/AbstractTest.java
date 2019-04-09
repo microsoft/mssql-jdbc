@@ -15,7 +15,6 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
-import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
@@ -253,24 +252,6 @@ public abstract class AbstractTest {
      */
     public static String getConfiguredProperty(String key, String defaultValue) {
         return TestUtils.getConfiguredProperty(key, defaultValue);
-    }
-
-    public static class CustomHandler extends Handler {
-
-        @Override
-        public void publish(LogRecord record) {
-            // do nothing
-        }
-
-        @Override
-        public void flush() {
-            // do nothing
-        }
-
-        @Override
-        public void close() throws SecurityException {
-            // do nothing
-        }
     }
 
     /**
