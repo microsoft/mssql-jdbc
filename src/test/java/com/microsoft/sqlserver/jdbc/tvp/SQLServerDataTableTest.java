@@ -4,8 +4,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
 import java.sql.Types;
-import java.util.LinkedList;
-
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -38,6 +36,18 @@ public class SQLServerDataTableTest {
 
     @Test
     public void testHashCodes() throws SQLServerException {
+        // Test Null field values for SQLServerDataColumn
+        SQLServerDataColumn nullDataColumn1 = new SQLServerDataColumn(null, 0);
+        SQLServerDataColumn nullDataColumn2 = new SQLServerDataColumn(null, 0);
+        assert (nullDataColumn1.hashCode() == nullDataColumn2.hashCode());
+        assert (nullDataColumn1.equals(nullDataColumn2));
+
+        // Test Null field values for SQLServerDataTable
+        SQLServerDataTable nullDataTable1 = new SQLServerDataTable();
+        SQLServerDataTable nullDataTable2 = new SQLServerDataTable();
+        assert (nullDataTable1.hashCode() == nullDataTable2.hashCode());
+        assert (nullDataTable1.equals(nullDataTable2));
+
         SQLServerDataColumn a = new SQLServerDataColumn("foo", Types.VARCHAR);
 
         // Test consistent generation of hashCode
