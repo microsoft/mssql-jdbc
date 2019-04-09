@@ -19,7 +19,7 @@ final class ActivityCorrelator {
 
     static void cleanupActivityId() {
         // remove ActivityIds that belongs to this thread or no longer have an associated thread.
-        activityIdTlsMap.entrySet().removeIf(e -> e.getValue() == null || e.getValue().getThread() == null
+        activityIdTlsMap.entrySet().removeIf(e -> null == e.getValue() || null == e.getValue().getThread()
                 || e.getValue().getThread() == Thread.currentThread() || !e.getValue().getThread().isAlive());
     }
 
