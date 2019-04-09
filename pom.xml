@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.3.0</version>
+	<version>7.3.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -38,8 +38,17 @@
 	</scm>
 
 	<properties>
+		<!-- Allowed values for excluded Groups here - - - - - - - - - - - - - 
+			xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014 
+			xSQLv13 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2017 
+			xSQLv14 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2019 
+			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
+			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
+			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
+			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+			Default testing enabled with SQL Server 2019 (SQLv14) -->
+		<excludeGroups>xSQLv14</excludeGroups>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<testGroup></testGroup>
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.0</azure.keyvault.version>
 		<azure.adal4j.version>1.6.3</azure.adal4j.version>
@@ -242,7 +251,8 @@
 							<properties>
 								<excludeTags>${skipTestTag}</excludeTags>
 							</properties>
-							<groups>${testGroup}</groups>
+							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
+							<excludedGroups>${excludeGroups}, xJDBC42</excludedGroups>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -312,7 +322,8 @@
 							<properties>
 								<excludeTags>${skipTestTag}</excludeTags>
 							</properties>
-							<groups>${testGroup}</groups>
+							<excludedGroups>
+								${excludeGroups}</excludedGroups>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -442,6 +453,23 @@
 				<configuration>
 					<outputFile>outdated-dependencies.txt</outputFile>
 					<rulesUri>file:///${session.executionRootDirectory}/maven-version-rules.xml</rulesUri>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.2</version>
+				<configuration>
+					<fileSets>
+						<fileSet>
+							<directory>jacoco-execs/</directory>
+							<includes>
+								<include>*.exec</include>
+							</includes>
+						</fileSet>
+					</fileSets>
+					<!-- File containing the merged coverage data -->
+					<destFile>${project.build.directory}/jacoco.exec</destFile>
 				</configuration>
 			</plugin>
 		</plugins>

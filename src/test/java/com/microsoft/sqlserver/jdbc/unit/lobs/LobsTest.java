@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.lobs;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -28,6 +29,7 @@ import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.function.Executable;
@@ -57,6 +59,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class LobsTest extends AbstractTest {
     static String tableName;
     static String escapedTableName;
@@ -78,7 +81,7 @@ public class LobsTest extends AbstractTest {
     @TestFactory
     public Collection<DynamicTest> executeDynamicTests() {
         List<Class<?>> classes = new ArrayList<Class<?>>(
-                Arrays.asList(Blob.class, Clob.class, DBBinaryStream.class, DBCharacterStream.class));
+                Arrays.asList(Blob.class, Clob.class, NClob.class, DBBinaryStream.class, DBCharacterStream.class));
         List<Boolean> isResultSetTypes = new ArrayList<>(Arrays.asList(true, false));
         Collection<DynamicTest> dynamicTests = new ArrayList<>();
 
@@ -156,10 +159,11 @@ public class LobsTest extends AbstractTest {
                     }
                     try {
                         this.updateLob(lob, updater, 1);
+                        fail(TestResource.getResource("R_expectedFailPassed"));
                     } catch (SQLException e) {
                         boolean verified = false;
 
-                        if (lobClass == Clob.class)
+                        if (lobClass == Clob.class || lobClass == NClob.class)
                             streamLength = ((DBInvalidUtil.InvalidClob) lob).length;
                         else if (lobClass == Blob.class)
                             streamLength = ((DBInvalidUtil.InvalidBlob) lob).length;
@@ -176,8 +180,8 @@ public class LobsTest extends AbstractTest {
                         }
 
                         // Case 2: CharacterStream or Clob.getCharacterStream threw IOException
-                        if (lobClass == DBCharacterStream.class
-                                || (lobClass == Clob.class && ((DBInvalidUtil.InvalidClob) lob).stream != null)) {
+                        if (lobClass == DBCharacterStream.class || ((lobClass == Clob.class || lobClass == NClob.class)
+                                && ((DBInvalidUtil.InvalidClob) lob).stream != null)) {
                             try (DBInvalidUtil.InvalidCharacterStream stream = lobClass == DBCharacterStream.class ? ((DBInvalidUtil.InvalidCharacterStream) lob)
                                                                                                                    : ((DBInvalidUtil.InvalidClob) lob).stream) {
                                 if (stream.threwException) {
@@ -199,7 +203,7 @@ public class LobsTest extends AbstractTest {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                fail(e.getMessage());
             } finally {
                 dropTables(table, stmt1);
                 if (null != updater) {
@@ -245,17 +249,20 @@ public class LobsTest extends AbstractTest {
                                 stream.read();
                             blob.free();
                         }
-                        try (InputStream stream = blob.getBinaryStream()) {} catch (SQLException e) {
-                            System.err.println(e.getMessage());
+                        try (InputStream stream = blob.getBinaryStream()) {
+                            fail(TestResource.getResource("R_expectedFailPassed"));
+                        } catch (SQLException e) {
                             assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
                         }
                     }
                 }
-                try (InputStream stream = blob.getBinaryStream()) {} catch (SQLException e) {
+                try (InputStream stream = blob.getBinaryStream()) {
+                    fail(TestResource.getResource("R_expectedFailPassed"));
+                } catch (SQLException e) {
                     assertTrue(e.getMessage().contains(TestResource.getResource("R_blobFreed")));
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                fail(e.getMessage());
             } finally {
                 dropTables(table, stmt);
             }
@@ -663,6 +670,8 @@ public class LobsTest extends AbstractTest {
             ps.setBinaryStream(index, (InputStream) lob, length);
         else if (lob instanceof Clob)
             ps.setClob(index, (Clob) lob);
+        else if (lob instanceof NClob)
+            ps.setNClob(index, (NClob) lob);
         else
             ps.setBlob(index, (Blob) lob);
         assertEquals(ps.executeUpdate(), 1, TestResource.getResource("R_incorrectUpdateCount"));
@@ -675,6 +684,8 @@ public class LobsTest extends AbstractTest {
             rs.updateBinaryStream(index, (InputStream) lob, length);
         } else if (lob instanceof Clob) {
             rs.updateClob(index, (Clob) lob);
+        } else if (lob instanceof NClob) {
+            rs.updateNClob(index, (NClob) lob);
         } else {
             rs.updateBlob(index, (Blob) lob);
         }
@@ -696,7 +707,7 @@ public class LobsTest extends AbstractTest {
             return new DBInvalidUtil().new InvalidCharacterStream(new String(data), streamLength < -1);
         else if (lobClass == DBBinaryStream.class)
             return new DBInvalidUtil().new InvalidBinaryStream(data, streamLength < -1);
-        if (lobClass == Clob.class) {
+        if (lobClass == Clob.class || lobClass == NClob.class) {
             SqlType type = TestUtils.find(String.class);
             Object expected = type.createdata(String.class, data);
             return new DBInvalidUtil().new InvalidClob(expected, false);
