@@ -16,6 +16,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class SelectTest extends AbstractTest {
 
+    @Test
     public void basicSelectTest() {
         ArrayList<Pair<String, String>> valuePair = new ArrayList<>();
         // minor case sensitivity checking
@@ -71,9 +72,6 @@ public class SelectTest extends AbstractTest {
 
         // with sub queries
         valuePair.add(Pair.of(
-                "SELECT top 1 OrderId, convert(char(10), OrderDate,121) Last_Paris_Order, (select convert(char(10), max(OrderDate),121) FROM Southwind.dbo.Orders) Last_OrderDate, datediff(dd,OrderDate,(SELECT Max(OrderDate) from Northwind.dbo.orders)) Day_Diff from Northwind.dbo.Orders where ShipCity = 'Paris' Order by OrderDate desc",
-                "Northwind . dbo . Orders"));
-        valuePair.add(Pair.of(
                 "SELECT t.*, a+b AS total_sum FROM (SELECT SUM(col1) as a, SUM(col2) AS b FROM table ORDER BY a ASC) t ORDER BY total_sum DSC",
                 "(SELECT SUM (col1 )as a , SUM (col2 )AS b FROM table ORDER BY a ASC ) t"));
         valuePair.add(Pair.of("SELECT col1 FROM myTestInts UNION "
@@ -82,7 +80,7 @@ public class SelectTest extends AbstractTest {
 
         // Multiple Selects
         valuePair.add(Pair.of("SELECT * FROM table1;SELECT * FROM table2", "table1,table2"));
-        valuePair.add(Pair.of("SELECT * FROM table1;SELECT * FROM table1", "table1"));
+        valuePair.add(Pair.of("SELECT * FROM table1;SELECT * FROM table1", "table1,table1"));
         
         valuePair.forEach(p -> assertEquals(p.getRight(), ParserUtils.getTableName(p.getLeft()).trim()));
     }
