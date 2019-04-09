@@ -172,16 +172,16 @@ public final class SQLServerDataTable {
                 break;
 
             case BIT:
-                rowValues.add(key, (null == val) ? null : Boolean.parseBoolean(val.toString()));;
+                rowValues.set(key, (null == val) ? null : Boolean.parseBoolean(val.toString()));;
                 break;
 
             case INTEGER:
-                rowValues.add(key, (null == val) ? null : Integer.parseInt(val.toString()));
+                rowValues.set(key, (null == val) ? null : Integer.parseInt(val.toString()));
                 break;
 
             case SMALLINT:
             case TINYINT:
-                rowValues.add(key, (null == val) ? null : Short.parseShort(val.toString()));
+                rowValues.set(key, (null == val) ? null : Short.parseShort(val.toString()));
                 break;
 
             case DECIMAL:
