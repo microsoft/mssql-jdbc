@@ -820,4 +820,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return msiClientId property value
      */
     public String getMSIClientId();
+
+    void setUseFmtOnly(boolean useFmtOnly);
+
+    boolean getUseFmtOnly();
 }

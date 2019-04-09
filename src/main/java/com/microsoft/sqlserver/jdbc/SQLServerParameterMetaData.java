@@ -18,6 +18,7 @@ import java.util.StringTokenizer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 
 /**
@@ -304,24 +305,47 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    private void parseQueryMetaFor2008(ResultSet rsQueryMeta) throws SQLServerException {
+    private void parseQueryMetaFor2008(ResultSet rsQueryMeta, useFmtOnlyQuery f) throws SQLServerException {
         ResultSetMetaData md;
         try {
-            if (null != rsQueryMeta) {
-                md = rsQueryMeta.getMetaData();
+            List<String> columns = f.getColumns().stream().collect(Collectors.toList());
+            List<List<String>> params = f.getValuesList();
+            int valueListOffset = 0;
 
-                for (int i = 1; i <= md.getColumnCount(); i++) {
+            md = rsQueryMeta.getMetaData();
+            int mdIndex = 1;
+            int mapIndex = 1;
+            for (int i = 0; i < columns.size(); i++) {
+                if (columns.get(i).equalsIgnoreCase("*")) {
+                    for (int j = 0; j < params.get(valueListOffset).size(); j++) {
+                        if (params.get(valueListOffset).get(j).equalsIgnoreCase("?")) {
+                            QueryMeta qm = new QueryMeta();
+
+                            qm.parameterClassName = md.getColumnClassName(mdIndex + j);
+                            qm.parameterType = md.getColumnType(mdIndex + j);
+                            qm.parameterTypeName = md.getColumnTypeName(mdIndex + j);
+                            qm.precision = md.getPrecision(mdIndex + j);
+                            qm.scale = md.getScale(mdIndex + j);
+                            qm.isNullable = md.isNullable(mdIndex + j);
+                            qm.isSigned = md.isSigned(mdIndex + j);
+                            queryMetaMap.put(mapIndex++, qm);
+                            i++;
+                        }
+                    }
+                    mdIndex += params.get(valueListOffset).size();
+                    valueListOffset++;
+                } else {
                     QueryMeta qm = new QueryMeta();
 
-                    qm.parameterClassName = md.getColumnClassName(i);
-                    qm.parameterType = md.getColumnType(i);
-                    qm.parameterTypeName = md.getColumnTypeName(i);
-                    qm.precision = md.getPrecision(i);
-                    qm.scale = md.getScale(i);
-                    qm.isNullable = md.isNullable(i);
-                    qm.isSigned = md.isSigned(i);
-
-                    queryMetaMap.put(i, qm);
+                    qm.parameterClassName = md.getColumnClassName(mdIndex);
+                    qm.parameterType = md.getColumnType(mdIndex);
+                    qm.parameterTypeName = md.getColumnTypeName(mdIndex);
+                    qm.precision = md.getPrecision(mdIndex);
+                    qm.scale = md.getScale(mdIndex);
+                    qm.isNullable = md.isNullable(mdIndex);
+                    qm.isSigned = md.isSigned(mdIndex);
+                    queryMetaMap.put(mapIndex++, qm);
+                    mdIndex++;
                 }
             }
         } catch (SQLException e) {
@@ -609,9 +633,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // if SQL server version is 2008, then use FMTONLY
             else {
                 queryMetaMap = new HashMap<>();
-
-                if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION) {
-                    // new implementation for SQL verser 2012 and above
+                if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION && !con.getUseFmtOnly()) {
                     String preparedSQL = con.replaceParameterMarkers(stmtParent.userSQL,
                             stmtParent.userSQLParamPositions, stmtParent.inOutParam, stmtParent.bReturnValueSyntax);
 
@@ -621,56 +643,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                         parseQueryMeta(cstmt.executeQueryInternal());
                     }
                 } else {
-                    // old implementation for SQL server 2008
-                    stringToParse = sProcString;
-                    ArrayList<MetaInfo> metaInfoList = new ArrayList<>();
-
-                    while (stringToParse.length() > 0) {
-                        MetaInfo metaInfo = parseStatement(stringToParse);
-                        if (null == metaInfo) {
-                            MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_cantIdentifyTableMetadata"));
-                            Object[] msgArgs = {stringToParse};
-                            SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
-                        }
-
-                        metaInfoList.add(metaInfo);
-                    }
-                    if (metaInfoList.size() <= 0 || metaInfoList.get(0).fields.length() <= 0) {
-                        return;
-                    }
-
-                    StringBuilder sbColumns = new StringBuilder();
-
-                    for (MetaInfo mi : metaInfoList) {
-                        sbColumns = sbColumns.append(mi.fields).append(",");
-                    }
-                    sbColumns.deleteCharAt(sbColumns.length() - 1);
-
-                    String columns = sbColumns.toString();
-
-                    StringBuilder sbTablesAndJoins = new StringBuilder();
-                    for (int i = 0; i < metaInfoList.size(); i++) {
-                        if (i == 0) {
-                            sbTablesAndJoins = sbTablesAndJoins.append(metaInfoList.get(i).table);
-                        } else {
-                            if (metaInfoList.get(i).table.equals(metaInfoList.get(i - 1).table)
-                                    && metaInfoList.get(i).fields.equals(metaInfoList.get(i - 1).fields)) {
-                                continue;
-                            }
-                            sbTablesAndJoins = sbTablesAndJoins.append(" LEFT JOIN ").append(metaInfoList.get(i).table)
-                                    .append(" ON ").append(metaInfoList.get(i - 1).table).append(".")
-                                    .append(metaInfoList.get(i - 1).fields).append("=")
-                                    .append(metaInfoList.get(i).table).append(".").append(metaInfoList.get(i).fields);
-                        }
-                    }
-
-                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + columns + " FROM "
-                            + Util.escapeSingleQuotes(sbTablesAndJoins.toString()) + " '";
-
+                    useFmtOnlyQuery f = useFmtOnlyQuery.getFmtQuery(sProcString);
+                    String fmtQuery = f.getFMTQuery();
+                    System.out.println(fmtQuery);
                     try (SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
-                            ResultSet rs = stmt.executeQuery(sCom)) {
-                        parseQueryMetaFor2008(rs);
+                            ResultSet rs = stmt.executeQuery(fmtQuery)) {
+                        parseQueryMetaFor2008(rs, f);
                     }
                 }
             }

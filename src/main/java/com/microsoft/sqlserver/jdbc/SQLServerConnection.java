@@ -574,10 +574,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     boolean userSetTNIR = true;
 
     private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
+    private boolean useFmtOnly = SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue();
 
     @Override
     public final boolean getSendTimeAsDatetime() {
         return !isKatmaiOrLater() || sendTimeAsDatetime;
+    }
+    
+    @Override
+    public final boolean getUseFmtOnly() {
+        return useFmtOnly;
     }
 
     final int baseYear() {
@@ -1525,6 +1531,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             sendTimeAsDatetime = booleanPropertyOn(sPropKey, sPropValue);
+            
+            
+            sPropKey = SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (sPropValue == null) {
+                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+            useFmtOnly = booleanPropertyOn(sPropKey, sPropValue);
 
             // Must be set before DISABLE_STATEMENT_POOLING
             sPropKey = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString();
@@ -5448,6 +5463,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) {
         sendTimeAsDatetime = sendTimeAsDateTimeValue;
     }
+    
+    @Override
+    public void setUseFmtOnly(boolean useFmtOnlyValue) {
+        this.useFmtOnly = useFmtOnlyValue;
+    }
 
     @Override
     public java.sql.Array createArrayOf(String typeName, Object[] elements) throws SQLException {
@@ -5641,6 +5661,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private int originalNetworkTimeout;
     private int originalHoldability;
     private boolean originalSendTimeAsDatetime;
+    private boolean originalUseFmtOnly;
     private int originalStatementPoolingCacheSize;
     private boolean originalDisableStatementPooling;
     private int originalServerPreparedStatementDiscardThreshold;
@@ -5659,6 +5680,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalNetworkTimeout = getNetworkTimeout();
                 originalHoldability = holdability;
                 originalSendTimeAsDatetime = sendTimeAsDatetime;
+                originalUseFmtOnly = useFmtOnly;
                 originalStatementPoolingCacheSize = statementPoolingCacheSize;
                 originalDisableStatementPooling = disableStatementPooling;
                 originalServerPreparedStatementDiscardThreshold = getServerPreparedStatementDiscardThreshold();
@@ -5694,6 +5716,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 if (sendTimeAsDatetime != originalSendTimeAsDatetime) {
                     setSendTimeAsDatetime(originalSendTimeAsDatetime);
+                }
+                if (useFmtOnly != originalUseFmtOnly) {
+                    setUseFmtOnly(originalUseFmtOnly);
                 }
                 if (statementPoolingCacheSize != originalStatementPoolingCacheSize) {
                     setStatementPoolingCacheSize(originalStatementPoolingCacheSize);
