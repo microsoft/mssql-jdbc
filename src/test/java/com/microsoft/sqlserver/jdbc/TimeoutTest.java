@@ -10,7 +10,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -32,7 +31,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class TimeoutTest extends AbstractTest {
     private static final int TIMEOUT_SECONDS = 2;
     private static final String WAIT_FOR_ONE_MINUTE_SQL = "WAITFOR DELAY '00:01:00'";
@@ -57,16 +55,16 @@ public class TimeoutTest extends AbstractTest {
     }
 
     @Test
+    @Tag("xAzureSQLDW")
     public void testBasicQueryTimeout() {
-        assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         assertThrows(SQLTimeoutException.class, () -> {
             runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS);
         });
     }
 
     @Test
+    @Tag("xAzureSQLDW")
     public void testQueryTimeoutValid() {
-        assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         long start = System.currentTimeMillis();
         assertThrows(SQLTimeoutException.class, () -> {
             runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS);

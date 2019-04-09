@@ -14,6 +14,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -33,6 +34,7 @@ public class DTOSerialTest extends AbstractTest {
     private static String dateString;
 
     @Test
+    @Tag("xAzureSQLDW")
     public void testDSerial() throws Exception {
         sdf.setTimeZone(TimeZone.getTimeZone("Z"));
         dateString = sdf.format(new Date());

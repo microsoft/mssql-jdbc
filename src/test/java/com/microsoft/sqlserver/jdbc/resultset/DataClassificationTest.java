@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -22,6 +23,9 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
+@Tag("xSQLv12")
+@Tag("xSQLv13")
 public class DataClassificationTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("DataClassification");
 
@@ -33,7 +37,7 @@ public class DataClassificationTest extends AbstractTest {
     @Test
     public void testDataClassificationMetadata() throws Exception {
         // Run this test only with newer SQL Servers (version>=2018) that support Data Classification
-        try (Connection con = getConnection(); Statement stmt = connection.createStatement();) {
+        try (Statement stmt = connection.createStatement();) {
             if (TestUtils.serverSupportsDataClassification(stmt)) {
                 createTable(connection, stmt);
                 runTestsForServer(stmt);
