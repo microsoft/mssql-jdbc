@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [7.2.2] HotFix & Stable Release
 ### Fixed Issues
-- Fixed ActivityID map getting not cleaned up properly [#1028](https://github.com/Microsoft/mssql-jdbc/pull/1028)
+- Fixed ActivityID getting not cleaned up properly [#1028](https://github.com/Microsoft/mssql-jdbc/pull/1028)
 
 ## [7.2.1] HotFix & Stable Release
 ### Fixed Issues
