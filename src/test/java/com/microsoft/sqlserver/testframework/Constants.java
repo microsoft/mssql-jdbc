@@ -1,5 +1,6 @@
 package com.microsoft.sqlserver.testframework;
 
+import java.io.ByteArrayOutputStream;
 import java.sql.Date;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -44,6 +45,8 @@ public class Constants {
 
     public static final String LOGGING_HANDLER_FILE = "file";
     public static final String LOGGING_HANDLER_CONSOLE = "console";
+    public static final String LOGGING_HANDLER_STREAM = "stream";
+    public static final ByteArrayOutputStream LOGGING_STREAM = new ByteArrayOutputStream();
 
     public final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     public final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
