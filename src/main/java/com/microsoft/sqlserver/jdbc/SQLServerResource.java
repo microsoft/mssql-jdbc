@@ -30,7 +30,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_invalidRoutingInfo",
                     "Unexpected routing information received. Please check your connection properties and SQL Server configuration."},
             {"R_multipleRedirections",
-                    "Two or more redirections have occurred. Only one redirection per logib attempt is allowed."},
+                    "Two or more redirections have occurred. Only one redirection per login attempt is allowed."},
             {"R_dbMirroringWithMultiSubnetFailover",
                     "Connecting to a mirrored SQL Server instance using the multiSubnetFailover connection property is not supported."},
             {"R_dbMirroringWithReadOnlyIntent",
@@ -180,7 +180,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_userPropertyDescription", "The database user."},
             {"R_passwordPropertyDescription", "The database password."},
             {"R_databaseNamePropertyDescription", "The name of the database to connect to."},
-            {"R_domainPropertyDescription", "The name of the domain that contains the user account."},
+            {"R_domainPropertyDescription", "The Windows domain to authenticate in using NTLM."},
             {"R_serverNamePropertyDescription", "The computer running SQL Server."},
             {"R_portNumberPropertyDescription", "The TCP port where an instance of SQL Server is listening."},
             {"R_serverSpnPropertyDescription", "SQL Server SPN."},
@@ -387,7 +387,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_SetAuthenticationWhenIntegratedSecurityTrue",
                     "Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."},
             {"R_NtlmNoUserPasswordDomain",
-                    "\"User\" (or \"UserName\") and \"Password\" connection string properties must be specified for \"NTLM Authentication\"."},
+                    "\"User\" (or \"UserName\") and \"Password\" connection properties must be specified for NTLM authentication."},
             {"R_SetAccesstokenWhenIntegratedSecurityTrue",
                     "Cannot set the AccessToken property if the \"IntegratedSecurity\" connection string keyword has been set to \"true\"."},
             {"R_IntegratedAuthenticationWithUserPassword",
@@ -561,8 +561,9 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_ntlmAuthenticateError", "NTLM error constructing Authenticate Message: {0}"},
             {"R_ntlmNoTargetInfo", "NTLM Challenge Message is missing target info."},
             {"R_ntlmBadDomain", "NTLM Challenge Message target info error: bad domain name \"{0}\", expecting \"{1}\""},
-            {"R_ntlmBadComputer", "NTLM Challenge Message target info error: bad computer name \"{0}\", expecting \"{1}\""},
+            {"R_ntlmBadComputer",
+                    "NTLM Challenge Message target info error: bad computer name \"{0}\", expecting \"{1}\""},
             {"R_ntlmNoTimestamp", "NTLM Challenge Message target info error: missing timestamp"},
             {"R_ntlmUnknownValue", "NTLM Challenge Message target info error: unknown value \"{0}\""},
-            {"R_ntlmAuthError", "NTLM authentication error: {0}"},};
+            {"R_ntlmAuthError", "NTLM authentication error: {0}"}};
 }

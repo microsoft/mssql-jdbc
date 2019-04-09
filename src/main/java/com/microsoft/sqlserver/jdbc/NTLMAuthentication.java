@@ -218,7 +218,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         // user credentials
         private final String userName;
-        private final String password;
+        private final byte[] passwordHash;
 
         // upper cased unicode bytes
         private final byte[] domainBytes;
@@ -295,8 +295,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
             this.userName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
             this.userNameBytes = unicode(userName);
 
-            this.password = con.activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
+            this.passwordHash = MD4(unicode(
+                    con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())));
 
             this.workstationBytes = unicode(workstation.toUpperCase());
 
@@ -655,7 +655,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     private byte[] ntowfv2() throws InvalidKeyException {
 
-        return hmacMD5(MD4(unicode(context.password)), unicode(context.userName.toUpperCase() + context.domainName));
+        return hmacMD5(context.passwordHash, unicode(context.userName.toUpperCase() + context.domainName));
     }
 
     /**
