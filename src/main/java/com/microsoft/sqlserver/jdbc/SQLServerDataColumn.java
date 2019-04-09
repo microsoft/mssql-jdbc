@@ -63,8 +63,14 @@ public final class SQLServerDataColumn {
         }
 
         if (null != object && object instanceof SQLServerDataColumn) {
-            if (hashCode() == ((SQLServerDataColumn) object).hashCode())
-                return true;
+            SQLServerDataColumn aSQLServerDataColumn = (SQLServerDataColumn) object;
+            if (hashCode() == aSQLServerDataColumn.hashCode()) {
+                // Compare objects to avoid collision
+                return (columnName.equalsIgnoreCase(aSQLServerDataColumn.columnName)
+                        && javaSqlType == aSQLServerDataColumn.javaSqlType
+                        && numberOfDigitsIntegerPart == aSQLServerDataColumn.numberOfDigitsIntegerPart
+                        && precision == aSQLServerDataColumn.precision && scale == aSQLServerDataColumn.scale);
+            }
         }
         return false;
     }

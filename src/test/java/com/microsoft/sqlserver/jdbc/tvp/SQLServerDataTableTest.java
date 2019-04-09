@@ -2,7 +2,9 @@ package com.microsoft.sqlserver.jdbc.tvp;
 
 import static org.junit.Assert.assertEquals;
 
+import java.math.BigDecimal;
 import java.sql.Types;
+import java.util.LinkedList;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -48,30 +50,39 @@ public class SQLServerDataTableTest {
         assert (a.hashCode() == aClone.hashCode());
         assert (a.equals(aClone));
 
-        SQLServerDataTable table = new SQLServerDataTable();
-        table.addColumnMetadata(a);
+        SQLServerDataColumn b = new SQLServerDataColumn("bar", Types.DECIMAL);
+        SQLServerDataTable table = createTable(a, b);
 
         // Test consistent generation of hashCode
         assert (table.hashCode() == table.hashCode());
         assert (table.equals(table));
 
-        SQLServerDataTable tableClone = new SQLServerDataTable();
-        tableClone.addColumnMetadata(aClone);
+        SQLServerDataTable tableClone = createTable(aClone, b);
 
         // Test for different instances generating same hashCode for same data
         assert (table.hashCode() == tableClone.hashCode());
         assert (table.equals(tableClone));
 
-        SQLServerDataColumn b = new SQLServerDataColumn("bar", Types.BOOLEAN);
-
         // Test for non equal hashCodes
         assert (a.hashCode() != b.hashCode());
         assert (!a.equals(b));
 
-        table.addColumnMetadata(b);
+        SQLServerDataColumn c = new SQLServerDataColumn("bar", Types.FLOAT);
+        table.clear();
+        table = createTable(a, c);
 
         // Test for non equal hashCodes
         assert (table.hashCode() != tableClone.hashCode());
         assert (!table.equals(tableClone));
+    }
+
+    private SQLServerDataTable createTable(SQLServerDataColumn a, SQLServerDataColumn b) throws SQLServerException {
+        SQLServerDataTable table = new SQLServerDataTable();
+        table.addColumnMetadata(a);
+        table.addColumnMetadata(b);
+        table.addRow("Hello", new BigDecimal(1.5));
+        table.addRow("World", new BigDecimal(5.5));
+        table.setTvpName("TVP_HashCode");
+        return table;
     }
 }
