@@ -33,6 +33,9 @@ import com.zaxxer.hikari.HikariDataSource;
  * A class for testing basic NTLMv2 functionality.
  */
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
+@Tag("xAzureSQLDB")
+@Tag("xAzureSQLMSI")
 public class NTLMConnectionTest extends AbstractTest {
 
     // custom formatter that contains nothing but the log message only
