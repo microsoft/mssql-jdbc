@@ -109,9 +109,7 @@ public class ExceptionTest extends AbstractTest {
                 + expectedException + ": %s', 16, 1, @errorMessage); END CATCH;";
         String execProcSql = "EXECUTE " + procName;
 
-        try (Connection conn = PrepUtil.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-            TestUtils.dropTableIfExists(tableName, stmt);
-            TestUtils.dropProcedureIfExists(procName, stmt);
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(createTableSql);
             stmt.execute(createProcSql);
             stmt.execute(execProcSql);
@@ -122,17 +120,18 @@ public class ExceptionTest extends AbstractTest {
                 }
             } catch (SQLException e) {
                 // First result set should not throw an exception.
-                fail();
+                fail(TestResource.getResource("R_unexpectedException"));
             }
             try {
                 // Second result set, contains the exception.
                 assertTrue(stmt.getMoreResults());
-                fail();
+                fail(TestResource.getResource("R_expectedFailPassed"));
             } catch (SQLException e) {
-                assertTrue(e.getMessage().contains(expectedException), "Unexpected Error Message: " + e.getMessage());
+                assertTrue(e.getMessage().contains(expectedException),
+                        TestResource.getResource("R_expectedExceptionNotThrown") + e.getMessage());
             }
         } finally {
-            try (Connection conn = PrepUtil.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
                 TestUtils.dropProcedureIfExists(procName, stmt);
             }
