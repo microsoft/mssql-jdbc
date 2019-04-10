@@ -3,7 +3,6 @@ package com.microsoft.sqlserver.jdbc.datatypes;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
@@ -18,15 +17,14 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DateFormatSymbols;
-import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Calendar;
 import java.util.EnumSet;
-import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -204,8 +202,6 @@ public class DataTypesTest extends AbstractTest {
         }
 
         void verifyRSUpdaters(Connection conn) throws Exception {
-            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
-
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
 
@@ -224,8 +220,6 @@ public class DataTypesTest extends AbstractTest {
         }
 
         void verifySetters(Connection conn) throws Exception {
-            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
-
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
                 stmt.executeUpdate("CREATE TABLE " + escapedTableName + " (col1 " + sqlTypeExpression
@@ -1071,6 +1065,7 @@ public class DataTypesTest extends AbstractTest {
     }
 
     @Test
+    @Tag("xAzureSQLDW")
     public void testResultSetUpdaters() throws Exception {
         try (Connection conn = getConnection()) {
             for (TestValue value : TestValue.values())
@@ -1079,6 +1074,7 @@ public class DataTypesTest extends AbstractTest {
     }
 
     @Test
+    @Tag("xAzureSQLDW")
     public void testSetters() throws Exception {
         try (Connection conn = PrepUtil.getConnection(connectionString + ";sendTimeAsDateTime=true")) {
             for (TestValue value : TestValue.values())
@@ -1153,11 +1149,9 @@ public class DataTypesTest extends AbstractTest {
      * double-rounding of fractional seconds
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testDoubleRounding() throws Exception {
         try (Connection conn = getConnection()) {
-
-            // create a table with a datetimeoffset column and insert a value in it
-            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
 
             String sql;
             try (Statement stmt = conn.createStatement()) {
@@ -1230,9 +1224,6 @@ public class DataTypesTest extends AbstractTest {
          */
         Locale japaneseImperialLocale = new Locale("ja", "JP", "JP");
         Calendar japaneseImperialCalendar = Calendar.getInstance(japaneseImperialLocale);
-        MessageFormat cal = new MessageFormat(TestResource.getResource("R_noJRESupport"));
-        Object[] msgsArgs = {japaneseImperialLocale.toString()};
-        assumeTrue(GregorianCalendar.class.isInstance(japaneseImperialCalendar), cal.format(msgsArgs));
 
         Locale defaultLocale = Locale.getDefault();
         Locale.setDefault(japaneseImperialLocale);
@@ -1562,11 +1553,10 @@ public class DataTypesTest extends AbstractTest {
     }
 
     @Test
+    @Tag("xAzureSQLDW")
     public void testUpdateMisc() throws Exception {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil
                 .getConnection(connectionString + ";sendTimeAsDatetime=true")) {
-
-            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
 
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
@@ -1678,9 +1668,8 @@ public class DataTypesTest extends AbstractTest {
      * last millisecond digit.
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testDateTimeInsertUpdate() throws Exception {
-        assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_cursorAzureDW"));
-
         try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
