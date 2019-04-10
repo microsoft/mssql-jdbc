@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -54,7 +53,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testDatabaseMetaDataWrapper() throws SQLException {
         try (Connection con = getConnection()) {
             DatabaseMetaData databaseMetaData = con.getMetaData();
@@ -77,14 +75,11 @@ public class DatabaseMetaDataTest extends AbstractTest {
      *         IOExcption
      */
     @Test
-    @Tag("AzureDWTest")
     public void testDriverVersion() throws SQLException, IOException {
         String manifestFile = TestUtils.getCurrentClassPath() + "META-INF/MANIFEST.MF";
         manifestFile = manifestFile.replace("test-classes", "classes");
 
         File f = new File(manifestFile);
-
-        assumeTrue(f.exists(), TestResource.getResource("R_manifestNotFound"));
 
         try (InputStream in = new BufferedInputStream(new FileInputStream(f))) {
             Manifest manifest = new Manifest(in);
@@ -118,7 +113,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testGetURL() throws SQLException {
         try (Connection conn = getConnection()) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
@@ -136,6 +130,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLDB")
     public void testDBUserLogin() throws SQLException {
         try (Connection conn = getConnection()) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
@@ -172,7 +168,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testDBSchema() throws SQLException {
         try (Connection conn = getConnection(); ResultSet rs = conn.getMetaData().getSchemas()) {
 
@@ -193,6 +188,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLDB")
     public void testDBSchemasForDashedCatalogName() throws SQLException {
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
@@ -245,6 +242,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLDB")
     public void testDBSchemasForDashedCatalogNameWithPattern() throws SQLException {
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
@@ -291,7 +290,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     /*
      * try (ResultSet rsCatalog = connection.getMetaData().getCatalogs(); ResultSet rs = connection.getMetaData()
      * .getTables(rsCatalog.getString("TABLE_CAT"), null, "%", new String[] {"TABLE"})) {
@@ -331,7 +329,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testGetDBColumn() throws SQLException {
 
         try (Connection conn = getConnection()) {
@@ -380,6 +377,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testGetColumnPrivileges() throws SQLException {
 
         try (Connection conn = getConnection()) {
@@ -421,7 +419,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testGetFunctionsWithWrongParams() throws SQLException {
         try (Connection conn = getConnection()) {
             conn.getMetaData().getFunctions("", null, "xp_%");
@@ -435,7 +432,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testGetFunctions() throws SQLException {
         try (Connection conn = getConnection(); ResultSet rs = conn.getMetaData().getFunctions(null, null, "xp_%")) {
 
@@ -461,7 +457,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testGetFunctionColumns() throws SQLException {
         try (Connection conn = getConnection()) {
 
@@ -499,6 +494,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @Test
+    @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLDB")
     public void testPreparedStatementMetadataCaching() throws SQLException {
         try (Connection connection = getConnection()) {
 

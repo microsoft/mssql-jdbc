@@ -14,6 +14,8 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -31,6 +33,7 @@ import microsoft.sql.DateTimeOffset;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class SetObjectTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("SetObjectTestTable");
 

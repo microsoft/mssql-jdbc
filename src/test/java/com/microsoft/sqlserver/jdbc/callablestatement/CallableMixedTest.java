@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -20,6 +21,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class CallableMixedTest extends AbstractTest {
 
     @Test
@@ -72,10 +74,8 @@ public class CallableMixedTest extends AbstractTest {
                 }
             }
         } finally {
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
-            } catch (SQLException e) {
-                fail(e.getMessage());
             }
         }
     }

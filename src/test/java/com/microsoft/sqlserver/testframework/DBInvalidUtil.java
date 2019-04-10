@@ -15,7 +15,6 @@ import java.io.Writer;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
 
 import com.microsoft.sqlserver.jdbc.TestUtils.DBBinaryStream;
@@ -67,8 +66,8 @@ public class DBInvalidUtil {
             long ret = actualLength;
             long actual = ret;
             if (invalidLength == -1) {
-                int choose = ThreadLocalRandom.current().nextInt(5);
-                int randomInt = 1 + ThreadLocalRandom.current().nextInt(diff);
+                int choose = Constants.RANDOM.nextInt(5);
+                int randomInt = 1 + Constants.RANDOM.nextInt(diff);
 
                 switch (choose) {
                     case 0: // more than ret
@@ -189,8 +188,8 @@ public class DBInvalidUtil {
             int ret = super.read(cbuf, off, len);
             int actual = ret;
             if (!returnValid) {
-                int choose = ThreadLocalRandom.current().nextInt(5);
-                int randomInt = 1 + ThreadLocalRandom.current().nextInt(diff);
+                int choose = Constants.RANDOM.nextInt(5);
+                int randomInt = 1 + Constants.RANDOM.nextInt(diff);
 
                 switch (choose) {
                     case 0: // more than ret
@@ -247,8 +246,8 @@ public class DBInvalidUtil {
             long ret = actualLength;
             long actual = ret;
             if (invalidLength == -1) {
-                int choose = ThreadLocalRandom.current().nextInt(5);
-                int randomInt = 1 + ThreadLocalRandom.current().nextInt(diff);
+                int choose = Constants.RANDOM.nextInt(5);
+                int randomInt = 1 + Constants.RANDOM.nextInt(diff);
 
                 switch (choose) {
                     case 0: // more than ret
@@ -342,7 +341,7 @@ public class DBInvalidUtil {
      */
     public class InvalidBinaryStream extends DBBinaryStream {
         final int diff = 5;
-        private boolean _returnValid = false; // Perfom invalid actions at most once
+        private boolean _returnValid = false; // Perform invalid actions at most once
 
         /**
          * Constructor
@@ -360,8 +359,8 @@ public class DBInvalidUtil {
             int ret = super.read(bytes, off, len);
             int actual = ret;
             if (!_returnValid) {
-                int choose = ThreadLocalRandom.current().nextInt(4);
-                int randomInt = 1 + ThreadLocalRandom.current().nextInt(diff);
+                int choose = Constants.RANDOM.nextInt(4);
+                int randomInt = 1 + Constants.RANDOM.nextInt(diff);
                 switch (choose) {
                     case 0: // greater than ret
                         actual = ret + randomInt;

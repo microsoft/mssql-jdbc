@@ -15,13 +15,14 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Vector;
 import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -38,6 +39,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class LimitEscapeTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("LimitEscape");
     private static Vector<String> offsetQuery = new Vector<>();
@@ -270,7 +272,6 @@ public class LimitEscapeTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @DisplayName("initAndVerifyQueries")
     public void initAndVerifyQueries() throws Exception {
         Query qry;
         try (Connection conn = getConnection()) {
@@ -836,7 +837,6 @@ public class LimitEscapeTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @DisplayName("verifyOffsetException")
     public void verifyOffsetException() throws Exception {
         offsetQuery.addElement("select * from "
                 + AbstractSQLGenerator.escapeIdentifier(TestUtils.escapeSingleQuotes(table1)) + " {limit 2 offset 1}");
@@ -892,8 +892,8 @@ public class LimitEscapeTest extends AbstractTest {
      */
     @BeforeAll
     public static void beforeAll() {
-        try (Connection conn = getConnection()) {
-            createAndPopulateTables(conn);
+        try {
+            createAndPopulateTables(connection);
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -905,15 +905,13 @@ public class LimitEscapeTest extends AbstractTest {
      * @throws Exception
      */
     @AfterAll
-    public static void afterAll() throws Exception {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+    public static void afterAll() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table4), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
-        } catch (Exception ex) {
-            fail(ex.toString());
         }
     }
 }

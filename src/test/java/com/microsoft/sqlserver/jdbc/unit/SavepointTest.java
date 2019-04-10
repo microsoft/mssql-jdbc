@@ -12,6 +12,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -34,6 +35,7 @@ public class SavepointTest extends AbstractTest {
      * Testing SavePoint with name.
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testSavePointName() throws SQLException {
         try (Connection connection = getConnection()) {
 
@@ -63,6 +65,7 @@ public class SavepointTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testSavePointId() throws SQLException {
         try (Connection connection = getConnection()) {
 
@@ -92,6 +95,7 @@ public class SavepointTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag("xAzureSQLDW")
     public void testSavePointIsNamed() throws SQLException {
         try (Connection connection = getConnection()) {
 
