@@ -20,6 +20,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.StreamHandler;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
