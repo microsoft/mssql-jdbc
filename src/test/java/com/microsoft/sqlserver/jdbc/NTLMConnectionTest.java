@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.logging.Formatter;
+import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
 import java.util.logging.StreamHandler;
 
@@ -68,8 +69,7 @@ public class NTLMConnectionTest extends AbstractTest {
     @BeforeAll
     public static void setUp() {
         // remove all other logging and add our own handler
-        java.util.logging.Logger logger = java.util.logging.Logger.getLogger("");
-        logger.removeHandler(logger.getHandlers()[0]);
+        LogManager.getLogManager().reset();
         ntlmLogger.addHandler(handler);
 
         // if these properties are defined then NTLM is desired, modify connection string accordingly
@@ -245,7 +245,7 @@ public class NTLMConnectionTest extends AbstractTest {
     public void testNTLMBadInit() throws SQLException {
         try {
             SSPIAuthentication auth = new NTLMAuthentication(new SQLServerConnection(""), "serverName", "domainName",
-                    "hostname");
+                    "userName", "password", "hostname");
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownServer")));
         }
@@ -326,7 +326,8 @@ public class NTLMConnectionTest extends AbstractTest {
         if (ntlmPropsDefined) {
             try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
                 getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "hostname");
+                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
+                        "hostname");
                 boolean[] done = {false};
 
                 try {
@@ -346,7 +347,8 @@ public class NTLMConnectionTest extends AbstractTest {
         if (ntlmPropsDefined) {
             try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
                 getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "hostname");
+                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
+                        "hostname");
                 boolean[] done = {false};
 
                 try {
@@ -367,7 +369,8 @@ public class NTLMConnectionTest extends AbstractTest {
         if (ntlmPropsDefined) {
             try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
                 getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "hostname");
+                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
+                        "hostname");
                 boolean[] done = {false};
 
                 try {
@@ -390,7 +393,8 @@ public class NTLMConnectionTest extends AbstractTest {
 
             try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
                 getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "hostname");
+                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
+                        "hostname");
                 boolean[] done = {false};
 
                 try {
@@ -418,7 +422,8 @@ public class NTLMConnectionTest extends AbstractTest {
 
             try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
                 getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "hostname");
+                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
+                        "hostname");
                 boolean[] done = {false};
                 try {
                     // modify token with bad computer name
@@ -444,7 +449,8 @@ public class NTLMConnectionTest extends AbstractTest {
         if (ntlmPropsDefined) {
             try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
                 getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "hostname");
+                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
+                        "hostname");
                 boolean[] done = {false};
                 try {
                     byte[] badAvid = {-1, 0};
@@ -466,7 +472,8 @@ public class NTLMConnectionTest extends AbstractTest {
 
             try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
                 getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "hostname");
+                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
+                        "hostname");
                 boolean[] done = {false};
 
                 try {

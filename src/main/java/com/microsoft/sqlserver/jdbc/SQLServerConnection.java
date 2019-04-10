@@ -3677,6 +3677,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             currentConnectPlaceHolder.getPortNumber());
             } else if (ntlmAuthentication) {
                 authentication = new NTLMAuthentication(this, currentConnectPlaceHolder.getServerName(), domainName,
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                         hostName);
             }
         }

@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -54,7 +55,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * Section 2.2.2.7 NTLM v2: NTLMv2_CLIENT_CHALLENGE
      * 
      * <pre>
-     * RespType   current version(aka Responsreversion) of the challenge response type. This field MUST be 0x01
+     * RespType   current version(aka Responseversion) of the challenge response type. This field MUST be 0x01
      * HiRespType max supported version (aka HiResponserversion) of the client response type.
      * </pre>
      */
@@ -265,11 +266,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
          * @return NTLM client context
          * @throws SQLServerException
          */
-        NTLMContext(final SQLServerConnection con, final String serverName, final String domainName,
+        NTLMContext(final String serverName, final String domainName, final String userName, final String password,
                 final String workstation) throws SQLServerException {
 
             // get server FQDN
-            String serverFqdn = "\0";
+            String serverFqdn = null;
             try {
                 if (null != serverName) {
                     InetAddress addr = serverName.equals("localhost") ? InetAddress.getByName(workstation)
@@ -286,19 +287,17 @@ final class NTLMAuthentication extends SSPIAuthentication {
                 Object[] msgArgs = {serverName, e.getMessage()};
                 throw new SQLServerException(form.format(msgArgs), e);
             }
-
             this.serverNameBytes = null != serverFqdn ? unicode(serverFqdn.toUpperCase()) : null;
 
-            this.domainName = null != domainName ? domainName.toUpperCase() : "\0";
-            this.domainBytes = unicode(this.domainName);
+            this.domainName = null != domainName ? domainName.toUpperCase() : null;
+            this.domainBytes = null != domainName ? unicode(this.domainName) : null;
 
-            this.userName = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
-            this.userNameBytes = unicode(userName);
+            this.userName = userName;
+            this.userNameBytes = null != userName ? unicode(userName) : null;
 
-            this.passwordHash = MD4(unicode(
-                    con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())));
+            this.passwordHash = null != password ? MD4(unicode(password)) : null;
 
-            this.workstationBytes = unicode(workstation.toUpperCase());
+            this.workstationBytes = null != workstation ? unicode(workstation.toUpperCase()) : null;
 
             try {
                 mac = Mac.getInstance("HmacMD5");
@@ -323,9 +322,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @throws SQLServerException
      */
     NTLMAuthentication(final SQLServerConnection con, final String serverName, final String domainName,
-            final String workstation) throws SQLServerException {
+            final String user, final String password, final String workstation) throws SQLServerException {
         if (null == context) {
-            this.context = new NTLMContext(con, serverName, domainName, workstation);
+            this.context = new NTLMContext(serverName, domainName, user, password, workstation);
         }
     }
 
@@ -431,22 +430,29 @@ final class NTLMAuthentication extends SSPIAuthentication {
             switch (id) {
                 // verify domain name
                 case NTLM_AVID_MSVAVDNSDOMAINNAME:
-                    if (!Arrays.equals(context.domainBytes, new String(value).toUpperCase().getBytes())) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadDomain"));
-                        Object[] msgArgs = {new String(value), new String(context.domainBytes)};
+                    if (null != context.domainBytes && logger.isLoggable(Level.WARNING)) {
+                        // verify domain name
+                        if (!Arrays.equals(context.domainBytes, new String(value).toUpperCase().getBytes())) {
+                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadDomain"));
+                            Object[] msgArgs = {new String(value), new String(context.domainBytes)};
 
-                        // this may fail if we could not get the FQDN so just log a warning
-                        logger.warning(form.format(msgArgs));
+                            // this may fail if we could not get the FQDN so just log a warning
+                            logger.warning(form.format(msgArgs));
+                        }
                     }
                     break;
                 case NTLM_AVID_MSVAVDNSCOMPUTERNAME:
                     // verify server name
-                    if (!Arrays.equals(context.serverNameBytes, new String(value).toUpperCase().getBytes())) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadComputer"));
-                        Object[] msgArgs = {new String(value), new String(context.serverNameBytes)};
+                    if (null != context.serverNameBytes && logger.isLoggable(Level.WARNING)) {
+                        // verify server name
+                        if (!Arrays.equals(context.serverNameBytes, new String(value).toUpperCase().getBytes())) {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_ntlmBadComputer"));
+                            Object[] msgArgs = {new String(value), new String(context.serverNameBytes)};
 
-                        // this may fail if we could not get the FQDN so just log a warning
-                        logger.warning(form.format(msgArgs));
+                            // this may fail if we could not get the FQDN so just log a warning
+                            logger.warning(form.format(msgArgs));
+                        }
                     }
                     break;
                 case NTLM_AVID_MSVAVTIMESTAMP:
@@ -655,7 +661,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     private byte[] ntowfv2() throws InvalidKeyException {
 
-        return hmacMD5(context.passwordHash, unicode(context.userName.toUpperCase() + context.domainName));
+        return hmacMD5(context.passwordHash,
+                (null != context.userName) ? unicode(context.userName.toUpperCase() + context.domainName)
+                                           : unicode(context.domainName));
     }
 
     /**
@@ -721,9 +729,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @throws SQLServerException
      */
     private byte[] generateNtlmAuthenticate() throws SQLServerException {
-        int domainNameLen = context.domainBytes.length;
-        int userNameLen = context.userNameBytes.length;
-        int workstationLen = context.workstationBytes.length;
+        int domainNameLen = null != context.domainBytes ? context.domainBytes.length : 0;
+        int userNameLen = null != context.userNameBytes ? context.userNameBytes.length : 0;
+        int workstationLen = null != context.workstationBytes ? context.workstationBytes.length : 0;
         byte[] msg = null;
 
         try {
@@ -831,8 +839,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @return NTLM Negotiate message
      */
     private byte[] generateNtlmNegotiate() {
-        int domainNameLen = context.domainBytes.length;
-        int workstationLen = context.workstationBytes.length;
+        int domainNameLen = null != context.domainBytes ? context.domainBytes.length : 0;
+        int workstationLen = null != context.workstationBytes ? context.workstationBytes.length : 0;
 
         context.token = ByteBuffer.allocate(NTLM_NEGOTIATE_PAYLOAD_OFFSET + domainNameLen + workstationLen)
                 .order(ByteOrder.LITTLE_ENDIAN);
