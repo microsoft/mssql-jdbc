@@ -891,7 +891,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     final void setMaxFieldSize(int limit) throws SQLServerException {
         // assert limit >= 0;
         if (maxFieldSize != limit) {
-            if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+            if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
             }
             // If no limit on field size, set text size to max (2147483647), NOT default (0 --> 4K)
@@ -921,7 +921,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     final void setMaxRows(int limit) throws SQLServerException {
         // assert limit >= 0;
         if (maxRows != limit) {
-            if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+            if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
             }
             connectionCommand("SET ROWCOUNT " + limit, "setMaxRows");
@@ -2562,8 +2562,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         final byte[] preloginResponse = new byte[TDS.INITIAL_PACKET_SIZE];
         String preloginErrorLogString = " Prelogin error: host " + serverName + " port " + portNumber;
 
-        ActivityId activityId = ActivityCorrelator.getNext();
-        final byte[] actIdByteArray = Util.asGuidByteArray(activityId.getId());
         final byte[] conIdByteArray = Util.asGuidByteArray(clientConnectionId);
 
         int offset;
@@ -2579,18 +2577,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         System.arraycopy(conIdByteArray, 0, preloginRequest, offset, conIdByteArray.length);
         offset += conIdByteArray.length;
 
-        // copy ActivityId
-        System.arraycopy(actIdByteArray, 0, preloginRequest, offset, actIdByteArray.length);
-        offset += actIdByteArray.length;
-
-        long seqNum = activityId.getSequence();
-        Util.writeInt((int) seqNum, preloginRequest, offset);
-        offset += 4;
+        if (Util.isActivityTraceOn()) {
+            ActivityId activityId = ActivityCorrelator.getNext();
+            final byte[] actIdByteArray = Util.asGuidByteArray(activityId.getId());
+            System.arraycopy(actIdByteArray, 0, preloginRequest, offset, actIdByteArray.length);
+            offset += actIdByteArray.length;
+            long seqNum = activityId.getSequence();
+            Util.writeInt((int) seqNum, preloginRequest, offset);
+            offset += 4;
+            
+            if (connectionlogger.isLoggable(Level.FINER)) {
+                connectionlogger.finer(toString() + " ActivityId " + activityId.toString());
+            }
+        }
 
         if (connectionlogger.isLoggable(Level.FINER)) {
             connectionlogger.finer(
                     toString() + " Requesting encryption level:" + TDS.getEncryptionLevel(requestedEncryptionLevel));
-            connectionlogger.finer(toString() + " ActivityId " + activityId.toString());
         }
 
         // Write the entire prelogin request
@@ -2606,7 +2609,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             throw e;
         }
 
-        ActivityCorrelator.setCurrentActivityIdSentFlag(); // indicate current ActivityId is sent
+        if (Util.isActivityTraceOn()) {
+            ActivityCorrelator.setCurrentActivityIdSentFlag(); // indicate current ActivityId is sent
+        }
 
         // Read the entire prelogin response
         int responseLength = preloginResponse.length;
@@ -3118,7 +3123,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void setAutoCommit(boolean newAutoCommitMode) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "setAutoCommit", newAutoCommitMode);
-            if (Util.IsActivityTraceOn())
+            if (Util.isActivityTraceOn())
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         String commitPendingTransaction = "";
@@ -3160,7 +3165,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void commit() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "commit");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
@@ -3173,7 +3178,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void rollback() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "rollback");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -3263,7 +3268,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
 
-        ActivityCorrelator.cleanupActivityId();
+        if (Util.isActivityTraceOn()) {
+            ActivityCorrelator.cleanupActivityId();
+        }
     }
 
     // This function is used by the proxy for notifying the pool manager that this connection proxy is closed
@@ -3282,12 +3289,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 connectionCommand("IF @@TRANCOUNT > 0 ROLLBACK TRAN" /* +close connection */, "close connection");
             }
             notifyPooledConnection(null);
-            ActivityCorrelator.cleanupActivityId();
+            if (Util.isActivityTraceOn()) {
+                ActivityCorrelator.cleanupActivityId();
+            }
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " Connection closed and returned to connection pool");
             }
         }
-
     }
 
     @Override
@@ -3329,7 +3337,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void setCatalog(String catalog) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "setCatalog", catalog);
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -3356,7 +3364,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void setTransactionIsolation(int level) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "setTransactionIsolation", level);
-            if (Util.IsActivityTraceOn()) {
+            if (Util.isActivityTraceOn()) {
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
             }
         }
@@ -5314,7 +5322,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public Savepoint setSavepoint(String sName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "setSavepoint", sName);
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -5326,7 +5334,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public Savepoint setSavepoint() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "setSavepoint");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -5338,7 +5346,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void rollback(Savepoint s) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "rollback", s);
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -5363,7 +5371,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void setHoldability(int holdability) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "setHoldability", holdability);
 
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkValidHoldability(holdability);
