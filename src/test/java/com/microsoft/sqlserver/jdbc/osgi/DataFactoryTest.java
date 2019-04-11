@@ -56,7 +56,7 @@ public class DataFactoryTest extends AbstractTest {
             }
 
             @Override
-            public ServiceRegistration<?> registerService(String[] clazzes, Object service, Dictionary properties) {
+            public ServiceRegistration<?> registerService(String[] classes, Object service, @SuppressWarnings("rawtypes") Dictionary properties) {
                 MockServiceRegistration reg = new MockServiceRegistration(properties);
                 sr = reg.getReference();
                 if (service instanceof DataSourceFactory) {

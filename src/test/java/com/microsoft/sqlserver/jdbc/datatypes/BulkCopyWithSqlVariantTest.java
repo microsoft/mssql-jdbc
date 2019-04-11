@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -31,6 +32,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("sqlVariantTestSrcTable");
@@ -337,7 +339,6 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
     @Test
     public void bulkCopyTestTwoCols() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-
             String col1Value = "2015-05-05";
             String col2Value = "126.1230";
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -777,6 +778,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
                 bulkCopy.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(destTableName));
                 bulkCopy.writeToServer(rs);
+                bulkCopy.close();
             }
 
             try (ResultSet rs = stmt
@@ -852,8 +854,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
     }
 
     private void beforeEachSetup(String colType, Object colValue) throws SQLException {
-        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTableName), stmt);
             stmt.executeUpdate(
@@ -872,7 +873,7 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws SQLException {
-        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(destTableName), stmt);
         }

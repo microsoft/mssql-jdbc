@@ -2,8 +2,8 @@ package com.microsoft.sqlserver.jdbc.preparedStatement;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -29,8 +29,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
-import org.opentest4j.TestAbortedException;
-
 import com.microsoft.sqlserver.jdbc.Geography;
 import com.microsoft.sqlserver.jdbc.Geometry;
 import com.microsoft.sqlserver.jdbc.RandomData;
@@ -49,7 +47,6 @@ import microsoft.sql.DateTimeOffset;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("BulkCopyParseTest");
@@ -571,7 +568,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
             assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
@@ -593,7 +590,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
             if (isSqlAzureDW()) {
                 assertEquals(TestResource.getResource("R_incorrectColumnNumInsertDW"), e.getMessage());
@@ -623,7 +620,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
             if (isSqlAzureDW()) {
                 assertTrue(e.getMessage().contains(TestResource.getResource("R_incorrectSyntaxTableDW")));
@@ -647,15 +644,15 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.addBatch();
 
             pstmt.executeBatch();
-            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (BatchUpdateException e) {
             assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
     }
 
     @Test
+    @Tag("xAzureSQLDW")
     public void testNonSupportedColumns() throws Exception {
-        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_spatialDWNotSupported"));
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName)
                 + " values (?, ?, ?, ?)";
 
@@ -696,33 +693,29 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     @BeforeEach
-    public void testSetup() throws TestAbortedException, Exception {
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
-            try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " " + "("
-                        + "c1 bigint, " + "c2 binary(5), " + "c3 bit, " + "c4 char, " + "c5 date, " + "c6 datetime, "
-                        + "c7 datetime2, " + "c8 datetimeoffset, " + "c9 decimal, " + "c10 float, " + "c11 int, "
-                        + "c12 money, " + "c13 nchar, " + "c14 numeric, " + "c15 nvarchar(20), " + "c16 real, "
-                        + "c17 smalldatetime, " + "c18 smallint, " + "c19 smallmoney, " + "c20 time, " + "c21 tinyint, "
-                        + "c22 varbinary(5), " + "c23 varchar(20) " + ")";
+    public void testSetup() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " " + "(" + "c1 bigint, "
+                    + "c2 binary(5), " + "c3 bit, " + "c4 char, " + "c5 date, " + "c6 datetime, " + "c7 datetime2, "
+                    + "c8 datetimeoffset, " + "c9 decimal, " + "c10 float, " + "c11 int, " + "c12 money, "
+                    + "c13 nchar, " + "c14 numeric, " + "c15 nvarchar(20), " + "c16 real, " + "c17 smalldatetime, "
+                    + "c18 smallint, " + "c19 smallmoney, " + "c20 time, " + "c21 tinyint, " + "c22 varbinary(5), "
+                    + "c23 varchar(20) " + ")";
 
-                stmt.execute(sql1);
-            }
+            stmt.execute(sql1);
         }
     }
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(connectionString)) {
-            try (Statement stmt = (SQLServerStatement) connection.createStatement()) {
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulk), stmt);
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(unsupportedTableName), stmt);
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(squareBracketTableName), stmt);
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName), stmt);
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(schemaTableName), stmt);
-            }
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulk), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(unsupportedTableName), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(squareBracketTableName), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(schemaTableName), stmt);
         }
     }
 }

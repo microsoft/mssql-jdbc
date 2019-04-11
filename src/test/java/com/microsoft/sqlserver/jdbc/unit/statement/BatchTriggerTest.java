@@ -14,6 +14,7 @@ import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -33,6 +34,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class BatchTriggerTest extends AbstractTest {
 
     static String tableName;
@@ -46,7 +48,7 @@ public class BatchTriggerTest extends AbstractTest {
      */
     @Test
     public void statementTest() throws SQLException {
-        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             stmt.addBatch(insertQuery);
             stmt.executeBatch();
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
@@ -62,14 +64,11 @@ public class BatchTriggerTest extends AbstractTest {
      */
     @Test
     public void preparedStatementTest() throws SQLException {
-        try (Connection connection = getConnection();
-                PreparedStatement pstmt = connection.prepareStatement(insertQuery)) {
-
+        try (PreparedStatement pstmt = connection.prepareStatement(insertQuery)) {
             pstmt.addBatch();
             pstmt.executeBatch();
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Exception e) {
-
             assertTrue(e.getMessage().equalsIgnoreCase(TestResource.getResource("R_customErrorMessage")));
         }
     }
@@ -81,7 +80,7 @@ public class BatchTriggerTest extends AbstractTest {
      * @throws SQLException
      */
     private static void createTrigger(String triggerName) throws SQLException {
-        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             String sql = "create trigger " + triggerName + " on " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " for insert " + "as " + "begin " + "if (select col1 from "
                     + AbstractSQLGenerator.escapeIdentifier(tableName) + ") > 10 " + "begin " + "return " + "end "
@@ -96,12 +95,10 @@ public class BatchTriggerTest extends AbstractTest {
      * 
      * @throws SQLException
      */
-    private static void createTable() throws SQLException {
-        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
-            String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " ( col1 int, col2 varchar(50), col3 varchar(10), col4 int)";
-            stmt.execute(sql);
-        }
+    private static void createTable(Statement stmt) throws SQLException {
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " ( col1 int, col2 varchar(50), col3 varchar(10), col4 int)";
+        stmt.execute(sql);
     }
 
     /**
@@ -117,11 +114,10 @@ public class BatchTriggerTest extends AbstractTest {
         insertQuery = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " (col1, col2, col3, col4) values (1, '22-08-2017 17:30:00.000', 'R4760', 31)";
 
-        try (Connection connection = getConnection();
-                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTriggerIfExists(triggerName, stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            createTable();
+            createTable(stmt);
             createTrigger(AbstractSQLGenerator.escapeIdentifier(triggerName));
         }
     }
@@ -133,8 +129,7 @@ public class BatchTriggerTest extends AbstractTest {
      */
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (Connection connection = getConnection();
-                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             stmt.execute("IF EXISTS (\r\n" + "    SELECT *\r\n" + "    FROM sys.objects\r\n"
                     + "    WHERE [type] = 'TR' AND [name] = '" + TestUtils.escapeSingleQuotes(triggerName) + "'\r\n"

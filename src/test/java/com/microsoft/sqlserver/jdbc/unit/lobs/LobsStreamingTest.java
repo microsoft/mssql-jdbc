@@ -13,10 +13,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -29,6 +31,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("xAzureSQLDW")
 public class LobsStreamingTest extends AbstractTest {
 
     private static String tableName = null;
@@ -48,10 +51,8 @@ public class LobsStreamingTest extends AbstractTest {
         return saltStr;
     }
 
-    // closing the scanner closes the Inputstream, and the driver needs the stream to fill LoBs
-    @SuppressWarnings("resource")
-    private String getStringFromInputStream(InputStream is) {
-        java.util.Scanner s = new java.util.Scanner(is, java.nio.charset.StandardCharsets.US_ASCII).useDelimiter("\\A");
+    // closing the scanner closes the InputStream, and the driver needs the stream to fill LoBs
+    private String getStringFromInputStream(InputStream is, Scanner s) {
         return s.hasNext() ? s.next() : "";
     }
 
@@ -99,18 +100,21 @@ public class LobsStreamingTest extends AbstractTest {
         try (Connection conn = getConnection();) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
-                createLobTable(stmt, tableName, Constants.LOB.CLOB);
                 ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
+
+                createLobTable(stmt, tableName, Constants.LOB.CLOB);
                 insertData(conn, tableName, lob_data);
 
                 try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
                     while (rs.next()) {
                         Clob c = rs.getClob(2);
-                        Reader r = c.getCharacterStream();
-                        long clobLength = c.length();
-                        String received = getStringFromReader(r, clobLength);// streaming string
-                        c.free();
-                        assertEquals(lob_data.get(rs.getInt(1)), received);// compare streamed string to initial string
+                        try (Reader r = c.getCharacterStream()) {
+                            long clobLength = c.length();
+                            String received = getStringFromReader(r, clobLength);// streaming string
+                            c.free();
+                            assertEquals(lob_data.get(rs.getInt(1)), received);// compare streamed string to initial
+                                                                               // string
+                        }
                     }
                 }
             } finally {
@@ -123,32 +127,37 @@ public class LobsStreamingTest extends AbstractTest {
 
     @Test
     @DisplayName("testClobsVarcharASCII")
-    public void testClobsVarcharASCII() throws SQLException {
+    @SuppressWarnings("resource")
+    public void testClobsVarcharASCII() throws SQLException, IOException {
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
-                createLobTable(stmt, tableName, Constants.LOB.CLOB);
+
                 ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
+                ArrayList<String> recievedDataFromServer = new ArrayList<>();
+
+                createLobTable(stmt, tableName, Constants.LOB.CLOB);
                 insertData(conn, tableName, lob_data);
 
-                ArrayList<Clob> lobsFromServer = new ArrayList<>();
                 try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
                     while (rs.next()) {
                         int index = rs.getInt(1);
                         Clob c = rs.getClob(2);
                         assertEquals(c.length(), lob_data.get(index).length());
-                        lobsFromServer.add(c);
-                        String received = getStringFromInputStream(c.getAsciiStream());// streaming string
-                        assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                        try (InputStream is = c.getAsciiStream();
+                                Scanner s = new Scanner(is, java.nio.charset.StandardCharsets.US_ASCII)
+                                        .useDelimiter("\\A")) {
+                            String received = getStringFromInputStream(is, s);// streaming string
+                            assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                            c.free();
+                            recievedDataFromServer.add(received);
+                        }
                     }
-                }
-                for (int i = 0; i < lob_data.size(); i++) {
-                    String received = getStringFromInputStream(lobsFromServer.get(i).getAsciiStream());// non-streaming
-                                                                                                       // string
-                    assertEquals(received, lob_data.get(i));// compare static string to streamed string
-                }
-                for (Clob c : lobsFromServer) {
-                    c.free();
+                    for (int i = 0; i < lob_data.size(); i++) {
+                        assertEquals(recievedDataFromServer.get(i), lob_data.get(i));// compare static string to
+                                                                                     // streamed
+                                                                                     // string
+                    }
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
@@ -156,17 +165,20 @@ public class LobsStreamingTest extends AbstractTest {
                 }
             }
         }
+
     }
 
+    @SuppressWarnings("resource")
     @Test
     @DisplayName("testNClobsNVarcharASCII")
     public void testNClobsVarcharASCII() throws SQLException, IOException {
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
-                createLobTable(stmt, tableName, Constants.LOB.NCLOB);
                 // Testing AsciiStream, use Clob string set or characters will be converted to '?'
                 ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
+
+                createLobTable(stmt, tableName, Constants.LOB.NCLOB);
                 insertData(conn, tableName, lob_data);
 
                 try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
@@ -174,10 +186,13 @@ public class LobsStreamingTest extends AbstractTest {
                         int index = rs.getInt(1);
                         NClob c = rs.getNClob(2);
                         assertEquals(c.length(), lob_data.get(index).length());
-                        String received = getStringFromInputStream(c.getAsciiStream());// NClob AsciiStream is never
-                                                                                       // streamed
-                        c.free();
-                        assertEquals(lob_data.get(index), received);// compare string to initial string
+                        try (InputStream is = c.getAsciiStream();
+                                Scanner s = new Scanner(is, java.nio.charset.StandardCharsets.US_ASCII)
+                                        .useDelimiter("\\A")) {
+                            String received = getStringFromInputStream(is, s);// NClob AsciiStream is never streamed
+                            c.free();
+                            assertEquals(lob_data.get(index), received);// compare string to initial string
+                        }
                     }
                 }
             } finally {
@@ -194,28 +209,29 @@ public class LobsStreamingTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
-                createLobTable(stmt, tableName, Constants.LOB.CLOB);
+
                 ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
+                ArrayList<String> receivedDataFromServer = new ArrayList<>();
+
+                createLobTable(stmt, tableName, Constants.LOB.CLOB);
                 insertData(conn, tableName, lob_data);
 
-                ArrayList<Clob> lobsFromServer = new ArrayList<>();
                 try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
                     while (rs.next()) {
                         int index = rs.getInt(1);
                         Clob c = rs.getClob(2);
                         assertEquals(c.length(), lob_data.get(index).length());
-                        lobsFromServer.add(c);
-                        String received = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
-                        assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                        try (Reader reader = c.getCharacterStream()) {
+                            String received = getStringFromReader(reader, c.length());// streaming string
+                            receivedDataFromServer.add(received);
+                            assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                            c.free();
+                        }
                     }
                 }
                 for (int i = 0; i < lob_data.size(); i++) {
-                    String received = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
-                            lobsFromServer.get(i).length());// non-streaming string
-                    assertEquals(received, lob_data.get(i));// compare static string to streamed string
-                }
-                for (Clob c : lobsFromServer) {
-                    c.free();
+                    assertEquals(receivedDataFromServer.get(i), lob_data.get(i));// compare static string to streamed
+                                                                                 // string
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
@@ -231,28 +247,29 @@ public class LobsStreamingTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
-                createLobTable(stmt, tableName, Constants.LOB.NCLOB);
+
                 ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.NCLOB);
+                ArrayList<String> receivedDataFromServer = new ArrayList<>();
+
+                createLobTable(stmt, tableName, Constants.LOB.NCLOB);
                 insertData(conn, tableName, lob_data);
 
-                ArrayList<NClob> lobsFromServer = new ArrayList<>();
                 try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
                     while (rs.next()) {
                         int index = rs.getInt(1);
                         NClob c = rs.getNClob(2);
                         assertEquals(c.length(), lob_data.get(index).length());
-                        lobsFromServer.add(c);
-                        String received = getStringFromReader(c.getCharacterStream(), c.length());// streaming string
-                        assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                        try (Reader reader = c.getCharacterStream()) {
+                            String received = getStringFromReader(reader, c.length());// streaming string
+                            receivedDataFromServer.add(received);
+                            assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                            c.free();
+                        }
                     }
                 }
                 for (int i = 0; i < lob_data.size(); i++) {
-                    String received = getStringFromReader(lobsFromServer.get(i).getCharacterStream(),
-                            lobsFromServer.get(i).length());// non-streaming string
-                    assertEquals(received, lob_data.get(i));// compare static string to streamed string
-                }
-                for (Clob c : lobsFromServer) {
-                    c.free();
+                    assertEquals(receivedDataFromServer.get(i), lob_data.get(i));// compare static string to streamed
+                                                                                 // string
                 }
             } finally {
                 try (Statement stmt = conn.createStatement()) {
