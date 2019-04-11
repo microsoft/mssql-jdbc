@@ -71,7 +71,7 @@ public class ExceptionTest extends AbstractTest {
      * 
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testSocketTimeoutExceptionCause() throws Exception {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName), stmt);

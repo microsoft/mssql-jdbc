@@ -26,17 +26,17 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.PrepUtil;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
  * A class for testing the UTF8 support changes.
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
-@Tag("xAzureSQLDB")
-@Tag("xSQLv12")
-@Tag("xSQLv13")
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLDB)
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xSQLv13)
 public class UTF8SupportTest extends AbstractTest {
     private static String databaseName;
     private static String tableName;

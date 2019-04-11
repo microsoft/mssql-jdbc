@@ -10,6 +10,25 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 
 
 public class Constants {
+    /**
+     * Use below tags for tests to exclude them from test group:
+     * 
+     * <pre>
+     * xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014
+     * xSQLv13 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2017
+     * xSQLv15 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2019
+     * xAzureSQLDB - - - - For tests not compatible with Azure SQL Database
+     * xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse
+     * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
+     * </pre>
+     */
+    public static final String xSQLv12 = "xSQLv12";
+    public static final String xSQLv13 = "xSQLv13";
+    public static final String xSQLv15 = "xSQLv15";
+    public static final String xAzureSQLDB = "xAzureSQLDB";
+    public static final String xAzureSQLDW = "xAzureSQLDW";
+    public static final String xAzureSQLMI = "xAzureSQLMI";
+
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");
     public static final String JKS_SECRET_STRING = "changeit";

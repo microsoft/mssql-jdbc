@@ -20,12 +20,13 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityProperty;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
-@Tag("xSQLv12")
-@Tag("xSQLv13")
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xSQLv13)
 public class DataClassificationTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("DataClassification");
 

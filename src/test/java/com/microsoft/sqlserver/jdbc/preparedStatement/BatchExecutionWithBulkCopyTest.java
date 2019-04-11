@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+
 import com.microsoft.sqlserver.jdbc.Geography;
 import com.microsoft.sqlserver.jdbc.Geometry;
 import com.microsoft.sqlserver.jdbc.RandomData;
@@ -651,7 +652,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testNonSupportedColumns() throws Exception {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(unsupportedTableName)
                 + " values (?, ?, ?, ?)";

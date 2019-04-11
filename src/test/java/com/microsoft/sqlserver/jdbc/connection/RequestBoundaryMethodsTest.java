@@ -33,14 +33,15 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
  * A class for testing Request Boundary Methods.
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
-@Tag("xAzureSQLDB")
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLDB)
 public class RequestBoundaryMethodsTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("RequestBoundaryTable");

@@ -29,6 +29,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
@@ -37,8 +38,8 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xSQLv12")
-@Tag("xAzureSQLDW")
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xAzureSQLDW)
 public class BatchExecutionTest extends AbstractTest {
 
     static String ctstable1;

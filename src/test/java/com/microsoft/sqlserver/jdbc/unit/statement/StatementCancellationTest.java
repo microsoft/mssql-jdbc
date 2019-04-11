@@ -18,10 +18,11 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class StatementCancellationTest extends AbstractTest {
     private static final long DELAY_WAIT_MILLISECONDS = 10000;
     private static final long CANCEL_WAIT_MILLISECONDS = 5000;
