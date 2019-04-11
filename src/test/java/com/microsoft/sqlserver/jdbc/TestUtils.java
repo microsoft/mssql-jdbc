@@ -71,15 +71,24 @@ public class TestUtils {
     private static Boolean isAzureDW = null;
     private static Boolean isAzureMI = null;
 
-    /*
-     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure. It should return 6
-     * for SQL Azure DW. This is more reliable than @@version or serverproperty('edition'). Reference:
-     * http://msdn.microsoft.com/en-us/library/ee336261.aspx SERVERPROPERTY('EngineEdition') means Database Engine
-     * edition of the instance of SQL Server installed on the server. 1 = Personal or Desktop Engine (Not available for
-     * SQL Server.) 2 = Standard (This is returned for Standard and Workgroup.) 3 = Enterprise (This is returned for
-     * Enterprise, Enterprise Evaluation, and Developer.) 4 = Express (This is returned for Express, Express with
-     * Advanced Services, and Windows Embedded SQL.) 5 = SQL Azure 6 = SQL Azure DW 8 = Managed Instance Base data type:
-     * int
+    /**
+     * <pre>
+     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
+     * It should return 6 for SQL Azure DW. This is more reliable than @@version or serverproperty('edition'). 
+     * 
+     * Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx 
+     * 
+     * SERVERPROPERTY('EngineEdition') means Database Engine edition of the instance of SQL Server installed on the server. 
+     * 1 = Personal or Desktop Engine (Not available for SQL Server.) 
+     * 2 = Standard (This is returned for Standard and Workgroup.) 
+     * 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
+     * 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.) 
+     * 5 = SQL Azure 
+     * 6 = SQL Azure DW 
+     * 8 = Managed Instance
+     * 
+     * Base data type: int
+     * </pre>
      */
     public static boolean isAzure(Connection con) {
         if (null == isAzure) {
