@@ -15,7 +15,7 @@ public class Constants {
      * 
      * <pre>
      * xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014
-     * xSQLv13 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2017
+     * xSQLv14 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2017
      * xSQLv15 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2019
      * xAzureSQLDB - - - - For tests not compatible with Azure SQL Database
      * xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse
@@ -23,7 +23,7 @@ public class Constants {
      * </pre>
      */
     public static final String xSQLv12 = "xSQLv12";
-    public static final String xSQLv13 = "xSQLv13";
+    public static final String xSQLv14 = "xSQLv14";
     public static final String xSQLv15 = "xSQLv15";
     public static final String xAzureSQLDB = "xAzureSQLDB";
     public static final String xAzureSQLDW = "xAzureSQLDW";

@@ -26,7 +26,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xSQLv12)
-@Tag(Constants.xSQLv13)
+@Tag(Constants.xSQLv14)
 public class DataClassificationTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("DataClassification");
 

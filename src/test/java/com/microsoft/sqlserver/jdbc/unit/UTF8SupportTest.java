@@ -36,7 +36,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.xSQLv12)
-@Tag(Constants.xSQLv13)
+@Tag(Constants.xSQLv14)
 public class UTF8SupportTest extends AbstractTest {
     private static String databaseName;
     private static String tableName;
