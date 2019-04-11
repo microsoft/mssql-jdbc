@@ -452,7 +452,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
             switch (id) {
                 case NTLM_AVID_MSVAVDNSDOMAINNAME:
-                    if (null != context.domainBytes && logger.isLoggable(Level.WARNING)) {
+                    if (null != context.domainName && logger.isLoggable(Level.WARNING)) {
                         // verify domain name
                         if (!Arrays.equals(context.domainBytes, new String(value).toUpperCase().getBytes())) {
                             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadDomain"));
@@ -464,7 +464,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
                     }
                     break;
                 case NTLM_AVID_MSVAVDNSCOMPUTERNAME:
-                    if (null != context.serverFqdn && logger.isLoggable(Level.WARNING)) {
+                    if (null != context.serverName && logger.isLoggable(Level.WARNING)) {
                         // verify server name
                         if (!Arrays.equals(context.getServerNameBytes(), new String(value).toUpperCase().getBytes())) {
                             MessageFormat form = new MessageFormat(
