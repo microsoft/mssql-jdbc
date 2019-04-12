@@ -1699,6 +1699,14 @@ final class DTV {
                 case DATETIMEOFFSET:
                     op.execute(this, (microsoft.sql.DateTimeOffset) value);
                     break;
+                    
+                case GEOMETRY:
+                    op.execute(this, ((Geometry) value).serialize());
+                    break;
+                    
+                case GEOGRAPHY:
+                    op.execute(this, ((Geography) value).serialize());
+                    break;
 
                 case FLOAT:
                     if (null != cryptoMeta) {
