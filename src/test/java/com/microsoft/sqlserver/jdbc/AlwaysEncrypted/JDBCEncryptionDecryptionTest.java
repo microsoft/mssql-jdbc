@@ -35,9 +35,9 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xSQLv12")
-@Tag("xAzureSQLDW")
-@Tag("xAzureSQLDB")
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLDB)
 public class JDBCEncryptionDecryptionTest extends AESetup {
 
     private boolean nullable = false;

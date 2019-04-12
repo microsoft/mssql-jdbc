@@ -68,8 +68,8 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testBatchedUnprepare() throws SQLException {
         SQLServerConnection conOuter = null;
 
@@ -148,8 +148,8 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testStatementPooling() throws Exception {
         testStatementPoolingInternal("batchInsert");
     }
@@ -164,8 +164,8 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws IllegalArgumentException
      */
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testStatementPoolingUseBulkCopyAPI() throws Exception {
         testStatementPoolingInternal("BulkCopy");
     }

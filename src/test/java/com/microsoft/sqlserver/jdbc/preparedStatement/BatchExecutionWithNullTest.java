@@ -22,16 +22,16 @@ import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class BatchExecutionWithNullTest extends AbstractTest {
 
     private static final String tableName = RandomUtil.getIdentifier("batchNull");
@@ -94,7 +94,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xSQLv12")
+    @Tag(Constants.xSQLv12)
     public void testAddbatch2AEOnConnection() throws SQLException {
         try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
             testAddBatch2(connection);
@@ -112,7 +112,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     }
 
     @BeforeEach
-    @Tag("xSQLv12")
+    @Tag(Constants.xSQLv12)
     public void testSetup() throws TestAbortedException, Exception {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);

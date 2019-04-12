@@ -24,6 +24,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 import microsoft.sql.DateTimeOffset;
 
@@ -34,7 +35,7 @@ public class DTOSerialTest extends AbstractTest {
     private static String dateString;
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testDSerial() throws Exception {
         sdf.setTimeZone(TimeZone.getTimeZone("Z"));
         dateString = sdf.format(new Date());

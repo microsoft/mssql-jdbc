@@ -97,7 +97,7 @@ public class TimeoutTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testQueryTimeout() throws Exception {
         try (Connection conn = getConnection()) {
             dropWaitForDelayProcedure(conn);
@@ -134,7 +134,7 @@ public class TimeoutTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testCancelQueryTimeout() throws Exception {
         try (Connection conn = getConnection()) {
             dropWaitForDelayProcedure(conn);
@@ -171,7 +171,7 @@ public class TimeoutTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testCancelQueryTimeoutOnStatement() throws Exception {
         try (Connection conn = getConnection()) {
             dropWaitForDelayProcedure(conn);
@@ -209,7 +209,7 @@ public class TimeoutTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testSocketTimeout() throws Exception {
         try (Connection conn = getConnection()) {
             dropWaitForDelayProcedure(conn);

@@ -21,6 +21,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerSavepoint;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -35,7 +36,7 @@ public class SavepointTest extends AbstractTest {
      * Testing SavePoint with name.
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testSavePointName() throws SQLException {
         try (Connection connection = getConnection()) {
 
@@ -65,7 +66,7 @@ public class SavepointTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testSavePointId() throws SQLException {
         try (Connection connection = getConnection()) {
 
@@ -95,7 +96,7 @@ public class SavepointTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testSavePointIsNamed() throws SQLException {
         try (Connection connection = getConnection()) {
 

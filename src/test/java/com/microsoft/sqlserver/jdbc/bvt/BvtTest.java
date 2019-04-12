@@ -23,6 +23,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
@@ -142,7 +143,7 @@ public class BvtTest extends AbstractTest {
      * @throws ClassNotFoundException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testStmtScrollInsensitiveReadOnly() throws SQLException, ClassNotFoundException {
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_INSENSITIVE_CONCUR_READ_ONLY);
@@ -163,7 +164,7 @@ public class BvtTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testStmtScrollSensitiveReadOnly() throws SQLException {
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_SENSITIVE_CONCUR_READ_ONLY);
@@ -186,7 +187,7 @@ public class BvtTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testStmtForwardOnlyUpdateable() throws SQLException {
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_FORWARD_ONLY_CONCUR_UPDATABLE);
@@ -214,7 +215,7 @@ public class BvtTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testStmtScrollSensitiveUpdatable() throws SQLException {
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_SENSITIVE_CONCUR_UPDATABLE);
@@ -238,7 +239,7 @@ public class BvtTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testStmtSSScrollDynamicOptimisticCC() throws SQLException {
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_DYNAMIC_CONCUR_OPTIMISTIC);
@@ -281,7 +282,8 @@ public class BvtTest extends AbstractTest {
 
         String colName = table1.getEscapedColumnName(7);
         String value = table1.getRowData(7, 0).toString();
-        String query = "SELECT * from " + table1.getEscapedTableName() + " where " + colName + " = ? "+ " ORDER BY " + table1.getEscapedColumnName(0);
+        String query = "SELECT * from " + table1.getEscapedTableName() + " where " + colName + " = ? " + " ORDER BY "
+                + table1.getEscapedColumnName(0);
 
         try (DBConnection conn = new DBConnection(connectionString);
                 DBPreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -411,7 +413,7 @@ public class BvtTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testResultSetSelectMethod() throws SQLException {
         try (DBConnection conn = new DBConnection(connectionString + ";selectMethod=cursor;");
                 DBStatement stmt = conn.createStatement(); DBResultSet rs = stmt.selectAll(table1)) {

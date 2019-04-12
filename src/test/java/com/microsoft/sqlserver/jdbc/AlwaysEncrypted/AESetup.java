@@ -73,8 +73,7 @@ public class AESetup extends AbstractTest {
     public static void setUpConnection() throws TestAbortedException, Exception {
         AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
-        try (Connection con = PrepUtil.getConnection(AETestConnectionString);
-                Statement stmt = con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString); Statement stmt = con.createStatement()) {
             dropCEK(stmt);
             dropCMK(stmt);
         }
