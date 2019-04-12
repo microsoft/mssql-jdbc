@@ -34,7 +34,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test ISQLServerBulkRecord")
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
 
     @Test

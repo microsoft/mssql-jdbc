@@ -23,10 +23,11 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("ParameterMetaDataWhiteSpaceTest");
 

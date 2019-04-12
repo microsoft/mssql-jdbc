@@ -59,7 +59,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class LobsTest extends AbstractTest {
     static String tableName;
     static String escapedTableName;

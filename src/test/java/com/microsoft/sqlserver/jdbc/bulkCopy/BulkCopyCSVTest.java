@@ -50,7 +50,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test bulkCopy with CSV")
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class BulkCopyCSVTest extends AbstractTest {
 
     static String inputFile = "BulkCopyCSVTestInput.csv";

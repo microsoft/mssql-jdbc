@@ -46,9 +46,9 @@ import microsoft.sql.DateTimeOffset;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xSQLv12")
-@Tag("xAzureSQLDW")
-@Tag("xAzureSQLDB")
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLDB)
 public class CallableStatementTest extends AESetup {
 
     private static String multiStatementsProcedure = RandomUtil.getIdentifier("multiStatementsProcedure");

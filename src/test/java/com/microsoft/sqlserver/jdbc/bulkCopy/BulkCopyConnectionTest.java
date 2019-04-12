@@ -42,7 +42,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      * @return
      */
     @TestFactory
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public Stream<DynamicTest> generateBulkCopyConstructorTest() {
         List<BulkCopyTestWrapper> testData = createTestDatatestBulkCopyConstructor();
         // had to avoid using lambdas as we need to test against java7
@@ -66,7 +66,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      * @return
      */
     @TestFactory
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public Stream<DynamicTest> generateBulkCopyOptionsTest() {
         List<BulkCopyTestWrapper> testData = createTestDatatestBulkCopyOption();
         return testData.stream().map(new Function<BulkCopyTestWrapper, DynamicTest>() {
@@ -154,7 +154,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test null SQLServerBulkCopyOptions")
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testEmptyBulkCopyOptions() {
         BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
         bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
