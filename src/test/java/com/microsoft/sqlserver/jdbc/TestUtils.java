@@ -63,7 +63,7 @@ public class TestUtils {
     private static ArrayList<SqlType> types = null;
     private static final char[] HEXCHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E',
             'F'};
-    
+
     final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     final static int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
@@ -71,53 +71,35 @@ public class TestUtils {
     private static Boolean isAzureDW = null;
     private static Boolean isAzureMI = null;
 
-    /*
-     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
-     * It should return 6 for SQL Azure DW. This is more reliable than @@version or
-     * serverproperty('edition').
-     * Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
+    /**
+     * Check if connected to Azure server.
      * 
-     * SERVERPROPERTY('EngineEdition') means
-     * Database Engine edition of the instance of SQL Server installed on the server.
-     * 1 = Personal or Desktop Engine (Not available for SQL Server.)
-     * 2 = Standard (This is returned for Standard and Workgroup.)
-     * 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
-     * 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
-     * 5 = SQL Azure
-     * 6 = SQL Azure DW
-     * 8 = Managed Instance
-     * Base data type: int
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzure()
      */
     public static boolean isAzure(Connection con) {
-        if (null == isAzure) {
-            try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
-                rs.next();
-
-                int engineEdition = rs.getInt(1);
-                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
-                isAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
-                isAzureMI = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
-
-            } catch (SQLException e) {
-                isAzure = false;
-                isAzureDW = false;
-                isAzureMI = false;
-            }
-            return isAzure;
-        } else {
-            return isAzure;
-        }
+        return ((SQLServerConnection) con).isAzure();
     }
 
+    /**
+     * Check if connection is to Azure DW server.
+     * 
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzureDW()
+     */
     public static boolean isAzureDW(Connection con) {
         isAzure(con);
         return isAzureDW;
     }
 
+    /**
+     * Check if connection is to Azure MI server.
+     * 
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzureMI()
+     */
     public static boolean isAzureMI(Connection con) {
         isAzure(con);
         return isAzureMI;
     }
+
     /**
      * Read variable from property files if found null try to read from env.
      * 
