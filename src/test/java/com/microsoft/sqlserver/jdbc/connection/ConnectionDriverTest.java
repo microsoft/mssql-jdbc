@@ -113,8 +113,8 @@ public class ConnectionDriverTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testConnectionEvents() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -147,8 +147,8 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testConnectionPoolGetTwice() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -178,8 +178,8 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testConnectionClosed() throws SQLException {
         SQLServerDataSource mds = new SQLServerDataSource();
         mds.setURL(connectionString);
@@ -255,8 +255,8 @@ public class ConnectionDriverTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testDeadConnection() throws SQLException {
         String tableName = RandomUtil.getIdentifier("ConnectionTestTable");
         try (Connection conn = PrepUtil.getConnection(connectionString + ";responseBuffering=adaptive");

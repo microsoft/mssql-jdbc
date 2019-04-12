@@ -36,6 +36,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
@@ -82,7 +83,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testSmalldatetime() throws Exception {
         variation = "testSmalldatetime";
         BulkData bData = new BulkData(variation);
@@ -111,7 +112,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testSmalldatetimeOutofRange() throws Exception {
         variation = "testSmalldatetimeOutofRange";
         BulkData bData = new BulkData(variation);

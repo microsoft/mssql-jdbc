@@ -130,8 +130,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testDBUserLogin() throws SQLException {
         try (Connection conn = getConnection()) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
@@ -188,8 +188,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testDBSchemasForDashedCatalogName() throws SQLException {
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
@@ -242,8 +242,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testDBSchemasForDashedCatalogNameWithPattern() throws SQLException {
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
@@ -377,7 +377,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testGetColumnPrivileges() throws SQLException {
 
         try (Connection conn = getConnection()) {
@@ -494,8 +494,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testPreparedStatementMetadataCaching() throws SQLException {
         try (Connection connection = getConnection()) {
 

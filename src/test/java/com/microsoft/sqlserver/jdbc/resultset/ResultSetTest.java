@@ -40,6 +40,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
@@ -54,7 +55,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testJdbc41ResultSetMethods() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ( " + "col1 int, "
@@ -302,7 +303,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testGetObjectAsOffsetDateTime() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             final String testValue = "2018-01-02T11:22:33.123456700+12:34";
@@ -376,7 +377,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testGetSetHoldability() throws SQLException {
         int[] holdabilityOptions = {ResultSet.HOLD_CURSORS_OVER_COMMIT, ResultSet.CLOSE_CURSORS_AT_COMMIT};
 
@@ -402,7 +403,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testResultSetMethods() throws SQLException {
         try (Connection con = getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {

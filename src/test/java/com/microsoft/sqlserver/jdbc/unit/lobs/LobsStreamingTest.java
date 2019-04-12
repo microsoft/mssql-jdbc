@@ -31,7 +31,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class LobsStreamingTest extends AbstractTest {
 
     private static String tableName = null;

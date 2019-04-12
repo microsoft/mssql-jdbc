@@ -30,6 +30,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -77,14 +78,14 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
      */
     @Test
     @DisplayName("Regression test for using 'large' methods")
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void Repro47239large() throws Exception {
         Repro47239largeInternal("BatchInsert");
     }
 
     @Test
     @DisplayName("Regression test for using 'large' methods using bulk copy API")
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void Repro47239largeUseBulkCopyAPI() throws Exception {
         Repro47239largeInternal("BulkCopy");
     }

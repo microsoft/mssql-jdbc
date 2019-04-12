@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -29,7 +30,7 @@ import com.microsoft.sqlserver.testframework.DBStatement;
  * Testing merge queries
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class MergeTest extends AbstractTest {
     static String cricketTeams = RandomUtil.getIdentifier("CricketTeams");
     static String cricketTeamsUpdated = RandomUtil.getIdentifier("cricketTeamsUpdated");

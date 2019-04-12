@@ -10,7 +10,7 @@ jobs:
     matrix:
       SQL-2017:
         Target_SQL: 'SQL-2k17-03'
-        Ex_Groups: 'xSQLv13'
+        Ex_Groups: 'xSQLv14'
       SQL-2008R2:
         Target_SQL: 'SQL-2k8R2-SP3-1'
         Ex_Groups: 'xSQLv12'

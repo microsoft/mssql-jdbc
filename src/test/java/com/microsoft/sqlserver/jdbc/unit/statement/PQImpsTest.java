@@ -37,7 +37,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class PQImpsTest extends AbstractTest {
     private static final int SQL_SERVER_2012_VERSION = 11;
 

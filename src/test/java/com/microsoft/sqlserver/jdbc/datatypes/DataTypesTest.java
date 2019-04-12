@@ -39,6 +39,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 import microsoft.sql.DateTimeOffset;
@@ -1065,7 +1066,7 @@ public class DataTypesTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testResultSetUpdaters() throws Exception {
         try (Connection conn = getConnection()) {
             for (TestValue value : TestValue.values())
@@ -1074,7 +1075,7 @@ public class DataTypesTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testSetters() throws Exception {
         try (Connection conn = PrepUtil.getConnection(connectionString + ";sendTimeAsDateTime=true")) {
             for (TestValue value : TestValue.values())
@@ -1149,7 +1150,7 @@ public class DataTypesTest extends AbstractTest {
      * double-rounding of fractional seconds
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testDoubleRounding() throws Exception {
         try (Connection conn = getConnection()) {
 
@@ -1553,7 +1554,7 @@ public class DataTypesTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testUpdateMisc() throws Exception {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil
                 .getConnection(connectionString + ";sendTimeAsDatetime=true")) {
@@ -1668,7 +1669,7 @@ public class DataTypesTest extends AbstractTest {
      * last millisecond digit.
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testDateTimeInsertUpdate() throws Exception {
         try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
