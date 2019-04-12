@@ -57,6 +57,7 @@ public final class SQLServerDataColumn {
         return hash;
     }
 
+    @Override
     public boolean equals(Object object) {
         if (this == object) {
             return true;
