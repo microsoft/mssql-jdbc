@@ -225,7 +225,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         private final String workstation;
 
         // user credentials
-        private final String userName;
+        private final String upperUserName;
         private final byte[] passwordHash;
 
         // unicode bytes
@@ -307,17 +307,21 @@ final class NTLMAuthentication extends SSPIAuthentication {
         NTLMContext(final String serverName, final String domainName, final String userName, final String password,
                 final String workstation) throws SQLServerException {
 
-            this.serverName = null != serverName ? serverName.toUpperCase() : null;
+            this.serverName = null != serverName ? serverName.toUpperCase()
+                                                 : SQLServerDriverStringProperty.SERVER_NAME.getDefaultValue();
 
-            this.domainName = null != domainName ? domainName.toUpperCase() : null;
-            this.domainBytes = null != domainName ? unicode(this.domainName) : null;
+            this.domainName = null != domainName ? domainName.toUpperCase()
+                                                 : SQLServerDriverStringProperty.DOMAIN.getDefaultValue();
+            this.domainBytes = unicode(this.domainName);
 
-            this.userNameBytes = null != userName ? unicode(userName) : null;
-            this.userName = userName.toUpperCase();
+            this.userNameBytes = null != SQLServerDriverStringProperty.USER.getDefaultValue() ? unicode(userName)
+                                                                                              : null;
+            this.upperUserName = userName.toUpperCase();
 
             this.passwordHash = null != password ? MD4(unicode(password)) : null;
 
-            this.workstation = null != workstation ? workstation.toUpperCase() : null;
+            this.workstation = null != workstation ? workstation.toUpperCase()
+                                                   : SQLServerDriverStringProperty.WORKSTATION_ID.getDefaultValue();
             this.workstationBytes = null != workstation ? unicode(workstation.toUpperCase()) : null;
 
             try {
@@ -429,7 +433,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.getShort(); // targetInfoMaxLen
         context.token.getInt(); // targetInfoOffset
 
-        context.token.getLong(); // version - not used
+        context.token.getLong(); // version - not used, for debug only
 
         // get requested target name
         byte[] targetName = new byte[targetNameLen];
@@ -452,28 +456,29 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
             switch (id) {
                 case NTLM_AVID_MSVAVDNSDOMAINNAME:
-                    if (null != context.domainName && logger.isLoggable(Level.WARNING)) {
+                    if (logger.isLoggable(Level.FINER)) {
                         // verify domain name
-                        if (!Arrays.equals(context.domainBytes, new String(value).toUpperCase().getBytes())) {
+                        if (null != context.domainName
+                                && !Arrays.equals(context.domainBytes, new String(value).toUpperCase().getBytes())) {
                             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmBadDomain"));
                             Object[] msgArgs = {new String(value, java.nio.charset.StandardCharsets.UTF_16LE),
                                     context.domainName};
 
-                            logger.warning(form.format(msgArgs));
+                            logger.finer(form.format(msgArgs));
                         }
                     }
                     break;
                 case NTLM_AVID_MSVAVDNSCOMPUTERNAME:
-                    if (null != context.serverName && logger.isLoggable(Level.WARNING)) {
+                    if (logger.isLoggable(Level.FINER)) {
                         // verify server name
-                        if (!Arrays.equals(context.getServerNameBytes(), new String(value).toUpperCase().getBytes())) {
+                        if (null != context.serverName && !Arrays.equals(context.getServerNameBytes(),
+                                new String(value).toUpperCase().getBytes())) {
                             MessageFormat form = new MessageFormat(
                                     SQLServerException.getErrString("R_ntlmBadComputer"));
                             Object[] msgArgs = {new String(value, java.nio.charset.StandardCharsets.UTF_16LE),
                                     context.serverFqdn};
 
-                            // this may fail if we could not get the FQDN so just log a warning
-                            logger.warning(form.format(msgArgs));
+                            logger.finer(form.format(msgArgs));
                         }
                     }
                     break;
@@ -486,7 +491,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
                 case NTLM_AVID_MSVAVEOL:
                     done = true;
                     break;
-                // do nothing, MIC is always sent in response regardless
                 case NTLM_AVID_MSVAVFLAGS:
                     // ignore others not supported
                 case NTLM_AVID_MSVAVNBCOMPUTERNAME:
@@ -512,7 +516,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
          */
         if (null == context.timestamp || 0 >= context.timestamp.length) {
             // this SHOULD always be present but for some reason occasionally this had seen to be missing
-            logger.warning(SQLServerException.getErrString("R_ntlmNoTimestamp"));
+            logger.finer(SQLServerException.getErrString("R_ntlmNoTimestamp"));
         } else {
             // save msg for calculating MIC in Authenticate msg
             context.challengeMsg = new byte[inToken.length];
@@ -595,22 +599,17 @@ final class NTLMAuthentication extends SSPIAuthentication {
         if (null == context.timestamp || 0 >= context.timestamp.length) {
             context.token.put(context.targetInfo, 0, context.targetInfo.length);
         } else {
-            ByteBuffer newTargetInfo = ByteBuffer.allocate(context.targetInfo.length + NTLM_MIC_AVP_LENGTH)
-                    .order(ByteOrder.LITTLE_ENDIAN);
-
             // copy targetInfo up to NTLM_AVID_MSVAVEOL
-            newTargetInfo.put(context.targetInfo, 0, context.targetInfo.length - 4);
+            context.token.put(context.targetInfo, 0, context.targetInfo.length - 4);
 
             // MIC flag
-            newTargetInfo.putShort(NTLM_AVID_MSVAVFLAGS);
-            newTargetInfo.putShort((short) 4);
-            newTargetInfo.putInt((int) NTLM_AVID_VALUE_MIC);
+            context.token.putShort(NTLM_AVID_MSVAVFLAGS);
+            context.token.putShort((short) 4);
+            context.token.putInt((int) NTLM_AVID_VALUE_MIC);
 
             // EOL
-            newTargetInfo.putShort(NTLM_AVID_MSVAVEOL);
-            newTargetInfo.putShort((short) 0);
-
-            context.token.put(newTargetInfo.array(), 0, newTargetInfo.array().length);
+            context.token.putShort(NTLM_AVID_MSVAVEOL);
+            context.token.putShort((short) 0);
         }
 
         return context.token.array();
@@ -683,7 +682,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     private byte[] ntowfv2() throws InvalidKeyException {
 
-        return hmacMD5(context.passwordHash, (null != context.userName) ? unicode(context.userName + context.domainName)
+        return hmacMD5(context.passwordHash, (null != context.upperUserName) ? unicode(context.upperUserName + context.domainName)
                                                                         : unicode(context.domainName));
     }
 
@@ -890,7 +889,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         context.token.putInt(offset);
         offset += workstationLen;
 
-        // version not used - for debug only
+        // version - not used, for debug only
 
         // payload
         context.token.put(context.domainBytes, 0, domainNameLen);

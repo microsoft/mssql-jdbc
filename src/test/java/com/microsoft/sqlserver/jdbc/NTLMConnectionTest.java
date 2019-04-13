@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.logging.Formatter;
+import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
 import java.util.logging.StreamHandler;
@@ -27,6 +28,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -35,9 +37,9 @@ import com.zaxxer.hikari.HikariDataSource;
  * A class for testing basic NTLMv2 functionality.
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
-@Tag("xAzureSQLDB")
-@Tag("xAzureSQLMSI")
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLDB)
+@Tag(Constants.xAzureSQLMI)
 public class NTLMConnectionTest extends AbstractTest {
 
     // custom formatter that contains nothing but the log message only
@@ -70,7 +72,9 @@ public class NTLMConnectionTest extends AbstractTest {
     public static void setUp() {
         // remove all other logging and add our own handler
         LogManager.getLogManager().reset();
+        ntlmLogger.setLevel(Level.FINER);
         ntlmLogger.addHandler(handler);
+        handler.setLevel(Level.FINER);
 
         // if these properties are defined then NTLM is desired, modify connection string accordingly
         String domain = System.getProperty("domain");
