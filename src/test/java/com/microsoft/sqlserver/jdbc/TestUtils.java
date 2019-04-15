@@ -63,7 +63,7 @@ public class TestUtils {
     private static ArrayList<SqlType> types = null;
     private static final char[] HEXCHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E',
             'F'};
-    
+
     final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     final static int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
@@ -90,11 +90,14 @@ public class TestUtils {
      */
     public static boolean isAzure(Connection con) {
         if (null == isAzure) {
-            try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+            try (Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
                 rs.next();
 
                 int engineEdition = rs.getInt(1);
-                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
+                        || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW
+                        || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
                 isAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
                 isAzureMI = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
 
@@ -118,6 +121,7 @@ public class TestUtils {
         isAzure(con);
         return isAzureMI;
     }
+
     /**
      * Read variable from property files if found null try to read from env.
      * 

@@ -28,6 +28,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
@@ -55,7 +56,7 @@ public class TimeoutTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testBasicQueryTimeout() {
         assertThrows(SQLTimeoutException.class, () -> {
             runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS);
@@ -63,7 +64,7 @@ public class TimeoutTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testQueryTimeoutValid() {
         long start = System.currentTimeMillis();
         assertThrows(SQLTimeoutException.class, () -> {

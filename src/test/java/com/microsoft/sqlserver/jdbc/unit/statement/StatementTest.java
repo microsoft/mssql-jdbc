@@ -47,6 +47,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
@@ -61,7 +62,7 @@ public class StatementTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("StatementTest");
 
     @Nested
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public class TCAttentionHandling {
         private static final int NUM_TABLE_ROWS = 1000;
         private static final int MIN_TABLE_ROWS = 100;
@@ -1010,7 +1011,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testJdbc41CallableStatementMethods() throws Exception {
             // Prepare database setup
 
@@ -1169,7 +1170,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testStatementOutParamGetsTwice() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
@@ -1218,7 +1219,7 @@ public class StatementTest extends AbstractTest {
         }
 
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testStatementOutManyParamGetsTwiceRandomOrder() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
@@ -1252,7 +1253,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testStatementOutParamGetsTwiceInOut() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
@@ -1282,7 +1283,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testResultSetParams() throws Exception {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
@@ -1318,7 +1319,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testResultSetNullParams() throws Exception {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
@@ -1383,7 +1384,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testResultSetErrors() throws Exception {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
@@ -1414,7 +1415,7 @@ public class StatementTest extends AbstractTest {
          * Verify proper handling of row errors in ResultSets.
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testRowError() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
@@ -1552,7 +1553,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testNBCROWNullsForLOBs() throws Exception {
             try (DBConnection dbconn = new DBConnection(connectionString)) {
                 if (dbconn.getServerVersion() <= 9.0) {
@@ -1586,7 +1587,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testSparseColumnSetValues() throws Exception {
             try (DBConnection dbconn = new DBConnection(connectionString)) {
                 if (dbconn.getServerVersion() <= 9.0) {
@@ -1626,7 +1627,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testSparseColumnSetIndex() throws Exception {
             try (DBConnection dbconn = new DBConnection(connectionString)) {
                 if (dbconn.getServerVersion() <= 9.0) {
@@ -1665,7 +1666,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testSparseColumnSetForException() throws Exception {
             try (DBConnection dbconn = new DBConnection(connectionString)) {
                 if (dbconn.getServerVersion() <= 9.0) {
@@ -1703,7 +1704,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testNBCRowForAllNulls() throws Exception {
             try (DBConnection dbconn = new DBConnection(connectionString)) {
                 if (dbconn.getServerVersion() <= 9.0) {
@@ -1752,7 +1753,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        @Tag("xAzureSQLDW")
+        @Tag(Constants.xAzureSQLDW)
         public void testNBCROWWithRandomAccess() throws Exception {
             try (DBConnection dbconn = new DBConnection(connectionString)) {
                 if (dbconn.getServerVersion() <= 9.0) {
@@ -2025,7 +2026,7 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public class TCUpdateCountWithTriggers {
         private static final int NUM_ROWS = 3;
 
@@ -2171,7 +2172,7 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public class TCUpdateCountAfterRaiseError {
         private final String tableName = RandomUtil.getIdentifier("TCUpdateCountAfterRaiseError");
         private final String triggerName = tableName + "Trigger";
@@ -2381,7 +2382,7 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public class TCNocount {
         private final String tableName = RandomUtil.getIdentifier("TCNoCount");
 

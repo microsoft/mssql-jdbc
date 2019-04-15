@@ -39,7 +39,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test no explicit column mapping")
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testNoExplicitCM() throws SQLException {
         try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
             DBTable destTable = null;
@@ -62,7 +62,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test explicit column mapping")
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testExplicitCM() throws SQLException {
         try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
             DBTable destTable = null;
@@ -149,7 +149,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test repetitive column mapping")
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testRepetitiveCM() throws SQLException {
         try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
             DBTable sourceTable1 = null;
@@ -373,8 +373,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         try (DBStatement srcStmt = con.createStatement(); DBStatement dstStmt = con.createStatement();
                 DBResultSet srcResultSet = srcStmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName()
                         + " ORDER BY" + sourceTable.getEscapedColumnName(0));
-                DBResultSet dstResultSet = dstStmt.executeQuery("SELECT * FROM "
-                        + destinationTable.getEscapedTableName() + " ORDER BY" + destinationTable.getEscapedColumnName(0))) {
+                DBResultSet dstResultSet = dstStmt
+                        .executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + " ORDER BY"
+                                + destinationTable.getEscapedColumnName(0))) {
             ResultSetMetaData sourceMeta = ((ResultSet) srcResultSet.product()).getMetaData();
             int totalColumns = sourceMeta.getColumnCount();
 

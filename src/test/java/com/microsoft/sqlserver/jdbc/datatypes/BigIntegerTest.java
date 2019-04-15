@@ -18,13 +18,14 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /*
  * This test is for testing the setObject methods for the data type mappings in JDBC for java.math.BigInteger
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class BigIntegerTest extends AbstractTest {
 
     enum TestType {
