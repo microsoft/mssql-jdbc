@@ -30,12 +30,7 @@ public class ParameterMetaDataTest extends AbstractTest {
         try (Connection c = DriverManager.getConnection(AbstractTest.connectionString);
                 Statement s = c.createStatement()) {
             s.execute("CREATE TABLE " + tableName
-                    + " (cBigint bigint, cNumeric numeric, cBit bit, cSmallint smallint, cDecimal decimal, "
-                    + "cSmallmoney smallmoney, cInt int, cTinyint tinyint, cMoney money, cFloat float, "
-                    + "cReal real, cDate date, cDatetimeoffset datetimeoffset, cDatetime2 datetime2, "
-                    + "cSmalldatetime smalldatetime, cDatetime datetime, cTime time, cChar char, cVarchar varchar, "
-                    + "cText text, cNchar nchar, cNvarchar nvarchar, cNtext ntext, cBinary binary, "
-                    + "cVarbinary varbinary, cImage image);");
+                    + " (cInt int, cNvarchar nvarchar(4000), cFloat float, cBigint bigint)");
         }
     }
 
@@ -52,8 +47,24 @@ public class ParameterMetaDataTest extends AbstractTest {
         List<String> l = Arrays.asList(
                 "SELECT * INTO " + tableName + " FROM " + tableName + " WHERE cBigint > ? " + "AND cBigint < ?;",
 
-                "SET NOCOUNT ON;SELECT p.cText AS Product, p.cVarchar AS 'List Price' FROM " + tableName + " AS p JOIN "
-                        + tableName + " AS s ON p.cInt = s.cInt WHERE s.[cVarchar] LIKE ? AND p.cFloat < ?;");
+                "SET NOCOUNT ON;SELECT p.cInt AS Product, p.cNvarchar AS 'List Price' FROM " + tableName + " AS p JOIN "
+                        + tableName + " AS s ON p.cInt = s.cInt WHERE s.[cNvarchar] LIKE ? AND p.cFloat < ?;",
+
+                "INSERT INTO " + tableName + "(cInt,cFloat) VALUES(?,?)",
+
+                "INSERT INTO " + tableName + "(cInt,cFloat) VALUES(?,?),(?,?),(?,?)",
+
+                "INSERT INTO " + tableName + " VALUES(?,?,?,?)",
+
+                "INSERT INTO " + tableName + " VALUES(?,?,?,?), (?,?,?,?), (?,?,?,?)",
+
+                "INSERT INTO " + tableName + " VALUES(1,?,?,1)"
+
+//                "INSERT INTO " + tableName + " VALUES(1,?,?,?), (?,?,?,2), (?,?,5.5,?),"
+                
+                
+                
+                );
         l.forEach(this::compareFmtAndSp);
     }
 
@@ -80,7 +91,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                 System.out.println(pmd1.getPrecision(i));
                 assertEquals(pmd1.getPrecision(i), pmd2.getPrecision(i));;
                 
-                System.out.println(pmd1.getScale(i));
+                System.out.println(pmd1.getScale(i) + "\n");
                 assertEquals(pmd1.getScale(i), pmd2.getScale(i));
             }
         } catch (SQLException e) {

@@ -35,19 +35,21 @@ public class InsertTest extends AbstractTest {
         valuePair.add(Pair.of("INSERT INTO /*hello this is a comment*/jdbctest VALUES (1);", "jdbctest"));
 
         // double quote literal
-        valuePair.add(Pair.of("INSERT INTO \"jdbc test\"", "\"jdbc test\""));
-        valuePair.add(Pair.of("INSERT INTO \"jdbc /*test*/\"", "\"jdbc /*test*/\""));
-        valuePair.add(Pair.of("INSERT INTO \"jdbc //test\"", "\"jdbc //test\""));
-        valuePair.add(Pair.of("INSERT INTO \"dbo\".\"jdbcDB\".\"jdbctest\"", "\"dbo\" . \"jdbcDB\" . \"jdbctest\""));
-        valuePair.add(Pair.of("INSERT INTO \"jdbctest\"", "\"jdbctest\""));
+        valuePair.add(Pair.of("INSERT INTO \"jdbc test\" VALUES (1)", "\"jdbc test\""));
+        valuePair.add(Pair.of("INSERT INTO \"jdbc /*test*/\" VALUES (1)", "\"jdbc /*test*/\""));
+        valuePair.add(Pair.of("INSERT INTO \"jdbc //test\" VALUES (1)", "\"jdbc //test\""));
+        valuePair.add(Pair.of("INSERT INTO \"dbo\".\"jdbcDB\".\"jdbctest\" VALUES (1)",
+                "\"dbo\" . \"jdbcDB\" . \"jdbctest\""));
+        valuePair.add(Pair.of("INSERT INTO \"jdbctest\" VALUES (1)", "\"jdbctest\""));
 
         // square bracket literal
-        valuePair.add(Pair.of("INSERT INTO [jdbctest]", "[jdbctest]"));
-        valuePair.add(Pair.of("INSERT INTO [dbo].[jdbcDB].[jdbctest]", "[dbo] . [jdbcDB] . [jdbctest]"));
-        valuePair.add(Pair.of("INSERT INTO [dbo].\"jdbcDB\".\"jdbctest\"", "[dbo] . \"jdbcDB\" . \"jdbctest\""));
-        valuePair.add(Pair.of("INSERT INTO [jdbc test]", "[jdbc test]"));
-        valuePair.add(Pair.of("INSERT INTO [jdbc /*test*/]", "[jdbc /*test*/]"));
-        valuePair.add(Pair.of("INSERT INTO [jdbc //test]", "[jdbc //test]"));
+        valuePair.add(Pair.of("INSERT INTO [jdbctest] VALUES (1)", "[jdbctest]"));
+        valuePair.add(Pair.of("INSERT INTO [dbo].[jdbcDB].[jdbctest] VALUES (1)", "[dbo] . [jdbcDB] . [jdbctest]"));
+        valuePair.add(
+                Pair.of("INSERT INTO [dbo].\"jdbcDB\".\"jdbctest\" VALUES (1)", "[dbo] . \"jdbcDB\" . \"jdbctest\""));
+        valuePair.add(Pair.of("INSERT INTO [jdbc test] VALUES (1)", "[jdbc test]"));
+        valuePair.add(Pair.of("INSERT INTO [jdbc /*test*/] VALUES (1)", "[jdbc /*test*/]"));
+        valuePair.add(Pair.of("INSERT INTO [jdbc //test] VALUES (1)", "[jdbc //test]"));
 
         // with parameters
         valuePair.add(Pair.of("INSERT jdbctest VALUES (c1,c2,c3)", "jdbctest"));
@@ -232,7 +234,8 @@ public class InsertTest extends AbstractTest {
                 "dbo . EmployeeSales,Sales . SalesPerson AS sp INNER JOIN Person . Person AS c ON sp . BusinessEntityID = c . BusinessEntityID"));
 
         /*
-         * V. Inserting data returned from an OUTPUT clause TODO: Fix
+         * V. Inserting data returned from an OUTPUT clause. TODO: Table name extraction is actually working, but this
+         * query won't work on SSMS because of MERGE clause.
          * valuePair.add(Pair.of("INSERT INTO Production.ZeroInventory (DeletedProductID, RemovedOnDate) \r\n" +
          * "SELECT ProductID, GETDATE() \r\n" + "FROM \r\n" + "( MERGE Production.ProductInventory AS pi \r\n" +
          * " USING (SELECT ProductID, SUM(OrderQty) FROM Sales.SalesOrderDetail AS sod \r\n" +
@@ -241,7 +244,8 @@ public class InsertTest extends AbstractTest {
          * " ON (pi.ProductID = src.ProductID) \r\n" + " WHEN MATCHED AND pi.Quantity - src.OrderQty <= 0 \r\n" +
          * " THEN DELETE \r\n" + " WHEN MATCHED \r\n" + " THEN UPDATE SET pi.Quantity = pi.Quantity - src.OrderQty \r\n"
          * + " OUTPUT $action, deleted.ProductID) AS Changes (Action, ProductID) \r\n" + "WHERE Action = 'DELETE'; ",
-         * "Production . ZeroInventory"));
+         * "Production . ZeroInventory,(MERGE Production . ProductInventory AS pi USING (SELECT ProductID , SUM (OrderQty )FROM Sales . SalesOrderDetail AS sod JOIN Sales . SalesOrderHeader AS soh ON sod . SalesOrderID = soh . SalesOrderID AND soh . OrderDate = '20070401' GROUP BY ProductID )AS src (ProductID , OrderQty )ON (pi . ProductID = src . ProductID )WHEN MATCHED AND pi . Quantity - src . OrderQty <= 0 THEN DELETE WHEN MATCHED THEN UPDATE SET pi . Quantity = pi . Quantity - src . OrderQty OUTPUT $ action , deleted . ProductID ) AS Changes (Action , ProductID )"
+         * ));
          */
 
         // W. Inserting data using the SELECT option

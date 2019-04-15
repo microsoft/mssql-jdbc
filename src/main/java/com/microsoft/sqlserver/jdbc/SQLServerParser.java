@@ -37,12 +37,14 @@ class SQLServerParser {
                             String columnName = SQLServerParser.findColumnAroundParameter(iter);
                             if (columnName.length() > 0)
                                 f.getColumns().add(columnName);
-                            iter = f.getTokenList().listIterator(parameterIndex);
+                            resetIteratorIndex(iter, parameterIndex);
                         }
                         if (t.getType() == SQLServerLexer.FROM) {
-                            f.getTableTarget().add(
-                                    getTableTargetChunk(iter, Arrays.asList(SQLServerLexer.WHERE, SQLServerLexer.GROUP,
-                                            SQLServerLexer.HAVING, SQLServerLexer.ORDER, SQLServerLexer.OPTION)));
+                            f.getTableTarget()
+                                    .add(getTableTargetChunk(iter, f.getAliases(),
+                                            Arrays.asList(SQLServerLexer.WHERE, SQLServerLexer.GROUP,
+                                                    SQLServerLexer.HAVING, SQLServerLexer.ORDER,
+                                                    SQLServerLexer.OPTION)));
                             break;
                         }
                     }
@@ -54,7 +56,7 @@ class SQLServerParser {
                         t = iter.previous();
                     }
                     f.getTableTarget()
-                            .add(getTableTargetChunk(iter,
+                            .add(getTableTargetChunk(iter, f.getAliases(),
                                     Arrays.asList(SQLServerLexer.VALUES, SQLServerLexer.OUTPUT,
                                             SQLServerLexer.LR_BRACKET, SQLServerLexer.SELECT, SQLServerLexer.EXECUTE,
                                             SQLServerLexer.WITH, SQLServerLexer.DEFAULT)));
@@ -100,19 +102,20 @@ class SQLServerParser {
                     if (t.getType() != SQLServerLexer.FROM) {
                         t = iter.previous();
                     }
-                    f.getTableTarget().add(getTableTargetChunk(iter, Arrays.asList(SQLServerLexer.OPTION,
-                            SQLServerLexer.WHERE, SQLServerLexer.OUTPUT, SQLServerLexer.FROM)));
+                    f.getTableTarget()
+                            .add(getTableTargetChunk(iter, f.getAliases(), Arrays.asList(SQLServerLexer.OPTION,
+                                    SQLServerLexer.WHERE, SQLServerLexer.OUTPUT, SQLServerLexer.FROM)));
                     break;
                 case SQLServerLexer.UPDATE:
                     skipTop(iter);
                     t = iter.previous();
                     // Get next chunk
-                    f.getTableTarget().add(getTableTargetChunk(iter, Arrays.asList(SQLServerLexer.SET,
+                    f.getTableTarget().add(getTableTargetChunk(iter, f.getAliases(), Arrays.asList(SQLServerLexer.SET,
                             SQLServerLexer.OUTPUT, SQLServerLexer.WHERE, SQLServerLexer.OPTION)));
                     break;
                 case SQLServerLexer.FROM:
                     f.getTableTarget()
-                            .add(getTableTargetChunk(iter,
+                            .add(getTableTargetChunk(iter, f.getAliases(),
                                     Arrays.asList(SQLServerLexer.WHERE, SQLServerLexer.GROUP, SQLServerLexer.HAVING,
                                             SQLServerLexer.ORDER, SQLServerLexer.OPTION, SQLServerLexer.AND)));
                     break;
@@ -124,7 +127,7 @@ class SQLServerParser {
                     iter = f.getTokenList().listIterator(parameterIndex);
                     break;
                 default:
-                    // skip, we only support SELECT/UPDATE/INSERT/DELETE/EXEC/EXECUTE
+                    // skip, we only support SELECT/UPDATE/INSERT/DELETE
                     break;
             }
         }
@@ -155,8 +158,7 @@ class SQLServerParser {
             SQLServerLexer.PLUS_ASSIGN, SQLServerLexer.MINUS_ASSIGN, SQLServerLexer.MULT_ASSIGN,
             SQLServerLexer.DIV_ASSIGN, SQLServerLexer.MOD_ASSIGN, SQLServerLexer.AND_ASSIGN, SQLServerLexer.XOR_ASSIGN,
             SQLServerLexer.OR_ASSIGN, SQLServerLexer.STAR, SQLServerLexer.DIVIDE, SQLServerLexer.MODULE,
-            SQLServerLexer.PLUS, SQLServerLexer.MINUS, SQLServerLexer.LIKE, SQLServerLexer.IN,
-            SQLServerLexer.BETWEEN);
+            SQLServerLexer.PLUS, SQLServerLexer.MINUS, SQLServerLexer.LIKE, SQLServerLexer.IN, SQLServerLexer.BETWEEN);
 
     static String findColumnAroundParameter(ListIterator<? extends Token> iter) {
         int index = iter.nextIndex();
@@ -266,7 +268,7 @@ class SQLServerParser {
         while (sb.length() == 0 && iter.hasPrevious()) {
             Token t = iter.previous();
             if (t.getType() == SQLServerLexer.DOLLAR) {
-               t = iter.previous(); // skip if it's a $ sign
+                t = iter.previous(); // skip if it's a $ sign
             }
             if (t.getType() == SQLServerLexer.AND) {
                 if (iter.hasPrevious()) {
@@ -490,7 +492,7 @@ class SQLServerParser {
 
     static void getCTESegment(ListIterator<? extends Token> iter, StringBuilder sb) throws SQLServerException {
         try {
-            sb.append(getTableTargetChunk(iter, Arrays.asList(SQLServerLexer.AS)));
+            sb.append(getTableTargetChunk(iter, null, Arrays.asList(SQLServerLexer.AS)));
         } catch (NoSuchElementException e) {
             SQLServerException.makeFromDriverError(null, SQLServerLexer.AS,
                     "Invalid syntax: WITH <cte> expressions must contain 'AS' keyword.", "", false);
@@ -551,7 +553,7 @@ class SQLServerParser {
         }
     }
 
-    private static String getTableTargetChunk(ListIterator<? extends Token> iter,
+    private static String getTableTargetChunk(ListIterator<? extends Token> iter, List<String> possibleAliases,
             List<Integer> delimiters) throws SQLServerException {
         StringBuilder sb = new StringBuilder();
         Token t = iter.next();
@@ -574,6 +576,14 @@ class SQLServerParser {
                         // TODO: Make from driver error
                     }
                     sb.append(" (").append(getBracket(iter, SQLServerLexer.LR_BRACKET));
+                    break;
+                case SQLServerLexer.AS:
+                    sb.append(t.getText());
+                    if (iter.hasNext()) {
+                        String s = iter.next().getText();
+                        possibleAliases.add(s);
+                        sb.append(" ").append(s);
+                    }
                     break;
                 default:
                     sb.append(t.getText());
@@ -599,6 +609,7 @@ class useFmtOnlyQuery {
     private ArrayList<? extends Token> tokenList = null;
     private List<String> userColumns = new ArrayList<>();
     private List<String> tableTarget = new ArrayList<>();
+    private List<String> possibleAliases = new ArrayList<>();
     List<List<String>> valuesList = new ArrayList<>();
     private boolean paramsRequireParsing = false;
 
@@ -622,27 +633,41 @@ class useFmtOnlyQuery {
         return valuesList;
     }
 
+    List<String> getAliases() {
+        return possibleAliases;
+    }
+
     boolean parseParams() {
         return paramsRequireParsing;
     }
 
-    String getFMTQuery() {
-        StringBuilder sb = new StringBuilder("SET FMTONLY ON;");
-        if (prefix != "")
-            sb.append(prefix);
-        sb.append("SELECT ");
-
+    String constructColumnTargets() {
         if (userColumns.contains("?")) {
             paramsRequireParsing = true;
-            sb.append(userColumns.stream().filter(s -> !s.equalsIgnoreCase("?")).collect(Collectors.joining(",")));
+            return userColumns.stream().filter(s -> !s.equalsIgnoreCase("?")).collect(Collectors.joining(","));
         } else {
-            sb.append(userColumns.isEmpty() ? "*" : userColumns.stream().collect(Collectors.joining(",")));
+            return userColumns.isEmpty() ? "*" : userColumns.stream().collect(Collectors.joining(","));
         }
+    }
 
+    String constructTableTargets() {
+        return tableTarget.stream().distinct().filter(s -> !possibleAliases.contains(s))
+                .collect(Collectors.joining(","));
+    }
+
+    String getFMTQuery() {
+        StringBuilder sb = new StringBuilder("SET FMTONLY ON;");
+
+        if (prefix != "") {
+            sb.append(prefix);
+        }
+        sb.append("SELECT ");
+        sb.append(constructColumnTargets());
         if (!tableTarget.isEmpty()) {
             sb.append(" FROM ");
-            sb.append(tableTarget.stream().distinct().collect(Collectors.joining(",")));
+            sb.append(constructTableTargets());
         }
+
         sb.append(";SET FMTONLY OFF;");
         return sb.toString();
     }

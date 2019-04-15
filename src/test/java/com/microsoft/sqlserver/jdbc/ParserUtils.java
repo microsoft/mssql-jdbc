@@ -22,8 +22,7 @@ public class ParserUtils {
             String fmtQuery = u.getFMTQuery();
             System.out.println(fmtQuery+"\n");
             
-            String tableName = u.getTableTarget().stream().map(String::trim).collect(Collectors.joining(","));
-//            System.out.println(tableName);
+            String tableName = u.constructTableTargets();
 
             return tableName;
         } catch (SQLServerException e) {

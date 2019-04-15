@@ -319,17 +319,19 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 if (columns.get(i).equalsIgnoreCase("*")) {
                     for (int j = 0; j < params.get(valueListOffset).size(); j++) {
                         if (params.get(valueListOffset).get(j).equalsIgnoreCase("?")) {
-                            QueryMeta qm = new QueryMeta();
-
-                            qm.parameterClassName = md.getColumnClassName(mdIndex + j);
-                            qm.parameterType = md.getColumnType(mdIndex + j);
-                            qm.parameterTypeName = md.getColumnTypeName(mdIndex + j);
-                            qm.precision = md.getPrecision(mdIndex + j);
-                            qm.scale = md.getScale(mdIndex + j);
-                            qm.isNullable = md.isNullable(mdIndex + j);
-                            qm.isSigned = md.isSigned(mdIndex + j);
-                            queryMetaMap.put(mapIndex++, qm);
-                            i++;
+                            if (!md.isAutoIncrement(mdIndex + j)) {
+                                QueryMeta qm = new QueryMeta();
+    
+                                qm.parameterClassName = md.getColumnClassName(mdIndex + j);
+                                qm.parameterType = md.getColumnType(mdIndex + j);
+                                qm.parameterTypeName = md.getColumnTypeName(mdIndex + j);
+                                qm.precision = md.getPrecision(mdIndex + j);
+                                qm.scale = md.getScale(mdIndex + j);
+                                qm.isNullable = md.isNullable(mdIndex + j);
+                                qm.isSigned = md.isSigned(mdIndex + j);
+                                queryMetaMap.put(mapIndex++, qm);
+                                i++;
+                            }
                         }
                     }
                     mdIndex += params.get(valueListOffset).size();
@@ -647,7 +649,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     String fmtQuery = f.getFMTQuery();
                     System.out.println(fmtQuery);
                     try (SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
-                            ResultSet rs = stmt.executeQuery(fmtQuery)) {
+                        ResultSet rs = stmt.executeQuery(fmtQuery)) {
                         parseQueryMetaFor2008(rs, f);
                     }
                 }

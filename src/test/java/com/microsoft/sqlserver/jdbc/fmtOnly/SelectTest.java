@@ -80,7 +80,7 @@ public class SelectTest extends AbstractTest {
 
         // Multiple Selects
         valuePair.add(Pair.of("SELECT * FROM table1;SELECT * FROM table2", "table1,table2"));
-        valuePair.add(Pair.of("SELECT * FROM table1;SELECT * FROM table1", "table1,table1"));
+        valuePair.add(Pair.of("SELECT * FROM table1;SELECT * FROM table1", "table1"));
         
         valuePair.forEach(p -> assertEquals(p.getRight(), ParserUtils.getTableName(p.getLeft()).trim()));
     }
