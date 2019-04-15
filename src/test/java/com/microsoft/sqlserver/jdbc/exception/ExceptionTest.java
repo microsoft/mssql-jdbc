@@ -96,6 +96,7 @@ public class ExceptionTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testResultSetErrorSearch() throws Exception {
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ISSUE659TABLE"));
         String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ISSUE659PROC"));
