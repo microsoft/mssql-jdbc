@@ -157,9 +157,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     SharedTimer getSharedTimer() {
         if (state == State.Closed) {
-            throw new IllegalStateException("Connection is closed");
+            throw new IllegalStateException(SQLServerException.getErrString("R_connectionIsClosed"));
         }
-        if (sharedTimer == null) {
+        if (null == sharedTimer) {
             this.sharedTimer = SharedTimer.getTimer();
         }
         return this.sharedTimer;
@@ -1074,8 +1074,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Checks if the connection is closed Create a new connection if it's a fedauth connection and the access token is
-     * going to expire.
+     * Checks if the connection is closed
      * 
      * @throws SQLServerException
      */
