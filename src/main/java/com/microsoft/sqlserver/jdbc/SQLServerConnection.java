@@ -1111,10 +1111,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (null == propValue)
             return false;
 
-        String lcpropValue = propValue.toLowerCase(Locale.US);
-        if ("true".equals(lcpropValue)) {
+        if ("true".equalsIgnoreCase(propValue)) {
             return true;
-        } else if ("false".equals(lcpropValue)) {
+        } else if ("false".equalsIgnoreCase(propValue)) {
             return false;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidBooleanValue"));
@@ -1659,10 +1658,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenWithUserPassword"), null);
             }
 
-            // Turn off TNIR for FedAuth if user does not set TNIR explicitly
-            transparentNetworkIPResolution = userSetTNIR
-                    || ((authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
-                            && (null == accessTokenInByte));
+            // Turn off TNIR for FedAuth if user did not set TNIR explicitly
+            if (!userSetTNIR && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())
+                    || null != accessTokenInByte)) {
+                transparentNetworkIPResolution = false;
+            }
 
             sPropKey = SQLServerDriverStringProperty.WORKSTATION_ID.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -1880,10 +1880,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         SQLServerException.getErrString("R_dbMirroringWithMultiSubnetFailover"), null, false);
             }
 
-            // transparentNetworkIPResolution is ignored if multiSubnetFailover or DBMirroring is true and user does not
+            // transparentNetworkIPResolution is ignored if multiSubnetFailover or DBMirroring is true and user did not
             // set TNIR explicitly
-            transparentNetworkIPResolution = !((multiSubnetFailover || (null != failOverPartnerPropertyValue))
-                    && !userSetTNIR);
+            if ((multiSubnetFailover || null != failOverPartnerPropertyValue) && !userSetTNIR) {
+                transparentNetworkIPResolution = false;
+            }
 
             // failoverPartner and applicationIntent=ReadOnly cannot be used together
             if ((applicationIntent != null) && applicationIntent.equals(ApplicationIntent.READ_ONLY)
@@ -1994,9 +1995,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // For non-dbmirroring, non-tnir and non-multisubnetfailover scenarios, full time out would be used as time
         // slice.
-        timeoutUnitInterval = isDBMirroring || useParallel ? (long) (TIMEOUTSTEP * timerTimeout)
-                                                           : useTnir ? (long) (TIMEOUTSTEP_TNIR * timerTimeout)
-                                                                     : timerTimeout;
+        timeoutUnitInterval = (isDBMirroring || useParallel) ? (long) (TIMEOUTSTEP * timerTimeout)
+                                                             : useTnir ? (long) (TIMEOUTSTEP_TNIR * timerTimeout)
+                                                                       : timerTimeout;
         intervalExpire = timerStart + timeoutUnitInterval;
         // This is needed when the host resolves to more than 64 IP addresses. In that case, TNIR is ignored
         // and the original timeout is used instead of the timeout slice.
@@ -2398,6 +2399,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     void Prelogin(String serverName, int portNumber) throws SQLServerException {
         // Build a TDS Pre-Login packet to send to the server.
+        if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
+                || (null != accessTokenInByte)) {
+            fedAuthRequiredByUser = true;
+        }
+
         fedAuthRequiredByUser = (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
                 || (null != accessTokenInByte);
 
@@ -4699,7 +4705,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                               : activeConnectionProperties.getProperty(
                                                                       SQLServerDriverStringProperty.SERVER_NAME
                                                                               .toString());
-        serverName = serverName != null && serverName.length() > 128 ? serverName.substring(0, 128) : serverName;
+        serverName = (serverName != null && serverName.length() > 128) ? serverName.substring(0, 128) : serverName;
 
         byte[] secBlob = new byte[0];
         boolean[] done = {false};
