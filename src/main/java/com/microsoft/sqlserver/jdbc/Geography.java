@@ -15,6 +15,8 @@ import java.nio.ByteOrder;
 
 public class Geography extends SQLServerSpatialDatatype {
 
+    protected Geography() {}
+
     /**
      * Private constructor used for creating a Geography object from WKT and Spatial Reference Identifier.
      * 
