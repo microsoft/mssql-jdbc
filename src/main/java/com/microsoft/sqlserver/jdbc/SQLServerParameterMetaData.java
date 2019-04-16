@@ -305,7 +305,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    private void parseQueryMetaFor2008(ResultSet rsQueryMeta, useFmtOnlyQuery f) throws SQLServerException {
+    private void parseQueryMetaFor2008(ResultSet rsQueryMeta, SQLServerFMTQuery f) throws SQLServerException {
         ResultSetMetaData md;
         try {
             List<String> columns = f.getColumns().stream().collect(Collectors.toList());
@@ -320,15 +320,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     for (int j = 0; j < params.get(valueListOffset).size(); j++) {
                         if (params.get(valueListOffset).get(j).equalsIgnoreCase("?")) {
                             if (!md.isAutoIncrement(mdIndex + j)) {
-                                QueryMeta qm = new QueryMeta();
-    
-                                qm.parameterClassName = md.getColumnClassName(mdIndex + j);
-                                qm.parameterType = md.getColumnType(mdIndex + j);
-                                qm.parameterTypeName = md.getColumnTypeName(mdIndex + j);
-                                qm.precision = md.getPrecision(mdIndex + j);
-                                qm.scale = md.getScale(mdIndex + j);
-                                qm.isNullable = md.isNullable(mdIndex + j);
-                                qm.isSigned = md.isSigned(mdIndex + j);
+                                QueryMeta qm = getQueryMetaFromResultSetMetaData(md,mdIndex + j);
                                 queryMetaMap.put(mapIndex++, qm);
                                 i++;
                             }
@@ -337,15 +329,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     mdIndex += params.get(valueListOffset).size();
                     valueListOffset++;
                 } else {
-                    QueryMeta qm = new QueryMeta();
-
-                    qm.parameterClassName = md.getColumnClassName(mdIndex);
-                    qm.parameterType = md.getColumnType(mdIndex);
-                    qm.parameterTypeName = md.getColumnTypeName(mdIndex);
-                    qm.precision = md.getPrecision(mdIndex);
-                    qm.scale = md.getScale(mdIndex);
-                    qm.isNullable = md.isNullable(mdIndex);
-                    qm.isSigned = md.isSigned(mdIndex);
+                    QueryMeta qm = getQueryMetaFromResultSetMetaData(md,mdIndex);
                     queryMetaMap.put(mapIndex++, qm);
                     mdIndex++;
                 }
@@ -353,6 +337,18 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         } catch (SQLException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), e);
         }
+    }
+    
+    private QueryMeta getQueryMetaFromResultSetMetaData(ResultSetMetaData md, int index) throws SQLException {
+        QueryMeta qm = new QueryMeta();
+        qm.parameterClassName = md.getColumnClassName(index);
+        qm.parameterType = md.getColumnType(index);
+        qm.parameterTypeName = md.getColumnTypeName(index);
+        qm.precision = md.getPrecision(index);
+        qm.scale = md.getScale(index);
+        qm.isNullable = md.isNullable(index);
+        qm.isSigned = md.isSigned(index);
+        return qm;
     }
 
     /**
@@ -635,7 +631,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // if SQL server version is 2008, then use FMTONLY
             else {
                 queryMetaMap = new HashMap<>();
-                if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION && !con.getUseFmtOnly()) {
+                if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION && !st.getUseFmtOnly()) {
                     String preparedSQL = con.replaceParameterMarkers(stmtParent.userSQL,
                             stmtParent.userSQLParamPositions, stmtParent.inOutParam, stmtParent.bReturnValueSyntax);
 
@@ -645,7 +641,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                         parseQueryMeta(cstmt.executeQueryInternal());
                     }
                 } else {
-                    useFmtOnlyQuery f = useFmtOnlyQuery.getFmtQuery(sProcString);
+                    SQLServerFMTQuery f = new SQLServerFMTQuery(sProcString);
                     String fmtQuery = f.getFMTQuery();
                     System.out.println(fmtQuery);
                     try (SQLServerStatement stmt = (SQLServerStatement) con.createStatement();

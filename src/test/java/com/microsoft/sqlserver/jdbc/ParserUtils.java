@@ -17,7 +17,7 @@ public class ParserUtils {
 
     public static String getTableName(String s) {
         try {
-            useFmtOnlyQuery u = useFmtOnlyQuery.getFmtQuery(s);
+            SQLServerFMTQuery u = new SQLServerFMTQuery(s);
             
             String fmtQuery = u.getFMTQuery();
             System.out.println(fmtQuery+"\n");

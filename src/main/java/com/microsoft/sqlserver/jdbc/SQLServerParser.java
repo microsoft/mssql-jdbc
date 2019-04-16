@@ -1,9 +1,5 @@
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,39 +8,46 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Stack;
-import java.util.stream.Collectors;
-
-import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.Token;
 
 
-class SQLServerParser {
+final class SQLServerParser {
+
+    private static final List<Integer> SELECT_DELIMITING_WORDS = Arrays.asList(SQLServerLexer.WHERE,
+            SQLServerLexer.GROUP, SQLServerLexer.HAVING, SQLServerLexer.ORDER, SQLServerLexer.OPTION);
+    private static final List<Integer> INSERT_DELIMITING_WORDS = Arrays.asList(SQLServerLexer.VALUES,
+            SQLServerLexer.OUTPUT, SQLServerLexer.LR_BRACKET, SQLServerLexer.SELECT, SQLServerLexer.EXECUTE,
+            SQLServerLexer.WITH, SQLServerLexer.DEFAULT);
+    private static final List<Integer> DELETE_DELIMITING_WORDS = Arrays.asList(SQLServerLexer.OPTION,
+            SQLServerLexer.WHERE, SQLServerLexer.OUTPUT, SQLServerLexer.FROM);
+    private static final List<Integer> UPDATE_DELIMITING_WORDS = Arrays.asList(SQLServerLexer.SET,
+            SQLServerLexer.OUTPUT, SQLServerLexer.WHERE, SQLServerLexer.OPTION);
+    private static final List<Integer> FROM_DELIMITING_WORDS = Arrays.asList(SQLServerLexer.WHERE, SQLServerLexer.GROUP,
+            SQLServerLexer.HAVING, SQLServerLexer.ORDER, SQLServerLexer.OPTION, SQLServerLexer.AND);
 
     /*
      * Retrieves the table target from a single query.
      */
-    static void parseQuery(ListIterator<? extends Token> iter, useFmtOnlyQuery f) throws SQLServerException {
+    static void parseQuery(ListIterator<? extends Token> iter, SQLServerFMTQuery query) throws SQLServerException {
         Token t = null;
         while (iter.hasNext()) {
             t = iter.next();
             switch (t.getType()) {
                 case SQLServerLexer.SELECT:
                     t = skipTop(iter);
-                    while (t.getType() != SQLServerLexer.SEMI && iter.hasNext()) {
-                        t = iter.next();
+                    while (t.getType() != SQLServerLexer.SEMI) {
                         if (t.getType() == SQLServerLexer.PARAMETER) {
-                            int parameterIndex = iter.nextIndex();
                             String columnName = SQLServerParser.findColumnAroundParameter(iter);
-                            if (columnName.length() > 0)
-                                f.getColumns().add(columnName);
-                            resetIteratorIndex(iter, parameterIndex);
+                            query.getColumns().add(columnName);
                         }
                         if (t.getType() == SQLServerLexer.FROM) {
-                            f.getTableTarget()
-                                    .add(getTableTargetChunk(iter, f.getAliases(),
-                                            Arrays.asList(SQLServerLexer.WHERE, SQLServerLexer.GROUP,
-                                                    SQLServerLexer.HAVING, SQLServerLexer.ORDER,
-                                                    SQLServerLexer.OPTION)));
+                            query.getTableTarget()
+                                    .add(getTableTargetChunk(iter, query.getAliases(), SELECT_DELIMITING_WORDS));
+                            break;
+                        }
+                        if (iter.hasNext()) {
+                            t = iter.next();
+                        } else {
                             break;
                         }
                     }
@@ -55,17 +58,8 @@ class SQLServerParser {
                     if (t.getType() != SQLServerLexer.INTO) {
                         t = iter.previous();
                     }
-                    f.getTableTarget()
-                            .add(getTableTargetChunk(iter, f.getAliases(),
-                                    Arrays.asList(SQLServerLexer.VALUES, SQLServerLexer.OUTPUT,
-                                            SQLServerLexer.LR_BRACKET, SQLServerLexer.SELECT, SQLServerLexer.EXECUTE,
-                                            SQLServerLexer.WITH, SQLServerLexer.DEFAULT)));
-                    if (iter.next().getType() == SQLServerLexer.WITH) {
-                        iter.next();
-                        skipBracket(iter, SQLServerLexer.LR_BRACKET);
-                    } else {
-                        iter.previous();
-                    }
+                    query.getTableTarget().add(getTableTargetChunk(iter, query.getAliases(), INSERT_DELIMITING_WORDS));
+
                     List<String> tableValues = getValuesList(iter);
                     // VALUES case
                     boolean valuesFound = false;
@@ -75,7 +69,7 @@ class SQLServerParser {
                         if (t.getType() == SQLServerLexer.VALUES) {
                             valuesFound = true;
                             do {
-                                f.getValuesList().add(getValuesList(iter));
+                                query.getValuesList().add(getValuesList(iter));
                             } while (iter.hasNext() && iter.next().getType() == SQLServerLexer.COMMA);
                             iter.previous();
                         }
@@ -83,14 +77,14 @@ class SQLServerParser {
                     if (!valuesFound) {
                         resetIteratorIndex(iter, valuesMarker);
                     }
-                    if (!f.getValuesList().isEmpty()) {
-                        for (List<String> ls : f.getValuesList()) {
+                    if (!query.getValuesList().isEmpty()) {
+                        for (List<String> ls : query.getValuesList()) {
                             if (tableValues.isEmpty()) {
-                                f.getColumns().add("*");
+                                query.getColumns().add("*");
                             }
                             for (int i = 0; i < ls.size(); i++) {
                                 if (ls.get(i).equalsIgnoreCase("?")) {
-                                    f.getColumns().add((tableValues.size() == 0) ? "?" : tableValues.get(i));
+                                    query.getColumns().add((tableValues.size() == 0) ? "?" : tableValues.get(i));
                                 }
                             }
                         }
@@ -102,29 +96,22 @@ class SQLServerParser {
                     if (t.getType() != SQLServerLexer.FROM) {
                         t = iter.previous();
                     }
-                    f.getTableTarget()
-                            .add(getTableTargetChunk(iter, f.getAliases(), Arrays.asList(SQLServerLexer.OPTION,
-                                    SQLServerLexer.WHERE, SQLServerLexer.OUTPUT, SQLServerLexer.FROM)));
+                    query.getTableTarget().add(getTableTargetChunk(iter, query.getAliases(), DELETE_DELIMITING_WORDS));
                     break;
                 case SQLServerLexer.UPDATE:
                     skipTop(iter);
                     t = iter.previous();
                     // Get next chunk
-                    f.getTableTarget().add(getTableTargetChunk(iter, f.getAliases(), Arrays.asList(SQLServerLexer.SET,
-                            SQLServerLexer.OUTPUT, SQLServerLexer.WHERE, SQLServerLexer.OPTION)));
+                    query.getTableTarget().add(getTableTargetChunk(iter, query.getAliases(), UPDATE_DELIMITING_WORDS));
                     break;
                 case SQLServerLexer.FROM:
-                    f.getTableTarget()
-                            .add(getTableTargetChunk(iter, f.getAliases(),
-                                    Arrays.asList(SQLServerLexer.WHERE, SQLServerLexer.GROUP, SQLServerLexer.HAVING,
-                                            SQLServerLexer.ORDER, SQLServerLexer.OPTION, SQLServerLexer.AND)));
+                    query.getTableTarget().add(getTableTargetChunk(iter, query.getAliases(), FROM_DELIMITING_WORDS));
                     break;
                 case SQLServerLexer.PARAMETER:
                     int parameterIndex = iter.nextIndex();
                     String columnName = SQLServerParser.findColumnAroundParameter(iter);
-                    if (columnName.length() > 0)
-                        f.getColumns().add(columnName);
-                    iter = f.getTokenList().listIterator(parameterIndex);
+                    query.getColumns().add(columnName);
+                    resetIteratorIndex(iter, parameterIndex);
                     break;
                 default:
                     // skip, we only support SELECT/UPDATE/INSERT/DELETE
@@ -151,25 +138,6 @@ class SQLServerParser {
         if (!d.isEmpty()) {
             SQLServerException.makeFromDriverError(null, null, "SQL Syntax Error", "", false);
         }
-    }
-
-    private static final List<Integer> OPERATORS = Arrays.asList(SQLServerLexer.EQUAL, SQLServerLexer.GREATER,
-            SQLServerLexer.LESS, SQLServerLexer.GREATER_EQUAL, SQLServerLexer.LESS_EQUAL, SQLServerLexer.NOT_EQUAL,
-            SQLServerLexer.PLUS_ASSIGN, SQLServerLexer.MINUS_ASSIGN, SQLServerLexer.MULT_ASSIGN,
-            SQLServerLexer.DIV_ASSIGN, SQLServerLexer.MOD_ASSIGN, SQLServerLexer.AND_ASSIGN, SQLServerLexer.XOR_ASSIGN,
-            SQLServerLexer.OR_ASSIGN, SQLServerLexer.STAR, SQLServerLexer.DIVIDE, SQLServerLexer.MODULE,
-            SQLServerLexer.PLUS, SQLServerLexer.MINUS, SQLServerLexer.LIKE, SQLServerLexer.IN, SQLServerLexer.BETWEEN);
-
-    static String findColumnAroundParameter(ListIterator<? extends Token> iter) {
-        int index = iter.nextIndex();
-        iter.previous();
-        String value = findColumnBeforeParameter(iter);
-        resetIteratorIndex(iter, index);
-        if (value.equalsIgnoreCase("")) {
-            value = findColumnAfterParameter(iter);
-            resetIteratorIndex(iter, index);
-        }
-        return value;
     }
 
     static void resetIteratorIndex(ListIterator<? extends Token> iter, int index) {
@@ -224,6 +192,25 @@ class SQLServerParser {
             }
         }
         return sb.toString();
+    }
+
+    private static final List<Integer> OPERATORS = Arrays.asList(SQLServerLexer.EQUAL, SQLServerLexer.GREATER,
+            SQLServerLexer.LESS, SQLServerLexer.GREATER_EQUAL, SQLServerLexer.LESS_EQUAL, SQLServerLexer.NOT_EQUAL,
+            SQLServerLexer.PLUS_ASSIGN, SQLServerLexer.MINUS_ASSIGN, SQLServerLexer.MULT_ASSIGN,
+            SQLServerLexer.DIV_ASSIGN, SQLServerLexer.MOD_ASSIGN, SQLServerLexer.AND_ASSIGN, SQLServerLexer.XOR_ASSIGN,
+            SQLServerLexer.OR_ASSIGN, SQLServerLexer.STAR, SQLServerLexer.DIVIDE, SQLServerLexer.MODULE,
+            SQLServerLexer.PLUS, SQLServerLexer.MINUS, SQLServerLexer.LIKE, SQLServerLexer.IN, SQLServerLexer.BETWEEN);
+
+    static String findColumnAroundParameter(ListIterator<? extends Token> iter) {
+        int index = iter.nextIndex();
+        iter.previous();
+        String value = findColumnBeforeParameter(iter);
+        resetIteratorIndex(iter, index);
+        if (value.equalsIgnoreCase("")) {
+            value = findColumnAfterParameter(iter);
+            resetIteratorIndex(iter, index);
+        }
+        return value;
     }
 
     private static String findColumnAfterParameter(ListIterator<? extends Token> iter) {
@@ -320,29 +307,6 @@ class SQLServerParser {
         return sb.toString();
     }
 
-    /*
-     * 
-     */
-    static String getBracket(ListIterator<? extends Token> iter, int firstBracket) throws SQLServerException {
-        Deque<Integer> d = new ArrayDeque<>();
-        StringBuilder sb = new StringBuilder();
-        d.push(firstBracket);
-        while (iter.hasNext() && !d.isEmpty()) {
-            Token t = iter.next();
-            sb.append(" ").append(t.getText());
-            if (d.peek() == SQLServerLexer.SINGLE_QUOTE || d.peek() == SQLServerLexer.DOUBLE_QUOTE
-                    || d.peek() == SQLServerLexer.RS_BRACKET) {
-                handleLiteral(t, d, iter);
-            } else {
-                handleNonLiteral(t, d);
-            }
-        }
-        if (!d.isEmpty()) {
-            SQLServerException.makeFromDriverError(null, null, "SQL Syntax Error", "", false);
-        }
-        return sb.toString();
-    }
-
     static List<String> getValuesList(ListIterator<? extends Token> iter) {
         Token t = iter.next();
         if (t.getType() == SQLServerLexer.LR_BRACKET) {
@@ -388,58 +352,6 @@ class SQLServerParser {
         } else {
             iter.previous();
             return new ArrayList<>();
-        }
-    }
-
-    private static void handleLiteral(Token t, Deque<Integer> d, ListIterator<? extends Token> iter) {
-        switch (t.getType()) {
-            case SQLServerLexer.RS_BRACKET:
-                if ((d.peek() == SQLServerLexer.RS_BRACKET)) {
-                    if (iter.hasNext()) {
-                        Token tempToken = iter.next();
-                        if (tempToken.getType() == SQLServerLexer.RS_BRACKET) {
-                            // Do nothing, continue skipping
-                        } else {
-                            iter.previous();
-                            d.pop();
-                        }
-                    } else {
-                        d.pop();
-                    }
-                }
-                break;
-            case SQLServerLexer.SINGLE_QUOTE:
-                if ((d.peek() == SQLServerLexer.SINGLE_QUOTE)) {
-                    if (iter.hasNext()) {
-                        Token tempToken = iter.next();
-                        if (tempToken.getType() == SQLServerLexer.SINGLE_QUOTE) {
-                            // Do nothing, continue skipping
-                        } else {
-                            iter.previous();
-                            d.pop();
-                        }
-                    } else {
-                        d.pop();
-                    }
-                }
-                break;
-            case SQLServerLexer.DOUBLE_QUOTE:
-                if ((d.peek() == SQLServerLexer.DOUBLE_QUOTE)) {
-                    if (iter.hasNext()) {
-                        Token tempToken = iter.next();
-                        if (tempToken.getType() == SQLServerLexer.DOUBLE_QUOTE) {
-                            // Do nothing, continue skipping
-                        } else {
-                            iter.previous();
-                            d.pop();
-                        }
-                    } else {
-                        d.pop();
-                    }
-                }
-                break;
-            default:
-                break;
         }
     }
 
@@ -523,6 +435,78 @@ class SQLServerParser {
         }
     }
 
+    static String getBracket(ListIterator<? extends Token> iter, int firstBracket) throws SQLServerException {
+        Deque<Integer> d = new ArrayDeque<>();
+        StringBuilder sb = new StringBuilder();
+        d.push(firstBracket);
+        while (iter.hasNext() && !d.isEmpty()) {
+            Token t = iter.next();
+            sb.append(" ").append(t.getText());
+            if (d.peek() == SQLServerLexer.SINGLE_QUOTE || d.peek() == SQLServerLexer.DOUBLE_QUOTE
+                    || d.peek() == SQLServerLexer.RS_BRACKET) {
+                handleLiteral(t, d, iter);
+            } else {
+                handleNonLiteral(t, d);
+            }
+        }
+        if (!d.isEmpty()) {
+            SQLServerException.makeFromDriverError(null, null, "SQL Syntax Error", "", false);
+        }
+        return sb.toString();
+    }
+
+    private static void handleLiteral(Token t, Deque<Integer> d, ListIterator<? extends Token> iter) {
+        switch (t.getType()) {
+            case SQLServerLexer.RS_BRACKET:
+                if ((d.peek() == SQLServerLexer.RS_BRACKET)) {
+                    if (iter.hasNext()) {
+                        Token tempToken = iter.next();
+                        if (tempToken.getType() == SQLServerLexer.RS_BRACKET) {
+                            // Do nothing, continue skipping
+                        } else {
+                            iter.previous();
+                            d.pop();
+                        }
+                    } else {
+                        d.pop();
+                    }
+                }
+                break;
+            case SQLServerLexer.SINGLE_QUOTE:
+                if ((d.peek() == SQLServerLexer.SINGLE_QUOTE)) {
+                    if (iter.hasNext()) {
+                        Token tempToken = iter.next();
+                        if (tempToken.getType() == SQLServerLexer.SINGLE_QUOTE) {
+                            // Do nothing, continue skipping
+                        } else {
+                            iter.previous();
+                            d.pop();
+                        }
+                    } else {
+                        d.pop();
+                    }
+                }
+                break;
+            case SQLServerLexer.DOUBLE_QUOTE:
+                if ((d.peek() == SQLServerLexer.DOUBLE_QUOTE)) {
+                    if (iter.hasNext()) {
+                        Token tempToken = iter.next();
+                        if (tempToken.getType() == SQLServerLexer.DOUBLE_QUOTE) {
+                            // Do nothing, continue skipping
+                        } else {
+                            iter.previous();
+                            d.pop();
+                        }
+                    } else {
+                        d.pop();
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
     private static void handleNonLiteral(Token t, Deque<Integer> d) {
         switch (t.getType()) {
             case SQLServerLexer.LR_BRACKET:
@@ -600,94 +584,5 @@ class SQLServerParser {
             iter.previous();
         }
         return sb.toString().trim();
-    }
-}
-
-
-class useFmtOnlyQuery {
-    private String prefix = "";
-    private ArrayList<? extends Token> tokenList = null;
-    private List<String> userColumns = new ArrayList<>();
-    private List<String> tableTarget = new ArrayList<>();
-    private List<String> possibleAliases = new ArrayList<>();
-    List<List<String>> valuesList = new ArrayList<>();
-    private boolean paramsRequireParsing = false;
-
-    String getPrefix() {
-        return prefix;
-    }
-
-    ArrayList<? extends Token> getTokenList() {
-        return tokenList;
-    }
-
-    List<String> getColumns() {
-        return userColumns;
-    }
-
-    List<String> getTableTarget() {
-        return tableTarget;
-    }
-
-    List<List<String>> getValuesList() {
-        return valuesList;
-    }
-
-    List<String> getAliases() {
-        return possibleAliases;
-    }
-
-    boolean parseParams() {
-        return paramsRequireParsing;
-    }
-
-    String constructColumnTargets() {
-        if (userColumns.contains("?")) {
-            paramsRequireParsing = true;
-            return userColumns.stream().filter(s -> !s.equalsIgnoreCase("?")).collect(Collectors.joining(","));
-        } else {
-            return userColumns.isEmpty() ? "*" : userColumns.stream().collect(Collectors.joining(","));
-        }
-    }
-
-    String constructTableTargets() {
-        return tableTarget.stream().distinct().filter(s -> !possibleAliases.contains(s))
-                .collect(Collectors.joining(","));
-    }
-
-    String getFMTQuery() {
-        StringBuilder sb = new StringBuilder("SET FMTONLY ON;");
-
-        if (prefix != "") {
-            sb.append(prefix);
-        }
-        sb.append("SELECT ");
-        sb.append(constructColumnTargets());
-        if (!tableTarget.isEmpty()) {
-            sb.append(" FROM ");
-            sb.append(constructTableTargets());
-        }
-
-        sb.append(";SET FMTONLY OFF;");
-        return sb.toString();
-    }
-
-    private useFmtOnlyQuery() {};
-
-    static useFmtOnlyQuery getFmtQuery(String userSql) throws SQLServerException {
-        InputStream stream = new ByteArrayInputStream(userSql.getBytes(StandardCharsets.UTF_8));
-        SQLServerLexer lexer = null;
-        try {
-            lexer = new SQLServerLexer(CharStreams.fromStream(stream));
-        } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, userSql, e.getLocalizedMessage(), "", false);
-        }
-
-        useFmtOnlyQuery f = new useFmtOnlyQuery();
-        f.tokenList = (ArrayList<? extends Token>) lexer.getAllTokens();
-        ListIterator<? extends Token> iter = f.tokenList.listIterator();
-        f.prefix = SQLServerParser.getCTE(iter);
-        SQLServerParser.parseQuery(iter, f);
-        return f;
     }
 }
