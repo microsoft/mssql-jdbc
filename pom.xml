@@ -10,9 +10,11 @@
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
+
 	<description>
 		Microsoft JDBC Driver for SQL Server.
 	</description>
+
 	<url>https://github.com/Microsoft/mssql-jdbc</url>
 
 	<licenses>
