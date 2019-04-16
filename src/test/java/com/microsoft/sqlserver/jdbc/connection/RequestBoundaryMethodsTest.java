@@ -482,6 +482,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("isWrapperFor");
         verifiedMethodNames.add("setTypeMap");
         verifiedMethodNames.add("createArrayOf");
+        verifiedMethodNames.add("setUseFmtOnly");
 
         return verifiedMethodNames;
     }

@@ -5669,7 +5669,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private int originalNetworkTimeout;
     private int originalHoldability;
     private boolean originalSendTimeAsDatetime;
-    private boolean originalUseFmtOnly;
     private int originalStatementPoolingCacheSize;
     private boolean originalDisableStatementPooling;
     private int originalServerPreparedStatementDiscardThreshold;
@@ -5678,6 +5677,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean originalUseBulkCopyForBatchInsert;
     private volatile SQLWarning originalSqlWarnings;
     private List<ISQLServerStatement> openStatements;
+    private boolean originalUseFmtOnly;
 
     protected void beginRequestInternal() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "beginRequest", this);
@@ -5688,7 +5688,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalNetworkTimeout = getNetworkTimeout();
                 originalHoldability = holdability;
                 originalSendTimeAsDatetime = sendTimeAsDatetime;
-                originalUseFmtOnly = useFmtOnly;
                 originalStatementPoolingCacheSize = statementPoolingCacheSize;
                 originalDisableStatementPooling = disableStatementPooling;
                 originalServerPreparedStatementDiscardThreshold = getServerPreparedStatementDiscardThreshold();
@@ -5697,6 +5696,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalUseBulkCopyForBatchInsert = getUseBulkCopyForBatchInsert();
                 originalSqlWarnings = sqlWarnings;
                 openStatements = new LinkedList<ISQLServerStatement>();
+                originalUseFmtOnly = useFmtOnly;
                 requestStarted = true;
             }
         }
