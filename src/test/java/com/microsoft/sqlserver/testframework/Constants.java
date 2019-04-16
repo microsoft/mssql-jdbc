@@ -29,6 +29,14 @@ public class Constants {
     public static final String xAzureSQLDW = "xAzureSQLDW";
     public static final String xAzureSQLMI = "xAzureSQLMI";
 
+    /**
+     * use below tags for tests to include in test group:
+     * 
+     * <pre>
+     * NTLM - - - - - - For NTLM tests
+     */
+    public static final String NTLM = "NTLM";
+
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");
     public static final String JKS_SECRET_STRING = "changeit";
@@ -106,6 +114,8 @@ public class Constants {
     public static final String PORT = "PORT";
     public static final String PORT_NUMBER = "PORTNUMBER";
     public static final String PASSWORD = "PASSWORD";
+    public static final String DOMAIN = "DOMAIN";
+    public static final String DOMAIN_NAME = "DOMAINNAME";
     public static final String DATABASE = "DATABASE";
     public static final String DATABASE_NAME = "DATABASENAME";
     public static final String COLUMN_ENCRYPTION_SETTING = "COLUMNENCRYPTIONSETTING";

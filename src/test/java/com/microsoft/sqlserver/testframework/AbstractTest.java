@@ -76,9 +76,9 @@ public abstract class AbstractTest {
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
         connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
 
-        ds = updateDataSource(new SQLServerDataSource());
-        dsXA = updateDataSource(new SQLServerXADataSource());
-        dsPool = updateDataSource(new SQLServerConnectionPoolDataSource());
+        ds = updateDataSource(connectionString, new SQLServerDataSource());
+        dsXA = updateDataSource(connectionString, new SQLServerXADataSource());
+        dsPool = updateDataSource(connectionString, new SQLServerConnectionPoolDataSource());
 
         try {
             Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
@@ -102,7 +102,7 @@ public abstract class AbstractTest {
      *        DataSource to be configured
      * @return ISQLServerDataSource
      */
-    protected static ISQLServerDataSource updateDataSource(ISQLServerDataSource ds) {
+    protected static ISQLServerDataSource updateDataSource(String connectionString, ISQLServerDataSource ds) {
         if (null != connectionString && connectionString.startsWith(Constants.JDBC_PREFIX)) {
             String extract = connectionString.substring(Constants.JDBC_PREFIX.length());
             String[] identifiers = extract.split(Constants.SEMI_COLON);
@@ -124,6 +124,7 @@ public abstract class AbstractTest {
                     switch (name.toUpperCase()) {
                         case Constants.INTEGRATED_SECURITY:
                             ds.setIntegratedSecurity(Boolean.parseBoolean(value));
+                            break;
                         case Constants.USER:
                         case Constants.USER_NAME:
                             ds.setUser(value);
@@ -134,6 +135,10 @@ public abstract class AbstractTest {
                             break;
                         case Constants.PASSWORD:
                             ds.setPassword(value);
+                            break;
+                        case Constants.DOMAIN:
+                        case Constants.DOMAIN_NAME:
+                            ds.setDomain(value);
                             break;
                         case Constants.DATABASE:
                         case Constants.DATABASE_NAME:

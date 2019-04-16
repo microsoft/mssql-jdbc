@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.zaxxer.hikari.HikariConfig;
@@ -40,6 +41,7 @@ import com.zaxxer.hikari.HikariDataSource;
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.xAzureSQLMI)
+@Tag(Constants.NTLM)
 public class NTLMConnectionTest extends AbstractTest {
 
     // custom formatter that contains nothing but the log message only
@@ -69,7 +71,7 @@ public class NTLMConnectionTest extends AbstractTest {
     private static StreamHandler handler = new StreamHandler(new PrintStream(loggerContent), new CustomFormatter());
 
     @BeforeAll
-    public static void setUp() {
+    public static void setUp() throws Exception {
         // remove all other logging and add our own handler
         LogManager.getLogManager().reset();
         ntlmLogger.setLevel(Level.FINER);
@@ -101,7 +103,14 @@ public class NTLMConnectionTest extends AbstractTest {
             connectionStringNTLM = addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");
 
             dsNTLMLocal = new SQLServerDataSource();
-            updateDataSource(connectionStringNTLM, dsNTLMLocal);
+            AbstractTest.updateDataSource(connectionStringNTLM, dsNTLMLocal);
+
+            // grant view server state permission - needed to verify NTLM
+            try (Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate("GRANT VIEW SERVER STATE TO PUBLIC");
+            } catch (Exception e) {
+                fail(e.getMessage());
+            }
         }
     }
 
@@ -165,11 +174,17 @@ public class NTLMConnectionTest extends AbstractTest {
     @Test
     public void testNTLMNonDeafultDatabase() throws SQLException {
         if (ntlmPropsDefined) {
-            String databaseName = "tempdb";
+            String databaseName = RandomUtil.getIdentifier("NTLM");
+            try (Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate("CREATE DATABASE " + AbstractSQLGenerator.escapeIdentifier(databaseName));
+            }
             try (Connection con = DriverManager
                     .getConnection(addOrOverrideProperty(connectionStringNTLM, "database", databaseName))) {
                 verifyNTLM(con);
                 verifyDatabase(con, databaseName);
+            }
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropDatabaseIfExists(databaseName, stmt);
             }
         }
     }
@@ -210,7 +225,7 @@ public class NTLMConnectionTest extends AbstractTest {
             timerStart = System.currentTimeMillis();
             try (Connection con = DriverManager.getConnection(
                     connectionStringNTLM + ";servername=bogus;instanceName=;loginTimeout=" + loginTimeout)) {
-                fail();
+                fail(TestResource.getResource("R_expectedFailPassed"));
             } catch (SQLException e) {
                 timerEnd = System.currentTimeMillis();
             }
@@ -232,7 +247,6 @@ public class NTLMConnectionTest extends AbstractTest {
                 ipAddr = InetAddress.getByName(serverFqdn).getHostAddress();
                 try (Connection con = DriverManager.getConnection(connectionStringNTLM + ";servername=" + ipAddr)) {
                     verifyNTLM(con);
-
                 }
             } catch (UnknownHostException e) {
                 fail(e.getMessage());
@@ -248,8 +262,9 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     public void testNTLMBadInit() throws SQLException {
         try {
-            SSPIAuthentication auth = new NTLMAuthentication(new SQLServerConnection(""), "serverName", "domainName",
-                    "userName", "password", "hostname");
+            @SuppressWarnings("unused")
+            SSPIAuthentication auth = new NTLMAuthentication("serverName", "domainName", "userName", "password",
+                    "hostname");
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownServer")));
         }
@@ -328,20 +343,11 @@ public class NTLMConnectionTest extends AbstractTest {
     @Test
     public void testNTLMBadSignature() throws SQLException {
         if (ntlmPropsDefined) {
-            try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
-                getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
-                        "hostname");
-                boolean[] done = {false};
-
-                try {
-                    byte[] badSignature = {0, 0, 0, 0, 0, 0, 0, 0};
-                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_SIGNATURE_OFFSET, badSignature);
-
-                    auth.generateClientContext(badToken, done);
-                } catch (Exception e) {
-                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmSignatureError")));
-                }
+            try {
+                byte[] badSignature = {0, 0, 0, 0, 0, 0, 0, 0};
+                sendBadToken(badSignature, NTLM_CHALLENGE_SIGNATURE_OFFSET);
+            } catch (Exception e) {
+                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmSignatureError")));
             }
         }
     }
@@ -349,21 +355,11 @@ public class NTLMConnectionTest extends AbstractTest {
     @Test
     public void testNTLMBadMessageType() throws SQLException {
         if (ntlmPropsDefined) {
-            try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
-                getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
-                        "hostname");
-                boolean[] done = {false};
-
-                try {
-                    byte[] badMessageType = {0, 0, 0, 0};
-                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_MESSAGETYPE_OFFSET, badMessageType);
-
-                    auth.generateClientContext(badToken, done);
-
-                } catch (Exception e) {
-                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmMessageTypeError")));
-                }
+            try {
+                byte[] badMessageType = {0, 0, 0, 0};
+                sendBadToken(badMessageType, NTLM_CHALLENGE_MESSAGETYPE_OFFSET);
+            } catch (Exception e) {
+                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmMessageTypeError")));
             }
         }
     }
@@ -371,21 +367,11 @@ public class NTLMConnectionTest extends AbstractTest {
     @Test
     public void testNTLMBadTargetInfoLen() throws SQLException {
         if (ntlmPropsDefined) {
-            try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
-                getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
-                        "hostname");
-                boolean[] done = {false};
-
-                try {
-                    byte[] badTargetInfoLen = {0, 0};
-                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_TARGETINFOLEN_OFFSET, badTargetInfoLen);
-
-                    auth.generateClientContext(badToken, done);
-
-                } catch (Exception e) {
-                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTargetInfo")));
-                }
+            try {
+                byte[] badTargetInfoLen = {0, 0};
+                sendBadToken(badTargetInfoLen, NTLM_CHALLENGE_TARGETINFOLEN_OFFSET);
+            } catch (Exception e) {
+                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTargetInfo")));
             }
         }
     }
@@ -394,77 +380,47 @@ public class NTLMConnectionTest extends AbstractTest {
     public void testNTLMBadDomain() throws SQLException {
         if (ntlmPropsDefined) {
             loggerContent.reset();
-
-            try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
-                getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
-                        "hostname");
-                boolean[] done = {false};
-
-                try {
-                    byte[] badDomain = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_MSVAVDNSDOMAINNAME_OFFSET, badDomain);
-
-                    auth.generateClientContext(badToken, done);
-
-                } catch (Exception e) {
-                    // this should just generate a warning but not fail
-                    fail(e.getMessage());
-                }
+            try {
+                byte[] badDomain = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                sendBadToken(badDomain, NTLM_CHALLENGE_MSVAVDNSDOMAINNAME_OFFSET);
+            } catch (Exception e) {
+                // this should just generate a warning but not fail
+                fail(TestResource.getResource("R_unexpectedException"));
             }
-
-            // verify message was logged
-            handler.flush();
-            assertTrue(loggerContent.toString().matches(TestUtils.formatErrorMsg("R_ntlmBadDomain")));
         }
+
+        // verify message was logged
+        handler.flush();
+        assertTrue(loggerContent.toString().matches(TestUtils.formatErrorMsg("R_ntlmBadDomain")));
     }
 
     @Test
     public void testNTLMBadComputerName() throws SQLException {
         if (ntlmPropsDefined) {
             loggerContent.reset();
-
-            try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
-                getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
-                        "hostname");
-                boolean[] done = {false};
-                try {
-                    // modify token with bad computer name
-                    byte[] badComputer = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_MSVAVDNSCOMPUTERNAME_OFFSET, badComputer);
-
-                    auth.generateClientContext(badToken, done);
-
-                } catch (Exception e) {
-                    // this should just generate a warning but not fail
-                    fail(e.getMessage());
-                }
-
-                // verify message was logged
-                handler.flush();
-                assertTrue(loggerContent.toString().matches(TestUtils.formatErrorMsg("R_ntlmBadComputer")));
+            try {
+                // modify token with bad computer name
+                byte[] badComputer = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+                sendBadToken(badComputer, NTLM_CHALLENGE_MSVAVDNSCOMPUTERNAME_OFFSET);
+            } catch (Exception e) {
+                // this should just generate a warning but not fail
+                fail(TestResource.getResource("R_unexpectedException"));
             }
+
+            // verify message was logged
+            handler.flush();
+            assertTrue(loggerContent.toString().matches(TestUtils.formatErrorMsg("R_ntlmBadComputer")));
         }
     }
 
     @Test
     public void testNTLMBadAvid() throws SQLException {
         if (ntlmPropsDefined) {
-            try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
-                getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
-                        "hostname");
-                boolean[] done = {false};
-                try {
-                    byte[] badAvid = {-1, 0};
-                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_TARGETINFO_OFFSET, badAvid);
-
-                    auth.generateClientContext(badToken, done);
-
-                } catch (Exception e) {
-                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownValue")));
-                }
+            try {
+                byte[] badAvid = {-1, 0};
+                sendBadToken(badAvid, NTLM_CHALLENGE_TARGETINFO_OFFSET);
+            } catch (Exception e) {
+                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownValue")));
             }
         }
     }
@@ -473,29 +429,13 @@ public class NTLMConnectionTest extends AbstractTest {
     public void testNTLMBadTimestamp() throws SQLException {
         if (ntlmPropsDefined) {
             loggerContent.reset();
-
-            try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
-                getServerFqdn(con);
-                SSPIAuthentication auth = new NTLMAuthentication(con, serverFqdn, "domainName", "userName", "password",
-                        "hostname");
-                boolean[] done = {false};
-
-                try {
-
-                    byte[] badTimestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                    byte[] badToken = getChallengeToken(NTLM_CHALLENGE_MSVAVTIMESTAMP_OFFSET, badTimestamp);
-
-                    auth.generateClientContext(badToken, done);
-
-                } catch (Exception e) {
-                    // this should just generate a warning but not fail
-                    fail(e.getMessage());
-                }
+            try {
+                byte[] badTimestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                sendBadToken(badTimestamp, NTLM_CHALLENGE_MSVAVTIMESTAMP_OFFSET);
+            } catch (Exception e) {
+                // this should just generate a warning but not fail
+                fail(e.getMessage());
             }
-
-            // verify message was logged
-            handler.flush();
-            assertTrue(loggerContent.toString().matches(TestUtils.formatErrorMsg("R_ntlmNoTimestamp")));
         }
     }
 
@@ -504,11 +444,28 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     private void getServerFqdn(SQLServerConnection con) throws SQLException {
         try {
-            serverFqdn = InetAddress.getByName(con.currentConnectPlaceHolder.getServerName()).getCanonicalHostName()
-                    .toUpperCase();
+            serverFqdn = InetAddress
+                    .getByName(con.activeConnectionProperties
+                            .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString()))
+                    .getCanonicalHostName().toUpperCase();
+
         } catch (UnknownHostException e) {
             fail("Error getting server FQDN: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Send a bad NTLM Challenge Token
+     */
+    private void sendBadToken(byte[] badField, int offset) throws Exception {
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionStringNTLM)) {
+            getServerFqdn(con);
+            SSPIAuthentication auth = new NTLMAuthentication(serverFqdn, "domainName", "userName", "password",
+                    "hostname");
+            boolean[] done = {false};
+            byte[] badToken = getChallengeToken(offset, badField);
+            auth.generateClientContext(badToken, done);
         }
     }
 
@@ -560,7 +517,7 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     private void testInvalidProperties(String connectionString, String resourceKeyword) {
         try (Connection con = DriverManager.getConnection(connectionString)) {
-            fail();
+            fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg(resourceKeyword)));
         }
@@ -587,81 +544,6 @@ public class NTLMConnectionTest extends AbstractTest {
                 assertEquals(databaseName, rs.getString(1));
             }
         }
-    }
-
-    // TODO Remove when this method is merged to dev in PR #968
-    private static SQLServerDataSource updateDataSource(String connectionString, SQLServerDataSource ds) {
-        String prefix = "jdbc:sqlserver://";
-        if (null != connectionString && connectionString.startsWith(prefix)) {
-            String extract = connectionString.substring(prefix.length());
-            String[] identifiers = extract.split(";");
-            String server = identifiers[0];
-            // Check if serverName contains instance name
-            if (server.contains("\\")) {
-                int i = identifiers[0].indexOf('\\');
-                ds.setServerName(extractPort(server.substring(0, i), ds));
-                ds.setInstanceName(server.substring(i + 1));
-            } else {
-                ds.setServerName(extractPort(server, ds));
-            }
-            for (String prop : identifiers) {
-                if (prop.contains("=")) {
-                    int index = prop.indexOf("=");
-                    String name = prop.substring(0, index);
-                    String value = prop.substring(index + 1);
-                    switch (name.toUpperCase()) {
-                        case "USER":
-                        case "USERNAME":
-                            ds.setUser(value);
-                            break;
-                        case "PORT":
-                        case "PORTNUMBER":
-                            ds.setPortNumber(Integer.parseInt(value));
-                            break;
-                        case "PASSWORD":
-                            ds.setPassword(value);
-                            break;
-                        case "DOMAIN":
-                            ds.setDomain(value);
-                            break;
-                        case "DATABASE":
-                        case "DATABASENAME":
-                            ds.setDatabaseName(value);
-                            break;
-                        case "COLUMNENCRYPTIONSETTING":
-                            ds.setColumnEncryptionSetting(value);
-                            break;
-                        case "DISABLESTATEMENTPOOLING":
-                            ds.setDisableStatementPooling(Boolean.parseBoolean(value));
-                            break;
-                        case "STATEMENTPOOLINGCACHESIZE":
-                            ds.setStatementPoolingCacheSize(Integer.parseInt(value));
-                            break;
-                        case "AUTHENTICATION":
-                            ds.setAuthentication(value);
-                            break;
-                        case "AUTHENTICATIONSCHEME":
-                            ds.setAuthenticationScheme(value);
-                            break;
-                        case "CANCELQUERYTIMEOUT":
-                            ds.setCancelQueryTimeout(Integer.parseInt(value));
-                            break;
-                        case "ENCRYPT":
-                            ds.setEncrypt(Boolean.parseBoolean(value));
-                            break;
-                        case "HOSTNAMEINCERTIFICATE":
-                            ds.setHostNameInCertificate(value);
-                            break;
-                        case "INTEGRATEDSECURITY":
-                            ds.setIntegratedSecurity(Boolean.valueOf(value));
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
-        }
-        return ds;
     }
 
     static String extractPort(String server, SQLServerDataSource ds) {

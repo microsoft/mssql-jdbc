@@ -348,8 +348,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @param workstation
      * @throws SQLServerException
      */
-    NTLMAuthentication(final SQLServerConnection con, final String serverName, final String domainName,
-            final String userName, final String password, final String workstation) throws SQLServerException {
+    NTLMAuthentication(final String serverName, final String domainName, final String userName, final String password,
+            final String workstation) throws SQLServerException {
         if (null == context) {
             this.context = new NTLMContext(serverName, domainName, userName, password, workstation);
         }
@@ -368,7 +368,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     @Override
     byte[] generateClientContext(final byte[] inToken, final boolean[] done) throws SQLServerException {
-
         return initializeSecurityContext(inToken, done);
     }
 
@@ -394,7 +393,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @throws SQLServerException
      */
     private void parseNtlmChallenge(final byte[] inToken) throws SQLServerException {
-
         context.token = ByteBuffer.wrap(inToken).order(ByteOrder.LITTLE_ENDIAN);
 
         // verify signature
@@ -536,7 +534,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * 
      */
     private byte[] initializeSecurityContext(final byte[] inToken, final boolean[] done) throws SQLServerException {
-
         if (null == inToken || 0 == inToken.length) {
             return generateNtlmNegotiate();
         } else {
@@ -571,7 +568,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @return client challenge blob
      */
     private byte[] generateClientChallengeBlob(final byte[] clientNonce) {
-
         // timestamp is number of 100 nanosecond ticks since Windows Epoch
         ByteBuffer time = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
         time.putLong((TimeUnit.SECONDS.toNanos(Instant.now().getEpochSecond() + WINDOWS_EPOCH_DIFF)) / 100);
@@ -681,9 +677,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @throws InvalidKeyException
      */
     private byte[] ntowfv2() throws InvalidKeyException {
-
-        return hmacMD5(context.passwordHash, (null != context.upperUserName) ? unicode(context.upperUserName + context.domainName)
-                                                                        : unicode(context.domainName));
+        return hmacMD5(context.passwordHash,
+                (null != context.upperUserName) ? unicode(context.upperUserName + context.domainName)
+                                                : unicode(context.domainName));
     }
 
     /**
@@ -709,7 +705,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @throws NoSuchAlgorithmException
      */
     private byte[] computeResponse(final byte[] responseKeyNT) throws InvalidKeyException, NoSuchAlgorithmException {
-
         // get random client challenge nonce
         byte[] clientNonce = new byte[NTLM_CLIENT_NONCE_LENGTH];
         (new Random()).nextBytes(clientNonce);

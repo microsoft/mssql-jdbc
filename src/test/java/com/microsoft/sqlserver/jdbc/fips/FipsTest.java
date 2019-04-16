@@ -142,7 +142,7 @@ public class FipsTest extends AbstractTest {
      * @param ds
      */
     private void setDataSourceProperties(SQLServerDataSource ds) {
-        ds = (SQLServerDataSource) updateDataSource(ds);
+        ds = (SQLServerDataSource) updateDataSource(connectionString, ds);
 
         // Set all properties for FIPS
         ds.setFIPS(true);

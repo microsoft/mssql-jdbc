@@ -48,6 +48,10 @@
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv14) -->
 		<excludeGroups>xSQLv15</excludeGroups>
+		<!--  Allowed values for include Groups here - - - - - - - - - - - - -
+		    NTLM - - - - - - -  For NTLM tests
+		<includeGroups></includeGroups>
+		 Default is none -->
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.0</azure.keyvault.version>
@@ -246,6 +250,7 @@
 							</properties>
 							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
 							<excludedGroups>${excludeGroups}, xJDBC42</excludedGroups>
+							<includedGroups>${includedGroups}</includedGroups>			
 						</configuration>
 					</plugin>
 				</plugins>
@@ -315,8 +320,8 @@
 							<properties>
 								<excludeTags>${skipTestTag}</excludeTags>
 							</properties>
-							<excludedGroups>
-								${excludeGroups}</excludedGroups>
+							<excludedGroups>${excludeGroups}</excludedGroups>
+							<includedGroups>${includedGroups}</includedGroups>									
 						</configuration>
 					</plugin>
 				</plugins>

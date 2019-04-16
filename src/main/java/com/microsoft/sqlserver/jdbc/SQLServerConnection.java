@@ -2585,7 +2585,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             long seqNum = activityId.getSequence();
             Util.writeInt((int) seqNum, preloginRequest, offset);
             offset += 4;
-            
+
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " ActivityId " + activityId.toString());
             }
@@ -3684,7 +3684,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber());
             } else if (ntlmAuthentication) {
-                authentication = new NTLMAuthentication(this, currentConnectPlaceHolder.getServerName(), domainName,
+                authentication = new NTLMAuthentication(currentConnectPlaceHolder.getServerName(), domainName,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                         hostName);
