@@ -37,7 +37,7 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test zero timeout")
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testZeroTimeOut() throws SQLException {
         testBulkCopyWithTimeout(0);
     }

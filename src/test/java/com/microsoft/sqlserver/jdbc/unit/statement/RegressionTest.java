@@ -26,12 +26,13 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class RegressionTest extends AbstractTest {
-    
+
     private static String tableName = RandomUtil.getIdentifier("ServerCursorPStmt");
     private static String procName = RandomUtil.getIdentifier("ServerCursorProc");
 

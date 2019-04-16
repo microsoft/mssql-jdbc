@@ -1606,21 +1606,26 @@ public class SQLServerStatement implements ISQLServerStatement {
             clearLastResult();
         }
 
-        // If there are no more results, then we're done.
-        // All we had to do was to close out the previous results.
+        // If there are no more results, then we're done. All we had to do was to close out the previous results.
         if (!moreResults) {
             return false;
         }
 
         // Figure out the next result.
         NextResult nextResult = new NextResult();
-        TDSParser.parse(resultsReader(), nextResult);
+
+        // Signal to not read all token other than TDS_MSG if reading only warnings
+        TDSParser.parse(resultsReader(), nextResult, !clearFlag);
 
         // Check for errors first.
         if (null != nextResult.getDatabaseError()) {
             SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getErrorMessage(),
                     nextResult.getDatabaseError(), false);
         }
+
+        // If we didn't clear current ResultSet, we wanted to read only warnings. Return back from here.
+        if (!clearFlag)
+            return false;
 
         // Not an error. Is it a result set?
         else if (nextResult.isResultSet()) {

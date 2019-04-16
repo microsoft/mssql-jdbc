@@ -27,13 +27,14 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
  * Test class for testing DatabaseMetaData with foreign keys.
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
     private static String table1 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_1");

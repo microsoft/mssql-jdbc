@@ -22,6 +22,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
@@ -34,7 +35,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testParameterMetaDataWrapper() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -74,7 +75,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testNameWithBraces() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
 
@@ -99,7 +100,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testParameterMetaData() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
@@ -136,7 +137,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testParameterMetaDataProc() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String query = "exec sp_help (" + AbstractSQLGenerator.escapeIdentifier(tableName) + ")";

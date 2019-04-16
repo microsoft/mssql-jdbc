@@ -33,7 +33,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  * Test CallableStatement
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class CallableStatementTest extends AbstractTest {
     private static String tableNameGUID = RandomUtil.getIdentifier("uniqueidentifier_Table");
     private static String outputProcedureNameGUID = RandomUtil.getIdentifier("uniqueidentifier_SP");

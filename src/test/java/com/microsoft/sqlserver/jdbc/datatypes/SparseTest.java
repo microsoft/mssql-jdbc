@@ -15,6 +15,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
@@ -23,7 +24,7 @@ public class SparseTest extends AbstractTest {
     final static String escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testSparse() throws Exception {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
 

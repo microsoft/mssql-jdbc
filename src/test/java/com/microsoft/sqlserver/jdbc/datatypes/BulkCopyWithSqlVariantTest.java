@@ -25,6 +25,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -32,7 +33,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("sqlVariantTestSrcTable");
