@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -21,6 +23,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.logging.LogManager;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -706,9 +709,15 @@ public class TestUtils {
 
     /**
      * Enables Activity Tracing
+     * 
+     * @throws IOException
+     * @throws SecurityException
      */
-    public static void setActivityTraceOn() {
-        Util.activityIdTraceOn = true;
+    public static void setActivityTraceOn() throws SecurityException, IOException {
+        String activityIDTraceOn = Util.ACTIVITY_ID_TRACE_PROPERTY + "=on";
+        try (InputStream is = new ByteArrayInputStream(activityIDTraceOn.getBytes());) {
+            LogManager lm = LogManager.getLogManager();
+            lm.readConfiguration(is);
+        }
     }
-
 }

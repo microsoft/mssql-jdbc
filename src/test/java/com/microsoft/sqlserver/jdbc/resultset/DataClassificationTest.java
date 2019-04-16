@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -19,9 +20,13 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityProperty;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xSQLv14)
 public class DataClassificationTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("DataClassification");
 
@@ -33,7 +38,7 @@ public class DataClassificationTest extends AbstractTest {
     @Test
     public void testDataClassificationMetadata() throws Exception {
         // Run this test only with newer SQL Servers (version>=2018) that support Data Classification
-        try (Connection con = getConnection(); Statement stmt = connection.createStatement();) {
+        try (Statement stmt = connection.createStatement();) {
             if (TestUtils.serverSupportsDataClassification(stmt)) {
                 createTable(connection, stmt);
                 runTestsForServer(stmt);

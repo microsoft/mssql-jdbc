@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,6 +17,7 @@ import java.util.Collections;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -26,15 +26,18 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.PrepUtil;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
  * A class for testing the UTF8 support changes.
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLDB)
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xSQLv14)
 public class UTF8SupportTest extends AbstractTest {
-    private static Connection connection;
     private static String databaseName;
     private static String tableName;
 
@@ -107,7 +110,6 @@ public class UTF8SupportTest extends AbstractTest {
 
     @BeforeAll
     public static void setUp() throws ClassNotFoundException, SQLException {
-        connection = PrepUtil.getConnection(getConnectionString());
         if (TestUtils.serverSupportsUTF8(connection)) {
             databaseName = RandomUtil.getIdentifier("UTF8Database");
             tableName = RandomUtil.getIdentifier("UTF8Table");
@@ -122,9 +124,6 @@ public class UTF8SupportTest extends AbstractTest {
             if (TestUtils.serverSupportsUTF8(connection)) {
                 TestUtils.dropDatabaseIfExists(databaseName, stmt);
             }
-        }
-        if (null != connection) {
-            connection.close();
         }
     }
 
