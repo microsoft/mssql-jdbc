@@ -94,6 +94,8 @@
 		    <groupId>org.antlr</groupId>
 		    <artifactId>antlr4-runtime</artifactId>
 		    <version>4.7.2</version>
+		    <scope>compile</scope>
+		    <optional>false</optional>
 		</dependency>
 
 		<!-- dependencies provided by an OSGi-Framework -->
