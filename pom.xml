@@ -48,7 +48,7 @@
 			NTLM - - - - - - - For not running NTLM tests (excluded by default) - - - 
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv14) -->
-		<excludedGroups>xSQLv15, NTLM</excludedGroups>
+		<excludeGroups>xSQLv15, NTLM</excludeGroups>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.0</azure.keyvault.version>

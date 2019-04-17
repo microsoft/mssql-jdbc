@@ -41,5 +41,5 @@ before_script:
 script: 
   - docker ps -a
 ##Test for JDBC Specification 43 & 42 and submit coverage report.
-  - mvn test -B -Pbuild43 -DexcludeGroups='NTLM' jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC43
-  - mvn test -B -Pbuild42 -DexcludeGroups='NTLM' jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC42
+  - mvn test -B -Pbuild43 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC43
+  - mvn test -B -Pbuild42 jacoco:report && bash <(curl -s https://codecov.io/bash) -cF JDBC42
