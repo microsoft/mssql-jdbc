@@ -515,6 +515,7 @@ public class ResultSetTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testMultipleResultSets() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.execute(
