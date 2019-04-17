@@ -45,13 +45,10 @@
 			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
+			NTLM - - - - - - - For not running NTLM tests (excluded by default) - - - 
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv14) -->
-		<excludeGroups>xSQLv15</excludeGroups>
-		<!--  Allowed values for include Groups here - - - - - - - - - - - - -
-		    NTLM - - - - - - -  For NTLM tests
-		<includeGroups></includeGroups>
-		 Default is none -->
+		<excludedGroups>xSQLv15, NTLM</excludedGroups>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.0</azure.keyvault.version>
@@ -250,7 +247,6 @@
 							</properties>
 							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
 							<excludedGroups>${excludeGroups}, xJDBC42</excludedGroups>
-							<includedGroups>${includedGroups}</includedGroups>			
 						</configuration>
 					</plugin>
 				</plugins>
@@ -321,7 +317,6 @@
 								<excludeTags>${skipTestTag}</excludeTags>
 							</properties>
 							<excludedGroups>${excludeGroups}</excludedGroups>
-							<includedGroups>${includedGroups}</includedGroups>									
 						</configuration>
 					</plugin>
 				</plugins>
