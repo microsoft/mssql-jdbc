@@ -1138,7 +1138,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      *        the value of the property.
      * @throws SQLServerException
      */
-    void ValidateMaxSQLLoginName(String propName, String propValue) throws SQLServerException {
+    void validateMaxSQLLoginName(String propName, String propValue) throws SQLServerException {
         if (propValue != null && propValue.length() > MAX_SQL_LOGIN_NAME_WCHARS) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_propertyMaximumExceedsChars"));
             Object[] msgArgs = {propName, Integer.toString(MAX_SQL_LOGIN_NAME_WCHARS)};
@@ -1172,7 +1172,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
                         if (null != sPropValue && sPropValue.length() > 0) {
                             int sPropValueInt = Integer.parseInt(sPropValue);
-                            loginTimeoutSeconds = 0 != sPropValueInt ? sPropValueInt : loginTimeoutSeconds;
+                            if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
+                                loginTimeoutSeconds = sPropValueInt;
+                            }
                         }
                     }
 
@@ -1289,7 +1291,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = SQLServerDriverStringProperty.USER.getDefaultValue();
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
-            ValidateMaxSQLLoginName(sPropKey, sPropValue);
+            validateMaxSQLLoginName(sPropKey, sPropValue);
 
             sPropKey = SQLServerDriverStringProperty.PASSWORD.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -1297,11 +1299,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = SQLServerDriverStringProperty.PASSWORD.getDefaultValue();
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
-            ValidateMaxSQLLoginName(sPropKey, sPropValue);
+            validateMaxSQLLoginName(sPropKey, sPropValue);
 
             sPropKey = SQLServerDriverStringProperty.DATABASE_NAME.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            ValidateMaxSQLLoginName(sPropKey, sPropValue);
+            validateMaxSQLLoginName(sPropKey, sPropValue);
 
             // if the user does not specify a default timeout, default is 15 per spec
             int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
@@ -1337,7 +1339,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sPropKey = SQLServerDriverStringProperty.SERVER_NAME.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
 
-            sPropValue = null == sPropValue ? "localhost" : sPropValue;
+            if (sPropValue == null) {
+                sPropValue = "localhost";
+            }
 
             String sPropKeyPort = SQLServerDriverIntProperty.PORT_NUMBER.toString();
             String sPropValuePort = activeConnectionProperties.getProperty(sPropKeyPort);
@@ -1350,7 +1354,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // found the instance name with the servername
             if (px >= 0) {
                 instanceValue = sPropValue.substring(px + 1, sPropValue.length());
-                ValidateMaxSQLLoginName(instanceNameProperty, instanceValue);
+                validateMaxSQLLoginName(instanceNameProperty, instanceValue);
                 sPropValue = sPropValue.substring(0, px);
             }
             trustedServerNameAE = sPropValue;
@@ -1373,19 +1377,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 instanceValue = instanceValueFromProp;
 
             if (instanceValue != null) {
-                ValidateMaxSQLLoginName(instanceNameProperty, instanceValue);
+                validateMaxSQLLoginName(instanceNameProperty, instanceValue);
                 // only get port if the port is not specified
                 activeConnectionProperties.setProperty(instanceNameProperty, instanceValue);
                 trustedServerNameAE += "\\" + instanceValue;
             }
 
-            trustedServerNameAE = null != sPropValuePort ? trustedServerNameAE + ":" + sPropValuePort
-                                                         : trustedServerNameAE;
+            if (null != sPropValuePort) {
+                trustedServerNameAE += ":" + sPropValuePort;
+            }
 
             sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (sPropValue != null)
-                ValidateMaxSQLLoginName(sPropKey, sPropValue);
+                validateMaxSQLLoginName(sPropKey, sPropValue);
             else
                 activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.DEFAULT_APP_NAME);
 
@@ -1406,16 +1411,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            keyStoreAuthentication = null != sPropValue ? KeyStoreAuthentication.valueOfString(sPropValue).toString()
-                                                        : keyStoreAuthentication;
+            if (null != sPropValue) {
+                keyStoreAuthentication = KeyStoreAuthentication.valueOfString(sPropValue).toString();
+            }
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_SECRET.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            keyStoreSecret = null != sPropValue ? sPropValue : keyStoreSecret;
+            if (null != sPropValue) {
+                keyStoreSecret = sPropValue;
+            }
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            keyStoreLocation = null != sPropValue ? sPropValue : keyStoreLocation;
+            if (null != sPropValue) {
+                keyStoreLocation = sPropValue;
+            }
 
             registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
 
@@ -1464,8 +1474,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            sPropValue = sPropValue == null ? SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue()
-                                            : sPropValue;
+            if (sPropValue == null) {
+                sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
+            }
 
             if ("cursor".equalsIgnoreCase(sPropValue) || "direct".equalsIgnoreCase(sPropValue)) {
                 sPropValue = sPropValue.toLowerCase(Locale.ENGLISH);
@@ -1479,8 +1490,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            sPropValue = sPropValue == null ? SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue()
-                                            : sPropValue;
+            if (sPropValue == null) {
+                sPropValue = SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue();
+            }
 
             if ("full".equalsIgnoreCase(sPropValue) || "adaptive".equalsIgnoreCase(sPropValue)) {
                 activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
@@ -1492,8 +1504,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.APPLICATION_INTENT.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            sPropValue = sPropValue == null ? SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue()
-                                            : sPropValue;
+            if (sPropValue == null) {
+                sPropValue = SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue();
+            }
 
             applicationIntent = ApplicationIntent.valueOfString(sPropValue);
             activeConnectionProperties.setProperty(sPropKey, applicationIntent.toString());
@@ -1531,13 +1544,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            integratedSecurity = sPropValue != null ? isBooleanPropertyOn(sPropKey, sPropValue) : integratedSecurity;
+            if (sPropValue != null) {
+                integratedSecurity = isBooleanPropertyOn(sPropKey, sPropValue);
+            }
 
             // Ignore authenticationScheme setting if integrated authentication not specified
             if (integratedSecurity) {
                 sPropKey = SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                intAuthScheme = sPropValue != null ? AuthenticationScheme.valueOfString(sPropValue) : intAuthScheme;
+                if (sPropValue != null) {
+                    intAuthScheme = AuthenticationScheme.valueOfString(sPropValue);
+                }
             }
 
             if (intAuthScheme == AuthenticationScheme.javaKerberos) {
@@ -1550,8 +1567,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            sPropValue = sPropValue == null ? SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue()
-                                            : sPropValue;
+            if (sPropValue == null) {
+                sPropValue = SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue();
+            }
             authenticationString = SqlAuthentication.valueOfString(sPropValue).toString().trim();
 
             if (integratedSecurity
@@ -1617,7 +1635,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.ACCESS_TOKEN.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            accessTokenInByte = null != sPropValue ? sPropValue.getBytes(UTF_16LE) : accessTokenInByte;
+            if (null != sPropValue) {
+                accessTokenInByte = sPropValue.getBytes(UTF_16LE);
+            }
 
             if ((null != accessTokenInByte) && 0 == accessTokenInByte.length) {
                 if (connectionlogger.isLoggable(Level.SEVERE)) {
@@ -1665,7 +1685,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.WORKSTATION_ID.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            ValidateMaxSQLLoginName(sPropKey, sPropValue);
+            validateMaxSQLLoginName(sPropKey, sPropValue);
 
             int nPort = 0;
             sPropKey = SQLServerDriverIntProperty.PORT_NUMBER.toString();
@@ -1849,8 +1869,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            useBulkCopyForBatchInsert = null != sPropValue ? isBooleanPropertyOn(sPropKey, sPropValue)
-                                                           : useBulkCopyForBatchInsert;
+            if (null != sPropValue) {
+                useBulkCopyForBatchInsert = isBooleanPropertyOn(sPropKey, sPropValue);
+            }
 
             sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -2052,9 +2073,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 // Attempt login. Use Place holder to make sure that the failoverdemand is done.
-                connectHelper(currentConnectPlaceHolder, TimerRemaining(intervalExpire), timeout, useParallel, useTnir,
+                connectHelper(currentConnectPlaceHolder, timerRemaining(intervalExpire), timeout, useParallel, useTnir,
                         (0 == attemptNumber), // is this the TNIR first attempt
-                        TimerRemaining(intervalExpireFullTimeout)); // Only used when host resolves to >64 IPs
+                        timerRemaining(intervalExpireFullTimeout)); // Only used when host resolves to >64 IPs
 
                 if (isRoutedInCurrentAttempt) {
                     // we ignore the failoverpartner ENVCHANGE if we got routed so no error needs to be thrown
@@ -2156,7 +2177,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (!isDBMirroring || 1 == attemptNumber % 2) {
                     // Check sleep interval to make sure we won't exceed the timeout
                     // Do this in the catch block so we can re-throw the current exception
-                    long remainingMilliseconds = TimerRemaining(timerExpire);
+                    long remainingMilliseconds = timerRemaining(timerExpire);
                     if (remainingMilliseconds <= sleepInterval) {
                         throw sqlex;
                     }
@@ -2202,10 +2223,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // Due to the below condition and the timerHasExpired check in catch block,
             // the multiSubnetFailover case or any other standardLogin case where timeOutInterval is full timeout would
             // also be handled correctly.
-            intervalExpire = intervalExpire > timerExpire ? timerExpire : intervalExpire;
+            if (intervalExpire > timerExpire) {
+                intervalExpire = timerExpire;
+            }
 
             // try again, this time swapping primary/secondary servers
-            useFailoverHost = isDBMirroring ? !useFailoverHost : useFailoverHost;
+            if (isDBMirroring) {
+                useFailoverHost = !useFailoverHost;
+            }
         }
 
         // If we get here, connection/login succeeded! Just a few more checks & record-keeping
@@ -2324,13 +2349,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return System.currentTimeMillis() > timerExpire;
     }
 
-    static int TimerRemaining(long timerExpire) {
-        long result = timerExpire - System.currentTimeMillis();
-        // maximum timeout the socket takes is int max.
-        result = result > Integer.MAX_VALUE ? Integer.MAX_VALUE : result;
-        // we have to make sure that we return at least one ms
-        // we want at least one attempt to happen with a positive timeout passed by the user.
-        return result <= 0 ? 1 : (int) result;
+    /**
+     * Get time remaining to timer expiry
+     * 
+     * @param timerExpire
+     * @return remaining time to expiry
+     */
+    static int timerRemaining(long timerExpire) {
+        long remaining = timerExpire - System.currentTimeMillis();
+        // maximum timeout the socket takes is int max, minimum is at least 1 ms
+        return (int) ((remaining > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (remaining <= 0) ? 1 : remaining);
     }
 
     /**
@@ -2366,7 +2394,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // as the InetAddress.getLocalHost() takes more than usual time in certain OS and JVM combination, it avoids
         // connection loss
         hostName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.WORKSTATION_ID.toString());
-        hostName = StringUtils.isEmpty(hostName) ? Util.lookupHostName() : hostName;
+        if (StringUtils.isEmpty(hostName)) {
+            hostName = Util.lookupHostName();
+        }
 
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
@@ -4114,7 +4144,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             throw new SQLServerException(form.format(msgArgs), null);
                         }
 
-                        int millisecondsRemaining = TimerRemaining(timerExpire);
+                        int millisecondsRemaining = timerRemaining(timerExpire);
                         if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TANSISENT_ERROR != errorCategory
                                 || timerHasExpired(timerExpire) || (sleepInterval >= millisecondsRemaining)) {
 
@@ -4704,7 +4734,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                               : activeConnectionProperties.getProperty(
                                                                       SQLServerDriverStringProperty.SERVER_NAME
                                                                               .toString());
-        serverName = (serverName != null && serverName.length() > 128) ? serverName.substring(0, 128) : serverName;
+        if (serverName != null && serverName.length() > 128) {
+            serverName = serverName.substring(0, 128);
+        }
 
         byte[] secBlob = new byte[0];
         boolean[] done = {false};
@@ -4798,16 +4830,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         {
             colEncSetting = TDS.LOGIN_OPTION3_FEATURE_EXTENSION;
         }
+
+        // Accept unknown collations from Katmai & later servers
         tdsWriter.writeByte((byte) (TDS.LOGIN_OPTION3_DEFAULT | colEncSetting
-                | ((serverMajorVersion >= 10) ? TDS.LOGIN_OPTION3_UNKNOWN_COLLATION_HANDLING : 0) // Accept
-                                                                                                  // unknown
-                                                                                                  // collations
-                                                                                                  // from
-                                                                                                  // Katmai
-                                                                                                  // &
-                                                                                                  // later
-                                                                                                  // servers
-        ));
+                | ((serverMajorVersion >= 10) ? TDS.LOGIN_OPTION3_UNKNOWN_COLLATION_HANDLING : 0)));
 
         tdsWriter.writeInt((byte) 0); // Client time zone
         tdsWriter.writeInt((byte) 0); // Client LCID
