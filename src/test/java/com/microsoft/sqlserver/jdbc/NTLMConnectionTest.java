@@ -56,9 +56,6 @@ public class NTLMConnectionTest extends AbstractTest {
 
     private static SQLServerDataSource dsNTLMLocal = null;
 
-    // NTLM properties defined
-    private static boolean ntlmPropsDefined = false;
-
     // updated connection strong with NTLM properties
     private static String connectionStringNTLM = connectionString;
 
@@ -85,20 +82,16 @@ public class NTLMConnectionTest extends AbstractTest {
 
         if (null != domain) {
             connectionStringNTLM = addOrOverrideProperty(connectionStringNTLM, "domain", domain);
-            ntlmPropsDefined = true;
         }
 
         if (null != user) {
             connectionStringNTLM = addOrOverrideProperty(connectionStringNTLM, "user", user);
-            ntlmPropsDefined = true;
         }
 
         if (null != password) {
             connectionStringNTLM = addOrOverrideProperty(connectionStringNTLM, "password", password);
-            ntlmPropsDefined = true;
         }
 
-        if (ntlmPropsDefined) {
             connectionStringNTLM = addOrOverrideProperty(connectionStringNTLM, "authenticationScheme", "NTLM");
             connectionStringNTLM = addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");
 
@@ -106,11 +99,11 @@ public class NTLMConnectionTest extends AbstractTest {
             AbstractTest.updateDataSource(connectionStringNTLM, dsNTLMLocal);
 
             // grant view server state permission - needed to verify NTLM
-            try (Statement stmt = connection.createStatement()) {
+            try (Connection con = DriverManager.getConnection(connectionStringNTLM + "database=master");
+                    Statement stmt = connection.createStatement()) {
                 stmt.executeUpdate("GRANT VIEW SERVER STATE TO PUBLIC");
             } catch (Exception e) {
                 fail(e.getMessage());
-            }
         }
     }
 
@@ -121,13 +114,11 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMBasicConnection() throws SQLException {
-        if (ntlmPropsDefined) {
             try (Connection con1 = dsNTLMLocal.getConnection();
                     Connection con2 = DriverManager.getConnection(connectionStringNTLM)) {
                 verifyNTLM(con1);
                 verifyNTLM(con2);
             }
-        }
     }
 
     /**
@@ -135,7 +126,6 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMInvalidProperties() {
-        if (ntlmPropsDefined) {
             // NTLM without user name
             testInvalidProperties(addOrOverrideProperty(connectionStringNTLM, "user", ""),
                     "R_NtlmNoUserPasswordDomain");
@@ -148,7 +138,6 @@ public class NTLMConnectionTest extends AbstractTest {
             testInvalidProperties(
                     addOrOverrideProperty(connectionStringNTLM, "authentication", "ActiveDirectoryIntegrated "),
                     "R_SetAuthenticationWhenIntegratedSecurityTrue");
-        }
     }
 
     /**
@@ -158,12 +147,10 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMEncryptedConnection() throws SQLException {
-        if (ntlmPropsDefined) {
             try (Connection con = DriverManager
                     .getConnection(connectionStringNTLM + ";encrypt=true;trustServerCertificate=true")) {
                 verifyNTLM(con);
             }
-        }
     }
 
     /**
@@ -172,8 +159,7 @@ public class NTLMConnectionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testNTLMNonDeafultDatabase() throws SQLException {
-        if (ntlmPropsDefined) {
+    public void testNTLMNonDefaultDatabase() throws SQLException {
             String databaseName = RandomUtil.getIdentifier("NTLM");
             try (Statement stmt = connection.createStatement()) {
                 stmt.executeUpdate("CREATE DATABASE " + AbstractSQLGenerator.escapeIdentifier(databaseName));
@@ -186,7 +172,6 @@ public class NTLMConnectionTest extends AbstractTest {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropDatabaseIfExists(databaseName, stmt);
             }
-        }
     }
 
     /**
@@ -196,7 +181,6 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMHikariCP() throws SQLException {
-        if (ntlmPropsDefined) {
             HikariConfig config1 = new HikariConfig();
             HikariConfig config2 = new HikariConfig();
             config1.setDataSource(dsNTLMLocal);
@@ -207,7 +191,6 @@ public class NTLMConnectionTest extends AbstractTest {
                 verifyNTLM(con1);
                 verifyNTLM(con2);
             }
-        }
     }
 
     /**
@@ -217,7 +200,6 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     // @Test
     public void testNTLMLoginTimeout() {
-        if (ntlmPropsDefined) {
             long timerStart = 0;
             long timerEnd = 0;
             int loginTimeout = 10;
@@ -231,7 +213,6 @@ public class NTLMConnectionTest extends AbstractTest {
             }
             long elapsedTime = (timerEnd - timerStart) / 1000;
             assertTrue(elapsedTime < loginTimeout + 1);
-        }
     }
 
     @Test
@@ -241,7 +222,6 @@ public class NTLMConnectionTest extends AbstractTest {
      * @throws SQLException
      */
     public void testNTLMipAddr() throws SQLException {
-        if (ntlmPropsDefined) {
             String ipAddr;
             try {
                 ipAddr = InetAddress.getByName(serverFqdn).getHostAddress();
@@ -251,7 +231,6 @@ public class NTLMConnectionTest extends AbstractTest {
             } catch (UnknownHostException e) {
                 fail(e.getMessage());
             }
-        }
     }
 
     @Test
@@ -342,43 +321,36 @@ public class NTLMConnectionTest extends AbstractTest {
 
     @Test
     public void testNTLMBadSignature() throws SQLException {
-        if (ntlmPropsDefined) {
             try {
                 byte[] badSignature = {0, 0, 0, 0, 0, 0, 0, 0};
                 sendBadToken(badSignature, NTLM_CHALLENGE_SIGNATURE_OFFSET);
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmSignatureError")));
             }
-        }
     }
 
     @Test
     public void testNTLMBadMessageType() throws SQLException {
-        if (ntlmPropsDefined) {
             try {
                 byte[] badMessageType = {0, 0, 0, 0};
                 sendBadToken(badMessageType, NTLM_CHALLENGE_MESSAGETYPE_OFFSET);
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmMessageTypeError")));
             }
-        }
     }
 
     @Test
     public void testNTLMBadTargetInfoLen() throws SQLException {
-        if (ntlmPropsDefined) {
             try {
                 byte[] badTargetInfoLen = {0, 0};
                 sendBadToken(badTargetInfoLen, NTLM_CHALLENGE_TARGETINFOLEN_OFFSET);
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTargetInfo")));
             }
-        }
     }
 
     @Test
     public void testNTLMBadDomain() throws SQLException {
-        if (ntlmPropsDefined) {
             loggerContent.reset();
             try {
                 byte[] badDomain = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -387,7 +359,6 @@ public class NTLMConnectionTest extends AbstractTest {
                 // this should just generate a warning but not fail
                 fail(TestResource.getResource("R_unexpectedException"));
             }
-        }
 
         // verify message was logged
         handler.flush();
@@ -396,7 +367,6 @@ public class NTLMConnectionTest extends AbstractTest {
 
     @Test
     public void testNTLMBadComputerName() throws SQLException {
-        if (ntlmPropsDefined) {
             loggerContent.reset();
             try {
                 // modify token with bad computer name
@@ -410,24 +380,20 @@ public class NTLMConnectionTest extends AbstractTest {
             // verify message was logged
             handler.flush();
             assertTrue(loggerContent.toString().matches(TestUtils.formatErrorMsg("R_ntlmBadComputer")));
-        }
     }
 
     @Test
     public void testNTLMBadAvid() throws SQLException {
-        if (ntlmPropsDefined) {
             try {
                 byte[] badAvid = {-1, 0};
                 sendBadToken(badAvid, NTLM_CHALLENGE_TARGETINFO_OFFSET);
             } catch (Exception e) {
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownValue")));
             }
-        }
     }
 
     @Test
     public void testNTLMBadTimestamp() throws SQLException {
-        if (ntlmPropsDefined) {
             loggerContent.reset();
             try {
                 byte[] badTimestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -435,7 +401,6 @@ public class NTLMConnectionTest extends AbstractTest {
             } catch (Exception e) {
                 // this should just generate a warning but not fail
                 fail(e.getMessage());
-            }
         }
     }
 

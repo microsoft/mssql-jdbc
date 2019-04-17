@@ -80,13 +80,15 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * If NTLM v2 authentication is used and the CHALLENGE_MESSAGE TargetInfo field (section 2.2.1.2) has an
      * MsvAvTimestamp present, the client SHOULD NOT send the LmChallengeResponse and SHOULD send Z(24) instead.
      *
+     * <pre>
      * Section 2.2.2.1 AV_PAIR
-     *
      * MsvAvTimestamp is always sent in the CHALLENGE_MESSAGE.
-     *
      * Section 7 Appendix B: Product Behavior
+     * </pre>
      *
      * MsvAvTimestamp AV_PAIR type is not supported in Windows NT, Windows 2000, Windows XP, and Windows Server 2003.
+     * 
+     * This defined here for completeness as it's necessary to 0 the correct number of bytes in the message.
      */
     private static final byte[] NTLM_LMCHALLENAGERESPONSE = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -95,6 +97,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * Section 2.2.2.10 VERSION
      *
      * used for debugging purposes only and its value does not affect NTLM message processing
+     * 
+     * This defined here for completeness as it's necessary to 0 the correct number of bytes in the message.
+     * 
      */
     private static final byte[] NTLMSSP_VERSION = new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
