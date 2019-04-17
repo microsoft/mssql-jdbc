@@ -34,7 +34,7 @@ jobs:
     displayName: 'Maven build 43'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pbuild43 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -Ddomain=$(domainNTLM) -DexcludeGroups=$(Ex_Groups) -DincludeGroups=$Inc_Groups)'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pbuild43 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -Ddomain=$(domainNTLM) -DexcludeGroups=$(Ex_Groups) -DincludeGroups=$(Inc_Groups)'
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build 43'
       javaHomeOption: Path
