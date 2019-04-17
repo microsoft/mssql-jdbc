@@ -99,8 +99,9 @@ public class NTLMConnectionTest extends AbstractTest {
         AbstractTest.updateDataSource(connectionStringNTLM, dsNTLMLocal);
 
         // grant view server state permission - needed to verify NTLM
-        try (Connection con = DriverManager.getConnection(connectionStringNTLM + "database=master");
-                Statement stmt = connection.createStatement()) {
+        try (Connection con = DriverManager
+                .getConnection(addOrOverrideProperty(connectionStringNTLM, "database", "master"));
+                Statement stmt = con.createStatement()) {
             stmt.executeUpdate("GRANT VIEW SERVER STATE TO PUBLIC");
         } catch (Exception e) {
             fail(e.getMessage());
