@@ -3684,7 +3684,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber());
             } else if (ntlmAuthentication) {
-                authentication = new NTLMAuthentication(currentConnectPlaceHolder.getServerName(), domainName,
+                authentication = new NTLMAuthentication(domainName,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                         hostName);

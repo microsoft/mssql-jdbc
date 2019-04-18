@@ -726,4 +726,19 @@ public class TestUtils {
     public static String formatErrorMsg(String s) {
         return (".*\\Q" + TestUtils.rBundle.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
     }
+
+    /**
+     * Adds or updates the value of the given connection property in the connection string by overriding property.
+     * 
+     * @param connectionString
+     *        original connection string
+     * @param property
+     *        name of the property
+     * @param value
+     *        value of the property
+     * @return The updated connection string
+     */
+    public static String addOrOverrideProperty(String connectionString, String property, String value) {
+        return connectionString + ";" + property + "=" + value + ";";
+    }
 }

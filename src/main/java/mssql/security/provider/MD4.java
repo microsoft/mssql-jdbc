@@ -1,24 +1,18 @@
-/*
- * Copyright (c) 2005, 2016, Oracle and/or its affiliates. All rights reserved. DO NOT ALTER OR REMOVE COPYRIGHT NOTICES
- * OR THIS FILE HEADER. This code is free software; you can redistribute it and/or modify it under the terms of the GNU
- * General Public License version 2 only, as published by the Free Software Foundation. Oracle designates this
- * particular file as subject to the "Classpath" exception as provided by Oracle in the LICENSE file that accompanied
- * this code. This code is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
- * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License version 2
- * for more details (a copy is included in the LICENSE file that accompanied this code). You should have received a copy
- * of the GNU General Public License version 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA. Please contact Oracle, 500 Oracle Parkway, Redwood
- * Shores, CA 94065 USA or visit www.oracle.com if you need additional information or have any questions.
- */
-
 package mssql.security.provider;
 
-// import static sun.security.provider.ByteArrayAccess.*;
-// code updated to remove dependency
+/**
+ * This code originates from sun.security.provider.MD4.java. It is modified to remove dependecies to DigestBase,
+ * Provider, ByteArrayAccess.
+ */
+
+/*
+ * Copyright (c) 2005, 2016, Oracle and/or its affiliates. All rights reserved. ORACLE PROPRIETARY/CONFIDENTIAL. Use is
+ * subject to license terms.
+ */
 
 /**
  * The MD4 class is used to compute an MD4 message digest over a given buffer of bytes. It is an implementation of the
- * RSA Data Security Inc MD4 algorithim as described in internet RFC 1320.
+ * RSA Data Security Inc MD4 algorithm as described in Internet RFC 1320.
  *
  * <p>
  * The MD4 algorithm is very weak and should not be used unless it is unavoidable. Therefore, it is not registered in
@@ -30,6 +24,7 @@ public final class MD4 {
 
     // state of this object
     private final int[] state;
+
     // temporary buffer, used by implCompress()
     private final int[] x;
 
@@ -93,9 +88,6 @@ public final class MD4 {
      * Completes the hash computation by performing final operations such as padding.
      */
     public byte[] digest() {
-        /*
-         * implReset(); engineUpdate(in, 0, in.length); byte[] out = new byte[16]; implDigest(out, 0); return out;
-         */
         byte[] out = new byte[16];
         implDigest(out, 0);
         return out;
@@ -125,8 +117,15 @@ public final class MD4 {
         int padLen = (index < 56) ? (56 - index) : (120 - index);
         engineUpdate(padding, 0, padLen);
 
-        // i2bLittle4((int)bitsProcessed, buffer, 56);
-        // i2bLittle4((int)(bitsProcessed >>> 32), buffer, 60);
+        /**
+         * the following replaces:
+         * 
+         * <pre>
+         * i2bLittle4((int) bitsProcessed, buffer, 56);
+         * i2bLittle4((int) (bitsProcessed >>> 32), buffer, 60);
+         * i2bLittle(state, 0, out, ofs, 16);
+         * </pre>
+         */
         buffer[56] = (byte) bitsProcessed;
         buffer[57] = (byte) (bitsProcessed >> 8);
         buffer[58] = (byte) (bitsProcessed >> 16);
@@ -138,7 +137,6 @@ public final class MD4 {
         buffer[63] = (byte) (bitsProcessed >> 56);
         implCompress(buffer, 0);
 
-        // i2bLittle(state, 0, out, ofs, 16);
         for (int i = 0; i < state.length; i++) {
             int x = state[i];
             out[ofs++] = (byte) x;
@@ -205,7 +203,13 @@ public final class MD4 {
      * the buffer, beginning at the specified offset.
      */
     private void implCompress(byte[] buf, int ofs) {
-        // b2iLittle64(buf, ofs, x);
+        /**
+         * the following replaces:
+         * 
+         * <pre>
+         * b2iLittle64(buf, ofs, x);
+         * </pre>
+         */
         for (int xfs = 0; xfs < x.length; xfs++) {
             x[xfs] = (buf[ofs] & 0xff) | ((buf[ofs + 1] & 0xff) << 8) | ((buf[ofs + 2] & 0xff) << 16)
                     | ((buf[ofs + 3] & 0xff) << 24);

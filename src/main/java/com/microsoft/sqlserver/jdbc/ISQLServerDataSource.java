@@ -822,7 +822,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     public String getMSIClientId();
 
     /**
-     * Sets the Windows domain to authenticate in using NTLM.
+     * Sets the 'domain' connection property used for NTLM Authentication.
      *
      * @param domain
      *        Windows domain name
@@ -831,6 +831,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      * Returns the value for the connection property 'domain'.
+     * 
      * @return 'domain' property value
      */
     public String getDomain();

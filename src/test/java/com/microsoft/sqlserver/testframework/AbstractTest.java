@@ -56,6 +56,7 @@ public abstract class AbstractTest {
 
     protected static Connection connectionAzure = null;
     protected static String connectionString = null;
+    protected static String connectionStringNTLM;
 
     private static boolean _determinedSqlAzureOrSqlServer = false;
     private static boolean _isSqlAzure = false;
@@ -75,6 +76,30 @@ public abstract class AbstractTest {
         applicationKey = getConfiguredProperty("applicationKey");
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
         connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
+        connectionStringNTLM = connectionString;
+
+        // if these properties are defined then NTLM is desired, modify connection string accordingly
+        String domain = System.getProperty("domain");
+        String user = System.getProperty("userNTLM");
+        String password = System.getProperty("passwordNTLM");
+
+        if (null != domain) {
+            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "domain", domain);
+        }
+
+        if (null != user) {
+            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "user", user);
+        }
+
+        if (null != password) {
+            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "password", password);
+        }
+
+        if (null != domain && null != user && null != password) {
+            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "authenticationScheme",
+                    "NTLM");
+            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");
+        }
 
         ds = updateDataSource(connectionString, new SQLServerDataSource());
         dsXA = updateDataSource(connectionString, new SQLServerXADataSource());
