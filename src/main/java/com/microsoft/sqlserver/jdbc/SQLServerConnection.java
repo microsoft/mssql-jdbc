@@ -580,8 +580,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public final boolean getSendTimeAsDatetime() {
         return !isKatmaiOrLater() || sendTimeAsDatetime;
     }
-    
-    @Override
+
     public final boolean getUseFmtOnly() {
         return useFmtOnly;
     }
@@ -5471,8 +5470,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) {
         sendTimeAsDatetime = sendTimeAsDateTimeValue;
     }
-    
-    @Override
+
     public void setUseFmtOnly(boolean useFmtOnlyValue) {
         this.useFmtOnly = useFmtOnlyValue;
     }
