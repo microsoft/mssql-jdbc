@@ -11,7 +11,6 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -28,7 +27,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;;
  * Test class for testing FIPS property settings.
  */
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class FipsTest extends AbstractTest {
 
     /**

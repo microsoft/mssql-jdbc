@@ -20,6 +20,7 @@ import java.util.Arrays;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -49,6 +50,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test bulkCopy with CSV")
+@Tag(Constants.xAzureSQLDW)
 public class BulkCopyCSVTest extends AbstractTest {
 
     static String inputFile = "BulkCopyCSVTestInput.csv";

@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc.bvt;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.math.BigDecimal;
 import java.sql.DatabaseMetaData;
@@ -17,7 +16,6 @@ import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -25,6 +23,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBPreparedStatement;
 import com.microsoft.sqlserver.testframework.DBResultSet;
@@ -34,8 +33,6 @@ import com.microsoft.sqlserver.testframework.DBTable;
 
 
 @RunWith(JUnitPlatform.class)
-@DisplayName("BVT Test")
-@Tag("AzureDWTest")
 public class BvtTest extends AbstractTest {
     private static String driverNamePattern = "Microsoft JDBC Driver \\d.\\d for SQL Server";
     static DBTable table1;
@@ -47,7 +44,6 @@ public class BvtTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @DisplayName("test connection")
     public void testConnection() throws SQLException {
         try (DBConnection conn = new DBConnection(connectionString)) {}
     }
@@ -147,8 +143,8 @@ public class BvtTest extends AbstractTest {
      * @throws ClassNotFoundException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testStmtScrollInsensitiveReadOnly() throws SQLException, ClassNotFoundException {
-        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_cursorAzureDW"));
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_INSENSITIVE_CONCUR_READ_ONLY);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -168,8 +164,8 @@ public class BvtTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testStmtScrollSensitiveReadOnly() throws SQLException {
-        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_cursorAzureDW"));
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_SENSITIVE_CONCUR_READ_ONLY);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -191,8 +187,8 @@ public class BvtTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testStmtForwardOnlyUpdateable() throws SQLException {
-        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_cursorAzureDW"));
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_FORWARD_ONLY_CONCUR_UPDATABLE);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -219,8 +215,8 @@ public class BvtTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testStmtScrollSensitiveUpdatable() throws SQLException {
-        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_cursorAzureDW"));
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_SCROLL_SENSITIVE_CONCUR_UPDATABLE);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -243,8 +239,8 @@ public class BvtTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testStmtSSScrollDynamicOptimisticCC() throws SQLException {
-        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_cursorAzureDW"));
         try (DBConnection conn = new DBConnection(connectionString);
                 DBStatement stmt = conn.createStatement(DBResultSetTypes.TYPE_DYNAMIC_CONCUR_OPTIMISTIC);
                 DBResultSet rs = stmt.selectAll(table1)) {
@@ -286,7 +282,8 @@ public class BvtTest extends AbstractTest {
 
         String colName = table1.getEscapedColumnName(7);
         String value = table1.getRowData(7, 0).toString();
-        String query = "SELECT * from " + table1.getEscapedTableName() + " where " + colName + " = ? "+ " ORDER BY " + table1.getEscapedColumnName(0);
+        String query = "SELECT * from " + table1.getEscapedTableName() + " where " + colName + " = ? " + " ORDER BY "
+                + table1.getEscapedColumnName(0);
 
         try (DBConnection conn = new DBConnection(connectionString);
                 DBPreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -416,8 +413,8 @@ public class BvtTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testResultSetSelectMethod() throws SQLException {
-        assumeFalse(isSqlAzureDW(), TestResource.getResource("R_cursorAzureDW"));
         try (DBConnection conn = new DBConnection(connectionString + ";selectMethod=cursor;");
                 DBStatement stmt = conn.createStatement(); DBResultSet rs = stmt.selectAll(table1)) {
             rs.verify(table1);
