@@ -243,14 +243,16 @@ public abstract class AbstractTest {
     public static void invokeLogging() {
         Handler handler = null;
 
-        String enableLogging = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING, Boolean.FALSE.toString());
+        // enable logging to stream by default for tests
+        String enableLogging = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING, Boolean.TRUE.toString());
 
         // If logging is not enable then return.
         if (!Boolean.TRUE.toString().equalsIgnoreCase(enableLogging)) {
             return;
         }
 
-        String loggingHandler = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING_HANDLER, "not_configured");
+        String loggingHandler = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING_HANDLER,
+                Constants.LOGGING_HANDLER_STREAM);
 
         try {
             if (Constants.LOGGING_HANDLER_CONSOLE.equalsIgnoreCase(loggingHandler)) {
@@ -269,16 +271,15 @@ public abstract class AbstractTest {
                 Logger.getLogger(Constants.MSSQL_JDBC_LOGGING_HANDLER).addHandler(handler);
             }
 
+            // enable activity trace
+            TestUtils.setActivityTraceOn();
+
             /*
              * By default, Loggers also send their output to their parent logger. Typically the root Logger is
              * configured with a set of Handlers that essentially act as default handlers for all loggers.
              */
             Logger logger = Logger.getLogger(Constants.MSSQL_JDBC_PACKAGE);
             logger.setLevel(Level.FINEST);
-
-            // enable activity trace
-            TestUtils.setActivityTraceOn();
-
         } catch (Exception e) {
             System.err.println("Could not invoke logging: " + e.getMessage());
         }
