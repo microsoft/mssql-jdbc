@@ -214,6 +214,8 @@ final class SQLServerParser {
                         }
                     }
                 }
+            } else {
+                return "";
             }
         }
         return sb.toString();
@@ -263,6 +265,8 @@ final class SQLServerParser {
                     }
                     d.stream().forEach(sb::append);
                 }
+            } else {
+                return "";
             }
         }
         return sb.toString();

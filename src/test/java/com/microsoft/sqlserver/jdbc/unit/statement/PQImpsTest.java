@@ -24,6 +24,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerParameterMetaData;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -761,9 +762,9 @@ public class PQImpsTest extends AbstractTest {
     public void testSubquery() throws SQLException {
         if (version >= SQL_SERVER_2012_VERSION) {
             String sql = "SELECT FirstName,LastName" + " FROM " + AbstractSQLGenerator.escapeIdentifier(nameTable)
-                    + " WHERE ID IN " + " (SELECT ID" + " FROM "
+                    + " a WHERE a.ID IN " + " (SELECT ID" + " FROM "
                     + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable)
-                    + " WHERE PhoneNumber = ? and ID = ? and PlainID = ?" + ")";
+                    + " b WHERE b.PhoneNumber = ? and b.ID = ? and b.PlainID = ?" + ")";
 
             pstmt = connection.prepareStatement(sql);
 
@@ -827,7 +828,8 @@ public class PQImpsTest extends AbstractTest {
     @Test
     @DisplayName("Merge Queries")
     public void testMerge() throws SQLException {
-        if (version >= SQL_SERVER_2012_VERSION) {
+        // FMTOnly currently only supports SELECT/INSERT/DELETE/UPDATE
+        if (version >= SQL_SERVER_2012_VERSION && !((SQLServerConnection)connection).getUseFmtOnly()) {
             String sql = "merge " + AbstractSQLGenerator.escapeIdentifier(mergeNameDesTable) + " as T" + " using "
                     + AbstractSQLGenerator.escapeIdentifier(nameTable) + " as S" + " on T.PlainID=S.PlainID"
                     + " when matched" + " then update set T.firstName = ?, T.lastName = ?;";
@@ -1143,7 +1145,7 @@ public class PQImpsTest extends AbstractTest {
         if (version >= SQL_SERVER_2012_VERSION) {
 
             String sql = "select lower(FirstName), count(lastName) from "
-                    + AbstractSQLGenerator.escapeIdentifier(nameTable) + "where ID = ? and FirstName in" + "("
+                    + AbstractSQLGenerator.escapeIdentifier(nameTable) + " a where a.ID = ? and FirstName in" + "("
                     + " select " + AbstractSQLGenerator.escapeIdentifier(nameTable) + ".FirstName from "
                     + AbstractSQLGenerator.escapeIdentifier(nameTable) + " join "
                     + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable) + " on "

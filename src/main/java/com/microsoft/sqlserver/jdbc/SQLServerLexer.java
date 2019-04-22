@@ -110,7 +110,6 @@ class SQLServerLexer extends Lexer {
     }
 
     @Override
-
     public Vocabulary getVocabulary() {
         return VOCABULARY;
     }
@@ -204,7 +203,7 @@ class SQLServerLexer extends Lexer {
             + "Z\u00b3[\u00b5\2\u00b7\2\u00b9\2\u00bb\2\u00bd\2\u00bf\2\u00c1\2\u00c3"
             + "\2\u00c5\2\u00c7\2\u00c9\2\u00cb\2\u00cd\2\u00cf\2\u00d1\2\u00d3\2\u00d5"
             + "\2\u00d7\2\u00d9\2\u00db\2\u00dd\2\u00df\2\u00e1\2\u00e3\2\u00e5\2\u00e7"
-            + "\2\u00e9\2\u00eb\2\u00ed\2\u00ef\2\3\2\'\5\2\13\f\17\17\"\"\4\2\f\f\17"
+            + "\2\u00e9\2\u00eb\2\u00ed\2\u00ef\2\3\2\'\5\2\13\f\16\17\"\"\4\2\f\f\17"
             + "\17\7\2%&\62;B\\aac|\6\2%%C\\aac|\3\2))\3\2$$\3\2__\4\2--//\4\2\62;CH"
             + "\3\2\62;\4\2CCcc\4\2DDdd\4\2EEee\4\2FFff\4\2GGgg\4\2HHhh\4\2IIii\4\2J"
             + "Jjj\4\2KKkk\4\2LLll\4\2MMmm\4\2NNnn\4\2OOoo\4\2PPpp\4\2QQqq\4\2RRrr\4"
