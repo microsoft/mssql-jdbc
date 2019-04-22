@@ -20,18 +20,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class LexerTest extends AbstractTest {
 
-    private boolean compare(List<? extends Token> list, String s) {
-        String a = list.stream().map(Token::getText).collect(Collectors.joining()).trim().replaceAll("\\s+", " ");
-        String b = s.trim().replaceAll("\\s+", " ");
-        return (a.equals(b));
-    }
-
-    public void basicTest() {
-        ArrayList<String> s = new ArrayList<String>();
-
-        s.forEach(p -> assertTrue(compare(ParserUtils.getTokens(p), p)));
-    }
-
     /*
      * https://docs.microsoft.com/en-us/sql/t-sql/queries/with-common-table-expression-transact-sql?view=sql-server-2017
      */

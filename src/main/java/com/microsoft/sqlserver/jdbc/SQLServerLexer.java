@@ -15,13 +15,13 @@ import org.antlr.v4.runtime.Vocabulary;
 import org.antlr.v4.runtime.VocabularyImpl;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
-public class SQLServerLexer extends Lexer {
+class SQLServerLexer extends Lexer {
         static { RuntimeMetaData.checkVersion("4.7.2", RuntimeMetaData.VERSION); }
 
         protected static final DFA[] _decisionToDFA;
         protected static final PredictionContextCache _sharedContextCache =
                 new PredictionContextCache();
-        public static final int
+        static final int
                 SELECT=1, INSERT=2, DELETE=3, UPDATE=4, FROM=5, INTO=6, EXECUTE=7, WHERE=8, 
                 HAVING=9, GROUP=10, ORDER=11, OPTION=12, BY=13, VALUES=14, OUTPUT=15, 
                 OJ=16, WITH=17, AS=18, DEFAULT=19, SET=20, OPENQUERY=21, OPENJSON=22, 
@@ -36,11 +36,11 @@ public class SQLServerLexer extends Lexer {
                 RR_BRACKET=72, LS_BRACKET=73, RS_BRACKET=74, LC_BRACKET=75, RC_BRACKET=76, 
                 COMMA=77, SEMI=78, COLON=79, STAR=80, DIVIDE=81, MODULE=82, PLUS=83, MINUS=84, 
                 BIT_NOT=85, BIT_OR=86, BIT_AND=87, BIT_XOR=88, PARAMETER=89;
-        public static String[] channelNames = {
+        static String[] channelNames = {
                 "DEFAULT_TOKEN_CHANNEL", "HIDDEN"
         };
 
-        public static String[] modeNames = {
+        static String[] modeNames = {
                 "DEFAULT_MODE"
         };
 
@@ -64,7 +64,7 @@ public class SQLServerLexer extends Lexer {
                         "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "FullWidthLetter"
                 };
         }
-        public static final String[] ruleNames = makeRuleNames();
+        static final String[] ruleNames = makeRuleNames();
 
         private static String[] makeLiteralNames() {
                 return new String[] {
@@ -99,13 +99,13 @@ public class SQLServerLexer extends Lexer {
                 };
         }
         private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
-        public static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
+        static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
 
         /**
          * @deprecated Use {@link #VOCABULARY} instead.
          */
         @Deprecated
-        public static final String[] tokenNames;
+        static final String[] tokenNames;
         static {
                 tokenNames = new String[_SYMBOLIC_NAMES.length];
                 for (int i = 0; i < tokenNames.length; i++) {
@@ -133,7 +133,7 @@ public class SQLServerLexer extends Lexer {
         }
 
 
-        public SQLServerLexer(CharStream input) {
+        SQLServerLexer(CharStream input) {
                 super(input);
                 _interp = new LexerATNSimulator(this,_ATN,_decisionToDFA,_sharedContextCache);
         }
@@ -156,7 +156,7 @@ public class SQLServerLexer extends Lexer {
         @Override
         public ATN getATN() { return _ATN; }
 
-        public static final String _serializedATN =
+        static final String _serializedATN =
                 "\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\2[\u02fa\b\1\4\2\t"+
                 "\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b\4\t\t\t\4\n\t\n\4\13"+
                 "\t\13\4\f\t\f\4\r\t\r\4\16\t\16\4\17\t\17\4\20\t\20\4\21\t\21\4\22\t\22"+
@@ -427,7 +427,7 @@ public class SQLServerLexer extends Lexer {
                 "\2\36\2\u011f\u01d6\u01df\u01e1\u01ef\u01fb\u01fd\u0202\u0206\u020a\u020c"+
                 "\u0210\u0216\u0218\u0221\u0223\u022c\u022e\u0238\u023f\u0243\u0248\u02a9"+
                 "\u02af\u02b4\u02bc\u02be\3\b\2\2";
-        public static final ATN _ATN =
+        static final ATN _ATN =
                 new ATNDeserializer().deserialize(_serializedATN.toCharArray());
         static {
                 _decisionToDFA = new DFA[_ATN.getNumberOfDecisions()];

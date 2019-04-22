@@ -187,7 +187,7 @@ public class InsertTest extends AbstractTest {
         // N. Inserting data into a remote table by using the OPENQUERY function
         valuePair.add(Pair.of(
                 "INSERT OPENQUERY (MyLinkServer, 'SELECT Name, GroupName FROM AdventureWorks2012.HumanResources.Department') VALUES ('Environmental Impact', 'Engineering');",
-                "OPENQUERY ( MyLinkServer , 'SELECT Name, GroupName FROM AdventureWorks2012.HumanResources.Department' )"));
+                "OPENQUERY(MyLinkServer , 'SELECT Name, GroupName FROM AdventureWorks2012.HumanResources.Department' )"));
 
         // P. Inserting into an external table created using PolyBase
         valuePair.add(Pair.of("INSERT INTO dbo.FastCustomer2009 "
@@ -208,7 +208,7 @@ public class InsertTest extends AbstractTest {
                 + "SELECT b.Name, b.GroupName   \r\n" + "FROM OPENROWSET (  \r\n"
                 + "    BULK 'C:SQLFilesDepartmentData.txt',  \r\n"
                 + "    FORMATFILE = 'C:SQLFilesBulkloadFormatFile.xml',  \r\n" + "    ROWS_PER_BATCH = 15000)AS b;",
-                "HumanResources . Department,OPENROWSET (BULK 'C:SQLFilesDepartmentData.txt' , FORMATFILE = 'C:SQLFilesBulkloadFormatFile.xml' , ROWS_PER_BATCH = 15000 ) AS b"));
+                "HumanResources . Department,OPENROWSET(BULK 'C:SQLFilesDepartmentData.txt' , FORMATFILE = 'C:SQLFilesBulkloadFormatFile.xml' , ROWS_PER_BATCH = 15000 ) AS b"));
 
         // S. Using the TABLOCK hint to specify a locking method
         valuePair.add(

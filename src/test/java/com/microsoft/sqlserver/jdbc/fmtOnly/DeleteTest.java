@@ -74,14 +74,14 @@ public class DeleteTest extends AbstractTest {
         // G. Deleting data from a remote table by using the OPENQUERY function
         valuePair.add(Pair.of(
                 "DELETE OPENQUERY (MyLinkServer, 'SELECT Name, GroupName FROM AdventureWorks2012.HumanResources.Department WHERE DepartmentID = 18');",
-                "OPENQUERY ( MyLinkServer , 'SELECT Name, GroupName FROM AdventureWorks2012.HumanResources.Department WHERE DepartmentID = 18' )"));
+                "OPENQUERY(MyLinkServer , 'SELECT Name, GroupName FROM AdventureWorks2012.HumanResources.Department WHERE DepartmentID = 18' )"));
 
         // H. Deleting data from a remote table by using the OPENDATASOURCE function
         valuePair.add(Pair.of(
                 "DELETE FROM OPENDATASOURCE('SQLNCLI',  \r\n"
                         + "    'Data Source= <server_name>; Integrated Security=SSPI')  \r\n"
                         + "    .AdventureWorks2012.HumanResources.Department   \r\n" + "WHERE DepartmentID = 17;'",
-                "OPENDATASOURCE ('SQLNCLI' , 'Data Source= <server_name>; Integrated Security=SSPI' ) . AdventureWorks2012 . HumanResources . Department"));
+                "OPENDATASOURCE('SQLNCLI' , 'Data Source= <server_name>; Integrated Security=SSPI' ) . AdventureWorks2012 . HumanResources . Department"));
 
         // I. Using DELETE with the OUTPUT clause
         valuePair.add(Pair.of("DELETE Sales.ShoppingCartItem OUTPUT DELETED.* WHERE ShoppingCartID = 20621;",

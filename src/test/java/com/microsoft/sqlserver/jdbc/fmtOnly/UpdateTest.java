@@ -134,13 +134,13 @@ public class UpdateTest extends AbstractTest {
         valuePair.add(Pair.of(
                 "UPDATE OPENQUERY (MyLinkedServer, 'SELECT GroupName FROM HumanResources.Department WHERE DepartmentID = 4')   \r\n"
                         + "SET GroupName = 'Sales and Marketing';  ",
-                "OPENQUERY ( MyLinkedServer , 'SELECT GroupName FROM HumanResources.Department WHERE DepartmentID = 4' )"));
+                "OPENQUERY(MyLinkedServer , 'SELECT GroupName FROM HumanResources.Department WHERE DepartmentID = 4' )"));
 
         // Q. Updating data in a remote table by using the OPENDATASOURCE function
         valuePair.add(Pair.of(
                 "UPDATE OPENDATASOURCE('SQLNCLI', 'Data Source=<server name>;Integrated Security=SSPI').AdventureWorks2012.HumanResources.Department\r\n"
                         + "SET GroupName = 'Sales and Marketing' WHERE DepartmentID = 4;  ",
-                "OPENDATASOURCE ('SQLNCLI' , 'Data Source=<server name>;Integrated Security=SSPI' ) . AdventureWorks2012 . HumanResources . Department"));
+                "OPENDATASOURCE('SQLNCLI' , 'Data Source=<server name>;Integrated Security=SSPI' ) . AdventureWorks2012 . HumanResources . Department"));
 
         // R. Using UPDATE with .WRITE to modify data in an nvarchar(max) column
         valuePair.add(Pair.of(

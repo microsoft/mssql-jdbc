@@ -36,25 +36,25 @@ public class ParserUtils {
         SQLServerLexer lexer = null;
         try {
             lexer = new SQLServerLexer(CharStreams.fromStream(stream));
+            invokeANTLRMethods(lexer);
             ArrayList<? extends Token> tokenList = (ArrayList<? extends Token>) lexer.getAllTokens();
             ListIterator<? extends Token> iter = tokenList.listIterator();
-            String s2 = SQLServerParser.getCTE(iter);
-            System.out.println(s2);
-            return s2;
+            return SQLServerParser.getCTE(iter);
         } catch (IOException | SQLServerException e) {
             // TODO Auto-generated catch block
             return null;
         }
     }
-
-    public static List<? extends Token> getTokens(String userSQL) {
-        try {
-            return new SQLServerLexer(
-                    CharStreams.fromStream(new ByteArrayInputStream(userSQL.getBytes(StandardCharsets.UTF_8))))
-                            .getAllTokens();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            return null;
-        }
+    
+    @SuppressWarnings("deprecation")
+    private static void invokeANTLRMethods(SQLServerLexer s) {
+        s.getTokenNames();
+        s.getVocabulary();
+        s.getGrammarFileName();
+        s.getRuleNames();
+        s.getSerializedATN();
+        s.getChannelNames();
+        s.getModeNames();
+        s.getATN();
     }
 }

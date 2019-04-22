@@ -305,14 +305,11 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    private void parseQueryMetaFor2008(ResultSet rsQueryMeta, SQLServerFMTQuery f) throws SQLServerException {
-        ResultSetMetaData md;
+    private void parseFMTQueryMeta(ResultSetMetaData md, SQLServerFMTQuery f) throws SQLServerException {
         try {
             List<String> columns = f.getColumns().stream().collect(Collectors.toList());
             List<List<String>> params = f.getValuesList();
             int valueListOffset = 0;
-
-            md = rsQueryMeta.getMetaData();
             int mdIndex = 1;
             int mapIndex = 1;
             for (int i = 0; i < columns.size(); i++) {
@@ -642,11 +639,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     }
                 } else {
                     SQLServerFMTQuery f = new SQLServerFMTQuery(sProcString);
-                    String fmtQuery = f.getFMTQuery();
-                    System.out.println(fmtQuery);
                     try (SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
-                        ResultSet rs = stmt.executeQuery(fmtQuery)) {
-                        parseQueryMetaFor2008(rs, f);
+                        ResultSet rs = stmt.executeQuery(f.getFMTQuery())) {
+                        parseFMTQueryMeta(rs.getMetaData(), f);
                     }
                 }
             }

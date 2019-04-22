@@ -20,14 +20,6 @@ class SQLServerFMTQuery {
     private List<String> possibleAliases = new ArrayList<>();
     private List<List<String>> valuesList = new ArrayList<>();
 
-    String getPrefix() {
-        return prefix;
-    }
-
-    ArrayList<? extends Token> getTokenList() {
-        return tokenList;
-    }
-
     List<String> getColumns() {
         return userColumns;
     }
