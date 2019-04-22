@@ -8,12 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -22,6 +22,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
@@ -34,15 +35,15 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testParameterMetaDataWrapper() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
-
+        try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (col1 int identity(1,1) primary key)");
             try {
                 String query = "SELECT * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where col1 = ?";
 
-                try (PreparedStatement pstmt = con.prepareStatement(query)) {
+                try (PreparedStatement pstmt = connection.prepareStatement(query)) {
                     ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
                     assertTrue(parameterMetaData.isWrapperFor(ParameterMetaData.class));
                     assertSame(parameterMetaData, parameterMetaData.unwrap(ParameterMetaData.class));
@@ -60,9 +61,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      */
     @Test
     public void testSQLServerExceptionNotWrapped() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString);
-                PreparedStatement pstmt = connection.prepareStatement("invalid query :)");) {
-
+        try (PreparedStatement pstmt = connection.prepareStatement("invalid query :)");) {
             pstmt.getParameterMetaData();
         } catch (SQLException e) {
             assertTrue(!e.getMessage().contains("com.microsoft.sqlserver.jdbc.SQLException"),
@@ -76,8 +75,9 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testNameWithBraces() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " ([c1_varchar(max)] varchar(max))");
@@ -85,7 +85,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                 String query = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " ([c1_varchar(max)]) values (?)";
 
-                try (PreparedStatement pstmt = con.prepareStatement(query)) {
+                try (PreparedStatement pstmt = connection.prepareStatement(query)) {
                     pstmt.getParameterMetaData();
                 }
             } finally {
@@ -100,8 +100,9 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testParameterMetaData() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " ([c1_varchar(max)] varchar(max), c2 decimal(38,5))");
@@ -136,8 +137,9 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testParameterMetaDataProc() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String query = "exec sp_help (" + AbstractSQLGenerator.escapeIdentifier(tableName) + ")";
 
             try (PreparedStatement pstmt = con.prepareStatement(query)) {

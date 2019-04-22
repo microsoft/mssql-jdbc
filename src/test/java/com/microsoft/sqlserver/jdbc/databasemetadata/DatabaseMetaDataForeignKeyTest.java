@@ -8,31 +8,33 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.sql.DriverManager;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
+import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
-import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
-import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
  * Test class for testing DatabaseMetaData with foreign keys.
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
     private static String table1 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_table_1");
@@ -46,8 +48,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
     @BeforeAll
     public static void setupVariation() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             catalog = conn.getCatalog();
             schema = conn.getSchema();
 
@@ -84,22 +85,20 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
                     + AbstractSQLGenerator.escapeIdentifier(table5) + "(c51) ON DELETE set default ON UPDATE no action,"
                     + ")");
         } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
-
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table4), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table5), stmt);
         } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
 
@@ -111,12 +110,12 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
      */
     @Test
     public void testGetImportedKeys() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-            SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) conn.getMetaData();
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData dmd = conn.getMetaData();
 
-            try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getImportedKeys(null, null, table1);
-                    SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getImportedKeys(catalog, schema, table1);
-                    SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getImportedKeys(catalog, "", table1)) {
+            try (ResultSet rs1 = dmd.getImportedKeys(null, null, table1);
+                    ResultSet rs2 = dmd.getImportedKeys(catalog, schema, table1);
+                    ResultSet rs3 = dmd.getImportedKeys(catalog, "", table1)) {
 
                 validateGetImportedKeysResults(rs1);
                 validateGetImportedKeysResults(rs2);
@@ -130,11 +129,11 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
                 }
             }
         } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
 
-    private void validateGetImportedKeysResults(SQLServerResultSet rs) throws SQLException {
+    private void validateGetImportedKeysResults(ResultSet rs) throws SQLException {
         int expectedRowCount = 4;
         int rowCount = 0;
 
@@ -176,15 +175,14 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
                 // expected UPDATE_RULE, expected DELETE_RULE
                 {4, 3}, {2, 0}, {0, 2}, {3, 4}};
 
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
-
-            SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) conn.getMetaData();
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData dmd = conn.getMetaData();
 
             for (int i = 0; i < tableNames.length; i++) {
                 String pkTable = tableNames[i];
-                try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getExportedKeys(null, null, pkTable);
-                        SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getExportedKeys(catalog, schema, pkTable);
-                        SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getExportedKeys(catalog, "", pkTable)) {
+                try (ResultSet rs1 = dmd.getExportedKeys(null, null, pkTable);
+                        ResultSet rs2 = dmd.getExportedKeys(catalog, schema, pkTable);
+                        ResultSet rs3 = dmd.getExportedKeys(catalog, "", pkTable)) {
 
                     rs1.next();
                     assertEquals(values[i][0], rs1.getInt("UPDATE_RULE"));
@@ -207,7 +205,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
                 }
             }
         } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
 
@@ -225,16 +223,13 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
                 // expected UPDATE_RULE, expected DELETE_RULE
                 {4, 3}, {2, 0}, {0, 2}, {3, 4}};
 
-        SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) connection.getMetaData();
+        DatabaseMetaData dmd = connection.getMetaData();
 
         for (int i = 0; i < tableNames.length; i++) {
             String pkTable = tableNames[i];
-            try (SQLServerResultSet rs1 = (SQLServerResultSet) dmd.getCrossReference(null, null, pkTable, null, null,
-                    fkTable);
-                    SQLServerResultSet rs2 = (SQLServerResultSet) dmd.getCrossReference(catalog, schema, pkTable,
-                            catalog, schema, fkTable);
-                    SQLServerResultSet rs3 = (SQLServerResultSet) dmd.getCrossReference(catalog, "", pkTable, catalog,
-                            "", fkTable)) {
+            try (ResultSet rs1 = dmd.getCrossReference(null, null, pkTable, null, null, fkTable);
+                    ResultSet rs2 = dmd.getCrossReference(catalog, schema, pkTable, catalog, schema, fkTable);
+                    ResultSet rs3 = dmd.getCrossReference(catalog, "", pkTable, catalog, "", fkTable)) {
 
                 rs1.next();
                 assertEquals(values[i][0], rs1.getInt("UPDATE_RULE"));

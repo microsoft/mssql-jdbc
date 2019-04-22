@@ -10,8 +10,10 @@ jobs:
     matrix:
       SQL-2017:
         Target_SQL: 'SQL-2k17-03'
+        Ex_Groups: 'xSQLv14'
       SQL-2008R2:
         Target_SQL: 'SQL-2k8R2-SP3-1'
+        Ex_Groups: 'xSQLv12'
     maxParallel: 2
   steps:
   - powershell: |
@@ -31,7 +33,7 @@ jobs:
     displayName: 'Maven build 43'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pbuild43'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pbuild43 -DexcludeGroups=$(Ex_Groups)'
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build 43'
       javaHomeOption: Path
@@ -43,7 +45,7 @@ jobs:
     displayName: 'Maven build 42'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pbuild42'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pbuild42 -DexcludeGroups=$(Ex_Groups)'
       testRunTitle: 'Maven build 42'
       javaHomeOption: Path
       jdkDirectory: $(JDK11)

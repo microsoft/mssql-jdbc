@@ -4,10 +4,10 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -28,6 +29,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
+import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
@@ -35,6 +38,9 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLDB)
 public class PrecisionScaleTest extends AESetup {
 
     private static java.util.Date date = null;
@@ -65,8 +71,8 @@ public class PrecisionScaleTest extends AESetup {
 
     @Test
     public void testNumericPrecision8Scale2() throws Exception {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
 
             String[] numeric = {"1.12345", "12345.12", "567.70"};
@@ -81,8 +87,8 @@ public class PrecisionScaleTest extends AESetup {
 
     @Test
     public void testDateScale2() throws Exception {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
 
             String[] dateNormalCase = {GMTDate + ".18", GMTDate + ".1770000",
@@ -101,8 +107,8 @@ public class PrecisionScaleTest extends AESetup {
 
     @Test
     public void testNumericPrecision8Scale0() throws Exception {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
 
             String[] numeric2 = {"1.12345", "12345", "567"};
@@ -117,8 +123,8 @@ public class PrecisionScaleTest extends AESetup {
 
     @Test
     public void testDateScale0() throws Exception {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
 
             String[] dateNormalCase2 = {GMTDate, GMTDate + ".1770000", dateTimeOffsetExpectedValue + ".1770000 +00:01",
@@ -136,8 +142,8 @@ public class PrecisionScaleTest extends AESetup {
 
     @Test
     public void testNumericPrecision8Scale2Null() throws Exception {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
 
             String[] numericNull = {"null", "null", "null"};
@@ -151,8 +157,8 @@ public class PrecisionScaleTest extends AESetup {
 
     @Test
     public void testDateScale2Null() throws Exception {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
 
             String[] dateSetObjectNull = {"null", "null", "null", "null", "null", "null"};
@@ -166,8 +172,8 @@ public class PrecisionScaleTest extends AESetup {
 
     @Test
     public void testDateScale5Null() throws Exception {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
 
             String[] dateSetObjectNull = {"null", "null", "null", "null", "null", "null"};
@@ -180,10 +186,9 @@ public class PrecisionScaleTest extends AESetup {
 
     private void testNumeric(String[] numeric) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
-                ResultSet rs = stmt
-                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(numericTable))) {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement(); ResultSet rs = stmt.executeQuery(
+                        "select * from " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE))) {
             int numberOfColumns = rs.getMetaData().getColumnCount();
 
             ArrayList<Integer> skipMax = new ArrayList<>();
@@ -198,9 +203,9 @@ public class PrecisionScaleTest extends AESetup {
 
     private void testDate(String[] dateNormalCase, String[] dateSetObject) throws Exception {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
-                ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(dateTable))) {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement(); ResultSet rs = stmt.executeQuery(
+                        "select * from " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE))) {
             int numberOfColumns = rs.getMetaData().getColumnCount();
 
             ArrayList<Integer> skipMax = new ArrayList<>();
@@ -359,17 +364,16 @@ public class PrecisionScaleTest extends AESetup {
             }
 
             else {
-                throw new Exception(TestResource.getResource("R_resultsetNotInstance"));
+                fail(TestResource.getResource("R_resultsetNotInstance"));
             }
         }
     }
 
     private void populateDateNormalCase(int scale) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " values( "
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -409,11 +413,10 @@ public class PrecisionScaleTest extends AESetup {
     }
 
     private void populateDateNormalCaseNull(int scale) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " values( "
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -452,11 +455,10 @@ public class PrecisionScaleTest extends AESetup {
     }
 
     private void populateNumericNormalCase(String[] numeric, int precision, int scale) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
-                + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " values( "
+                + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -480,11 +482,10 @@ public class PrecisionScaleTest extends AESetup {
     }
 
     private void populateNumericSetObject(String[] numeric, int precision, int scale) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
-                + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " values( "
+                + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -509,11 +510,10 @@ public class PrecisionScaleTest extends AESetup {
     }
 
     private void populateNumericSetObjectNull(int precision, int scale) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " values( " + "?,?,?,"
-                + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " values( "
+                + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -538,11 +538,10 @@ public class PrecisionScaleTest extends AESetup {
     }
 
     private void populateDateSetObject(int scale) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " values( "
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -583,11 +582,10 @@ public class PrecisionScaleTest extends AESetup {
     }
 
     private void populateDateSetObjectNull(int scale) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " values( "
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 

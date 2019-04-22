@@ -7,19 +7,21 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.Date;
-import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.LinkedList;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -27,14 +29,14 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
-import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 import microsoft.sql.DateTimeOffset;
 
@@ -44,6 +46,9 @@ import microsoft.sql.DateTimeOffset;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLDB)
 public class CallableStatementTest extends AESetup {
 
     private static String multiStatementsProcedure = RandomUtil.getIdentifier("multiStatementsProcedure");
@@ -87,10 +92,6 @@ public class CallableStatementTest extends AESetup {
      */
     @BeforeAll
     public static void initCallableStatementTest() throws Exception {
-        try (DBConnection con = new DBConnection(connectionString)) {
-            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
-        }
-
         dropTables();
 
         numericValues = createNumericValues(nullable);
@@ -117,9 +118,6 @@ public class CallableStatementTest extends AESetup {
 
     @AfterAll
     public static void dropAll() throws Exception {
-        try (DBConnection con = new DBConnection(connectionString)) {
-            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
-        }
         dropTables();
         dropProcedures();
     }
@@ -281,8 +279,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     private static void dropProcedures() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(multiStatementsProcedure), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputProcedure), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputProcedure2), stmt);
@@ -306,225 +303,222 @@ public class CallableStatementTest extends AESetup {
     }
 
     private static void dropTables() throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table4), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(charTable), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(numericTable), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(binaryTable), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(dateTable), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(Constants.BINARY_TABLE_AE), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table5), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table6), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(scaleDateTable), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(Constants.SCALE_DATE_TABLE_AE), stmt);
         }
     }
 
     private static void createTables() throws SQLException {
         String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table1) + " (" + "PlainChar char(20) null,"
                 + "RandomizedChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainVarchar varchar(50) null,"
                 + "RandomizedVarchar varchar(50) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicVarchar varchar(50) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL" + ");";
+                + Constants.CEK_NAME + ") NULL" + ");";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table2) + " (" + "PlainChar char(20) null,"
                 + "RandomizedChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainVarchar varchar(50) null,"
                 + "RandomizedVarchar varchar(50) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicVarchar varchar(50) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL"
+                + Constants.CEK_NAME + ") NULL"
 
                 + ");";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table3) + " (" + "PlainBit bit null,"
                 + "RandomizedBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainTinyint tinyint null,"
                 + "RandomizedTinyint tinyint ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicTinyint tinyint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainSmallint smallint null,"
                 + "RandomizedSmallint smallint ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicSmallint smallint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainInt int null,"
                 + "RandomizedInt int ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicInt int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainBigint bigint null,"
                 + "RandomizedBigint bigint ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicBigint bigint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainFloatDefault float null,"
                 + "RandomizedFloatDefault float ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicFloatDefault float ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainFloat float(30) null,"
                 + "RandomizedFloat float(30) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicFloat float(30) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainReal real null,"
                 + "RandomizedReal real ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicReal real ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainDecimalDefault decimal(18,0) null,"
                 + "RandomizedDecimalDefault decimal(18,0) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicDecimalDefault decimal(18,0) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainDecimal decimal(10,5) null,"
                 + "RandomizedDecimal decimal(10,5) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicDecimal decimal(10,5) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainNumericDefault numeric(18,0) null,"
                 + "RandomizedNumericDefault numeric(18,0) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicNumericDefault numeric(18,0) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainNumeric numeric(8,2) null,"
                 + "RandomizedNumeric numeric(8,2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicNumeric numeric(8,2) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainInt2 int null,"
                 + "RandomizedInt2 int ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicInt2 int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainSmallMoney smallmoney null,"
                 + "RandomizedSmallMoney smallmoney ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicSmallMoney smallmoney ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainMoney money null,"
                 + "RandomizedMoney money ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicMoney money ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainDecimal2 decimal(28,4) null,"
                 + "RandomizedDecimal2 decimal(28,4) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicDecimal2 decimal(28,4) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainNumeric2 numeric(28,4) null,"
                 + "RandomizedNumeric2 numeric(28,4) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicNumeric2 numeric(28,4) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + ");";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table4) + " (" + "PlainInt int null,"
                 + "RandomizedInt int ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicInt int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL," + ");";
+                + Constants.CEK_NAME + ") NULL," + ");";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table5) + " ("
                 + "c1 int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "c2 smallint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "c3 bigint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL," + ");";
+                + Constants.CEK_NAME + ") NULL," + ");";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table6) + " ("
                 + "c1 int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "c2 smallint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "c3 bigint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL," + ");";
+                + Constants.CEK_NAME + ") NULL," + ");";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private static void populateTable4() throws SQLException {
         String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(table4) + " values( " + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                        stmtColEncSetting)) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                PreparedStatement pstmt = TestUtils.getPreparedStmt(con, sql, stmtColEncSetting)) {
 
             // bit
             for (int i = 1; i <= 3; i++) {
@@ -540,14 +534,13 @@ public class CallableStatementTest extends AESetup {
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
             // bit
             for (int i = 1; i <= 3; i++) {
-                if (numericValues[0].equalsIgnoreCase("true")) {
+                if (numericValues[0].equalsIgnoreCase(Boolean.TRUE.toString())) {
                     pstmt.setBoolean(i, true);
                 } else {
                     pstmt.setBoolean(i, false);
@@ -649,8 +642,8 @@ public class CallableStatementTest extends AESetup {
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE "
                 + AbstractSQLGenerator.escapeIdentifier(multiStatementsProcedure);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(multiStatementsProcedure)
@@ -668,8 +661,7 @@ public class CallableStatementTest extends AESetup {
     private void MultiInsertionSelection() throws SQLException {
 
         String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(multiStatementsProcedure) + " (?,?,?,?,?,?)}";
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -700,7 +692,7 @@ public class CallableStatementTest extends AESetup {
                 results = callableStatement.getMoreResults();
             }
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -723,8 +715,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(inputProcedure) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputProcedure);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputProcedure)
@@ -732,7 +724,7 @@ public class CallableStatementTest extends AESetup {
                     + "@p2 float, @p3 real, @p4 numeric(18, 0), @p5 smallmoney, @p6 money,"
                     + "@p7 bit, @p8 smallint, @p9 bigint, @p10 float(30), @p11 decimal(10,5), @p12 numeric(8,2), "
                     + "@p13 decimal(28,4), @p14 numeric(28,4)  " + " AS" + " SELECT top 1 RandomizedInt FROM "
-                    + AbstractSQLGenerator.escapeIdentifier(numericTable)
+                    + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE)
                     + " where DeterministicInt=@p0 and DeterministicDecimalDefault=@p1 and "
                     + " DeterministicFloatDefault=@p2 and DeterministicReal=@p3 and DeterministicNumericDefault=@p4 and"
                     + " DeterministicSmallMoney=@p5 and DeterministicMoney=@p6 and DeterministicBit=@p7 and"
@@ -745,8 +737,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void testInputProcedure(String sql, String[] values) throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -763,7 +754,7 @@ public class CallableStatementTest extends AESetup {
                 callableStatement.setBigDecimal(5, new BigDecimal(values[10])); // numeric(18,0)
             callableStatement.setSmallMoney(6, new BigDecimal(values[12]));
             callableStatement.setMoney(7, new BigDecimal(values[13]));
-            if (values[0].equalsIgnoreCase("true"))
+            if (values[0].equalsIgnoreCase(Boolean.TRUE.toString()))
                 callableStatement.setBoolean(8, true);
             else
                 callableStatement.setBoolean(8, false);
@@ -780,7 +771,7 @@ public class CallableStatementTest extends AESetup {
                 assertEquals(rs.getString(1), values[3], "" + TestResource.getResource("R_inputParamFailed"));
             }
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -789,8 +780,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(inputProcedure2) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputProcedure2);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputProcedure2)
@@ -798,7 +789,7 @@ public class CallableStatementTest extends AESetup {
                     + " @p6 varchar(8000), @p7 nvarchar(4000)" + " AS"
                     + " SELECT top 1 RandomizedVarchar, DeterministicUniqueidentifier, DeterministicVarcharMax, RandomizedNchar, "
                     + " DeterministicNvarchar, DeterministicNvarcharMax, DeterministicVarchar8000, RandomizedNvarchar4000  FROM "
-                    + AbstractSQLGenerator.escapeIdentifier(charTable)
+                    + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE)
                     + " where DeterministicVarchar = @p0 and DeterministicUniqueidentifier =@p1";
 
             stmt.execute(sql);
@@ -807,8 +798,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testInputProcedure2(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -834,7 +824,7 @@ public class CallableStatementTest extends AESetup {
                 assertEquals(rs.getString(8).trim(), charValues[8], TestResource.getResource("R_inputParamFailed"));
             }
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -843,8 +833,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedure3) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3)
@@ -858,8 +848,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure3RandomOrder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -883,14 +872,13 @@ public class CallableStatementTest extends AESetup {
             int intValue5 = callableStatement.getInt(1);
             assertEquals("" + intValue5, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testOutputProcedure3Inorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -905,14 +893,13 @@ public class CallableStatementTest extends AESetup {
             int intValue2 = callableStatement.getInt(2);
             assertEquals("" + intValue2, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testOutputProcedure3ReverseOrder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -927,7 +914,7 @@ public class CallableStatementTest extends AESetup {
             int intValue = callableStatement.getInt(1);
             assertEquals("" + intValue, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -936,8 +923,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedure2) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure2);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure2)
@@ -953,8 +940,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedure2RandomOrder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1001,14 +987,13 @@ public class CallableStatementTest extends AESetup {
             int encryptedInt = callableStatement.getInt(2);
             assertEquals("" + encryptedInt, values[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testOutputProcedure2Inorder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1055,14 +1040,13 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + encryptedMoney, values[13], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testOutputProcedure2ReverseOrder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1092,6 +1076,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + encryptedSmallMoney, values[12], TestResource.getResource("R_outputParamFailed"));
 
             short encryptedTinyint = callableStatement.getShort(6);
+            assertEquals("" + encryptedTinyint, values[1], TestResource.getResource("R_outputParamFailed"));
 
             short tinyintValue = callableStatement.getShort(5);
             assertEquals("" + tinyintValue, values[1], TestResource.getResource("R_outputParamFailed"));
@@ -1109,7 +1094,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + intValue, values[3], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1118,8 +1103,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedure) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure)
@@ -1135,8 +1120,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureRandomOrder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1179,14 +1163,13 @@ public class CallableStatementTest extends AESetup {
             BigDecimal money1 = callableStatement.getMoney(7);
             assertEquals("" + money1, "" + values[13], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testOutputProcedureInorder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1222,14 +1205,13 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + money1, values[13], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testOutputProcedureReverseOrder(String sql, String[] values) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1264,7 +1246,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + intValue2, values[3], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1273,8 +1255,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(inoutProcedure) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inoutProcedure);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inoutProcedure) + " @p0 int OUTPUT"
@@ -1287,8 +1269,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testInOutProcedure(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1300,7 +1281,7 @@ public class CallableStatementTest extends AESetup {
 
             assertEquals("" + intValue, numericValues[3], "Test for Inout parameter fails.\n");
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1309,8 +1290,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(mixedProcedure) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure)
@@ -1325,8 +1306,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1349,7 +1329,7 @@ public class CallableStatementTest extends AESetup {
             int returnedValue = callableStatement.getInt(1);
             assertEquals("" + returnedValue, "" + 123, "Test for Inout parameter fails.\n");
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1358,8 +1338,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(mixedProcedure2) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure2);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure2)
@@ -1374,8 +1354,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure2RandomOrder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1404,14 +1383,13 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + floatValue3, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testMixedProcedure2Inorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1427,7 +1405,7 @@ public class CallableStatementTest extends AESetup {
             double floatValue = callableStatement.getDouble(2);
             assertEquals("" + floatValue, numericValues[5], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1436,8 +1414,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(mixedProcedure3) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure3);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure3)
@@ -1451,8 +1429,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedure3RandomOrder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1481,14 +1458,13 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + bigintValue3, numericValues[4], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testMixedProcedure3Inorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1504,14 +1480,13 @@ public class CallableStatementTest extends AESetup {
             double floatValue = callableStatement.getDouble(2);
             assertEquals("" + floatValue, numericValues[5], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testMixedProcedure3ReverseOrder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1527,7 +1502,7 @@ public class CallableStatementTest extends AESetup {
             long bigintValue = callableStatement.getLong(1);
             assertEquals("" + bigintValue, numericValues[4], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1537,8 +1512,8 @@ public class CallableStatementTest extends AESetup {
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE "
                 + AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale)
@@ -1554,8 +1529,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedureNumericPrcisionScaleInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1580,14 +1554,13 @@ public class CallableStatementTest extends AESetup {
             assertEquals(value4, new BigDecimal(numericValues[11]), "Test for input output parameter fails.\n");
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testMixedProcedureNumericPrcisionScaleParameterName(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1612,7 +1585,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals(value4, new BigDecimal(numericValues[11]), "Test for input output parameter fails.\n");
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1621,8 +1594,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedureChar) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureChar);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureChar)
@@ -1631,7 +1604,7 @@ public class CallableStatementTest extends AESetup {
                     + " AS" + " SELECT top 1 @p0=DeterministicChar,@p1=RandomizedVarChar,@p2=RandomizedNChar,"
                     + " @p3=DeterministicNVarChar, @p4=DeterministicUniqueidentifier, @p5=DeterministicVarcharMax,"
                     + " @p6=DeterministicNvarcharMax, @p7=DeterministicVarchar8000, @p8=RandomizedNvarchar4000  FROM  "
-                    + AbstractSQLGenerator.escapeIdentifier(charTable);
+                    + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE);
 
             stmt.execute(sql);
         }
@@ -1639,8 +1612,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureCharInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1684,14 +1656,13 @@ public class CallableStatementTest extends AESetup {
             assertEquals(nvarcharValue4000, charValues[8], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testOutputProcedureCharInorderObject(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1738,7 +1709,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals(nvarcharValue4000, charValues[8], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1748,8 +1719,8 @@ public class CallableStatementTest extends AESetup {
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE "
                 + AbstractSQLGenerator.escapeIdentifier(outputProcedureNumeric);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNumeric)
@@ -1761,7 +1732,7 @@ public class CallableStatementTest extends AESetup {
                     + " @p7=RandomizedReal, @p8=DeterministicDecimalDefault, @p9=RandomizedDecimal,"
                     + " @p10=DeterministicNumericDefault, @p11=RandomizedNumeric, @p12=RandomizedSmallMoney, @p13=DeterministicMoney,"
                     + " @p14=DeterministicDecimal2, @p15=DeterministicNumeric2 FROM "
-                    + AbstractSQLGenerator.escapeIdentifier(numericTable);
+                    + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE);
 
             stmt.execute(sql);
         }
@@ -1769,8 +1740,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureNumericInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1853,14 +1823,13 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testcoerctionsOutputProcedureNumericInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1883,7 +1852,7 @@ public class CallableStatementTest extends AESetup {
 
             callableStatement.execute();
 
-            Class[] boolean_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class,
+            Class<?>[] boolean_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class,
                     Double.class, BigDecimal.class, String.class};
             for (int i = 0; i < boolean_coercions.length; i++) {
                 Object value = getxxx(1, boolean_coercions[i], callableStatement);
@@ -1894,7 +1863,7 @@ public class CallableStatementTest extends AESetup {
                     boolVal = false;
                 assertEquals("" + boolVal, numericValues[0], TestResource.getResource("R_outputParamFailed"));
             }
-            Class[] tinyint_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class,
+            Class<?>[] tinyint_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class,
                     Double.class, BigDecimal.class, String.class};
             for (int i = 0; i < tinyint_coercions.length; i++) {
 
@@ -1907,7 +1876,7 @@ public class CallableStatementTest extends AESetup {
                     assertEquals(tinyIntValue, x, TestResource.getResource("R_outputParamFailed"));
             }
 
-            Class[] smallint_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class,
+            Class<?>[] smallint_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class,
                     Double.class, BigDecimal.class, String.class};
             for (int i = 0; i < smallint_coercions.length; i++) {
                 Object smallIntValue = getxxx(3, smallint_coercions[i], callableStatement);
@@ -1919,7 +1888,7 @@ public class CallableStatementTest extends AESetup {
                     assertEquals(smallIntValue, x, TestResource.getResource("R_outputParamFailed"));
             }
 
-            Class[] int_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class,
+            Class<?>[] int_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class,
                     BigDecimal.class, String.class};
             for (int i = 0; i < int_coercions.length; i++) {
                 Object IntValue = getxxx(4, int_coercions[i], callableStatement);
@@ -1932,8 +1901,8 @@ public class CallableStatementTest extends AESetup {
                 }
             }
 
-            Class[] bigint_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class,
-                    BigDecimal.class, String.class};
+            Class<?>[] bigint_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class,
+                    Double.class, BigDecimal.class, String.class};
             for (int i = 0; i < int_coercions.length; i++) {
                 Object bigIntValue = getxxx(5, bigint_coercions[i], callableStatement);
                 Object x = createValue(bigint_coercions[i], 4);
@@ -1945,8 +1914,8 @@ public class CallableStatementTest extends AESetup {
                 }
             }
 
-            Class[] float_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class, Double.class,
-                    BigDecimal.class, String.class};
+            Class<?>[] float_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class,
+                    Double.class, BigDecimal.class, String.class};
             for (int i = 0; i < float_coercions.length; i++) {
                 Object floatDefaultValue = getxxx(6, float_coercions[i], callableStatement);
                 Object x = createValue(float_coercions[i], 5);
@@ -1969,7 +1938,7 @@ public class CallableStatementTest extends AESetup {
                 }
             }
 
-            Class[] real_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class,
+            Class<?>[] real_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class,
                     BigDecimal.class, String.class};
             for (int i = 0; i < real_coercions.length; i++) {
 
@@ -1984,7 +1953,7 @@ public class CallableStatementTest extends AESetup {
                 }
             }
 
-            Class[] decimalDefault_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class,
+            Class<?>[] decimalDefault_coercions = {Object.class, Short.class, Integer.class, Long.class, Float.class,
                     Double.class, BigDecimal.class, String.class};
             for (int i = 0; i < decimalDefault_coercions.length; i++) {
                 Object decimalDefaultValue = getxxx(9, decimalDefault_coercions[i], callableStatement);
@@ -2074,11 +2043,11 @@ public class CallableStatementTest extends AESetup {
             }
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
-    private Object createValue(Class coercion, int index) {
+    private Object createValue(Class<?> coercion, int index) {
         try {
             if (coercion == Float.class)
                 return Float.parseFloat(numericValues[index]);
@@ -2100,7 +2069,7 @@ public class CallableStatementTest extends AESetup {
         return null;
     }
 
-    private Object getxxx(int ordinal, Class coercion,
+    private Object getxxx(int ordinal, Class<?> coercion,
             SQLServerCallableStatement callableStatement) throws SQLException {
 
         if (coercion == null || coercion == Object.class) {
@@ -2146,8 +2115,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedureBinary) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary)
@@ -2155,7 +2124,7 @@ public class CallableStatementTest extends AESetup {
                     + " @p3 binary(512) OUTPUT,@p4 varbinary(8000) OUTPUT " + " AS"
                     + " SELECT top 1 @p0=RandomizedBinary,@p1=DeterministicVarbinary,@p2=DeterministicVarbinaryMax,"
                     + " @p3=DeterministicBinary512,@p4=DeterministicBinary8000 FROM "
-                    + AbstractSQLGenerator.escapeIdentifier(binaryTable);
+                    + AbstractSQLGenerator.escapeIdentifier(Constants.BINARY_TABLE_AE);
 
             stmt.execute(sql);
         }
@@ -2163,8 +2132,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureBinaryInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2206,14 +2174,13 @@ public class CallableStatementTest extends AESetup {
                 assertEquals(received5[i], expected[i], TestResource.getResource("R_outputParamFailed"));
             }
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testOutputProcedureBinaryInorderObject(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2242,20 +2209,19 @@ public class CallableStatementTest extends AESetup {
                         }
                     }
                 } catch (Exception e) {
-                    fail(e.toString());
+                    fail(e.getMessage());
                 } finally {
                     index++;
                 }
             }
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testOutputProcedureBinaryInorderString(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2285,7 +2251,7 @@ public class CallableStatementTest extends AESetup {
                     assertEquals(stringValue1.startsWith(expectedStr), true, "\nDecryption failed with getString(): "
                             + stringValue1 + ".\nExpected Value: " + expectedStr);
                 } catch (Exception e) {
-                    fail(e.toString());
+                    fail(e.getMessage());
                 } finally {
                     index++;
                 }
@@ -2294,68 +2260,69 @@ public class CallableStatementTest extends AESetup {
     }
 
     protected static void createDateTableCallableStatement() throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " (" + "PlainDate date null,"
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " ("
+                + "PlainDate date null,"
                 + "RandomizedDate date ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicDate date ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainDatetime2Default datetime2 null,"
                 + "RandomizedDatetime2Default datetime2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicDatetime2Default datetime2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainDatetimeoffsetDefault datetimeoffset null,"
                 + "RandomizedDatetimeoffsetDefault datetimeoffset ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicDatetimeoffsetDefault datetimeoffset ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainTimeDefault time null,"
                 + "RandomizedTimeDefault time ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicTimeDefault time ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainDatetime2 datetime2(2) null,"
                 + "RandomizedDatetime2 datetime2(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicDatetime2 datetime2(2) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainTime time(2) null,"
                 + "RandomizedTime time(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicTime time(2) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainDatetimeoffset datetimeoffset(2) null,"
                 + "RandomizedDatetimeoffset datetimeoffset(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicDatetimeoffset datetimeoffset(2) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainDateTime DateTime null,"
                 + "RandomizedDateTime DateTime ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicDateTime DateTime ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + "PlainSmallDatetime smalldatetime null,"
                 + "RandomizedSmallDatetime smalldatetime ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
                 + "DeterministicSmallDatetime smalldatetime ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cekName + ") NULL,"
+                + Constants.CEK_NAME + ") NULL,"
 
                 + ");";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -2368,7 +2335,6 @@ public class CallableStatementTest extends AESetup {
         Timestamp datetime2_2 = RandomData.generateDatetime2(2, nullable);
         Time time_2 = RandomData.generateTime(2, nullable);
         DateTimeOffset datetimeoffset_2 = RandomData.generateDatetimeoffset(2, nullable);
-
         Timestamp datetime = RandomData.generateDatetime(nullable);
         Timestamp smalldatetime = RandomData.generateSmalldatetime(nullable);
 
@@ -2387,11 +2353,10 @@ public class CallableStatementTest extends AESetup {
     }
 
     private static void populateDateNormalCase() throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(dateTable) + " values( " + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " values( "
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement sqlPstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -2448,8 +2413,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedureDate) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDate);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDate)
@@ -2463,7 +2428,7 @@ public class CallableStatementTest extends AESetup {
                     + " @p4=PlainDateTime,@p41=DeterministicDateTime, @p5=PlainSmallDateTime,@p51=RandomizedSmallDateTime, "
                     + " @p6=PlainDatetime2,@p61=RandomizedDatetime2, @p7=PlainTime,@p71=Deterministictime, "
                     + " @p8=PlainDatetimeoffset, @p81=RandomizedDatetimeoffset" + " FROM "
-                    + AbstractSQLGenerator.escapeIdentifier(dateTable);
+                    + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE);
 
             stmt.execute(sql);
         }
@@ -2471,8 +2436,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureDateInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2498,13 +2462,10 @@ public class CallableStatementTest extends AESetup {
 
             assertEquals(callableStatement.getDate(1), callableStatement.getDate(2),
                     TestResource.getResource("R_outputParamFailed"));
-
             assertEquals(callableStatement.getTimestamp(3), callableStatement.getTimestamp(4),
                     TestResource.getResource("R_outputParamFailed"));
-
             assertEquals(callableStatement.getDateTimeOffset(5), callableStatement.getDateTimeOffset(6),
                     TestResource.getResource("R_outputParamFailed"));
-
             assertEquals(callableStatement.getTime(7), callableStatement.getTime(8),
                     TestResource.getResource("R_outputParamFailed"));
             assertEquals(callableStatement.getDateTime(9), // actual plain
@@ -2520,14 +2481,13 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testOutputProcedureDateInorderObject(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2553,13 +2513,10 @@ public class CallableStatementTest extends AESetup {
 
             assertEquals(callableStatement.getObject(1), callableStatement.getObject(2),
                     TestResource.getResource("R_outputParamFailed"));
-
             assertEquals(callableStatement.getObject(3), callableStatement.getObject(4),
                     TestResource.getResource("R_outputParamFailed"));
-
             assertEquals(callableStatement.getObject(5), callableStatement.getObject(6),
                     TestResource.getResource("R_outputParamFailed"));
-
             assertEquals(callableStatement.getObject(7), callableStatement.getObject(8),
                     TestResource.getResource("R_outputParamFailed"));
             assertEquals(callableStatement.getObject(9), // actual plain
@@ -2575,7 +2532,7 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -2584,8 +2541,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedureBatch) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBatch);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             // If a procedure contains more than one SQL statement, it is considered
@@ -2604,8 +2561,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureBatchInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2627,7 +2583,7 @@ public class CallableStatementTest extends AESetup {
             BigDecimal smallmoneyValue = callableStatement.getSmallMoney(4);
             assertEquals("" + smallmoneyValue, numericValues[12], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -2636,8 +2592,8 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(outputProcedure4) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedure4);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "create procedure " + AbstractSQLGenerator.escapeIdentifier(outputProcedure4)
@@ -2659,8 +2615,8 @@ public class CallableStatementTest extends AESetup {
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE "
                 + AbstractSQLGenerator.escapeIdentifier(outputProcedureDateScale);
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
             sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDateScale)
@@ -2669,7 +2625,7 @@ public class CallableStatementTest extends AESetup {
                     + " AS"
                     + " SELECT top 1 @p1=DeterministicDatetime2,@p2=RandomizedDatetime2,@p3=DeterministicTime,@p4=RandomizedTime,"
                     + " @p5=DeterministicDatetimeoffset,@p6=RandomizedDatetimeoffset " + " FROM "
-                    + AbstractSQLGenerator.escapeIdentifier(scaleDateTable)
+                    + AbstractSQLGenerator.escapeIdentifier(Constants.SCALE_DATE_TABLE_AE)
                     + " where DeterministicDatetime2 = @p1 and DeterministicTime = @p3 and DeterministicDatetimeoffset=@p5";
 
             stmt.execute(sql);
@@ -2678,8 +2634,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testMixedProcedureDateScaleInorder(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2704,14 +2659,13 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
     private void testMixedProcedureDateScaleWithParameterName(String sql) throws SQLException {
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(AETestConnectionString,
-                AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -2736,7 +2690,7 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 }

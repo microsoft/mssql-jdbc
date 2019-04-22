@@ -9,12 +9,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -32,7 +30,6 @@ import com.microsoft.sqlserver.testframework.DBConnection;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class WrapperTest extends AbstractTest {
 
     /**
@@ -42,78 +39,75 @@ public class WrapperTest extends AbstractTest {
      */
     @Test
     public void wrapTest() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
         MessageFormat form = new MessageFormat(TestResource.getResource("R_shouldBeWrapper"));
         MessageFormat form2 = new MessageFormat(TestResource.getResource("R_shouldNotBeWrapper"));
         Object[][] msgArgs = {{"SQLStatement", "self"}, {"SQLServerStatement", "ISQLServerStatement"},
                 {"SQLServerCallableStatement", "SQLServerStatement"},
                 {"SQLServerCallableStatement", "SQLServerStatement"}};
 
-        try (Connection con = DriverManager.getConnection(connectionString)) {
-            try (Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
-                // First make sure that a statement can be unwrapped
-                boolean isWrapper = ((SQLServerStatement) stmt)
+            // First make sure that a statement can be unwrapped
+            boolean isWrapper = ((SQLServerStatement) stmt)
+                    .isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerStatement"));
+
+            assertEquals(isWrapper, true, form.format(msgArgs[0]));
+
+            isWrapper = ((SQLServerStatement) stmt)
+                    .isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerStatement"));
+            assertEquals(isWrapper, true, form.format(msgArgs[1]));
+
+            isWrapper = ((SQLServerStatement) stmt)
+                    .isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnection"));
+            assertEquals(isWrapper, false, form2.format(msgArgs[1]));
+
+            // Now make sure that we can unwrap a SQLServerCallableStatement to a SQLServerStatement
+            try (CallableStatement cs = con.prepareCall("{  ? = CALL " + "ProcName" + " (?, ?, ?, ?) }")) {
+                // Test the class first
+                isWrapper = ((SQLServerCallableStatement) cs)
                         .isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerStatement"));
+                assertEquals(isWrapper, true, form.format(msgArgs[2]));
+                // Now unwrap the Callable to a statement and call a SQLServerStatement specific function and make
+                // sure it succeeds.
+                try (SQLServerStatement stmt2 = (SQLServerStatement) ((SQLServerCallableStatement) cs)
+                        .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerStatement"))) {
+                    stmt2.setResponseBuffering("adaptive");
 
-                assertEquals(isWrapper, true, form.format(msgArgs[0]));
-
-                isWrapper = ((SQLServerStatement) stmt)
-                        .isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerStatement"));
-                assertEquals(isWrapper, true, form.format(msgArgs[1]));
-
-                isWrapper = ((SQLServerStatement) stmt)
-                        .isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnection"));
-                assertEquals(isWrapper, false, form2.format(msgArgs[1]));
-
-                // Now make sure that we can unwrap a SQLServerCallableStatement to a SQLServerStatement
-                try (CallableStatement cs = con.prepareCall("{  ? = CALL " + "ProcName" + " (?, ?, ?, ?) }")) {
-                    // Test the class first
+                    // now test the interface
                     isWrapper = ((SQLServerCallableStatement) cs)
-                            .isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerStatement"));
-                    assertEquals(isWrapper, true, form.format(msgArgs[2]));
-                    // Now unwrap the Callable to a statement and call a SQLServerStatement specific function and make
-                    // sure it succeeds.
-                    try (SQLServerStatement stmt2 = (SQLServerStatement) ((SQLServerCallableStatement) cs)
-                            .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerStatement"))) {
-                        stmt2.setResponseBuffering("adaptive");
+                            .isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerCallableStatement"));
+                    assertEquals(isWrapper, true, form.format(msgArgs[1]));
 
-                        // now test the interface
-                        isWrapper = ((SQLServerCallableStatement) cs).isWrapperFor(
-                                Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerCallableStatement"));
-                        assertEquals(isWrapper, true, form.format(msgArgs[1]));
+                    // Now unwrap the Callable to a statement and call a SQLServerStatement specific function and
+                    // make sure it succeeds.
+                    try (ISQLServerPreparedStatement stmt3 = (ISQLServerPreparedStatement) ((SQLServerCallableStatement) cs)
+                            .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerPreparedStatement"))) {
+                        stmt3.setResponseBuffering("adaptive");
 
-                        // Now unwrap the Callable to a statement and call a SQLServerStatement specific function and
-                        // make sure it succeeds.
-                        try (ISQLServerPreparedStatement stmt3 = (ISQLServerPreparedStatement) ((SQLServerCallableStatement) cs)
-                                .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerPreparedStatement"))) {
-                            stmt3.setResponseBuffering("adaptive");
+                        if (isKatmaiServer())
+                            stmt3.setDateTimeOffset(1, null);
 
-                            if (isKatmaiServer())
-                                stmt3.setDateTimeOffset(1, null);
-
-                            // Try Unwrapping CallableStatement to a callableStatement
-                            isWrapper = ((SQLServerCallableStatement) cs).isWrapperFor(
-                                    Class.forName("com.microsoft.sqlserver.jdbc.SQLServerCallableStatement"));
-                            assertEquals(isWrapper, true, form.format(msgArgs[3]));
-                            // Now unwrap the Callable to a SQLServerCallableStatement and call a SQLServerStatement
-                            // specific function and make sure it succeeds.
-                            try (SQLServerCallableStatement stmt4 = (SQLServerCallableStatement) ((SQLServerCallableStatement) cs)
-                                    .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerCallableStatement"))) {
-                                stmt4.setResponseBuffering("adaptive");
-                                if (isKatmaiServer()) {
-                                    stmt4.setDateTimeOffset(1, null);
-                                }
+                        // Try Unwrapping CallableStatement to a callableStatement
+                        isWrapper = ((SQLServerCallableStatement) cs)
+                                .isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerCallableStatement"));
+                        assertEquals(isWrapper, true, form.format(msgArgs[3]));
+                        // Now unwrap the Callable to a SQLServerCallableStatement and call a SQLServerStatement
+                        // specific function and make sure it succeeds.
+                        try (SQLServerCallableStatement stmt4 = (SQLServerCallableStatement) ((SQLServerCallableStatement) cs)
+                                .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerCallableStatement"))) {
+                            stmt4.setResponseBuffering("adaptive");
+                            if (isKatmaiServer()) {
+                                stmt4.setDateTimeOffset(1, null);
                             }
                         }
                     }
                 }
-            } catch (UnsupportedOperationException e) {
-                assertEquals(System.getProperty("java.specification.version"), "1.5",
-                        "isWrapperFor " + TestResource.getResource("R_shouldBeSupported"));
-                assertTrue(e.getMessage().equalsIgnoreCase("This operation is not supported."),
-                        TestResource.getResource("R_unexpectedExceptionContent"));
             }
+        } catch (UnsupportedOperationException e) {
+            assertEquals(System.getProperty("java.specification.version"), "1.5",
+                    "isWrapperFor " + TestResource.getResource("R_shouldBeSupported"));
+            assertTrue(e.getMessage().equalsIgnoreCase("This operation is not supported."),
+                    TestResource.getResource("R_unexpectedExceptionContent"));
         }
     }
 
@@ -124,9 +118,7 @@ public class WrapperTest extends AbstractTest {
      */
     @Test
     public void unWrapFailureTest() throws Exception {
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        try (Connection con = DriverManager.getConnection(connectionString);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String str = "java.lang.String";
             boolean isWrapper = stmt.isWrapperFor(Class.forName(str));
             stmt.unwrap(Class.forName(str));
@@ -135,7 +127,7 @@ public class WrapperTest extends AbstractTest {
             assertTrue(false, TestResource.getResource("R_exceptionNotThrown"));
         } catch (SQLException ex) {
             Throwable t = ex.getCause();
-            Class exceptionClass = Class.forName("java.lang.ClassCastException");
+            Class<?> exceptionClass = Class.forName("java.lang.ClassCastException");
             assertEquals(t.getClass(), exceptionClass, "The cause in the exception class does not match");
         } catch (UnsupportedOperationException e) {
             assertEquals(System.getProperty("java.specification.version"), "1.5",

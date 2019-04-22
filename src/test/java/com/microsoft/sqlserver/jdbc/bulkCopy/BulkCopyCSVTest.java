@@ -20,6 +20,7 @@ import java.util.Arrays;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -30,6 +31,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -48,6 +50,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test bulkCopy with CSV")
+@Tag(Constants.xAzureSQLDW)
 public class BulkCopyCSVTest extends AbstractTest {
 
     static String inputFile = "BulkCopyCSVTestInput.csv";
@@ -191,7 +194,7 @@ public class BulkCopyCSVTest extends AbstractTest {
                 br.readLine(); // skip first line as it is header
 
             try (DBResultSet dstResultSet = stmt
-                    .executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + ";")) {
+                    .executeQuery("SELECT * FROM " + destinationTable.getEscapedTableName() + Constants.SEMI_COLON)) {
                 ResultSetMetaData destMeta = ((ResultSet) dstResultSet.product()).getMetaData();
                 int totalColumns = destMeta.getColumnCount();
                 while (dstResultSet.next()) {

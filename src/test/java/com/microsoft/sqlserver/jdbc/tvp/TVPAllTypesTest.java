@@ -7,11 +7,11 @@ package com.microsoft.sqlserver.jdbc.tvp;
 import static org.junit.Assert.fail;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -25,13 +25,16 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class TVPAllTypesTest extends AbstractTest {
 
     private static String tvpName;
@@ -66,7 +69,7 @@ public class TVPAllTypesTest extends AbstractTest {
             connString = connectionString;
         }
 
-        try (Connection conn = DriverManager.getConnection(connString)) {
+        try (Connection conn = PrepUtil.getConnection(connString)) {
             if (null != resultSetType && null != resultSetConcurrency) {
                 stmt = conn.createStatement(resultSetType, resultSetConcurrency);
             } else {
@@ -79,10 +82,9 @@ public class TVPAllTypesTest extends AbstractTest {
                             "INSERT INTO " + tableDest.getEscapedTableName() + " select * from ? ;")) {
                 pstmt.setStructured(1, tvpName, rs);
                 pstmt.execute();
-                ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(conn), tableSrc,
-                        tableDest);
+                ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(conn), tableSrc, tableDest);
             } catch (Exception e) {
-                fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+                fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
             } finally {
                 stmt.close();
             }
@@ -117,7 +119,7 @@ public class TVPAllTypesTest extends AbstractTest {
             connString = connectionString;
         }
 
-        try (Connection conn = DriverManager.getConnection(connString)) {
+        try (Connection conn = PrepUtil.getConnection(connString)) {
             if (null != resultSetType && null != resultSetConcurrency) {
                 stmt = conn.createStatement(resultSetType, resultSetConcurrency);
             } else {
@@ -130,8 +132,7 @@ public class TVPAllTypesTest extends AbstractTest {
                             .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}")) {
                 Cstmt.setStructured(1, tvpName, rs);
                 Cstmt.execute();
-                ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(conn), tableSrc,
-                        tableDest);
+                ComparisonUtil.compareSrcTableAndDestTableIgnoreRowOrder(new DBConnection(conn), tableSrc, tableDest);
             } finally {
                 stmt.close();
             }
@@ -148,7 +149,7 @@ public class TVPAllTypesTest extends AbstractTest {
     @Test
     public void testTVPDataTable() throws SQLException {
 
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             setupVariation(false, stmt);
             SQLServerDataTable dt = new SQLServerDataTable();
             int numberOfColumns = tableDest.getColumns().size();
@@ -214,7 +215,7 @@ public class TVPAllTypesTest extends AbstractTest {
     }
 
     private void terminateVariation() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
             TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
             TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);

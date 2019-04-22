@@ -7,12 +7,8 @@ package com.microsoft.sqlserver.jdbc.connection;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -36,6 +32,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -45,14 +42,15 @@ import com.zaxxer.hikari.HikariDataSource;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class PoolingTest extends AbstractTest {
     static String tempTableName = RandomUtil.getIdentifier("#poolingtest");
     static String tableName = RandomUtil.getIdentifier("PoolingTestTable");
 
     @Test
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag("xAzureSQLMI")
     public void testPooling() throws SQLException {
-        assumeTrue(!isSqlAzure(), TestResource.getResource("R_skipAzure"));
 
         SQLServerXADataSource XADataSource1 = new SQLServerXADataSource();
         XADataSource1.setURL(connectionString);
@@ -120,7 +118,7 @@ public class PoolingTest extends AbstractTest {
             con.clearWarnings();
 
         } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         } finally {
             if (null != pc) {
                 pc.close();
@@ -140,7 +138,7 @@ public class PoolingTest extends AbstractTest {
             // assert that the first connection is closed.
             assertTrue(con.isClosed(), TestResource.getResource("R_connectionNotClosedWithPoolClose"));
         } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.toString());
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         } finally {
             if (null != pc) {
                 pc.close();
@@ -233,35 +231,13 @@ public class PoolingTest extends AbstractTest {
     }
 
     /**
-     * count number of mssql-jdbc-TimeoutTimer threads
-     * 
-     * @return
-     */
-    private static int countTimeoutThreads() {
-        int count = 0;
-        String threadName = "mssql-jdbc-TimeoutTimer";
-
-        ThreadInfo[] tinfos = ManagementFactory.getThreadMXBean()
-                .getThreadInfo(ManagementFactory.getThreadMXBean().getAllThreadIds(), 0);
-
-        for (ThreadInfo ti : tinfos) {
-            if ((ti.getThreadName().startsWith(threadName))
-                    && (ti.getThreadState().equals(java.lang.Thread.State.TIMED_WAITING))) {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-    /**
      * drop the tables
      * 
      * @throws SQLException
      */
     @AfterAll
     public static void afterAll() throws SQLException {
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tempTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }

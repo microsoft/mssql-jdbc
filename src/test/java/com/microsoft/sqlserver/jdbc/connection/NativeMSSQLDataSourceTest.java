@@ -28,13 +28,13 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
 public class NativeMSSQLDataSourceTest extends AbstractTest {
 
     @Test
-    @Tag("AzureDWTest")
     public void testNativeMSSQLDataSource() throws SQLException {
         SQLServerXADataSource ds = new SQLServerXADataSource();
         ds.setLastUpdateCount(true);
@@ -42,7 +42,6 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
-    @Tag("AzureDWTest")
     public void testSerialization() throws IOException {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
                 ObjectOutput objectOutput = new ObjectOutputStream(outputStream)) {
@@ -55,7 +54,6 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
-    @Tag("AzureDWTest")
     public void testDSNormal() throws ClassNotFoundException, IOException, SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
@@ -65,9 +63,11 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testDSTSPassword() throws ClassNotFoundException, IOException, SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
-        System.setProperty("java.net.preferIPv6Addresses", "true");
+        System.setProperty("java.net.preferIPv6Addresses", Boolean.TRUE.toString());
         ds.setURL(connectionString);
         ds.setTrustStorePassword("wrong_password");
         try (Connection conn = ds.getConnection()) {}
@@ -78,35 +78,34 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     }
 
     @Test
-    @Tag("AzureDWTest")
     public void testInterfaceWrapping() throws ClassNotFoundException, SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
-        assertEquals(true, ds.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
-        assertEquals(true, ds.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDataSource")));
+        assertEquals(true, ds.isWrapperFor(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".ISQLServerDataSource")));
+        assertEquals(true, ds.isWrapperFor(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDataSource")));
         assertEquals(true, ds.isWrapperFor(Class.forName("javax.sql.CommonDataSource")));
         ISQLServerDataSource ids = (ISQLServerDataSource) (ds
-                .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
+                .unwrap(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".ISQLServerDataSource")));
         ids.setApplicationName("AppName");
 
         SQLServerConnectionPoolDataSource poolDS = new SQLServerConnectionPoolDataSource();
-        assertEquals(true, poolDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
-        assertEquals(true, poolDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDataSource")));
-        assertEquals(true,
-                poolDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource")));
+        assertEquals(true, poolDS.isWrapperFor(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".ISQLServerDataSource")));
+        assertEquals(true, poolDS.isWrapperFor(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDataSource")));
+        assertEquals(true, poolDS
+                .isWrapperFor(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerConnectionPoolDataSource")));
         assertEquals(true, poolDS.isWrapperFor(Class.forName("javax.sql.CommonDataSource")));
         ISQLServerDataSource ids2 = (ISQLServerDataSource) (poolDS
-                .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
+                .unwrap(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".ISQLServerDataSource")));
         ids2.setApplicationName("AppName");
 
         SQLServerXADataSource xaDS = new SQLServerXADataSource();
-        assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
-        assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDataSource")));
+        assertEquals(true, xaDS.isWrapperFor(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".ISQLServerDataSource")));
+        assertEquals(true, xaDS.isWrapperFor(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDataSource")));
         assertEquals(true,
-                xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource")));
-        assertEquals(true, xaDS.isWrapperFor(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerXADataSource")));
+                xaDS.isWrapperFor(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerConnectionPoolDataSource")));
+        assertEquals(true, xaDS.isWrapperFor(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerXADataSource")));
         assertEquals(true, xaDS.isWrapperFor(Class.forName("javax.sql.CommonDataSource")));
         ISQLServerDataSource ids3 = (ISQLServerDataSource) (xaDS
-                .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerDataSource")));
+                .unwrap(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".ISQLServerDataSource")));
         ids3.setApplicationName("AppName");
     }
 

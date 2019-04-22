@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.sql.DriverManager;
+import java.sql.Connection;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,17 +18,18 @@ import java.sql.Statement;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerParameterMetaData;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -36,10 +37,11 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class PQImpsTest extends AbstractTest {
     private static final int SQL_SERVER_2012_VERSION = 11;
 
-    private static SQLServerConnection connection = null;
+    private static Connection connection = null;
     private static Statement stmt = null;
     private static PreparedStatement pstmt = null;
     private static ResultSet rs = null;
@@ -64,7 +66,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @BeforeAll
     public static void BeforeTests() throws SQLException {
-        connection = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        connection = getConnection();
         stmt = connection.createStatement();
         version = getSQLServerVersion();
         createMultipleTypesTable();
@@ -101,7 +103,7 @@ public class PQImpsTest extends AbstractTest {
             deleteNumeric();
             checkNumericMetaData();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -127,7 +129,7 @@ public class PQImpsTest extends AbstractTest {
             deleteChar();
             checkCharMetaData(4);
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
     }
@@ -155,7 +157,7 @@ public class PQImpsTest extends AbstractTest {
             deleteBinary();
             checkBinaryMetaData();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
     }
@@ -183,7 +185,7 @@ public class PQImpsTest extends AbstractTest {
             deleteDateAndTime();
             checkDateAndTimeMetaData();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
     }
@@ -203,7 +205,7 @@ public class PQImpsTest extends AbstractTest {
                 testMixedWithHardcodedValues();
             }
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
     }
@@ -291,13 +293,13 @@ public class PQImpsTest extends AbstractTest {
                     "Parameter class Name error:\n" + "expected: " + expectedClassName + "\n" + "actual: "
                             + pmd.getParameterClassName(index));
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
         try {
             assertTrue(pmd.getParameterType(index) == expectedType, "getParameterType: "
                     + TestResource.getResource("R_valueNotMatch") + expectedType + ", " + pmd.getParameterType(index));
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         try {
@@ -305,20 +307,20 @@ public class PQImpsTest extends AbstractTest {
                     "getParameterTypeName: " + TestResource.getResource("R_valueNotMatch") + expectedTypeName + ", "
                             + pmd.getParameterTypeName(index));
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
         try {
             assertTrue(pmd.getPrecision(index) == expectedPrecision, "getPrecision: "
                     + TestResource.getResource("R_valueNotMatch") + expectedPrecision + ", " + pmd.getPrecision(index));
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         try {
             assertTrue(pmd.getScale(index) == expectedScale, "getScale: " + TestResource.getResource("R_valueNotMatch")
                     + expectedScale + ", " + pmd.getScale(index));
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
     }
@@ -381,7 +383,7 @@ public class PQImpsTest extends AbstractTest {
 
         String sql = "update " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " set " + "c1 = ?," + "c2 = ?,"
                 + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?," + "c7 = ?," + "c8 = ?," + "c9 = ?," + "c10 = ?,"
-                + "c11 = ?," + "c12 = ?," + "c13 = ?," + "c14 = ?," + "c15 = ?" + ";";
+                + "c11 = ?," + "c12 = ?," + "c13 = ?," + "c14 = ?," + "c15 = ?" + Constants.SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -397,7 +399,7 @@ public class PQImpsTest extends AbstractTest {
         String sql = "delete from " + AbstractSQLGenerator.escapeIdentifier(numericTable) + " where " + "c1 = ? and "
                 + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and " + "c6 = ? and " + "c7 = ? and "
                 + "c8 = ? and " + "c9 = ? and " + "c10 = ? and " + "c11 = ? and " + "c12 = ? and " + "c13 = ? and "
-                + "c14 = ? and " + "c15 = ?" + ";";
+                + "c14 = ? and " + "c15 = ?" + Constants.SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -472,7 +474,7 @@ public class PQImpsTest extends AbstractTest {
     private static void updateChar() throws SQLException {
 
         String sql = "update " + AbstractSQLGenerator.escapeIdentifier(charTable) + " set " + "c1 = ?," + "c2 = ?,"
-                + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?" + ";";
+                + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?" + Constants.SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -540,7 +542,7 @@ public class PQImpsTest extends AbstractTest {
     private static void updateBinary() throws SQLException {
 
         String sql = "update " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " set " + "c1 = ?," + "c2 = ?"
-                + ";";
+                + Constants.SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -555,7 +557,7 @@ public class PQImpsTest extends AbstractTest {
     private static void deleteBinary() throws SQLException {
 
         String sql = "delete from " + AbstractSQLGenerator.escapeIdentifier(binaryTable) + " where " + "c1 = ? and "
-                + "c2 = ?" + ";";
+                + "c2 = ?" + Constants.SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -598,7 +600,8 @@ public class PQImpsTest extends AbstractTest {
     private static void updateDateAndTime() throws SQLException {
 
         String sql = "update " + AbstractSQLGenerator.escapeIdentifier(dateAndTimeTable) + " set " + "c1 = ?,"
-                + "c2 = ?," + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?," + "c7 = ?," + "c8 = ?," + "c9 = ?" + ";";
+                + "c2 = ?," + "c3 = ?," + "c4 = ?," + "c5 = ?," + "c6 = ?," + "c7 = ?," + "c8 = ?," + "c9 = ?"
+                + Constants.SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -613,7 +616,7 @@ public class PQImpsTest extends AbstractTest {
 
         String sql = "delete from " + AbstractSQLGenerator.escapeIdentifier(dateAndTimeTable) + " where "
                 + "c1 = ? and " + "c2 = ? and " + "c3 = ? and " + "c4 = ? and " + "c5 = ? and " + "c6 = ? and "
-                + "c7 = ? and " + "c8 = ? and " + "c9 = ?" + ";";
+                + "c7 = ? and " + "c8 = ? and " + "c9 = ?" + Constants.SEMI_COLON;
 
         pstmt = connection.prepareStatement(sql);
 
@@ -656,7 +659,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         sql = "create table " + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable) + " ("
@@ -665,7 +668,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         sql = "create table " + AbstractSQLGenerator.escapeIdentifier(mergeNameDesTable) + " ("
@@ -676,7 +679,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -770,7 +773,7 @@ public class PQImpsTest extends AbstractTest {
                 pmd = pstmt.getParameterMetaData();
                 assertEquals(pmd.getParameterCount(), 3, TestResource.getResource("R_paramNotRecognized"));
             } catch (Exception e) {
-                fail(e.toString());
+                fail(e.getMessage());
             }
 
             compareParameterMetaData(pmd, 1, "java.lang.Long", -5, "BIGINT", 19, 0);
@@ -808,7 +811,7 @@ public class PQImpsTest extends AbstractTest {
                 pmd = pstmt.getParameterMetaData();
                 assertEquals(pmd.getParameterCount(), 2, TestResource.getResource("R_paramNotRecognized"));
             } catch (Exception e) {
-                fail(e.toString());
+                fail(e.getMessage());
             }
 
             compareParameterMetaData(pmd, 1, "java.lang.Integer", 4, "int", 10, 0);
@@ -841,7 +844,7 @@ public class PQImpsTest extends AbstractTest {
                 pmd = pstmt.getParameterMetaData();
                 assertEquals(pmd.getParameterCount(), 2, TestResource.getResource("R_paramNotRecognized"));
             } catch (Exception e) {
-                fail(e.toString());
+                fail(e.getMessage());
             }
 
             compareParameterMetaData(pmd, 1, "java.lang.String", 1, "CHAR", 30, 0);
@@ -895,7 +898,7 @@ public class PQImpsTest extends AbstractTest {
             pmd = pstmt.getParameterMetaData();
             assertEquals(pmd.getParameterCount(), 30, TestResource.getResource("R_paramNotRecognized"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         compareParameterMetaData(pmd, 1, "java.math.BigDecimal", 3, "decimal", 18, 0);
@@ -951,7 +954,7 @@ public class PQImpsTest extends AbstractTest {
             pmd = pstmt.getParameterMetaData();
             assertEquals(pmd.getParameterCount(), 0, TestResource.getResource("R_paramNotRecognized"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -985,7 +988,7 @@ public class PQImpsTest extends AbstractTest {
 
             assertEquals(pmd.getParameterCount(), 21, TestResource.getResource("R_paramNotRecognized"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         compareParameterMetaData(pmd, 1, "java.math.BigDecimal", 3, "decimal", 10, 5);
@@ -1033,7 +1036,7 @@ public class PQImpsTest extends AbstractTest {
             pmd = pstmt.getParameterMetaData();
             assertEquals(pmd.getParameterCount(), 4, TestResource.getResource("R_paramNotRecognized"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         compareParameterMetaData(pmd, 1, "java.lang.String", 12, "varchar", 50, 0);
@@ -1062,7 +1065,7 @@ public class PQImpsTest extends AbstractTest {
             pmd = pstmt.getParameterMetaData();
             assertEquals(pmd.getParameterCount(), 4, TestResource.getResource("R_paramNotRecognized"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         compareParameterMetaData(pmd, 1, "java.lang.String", 12, "varchar", 50, 0);
@@ -1091,7 +1094,7 @@ public class PQImpsTest extends AbstractTest {
 
             assertEquals(pmd.getParameterCount(), 4, TestResource.getResource("R_paramNotRecognized"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         compareParameterMetaData(pmd, 1, "java.lang.String", 12, "varchar", 50, 0);
@@ -1119,7 +1122,7 @@ public class PQImpsTest extends AbstractTest {
             pmd = pstmt.getParameterMetaData();
             assertEquals(pmd.getParameterCount(), 4, TestResource.getResource("R_paramNotRecognized"));
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
 
         compareParameterMetaData(pmd, 1, "java.lang.String", 12, "varchar", 50, 0);
@@ -1159,7 +1162,7 @@ public class PQImpsTest extends AbstractTest {
 
                 assertEquals(pmd.getParameterCount(), 3, TestResource.getResource("R_paramNotRecognized"));
             } catch (Exception e) {
-                fail(e.toString());
+                fail(e.getMessage());
             }
 
             compareParameterMetaData(pmd, 1, "java.lang.Short", 5, "smallint", 5, 0);
@@ -1183,7 +1186,7 @@ public class PQImpsTest extends AbstractTest {
             pstmt.getParameterMetaData();
             pstmt.executeQuery();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1203,7 +1206,7 @@ public class PQImpsTest extends AbstractTest {
             pstmt.getParameterMetaData();
             pstmt.executeQuery();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1220,7 +1223,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             pstmt.getParameterMetaData();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1237,7 +1240,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             pstmt.getParameterMetaData();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1254,7 +1257,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             pstmt.getParameterMetaData();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1273,7 +1276,7 @@ public class PQImpsTest extends AbstractTest {
             pstmt.getParameterMetaData();
             pstmt.executeQuery();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1292,7 +1295,7 @@ public class PQImpsTest extends AbstractTest {
             pstmt.getParameterMetaData();
             pstmt.executeQuery();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1311,7 +1314,7 @@ public class PQImpsTest extends AbstractTest {
             pstmt.getParameterMetaData();
             pstmt.executeQuery();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1328,7 +1331,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             pstmt.getParameterMetaData();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1345,7 +1348,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             pstmt.getParameterMetaData();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1362,7 +1365,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             pstmt.getParameterMetaData();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1379,7 +1382,7 @@ public class PQImpsTest extends AbstractTest {
         try {
             pstmt.getParameterMetaData();
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 
@@ -1400,7 +1403,7 @@ public class PQImpsTest extends AbstractTest {
 
             assertTrue(2 == parameterCount, "Parameter Count should be 2.");
         } catch (Exception e) {
-            fail(e.toString());
+            fail(e.getMessage());
         }
     }
 

@@ -8,12 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -28,7 +26,6 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class ConnectionWrapper43Test extends AbstractTest {
     static Connection connection = null;
     double javaVersion = Double.parseDouble(System.getProperty("java.specification.version"));
@@ -57,7 +54,7 @@ public class ConnectionWrapper43Test extends AbstractTest {
 
     @BeforeAll
     public static void setupConnection() throws SQLException {
-        connection = DriverManager.getConnection(connectionString);
+        connection = getConnection();
 
         DatabaseMetaData metadata = connection.getMetaData();
         major = metadata.getJDBCMajorVersion();

@@ -26,7 +26,29 @@ final class TDSParser {
         parse(tdsReader, new TDSTokenHandler(logContext));
     }
 
+    /**
+     * Default parse method to parse all tokens in TDS stream.
+     * 
+     * @param tdsReader
+     * @param tdsTokenHandler
+     * @throws SQLServerException
+     */
     static void parse(TDSReader tdsReader, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
+        parse(tdsReader, tdsTokenHandler, false);
+    }
+
+    /**
+     * Underlying parse method to parse all tokens in TDS stream. Also accepts 'readOnlyWarningFlag' to parse only
+     * SQLWarnings received in TDS_MSG tokens.
+     * 
+     * @param tdsReader
+     * @param tdsTokenHandler
+     * @param readOnlyWarningsFlag
+     *        - true if only TDS_MSG tokens need to be parsed in TDS Stream. false - to parse all tokens in TDS Stream.
+     * @throws SQLServerException
+     */
+    static void parse(TDSReader tdsReader, TDSTokenHandler tdsTokenHandler,
+            boolean readOnlyWarningsFlag) throws SQLServerException {
         final boolean isLogging = logger.isLoggable(Level.FINEST);
 
         // Process TDS tokens from the token stream until we're told to stop.
@@ -41,7 +63,10 @@ final class TDSParser {
                 logger.finest(tdsReader.toString() + ": " + tdsTokenHandler.logContext + ": Processing "
                         + ((-1 == tdsTokenType) ? "EOF" : TDS.getTokenName(tdsTokenType)));
             }
-
+            if (readOnlyWarningsFlag && TDS.TDS_MSG != tdsTokenType) {
+                parsing = false;
+                return;
+            }
             switch (tdsTokenType) {
                 case TDS.TDS_SSPI:
                     parsing = tdsTokenHandler.onSSPI(tdsReader);
@@ -255,8 +280,8 @@ class TDSTokenHandler {
 
     void onEOF(TDSReader tdsReader) throws SQLServerException {
         if (null != getDatabaseError()) {
-            SQLServerException.makeFromDatabaseError(tdsReader.getConnection(), null, getDatabaseError().getErrorMessage(),
-                    getDatabaseError(), false);
+            SQLServerException.makeFromDatabaseError(tdsReader.getConnection(), null,
+                    getDatabaseError().getErrorMessage(), getDatabaseError(), false);
         }
     }
 

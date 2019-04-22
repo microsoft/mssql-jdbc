@@ -18,25 +18,20 @@ final class ActivityCorrelator {
     private static Map<Long, ActivityId> activityIdTlsMap = new ConcurrentHashMap<>();
 
     static void cleanupActivityId() {
-        // remove the ActivityId that belongs to this thread.
-        long uniqueThreadId = Thread.currentThread().getId();
-
-        if (activityIdTlsMap.containsKey(uniqueThreadId)) {
-            activityIdTlsMap.remove(uniqueThreadId);
-        }
+        // remove ActivityIds that belongs to this thread or no longer have an associated thread.
+        activityIdTlsMap.entrySet().removeIf(e -> null == e.getValue() || null == e.getValue().getThread()
+                || e.getValue().getThread() == Thread.currentThread() || !e.getValue().getThread().isAlive());
     }
 
     // Get the current ActivityId in TLS
     static ActivityId getCurrent() {
         // get the value in TLS, not reference
-        long uniqueThreadId = Thread.currentThread().getId();
-
-        // Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
-        if (!activityIdTlsMap.containsKey(uniqueThreadId)) {
-            activityIdTlsMap.put(uniqueThreadId, new ActivityId());
+        Thread thread = Thread.currentThread();
+        if (!activityIdTlsMap.containsKey(thread.getId())) {
+            activityIdTlsMap.put(thread.getId(), new ActivityId(thread));
         }
 
-        return activityIdTlsMap.get(uniqueThreadId);
+        return activityIdTlsMap.get(thread.getId());
     }
 
     // Increment the Sequence number of the ActivityId in TLS
@@ -55,7 +50,11 @@ final class ActivityCorrelator {
         ActivityId activityId = getCurrent();
         activityId.setSentFlag();
     }
-    
+
+    static Map<Long, ActivityId> getActivityIdTlsMap() {
+        return activityIdTlsMap;
+    }
+
     /*
      * Prevent instantiation.
      */
@@ -65,13 +64,19 @@ final class ActivityCorrelator {
 
 class ActivityId {
     private final UUID id;
+    private final Thread thread;
     private long sequence;
     private boolean isSentToServer;
 
-    ActivityId() {
+    ActivityId(Thread thread) {
         id = UUID.randomUUID();
+        this.thread = thread;
         sequence = 0;
         isSentToServer = false;
+    }
+
+    Thread getThread() {
+        return thread;
     }
 
     UUID getId() {

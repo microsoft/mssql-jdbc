@@ -10,12 +10,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -32,10 +32,13 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlDate;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class TVPWithSqlVariantTest extends AbstractTest {
 
     private static SQLServerConnection conn = null;
@@ -465,8 +468,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
 
     @BeforeEach
     public void testSetup() throws SQLException {
-        conn = (SQLServerConnection) DriverManager
-                .getConnection(connectionString + ";sendStringParametersAsUnicode=true;");
+        conn = (SQLServerConnection) PrepUtil.getConnection(connectionString + ";sendStringParametersAsUnicode=true;");
         stmt = (SQLServerStatement) conn.createStatement();
 
         TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);

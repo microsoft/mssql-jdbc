@@ -573,7 +573,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         try {
             register();
         } catch (SQLException e) {
-            if (drLogger.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+            if (drLogger.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
                 drLogger.finer("Error registering driver: " + e);
             }
         }

@@ -5,11 +5,11 @@
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -18,9 +18,11 @@ import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -35,8 +37,10 @@ public class BulkCopyAllTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testTVPResultSet() throws SQLException {
         if (isSqlAzureDW()) {
+            // TODO : Fix this test to run with Azure DW
             testBulkCopyResultSet(false, null, null);
             testBulkCopyResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         } else {
@@ -53,7 +57,7 @@ public class BulkCopyAllTypesTest extends AbstractTest {
             Integer resultSetConcurrency) throws SQLException {
         setupVariation();
 
-        try (Connection connnection = DriverManager
+        try (Connection connnection = PrepUtil
                 .getConnection(connectionString + (setSelectMethod ? ";selectMethod=cursor;" : ""));
                 Statement statement = (null != resultSetType || null != resultSetConcurrency) ? connnection
                         .createStatement(resultSetType, resultSetConcurrency) : connnection.createStatement();
@@ -85,8 +89,7 @@ public class BulkCopyAllTypesTest extends AbstractTest {
     }
 
     private void terminateVariation() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
-
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
             TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
         }

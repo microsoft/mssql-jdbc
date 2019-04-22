@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc.parametermetadata;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,18 +14,20 @@ import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("ParameterMetaDataWhiteSpaceTest");
 
@@ -37,15 +38,13 @@ public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
 
     @AfterAll
     public static void dropTables() throws SQLException {
-        try (SQLServerConnection connection = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }
 
     private static void createCharTable() throws SQLException {
-        try (SQLServerConnection connection = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1 int)");
         }
     }

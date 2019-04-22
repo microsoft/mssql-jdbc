@@ -8,13 +8,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -24,6 +24,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 import microsoft.sql.DateTimeOffset;
 
@@ -34,11 +35,12 @@ public class DTOSerialTest extends AbstractTest {
     private static String dateString;
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testDSerial() throws Exception {
         sdf.setTimeZone(TimeZone.getTimeZone("Z"));
         dateString = sdf.format(new Date());
 
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
             // create a DTO
@@ -53,7 +55,7 @@ public class DTOSerialTest extends AbstractTest {
 
     @Test
     public void testESerial() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 
             // raise an error.
@@ -105,9 +107,8 @@ public class DTOSerialTest extends AbstractTest {
     @Test
     private static void verifyCorrectSend(DateTimeOffset dtn) throws Exception {
         // create a DTO
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                SQLServerPreparedStatement ps = (SQLServerPreparedStatement) conn
-                        .prepareStatement("SELECT CAST(? AS datetimeoffset(7)) AS" + "   'datetimeoffset IS08601' ")) {
+        try (Connection conn = getConnection(); SQLServerPreparedStatement ps = (SQLServerPreparedStatement) conn
+                .prepareStatement("SELECT CAST(? AS datetimeoffset(7)) AS" + "   'datetimeoffset IS08601' ")) {
             ps.setDateTimeOffset(1, dtn);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();

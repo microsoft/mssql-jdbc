@@ -5,13 +5,12 @@
 package com.microsoft.sqlserver.jdbc.preparedStatement;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 
 import org.junit.jupiter.api.AfterAll;
@@ -23,16 +22,16 @@ import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
+@Tag(Constants.xAzureSQLDW)
 public class BatchExecutionWithNullTest extends AbstractTest {
 
     private static final String tableName = RandomUtil.getIdentifier("batchNull");
@@ -44,8 +43,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      * 
      * @throws SQLException
      */
-    @Test
-    public void testAddBatch2() throws SQLException {
+    public void testAddBatch2(Connection conn) throws SQLException {
         // try {
         String sPrepStmt = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
                 + " (id, name) values (?, ?)";
@@ -53,8 +51,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         int key = 42;
 
         // this is the minimum sequence, I've found to trigger the error\
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                PreparedStatement pstmt = conn.prepareStatement(sPrepStmt)) {
+        try (PreparedStatement pstmt = conn.prepareStatement(sPrepStmt)) {
             pstmt.setInt(1, key++);
             pstmt.setNull(2, Types.VARCHAR);
             pstmt.addBatch();
@@ -83,49 +80,52 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
             assertTrue(updateCountlen == 5, TestResource.getResource("R_addBatchFailed"));
         }
-        String sPrepStmt1 = "select count(*) from " + AbstractSQLGenerator.escapeIdentifier(tableName);
 
-        try (PreparedStatement pstmt1 = connection.prepareStatement(sPrepStmt1); ResultSet rs = pstmt1.executeQuery()) {
+        String sPrepStmt1 = "select count(*) from " + AbstractSQLGenerator.escapeIdentifier(tableName);
+        try (PreparedStatement pstmt1 = conn.prepareStatement(sPrepStmt1); ResultSet rs = pstmt1.executeQuery()) {
             rs.next();
             assertTrue(rs.getInt(1) == 5, TestResource.getResource("R_insertBatchFailed"));
-            pstmt1.close();
         }
     }
 
     /**
-     * Tests the same as addBatch2, only with AE on the connection string
+     * Tests with AE enabled on the connection
      * 
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xSQLv12)
     public void testAddbatch2AEOnConnection() throws SQLException {
-        try (Connection connection = DriverManager
-                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
-            testAddBatch2();
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
+            testAddBatch2(connection);
         }
     }
 
-    @BeforeEach
-    public void testSetup() throws TestAbortedException, Exception {
-        try (DBConnection con = new DBConnection(connectionString)) {
-            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
-        }
+    /**
+     * Tests the same as testAddbatch2AEOnConnection, with AE disabled
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testAddbatch2() throws SQLException {
+        testAddBatch2(getConnection());
+    }
 
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
+    @BeforeEach
+    @Tag(Constants.xSQLv12)
+    public void testSetup() throws TestAbortedException, Exception {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (id integer not null, name varchar(255), constraint "
                     + AbstractSQLGenerator.escapeIdentifier(primaryKeyConstraintName) + " primary key (id))";
             stmt.execute(sql1);
-            stmt.close();
         }
     }
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }

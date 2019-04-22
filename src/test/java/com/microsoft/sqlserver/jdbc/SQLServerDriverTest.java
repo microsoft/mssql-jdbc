@@ -17,19 +17,19 @@ import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class SQLServerDriverTest extends AbstractTest {
 
     String randomServer = RandomUtil.getIdentifier("Server");
+    static final Logger logger = Logger.getLogger("SQLServerDriverTest");
 
     /**
      * Tests the stream<Driver> drivers() methods in java.sql.DriverManager
@@ -41,7 +41,7 @@ public class SQLServerDriverTest extends AbstractTest {
     public void testDriverDM() throws ClassNotFoundException {
         Stream<Driver> drivers = DriverManager.drivers();
         Object[] driversArray = drivers.toArray();
-        assertEquals(driversArray[0].getClass(), Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver"),
+        assertEquals(driversArray[0].getClass(), Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver"),
                 TestResource.getResource("R_parrentLoggerNameWrong"));
     }
 
@@ -76,7 +76,7 @@ public class SQLServerDriverTest extends AbstractTest {
             try {
                 SQLServerDriver.register();
             } catch (SQLException e) {
-                System.out.println(e.getMessage());
+                fail(e.getMessage());
             }
             SQLServerDriver.deregister();
             SQLServerDriver.register();
@@ -139,7 +139,7 @@ public class SQLServerDriverTest extends AbstractTest {
     public void testParentLogger() throws SQLFeatureNotSupportedException {
         SQLServerDriver serverDriver = new SQLServerDriver();
         Logger logger = serverDriver.getParentLogger();
-        assertEquals(logger.getName(), "com.microsoft.sqlserver.jdbc",
+        assertEquals(logger.getName(), Constants.MSSQL_JDBC_PACKAGE,
                 TestResource.getResource("R_parrentLoggerNameWrong"));
     }
 
@@ -153,7 +153,7 @@ public class SQLServerDriverTest extends AbstractTest {
         SQLServerDriver d = new SQLServerDriver();
         Properties info = new Properties();
         StringBuffer url = new StringBuffer();
-        url.append("jdbc:sqlserver://" + randomServer + ";packetSize=512;");
+        url.append(Constants.JDBC_PREFIX + randomServer + ";packetSize=512;");
         // test defaults
         DriverPropertyInfo[] infoArray = d.getPropertyInfo(url.toString(), info);
         for (DriverPropertyInfo anInfoArray1 : infoArray) {
@@ -167,17 +167,21 @@ public class SQLServerDriverTest extends AbstractTest {
         url.append("hostNameInCertificate=someHost; trustServerCertificate=true");
         infoArray = d.getPropertyInfo(url.toString(), info);
         for (DriverPropertyInfo anInfoArray : infoArray) {
-            if (anInfoArray.name.equals("encrypt")) {
-                assertTrue(anInfoArray.value.equals("true"), TestResource.getResource("R_valuesAreDifferent"));
+            if (anInfoArray.name.equalsIgnoreCase(Constants.ENCRYPT)) {
+                assertTrue(anInfoArray.value.equalsIgnoreCase(Boolean.TRUE.toString()),
+                        TestResource.getResource("R_valuesAreDifferent"));
             }
-            if (anInfoArray.name.equals("trustStore")) {
-                assertTrue(anInfoArray.value.equals("someStore"), TestResource.getResource("R_valuesAreDifferent"));
+            if (anInfoArray.name.equalsIgnoreCase(Constants.TRUST_STORE)) {
+                assertTrue(anInfoArray.value.equalsIgnoreCase("someStore"),
+                        TestResource.getResource("R_valuesAreDifferent"));
             }
-            if (anInfoArray.name.equals("trustStorePassword")) {
-                assertTrue(anInfoArray.value.equals("somepassword"), TestResource.getResource("R_valuesAreDifferent"));
+            if (anInfoArray.name.equalsIgnoreCase(Constants.TRUST_STORE_PASSWORD)) {
+                assertTrue(anInfoArray.value.equalsIgnoreCase("somepassword"),
+                        TestResource.getResource("R_valuesAreDifferent"));
             }
-            if (anInfoArray.name.equals("hostNameInCertificate")) {
-                assertTrue(anInfoArray.value.equals("someHost"), TestResource.getResource("R_valuesAreDifferent"));
+            if (anInfoArray.name.equalsIgnoreCase(Constants.HOST_NAME_IN_CERTIFICATE)) {
+                assertTrue(anInfoArray.value.equalsIgnoreCase("someHost"),
+                        TestResource.getResource("R_valuesAreDifferent"));
             }
         }
     }

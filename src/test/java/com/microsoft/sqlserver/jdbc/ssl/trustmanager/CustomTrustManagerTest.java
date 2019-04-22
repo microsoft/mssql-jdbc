@@ -8,20 +8,18 @@ package com.microsoft.sqlserver.jdbc.ssl.trustmanager;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.sql.DriverManager;
+import java.sql.Connection;
 import java.sql.SQLException;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class CustomTrustManagerTest extends AbstractTest {
 
     /**
@@ -33,7 +31,7 @@ public class CustomTrustManagerTest extends AbstractTest {
     public void testWithPermissiveX509TrustManager() throws Exception {
         String url = connectionString + ";trustManagerClass=" + PermissiveTrustManager.class.getName()
                 + ";encrypt=true;";
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(url)) {
+        try (Connection con = PrepUtil.getConnection(url)) {
             assertTrue(con != null);
         }
     }
@@ -47,7 +45,7 @@ public class CustomTrustManagerTest extends AbstractTest {
     public void testWithTrustManagerConstructorArg() throws Exception {
         String url = connectionString + ";trustManagerClass=" + TrustManagerWithConstructorArg.class.getName()
                 + ";trustManagerConstructorArg=dummyString;" + ";encrypt=true;";
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(url)) {
+        try (Connection con = PrepUtil.getConnection(url)) {
             assertTrue(con != null);
         }
     }
@@ -60,7 +58,7 @@ public class CustomTrustManagerTest extends AbstractTest {
     @Test
     public void testWithInvalidTrustManager() throws Exception {
         String url = connectionString + ";trustManagerClass=" + InvalidTrustManager.class.getName() + ";encrypt=true;";
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(url)) {
+        try (Connection con = PrepUtil.getConnection(url)) {
             fail();
         } catch (SQLException e) {
             assertTrue(e.getMessage().contains(

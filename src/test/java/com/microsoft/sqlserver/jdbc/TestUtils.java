@@ -21,8 +21,9 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.logging.Logger;
 
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBit;
@@ -58,15 +59,11 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlVarCharMax;
  * @since 6.1.2
  */
 public class TestUtils {
-    public static final Logger log = Logger.getLogger("TestUtils");
-
-    // 'SQL' represents SQL Server, while 'SQLAzure' represents SQL Azure.
-    public static final String SERVER_TYPE_SQL_SERVER = "SQL";
-    public static final String SERVER_TYPE_SQL_AZURE = "SQLAzure";
-
     // private static SqlType types = null;
     private static ArrayList<SqlType> types = null;
-    
+    private static final char[] HEXCHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E',
+            'F'};
+
     final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     final static int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
@@ -93,11 +90,14 @@ public class TestUtils {
      */
     public static boolean isAzure(Connection con) {
         if (null == isAzure) {
-            try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+            try (Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
                 rs.next();
 
                 int engineEdition = rs.getInt(1);
-                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
+                        || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW
+                        || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
                 isAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
                 isAzureMI = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
 
@@ -121,6 +121,7 @@ public class TestUtils {
         isAzure(con);
         return isAzureMI;
     }
+
     /**
      * Read variable from property files if found null try to read from env.
      * 
@@ -158,7 +159,7 @@ public class TestUtils {
      * @param javatype
      * @return
      */
-    public static SqlType find(Class javatype) {
+    public static SqlType find(Class<?> javatype) {
         if (null != types) {
             types();
             for (SqlType type : types) {
@@ -316,6 +317,13 @@ public class TestUtils {
                 + escapeSingleQuotes(databaseName) + "') DROP DATABASE [" + databaseName + "]");
     }
 
+    public static void dropTriggerIfExists(String triggerName, java.sql.Statement stmt) throws SQLException {
+        stmt.execute("IF EXISTS (\r\n" + "    SELECT *\r\n" + "    FROM sys.objects\r\n"
+                + "    WHERE [type] = 'TR' AND [name] = '" + TestUtils.escapeSingleQuotes(triggerName) + "'\r\n"
+                + "    )\r\n" + "    DROP TRIGGER " + AbstractSQLGenerator.escapeIdentifier(triggerName)
+                + Constants.SEMI_COLON);
+    }
+
     /**
      * actually perform the "DROP TABLE / PROCEDURE"
      */
@@ -375,14 +383,12 @@ public class TestUtils {
      *        length of the array
      * @return
      */
-    final static char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
     public static String bytesToHexString(byte[] b, int length) {
         StringBuilder sb = new StringBuilder(length * 2);
         for (int i = 0; i < length; i++) {
             int hexVal = b[i] & 0xFF;
-            sb.append(hexChars[(hexVal & 0xF0) >> 4]);
-            sb.append(hexChars[(hexVal & 0x0F)]);
+            sb.append(HEXCHARS[(hexVal & 0xF0) >> 4]);
+            sb.append(HEXCHARS[(hexVal & 0x0F)]);
         }
         return sb.toString();
     }

@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -23,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -34,6 +34,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -66,10 +68,12 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testBatchedUnprepare() throws SQLException {
         SQLServerConnection conOuter = null;
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
             conOuter = con;
 
             // Turn off use of prepared statement cache.
@@ -144,6 +148,8 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testStatementPooling() throws Exception {
         testStatementPoolingInternal("batchInsert");
     }
@@ -158,6 +164,8 @@ public class PreparedStatementTest extends AbstractTest {
      * @throws IllegalArgumentException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testStatementPoolingUseBulkCopyAPI() throws Exception {
         testStatementPoolingInternal("BulkCopy");
     }
@@ -171,7 +179,7 @@ public class PreparedStatementTest extends AbstractTest {
     public void testStatementPoolingEviction() throws SQLException {
 
         for (int testNo = 0; testNo < 2; ++testNo) {
-            try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+            try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
                 int cacheSize = 10;
                 int discardedStatementCount = testNo == 0 ? 5 /* batched unprepares */ : 0 /* regular unprepares */;
 
@@ -267,7 +275,7 @@ public class PreparedStatementTest extends AbstractTest {
         CountDownLatch latch = new CountDownLatch(3);
         AtomicReference<Exception> exception = new AtomicReference<>();
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
             for (int i = 0; i < 3; i++) {
                 execServiceThread.submit(() -> {
                     for (int j = 0; j < 500; j++) {
@@ -326,7 +334,7 @@ public class PreparedStatementTest extends AbstractTest {
 
         // Test disableStatementPooling=true
         String connectionStringDisableStatementPooling = connectionString + ";disableStatementPooling=true;";
-        try (SQLServerConnection connectionDisableStatementPooling = (SQLServerConnection) DriverManager
+        try (SQLServerConnection connectionDisableStatementPooling = (SQLServerConnection) PrepUtil
                 .getConnection(connectionStringDisableStatementPooling)) {
             // to turn on caching and check if disableStatementPooling is true, even setting cachesize won't matter and
             // will disable it.
@@ -337,7 +345,7 @@ public class PreparedStatementTest extends AbstractTest {
 
         // Test disableStatementPooling=false
         String connectionStringEnableStatementPooling = connectionString + ";disableStatementPooling=false;";
-        try (SQLServerConnection connectionEnableStatementPooling = (SQLServerConnection) DriverManager
+        try (SQLServerConnection connectionEnableStatementPooling = (SQLServerConnection) PrepUtil
                 .getConnection(connectionStringEnableStatementPooling)) {
             connectionEnableStatementPooling.setStatementPoolingCacheSize(10); // to turn on caching.
 
@@ -352,7 +360,7 @@ public class PreparedStatementTest extends AbstractTest {
 
         String connectionPropertyStringEnableStatementPooling = connectionString
                 + ";disableStatementPooling=false;statementPoolingCacheSize=10";
-        try (SQLServerConnection connectionPropertyEnableStatementPooling = (SQLServerConnection) DriverManager
+        try (SQLServerConnection connectionPropertyEnableStatementPooling = (SQLServerConnection) PrepUtil
                 .getConnection(connectionPropertyStringEnableStatementPooling)) {
             // for now, it won't affect if disable is false or true. Since statementPoolingCacheSize is set to 0 as
             // default.
@@ -365,7 +373,7 @@ public class PreparedStatementTest extends AbstractTest {
 
         String connectionPropertyStringDisableStatementPooling = connectionString
                 + ";disableStatementPooling=true;statementPoolingCacheSize=10";
-        try (SQLServerConnection connectionPropertyDisableStatementPooling = (SQLServerConnection) DriverManager
+        try (SQLServerConnection connectionPropertyDisableStatementPooling = (SQLServerConnection) PrepUtil
                 .getConnection(connectionPropertyStringDisableStatementPooling)) {
             assertTrue(0 < connectionPropertyDisableStatementPooling.getStatementPoolingCacheSize()); // for now, it
                                                                                                       // won't
@@ -385,7 +393,7 @@ public class PreparedStatementTest extends AbstractTest {
 
         String connectionPropertyStringDisableStatementPooling2 = connectionString
                 + ";disableStatementPooling=false;statementPoolingCacheSize=0";
-        try (SQLServerConnection connectionPropertyDisableStatementPooling2 = (SQLServerConnection) DriverManager
+        try (SQLServerConnection connectionPropertyDisableStatementPooling2 = (SQLServerConnection) PrepUtil
                 .getConnection(connectionPropertyStringDisableStatementPooling2)) {
             assertTrue(0 == connectionPropertyDisableStatementPooling2.getStatementPoolingCacheSize()); // for now, it
                                                                                                         // won't
@@ -406,14 +414,14 @@ public class PreparedStatementTest extends AbstractTest {
 
         // Test EnablePrepareOnFirstPreparedStatementCall
         String connectionStringNoExecuteSQL = connectionString + ";enablePrepareOnFirstPreparedStatementCall=true;";
-        try (SQLServerConnection connectionNoExecuteSQL = (SQLServerConnection) DriverManager
+        try (SQLServerConnection connectionNoExecuteSQL = (SQLServerConnection) PrepUtil
                 .getConnection(connectionStringNoExecuteSQL)) {
             assertSame(true, connectionNoExecuteSQL.getEnablePrepareOnFirstPreparedStatementCall());
         }
 
         // Test ServerPreparedStatementDiscardThreshold
         String connectionStringThreshold3 = connectionString + ";ServerPreparedStatementDiscardThreshold=3;";
-        try (SQLServerConnection connectionThreshold3 = (SQLServerConnection) DriverManager
+        try (SQLServerConnection connectionThreshold3 = (SQLServerConnection) PrepUtil
                 .getConnection(connectionStringThreshold3)) {
             assertSame(3, connectionThreshold3.getServerPreparedStatementDiscardThreshold());
         }
@@ -421,7 +429,7 @@ public class PreparedStatementTest extends AbstractTest {
         // Test combination of EnablePrepareOnFirstPreparedStatementCall and ServerPreparedStatementDiscardThreshold
         String connectionStringThresholdAndNoExecuteSQL = connectionString
                 + ";ServerPreparedStatementDiscardThreshold=3;enablePrepareOnFirstPreparedStatementCall=true;";
-        try (SQLServerConnection connectionThresholdAndNoExecuteSQL = (SQLServerConnection) DriverManager
+        try (SQLServerConnection connectionThresholdAndNoExecuteSQL = (SQLServerConnection) PrepUtil
                 .getConnection(connectionStringThresholdAndNoExecuteSQL)) {
             assertSame(true, connectionThresholdAndNoExecuteSQL.getEnablePrepareOnFirstPreparedStatementCall());
             assertSame(3, connectionThresholdAndNoExecuteSQL.getServerPreparedStatementDiscardThreshold());
@@ -431,8 +439,7 @@ public class PreparedStatementTest extends AbstractTest {
         // Test that an error is thrown for invalid connection string property values (non int/bool).
         String connectionStringThresholdError = connectionString + ";ServerPreparedStatementDiscardThreshold="
                 + invalidValue;
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager
-                .getConnection(connectionStringThresholdError)) {
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connectionStringThresholdError)) {
             fail("Error for invalid ServerPreparedStatementDiscardThresholdexpected.");
         } catch (SQLException e) {
             assert (e.getMessage().equalsIgnoreCase(String.format(
@@ -441,7 +448,7 @@ public class PreparedStatementTest extends AbstractTest {
 
         String connectionStringNoExecuteSQLError = connectionString + ";enablePrepareOnFirstPreparedStatementCall="
                 + invalidValue;
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil
                 .getConnection(connectionStringNoExecuteSQLError)) {
             fail("Error for invalid enablePrepareOnFirstPreparedStatementCall expected.");
         } catch (SQLException e) {
@@ -450,7 +457,7 @@ public class PreparedStatementTest extends AbstractTest {
         }
 
         // Verify instance setting is followed.
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
 
             // Turn off use of prepared statement cache.
             con.setStatementPoolingCacheSize(0);
@@ -488,7 +495,7 @@ public class PreparedStatementTest extends AbstractTest {
 
     private void testStatementPoolingInternal(String mode) throws Exception {
         // Test % handle re-use
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI(con);
             }
@@ -523,20 +530,27 @@ public class PreparedStatementTest extends AbstractTest {
             }
         }
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
             if (mode.equalsIgnoreCase("bulkcopy")) {
                 modifyConnectionForBulkCopyAPI(con);
             }
+
+            int msgId = Constants.RANDOM.nextInt(50000, 99999);
+
             // Test behavior with statement pooling.
             con.setStatementPoolingCacheSize(10);
-            this.executeSQL(con,
-                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
+
+            this.executeSQL(con, "IF EXISTS (SELECT * FROM sys.messages WHERE message_id = " + msgId
+                    + ") EXEC sp_dropmessage @msgnum = " + msgId + ", @lang = 'all';");
+            this.executeSQL(con, "EXEC sp_addmessage " + msgId + ", 16, 'Prepared handle GAH!';");
             // Test with missing handle failures (fake).
             this.executeSQL(con, "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (col INT);INSERT " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (1);");
-            this.executeSQL(con, "CREATE PROC #updateProc1 AS UPDATE "
-                    + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET col += 1; IF EXISTS (SELECT * FROM "
-                    + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE col % 5 = 0) RAISERROR(99586,16,1);");
+            this.executeSQL(con,
+                    "CREATE PROC #updateProc1 AS UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                            + " SET col += 1; IF EXISTS (SELECT * FROM "
+                            + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE col % 5 = 0) RAISERROR("
+                            + msgId + ",16,1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc1")) {
                 for (int i = 0; i < 100; ++i) {
                     try {
@@ -551,6 +565,9 @@ public class PreparedStatementTest extends AbstractTest {
                         }
                     }
                 }
+            } finally {
+                this.executeSQL(con, "IF EXISTS (SELECT * FROM sys.messages WHERE message_id = " + msgId
+                        + ") EXEC sp_dropmessage @msgnum = " + msgId + ", @lang = 'all';");
             }
 
             // test updated value, should be 1 + 100 = 101
@@ -562,13 +579,17 @@ public class PreparedStatementTest extends AbstractTest {
             }
 
             // Test batching with missing handle failures (fake).
-            this.executeSQL(con,
-                    "IF NOT EXISTS (SELECT * FROM sys.messages WHERE message_id = 99586) EXEC sp_addmessage 99586, 16, 'Prepared handle GAH!';");
+
+            this.executeSQL(con, "IF EXISTS (SELECT * FROM sys.messages WHERE message_id = " + msgId
+                    + ") EXEC sp_dropmessage @msgnum = " + msgId + ", @lang = 'all';");
+            this.executeSQL(con, "EXEC sp_addmessage " + msgId + ", 16, 'Prepared handle GAH!';");
             this.executeSQL(con, "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName2)
                     + " (col INT);INSERT " + AbstractSQLGenerator.escapeIdentifier(tableName2) + " VALUES (1);");
-            this.executeSQL(con, "CREATE PROC #updateProc2 AS UPDATE "
-                    + AbstractSQLGenerator.escapeIdentifier(tableName2) + " SET col += 1; IF EXISTS (SELECT * FROM "
-                    + AbstractSQLGenerator.escapeIdentifier(tableName2) + " WHERE col % 5 = 0) RAISERROR(99586,16,1);");
+            this.executeSQL(con,
+                    "CREATE PROC #updateProc2 AS UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName2)
+                            + " SET col += 1; IF EXISTS (SELECT * FROM "
+                            + AbstractSQLGenerator.escapeIdentifier(tableName2) + " WHERE col % 5 = 0) RAISERROR("
+                            + msgId + ",16,1);");
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement("#updateProc2")) {
                 for (int i = 0; i < 100; ++i) {
                     pstmt.addBatch();
@@ -597,6 +618,9 @@ public class PreparedStatementTest extends AbstractTest {
                     rs.next();
                     assertSame(101, rs.getInt(1));
                 }
+            } finally {
+                this.executeSQL(con, "IF EXISTS (SELECT * FROM sys.messages WHERE message_id = " + msgId
+                        + ") EXEC sp_dropmessage @msgnum = " + msgId + ", @lang = 'all';");
             }
 
             // Test behavior with statement pooling enabled
@@ -635,7 +659,8 @@ public class PreparedStatementTest extends AbstractTest {
             // Execute new statement with different SQL text and verify it does NOT get same handle (should now fall
             // back to using sp_executesql).
             SQLServerPreparedStatement outer = null;
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query + ";")) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                    .prepareStatement(query + Constants.SEMI_COLON)) {
                 outer = pstmt;
                 pstmt.execute(); // sp_executesql
                 pstmt.getMoreResults(); // Make sure handle is updated.

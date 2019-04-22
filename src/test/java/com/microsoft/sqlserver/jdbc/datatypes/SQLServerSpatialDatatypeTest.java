@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -20,6 +19,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -27,7 +27,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.Geography;
 import com.microsoft.sqlserver.jdbc.Geometry;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
@@ -35,6 +34,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -188,6 +188,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testPointWkt() throws SQLException {
         beforeEachSetup();
         String geoWKT = "POINT(3 40 5 6)";
@@ -198,6 +199,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testLineStringWkt() throws SQLException {
         beforeEachSetup();
         String geoWKT = "LINESTRING(1 0, 0 1, -1 0)";
@@ -208,6 +210,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testPolygonWkt() throws SQLException {
         beforeEachSetup();
         String geoWKT = "POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1))";
@@ -218,6 +221,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testMultiPointWkt() throws SQLException {
         beforeEachSetup();
         String geoWKT = "MULTIPOINT((2 3), (7 8 9.5))";
@@ -228,6 +232,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testMultiLineStringWkt() throws SQLException {
         beforeEachSetup();
         String geoWKT = "MULTILINESTRING((0 2, 1 1), (1 0, 1 1))";
@@ -238,6 +243,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testMultiPolygonWkt() throws SQLException {
         beforeEachSetup();
         String geoWKT = "MULTIPOLYGON(((1 1, 1 2, 2 1, 1 1), (0 0, 0 3, 3 3, 3 0, 0 0 7)), ((9 9, 9 10, 10 9, 9 9)))";
@@ -248,6 +254,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testGeometryCollectionWkt() throws SQLException {
         String geoWKT;
         if (isDenaliOrLater) {
@@ -267,6 +274,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testCircularStringWkt() throws SQLException {
         if (isDenaliOrLater) {
             beforeEachSetup();
@@ -279,6 +287,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testCompoundCurveWkt() throws SQLException {
         if (isDenaliOrLater) {
             beforeEachSetup();
@@ -291,6 +300,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testCurvePolygonWkt() throws SQLException {
         if (isDenaliOrLater) {
             beforeEachSetup();
@@ -303,9 +313,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testFullGlobeWkt() throws SQLException {
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             if (isDenaliOrLater) {
                 beforeEachSetup();
 
@@ -334,6 +344,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testIrregularCases() throws SQLException {
         beforeEachSetup();
 
@@ -447,6 +458,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testAllTypes() throws SQLException {
         if (isDenaliOrLater) {
             beforeEachSetup();
@@ -479,8 +491,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             Geography geogWKT;
 
             // Geometry
-            try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                         "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)")) {
@@ -599,6 +610,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testMixedAllTypes() throws SQLException {
         if (isDenaliOrLater) {
             beforeEachSetupSpatialDatatype();
@@ -634,8 +646,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             Geometry geomWKT;
             Geography geogWKT;
 
-            try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                         "insert into " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName)
                                 + " values (?, ?, ?, ?, ?)");) {
@@ -756,6 +767,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testDecimalRounding() throws SQLException {
         beforeEachSetup();
 
@@ -766,6 +778,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testParse() throws SQLException {
         beforeEachSetup();
 
@@ -774,8 +787,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         Geometry geomWKT = Geometry.parse(geoWKT);
         Geography geogWKT = Geography.parse(geoWKT);
 
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                     "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
@@ -807,6 +819,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testPoint() throws SQLException {
         beforeEachSetup();
 
@@ -815,8 +828,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         Geometry geomWKT = Geometry.point(1, 2, 0);
         Geography geogWKT = Geography.point(2, 1, 4326);
 
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                     "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
@@ -847,6 +859,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testSTAsText() throws SQLException {
         beforeEachSetup();
 
@@ -856,8 +869,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         Geometry geomWKT = Geometry.STGeomFromText(geoWKT, 0);
         Geography geogWKT = Geography.STGeomFromText(geoWKT, 4326);
 
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                     "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
@@ -886,6 +898,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testSTAsBinary() throws SQLException {
         beforeEachSetup();
 
@@ -908,11 +921,12 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertEquals(geogWKB, geogWKB2);
     }
 
+    @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testCheckGeomMetaData() throws SQLException {
         beforeEachSetup();
 
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement();
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
                         "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " (c1) VALUES (?)")) {
             ParameterMetaData paramMetaData = pstmt.getParameterMetaData();
@@ -933,11 +947,11 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testCheckGeogMetaData() throws SQLException {
         beforeEachSetup();
 
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement();
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
                         "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " (c1) VALUES (?)")) {
             ParameterMetaData paramMetaData = pstmt.getParameterMetaData();
@@ -974,6 +988,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testNull() throws SQLException {
         if (isDenaliOrLater) {
             beforeEachSetupSpatialDatatype();
@@ -1001,8 +1016,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             Geometry geomWKT;
             Geography geogWKT;
 
-            try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                    Statement stmt = con.createStatement()) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                         "insert into " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName)
@@ -1044,14 +1058,14 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testWrongtype() throws SQLException {
         beforeEachSetup();
 
         Geometry geomWKT = Geometry.point(1, 2, 0);
         Geography geogWKT = Geography.point(2, 1, 4326);
 
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                     "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
@@ -1088,8 +1102,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     private void beforeEachSetup() throws SQLException {
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(geomTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(geogTableName), stmt);
             stmt.executeUpdate(
@@ -1100,8 +1113,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     private void beforeEachSetupSpatialDatatype() throws SQLException {
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName), stmt);
             stmt.executeUpdate("Create table " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName)
                     + " (c1 geometry," + "c2 geography," + "c3 nvarchar(512)," + "c4 decimal(28,4)," + "c5 int)");
@@ -1116,8 +1128,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         Geometry geomWKT = Geometry.STGeomFromText(geoWKT, 0);
         Geography geogWKT = Geography.STGeomFromText(geoWKT, 4326);
 
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
                     "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
@@ -1168,21 +1179,15 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         geogTableName = RandomUtil.getIdentifier("geographyTestTable");
         spatialDatatypeTableName = RandomUtil.getIdentifier("spatialDatatypeTestTable");
 
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement(); SQLServerResultSet rs = (SQLServerResultSet) stmt
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select SERVERPROPERTY ( 'ProductVersion' )")) {
-
             rs.next();
+            int version = Integer.parseInt(rs.getString(1).substring(0, 2));
 
-            try {
-                int version = Integer.parseInt(rs.getString(1).substring(0, 2));
-
-                // if major version is greater than or equal to 11, it's SQL Server 2012 or above.
-                if (version >= 11) {
-                    isDenaliOrLater = true;
-                }
-            } catch (Exception e) {
-                // Do nothing.
+            // if major version is greater than or equal to 11, it's SQL Server 2012 or above.
+            if (version >= 11) {
+                isDenaliOrLater = true;
             }
         }
     }
@@ -1194,8 +1199,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      */
     @AfterAll
     public static void afterAll() throws SQLException {
-        try (Connection con = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(geomTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(geogTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName), stmt);

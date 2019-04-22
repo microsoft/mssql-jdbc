@@ -32,7 +32,6 @@ public class DBCallableStatement extends AbstractParentWrapper {
      */
     DBCallableStatement(AbstractParentWrapper parent, Object internal, String name) {
         super(parent, internal, name);
-        // TODO Auto-generated constructor stub
     }
 
     DBCallableStatement prepareCall(String query) throws SQLException {

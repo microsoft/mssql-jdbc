@@ -6,11 +6,9 @@ package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,6 +16,7 @@ import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -30,7 +29,8 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
@@ -38,6 +38,8 @@ import com.microsoft.sqlserver.testframework.DBConnection;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xAzureSQLDW)
 public class BatchExecutionTest extends AbstractTest {
 
     static String ctstable1;
@@ -85,8 +87,7 @@ public class BatchExecutionTest extends AbstractTest {
         int i = 0;
         int retValue[] = {0, 0, 0};
         int updateCountlen = 0;
-        try (Connection connection = DriverManager
-                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");) {
             String sPrepStmt = "update " + AbstractSQLGenerator.escapeIdentifier(ctstable2)
                     + " set PRICE=PRICE*20 where TYPE_ID=?";
 
@@ -137,8 +138,7 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     private static void createTable() throws SQLException {
-        try (Connection connection = DriverManager
-                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
             String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(ctstable1)
                     + " (TYPE_ID int, TYPE_DESC varchar(32), primary key(TYPE_ID)) ";
@@ -171,8 +171,7 @@ public class BatchExecutionTest extends AbstractTest {
     private void testAddBatch1Internal(String mode) {
         int i = 0;
         int retValue[] = {0, 0, 0};
-        try (Connection connection = DriverManager
-                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;");) {
             String sPrepStmt = "update " + AbstractSQLGenerator.escapeIdentifier(ctstable2)
                     + " set PRICE=PRICE*20 where TYPE_ID=?";
 
@@ -236,18 +235,12 @@ public class BatchExecutionTest extends AbstractTest {
         ctstable1 = RandomUtil.getIdentifier("ctstable1");
         ctstable2 = RandomUtil.getIdentifier("ctstable2");
 
-        try (DBConnection con = new DBConnection(connectionString)) {
-            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
-        }
-
         dropTable();
         createTable();
     }
 
     private static void dropTable() throws SQLException {
-        try (Connection connection = DriverManager
-                .getConnection(connectionString + ";columnEncryptionSetting=Enabled;");
-                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable1), stmt);
         }
@@ -255,10 +248,6 @@ public class BatchExecutionTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws Exception {
-        try (DBConnection con = new DBConnection(connectionString)) {
-            assumeTrue(13 <= con.getServerVersion(), TestResource.getResource("R_Incompat_SQLServerVersion"));
-        }
-
         dropTable();
     }
 }

@@ -9,11 +9,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.sql.SQLException;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -35,6 +37,7 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test zero timeout")
+    @Tag(Constants.xAzureSQLDW)
     public void testZeroTimeOut() throws SQLException {
         testBulkCopyWithTimeout(0);
     }
@@ -57,9 +60,9 @@ public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
 
     private void testBulkCopyWithTimeout(int timeout) throws SQLException {
         BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-        bulkWrapper.setUsingConnection((0 == random.nextInt(2)) ? true : false, ds);
-        bulkWrapper.setUsingXAConnection((0 == random.nextInt(2)) ? true : false, dsXA);
-        bulkWrapper.setUsingPooledConnection((0 == random.nextInt(2)) ? true : false, dsPool);
+        bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+        bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+        bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
         SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
         option.setBulkCopyTimeout(timeout);
         bulkWrapper.useBulkCopyOptions(true);

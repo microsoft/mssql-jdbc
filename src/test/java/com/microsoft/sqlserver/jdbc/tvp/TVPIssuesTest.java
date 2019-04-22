@@ -4,18 +4,20 @@
  */
 package com.microsoft.sqlserver.jdbc.tvp;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -27,10 +29,12 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
-import com.microsoft.sqlserver.testframework.AbstractTest;;
+import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class TVPIssuesTest extends AbstractTest {
 
     private static String tvp_varcharMax = RandomUtil.getIdentifier("TVPIssuesTest_varcharMax_TVP");
@@ -57,7 +61,7 @@ public class TVPIssuesTest extends AbstractTest {
             pstmt.setStructured(1, tvp_varcharMax, rs);
             pstmt.execute();
 
-            testCharDestTable();
+            testCharDestTable(st);
         }
     }
 
@@ -68,22 +72,22 @@ public class TVPIssuesTest extends AbstractTest {
      */
     @Test
     public void testExceptionWithInvalidStoredProcedureName() throws Exception {
-        SQLServerStatement st = (SQLServerStatement) connection.createStatement();
-        ResultSet rs = st.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax));
+        try (Statement stmt = connection.createStatement(); ResultSet rs = stmt
+                .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax))) {
 
-        dropProcedure();
+            dropProcedure(stmt);
+            String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(spName_varcharMax) + "(?)}";
 
-        final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(spName_varcharMax) + "(?)}";
-
-        try (SQLServerCallableStatement Cstmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
-            Cstmt.setObject(1, rs);
-            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
-        } catch (Exception e) {
-            if (e instanceof SQLException) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound")),
-                        TestResource.getResource("R_invalidErrorMessage") + e.toString());
-            } else {
-                throw e;
+            try (SQLServerCallableStatement Cstmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+                Cstmt.setObject(1, rs);
+                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            } catch (Exception e) {
+                if (e instanceof SQLException) {
+                    assertTrue(e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound")),
+                            TestResource.getResource("R_invalidErrorMessage") + e.getMessage());
+                } else {
+                    fail(e.getMessage());
+                }
             }
         }
     }
@@ -96,8 +100,7 @@ public class TVPIssuesTest extends AbstractTest {
      */
     @Test
     public void tryTVPPrecisionmissedissue315() throws Exception {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement();
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement();
                 ResultSet rs = stmt
                         .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable_time_6));
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
@@ -106,12 +109,12 @@ public class TVPIssuesTest extends AbstractTest {
             pstmt.setStructured(1, tvp_time_6, rs);
             pstmt.execute();
 
-            testTime6DestTable();
+            testTime6DestTable(stmt);
         }
     }
 
-    private void testCharDestTable() throws SQLException, IOException {
-        try (ResultSet rs = connection.createStatement()
+    private void testCharDestTable(Statement stmt) throws SQLException, IOException {
+        try (ResultSet rs = stmt
                 .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax))) {
             while (rs.next()) {
                 assertEquals(rs.getString(1).length(), 4001, TestResource.getResource("R_lengthTruncated"));
@@ -119,8 +122,8 @@ public class TVPIssuesTest extends AbstractTest {
         }
     }
 
-    private void testTime6DestTable() throws SQLException, IOException {
-        try (ResultSet rs = connection.createStatement()
+    private void testTime6DestTable(Statement stmt) throws SQLException, IOException {
+        try (ResultSet rs = stmt
                 .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(desTable_time_6))) {
             while (rs.next()) {
                 assertEquals(rs.getString(1), expectedTime6value, TestResource.getResource("R_timeValueTruncated"));
@@ -130,10 +133,9 @@ public class TVPIssuesTest extends AbstractTest {
 
     @BeforeAll
     public static void beforeAll() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
 
-            dropProcedure();
+            dropProcedure(stmt);
 
             stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
                     + TestUtils.escapeSingleQuotes(tvp_varcharMax) + "') " + " drop type "
@@ -167,10 +169,10 @@ public class TVPIssuesTest extends AbstractTest {
                     + " as table (c1 time(6) null)";
             stmt.executeUpdate(TVPCreateCmd);
 
-            createProcedure();
+            createProcedure(stmt);
 
             populateCharSrcTable();
-            populateTime6SrcTable();
+            populateTime6SrcTable(stmt);
         }
     }
 
@@ -183,46 +185,35 @@ public class TVPIssuesTest extends AbstractTest {
         }
         String value = sb.toString();
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
-
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, value);
             pstmt.execute();
         }
     }
 
-    private static void populateTime6SrcTable() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
-            String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(srcTable_time_6)
-                    + " values ('2017-05-12 " + expectedTime6value + "')";
-            connection.createStatement().execute(sql);
-        }
+    private static void populateTime6SrcTable(Statement stmt) throws SQLException {
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(srcTable_time_6) + " values ('2017-05-12 "
+                + expectedTime6value + "')";
+        stmt.execute(sql);
     }
 
-    private static void dropProcedure() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(spName_varcharMax), stmt);
-        }
+    private static void dropProcedure(Statement stmt) throws SQLException {
+        TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(spName_varcharMax), stmt);
     }
 
-    private static void createProcedure() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
-            String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(spName_varcharMax) + " @InputData "
-                    + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax) + " READONLY " + " AS " + " BEGIN "
-                    + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax)
-                    + " SELECT * FROM @InputData" + " END";
+    private static void createProcedure(Statement stmt) throws SQLException {
+        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(spName_varcharMax) + " @InputData "
+                + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax) + " READONLY " + " AS " + " BEGIN "
+                + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax)
+                + " SELECT * FROM @InputData" + " END";
 
-            stmt.execute(sql);
-        }
+        stmt.execute(sql);
     }
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
-        dropProcedure();
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
+            dropProcedure(stmt);
             stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
                     + TestUtils.escapeSingleQuotes(tvp_varcharMax) + "') " + " drop type "
                     + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax));

@@ -4,28 +4,32 @@
  */
 package com.microsoft.sqlserver.jdbc.exception;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.net.SocketTimeoutException;
 import java.sql.Connection;
-import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -37,16 +41,17 @@ public class ExceptionTest extends AbstractTest {
      * 
      * @throws Exception
      */
+    @SuppressWarnings("resource")
     @Test
     public void testBulkCSVFileRecordExceptionCause() throws Exception {
         String filePath = TestUtils.getCurrentClassPath();
 
         try {
-            SQLServerBulkCSVFileRecord scvFileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile,
-                    "invalid_encoding", true);
+            new SQLServerBulkCSVFileRecord(filePath + inputFile, "invalid_encoding", true);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Exception e) {
             if (!(e instanceof SQLException)) {
-                throw e;
+                fail(e.getMessage());
             }
 
             assertTrue(null != e.getCause(), TestResource.getResource("R_causeShouldNotBeNull"));
@@ -66,21 +71,21 @@ public class ExceptionTest extends AbstractTest {
      * 
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testSocketTimeoutExceptionCause() throws Exception {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName), stmt);
             createWaitForDelayPreocedure(conn);
         }
 
-        try (Connection conn = DriverManager
-                .getConnection(connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + ";");
+        try (Connection conn = PrepUtil.getConnection(
+                connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + Constants.SEMI_COLON);
                 Statement stmt = conn.createStatement()) {
             stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
-            throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Exception e) {
             if (!(e instanceof SQLException)) {
-                throw e;
+                fail(e.getMessage());
             }
 
             assertTrue(null != e.getCause(), TestResource.getResource("R_causeShouldNotBeNull"));
@@ -90,16 +95,61 @@ public class ExceptionTest extends AbstractTest {
         }
     }
 
-    private void createWaitForDelayPreocedure(SQLServerConnection conn) throws SQLException {
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testResultSetErrorSearch() throws Exception {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ISSUE659TABLE"));
+        String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ISSUE659PROC"));
+        String expectedException = "Error occured during the insert";
+        int outputValue = 5;
+        String createTableSql = "CREATE TABLE " + tableName + "(FIELD1 VARCHAR (255) NOT NULL);";
+        String createProcSql = "CREATE PROCEDURE " + procName
+                + " AS BEGIN TRANSACTION\n BEGIN TRY SET NOCOUNT ON; INSERT INTO " + tableName + " (FIELD1) OUTPUT "
+                + outputValue + " VALUES ('test'); INSERT INTO" + tableName
+                + " (FIELD1) VALUES (NULL); COMMIT TRANSACTION; END TRY BEGIN CATCH DECLARE @errorMessage NVARCHAR(4000) = ERROR_MESSAGE(); ROLLBACK TRANSACTION; RAISERROR('"
+                + expectedException + ": %s', 16, 1, @errorMessage); END CATCH;";
+        String execProcSql = "EXECUTE " + procName;
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            stmt.execute(createTableSql);
+            stmt.execute(createProcSql);
+            stmt.execute(execProcSql);
+            try (ResultSet rs = stmt.getResultSet()) {
+                // First result set
+                while (rs.next()) {
+                    assertEquals(outputValue, rs.getInt(1));
+                }
+            } catch (SQLException e) {
+                // First result set should not throw an exception.
+                fail(TestResource.getResource("R_unexpectedException"));
+            }
+            try {
+                // Second result set, contains the exception.
+                assertTrue(stmt.getMoreResults());
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains(expectedException),
+                        TestResource.getResource("R_expectedExceptionNotThrown") + e.getMessage());
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropProcedureIfExists(procName, stmt);
+            }
+        }
+    }
+
+    private void createWaitForDelayPreocedure(Connection conn) throws SQLException {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName) + " AS" + " BEGIN"
                 + " WAITFOR DELAY '00:00:" + waitForDelaySeconds + "';" + " END";
-        conn.createStatement().execute(sql);
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     @AfterAll
     public static void cleanup() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
-                Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName), stmt);
         }
     }

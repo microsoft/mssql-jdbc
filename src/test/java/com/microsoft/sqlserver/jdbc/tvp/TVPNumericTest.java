@@ -5,13 +5,13 @@
 package com.microsoft.sqlserver.jdbc.tvp;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -22,9 +22,11 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class TVPNumericTest extends AbstractTest {
 
     static SQLServerDataTable tvp = null;
@@ -73,7 +75,7 @@ public class TVPNumericTest extends AbstractTest {
     }
 
     private void dropProcedure() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'"
                     + TestUtils.escapeSingleQuotes(procedureName) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                     + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName);
@@ -82,14 +84,14 @@ public class TVPNumericTest extends AbstractTest {
     }
 
     private static void dropTables() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(charTable) + "','U') is not null"
                     + " drop table " + AbstractSQLGenerator.escapeIdentifier(charTable));
         }
     }
 
     private static void dropTVPS() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
                     + TestUtils.escapeSingleQuotes(tvpName) + "') " + " drop type "
                     + AbstractSQLGenerator.escapeIdentifier(tvpName));
@@ -100,14 +102,14 @@ public class TVPNumericTest extends AbstractTest {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
                 + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN " + " INSERT INTO "
                 + AbstractSQLGenerator.escapeIdentifier(charTable) + " SELECT * FROM @InputData" + " END";
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         }
     }
 
     private void createTables() throws SQLException {
         String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(charTable) + " (c1 numeric(6,3) null);";
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         }
     }
@@ -115,7 +117,7 @@ public class TVPNumericTest extends AbstractTest {
     private void createTVPS() throws SQLException {
         String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName)
                 + " as table (c1 numeric(6,3) null)";
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.executeUpdate(TVPCreateCmd);
         }
     }
@@ -130,5 +132,4 @@ public class TVPNumericTest extends AbstractTest {
             tvp.clear();
         }
     }
-
 }

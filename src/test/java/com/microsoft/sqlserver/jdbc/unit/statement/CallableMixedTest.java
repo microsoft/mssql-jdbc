@@ -7,13 +7,11 @@ package com.microsoft.sqlserver.jdbc.unit.statement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -23,6 +21,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -30,6 +29,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class CallableMixedTest extends AbstractTest {
     String tableName = RandomUtil.getIdentifier("TFOO3");
     String procName = RandomUtil.getIdentifier("SPFOO3");
@@ -40,11 +40,8 @@ public class CallableMixedTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @DisplayName("Test CallableMix")
     public void datatypesTest() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
-                Statement statement = connection.createStatement();) {
-
+        try (Statement statement = connection.createStatement();) {
             statement.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (c1_int int primary key, col2 int)");
             statement

@@ -622,7 +622,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void close() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "close");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         closeInternal();
@@ -970,7 +970,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean next() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "next");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         if (logger.isLoggable(java.util.logging.Level.FINER))
@@ -1296,7 +1296,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void beforeFirst() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "beforeFirst");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         if (logger.isLoggable(java.util.logging.Level.FINER))
@@ -1327,7 +1327,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void afterLast() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "afterLast");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
@@ -1551,7 +1551,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public boolean absolute(int row) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "absolute");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         if (logger.isLoggable(java.util.logging.Level.FINER))
@@ -4628,7 +4628,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void insertRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "insertRow");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
@@ -4735,7 +4735,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void updateRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "updateRow");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         final class UpdateRowRPC extends TDSCommand {
@@ -4820,7 +4820,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void deleteRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "deleteRow");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         final class DeleteRowRPC extends TDSCommand {
@@ -4884,7 +4884,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     @Override
     public void refreshRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "refreshRow");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
@@ -5322,20 +5322,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             boolean onDone(TDSReader tdsReader) throws SQLServerException {
                 ensureStartMark();
 
-                int token = tdsReader.peekTokenType();
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
-
-                int packetType = tdsReader.peekTokenType();
-                if (-1 != packetType && TDS.TDS_DONEINPROC == token) {
-                    switch (packetType) {
-                        case TDS.TDS_ENV_CHG:
-                        case TDS.TDS_ERR:
-                            return true;
-                        default:
-                            break;
-                    }
-                }
 
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and

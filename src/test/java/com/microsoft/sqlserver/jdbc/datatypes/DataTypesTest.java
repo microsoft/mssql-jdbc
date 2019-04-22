@@ -3,13 +3,11 @@ package com.microsoft.sqlserver.jdbc.datatypes;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.Date;
-import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -19,15 +17,14 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DateFormatSymbols;
-import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Calendar;
 import java.util.EnumSet;
-import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -42,6 +39,8 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 import microsoft.sql.DateTimeOffset;
 
@@ -204,8 +203,6 @@ public class DataTypesTest extends AbstractTest {
         }
 
         void verifyRSUpdaters(Connection conn) throws Exception {
-            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
-
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
 
@@ -224,8 +221,6 @@ public class DataTypesTest extends AbstractTest {
         }
 
         void verifySetters(Connection conn) throws Exception {
-            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
-
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
                 stmt.executeUpdate("CREATE TABLE " + escapedTableName + " (col1 " + sqlTypeExpression
@@ -1064,23 +1059,25 @@ public class DataTypesTest extends AbstractTest {
 
     @Test
     public void testResultSetGetters() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = getConnection()) {
             for (TestValue value : TestValue.values())
                 value.sqlValue.verifyRSGetters(conn);
         }
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testResultSetUpdaters() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = getConnection()) {
             for (TestValue value : TestValue.values())
                 value.sqlValue.verifyRSUpdaters(conn);
         }
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testSetters() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDateTime=true")) {
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";sendTimeAsDateTime=true")) {
             for (TestValue value : TestValue.values())
                 value.sqlValue.verifySetters(conn);
         }
@@ -1088,7 +1085,7 @@ public class DataTypesTest extends AbstractTest {
 
     @Test
     public void testCallableStatementGetters() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = getConnection()) {
             for (TestValue value : TestValue.values())
                 value.sqlValue.verifyCSGetters(conn);
         }
@@ -1096,7 +1093,7 @@ public class DataTypesTest extends AbstractTest {
 
     @Test
     public void testResultSetMetaData() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = getConnection()) {
             for (TestValue value : TestValue.values())
                 value.sqlValue.verifyResultSetMetaData(conn);
         }
@@ -1104,7 +1101,7 @@ public class DataTypesTest extends AbstractTest {
 
     @Test
     public void testParameterMetaData() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = getConnection()) {
             for (TestValue value : TestValue.values())
                 value.sqlValue.verifyParameterMetaData(conn);
         } ;
@@ -1115,7 +1112,7 @@ public class DataTypesTest extends AbstractTest {
      */
     @Test
     public void testSendTimestampAsTimeAsDatetime() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropProcedureIfExists(escapedProcName, stmt);
                 stmt.executeUpdate("CREATE PROCEDURE " + escapedProcName + " @argIn time(7), "
@@ -1153,11 +1150,9 @@ public class DataTypesTest extends AbstractTest {
      * double-rounding of fractional seconds
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testDoubleRounding() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
-
-            // create a table with a datetimeoffset column and insert a value in it
-            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
+        try (Connection conn = getConnection()) {
 
             String sql;
             try (Statement stmt = conn.createStatement()) {
@@ -1230,14 +1225,11 @@ public class DataTypesTest extends AbstractTest {
          */
         Locale japaneseImperialLocale = new Locale("ja", "JP", "JP");
         Calendar japaneseImperialCalendar = Calendar.getInstance(japaneseImperialLocale);
-        MessageFormat cal = new MessageFormat(TestResource.getResource("R_noJRESupport"));
-        Object[] msgsArgs = {japaneseImperialLocale.toString()};
-        assumeTrue(GregorianCalendar.class.isInstance(japaneseImperialCalendar), cal.format(msgsArgs));
 
         Locale defaultLocale = Locale.getDefault();
         Locale.setDefault(japaneseImperialLocale);
 
-        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
 
             // Get Gregorian date using Japanese imperial calendar
             try (ResultSet rs = conn.createStatement().executeQuery("SELECT CAST('0821-01-04' AS DATE)")) {
@@ -1326,7 +1318,7 @@ public class DataTypesTest extends AbstractTest {
 
     @Test
     public void testGetString() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
 
             for (StringFormatTestValue testValue : EnumSet.allOf(StringFormatTestValue.class)) {
                 String query = "SELECT " + "CAST('" + testValue.sqlLiteral + "' AS " + testValue.sqlType + "), "
@@ -1350,7 +1342,7 @@ public class DataTypesTest extends AbstractTest {
         Locale locale = Locale.getDefault();
         Locale.setDefault(new Locale("th", "TH"));
 
-        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=true")) {
             // Test setter conversions
             try (PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR(40))")) {
 
@@ -1437,7 +1429,7 @@ public class DataTypesTest extends AbstractTest {
         Timestamp ts;
 
         // Test Java base date (1/1/1970)
-        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=true");
                 PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATETIME)")) {
             ps.setTime(1, java.sql.Time.valueOf("12:34:56"));
 
@@ -1450,7 +1442,7 @@ public class DataTypesTest extends AbstractTest {
         }
 
         // Test SQL Server base date (1/1/1900)
-        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=false");
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false");
                 PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATETIME)")) {
             ps.setTime(1, java.sql.Time.valueOf("12:34:56"));
 
@@ -1466,7 +1458,7 @@ public class DataTypesTest extends AbstractTest {
     // test setTimestamp to DATETIMEOFFSET yields a value in local time with UTC time zone offset (+00:00)
     @Test
     public void testTimestampToDateTimeOffset() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATETIMEOFFSET)")) {
             ps.setTimestamp(1, Timestamp.valueOf("2010-01-06 12:34:56"));
 
@@ -1484,7 +1476,7 @@ public class DataTypesTest extends AbstractTest {
      */
     @Test
     public void testJulianLeapYear() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=true");
                 // PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR)");
                 PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS DATE)")) {
 
@@ -1500,7 +1492,7 @@ public class DataTypesTest extends AbstractTest {
 
     @Test
     public void testGetTimeRounding() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=true");
                 Statement stmt = conn.createStatement()) {
 
             // Test getTime() rounding from TIME(6) SQL type
@@ -1519,7 +1511,7 @@ public class DataTypesTest extends AbstractTest {
 
     @Test
     public void testGregorianCutoverDateTime2() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString + ";sendTimeAsDatetime=true");
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=true");
                 PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR)")) {
             Timestamp ts;
 
@@ -1552,7 +1544,7 @@ public class DataTypesTest extends AbstractTest {
      */
     @Test
     public void testTimestampToDateTime() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString); PreparedStatement ps = conn
+        try (Connection conn = getConnection(); PreparedStatement ps = conn
                 .prepareStatement("SELECT 1 WHERE ?=CAST('2009-12-17 17:00:29' AS DATETIME)")) {
             ps.setTimestamp(1, Timestamp.valueOf("2009-12-17 17:00:29"));
             try (ResultSet rs = ps.executeQuery()) {
@@ -1562,11 +1554,10 @@ public class DataTypesTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testUpdateMisc() throws Exception {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil
                 .getConnection(connectionString + ";sendTimeAsDatetime=true")) {
-
-            assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_skipAzure"));
 
             try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
@@ -1671,20 +1662,19 @@ public class DataTypesTest extends AbstractTest {
             }
         }
     }
-    
+
     /*
-     * SQL Server compatibility level >= 130 (SQL Server 2016 and after) doesn't round up or down equally for
-     * datetime. The rounding logic below represents the actual rounding logic employed by datetime
-     * columns when determining their last millisecond digit.
+     * SQL Server compatibility level >= 130 (SQL Server 2016 and after) doesn't round up or down equally for datetime.
+     * The rounding logic below represents the actual rounding logic employed by datetime columns when determining their
+     * last millisecond digit.
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testDateTimeInsertUpdate() throws Exception {
-        assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_cursorAzureDW"));
-        
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement("INSERT INTO "
-                        + escapedTableName + " VALUES (?)")) {
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                        .prepareStatement("INSERT INTO " + escapedTableName + " VALUES (?)")) {
             TestUtils.dropTableIfExists(escapedTableName, stmt);
 
             stmt.executeUpdate("CREATE TABLE " + escapedTableName + " (c1 datetime)");
@@ -1693,49 +1683,49 @@ public class DataTypesTest extends AbstractTest {
             Instant ist = Instant.parse(testValue2);
             ist = ist.plusNanos(634999949);
             DateTimeOffset dto1 = DateTimeOffset.valueOf(Timestamp.from(ist), 0);
-            
+
             pstmt.setObject(1, dto1);
             pstmt.addBatch();
-            
+
             ist = Instant.parse(testValue2);
             ist = ist.plusNanos(634999950);
             DateTimeOffset dto2 = DateTimeOffset.valueOf(Timestamp.from(ist), 0);
-            
+
             pstmt.setObject(1, dto2);
             pstmt.addBatch();
-            
+
             ist = Instant.parse(testValue2);
             ist = ist.plusNanos(741666649);
             DateTimeOffset dto3 = DateTimeOffset.valueOf(Timestamp.from(ist), 0);
-            
+
             pstmt.setObject(1, dto3);
             pstmt.addBatch();
-            
+
             ist = Instant.parse(testValue2);
             ist = ist.plusNanos(741666650);
             DateTimeOffset dto4 = DateTimeOffset.valueOf(Timestamp.from(ist), 0);
-            
+
             pstmt.setObject(1, dto4);
             pstmt.addBatch();
-            
+
             ist = Instant.parse(testValue2);
             ist = ist.plusNanos(788333349);
             DateTimeOffset dto5 = DateTimeOffset.valueOf(Timestamp.from(ist), 0);
-            
+
             pstmt.setObject(1, dto5);
             pstmt.addBatch();
-            
+
             ist = Instant.parse(testValue2);
             ist = ist.plusNanos(788333350);
             DateTimeOffset dto6 = DateTimeOffset.valueOf(Timestamp.from(ist), 0);
-            
+
             pstmt.setObject(1, dto6);
             pstmt.addBatch();
-            
+
             pstmt.executeBatch();
-            
+
             int serverVersion = conn.getMetaData().getDatabaseMajorVersion();
-            
+
             String[] result = new String[6];
             result[0] = "2012-06-18 10:34:09.633";
             result[1] = "2012-06-18 10:34:09.637";
@@ -1743,7 +1733,7 @@ public class DataTypesTest extends AbstractTest {
             result[3] = "2012-06-18 10:34:09.743";
             result[4] = "2012-06-18 10:34:09.787";
             result[5] = "2012-06-18 10:34:09.79";
-            
+
             String[] resultPre2k16 = new String[6];
             resultPre2k16[0] = "2012-06-18 10:34:09.637";
             resultPre2k16[1] = "2012-06-18 10:34:09.637";
@@ -1751,7 +1741,7 @@ public class DataTypesTest extends AbstractTest {
             resultPre2k16[3] = "2012-06-18 10:34:09.743";
             resultPre2k16[4] = "2012-06-18 10:34:09.787";
             resultPre2k16[5] = "2012-06-18 10:34:09.787";
-            
+
             DateTimeOffset[] dto = new DateTimeOffset[6];
             dto[0] = dto1;
             dto[1] = dto2;
@@ -1759,14 +1749,14 @@ public class DataTypesTest extends AbstractTest {
             dto[3] = dto4;
             dto[4] = dto5;
             dto[5] = dto6;
-            
+
             try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + escapedTableName + " ORDER BY c1")) {
                 if (serverVersion >= 13.0 || TestUtils.isAzure(conn)) {
                     for (int i = 0; i < result.length; i++) {
                         rs.next();
                         assertEquals(rs.getObject(1).toString(), result[i]);
                     }
-                    
+
                     for (int i = 0; i < result.length; i++) {
                         rs.updateObject(1, dto[i]);
                         rs.updateRow();
@@ -1777,7 +1767,7 @@ public class DataTypesTest extends AbstractTest {
                         rs.next();
                         assertEquals(rs.getObject(1).toString(), resultPre2k16[i]);
                     }
-                    
+
                     for (int i = 0; i < result.length; i++) {
                         rs.updateObject(1, dto[i]);
                         rs.updateRow();

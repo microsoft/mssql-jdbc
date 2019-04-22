@@ -9,8 +9,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Properties;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -28,6 +26,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 
 
@@ -42,17 +41,13 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
  */
 public abstract class AbstractTest {
 
-    protected static final Logger logger = Logger.getLogger("AbstractTest");
-    protected static final ThreadLocalRandom random = ThreadLocalRandom.current();
-    protected static final String secretstrJks = "changeit";
+    static String applicationClientID = null;
+    static String applicationKey = null;
+    static String[] keyIDs = null;
 
-    protected static String applicationClientID = null;
-    protected static String applicationKey = null;
-    protected static String[] keyIDs = null;
-
-    protected static String[] jksPaths = null;
-    protected static String[] javaKeyAliases = null;
-    protected static String windowsKeyPath = null;
+    static String[] jksPaths = null;
+    static String[] javaKeyAliases = null;
+    static String windowsKeyPath = null;
 
     protected static SQLServerConnection connection = null;
     protected static ISQLServerDataSource ds = null;
@@ -60,13 +55,8 @@ public abstract class AbstractTest {
     protected static ISQLServerDataSource dsPool = null;
 
     protected static Connection connectionAzure = null;
-
     protected static String connectionString = null;
 
-    protected static Properties info = new Properties();
-
-    private final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
-    private final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     private static boolean _determinedSqlAzureOrSqlServer = false;
     private static boolean _isSqlAzure = false;
     private static boolean _isSqlAzureDW = false;
@@ -83,28 +73,21 @@ public abstract class AbstractTest {
 
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
-        keyIDs = getConfiguredProperty("keyID", "").split(";");
+        keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
+        connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
 
-        connectionString = getConfiguredProperty("mssql_jdbc_test_connection_properties");
         ds = updateDataSource(new SQLServerDataSource());
         dsXA = updateDataSource(new SQLServerXADataSource());
         dsPool = updateDataSource(new SQLServerConnectionPoolDataSource());
 
-        jksPaths = getConfiguredProperty("jksPaths", "").split(";");
-        javaKeyAliases = getConfiguredProperty("javaKeyAliases", "").split(";");
-        windowsKeyPath = getConfiguredProperty("windowsKeyPath");
-
-        // info.setProperty("ColumnEncryptionSetting", "Enabled"); // May be we
-        // can use parameterized way to change this value
-        if (!jksPaths[0].isEmpty()) {
-            info.setProperty("keyStoreAuthentication", "JavaKeyStorePassword");
-            info.setProperty("keyStoreLocation", jksPaths[0]);
-            info.setProperty("keyStoreSecret", secretstrJks);
-        }
-
         try {
-            Assertions.assertNotNull(connectionString, "Connection String should not be null");
-            connection = PrepUtil.getConnection(connectionString, info);
+            Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
+            Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
+            if (!SQLServerDriver.isRegistered())
+                SQLServerDriver.register();
+            if (null == connection || connection.isClosed()) {
+                connection = getConnection();
+            }
             isSqlAzureOrAzureDW(connection);
         } catch (Exception e) {
             throw e;
@@ -119,63 +102,65 @@ public abstract class AbstractTest {
      *        DataSource to be configured
      * @return ISQLServerDataSource
      */
-    private static ISQLServerDataSource updateDataSource(ISQLServerDataSource ds) {
-        String prefix = "jdbc:sqlserver://";
-        if (null != connectionString && connectionString.startsWith(prefix)) {
-            String extract = connectionString.substring(prefix.length());
-            String[] identifiers = extract.split(";");
+    protected static ISQLServerDataSource updateDataSource(ISQLServerDataSource ds) {
+        if (null != connectionString && connectionString.startsWith(Constants.JDBC_PREFIX)) {
+            String extract = connectionString.substring(Constants.JDBC_PREFIX.length());
+            String[] identifiers = extract.split(Constants.SEMI_COLON);
             String server = identifiers[0];
+
             // Check if serverName contains instance name
-            if (server.contains("\\")) {
-                int i = identifiers[0].indexOf('\\');
+            if (server.contains(Constants.BACK_SLASH)) {
+                int i = identifiers[0].indexOf(Constants.BACK_SLASH);
                 ds.setServerName(extractPort(server.substring(0, i), ds));
                 ds.setInstanceName(server.substring(i + 1));
             } else {
                 ds.setServerName(extractPort(server, ds));
             }
             for (String prop : identifiers) {
-                if (prop.contains("=")) {
-                    int index = prop.indexOf("=");
+                if (prop.contains(Constants.EQUAL_TO)) {
+                    int index = prop.indexOf(Constants.EQUAL_TO);
                     String name = prop.substring(0, index);
                     String value = prop.substring(index + 1);
                     switch (name.toUpperCase()) {
-                        case "USER":
-                        case "USERNAME":
+                        case Constants.INTEGRATED_SECURITY:
+                            ds.setIntegratedSecurity(Boolean.parseBoolean(value));
+                        case Constants.USER:
+                        case Constants.USER_NAME:
                             ds.setUser(value);
                             break;
-                        case "PORT":
-                        case "PORTNUMBER":
+                        case Constants.PORT:
+                        case Constants.PORT_NUMBER:
                             ds.setPortNumber(Integer.parseInt(value));
                             break;
-                        case "PASSWORD":
+                        case Constants.PASSWORD:
                             ds.setPassword(value);
                             break;
-                        case "DATABASE":
-                        case "DATABASENAME":
+                        case Constants.DATABASE:
+                        case Constants.DATABASE_NAME:
                             ds.setDatabaseName(value);
                             break;
-                        case "COLUMNENCRYPTIONSETTING":
+                        case Constants.COLUMN_ENCRYPTION_SETTING:
                             ds.setColumnEncryptionSetting(value);
                             break;
-                        case "DISABLESTATEMENTPOOLING":
+                        case Constants.DISABLE_STATEMENT_POOLING:
                             ds.setDisableStatementPooling(Boolean.parseBoolean(value));
                             break;
-                        case "STATEMENTPOOLINGCACHESIZE":
+                        case Constants.STATEMENT_POOLING_CACHE_SIZE:
                             ds.setStatementPoolingCacheSize(Integer.parseInt(value));
                             break;
-                        case "AUTHENTICATION":
+                        case Constants.AUTHENTICATION:
                             ds.setAuthentication(value);
                             break;
-                        case "AUTHENTICATIONSCHEME":
+                        case Constants.AUTHENTICATION_SCHEME:
                             ds.setAuthenticationScheme(value);
                             break;
-                        case "CANCELQUERYTIMEOUT":
+                        case Constants.CANCEL_QUERY_TIMEOUT:
                             ds.setCancelQueryTimeout(Integer.parseInt(value));
                             break;
-                        case "ENCRYPT":
+                        case Constants.ENCRYPT:
                             ds.setEncrypt(Boolean.parseBoolean(value));
                             break;
-                        case "HOSTNAMEINCERTIFICATE":
+                        case Constants.HOST_NAME_IN_CERTIFICATE:
                             ds.setHostNameInCertificate(value);
                             break;
                         default:
@@ -188,9 +173,9 @@ public abstract class AbstractTest {
     }
 
     static String extractPort(String server, ISQLServerDataSource ds) {
-        if (server.contains(":")) {
-            ds.setPortNumber(Integer.parseInt(server.substring(server.indexOf(":") + 1)));
-            server = server.substring(0, server.indexOf(":"));
+        if (server.contains(Constants.COLON)) {
+            ds.setPortNumber(Integer.parseInt(server.substring(server.indexOf(Constants.COLON) + 1)));
+            server = server.substring(0, server.indexOf(Constants.COLON));
         }
         return server;
     }
@@ -205,6 +190,16 @@ public abstract class AbstractTest {
     }
 
     /**
+     * Retrieves connection using default configured connection string
+     * 
+     * @return
+     * @throws SQLException
+     */
+    protected static SQLServerConnection getConnection() throws SQLException {
+        return PrepUtil.getConnection(connectionString);
+    }
+
+    /**
      * This will take care of all clean ups after running the Test Suite.
      * 
      * @throws Exception
@@ -212,19 +207,12 @@ public abstract class AbstractTest {
     @AfterAll
     public static void teardown() throws Exception {
         try {
-            if (connection != null && !connection.isClosed()) {
+            if (null != connection && !connection.isClosed()) {
                 connection.close();
             }
-        } catch (Exception e) {
-            connection.close();
         } finally {
             connection = null;
         }
-    }
-
-    @BeforeAll
-    public static void registerDriver() throws Exception {
-        SQLServerDriver.register();
     }
 
     /**
@@ -253,33 +241,32 @@ public abstract class AbstractTest {
     public static void invokeLogging() {
         Handler handler = null;
 
-        String enableLogging = getConfiguredProperty("mssql_jdbc_logging", "false");
+        String enableLogging = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING, Boolean.FALSE.toString());
 
         // If logging is not enable then return.
-        if (!"true".equalsIgnoreCase(enableLogging)) {
+        if (!Boolean.TRUE.toString().equalsIgnoreCase(enableLogging)) {
             return;
         }
 
-        String loggingHandler = getConfiguredProperty("mssql_jdbc_logging_handler", "not_configured");
+        String loggingHandler = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING_HANDLER, "not_configured");
 
         try {
-            // handler = new FileHandler("Driver.log");
-            if ("console".equalsIgnoreCase(loggingHandler)) {
+            if (Constants.LOGGING_HANDLER_CONSOLE.equalsIgnoreCase(loggingHandler)) {
                 handler = new ConsoleHandler();
-            } else if ("file".equalsIgnoreCase(loggingHandler)) {
-                handler = new FileHandler("Driver.log");
+            } else if (Constants.LOGGING_HANDLER_FILE.equalsIgnoreCase(loggingHandler)) {
+                handler = new FileHandler(Constants.DEFAULT_DRIVER_LOG);
                 System.out.println("Look for Driver.log file in your classpath for detail logs");
             }
 
             if (handler != null) {
                 handler.setFormatter(new SimpleFormatter());
                 handler.setLevel(Level.FINEST);
-                Logger.getLogger("").addHandler(handler);
+                Logger.getLogger(Constants.MSSQL_JDBC_LOGGING_HANDLER).addHandler(handler);
             }
             // By default, Loggers also send their output to their parent logger.
             // Typically the root Logger is configured with a set of Handlers that essentially act as default handlers
             // for all loggers.
-            Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc");
+            Logger logger = Logger.getLogger(Constants.MSSQL_JDBC_PACKAGE);
             logger.setLevel(Level.FINEST);
         } catch (Exception e) {
             System.err.println("Some how could not invoke logging: " + e.getMessage());
@@ -311,9 +298,9 @@ public abstract class AbstractTest {
                 ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
             rs.next();
             int engineEdition = rs.getInt(1);
-            _isSqlAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
-                    || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
-            _isSqlAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            _isSqlAzure = (engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE
+                    || engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            _isSqlAzureDW = (engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
             _determinedSqlAzureOrSqlServer = true;
         }
     }
