@@ -113,28 +113,11 @@ public class ParameterMetaDataTest extends AbstractTest {
             ParameterMetaData pmd2 = stmt2.getParameterMetaData();
             assertEquals(pmd1.getParameterCount(), pmd2.getParameterCount());
             for (int i = 1; i <= pmd1.getParameterCount(); i++) {
-
-                System.out.println(pmd1.getParameterClassName(i));
-                System.out.println(pmd2.getParameterClassName(i));
                 assertEquals(pmd1.getParameterClassName(i), pmd2.getParameterClassName(i));
-
-                System.out.println(pmd1.getParameterMode(i));
-                System.out.println(pmd2.getParameterMode(i));
                 assertEquals(pmd1.getParameterMode(i), pmd2.getParameterMode(i));
-                System.out.println(pmd1.getParameterType(i));
-                System.out.println(pmd2.getParameterType(i));
                 assertEquals(pmd1.getParameterType(i), pmd2.getParameterType(i));
-
-                System.out.println(pmd1.getParameterTypeName(i));
-                System.out.println(pmd2.getParameterTypeName(i));
-                assertEquals(pmd1.getParameterTypeName(i), pmd2.getParameterTypeName(i));;
-
-                System.out.println(pmd1.getPrecision(i));
-                System.out.println(pmd2.getPrecision(i));
-                assertEquals(pmd1.getPrecision(i), pmd2.getPrecision(i));;
-
-                System.out.println(pmd1.getScale(i));
-                System.out.println(pmd2.getScale(i) + "\n");
+                assertEquals(pmd1.getParameterTypeName(i), pmd2.getParameterTypeName(i));
+                assertEquals(pmd1.getPrecision(i), pmd2.getPrecision(i));
                 assertEquals(pmd1.getScale(i), pmd2.getScale(i));
             }
         } catch (SQLException e) {
