@@ -81,7 +81,7 @@ public class SelectTest extends AbstractTest {
         // Multiple Selects
         valuePair.add(Pair.of("SELECT * FROM table1;SELECT * FROM table2", "table1,table2"));
         valuePair.add(Pair.of("SELECT * FROM table1;SELECT * FROM table1", "table1"));
-        
+
         valuePair.forEach(p -> assertEquals(p.getRight(), ParserUtils.getTableName(p.getLeft()).trim()));
     }
 
@@ -117,13 +117,17 @@ public class SelectTest extends AbstractTest {
         valuePair.add(Pair.of("SELECT * INTO dbo.NewProducts FROM Production.Product "
                 + "WHERE ListPrice > $25 AND ListPrice < $100;", "Production . Product"));
         // E. Using correlated subqueries
-        valuePair.add(Pair.of("SELECT DISTINCT Name\r\n" + "FROM Production.Product AS p WHERE EXISTS "
-                + "    (SELECT * FROM Production.ProductModel AS pm "
-                + "     WHERE p.ProductModelID = pm.ProductModelID "
-                + "           AND pm.Name LIKE 'Long-Sleeve Logo Jersey%');", "Production . Product AS p,Production . ProductModel AS pm"));
-        valuePair.add(Pair.of("SELECT DISTINCT Name FROM Production.Product WHERE ProductModelID IN "
-                + "    (SELECT ProductModelID FROM Production.ProductModel "
-                + "     WHERE Name LIKE 'Long-Sleeve Logo Jersey%');", "Production . Product,Production . ProductModel"));
+        valuePair.add(Pair.of(
+                "SELECT DISTINCT Name\r\n" + "FROM Production.Product AS p WHERE EXISTS "
+                        + "    (SELECT * FROM Production.ProductModel AS pm "
+                        + "     WHERE p.ProductModelID = pm.ProductModelID "
+                        + "           AND pm.Name LIKE 'Long-Sleeve Logo Jersey%');",
+                "Production . Product AS p,Production . ProductModel AS pm"));
+        valuePair.add(Pair.of(
+                "SELECT DISTINCT Name FROM Production.Product WHERE ProductModelID IN "
+                        + "    (SELECT ProductModelID FROM Production.ProductModel "
+                        + "     WHERE Name LIKE 'Long-Sleeve Logo Jersey%');",
+                "Production . Product,Production . ProductModel"));
         valuePair.add(Pair.of(
                 "SELECT DISTINCT p.LastName, p.FirstName FROM Person.Person AS p "
                         + "JOIN HumanResources.Employee AS e "

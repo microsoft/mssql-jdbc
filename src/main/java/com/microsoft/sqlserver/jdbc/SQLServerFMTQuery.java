@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.Token;
 
+
 class SQLServerFMTQuery {
     private String prefix = "";
     private ArrayList<? extends Token> tokenList = null;

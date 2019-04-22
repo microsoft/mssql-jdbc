@@ -91,7 +91,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** Set to true if the statement is a stored procedure call that expects a return value */
     final boolean bReturnValueSyntax;
-    
+
     private boolean useFmtOnly = this.connection.getUseFmtOnly();
 
     /**
@@ -2865,12 +2865,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
     }
-    
+
     public final void setUseFmtOnly(boolean b) throws SQLServerException {
         checkClosed();
         this.useFmtOnly = b;
     }
-    
+
     final boolean getUseFmtOnly() {
         return this.useFmtOnly;
     }
@@ -3097,7 +3097,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } else {
             loggerExternal.entering(getClassNameLogging(), "getParameterMetaData");
             checkClosed();
-            pmd = new SQLServerParameterMetaData(this,userSQL);
+            pmd = new SQLServerParameterMetaData(this, userSQL);
             connection.registerCachedParameterMetadata(sqlTextCacheKey, pmd);
             loggerExternal.exiting(getClassNameLogging(), "getParameterMetaData", pmd);
             return pmd;

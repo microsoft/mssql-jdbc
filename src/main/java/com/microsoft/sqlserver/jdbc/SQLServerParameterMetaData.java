@@ -317,7 +317,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     for (int j = 0; j < params.get(valueListOffset).size(); j++) {
                         if (params.get(valueListOffset).get(j).equalsIgnoreCase("?")) {
                             if (!md.isAutoIncrement(mdIndex + j)) {
-                                QueryMeta qm = getQueryMetaFromResultSetMetaData(md,mdIndex + j);
+                                QueryMeta qm = getQueryMetaFromResultSetMetaData(md, mdIndex + j);
                                 queryMetaMap.put(mapIndex++, qm);
                                 i++;
                             }
@@ -326,7 +326,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     mdIndex += params.get(valueListOffset).size();
                     valueListOffset++;
                 } else {
-                    QueryMeta qm = getQueryMetaFromResultSetMetaData(md,mdIndex);
+                    QueryMeta qm = getQueryMetaFromResultSetMetaData(md, mdIndex);
                     queryMetaMap.put(mapIndex++, qm);
                     mdIndex++;
                 }
@@ -335,7 +335,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), e);
         }
     }
-    
+
     private QueryMeta getQueryMetaFromResultSetMetaData(ResultSetMetaData md, int index) throws SQLException {
         QueryMeta qm = new QueryMeta();
         qm.parameterClassName = md.getColumnClassName(index);
@@ -640,7 +640,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 } else {
                     SQLServerFMTQuery f = new SQLServerFMTQuery(sProcString);
                     try (SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
-                        ResultSet rs = stmt.executeQuery(f.getFMTQuery())) {
+                            ResultSet rs = stmt.executeQuery(f.getFMTQuery())) {
                         parseFMTQueryMeta(rs.getMetaData(), f);
                     }
                 }

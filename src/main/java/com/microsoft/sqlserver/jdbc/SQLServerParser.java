@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.NoSuchElementException;
 import java.util.Stack;
 import org.antlr.v4.runtime.Token;
 
