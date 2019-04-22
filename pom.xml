@@ -49,7 +49,7 @@
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv14) -->
-		<excludeGroups>xSQLv15</excludeGroups>
+		<excludedGroups>xSQLv15</excludedGroups>
 
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.1</azure.keyvault.version>
@@ -181,7 +181,7 @@
 
 	<profiles>
 		<profile>
-			<id>build42</id>
+			<id>jre8</id>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
 				<plugins>
@@ -215,48 +215,19 @@
 						</configuration>
 					</plugin>
 					<plugin>
-						<groupId>org.jacoco</groupId>
-						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.8.3</version>
-						<executions>
-							<execution>
-								<id>pre-test</id>
-								<goals>
-									<goal>prepare-agent</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>report</id>
-								<phase>test</phase>
-								<goals>
-									<goal>report</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
 						<version>3.0.0-M1</version>
 						<configuration>
-							<argLine>
-								${argLine} --illegal-access=permit
-							</argLine>
-							<properties>
-								<excludeTags>${skipTestTag}</excludeTags>
-							</properties>
 							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
-							<excludedGroups>${excludeGroups}, xJDBC42</excludedGroups>
+							<excludedGroups>${excludedGroups}, xJDBC42</excludedGroups>
 						</configuration>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
 		<profile>
-			<id>build43</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
+			<id>jre11</id>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre11-preview</finalName>
 				<plugins>
@@ -285,39 +256,40 @@
 							</archive>
 						</configuration>
 					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>jre12</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<build>
+				<finalName>${project.artifactId}-${project.version}.jre11-preview</finalName>
+				<plugins>
 					<plugin>
-						<groupId>org.jacoco</groupId>
-						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.8.3</version>
-						<executions>
-							<execution>
-								<id>pre-test</id>
-								<goals>
-									<goal>prepare-agent</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>report</id>
-								<phase>test</phase>
-								<goals>
-									<goal>report</goal>
-								</goals>
-							</execution>
-						</executions>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.8.0</version>
+						<configuration>
+							<excludes>
+								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
+							</excludes>
+							<source>12</source>
+							<target>12</target>
+						</configuration>
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>3.0.0-M1</version>
+						<artifactId>maven-jar-plugin</artifactId>
+						<version>3.1.1</version>
 						<configuration>
-							<argLine>
-								${argLine} --illegal-access=permit
-							</argLine>
-							<properties>
-								<excludeTags>${skipTestTag}</excludeTags>
-							</properties>
-							<excludedGroups>
-								${excludeGroups}</excludedGroups>
+							<archive>
+								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+								<manifestEntries>
+									<Automatic-Module-Name>com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
+								</manifestEntries>
+							</archive>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -380,6 +352,18 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.0.0-M1</version>
+				<configuration>
+					<argLine>
+						${argLine} --illegal-access=permit
+					</argLine>
+					<excludedGroups>
+						${excludedGroups}</excludedGroups>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -453,6 +437,21 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.3</version>
+				<executions>
+					<execution>
+						<id>pre-test</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
 				<configuration>
 					<fileSets>
 						<fileSet>
