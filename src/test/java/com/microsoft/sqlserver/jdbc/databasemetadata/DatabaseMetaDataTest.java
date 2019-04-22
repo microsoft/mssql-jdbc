@@ -422,9 +422,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
     public void testGetFunctionsWithWrongParams() throws SQLException {
         try (Connection conn = getConnection()) {
             conn.getMetaData().getFunctions("", null, "xp_%");
-            assertTrue(false, TestResource.getResource("R_noSchemaShouldFail"));
-        } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+            fail(TestResource.getResource("R_noSchemaShouldFail"));
+        } catch (SQLException e) {
+            assert (e.getMessage().contains(TestResource.getResource("R_invalidArgumentCatalog")));
         }
     }
 
