@@ -271,9 +271,6 @@ public abstract class AbstractTest {
                 Logger.getLogger(Constants.MSSQL_JDBC_LOGGING_HANDLER).addHandler(handler);
             }
 
-            // enable activity trace
-            TestUtils.setActivityTraceOn();
-
             /*
              * By default, Loggers also send their output to their parent logger. Typically the root Logger is
              * configured with a set of Handlers that essentially act as default handlers for all loggers.

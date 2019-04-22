@@ -10,8 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -23,7 +21,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.logging.LogManager;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -74,15 +71,14 @@ public class TestUtils {
     private static Boolean isAzureDW = null;
     private static Boolean isAzureMI = null;
 
-    /**
-     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure. It should return 6
-     * for SQL Azure DW. This is more reliable than @@version or serverproperty('edition'). Reference:
-     * http://msdn.microsoft.com/en-us/library/ee336261.aspx
+    /*
+     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
+     * It should return 6 for SQL Azure DW. This is more reliable than @@version or
+     * serverproperty('edition').
+     * Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
      * 
-     * SERVERPROPERTY('EngineEdition') means Database Engine edition of the instance of SQL Server installed on the
-     * server.
-     * 
-     * <pre>
+     * SERVERPROPERTY('EngineEdition') means
+     * Database Engine edition of the instance of SQL Server installed on the server.
      * 1 = Personal or Desktop Engine (Not available for SQL Server.)
      * 2 = Standard (This is returned for Standard and Workgroup.)
      * 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
@@ -91,7 +87,6 @@ public class TestUtils {
      * 6 = SQL Azure DW
      * 8 = Managed Instance
      * Base data type: int
-     * </pre>
      */
     public static boolean isAzure(Connection con) {
         if (null == isAzure) {
@@ -705,19 +700,5 @@ public class TestUtils {
      */
     public static String escapeSingleQuotes(String name) {
         return name.replace("'", "''");
-    }
-
-    /**
-     * Enables Activity Tracing
-     * 
-     * @throws IOException
-     * @throws SecurityException
-     */
-    public static void setActivityTraceOn() throws SecurityException, IOException {
-        String activityIDTraceOn = Util.ACTIVITY_ID_TRACE_PROPERTY + "=on";
-        try (InputStream is = new ByteArrayInputStream(activityIDTraceOn.getBytes());) {
-            LogManager lm = LogManager.getLogManager();
-            lm.readConfiguration(is);
-        }
     }
 }
