@@ -42,7 +42,10 @@ public class ErrorStateTest extends AbstractTest {
             stmt.execute("RAISERROR (13002, -1, " + state + ", N'Testing error');");
         } catch (SQLException e) {
             assert (e.getSQLState().length() == 5);
-            assert (e.getSQLState().equalsIgnoreCase("S00" + state));
+            if (isSqlAzureDW()) {
+                assert (e.getSQLState().equalsIgnoreCase("S0001"));
+            } else
+                assert (e.getSQLState().equalsIgnoreCase("S00" + state));
         }
     }
 
@@ -53,7 +56,10 @@ public class ErrorStateTest extends AbstractTest {
             stmt.execute("RAISERROR (13003, -1, " + state + ", N'Testing error');");
         } catch (SQLException e) {
             assert (e.getSQLState().length() == 5);
-            assert (e.getSQLState().equalsIgnoreCase("S0" + state));
+            if (isSqlAzureDW()) {
+                assert (e.getSQLState().equalsIgnoreCase("S0001"));
+            } else
+                assert (e.getSQLState().equalsIgnoreCase("S0" + state));
         }
     }
 }
