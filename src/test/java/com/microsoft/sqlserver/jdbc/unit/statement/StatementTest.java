@@ -950,6 +950,77 @@ public class StatementTest extends AbstractTest {
         }
 
         @Test
+        public void testMaxFetchSize() throws SQLException {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+
+                // Default value should return zero
+                long actual = stmt.getMaxFieldSize();
+                assertEquals(actual, (long) 0, "getMaxFieldSize():" + TestResource.getResource("R_incorrectDefault"));
+
+                // Set a new value less than MAX_VALUE, and then get the modified value
+                int newValue = 2012;
+                stmt.setMaxFieldSize(newValue);
+                actual = stmt.getMaxFieldSize();
+                assertEquals(actual, newValue, "MaxFieldSize() : set/get problem");
+
+                // execute a statement with this new max field size
+                stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
+
+                // Set a new value greater than MAX_VALUE, and then get the modified value
+                // SQL Server only supports integer limits for setting max rows
+                // If the value MAX_VALUE + 1 is accepted, throw exception
+                try {
+                    newValue = Integer.MAX_VALUE + 1;
+                    stmt.setMaxFieldSize(newValue);
+                    throw new SQLException("setMaxFieldSize(): max values should not be set");
+                } catch (Exception e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidLength")));
+                }
+            }
+        }
+
+        @Test
+        public void testMaxRows() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+
+                // Default value should return zero
+                long actual = stmt.getMaxRows();
+                assertEquals(actual, (long) 0, "getMaxRows():" + TestResource.getResource("R_incorrectDefault"));
+
+                // Set a new value less than MAX_VALUE, and then get the modified value
+                int newValue = 2012;
+                stmt.setMaxRows(newValue);
+                actual = stmt.getMaxRows();
+                assertEquals(actual, newValue, "MaxRows() : set/get problem");
+
+                // execute a statement with this new max field size
+                stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
+
+                // Set a new value greater than MAX_VALUE, and then get the modified value
+                // SQL Server only supports integer limits for setting max rows
+                // If the value MAX_VALUE + 1 is accepted, throw exception
+                try {
+                    newValue = Integer.MAX_VALUE + 1;
+                    stmt.setMaxRows(newValue);
+                    throw new SQLException("setMaxRows(): Long values should not be set");
+                } catch (Exception e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidRowcount")));
+                }
+
+                // Set a negative value. If negative is accepted, throw exception
+                try {
+                    stmt.setMaxRows(-2012);
+                    throw new SQLException("setMaxRows():  Negative value not allowed");
+                } catch (Exception e) {
+                    assertTrue(
+                            e.getMessage()
+                                    .contains("The maximum row count -2,012 for a result set must be non-negative."),
+                            TestResource.getResource("R_unexpectedException"));
+                }
+            }
+        }
+
+        @Test
         public void testLargeMaxRows() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 

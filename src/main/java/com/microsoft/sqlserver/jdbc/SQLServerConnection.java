@@ -153,10 +153,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Return an existing cached SharedTimer associated with this Connection or create a new one.
      *
      * The SharedTimer will be released when the Connection is closed.
+     * 
+     * @throws SQLServerException
      */
-    SharedTimer getSharedTimer() {
+    SharedTimer getSharedTimer() throws SQLServerException {
         if (state == State.Closed) {
-            throw new IllegalStateException("Connection is closed");
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
+                    null, false);
+
         }
         if (sharedTimer == null) {
             this.sharedTimer = SharedTimer.getTimer();
@@ -2564,7 +2568,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             long seqNum = activityId.getSequence();
             Util.writeInt((int) seqNum, preloginRequest, offset);
             offset += 4;
-            
+
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " ActivityId " + activityId.toString());
             }
@@ -6249,31 +6253,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
     }
-    
+
     /*
-     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
-     * It should return 6 for SQL Azure DW. This is more reliable than @@version or
-     * serverproperty('edition').
-     * Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
-     * 
-     * SERVERPROPERTY('EngineEdition') means
-     * Database Engine edition of the instance of SQL Server installed on the server.
-     * 1 = Personal or Desktop Engine (Not available for SQL Server.)
-     * 2 = Standard (This is returned for Standard and Workgroup.)
-     * 3 = Enterprise (This is returned for Enterprise, Enterprise Evaluation, and Developer.)
-     * 4 = Express (This is returned for Express, Express with Advanced Services, and Windows Embedded SQL.)
-     * 5 = SQL Azure
-     * 6 = SQL Azure DW
-     * 8 = Managed Instance
-     * Base data type: int
+     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure. It should return 6
+     * for SQL Azure DW. This is more reliable than @@version or serverproperty('edition'). Reference:
+     * http://msdn.microsoft.com/en-us/library/ee336261.aspx SERVERPROPERTY('EngineEdition') means Database Engine
+     * edition of the instance of SQL Server installed on the server. 1 = Personal or Desktop Engine (Not available for
+     * SQL Server.) 2 = Standard (This is returned for Standard and Workgroup.) 3 = Enterprise (This is returned for
+     * Enterprise, Enterprise Evaluation, and Developer.) 4 = Express (This is returned for Express, Express with
+     * Advanced Services, and Windows Embedded SQL.) 5 = SQL Azure 6 = SQL Azure DW 8 = Managed Instance Base data type:
+     * int
      */
     boolean isAzure() {
         if (null == isAzure) {
-            try (Statement stmt = this.createStatement(); ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
+            try (Statement stmt = this.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
                 rs.next();
 
                 int engineEdition = rs.getInt(1);
-                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
+                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
+                        || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW
+                        || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
                 isAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
                 isAzureMI = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
 
