@@ -423,7 +423,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             conn.getMetaData().getFunctions("", null, "xp_%");
             assertTrue(false, TestResource.getResource("R_noSchemaShouldFail"));
-        } catch (Exception ae) {}
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
     }
 
     /**
@@ -545,6 +547,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testGetMaxConnections() throws SQLException {
         try (Statement stmt = connection.createStatement(); ResultSet rs = stmt
                 .executeQuery("select maximum from sys.configurations where name = 'user connections'")) {
