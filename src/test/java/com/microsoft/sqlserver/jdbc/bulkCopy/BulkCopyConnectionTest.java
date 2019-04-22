@@ -17,6 +17,7 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.platform.runner.JUnitPlatform;
@@ -41,6 +42,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      * @return
      */
     @TestFactory
+    @Tag(Constants.xAzureSQLDW)
     public Stream<DynamicTest> generateBulkCopyConstructorTest() {
         List<BulkCopyTestWrapper> testData = createTestDatatestBulkCopyConstructor();
         // had to avoid using lambdas as we need to test against java7
@@ -64,6 +66,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      * @return
      */
     @TestFactory
+    @Tag(Constants.xAzureSQLDW)
     public Stream<DynamicTest> generateBulkCopyOptionsTest() {
         List<BulkCopyTestWrapper> testData = createTestDatatestBulkCopyOption();
         return testData.stream().map(new Function<BulkCopyTestWrapper, DynamicTest>() {
@@ -151,6 +154,7 @@ public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
      */
     @Test
     @DisplayName("BulkCopy:test null SQLServerBulkCopyOptions")
+    @Tag(Constants.xAzureSQLDW)
     public void testEmptyBulkCopyOptions() {
         BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
         bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
