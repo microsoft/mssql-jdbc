@@ -33,9 +33,8 @@ public class ParameterMetaDataTest extends AbstractTest {
                     + "(cBigint bigint, cNumeric numeric, cBit bit, cSmallint smallint, cDecimal decimal, "
                     + "cSmallmoney smallmoney, cInt int, cTinyint tinyint, cMoney money, cFloat float, cReal real, "
                     + "cDate date, cDatetimeoffset datetimeoffset, cDatetime2 datetime2, cSmalldatetime smalldatetime, "
-                    + "cDatetime datetime, cTime time, cChar char, cVarchar varchar(max), cText text, cNchar nchar, "
-                    + "cNvarchar nvarchar(4000), cNtext ntext, cBinary binary, cVarbinary varbinary(max), "
-                    + "cImage image)");
+                    + "cDatetime datetime, cTime time, cChar char, cVarchar varchar(8000), cNchar nchar, "
+                    + "cNvarchar nvarchar(4000), cBinary binary, cVarbinary varbinary(8000))");
         }
     }
 
@@ -55,7 +54,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                 "SELECT TOP 20 * FROM " + tableName + " WHERE cReal = ?",
                 "SELECT TOP(20) PERCENT WITH TIES * FROM " + tableName
                         + " WHERE cInt BETWEEN ? AND ? AND ? = cChar ORDER BY cDecimal ASC",
-                "INSERT " + tableName + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT " + tableName + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 "INSERT " + tableName + "(cInt,cVarchar,cNvarchar) VALUES(?,?,?)",
                 "INSERT " + tableName + "(cInt,cVarchar,cNvarchar) VALUES(?,?,?),(?,?,?),(?,?,?)",
                 "DELETE " + tableName + " WHERE cFloat >= ? AND ? <= cInt",
