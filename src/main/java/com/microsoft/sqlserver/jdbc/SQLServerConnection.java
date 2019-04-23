@@ -281,7 +281,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
          *         associated with it. true: Reference was successfully added.
          */
         boolean tryAddReference() {
-            return isDiscarded() || isExplicitlyDiscarded() ? false : handleRefCount.incrementAndGet() > 0;
+            return (isDiscarded() || isExplicitlyDiscarded()) ? false : handleRefCount.incrementAndGet() > 0;
         }
 
         /** Remove a reference from this handle */
@@ -703,12 +703,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     static synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalSystemColumnEncryptionKeyStoreProvider(
             String providerName) {
-        return null != globalSystemColumnEncryptionKeyStoreProviders && globalSystemColumnEncryptionKeyStoreProviders
-                .containsKey(providerName) ? globalSystemColumnEncryptionKeyStoreProviders.get(providerName) : null;
+        return (null != globalSystemColumnEncryptionKeyStoreProviders && globalSystemColumnEncryptionKeyStoreProviders
+                .containsKey(providerName)) ? globalSystemColumnEncryptionKeyStoreProviders.get(providerName) : null;
     }
 
     static synchronized String getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders() {
-        return null != globalCustomColumnEncryptionKeyStoreProviders ? globalCustomColumnEncryptionKeyStoreProviders
+        return (null != globalCustomColumnEncryptionKeyStoreProviders) ? globalCustomColumnEncryptionKeyStoreProviders
                 .keySet().toString() : null;
     }
 
@@ -723,14 +723,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     static synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalCustomColumnEncryptionKeyStoreProvider(
             String providerName) {
-        return null != globalCustomColumnEncryptionKeyStoreProviders && globalCustomColumnEncryptionKeyStoreProviders
-                .containsKey(providerName) ? globalCustomColumnEncryptionKeyStoreProviders.get(providerName) : null;
+        return (null != globalCustomColumnEncryptionKeyStoreProviders && globalCustomColumnEncryptionKeyStoreProviders
+                .containsKey(providerName)) ? globalCustomColumnEncryptionKeyStoreProviders.get(providerName) : null;
     }
 
     synchronized SQLServerColumnEncryptionKeyStoreProvider getSystemColumnEncryptionKeyStoreProvider(
             String providerName) {
-        return null != systemColumnEncryptionKeyStoreProvider && systemColumnEncryptionKeyStoreProvider
-                .containsKey(providerName) ? systemColumnEncryptionKeyStoreProvider.get(providerName) : null;
+        return (null != systemColumnEncryptionKeyStoreProvider && systemColumnEncryptionKeyStoreProvider
+                .containsKey(providerName)) ? systemColumnEncryptionKeyStoreProvider.get(providerName) : null;
     }
 
     private String trustedServerNameAE = null;
@@ -1089,7 +1089,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Returns if Federated Authentication is in use or is about to expire soon
      */
     protected boolean needsReconnect() throws SQLServerException {
-        return null != fedAuthToken && Util.checkIfNeedNewAccessToken(this, fedAuthToken.expiresOn);
+        return (null != fedAuthToken && Util.checkIfNeedNewAccessToken(this, fedAuthToken.expiresOn));
     }
 
     /**
@@ -1267,16 +1267,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             String hostNameInCertificate = activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
 
-            // hostNameInCertificate property can change when redirection is involved, so maintain this value
-            // for every instance of SQLServerConnection.
+            /*
+             * hostNameInCertificate property can change when redirection is involved, so maintain this value for every
+             * instance of SQLServerConnection.
+             */
             if (null == originalHostNameInCertificate && null != hostNameInCertificate
                     && !hostNameInCertificate.isEmpty()) {
                 originalHostNameInCertificate = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
             }
 
-            // if hostNameInCertificate has a legitimate value (and not empty or null),
-            // reset hostNameInCertificate to the original value every time we connect (or re-connect).
+            /*
+             * if hostNameInCertificate has a legitimate value (and not empty or null), reset hostNameInCertificate to
+             * the original value every time we connect (or re-connect).
+             */
             if (null != originalHostNameInCertificate && !originalHostNameInCertificate.isEmpty()) {
                 activeConnectionProperties.setProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(),
                         originalHostNameInCertificate);
@@ -1741,9 +1745,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // have to check for null before calling isBooleanPropertyOn, because isBooleanPropertyOn
             // assumes that the null property defaults to false.
             sPropKey = SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString();
-            sendStringParametersAsUnicode = null == activeConnectionProperties.getProperty(
-                    sPropKey) ? SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue()
-                              : isBooleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
+            sendStringParametersAsUnicode = (null == activeConnectionProperties.getProperty(
+                    sPropKey)) ? SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue()
+                               : isBooleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
 
             sPropKey = SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString();
             lastUpdateCount = isBooleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
@@ -1751,10 +1755,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             xopenStates = isBooleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
 
             sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
-            responseBuffering = activeConnectionProperties.getProperty(sPropKey) != null
-                                                                                         ? activeConnectionProperties
-                                                                                                 .getProperty(sPropKey)
-                                                                                         : null;
+            responseBuffering = (null != activeConnectionProperties.getProperty(sPropKey)
+                    && activeConnectionProperties.getProperty(sPropKey).length() > 0)
+                                                                                      ? activeConnectionProperties
+                                                                                              .getProperty(sPropKey)
+                                                                                      : null;
 
             sPropKey = SQLServerDriverIntProperty.LOCK_TIMEOUT.toString();
             int defaultLockTimeOut = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
@@ -1927,7 +1932,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             SQLServerException.getErrString("R_failoverPartnerWithoutDB"), null, true);
             }
 
-            String mirror = null == fo ? failOverPartnerPropertyValue : null;
+            String mirror = (null == fo) ? failOverPartnerPropertyValue : null;
 
             long startTime = System.currentTimeMillis();
             login(activeConnectionProperties.getProperty(serverNameProperty), instanceValue, nPort, mirror, fo,
@@ -2345,7 +2350,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     static boolean timerHasExpired(long timerExpire) {
-        return System.currentTimeMillis() > timerExpire;
+        return (System.currentTimeMillis() > timerExpire);
     }
 
     /**
@@ -4521,7 +4526,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    /**
+    /*
      * Executes a DTC command
      */
     private void executeDTCCommand(int requestType, byte[] payload, String logContext) throws SQLServerException {
@@ -4729,11 +4734,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String interfaceLibName = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor;
         String databaseName = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
-        String serverName = null != currentConnectPlaceHolder ? currentConnectPlaceHolder.getServerName()
-                                                              : activeConnectionProperties.getProperty(
-                                                                      SQLServerDriverStringProperty.SERVER_NAME
-                                                                              .toString());
-        if (serverName != null && serverName.length() > 128) {
+        String serverName = (null != currentConnectPlaceHolder) ? currentConnectPlaceHolder.getServerName()
+                                                                : activeConnectionProperties.getProperty(
+                                                                        SQLServerDriverStringProperty.SERVER_NAME
+                                                                                .toString());
+        if (null != serverName && serverName.length() > 128) {
             serverName = serverName.substring(0, 128);
         }
 
@@ -4748,7 +4753,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         byte hostnameBytes[] = toUCS16(hostName);
         byte userBytes[] = toUCS16(sUser);
         byte passwordBytes[] = encryptPassword(sPwd);
-        int passwordLen = passwordBytes != null ? passwordBytes.length : 0;
+        int passwordLen = (null != passwordBytes) ? passwordBytes.length : 0;
         byte appNameBytes[] = toUCS16(appName);
         byte serverNameBytes[] = toUCS16(serverName);
         byte interfaceLibNameBytes[] = toUCS16(interfaceLibName);
@@ -4759,10 +4764,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int dataLen = 0;
 
         // Denali --> TDS 7.4, Katmai (10.0) & later 7.3B, Prelogin disconnects anything older
-        tdsVersion = serverMajorVersion >= 11 ? TDS.VER_DENALI
-                                              : serverMajorVersion >= 10 ? TDS.VER_KATMAI
-                                                                         : serverMajorVersion >= 9 ? TDS.VER_YUKON
-                                                                                                   : TDS.VER_UNKNOWN;
+        tdsVersion = (serverMajorVersion >= 11) ? TDS.VER_DENALI
+                                                : (serverMajorVersion >= 10) ? TDS.VER_KATMAI
+                                                                             : (serverMajorVersion >= 9) ? TDS.VER_YUKON
+                                                                                                         : TDS.VER_UNKNOWN;
         if (tdsVersion == TDS.VER_UNKNOWN) {
             assert false : "prelogin did not disconnect for the old version: " + serverMajorVersion;
         }
@@ -6267,7 +6272,7 @@ final class SQLServerConnectionSecurityManager {
     }
 
     /**
-     * Checks if the calling thread is allowed to dynamic link the library code.
+     * Checks if the calling thread is allowed to dynamically link the library code.
      * 
      * @throws SecurityException
      *         when an error occurs
