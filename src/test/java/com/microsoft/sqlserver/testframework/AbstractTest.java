@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -62,6 +63,12 @@ public abstract class AbstractTest {
     private static boolean _determinedSqlAzureOrSqlServer = false;
     private static boolean _isSqlAzure = false;
     private static boolean _isSqlAzureDW = false;
+
+    /**
+     * Byte array containing logging output Content can be retrieved using toByteArray() or toString()
+     */
+    public static ByteArrayOutputStream logOutputStream = null;
+    private static PrintStream logPrintStream = null;
 
     /**
      * This will take care of all initialization before running the Test Suite.
@@ -212,8 +219,18 @@ public abstract class AbstractTest {
             if (null != connection && !connection.isClosed()) {
                 connection.close();
             }
+
+            if (null != logOutputStream) {
+                logOutputStream.close();
+            }
+
+            if (null != logPrintStream) {
+                logPrintStream.close();
+            }
         } finally {
             connection = null;
+            logOutputStream = null;
+            logPrintStream = null;
         }
     }
 
@@ -263,7 +280,9 @@ public abstract class AbstractTest {
                 handler.setFormatter(new SimpleFormatter());
                 System.out.println("Look for Driver.log file in your classpath for detail logs");
             } else if (Constants.LOGGING_HANDLER_STREAM.equalsIgnoreCase(loggingHandler)) {
-                handler = new StreamHandler(new PrintStream(Constants.LOGGING_STREAM), new SimpleFormatter());
+                logOutputStream = new ByteArrayOutputStream();
+                logPrintStream = new PrintStream(logOutputStream);
+                handler = new StreamHandler(logPrintStream, new SimpleFormatter());
             }
 
             if (handler != null) {
