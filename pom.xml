@@ -87,7 +87,13 @@
 			<groupId>com.microsoft.rest</groupId>
 			<artifactId>client-runtime</artifactId>
 			<version>${rest.client.version}</version>
-			<optional>true</optional>
+            <exclusions>
+                <exclusion>
+                    <artifactId>okhttp-urlconnection</artifactId>
+                    <groupId>com.squareup.okhttp3</groupId>
+                </exclusion>
+            </exclusions>
+            <optional>true</optional>
 		</dependency>
 
 		<!-- dependencies provided by an OSGi-Framework -->
@@ -249,6 +255,28 @@
 							<excludedGroups>${excludeGroups}, xJDBC42</excludedGroups>
 						</configuration>
 					</plugin>
+                    <plugin>
+                        <groupId>org.moditect</groupId>
+                        <artifactId>moditect-maven-plugin</artifactId>
+                        <version>1.0.0.Beta2</version>
+                        <executions>
+                            <execution>
+                                <id>add-module-infos</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>add-module-info</goal>
+                                </goals>
+                                <configuration>
+                                    <overwriteExistingFiles>true</overwriteExistingFiles>
+                                    <module>
+                                        <moduleInfoFile>
+                                            src/jre11/java/module-info.java
+                                        </moduleInfoFile>
+                                    </module>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
 				</plugins>
 			</build>
 		</profile>
@@ -268,6 +296,9 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
+                            <includes>
+                                <include>src/jre11/main/module-info.java</include>
+                            </includes>
 							<source>11</source>
 							<target>11</target>
 						</configuration>
