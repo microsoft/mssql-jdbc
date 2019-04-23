@@ -4764,11 +4764,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int dataLen = 0;
 
         // Denali --> TDS 7.4, Katmai (10.0) & later 7.3B, Prelogin disconnects anything older
-        tdsVersion = (serverMajorVersion >= 11) ? TDS.VER_DENALI
-                                                : (serverMajorVersion >= 10) ? TDS.VER_KATMAI
-                                                                             : (serverMajorVersion >= 9) ? TDS.VER_YUKON
-                                                                                                         : TDS.VER_UNKNOWN;
-        if (tdsVersion == TDS.VER_UNKNOWN) {
+        if (serverMajorVersion >= 11) {
+            tdsVersion = TDS.VER_DENALI;
+        } else if (serverMajorVersion >= 10) {
+            tdsVersion = TDS.VER_KATMAI;
+        } else if (serverMajorVersion >= 9) {
+            tdsVersion = TDS.VER_YUKON;
+        } else {
             assert false : "prelogin did not disconnect for the old version: " + serverMajorVersion;
         }
 
