@@ -15,10 +15,12 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 public class ParameterMetaDataTest extends AbstractTest {
@@ -47,6 +49,7 @@ public class ParameterMetaDataTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void compareStoredProcTest() throws SQLException {
         List<String> l = Arrays.asList("SELECT * FROM " + tableName + " WHERE cBigint > ?",
                 "SELECT TOP(20) PERCENT * FROM " + tableName + " WHERE cBigint > ?",
