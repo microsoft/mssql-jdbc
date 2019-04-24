@@ -1,3 +1,8 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.ArrayDeque;
@@ -296,7 +301,6 @@ final class SQLServerParser {
                             parameterColumns.add(sb.toString().trim());
                         }
                         break;
-                    // handle curly brackets?
                     case SQLServerLexer.COMMA:
                         if (d.size() == 1) {
                             parameterColumns.add(sb.toString().trim());
@@ -373,8 +377,8 @@ final class SQLServerParser {
         Token t = iter.next();
         sb.append(" AS ");
         if (t.getType() != SQLServerLexer.LR_BRACKET) {
-            SQLServerException.makeFromDriverError(null, SQLServerLexer.AS,
-                    "Invalid syntax: AS must be followed by ( ) in <ctw> expressions.", "", false);
+            SQLServerException.makeFromDriverError(null, null, SQLServerResource.getResource("R_invalidCTEFormat"), "",
+                    false);
         }
         int leftRoundBracketCount = 0;
         do {
@@ -412,7 +416,8 @@ final class SQLServerParser {
                     sb.append(t.getText());
                     t = iter.next();
                     if (t.getType() != SQLServerLexer.LR_BRACKET) {
-                        // TODO: Make from driver error
+                        SQLServerException.makeFromDriverError(null, null,
+                                SQLServerResource.getResource("R_invalidOpenqueryCall"), "", false);
                     }
                     sb.append(getRoundBracketChunk(iter, t));
                     break;

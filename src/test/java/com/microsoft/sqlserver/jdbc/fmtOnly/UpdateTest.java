@@ -162,9 +162,8 @@ public class UpdateTest extends AbstractTest {
         // "Production . ProductPhoto,OPENROWSET (BULK 'c:Tires.jpg' , SINGLE_BLOB ) AS x"));
 
         // U. Using UPDATE to modify FILESTREAM data
-        valuePair
-                .add(Pair.of("UPDATE Archive.dbo.Records  \r\n" + "SET [Chart] = CAST('Xray 1' as varbinary(max))  \r\n"
-                        + "WHERE [SerialNumber] = 2; ", "Archive . dbo . Records"));
+        valuePair.add(Pair.of("UPDATE Archive.dbo.Records SET [Chart] = CAST('Xray 1' as varbinary(max)) "
+                + "WHERE [SerialNumber] = 2; ", "Archive . dbo . Records"));
 
         // V. Using a system data type
         valuePair.add(Pair.of("UPDATE dbo.Cities  \r\n" + "SET Location = CONVERT(Point, '12.3:46.2')  \r\n"
@@ -180,11 +179,9 @@ public class UpdateTest extends AbstractTest {
                 "dbo . Cities"));
 
         // Y. Specifying a table hint
-        valuePair
-                .add(Pair.of(
-                        "UPDATE Production.Product  \r\n" + "WITH (TABLOCK)  \r\n"
-                                + "SET ListPrice = ListPrice * 1.10  \r\n" + "WHERE ProductNumber LIKE 'BK-%';",
-                        "Production . Product WITH (TABLOCK )"));
+        valuePair.add(
+                Pair.of("UPDATE Production.Product  \r\n" + "WITH (TABLOCK) " + "SET ListPrice = ListPrice * 1.10  \r\n"
+                        + "WHERE ProductNumber LIKE 'BK-%';", "Production . Product WITH (TABLOCK )"));
 
         // Z. Specifying a query hint
         valuePair.add(Pair.of(
