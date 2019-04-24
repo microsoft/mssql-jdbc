@@ -821,7 +821,18 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     public String getMSIClientId();
 
+    /**
+     * Sets whether to use FMT Only when retrieving ParameterMetaData
+     * 
+     * @param useFmtOnly
+     *        indicates whether FMT Only should be used when retrieving ParameterMetaData
+     */
     void setUseFmtOnly(boolean useFmtOnly);
 
+    /**
+     * Returns the boolean value for the connection property 'useFMTOnly'
+     * 
+     * @return useFmtOnly property value
+     */
     boolean getUseFmtOnly();
 }

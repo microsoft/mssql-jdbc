@@ -95,6 +95,7 @@
 		    <groupId>org.antlr</groupId>
 		    <artifactId>antlr4-runtime</artifactId>
 		    <version>4.7.2</version>
+		    <optional>true</optional>
 		</dependency>
 
 		<!-- dependencies provided by an OSGi-Framework -->
@@ -399,25 +400,6 @@
 							<goal>jar</goal>
 						</goals>
 					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<version>3.1.1</version>
-				<configuration>
-	 				<descriptorRefs>
-	     				<descriptorRef>jar-with-dependencies</descriptorRef>
-	 				</descriptorRefs>
-				</configuration>
-				<executions>
-    				<execution>
-	        			<id>assemble-all</id>
-	        			<phase>package</phase>
-	        			<goals>
-	            			<goal>single</goal>
-	        			</goals>
-    				</execution>
 				</executions>
 			</plugin>
 			<!-- Create OSGI Headers -->
