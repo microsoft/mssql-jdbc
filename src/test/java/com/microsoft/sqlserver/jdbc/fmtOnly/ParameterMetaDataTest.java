@@ -77,6 +77,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                 "WITH t1(cInt) AS (SELECT 1), t2(cInt) AS (SELECT 2) SELECT * FROM t1 JOIN t2 ON [t1].\"cInt\" = \"t2\".[cInt] WHERE \"t1\".[cInt] = [t2].\"cInt\" + ?",
                 "INSERT INTO " + tableName + "(cInt,cFloat) SELECT 1,1.5 WHERE 1 > ?",
                 "WITH t1(cInt) AS (SELECT 1), t2(cInt) AS (SELECT 2), t3(cInt) AS (SELECT 3) SELECT * FROM t1,t2,t3 WHERE t1.cInt >= ?",
+                "SELECT (1),2,[cInt],\"cFloat\" FROM " + tableName + " WHERE cNvarchar LIKE ?",
                 "WITH t1(cInt) AS (SELECT 1) SELECT * FROM \"t1\"");
         l.forEach(this::compareFmtAndSp);
     }

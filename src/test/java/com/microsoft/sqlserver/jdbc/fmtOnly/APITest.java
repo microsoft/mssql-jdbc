@@ -1,7 +1,6 @@
 package com.microsoft.sqlserver.jdbc.fmtOnly;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -11,11 +10,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
 
+import javax.sql.DataSource;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -43,13 +43,11 @@ public class APITest extends AbstractTest {
     @Test
     public void publicAPITest() throws SQLException {
         String sql = "INSERT INTO [" + tableName + "] VALUES(?,?,?,?)";
-
-        SQLServerDataSource ds = new SQLServerDataSource();
+                
         ds.setUseFmtOnly(true);
-        ds.setURL(connectionString);
         try (Connection cStringConnection = DriverManager.getConnection(connectionString + "useFMTOnly=true;");
                 Connection statementConnection = DriverManager.getConnection(connectionString);
-                Connection dsConnection = ds.getConnection()) {
+                Connection dsConnection = ((DataSource) ds).getConnection()) {
             try (PreparedStatement cStringPstmt = cStringConnection.prepareStatement(sql);
                     PreparedStatement statementPstmt = statementConnection.prepareStatement(sql);
                     PreparedStatement dsPstmt = dsConnection.prepareStatement(sql)) {
