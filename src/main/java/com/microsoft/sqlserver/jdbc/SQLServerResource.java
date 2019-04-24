@@ -554,6 +554,6 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_useFmtOnlyPropertyDescription",
             "Determines whether to parse user sql and execute a FMT Only query to retrieve parametermetadata."},
             {"R_invalidOpenqueryCall","OPENQUERY/OPENJSON/OPENDATASOURCE/OPENROWSET/OPENXML must be proceeded by round brackets"},
-            {"R_invalidCTEFormat","Invalid syntax: AS must be followed by round brackets in <ctw> expressions."},
+            {"R_invalidCTEFormat","Invalid syntax: AS must be followed by round brackets in Common Table Expressions."},
             };
 }
