@@ -64,7 +64,7 @@ final class FailoverInfo {
                     con.getConnectionLogger().fine(con.toString() + " Failover server :" + failoverPartner);
                 instanceValue = failoverPartner.substring(px + 1, failoverPartner.length());
                 failoverPartner = failoverPartner.substring(0, px);
-                con.ValidateMaxSQLLoginName(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), instanceValue);
+                con.validateMaxSQLLoginName(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), instanceValue);
                 failoverInstance = instanceValue;
                 instancePort = con.getInstancePort(failoverPartner, instanceValue);
 
