@@ -45,7 +45,7 @@ public class APITest extends AbstractTest {
         String sql = "INSERT INTO [" + tableName + "] VALUES(?,?,?,?)";
                 
         ds.setUseFmtOnly(true);
-        try (Connection cStringConnection = DriverManager.getConnection(connectionString + "useFMTOnly=true;");
+        try (Connection cStringConnection = DriverManager.getConnection(connectionString + ";useFMTOnly=true;");
                 Connection statementConnection = DriverManager.getConnection(connectionString);
                 Connection dsConnection = ((DataSource) ds).getConnection()) {
             try (PreparedStatement cStringPstmt = cStringConnection.prepareStatement(sql);
