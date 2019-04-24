@@ -8,6 +8,7 @@ import java.io.Serializable;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 
@@ -16,10 +17,11 @@ class SharedTimer implements Serializable {
      * Always update serialVersionUID when prompted
      */
     private static final long serialVersionUID = -4069361613863955760L;
-    
+
     static final String CORE_THREAD_PREFIX = "mssql-jdbc-shared-timer-core-";
     private static final AtomicLong CORE_THREAD_COUNTER = new AtomicLong();
-    private static SharedTimer instance;
+    private static volatile SharedTimer instance;
+    private static Object lock = new Object();
 
     /**
      * Unique ID of this SharedTimer
@@ -28,7 +30,7 @@ class SharedTimer implements Serializable {
     /**
      * Number of outstanding references to this SharedTimer
      */
-    private int refCount = 0;
+    private final AtomicInteger refCount = new AtomicInteger();
     private ScheduledThreadPoolExecutor executor;
 
     private SharedTimer() {
@@ -56,16 +58,18 @@ class SharedTimer implements Serializable {
      *
      * If the reference count reaches zero then the underlying executor will be shutdown so that its thread stops.
      */
-    public synchronized void removeRef() {
-        if (refCount <= 0) {
-            throw new IllegalStateException("removeRef() called more than actual references");
-        }
-        refCount -= 1;
-        if (refCount == 0) {
-            // Removed last reference so perform cleanup
-            executor.shutdownNow();
-            executor = null;
-            instance = null;
+    public void removeRef() {
+        synchronized (lock) {
+            if (refCount.get() <= 0) {
+                throw new IllegalStateException("removeRef() called more than actual references");
+            }
+            refCount.getAndDecrement();
+            if (refCount.get() == 0) {
+                // Removed last reference so perform cleanup
+                executor.shutdownNow();
+                executor = null;
+                instance = null;
+            }
         }
     }
 
@@ -77,11 +81,13 @@ class SharedTimer implements Serializable {
      * When the caller is finished with the SharedTimer it must be released via {@link#removeRef}
      */
     public static synchronized SharedTimer getTimer() {
-        if (instance == null) {
-            // No shared object exists so create a new one
-            instance = new SharedTimer();
+        synchronized (lock) {
+            if (instance == null) {
+                // No shared object exists so create a new one
+                instance = new SharedTimer();
+            }
+            instance.refCount.getAndIncrement();
         }
-        instance.refCount += 1;
         return instance;
     }
 
