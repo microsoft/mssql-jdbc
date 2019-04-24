@@ -74,6 +74,8 @@ public class TestUtils {
     private static Boolean isAzureMI = null;
 
     /**
+     * <<<<<<< HEAD
+     * 
      * <pre>
      * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
      * It should return 6 for SQL Azure DW. This is more reliable than @@version or
@@ -91,36 +93,30 @@ public class TestUtils {
      * 8 = Managed Instance
      * Base data type: int
      * </pre>
+     * 
+     * ======= Checks if connection is established to Azure server.
+     * 
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzure() >>>>>>> upstream/dev
      */
     public static boolean isAzure(Connection con) {
-        if (null == isAzure) {
-            try (Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
-                rs.next();
-
-                int engineEdition = rs.getInt(1);
-                isAzure = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE
-                        || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW
-                        || engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
-                isAzureDW = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_DW);
-                isAzureMI = (engineEdition == ENGINE_EDITION_FOR_SQL_AZURE_MI);
-
-            } catch (SQLException e) {
-                isAzure = false;
-                isAzureDW = false;
-                isAzureMI = false;
-            }
-            return isAzure;
-        } else {
-            return isAzure;
-        }
+        return ((SQLServerConnection) con).isAzure();
     }
 
+    /**
+     * Checks if connection is established to Azure DW server.
+     * 
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzureDW()
+     */
     public static boolean isAzureDW(Connection con) {
         isAzure(con);
         return isAzureDW;
     }
 
+    /**
+     * Checks if connection is established to Azure MI server.
+     * 
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzureMI()
+     */
     public static boolean isAzureMI(Connection con) {
         isAzure(con);
         return isAzureMI;
@@ -719,7 +715,7 @@ public class TestUtils {
     }
 
     /**
-     * Creates a regex where all '{#}' fields will return true for any value when calling match
+     * Creates a regex where all '{#}' fields will return true for any value when calling match.
      *
      * @return regex expression.
      */
