@@ -19,10 +19,9 @@ class SharedTimer implements Serializable {
     private static final long serialVersionUID = -4069361613863955760L;
 
     static final String CORE_THREAD_PREFIX = "mssql-jdbc-shared-timer-core-";
-    private static final AtomicLong CORE_THREAD_COUNTER = new AtomicLong();
-    private static volatile SharedTimer instance;
-    private static Object lock = new Object();
 
+    private static final AtomicLong CORE_THREAD_COUNTER = new AtomicLong();
+    private static final Object lock = new Object();
     /**
      * Unique ID of this SharedTimer
      */
@@ -31,6 +30,8 @@ class SharedTimer implements Serializable {
      * Number of outstanding references to this SharedTimer
      */
     private final AtomicInteger refCount = new AtomicInteger();
+
+    private static volatile SharedTimer instance;
     private ScheduledThreadPoolExecutor executor;
 
     private SharedTimer() {
@@ -49,7 +50,7 @@ class SharedTimer implements Serializable {
     /**
      * @return Whether there is an instance of the SharedTimer currently allocated.
      */
-    static synchronized boolean isRunning() {
+    static boolean isRunning() {
         return instance != null;
     }
 
