@@ -63,8 +63,7 @@ class SharedTimer implements Serializable {
             if (refCount.get() <= 0) {
                 throw new IllegalStateException("removeRef() called more than actual references");
             }
-            refCount.getAndDecrement();
-            if (refCount.get() == 0) {
+            if (refCount.decrementAndGet() == 0) {
                 // Removed last reference so perform cleanup
                 executor.shutdownNow();
                 executor = null;
@@ -80,15 +79,15 @@ class SharedTimer implements Serializable {
      *
      * When the caller is finished with the SharedTimer it must be released via {@link#removeRef}
      */
-    public static synchronized SharedTimer getTimer() {
+    public static SharedTimer getTimer() {
         synchronized (lock) {
             if (instance == null) {
                 // No shared object exists so create a new one
                 instance = new SharedTimer();
             }
             instance.refCount.getAndIncrement();
+            return instance;
         }
-        return instance;
     }
 
     /**
