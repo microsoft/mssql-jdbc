@@ -966,9 +966,10 @@ public class StatementTest extends AbstractTest {
                 // execute a statement with this new max field size
                 stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
 
-                // Set a new value greater than MAX_VALUE, and then get the modified value
-                // SQL Server only supports integer limits for setting max rows
-                // If the value MAX_VALUE + 1 is accepted, throw exception
+                /*
+                 * Set a new value greater than MAX_VALUE, and then get the modified value SQL Server only supports
+                 * integer limits for setting max rows If the value MAX_VALUE + 1 is accepted, throw exception
+                 */
                 try {
                     newValue = Integer.MAX_VALUE + 1;
                     stmt.setMaxFieldSize(newValue);
@@ -996,9 +997,10 @@ public class StatementTest extends AbstractTest {
                 // execute a statement with this new max field size
                 stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
 
-                // Set a new value greater than MAX_VALUE, and then get the modified value
-                // SQL Server only supports integer limits for setting max rows
-                // If the value MAX_VALUE + 1 is accepted, throw exception
+                /*
+                 * Set a new value greater than MAX_VALUE, and then get the modified value SQL Server only supports
+                 * integer limits for setting max rows If the value MAX_VALUE + 1 is accepted, throw exception
+                 */
                 try {
                     newValue = Integer.MAX_VALUE + 1;
                     stmt.setMaxRows(newValue);
@@ -1034,9 +1036,10 @@ public class StatementTest extends AbstractTest {
                 actual = stmt.getLargeMaxRows();
                 assertEquals(actual, newValue, "LargeMaxRows() : set/get problem");
 
-                // Set a new value grater than MAX_VALUE, and then get the modified value
-                // SQL Server only supports integer limits for setting max rows
-                // If the value MAX_VALUE + 1 is accepted, throw exception
+                /*
+                 * Set a new value grater than MAX_VALUE, and then get the modified value SQL Server only supports
+                 * integer limits for setting max rows If the value MAX_VALUE + 1 is accepted, throw exception
+                 */
                 try {
                     newValue = (long) Integer.MAX_VALUE + 1;
                     stmt.setLargeMaxRows(newValue);

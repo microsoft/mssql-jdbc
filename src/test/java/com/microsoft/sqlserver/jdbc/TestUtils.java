@@ -74,7 +74,8 @@ public class TestUtils {
     private static Boolean isAzureMI = null;
 
     /**
-     * Check if connected to Azure server.
+     * <<<<<<< HEAD Check if connected to Azure server. ======= Checks if connection is established to Azure server.
+     * >>>>>>> upstream/dev
      * 
      * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzure()
      */
@@ -83,7 +84,8 @@ public class TestUtils {
     }
 
     /**
-     * Check if connection is to Azure DW server.
+     * <<<<<<< HEAD Check if connection is to Azure DW server. ======= Checks if connection is established to Azure DW
+     * server. >>>>>>> upstream/dev
      * 
      * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzureDW()
      */
@@ -93,7 +95,8 @@ public class TestUtils {
     }
 
     /**
-     * Check if connection is to Azure MI server.
+     * <<<<<<< HEAD Check if connection is to Azure MI server. ======= Checks if connection is established to Azure MI
+     * server. >>>>>>> upstream/dev
      * 
      * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzureMI()
      */
@@ -695,7 +698,7 @@ public class TestUtils {
     }
 
     /**
-     * Creates a regex where all '{#}' fields will return true for any value when calling match
+     * Creates a regex where all '{#}' fields will return true for any value when calling match.
      *
      * @return regex expression.
      */
