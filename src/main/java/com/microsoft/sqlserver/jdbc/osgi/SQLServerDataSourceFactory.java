@@ -11,7 +11,6 @@ import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 
-import javax.activation.DataSource;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.XADataSource;
 
@@ -62,7 +61,7 @@ public class SQLServerDataSourceFactory implements DataSourceFactory {
     }
 
     /**
-     * Sets up the basic properties for {@link DataSource}s
+     * Sets up the basic properties for java.activation.DataSource
      */
     private void setup(SQLServerDataSource source, Properties props) {
         if (props == null) {
