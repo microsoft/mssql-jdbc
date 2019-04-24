@@ -1,6 +1,7 @@
 package com.microsoft.sqlserver.jdbc.fmtOnly;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.sql.Connection;
@@ -91,6 +92,13 @@ public class ParameterMetaDataTest extends AbstractTest {
         l.forEach(this::executeFmt);
     }
 
+    @Test
+    public void exceptionTest() throws SQLException {
+        executeInvalidFmt("SELECT FROM OPENQUERY INVALID TSQL", "R_invalidOpenqueryCall");
+        executeInvalidFmt("INSERT INTO OPENXML INVALID TSQL VALUES (?,?,?)", "R_invalidOpenqueryCall");
+        executeInvalidFmt("WITH INVALID_CTE AS SELECT * FROM FOO", "R_invalidCTEFormat");
+    }
+
     private void executeFmt(String userSQL) {
         try (Connection c = DriverManager.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
                 PreparedStatement pstmt = c.prepareStatement(userSQL)) {
@@ -106,6 +114,17 @@ public class ParameterMetaDataTest extends AbstractTest {
         } catch (SQLException e) {
             fail(e.getMessage());
         }
+    }
+
+    private void executeInvalidFmt(String userSQL, String expectedError) {
+        try (Connection c = DriverManager.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
+                PreparedStatement pstmt = c.prepareStatement(userSQL)) {
+            pstmt.getParameterMetaData();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg(expectedError)));
+            return;
+        }
+        fail("No exception thrown");
     }
 
     private void compareFmtAndSp(String userSQL) {
