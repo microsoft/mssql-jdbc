@@ -295,7 +295,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDB)
     public void testCatalog() throws SQLException {
         try (Connection conn = getConnection()) {
-            String catalog = "temp";
+            String catalog = "master";
             conn.setCatalog(catalog);
             assertTrue(conn.getCatalog().equals(catalog), TestResource.getResource("R_expectedValue") + catalog);
         }
