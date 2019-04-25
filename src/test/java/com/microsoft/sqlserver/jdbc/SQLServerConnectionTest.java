@@ -44,7 +44,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     String randomServer = RandomUtil.getIdentifier("Server");
 
     /**
-     * test connection properties with SQLServerDataSource
+     * Test connection properties with SQLServerDataSource
      */
     @Test
     public void testDataSource() {
