@@ -231,7 +231,7 @@ public class SQLServerConnectionTest extends AbstractTest {
             conn.close();
             assertTrue(!conn.isValid(0), TestResource.getResource("R_closedConnectionShouldBeInvalid"));
 
-            // get shared timer on closed connection
+            // getting shared timer on closed connection should fail
             ((SQLServerConnection) conn).getSharedTimer();
             fail(TestResource.getResource("R_noExceptionClosedConnection"));
         } catch (SQLServerException e) {
@@ -246,7 +246,6 @@ public class SQLServerConnectionTest extends AbstractTest {
             assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"),
                     TestResource.getResource("R_wrongExceptionMessage"));
         }
-
     }
 
     @Test
@@ -303,6 +302,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void testTypeMap() throws SQLException {
         try (Connection conn = getConnection()) {
             java.util.HashMap map = new java.util.HashMap();
@@ -390,7 +390,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                     TestResource.getResource("R_unexpectedWrongDB"));
         }
 
-        // Nonexist host, ClientConnectionId should not be available in error message
+        // Non-existent host, ClientConnectionId should not be available in error message
         try (Connection conn = PrepUtil.getConnection(
                 connectionString + ";instanceName=" + RandomUtil.getIdentifier("Instance") + ";logintimeout=5;")) {
             conn.close();
