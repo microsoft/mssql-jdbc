@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -53,6 +54,59 @@ public class TimeoutTest extends AbstractTest {
 
         long timeDiff = timerEnd - timerStart;
         assertTrue(timeDiff > 14000);
+        // Verify that login timeout does not default to max value of 60 seconds
+        assertTrue(timeDiff < 30000);
+    }
+
+    @Test
+    public void testURLLoginTimeout() {
+        long timerStart = 0;
+        long timerEnd = 0;
+
+        timerStart = System.currentTimeMillis();
+
+        try (Connection con = PrepUtil
+                .getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;logintimeout=5")) {
+
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
+            timerEnd = System.currentTimeMillis();
+        }
+
+        assertTrue(0 != timerEnd, TestResource.getResource("R_shouldNotConnect"));
+
+        long timeDiff = timerEnd - timerStart;
+        assertTrue(timeDiff > 4000);
+
+        // Verify that login timeout does not default to default value of 15 seconds
+        assertTrue(timeDiff < 10000);
+    }
+
+    @Test
+    public void testGlobalLoginTimeout() {
+        long timerStart = 0;
+        long timerEnd = 0;
+        DriverManager.setLoginTimeout(30);
+        timerStart = System.currentTimeMillis();
+
+        try (Connection con = PrepUtil
+                .getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;logintimeout=60")) {
+
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
+            timerEnd = System.currentTimeMillis();
+        }
+
+        assertTrue(0 != timerEnd, TestResource.getResource("R_shouldNotConnect"));
+
+        long timeDiff = timerEnd - timerStart;
+        
+        // Verify that login timeout is not set to default value of 15 seconds
+        assertTrue(timeDiff > 29000);
+
+        // Verify that login timeout does not get set to URL provided value of 60 seconds
+        assertTrue(timeDiff < 40000);
+        DriverManager.setLoginTimeout(0);
     }
 
     @Test
@@ -62,9 +116,9 @@ public class TimeoutTest extends AbstractTest {
 
         timerStart = System.currentTimeMillis();
         // Try a non existing server and see if the default timeout is 15 seconds
-        try (Connection con = PrepUtil
-                .getConnection("jdbc:sqlserver://" + randomServer + ";databaseName=FailoverDB_abc;failoverPartner="
-                        + randomServer + "\\foo;user=sa;password=pwd;")) {} catch (Exception e) {
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer
+                + ";databaseName=FailoverDB_abc;failoverPartner=" + randomServer + "\\foo;user=sa;password=pwd;")) {
+        } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
             timerEnd = System.currentTimeMillis();
         }
@@ -80,9 +134,9 @@ public class TimeoutTest extends AbstractTest {
         long timerEnd = 0;
 
         timerStart = System.currentTimeMillis();
-        try (Connection con = PrepUtil
-                .getConnection("jdbc:sqlserver://" + randomServer + "\\fooggg;databaseName=FailoverDB;failoverPartner="
-                        + randomServer + "\\foo;user=sa;password=pwd;")) {} catch (Exception e) {
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer
+                + "\\fooggg;databaseName=FailoverDB;failoverPartner=" + randomServer + "\\foo;user=sa;password=pwd;")) {
+        } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
         }
         assertTrue(0 != timerEnd, TestResource.getResource("R_shouldNotConnect"));
