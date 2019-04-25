@@ -41,7 +41,6 @@ public class DataClassificationTest extends AbstractTest {
      */
     @Test
     public void testDataClassificationMetadata() throws Exception {
-        // Run this test only with newer SQL Servers (version>=2018) that support Data Classification
         try (Statement stmt = connection.createStatement();) {
             assert (TestUtils.serverSupportsDataClassification(stmt));
             createTable(connection, stmt);
