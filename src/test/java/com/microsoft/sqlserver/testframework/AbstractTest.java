@@ -65,7 +65,7 @@ public abstract class AbstractTest {
     private static boolean _isSqlAzureDW = false;
 
     /**
-     * Byte array containing logging output Content can be retrieved using toByteArray() or toString()
+     * Bytearray containing streamed logging output. Content can be retrieved using toByteArray() or toString()
      */
     public static ByteArrayOutputStream logOutputStream = null;
     private static PrintStream logPrintStream = null;
