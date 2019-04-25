@@ -120,7 +120,6 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         try (Connection con = pooledConnection.getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-
             boolean exceptionThrown = false;
             try {
                 // raise a severe exception and make sure that the connection is not
