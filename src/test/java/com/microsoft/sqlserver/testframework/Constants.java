@@ -14,6 +14,8 @@ public class Constants {
      * Use below tags for tests to exclude them from test group:
      * 
      * <pre>
+     * xJDBC42 - - - - - - For tests not compatible with JDBC 42 Specifications
+     * xGradle - - - - - - For tests not compatible with Gradle Script (e.g. Manifest File)
      * xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014
      * xSQLv14 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2017
      * xSQLv15 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2019
@@ -22,6 +24,8 @@ public class Constants {
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
      * </pre>
      */
+    public static final String xJDBC42 = "xJDBC42";
+    public static final String xGradle = "xGradle";
     public static final String xSQLv12 = "xSQLv12";
     public static final String xSQLv14 = "xSQLv14";
     public static final String xSQLv15 = "xSQLv15";
