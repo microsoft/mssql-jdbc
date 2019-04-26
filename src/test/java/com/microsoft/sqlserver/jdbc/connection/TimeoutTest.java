@@ -54,7 +54,6 @@ public class TimeoutTest extends AbstractTest {
 
         long timeDiff = timerEnd - timerStart;
         assertTrue(timeDiff > 14000);
-		
         // Verify that login timeout does not default to max value of 60 seconds
         assertTrue(timeDiff < 30000);
     }
