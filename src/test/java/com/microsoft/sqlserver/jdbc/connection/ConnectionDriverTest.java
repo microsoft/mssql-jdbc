@@ -35,6 +35,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -80,7 +81,8 @@ public class ConnectionDriverTest extends AbstractTest {
         ds.setEncrypt(true);
         ds.setTrustServerCertificate(true);
         ds.setPacketSize(8192);
-        try (Connection con = ds.getConnection()) {}
+        try (Connection con = ds.getConnection()) {
+        }
     }
 
     @Test
@@ -95,7 +97,8 @@ public class ConnectionDriverTest extends AbstractTest {
         boolean connClosed = false;
         boolean errorOccurred = false;
 
-        public MyEventListener() {}
+        public MyEventListener() {
+        }
 
         public void connectionClosed(ConnectionEvent event) {
             connClosed = true;
@@ -457,7 +460,7 @@ public class ConnectionDriverTest extends AbstractTest {
             try {
                 conn.abort(null);
             } catch (SQLException e) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidArgumentExecutor")));
+                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidArgument")));
             }
         }
     }
@@ -503,7 +506,8 @@ public class ConnectionDriverTest extends AbstractTest {
                 ds.setServerName("invalidServerName" + UUID.randomUUID());
                 ds.setLoginTimeout(5);
 
-                try (Connection con = ds.getConnection()) {} catch (SQLException e) {
+                try (Connection con = ds.getConnection()) {
+                } catch (SQLException e) {
                     isInterrupted = Thread.currentThread().isInterrupted();
                 }
             }

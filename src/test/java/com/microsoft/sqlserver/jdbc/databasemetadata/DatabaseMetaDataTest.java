@@ -424,7 +424,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
             conn.getMetaData().getFunctions("", null, "xp_%");
             fail(TestResource.getResource("R_noSchemaShouldFail"));
         } catch (SQLException e) {
-            assert (e.getMessage().contains(TestResource.getResource("R_invalidArgumentCatalog")));
+            assert (e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidArgument")));
         }
     }
 
