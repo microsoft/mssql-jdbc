@@ -755,19 +755,18 @@ public final class SQLServerDriver implements java.sql.Driver {
         if (null == connectProperties)
             return null; // If we are the wrong driver dont throw an exception
 
-        int currentTimeout = Integer
-                .valueOf(connectProperties.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(),
-                        String.valueOf(SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue())));
-        int maxTimeout = DriverManager.getLoginTimeout();
+        String loginTimeoutProp = connectProperties.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
+        int dmLoginTimeout = DriverManager.getLoginTimeout();
 
-        // Reset Login Timeout to Max Timeout if currentTimeout exceeds max timeout allowed.
-        if (maxTimeout > 0 && currentTimeout > maxTimeout) {
+        // Use Driver Manager's login timeout if it exceeds 0 and loginTimeout connection property is not provided.
+        if (dmLoginTimeout > 0 && null == loginTimeoutProp) {
             connectProperties.setProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(),
-                    String.valueOf(maxTimeout));
+                    String.valueOf(dmLoginTimeout));
         }
 
         // Merge connectProperties (from URL) and supplied properties from user.
         connectProperties = mergeURLAndSuppliedProperties(connectProperties, suppliedProperties);
+
         return connectProperties;
     }
 
