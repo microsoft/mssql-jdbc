@@ -17,8 +17,8 @@ public class Constants {
      * xJDBC42 - - - - - - For tests not compatible with JDBC 42 Specifications
      * xGradle - - - - - - For tests not compatible with Gradle Script (e.g. Manifest File)
      * xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014
-     * xSQLv14 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2017
-     * xSQLv15 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2019
+     * xSQLv14 - - - - - - For tests not compatible with SQL Server 2016 - 2017
+     * xSQLv15 - - - - - - For tests not compatible with SQL Server 2019
      * xAzureSQLDB - - - - For tests not compatible with Azure SQL Database
      * xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
