@@ -267,7 +267,7 @@
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre11-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre12-preview</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
