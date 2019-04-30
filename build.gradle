@@ -96,8 +96,7 @@ sourceSets {
     }
 	test {
 		resources {
-			srcDirs 'src/test/resources'
-			include '**/*.csv'
+			srcDirs "src/test/resources", "AE_Certificates"
 			output.resourcesDir = testOutputDir
 		}
 	}
