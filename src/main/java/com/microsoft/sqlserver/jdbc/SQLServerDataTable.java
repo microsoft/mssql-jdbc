@@ -166,16 +166,19 @@ public final class SQLServerDataTable {
                 case BIT:
                     if (val instanceof Boolean) {
                         rowValues[pair.getKey()] = val;
-                    } else if (val.toString().equals("0")
-                            || val.toString().equalsIgnoreCase(Boolean.FALSE.toString())) {
-                        rowValues[pair.getKey()] = Boolean.FALSE;
-                    } else if (val.toString().equals("1") || val.toString().equalsIgnoreCase(Boolean.TRUE.toString())) {
-                        rowValues[pair.getKey()] = Boolean.TRUE;
                     } else {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_TVPInvalidColumnValue"));
-                        Object[] msgArgs = {jdbcType};
-                        throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                        String valString = val.toString();
+
+                        if (valString.equals("0") || valString.equalsIgnoreCase(Boolean.FALSE.toString())) {
+                            rowValues[pair.getKey()] = Boolean.FALSE;
+                        } else if (valString.equals("1") || valString.equalsIgnoreCase(Boolean.TRUE.toString())) {
+                            rowValues[pair.getKey()] = Boolean.TRUE;
+                        } else {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_TVPInvalidColumnValue"));
+                            Object[] msgArgs = {jdbcType};
+                            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                        }
                     }
                     break;
 
