@@ -3657,7 +3657,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber());
             } else if (ntlmAuthentication) {
-                authentication = new NTLMAuthentication(domainName,
+                authentication = new NTLMAuthentication(this, domainName,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                         hostName);
@@ -6206,17 +6206,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * <<<<<<< HEAD
+     * Checks if connection is established to SQL Azure server
      * 
-     * <pre>
-     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure.
-     * It should return 6 for SQL Azure DW. This is more reliable than @@version or
-     * serverproperty('edition').
-    =======
-     * SERVERPROPERTY('EngineEdition') can be used to determine whether the db server is SQL Azure. It should return 6
-     * for SQL Azure DW. This is more reliable than @@version or serverproperty('edition').
+     * SERVERPROPERTY('EngineEdition') is used to determine if the db server is SQL Azure. It should return 6 for SQL
+     * Azure DW. This is more reliable than @@version or serverproperty('edition').
      * 
-    >>>>>>> upstream/dev
      * Reference: http://msdn.microsoft.com/en-us/library/ee336261.aspx
      * 
      * <pre>
@@ -6231,6 +6225,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * 8 = Managed Instance
      * Base data type: int
      * </pre>
+     * 
+     * @return if connected to SQL Azure
+     * 
      */
     boolean isAzure() {
         if (null == isAzure) {
@@ -6258,11 +6255,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    /**
+     * Checks if connection is established to SQL Azure DW
+     * 
+     * @return if connected to SQL Azure DW
+     */
     boolean isAzureDW() {
         isAzure();
         return isAzureDW;
     }
 
+    /**
+     * Checks if connection is established to Azure Managed Instance
+     * 
+     * @return if connected to SQL Azure MI
+     */
     boolean isAzureMI() {
         isAzure();
         return isAzureMI;

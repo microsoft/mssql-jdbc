@@ -172,9 +172,10 @@ public class NTLMConnectionTest extends AbstractTest {
     public void testNTLMBadInit() {
         try {
             @SuppressWarnings("unused")
-            SSPIAuthentication auth = new NTLMAuthentication("domainName", "userName", "password", "hostname");
+            SSPIAuthentication auth = new NTLMAuthentication(new SQLServerConnection("dummy"), "domainName", "userName",
+                    "password", "hostname");
         } catch (SQLException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownServer")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmInitError")));
         }
     }
 
@@ -318,7 +319,7 @@ public class NTLMConnectionTest extends AbstractTest {
     private void sendBadToken(byte[] badField, int offset) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
             getServerFqdn(con);
-            SSPIAuthentication auth = new NTLMAuthentication("domainName", "userName", "password", "hostname");
+            SSPIAuthentication auth = new NTLMAuthentication(con, "domainName", "userName", "password", "hostname");
             boolean[] done = {false};
             byte[] badToken = getChallengeToken(offset, badField);
             auth.generateClientContext(badToken, done);

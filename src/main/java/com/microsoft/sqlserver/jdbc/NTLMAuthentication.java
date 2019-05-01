@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -124,6 +125,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final long NTLMSSP_NEGOTIATE_TARGET_INFO = 0x00800000;
     private static final long NTLMSSP_NEGOTIATE_ALWAYS_SIGN = 0x00008000;
 
+    private static final long NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY_FLAG = 0x00080000;
+
     /**
      * Section 2.2.2.1 AV_PAIR
      *
@@ -154,6 +157,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final short NTLM_AVID_MSVAVTIMESTAMP = 0x0007;
     private static final short NTLM_AVID_MSVAVSINGLEHOST = 0x0008;
     private static final short NTLM_AVID_MSVAVTARGETNAME = 0x0009;
+    private static final short NTLM_AVID_MSVCHANNELBINDINGS = 0x000A;
 
     /**
      * Section 2.2.2.1 AV_PAIR
@@ -164,9 +168,14 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * 
      * If the CHALLENGE_MESSAGE TargetInfo field has an MsvAvTimestamp present, the client SHOULD provide a MIC
      */
-    private static final short NTLM_AVID_VALUE_MIC = 0x00000002; // value of NTLM_AVID_MSVAVFLAGS
+    private static final int NTLM_AVP_LENGTH = 8; // length of a AVP id and length
+
+    private static final int NTLM_AVFLAG_VALUE_MIC = 0x00000002; // indicates MIC is provided
     private static final int NTLM_MIC_LENGTH = 16; // length of MIC field
-    private static final int NTLM_MIC_AVP_LENGTH = 8; // length of the MIC AV pair
+
+    private static final int NTLM_AVFLAG_VALUE_SPN = 0x00000004; // indicates SPN is provided
+
+    private static final int NTLM_CHANNELBINDINGS_LENGTH = 16; // length of the channel binding
 
     /**
      * Section 2.2.1.1 NEGOTIATE_MESSAGE
@@ -229,6 +238,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
         private final byte[] userNameBytes;
         private final byte[] workstationBytes;
 
+        // server SPN
+        private final byte[] spnBytes;
+
         // message authentication code
         private Mac mac = null;
 
@@ -258,6 +270,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         /**
          * Creates an NTLM client context
          *
+         * @param con
          * @param domainName
          * @param userName
          * @param password
@@ -265,20 +278,22 @@ final class NTLMAuthentication extends SSPIAuthentication {
          * @return NTLM client context
          * @throws SQLServerException
          */
-        NTLMContext(final String domainName, final String userName, final String password,
-                final String workstation) throws SQLServerException {
+        NTLMContext(final SQLServerConnection con, final String domainName, final String userName,
+                final String password, final String workstation) throws SQLServerException {
 
             this.domainName = null != domainName ? domainName.toUpperCase()
                                                  : SQLServerDriverStringProperty.DOMAIN.getDefaultValue();
             this.domainBytes = unicode(this.domainName);
 
-            this.userNameBytes = null != SQLServerDriverStringProperty.USER.getDefaultValue() ? unicode(userName)
-                                                                                              : null;
+            this.userNameBytes = null != userName ? unicode(userName) : null;
             this.upperUserName = userName.toUpperCase();
 
             this.passwordHash = null != password ? MD4(unicode(password)) : null;
 
             this.workstationBytes = null != workstation ? unicode(workstation.toUpperCase()) : null;
+
+            String spn = null != con ? Util.getSpn(con) : null;
+            this.spnBytes = null != spn ? unicode(spn) : null;
 
             try {
                 mac = Mac.getInstance("HmacMD5");
@@ -296,16 +311,17 @@ final class NTLMAuthentication extends SSPIAuthentication {
     /**
      * Creates an instance of the NTLM authentication
      *
+     * @param con
      * @param domainName
      * @param userName
      * @param password
      * @param workstation
      * @throws SQLServerException
      */
-    NTLMAuthentication(final String domainName, final String userName, final String password,
-            final String workstation) throws SQLServerException {
+    NTLMAuthentication(final SQLServerConnection con, final String domainName, final String userName,
+            final String password, final String workstation) throws SQLServerException {
         if (null == context) {
-            this.context = new NTLMContext(domainName, userName, password, workstation);
+            this.context = new NTLMContext(con, domainName, userName, password, workstation);
         }
     }
 
@@ -353,7 +369,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         token.get(signature);
         if (!Arrays.equals(signature, NTLM_HEADER_SIGNATURE)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmSignatureError"));
-            Object[] msgArgs = {new String(signature, java.nio.charset.StandardCharsets.UTF_16LE)};
+            Object[] msgArgs = {signature};
             throw new SQLServerException(form.format(msgArgs), null);
         }
 
@@ -425,13 +441,13 @@ final class NTLMAuthentication extends SSPIAuthentication {
                     break;
                 default:
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmUnknownValue"));
-                    Object[] msgArgs = {new String(value, java.nio.charset.StandardCharsets.UTF_16LE)};
+                    Object[] msgArgs = {value};
                     throw new SQLServerException(form.format(msgArgs), null);
             }
 
-            if (logger.isLoggable(Level.FINER)) {
+            if (logger.isLoggable(Level.FINEST)) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmAvp"));
-                Object[] msgArgs = {id, new String(value, java.nio.charset.StandardCharsets.UTF_16LE)};
+                Object[] msgArgs = {id};
                 logger.finer(form.format(msgArgs));
             }
         }
@@ -446,7 +462,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
          */
         if (null == context.timestamp || 0 >= context.timestamp.length) {
             // this SHOULD always be present but for some reason occasionally this had seen to be missing
-            if (logger.isLoggable(Level.FINER)) {
+            if (logger.isLoggable(Level.FINEST)) {
                 logger.finer(SQLServerException.getErrString("R_ntlmNoTimestamp"));
             }
         } else {
@@ -511,7 +527,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
         ByteBuffer token = ByteBuffer
                 .allocate(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE.length + NTLM_CLIENT_CHALLENGE_RESERVED1.length
                         + NTLM_CLIENT_CHALLENGE_RESERVED2.length + currentTime.length + NTLM_CLIENT_NONCE_LENGTH
-                        + NTLM_CLIENT_CHALLENGE_RESERVED3.length + context.targetInfo.length + NTLM_MIC_AVP_LENGTH)
+                        + NTLM_CLIENT_CHALLENGE_RESERVED3.length + context.targetInfo.length + NTLM_AVP_LENGTH
+                        + NTLM_AVP_LENGTH + context.spnBytes.length + NTLM_AVP_LENGTH + NTLM_CHANNELBINDINGS_LENGTH)
                 .order(ByteOrder.LITTLE_ENDIAN);
 
         token.put(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE);
@@ -533,10 +550,22 @@ final class NTLMAuthentication extends SSPIAuthentication {
             // copy targetInfo up to NTLM_AVID_MSVAVEOL
             token.put(context.targetInfo, 0, context.targetInfo.length - 4);
 
-            // MIC flag
+            // MIC and SPN
             token.putShort(NTLM_AVID_MSVAVFLAGS);
             token.putShort((short) 4);
-            token.putInt((int) NTLM_AVID_VALUE_MIC);
+            token.putInt((int) NTLM_AVFLAG_VALUE_MIC | NTLM_AVFLAG_VALUE_SPN);
+            // token.putInt((int) NTLM_AVFLAG_VALUE_SPN);
+
+            // SPN
+            token.putShort(NTLM_AVID_MSVAVTARGETNAME);
+            token.putShort((short) context.spnBytes.length);
+            token.put(context.spnBytes, 0, context.spnBytes.length);
+
+            // channel binding
+            byte[] channelBinding = new byte[NTLM_CHANNELBINDINGS_LENGTH];
+            token.putShort(NTLM_AVID_MSVCHANNELBINDINGS);
+            token.putShort((short) NTLM_CHANNELBINDINGS_LENGTH);
+            token.put(MD5(channelBinding), 0, NTLM_CHANNELBINDINGS_LENGTH);
 
             // EOL
             token.putShort(NTLM_AVID_MSVAVEOL);
@@ -574,6 +603,20 @@ final class NTLMAuthentication extends SSPIAuthentication {
         md.reset();
         md.update(str);
         return md.digest();
+    }
+
+    private byte[] MD5(final byte[] str) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("MD5");
+            md.reset();
+            md.update(str);
+            return md.digest();
+        } catch (NoSuchAlgorithmException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**
@@ -843,4 +886,5 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
         return msg;
     }
+
 }
