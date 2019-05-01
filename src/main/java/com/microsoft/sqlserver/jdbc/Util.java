@@ -25,7 +25,6 @@ import java.util.regex.Pattern;
 
 import javax.naming.NamingException;
 
-import com.microsoft.sqlserver.jdbc.KerbAuthentication.RealmValidator;
 import com.microsoft.sqlserver.jdbc.dns.DNSKerberosLocator;
 
 
@@ -1023,6 +1022,12 @@ final class Util {
     private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?",
             Pattern.CASE_INSENSITIVE);
 
+    /**
+     * JVM Specific implementation to decide whether a realm is valid or not
+     */
+    interface RealmValidator {
+        boolean isRealmValid(String realm);
+    }
     private static RealmValidator validator;
 
     /**

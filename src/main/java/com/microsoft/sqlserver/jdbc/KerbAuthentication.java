@@ -5,20 +5,13 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.net.IDN;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.MessageFormat;
-import java.util.Locale;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
@@ -30,8 +23,6 @@ import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
-
-import com.microsoft.sqlserver.jdbc.dns.DNSKerberosLocator;
 
 
 /**
@@ -186,153 +177,10 @@ final class KerbAuthentication extends SSPIAuthentication {
         return null;
     }
 
-    private String makeSpn(String server, int port) throws SQLServerException {
-        if (authLogger.isLoggable(Level.FINER)) {
-            authLogger.finer(toString() + " Server: " + server + " port: " + port);
-        }
-        StringBuilder spn = new StringBuilder("MSSQLSvc/");
-        // Format is MSSQLSvc/myhost.domain.company.com:1433
-        // FQDN must be provided
-        if (con.serverNameAsACE()) {
-            spn.append(IDN.toASCII(server));
-        } else {
-            spn.append(server);
-        }
-        spn.append(":");
-        spn.append(port);
-        String strSPN = spn.toString();
-        if (authLogger.isLoggable(Level.FINER)) {
-            authLogger.finer(toString() + " SPN: " + strSPN);
-        }
-        return strSPN;
-    }
-
     // Package visible members below.
     KerbAuthentication(SQLServerConnection con, String address, int port) throws SQLServerException {
         this.con = con;
-        // Get user provided SPN string; if not provided then build the generic one
-        String userSuppliedServerSpn = con.activeConnectionProperties
-                .getProperty(SQLServerDriverStringProperty.SERVER_SPN.toString());
-
-        String spn;
-        if (null != userSuppliedServerSpn) {
-            // serverNameAsACE is true, translate the user supplied serverSPN to ASCII
-            if (con.serverNameAsACE()) {
-                int slashPos = userSuppliedServerSpn.indexOf("/");
-                spn = userSuppliedServerSpn.substring(0, slashPos + 1)
-                        + IDN.toASCII(userSuppliedServerSpn.substring(slashPos + 1));
-            } else {
-                spn = userSuppliedServerSpn;
-            }
-        } else {
-            spn = makeSpn(address, port);
-        }
-        this.spn = enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
-        if (null != spn && !this.spn.equals(spn) && authLogger.isLoggable(Level.FINER)) {
-            authLogger.finer(toString() + "SPN enriched: " + spn + " := " + this.spn);
-        }
-    }
-
-    private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?",
-            Pattern.CASE_INSENSITIVE);
-
-    private String enrichSpnWithRealm(String spn, boolean allowHostnameCanonicalization) {
-        if (spn == null) {
-            return spn;
-        }
-        Matcher m = SPN_PATTERN.matcher(spn);
-        if (!m.matches()) {
-            return spn;
-        }
-        if (m.group(3) != null) {
-            // Realm is already present, no need to enrich, the job has already been done
-            return spn;
-        }
-        String dnsName = m.group(1);
-        String portOrInstance = m.group(2);
-        RealmValidator realmValidator = getRealmValidator();
-        String realm = findRealmFromHostname(realmValidator, dnsName);
-        if (realm == null && allowHostnameCanonicalization) {
-            // We failed, try with canonical host name to find a better match
-            try {
-                String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
-                realm = findRealmFromHostname(realmValidator, canonicalHostName);
-                // Since we have a match, our hostname is the correct one (for instance of server
-                // name was an IP), so we override dnsName as well
-                dnsName = canonicalHostName;
-            } catch (UnknownHostException cannotCanonicalize) {
-                // ignored, but we are in a bad shape
-            }
-        }
-        if (realm == null) {
-            return spn;
-        } else {
-            StringBuilder sb = new StringBuilder("MSSQLSvc/");
-            sb.append(dnsName).append(":").append(portOrInstance).append("@").append(realm.toUpperCase(Locale.ENGLISH));
-            return sb.toString();
-        }
-    }
-
-    private static RealmValidator validator;
-
-    /**
-     * Get validator to validate REALM for given JVM.
-     *
-     * @return a not null realm validator.
-     */
-    static RealmValidator getRealmValidator() {
-        if (validator != null) {
-            return validator;
-        }
-
-        validator = new RealmValidator() {
-            @Override
-            public boolean isRealmValid(String realm) {
-                try {
-                    return DNSKerberosLocator.isRealmValid(realm);
-                } catch (NamingException err) {
-                    return false;
-                }
-            }
-        };
-        return validator;
-    }
-
-    /**
-     * Try to find a REALM in the different parts of a host name.
-     *
-     * @param realmValidator
-     *        a function that return true if REALM is valid and exists
-     * @param hostname
-     *        the name we are looking a REALM for
-     * @return the realm if found, null otherwise
-     */
-    private String findRealmFromHostname(RealmValidator realmValidator, String hostname) {
-        if (hostname == null) {
-            return null;
-        }
-        int index = 0;
-        while (index != -1 && index < hostname.length() - 2) {
-            String realm = hostname.substring(index);
-            if (authLogger.isLoggable(Level.FINEST)) {
-                authLogger.finest(toString() + " looking up REALM candidate " + realm);
-            }
-            if (realmValidator.isRealmValid(realm)) {
-                return realm.toUpperCase();
-            }
-            index = hostname.indexOf(".", index + 1);
-            if (index != -1) {
-                index = index + 1;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * JVM Specific implementation to decide whether a realm is valid or not
-     */
-    interface RealmValidator {
-        boolean isRealmValid(String realm);
+        this.spn = null != con ? Util.getSpn(con) : null;
     }
 
     /**
