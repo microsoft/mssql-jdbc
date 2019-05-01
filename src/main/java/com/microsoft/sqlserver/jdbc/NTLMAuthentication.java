@@ -125,8 +125,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final long NTLMSSP_NEGOTIATE_TARGET_INFO = 0x00800000;
     private static final long NTLMSSP_NEGOTIATE_ALWAYS_SIGN = 0x00008000;
 
-    private static final long NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY_FLAG = 0x00080000;
-
     /**
      * Section 2.2.2.1 AV_PAIR
      *
@@ -228,18 +226,18 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private class NTLMContext {
         // domain name to connect to
         private final String domainName;
+        private final byte[] domainUbytes;
 
         // user credentials
         private final String upperUserName;
+        private final byte[] userNameUbytes;
         private final byte[] passwordHash;
 
-        // unicode bytes
-        private final byte[] domainBytes;
-        private final byte[] userNameBytes;
-        private final byte[] workstationBytes;
+        // workstation
+        private String workstation;
 
         // server SPN
-        private final byte[] spnBytes;
+        private final byte[] spnUbytes;
 
         // message authentication code
         private Mac mac = null;
@@ -283,17 +281,17 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
             this.domainName = null != domainName ? domainName.toUpperCase()
                                                  : SQLServerDriverStringProperty.DOMAIN.getDefaultValue();
-            this.domainBytes = unicode(this.domainName);
+            this.domainUbytes = unicode(this.domainName);
 
-            this.userNameBytes = null != userName ? unicode(userName) : null;
+            this.userNameUbytes = null != userName ? unicode(userName) : null;
             this.upperUserName = userName.toUpperCase();
 
             this.passwordHash = null != password ? MD4(unicode(password)) : null;
 
-            this.workstationBytes = null != workstation ? unicode(workstation.toUpperCase()) : null;
+            this.workstation = workstation;
 
             String spn = null != con ? Util.getSpn(con) : null;
-            this.spnBytes = null != spn ? unicode(spn) : null;
+            this.spnUbytes = null != spn ? unicode(spn) : null;
 
             try {
                 mac = Mac.getInstance("HmacMD5");
@@ -528,7 +526,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
                 .allocate(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE.length + NTLM_CLIENT_CHALLENGE_RESERVED1.length
                         + NTLM_CLIENT_CHALLENGE_RESERVED2.length + currentTime.length + NTLM_CLIENT_NONCE_LENGTH
                         + NTLM_CLIENT_CHALLENGE_RESERVED3.length + context.targetInfo.length + NTLM_AVP_LENGTH
-                        + NTLM_AVP_LENGTH + context.spnBytes.length + NTLM_AVP_LENGTH + NTLM_CHANNELBINDINGS_LENGTH)
+                        + NTLM_AVP_LENGTH + context.spnUbytes.length + NTLM_AVP_LENGTH + NTLM_CHANNELBINDINGS_LENGTH)
                 .order(ByteOrder.LITTLE_ENDIAN);
 
         token.put(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE);
@@ -558,8 +556,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
             // SPN
             token.putShort(NTLM_AVID_MSVAVTARGETNAME);
-            token.putShort((short) context.spnBytes.length);
-            token.put(context.spnBytes, 0, context.spnBytes.length);
+            token.putShort((short) context.spnUbytes.length);
+            token.put(context.spnUbytes, 0, context.spnUbytes.length);
 
             // channel binding
             byte[] channelBinding = new byte[NTLM_CHANNELBINDINGS_LENGTH];
@@ -732,9 +730,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @throws SQLServerException
      */
     private byte[] generateNtlmAuthenticate() throws SQLServerException {
-        int domainNameLen = getByteArrayLength(context.domainBytes);
-        int userNameLen = getByteArrayLength(context.userNameBytes);
-        int workstationLen = getByteArrayLength(context.workstationBytes);
+        int domainNameLen = getByteArrayLength(context.domainUbytes);
+        int userNameLen = getByteArrayLength(context.userNameUbytes);
+        byte[] workstationBytes = unicode(context.workstation);
+        int workstationLen = getByteArrayLength(workstationBytes);
         byte[] msg = null;
 
         try {
@@ -804,9 +803,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
             // payload data
             token.put(NTLM_LMCHALLENAGERESPONSE, 0, NTLM_LMCHALLENAGERESPONSE.length);
             token.put(ntChallengeResp, 0, ntChallengeLen);
-            token.put(context.domainBytes, 0, domainNameLen);
-            token.put(context.userNameBytes, 0, userNameLen);
-            token.put(context.workstationBytes, 0, workstationLen);
+            token.put(context.domainUbytes, 0, domainNameLen);
+            token.put(context.userNameUbytes, 0, userNameLen);
+            token.put(workstationBytes, 0, workstationLen);
 
             msg = token.array();
 
@@ -842,8 +841,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @return NTLM Negotiate message
      */
     private byte[] generateNtlmNegotiate() {
-        int domainNameLen = getByteArrayLength(context.domainBytes);
-        int workstationLen = getByteArrayLength(context.workstationBytes);
+        int domainNameLen = getByteArrayLength(context.domainUbytes);
+        int workstationLen = getByteArrayLength(context.workstation.getBytes());
 
         ByteBuffer token = null;
         token = ByteBuffer.allocate(NTLM_NEGOTIATE_PAYLOAD_OFFSET + domainNameLen + workstationLen)
@@ -876,8 +875,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // version - not used, for debug only
 
         // payload
-        token.put(context.domainBytes, 0, domainNameLen);
-        token.put(context.workstationBytes, 0, workstationLen);
+        token.put(context.domainUbytes, 0, domainNameLen);
+        token.put(context.workstation.getBytes(), 0, workstationLen);
 
         // save msg for calculating MIC in Authenticate msg
         byte[] msg = token.array();
