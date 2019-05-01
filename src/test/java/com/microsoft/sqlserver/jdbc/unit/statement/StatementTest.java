@@ -5,9 +5,9 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -216,9 +216,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     stmt.closeOnCompletion();
                 } catch (Exception e) {
-
-                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
-
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 try (ResultSet rs = stmt.executeQuery(
@@ -690,11 +688,10 @@ public class StatementTest extends AbstractTest {
                 }
 
                 void start(final Connection con) {
-
                     try {
                         newStmt = con.createStatement();
                     } catch (SQLException e) {
-                        fail(id + " " + e.getMessage());
+                        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                     }
 
                     final Statement stmt = newStmt;
@@ -834,9 +831,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     result = ps.isCloseOnCompletion();
                 } catch (Exception e) {
-
-                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
-
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 assertEquals(false, result, "isCloseOnCompletion: " + TestResource.getResource("R_incorrectDefault"));
@@ -852,8 +847,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     ps.closeOnCompletion();
                 } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
-
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 try (ResultSet rs = ps.executeQuery()) {
@@ -887,7 +881,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     stmt.closeOnCompletion();
                 } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 assertEquals(true, stmt.isCloseOnCompletion(),
@@ -905,9 +899,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     stmt.closeOnCompletion();
                 } catch (Exception e) {
-
-                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
-
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
@@ -933,7 +925,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     stmt.closeOnCompletion();
                 } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1Name), stmt);
@@ -973,7 +965,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     newValue = Integer.MAX_VALUE + 1;
                     stmt.setMaxFieldSize(newValue);
-                    throw new SQLException("setMaxFieldSize(): max values should not be set");
+                    fail(TestResource.getResource("R_expectedFailPassed"));
                 } catch (Exception e) {
                     assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidLength")));
                 }
@@ -1004,7 +996,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     newValue = Integer.MAX_VALUE + 1;
                     stmt.setMaxRows(newValue);
-                    throw new SQLException("setMaxRows(): Long values should not be set");
+                    fail(TestResource.getResource("R_expectedFailPassed"));
                 } catch (Exception e) {
                     assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidRowcount")));
                 }
@@ -1012,7 +1004,7 @@ public class StatementTest extends AbstractTest {
                 // Set a negative value. If negative is accepted, throw exception
                 try {
                     stmt.setMaxRows(-2012);
-                    throw new SQLException("setMaxRows():  Negative value not allowed");
+                    fail(TestResource.getResource("R_expectedFailPassed"));
                 } catch (Exception e) {
                     assertTrue(
                             e.getMessage()
@@ -1043,7 +1035,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     newValue = (long) Integer.MAX_VALUE + 1;
                     stmt.setLargeMaxRows(newValue);
-                    throw new SQLException("setLargeMaxRows(): Long values should not be set");
+                    fail(TestResource.getResource("R_expectedFailPassed"));
                 } catch (Exception e) {
                     assertTrue(
                             e.getMessage().contains(
@@ -1054,7 +1046,7 @@ public class StatementTest extends AbstractTest {
                 // Set a negative value. If negative is accepted, throw exception
                 try {
                     stmt.setLargeMaxRows(-2012L);
-                    throw new SQLException("setLargeMaxRows():  Negative value not allowed");
+                    fail(TestResource.getResource("R_expectedFailPassed"));
                 } catch (Exception e) {
                     assertTrue(
                             e.getMessage()
@@ -1525,7 +1517,7 @@ public class StatementTest extends AbstractTest {
                             try {
                                 cstmt.closeOnCompletion();
                             } catch (Exception e) {
-                                throw new SQLException(TestResource.getResource("R_unexpectedException"));
+                                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                             }
 
                             try (ResultSet rs = cstmt.executeQuery()) {
@@ -2010,7 +2002,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     stmt.closeOnCompletion();
                 } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException"));
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT 1")) {
@@ -2040,7 +2032,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     stmt.closeOnCompletion();
                 } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException"));
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT 1")) {
@@ -2120,7 +2112,7 @@ public class StatementTest extends AbstractTest {
                                 + TestUtils.escapeSingleQuotes((triggerName)) + "') drop trigger "
                                 + AbstractSQLGenerator.escapeIdentifier(triggerName));
                     } catch (SQLException e) {
-                        throw new SQLException(e);
+                        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                     }
                     stmt.executeUpdate(
                             "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 INT )");
@@ -2307,7 +2299,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     pstmt.closeOnCompletion();
                 } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException"));
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 boolean result = pstmt.execute();
@@ -2449,7 +2441,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 } catch (SQLException e) {
-                    fail(e.getMessage());
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
             }
         }
@@ -2472,7 +2464,7 @@ public class StatementTest extends AbstractTest {
                     try {
                         stmt.closeOnCompletion();
                     } catch (Exception e) {
-                        throw new SQLException(TestResource.getResource("R_unexpectedException"), e);
+                        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                     }
                     stmt.executeUpdate(
                             "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 INT )");
@@ -2521,7 +2513,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 } catch (SQLException e) {
-                    fail(e.getMessage());
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
             }
         }
