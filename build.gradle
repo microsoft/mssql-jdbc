@@ -2,10 +2,14 @@
  * Gradle Scipt for Building Microsoft JDBC Driver for SQL Server
  ****************************************************************
  * Instruction for Building JDBC Driver:
- * For building jre9 version of the driver,
- * use command 'gradle build' or 'gradle build -PbuildProfile=build43'
- * Whereas, for building jre8 version of the driver,
- * use command 'gradle build -PbuildProfile=build42'
+ * For building particular version of the driver, use commands:
+ * jre12 - - PS> gradle build
+			 PS> gradle build -PbuildProfile=jre12
+ * jre11 - - PS> gradle build -PbuildProfile=jre11
+ * jre8  - - PS> gradle build -PbuildProfile=jre8
+ *
+ * For Excluding Groups in command line:
+ * PS> gradle build -PbuildProfile=jre11 "-PexcludedGroups=['xSQLv15','xGradle']"
  ****************************************************************/
 
 apply plugin: 'java'
@@ -25,7 +29,26 @@ allprojects {
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "build43")){
+test {
+    useJUnitPlatform {
+        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle')
+    }
+}
+
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre12")){
+	
+	jreVersion = "jre12"
+	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
+	jar {
+		manifest {
+			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
+		}
+	}
+	sourceCompatibility = 12
+	targetCompatibility = 12
+}
+
+if (hasProperty('buildProfile') && buildProfile == "jre11"){
 	
 	jreVersion = "jre11"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
@@ -38,13 +61,18 @@ if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile
 	targetCompatibility = 11
 }
 
-if((hasProperty('buildProfile') && buildProfile == "build42")) {
+if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	
 	jreVersion = "jre8"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java'
 	
 	sourceCompatibility = 1.8
 	targetCompatibility = 1.8
+	test {
+		useJUnitPlatform {
+			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','xJDBC42')
+		}
+	}
 }
 
 jar.archiveName = "${archivesBaseName}-${version}.${jreVersion}-preview.jar"
@@ -55,7 +83,6 @@ jar {
         'Vendor': 'Microsoft Corporation'
 	}
 }
-
 sourceSets {
     main {
         java {
@@ -69,8 +96,7 @@ sourceSets {
     }
 	test {
 		resources {
-			srcDirs 'src/test/resources'
-			include '**/*.csv'
+			srcDirs "src/test/resources", "AE_Certificates"
 			output.resourcesDir = testOutputDir
 		}
 	}
