@@ -272,9 +272,9 @@ public class SQLServerConnectionTest extends AbstractTest {
     public void testNativeSQL() throws SQLException {
         try (Connection conn = getConnection()) {
             String nativeSql = conn.nativeSQL("SELECT @@version");
-            if (!(nativeSql instanceof String)) {
-                fail(TestResource.getResource("testNativeSQL failed"));
-            }
+            assertTrue(nativeSql instanceof String);
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
 
@@ -292,6 +292,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLMI)
     public void testCatalog() throws SQLException {
         try (Connection conn = getConnection()) {
             String catalog = "master";
@@ -301,7 +302,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void testTypeMap() throws SQLException {
         try (Connection conn = getConnection()) {
             java.util.HashMap map = new java.util.HashMap();

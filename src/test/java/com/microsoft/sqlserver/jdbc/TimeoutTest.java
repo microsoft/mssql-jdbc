@@ -132,16 +132,14 @@ public class TimeoutTest extends AbstractTest {
     @Test
     public void testGetClosedTimer() throws SQLServerException, SQLException {
         try (SQLServerConnection conn = getConnection()) {
-            try {
-                conn.close();
-                @SuppressWarnings("unused")
-                SharedTimer timer = conn.getSharedTimer();
-                fail(TestResource.getResource("R_expectedFailPassed"));
-            } catch (SQLServerException e) {
-                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_connectionIsClosed")));
-            } catch (Exception e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-            }
+            conn.close();
+            @SuppressWarnings("unused")
+            SharedTimer timer = conn.getSharedTimer();
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_connectionIsClosed")));
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
     }
 
