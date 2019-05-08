@@ -8,7 +8,6 @@ package com.microsoft.sqlserver.jdbc;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -170,8 +169,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     private static final int NTLM_AVFLAG_VALUE_MIC = 0x00000002; // indicates MIC is provided
     private static final int NTLM_MIC_LENGTH = 16; // length of MIC field
-
-    private static final int NTLM_AVFLAG_VALUE_SPN = 0x00000004; // indicates SPN is provided
 
     private static final int NTLM_CHANNELBINDINGS_LENGTH = 16; // length of the channel binding
 
@@ -548,22 +545,23 @@ final class NTLMAuthentication extends SSPIAuthentication {
             // copy targetInfo up to NTLM_AVID_MSVAVEOL
             token.put(context.targetInfo, 0, context.targetInfo.length - 4);
 
-            // MIC and SPN
+            // MIC
             token.putShort(NTLM_AVID_MSVAVFLAGS);
             token.putShort((short) 4);
-            token.putInt((int) NTLM_AVFLAG_VALUE_MIC | NTLM_AVFLAG_VALUE_SPN);
-            // token.putInt((int) NTLM_AVFLAG_VALUE_SPN);
+            token.putInt((int) NTLM_AVFLAG_VALUE_MIC);
 
             // SPN
             token.putShort(NTLM_AVID_MSVAVTARGETNAME);
             token.putShort((short) context.spnUbytes.length);
             token.put(context.spnUbytes, 0, context.spnUbytes.length);
 
-            // channel binding
+            /*
+             * Section 2.2.2.1 AV_PAIR An all-zero value of the hash is used to indicate absence of channel bindings
+             */
             byte[] channelBinding = new byte[NTLM_CHANNELBINDINGS_LENGTH];
             token.putShort(NTLM_AVID_MSVCHANNELBINDINGS);
             token.putShort((short) NTLM_CHANNELBINDINGS_LENGTH);
-            token.put(MD5(channelBinding), 0, NTLM_CHANNELBINDINGS_LENGTH);
+            token.put(channelBinding, 0, NTLM_CHANNELBINDINGS_LENGTH);
 
             // EOL
             token.putShort(NTLM_AVID_MSVAVEOL);
@@ -603,20 +601,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
         return md.digest();
     }
 
-    private byte[] MD5(final byte[] str) {
-        MessageDigest md;
-        try {
-            md = MessageDigest.getInstance("MD5");
-            md.reset();
-            md.update(str);
-            return md.digest();
-        } catch (NoSuchAlgorithmException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     /**
      * Gets the unicode of a string
      *
@@ -625,7 +609,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @return unicode of string
      */
     private byte[] unicode(final String str) {
-        return str.getBytes(java.nio.charset.StandardCharsets.UTF_16LE);
+        return (null != str) ? str.getBytes(java.nio.charset.StandardCharsets.UTF_16LE) : null;
     }
 
     /**

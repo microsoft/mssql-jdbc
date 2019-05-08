@@ -76,7 +76,7 @@ public class TestUtils {
     /**
      * Checks if connection is established to Azure server.
      * 
-     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzure() >>>>>>> upstream/dev
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzure()
      */
     public static boolean isAzure(Connection con) {
         return ((SQLServerConnection) con).isAzure();
