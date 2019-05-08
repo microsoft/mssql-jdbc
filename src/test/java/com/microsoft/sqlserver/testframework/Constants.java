@@ -71,6 +71,7 @@ public class Constants {
 
     public static final String LOGGING_HANDLER_FILE = "file";
     public static final String LOGGING_HANDLER_CONSOLE = "console";
+    public static final String LOGGING_HANDLER_STREAM = "stream";
 
     public final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     public final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;

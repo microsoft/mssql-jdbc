@@ -5,6 +5,8 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,6 +17,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import java.util.logging.StreamHandler;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -61,6 +64,12 @@ public abstract class AbstractTest {
     private static boolean _determinedSqlAzureOrSqlServer = false;
     private static boolean _isSqlAzure = false;
     private static boolean _isSqlAzureDW = false;
+
+    /**
+     * Bytearray containing streamed logging output. Content can be retrieved using toByteArray() or toString()
+     */
+    public static ByteArrayOutputStream logOutputStream = null;
+    private static PrintStream logPrintStream = null;
 
     /**
      * This will take care of all initialization before running the Test Suite.
@@ -240,8 +249,18 @@ public abstract class AbstractTest {
             if (null != connection && !connection.isClosed()) {
                 connection.close();
             }
+
+            if (null != logOutputStream) {
+                logOutputStream.close();
+            }
+
+            if (null != logPrintStream) {
+                logPrintStream.close();
+            }
         } finally {
             connection = null;
+            logOutputStream = null;
+            logPrintStream = null;
         }
     }
 
@@ -271,35 +290,44 @@ public abstract class AbstractTest {
     public static void invokeLogging() {
         Handler handler = null;
 
-        String enableLogging = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING, Boolean.FALSE.toString());
+        // enable logging to stream by default for tests
+        String enableLogging = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING, Boolean.TRUE.toString());
 
         // If logging is not enable then return.
         if (!Boolean.TRUE.toString().equalsIgnoreCase(enableLogging)) {
             return;
         }
 
-        String loggingHandler = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING_HANDLER, "not_configured");
+        String loggingHandler = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING_HANDLER,
+                Constants.LOGGING_HANDLER_STREAM);
 
         try {
             if (Constants.LOGGING_HANDLER_CONSOLE.equalsIgnoreCase(loggingHandler)) {
                 handler = new ConsoleHandler();
+                handler.setFormatter(new SimpleFormatter());
             } else if (Constants.LOGGING_HANDLER_FILE.equalsIgnoreCase(loggingHandler)) {
                 handler = new FileHandler(Constants.DEFAULT_DRIVER_LOG);
+                handler.setFormatter(new SimpleFormatter());
                 System.out.println("Look for Driver.log file in your classpath for detail logs");
+            } else if (Constants.LOGGING_HANDLER_STREAM.equalsIgnoreCase(loggingHandler)) {
+                logOutputStream = new ByteArrayOutputStream();
+                logPrintStream = new PrintStream(logOutputStream);
+                handler = new StreamHandler(logPrintStream, new SimpleFormatter());
             }
 
             if (handler != null) {
-                handler.setFormatter(new SimpleFormatter());
                 handler.setLevel(Level.FINEST);
                 Logger.getLogger(Constants.MSSQL_JDBC_LOGGING_HANDLER).addHandler(handler);
             }
-            // By default, Loggers also send their output to their parent logger.
-            // Typically the root Logger is configured with a set of Handlers that essentially act as default handlers
-            // for all loggers.
+
+            /*
+             * By default, Loggers also send their output to their parent logger. Typically the root Logger is
+             * configured with a set of Handlers that essentially act as default handlers for all loggers.
+             */
             Logger logger = Logger.getLogger(Constants.MSSQL_JDBC_PACKAGE);
             logger.setLevel(Level.FINEST);
         } catch (Exception e) {
-            System.err.println("Some how could not invoke logging: " + e.getMessage());
+            System.err.println("Could not invoke logging: " + e.getMessage());
         }
     }
 
