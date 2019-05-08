@@ -3708,9 +3708,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     ImpersonatedUserCred = null;
                 }
             }
-
-            // remove password
-            activeConnectionProperties.remove(SQLServerDriverStringProperty.PASSWORD.toString());
         }
     }
 
