@@ -75,7 +75,7 @@ public class TestUtils {
 
     /**
      * Checks if connection is established to Azure server.
-     *
+     * 
      * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzure()
      */
     public static boolean isAzure(Connection con) {
@@ -84,7 +84,7 @@ public class TestUtils {
 
     /**
      * Checks if connection is established to Azure DW server.
-     *
+     * 
      * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzureDW()
      */
     public static boolean isAzureDW(Connection con) {
@@ -94,7 +94,7 @@ public class TestUtils {
 
     /**
      * Checks if connection is established to Azure MI server.
-     *
+     * 
      * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAzureMI()
      */
     public static boolean isAzureMI(Connection con) {
