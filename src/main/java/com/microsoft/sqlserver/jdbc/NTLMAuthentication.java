@@ -287,7 +287,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
          *        password
          * @param workstation
          *        hostname of the workstation
-         * @return NTLM client context
          * @throws SQLServerException
          *         if error occurs
          */
@@ -541,7 +540,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     private byte[] generateClientChallengeBlob(final byte[] clientNonce) {
         // timestamp is number of 100 nanosecond ticks since Windows Epoch
-        ByteBuffer time = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer time = ByteBuffer.allocate(NTLM_TIMESTAMP_LENGTH).order(ByteOrder.LITTLE_ENDIAN);
         time.putLong((TimeUnit.SECONDS.toNanos(Instant.now().getEpochSecond() + WINDOWS_EPOCH_DIFF)) / 100);
         byte[] currentTime = time.array();
 
@@ -732,8 +731,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *
      * Section 3.3.2 NTLM v2 Authentication
      *
-     * @param clientNonce
-     *        client challenge nonce
      * @return NT challenge response
      * @throws InvalidKeyException
      *         if error getting hash due to invalid key
