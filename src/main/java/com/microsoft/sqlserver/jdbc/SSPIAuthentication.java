@@ -27,7 +27,7 @@ abstract class SSPIAuthentication {
     abstract int releaseClientContext() throws SQLServerException;
 
     /**
-     * SPN pattern
+     * SPN pattern for matching
      */
     private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?",
             Pattern.CASE_INSENSITIVE);
@@ -36,10 +36,14 @@ abstract class SSPIAuthentication {
      * Make SPN name
      * 
      * @param con
+     *        connection to SQL server
      * @param server
+     *        server name
      * @param port
-     * @return
+     *        port number
+     * @return SPN
      * @throws SQLServerException
+     *         if error occurs
      */
     private String makeSpn(SQLServerConnection con, String server, int port) throws SQLServerException {
         StringBuilder spn = new StringBuilder("MSSQLSvc/");
@@ -66,7 +70,7 @@ abstract class SSPIAuthentication {
     /**
      * Get validator to validate REALM for given JVM.
      *
-     * @return a not null realm validator.
+     * @return a not null realm validator
      */
     private RealmValidator getRealmValidator() {
         if (null != validator) {
@@ -117,8 +121,10 @@ abstract class SSPIAuthentication {
      * Enrich SPN with Realm
      * 
      * @param spn
+     *        SPN
      * @param allowHostnameCanonicalization
-     * @return
+     *        flag to indicate of hostname canonicalization is allowed
+     * @return SPN enriched with realm
      */
     String enrichSpnWithRealm(String spn, boolean allowHostnameCanonicalization) {
         if (spn == null) {
@@ -160,8 +166,10 @@ abstract class SSPIAuthentication {
      * Get SPN from connection string if provided or build a generic one
      * 
      * @param con
-     * @return
+     *        connection to SQL server
+     * @return SPN
      * @throws SQLServerException
+     *         if error occurs
      */
     String getSpn(SQLServerConnection con) throws SQLServerException {
         if (null == con || null == con.activeConnectionProperties) {

@@ -293,7 +293,7 @@ public class NTLMConnectionTest extends AbstractTest {
             byte[] badTimestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
             sendBadToken(badTimestamp, NTLM_CHALLENGE_MSVAVTIMESTAMP_OFFSET);
         } catch (Exception e) {
-            // this should just generate a warning but not fail
+            // this should just generate a log but not fail
             fail(e.getMessage());
         }
     }
