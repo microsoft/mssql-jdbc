@@ -988,3 +988,71 @@ final class Util {
         return name.replace("'", "''");
     }
 }
+
+
+final class SQLIdentifier {
+    // Component names default to empty string (rather than null) for consistency
+    // with API behavior which returns empty string (rather than null) when the
+    // particular value is not present.
+
+    private String serverName = "";
+
+    final String getServerName() {
+        return serverName;
+    }
+
+    final void setServerName(String name) {
+        serverName = name;
+    }
+
+    private String databaseName = "";
+
+    final String getDatabaseName() {
+        return databaseName;
+    }
+
+    final void setDatabaseName(String name) {
+        databaseName = name;
+    }
+
+    private String schemaName = "";
+
+    final String getSchemaName() {
+        return schemaName;
+    }
+
+    final void setSchemaName(String name) {
+        schemaName = name;
+    }
+
+    private String objectName = "";
+
+    final String getObjectName() {
+        return objectName;
+    }
+
+    final void setObjectName(String name) {
+        objectName = name;
+    }
+
+    final String asEscapedString() {
+        StringBuilder fullName = new StringBuilder(256);
+
+        if (serverName.length() > 0)
+            fullName.append("[").append(serverName).append("].");
+
+        if (databaseName.length() > 0)
+            fullName.append("[").append(databaseName).append("].");
+        else
+            assert 0 == serverName.length();
+
+        if (schemaName.length() > 0)
+            fullName.append("[").append(schemaName).append("].");
+        else if (databaseName.length() > 0)
+            fullName.append('.');
+
+        fullName.append("[").append(objectName).append("]");
+
+        return fullName.toString();
+    }
+}

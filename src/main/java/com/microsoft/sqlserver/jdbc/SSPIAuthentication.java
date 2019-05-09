@@ -26,6 +26,9 @@ abstract class SSPIAuthentication {
 
     abstract int releaseClientContext() throws SQLServerException;
 
+    /**
+     * SPN pattern
+     */
     private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?",
             Pattern.CASE_INSENSITIVE);
 
@@ -38,7 +41,7 @@ abstract class SSPIAuthentication {
      * @return
      * @throws SQLServerException
      */
-    private static String makeSpn(SQLServerConnection con, String server, int port) throws SQLServerException {
+    private String makeSpn(SQLServerConnection con, String server, int port) throws SQLServerException {
         StringBuilder spn = new StringBuilder("MSSQLSvc/");
         // Format is MSSQLSvc/myhost.domain.company.com:1433 FQDN must be provided
         if (con.serverNameAsACE()) {
@@ -58,15 +61,15 @@ abstract class SSPIAuthentication {
         boolean isRealmValid(String realm);
     }
 
-    private static RealmValidator validator;
+    private RealmValidator validator;
 
     /**
      * Get validator to validate REALM for given JVM.
      *
      * @return a not null realm validator.
      */
-    private static RealmValidator getRealmValidator() {
-        if (validator != null) {
+    private RealmValidator getRealmValidator() {
+        if (null != validator) {
             return validator;
         }
 
@@ -92,7 +95,7 @@ abstract class SSPIAuthentication {
      *        the name we are looking a REALM for
      * @return the realm if found, null otherwise
      */
-    private static String findRealmFromHostname(RealmValidator realmValidator, String hostname) {
+    private String findRealmFromHostname(RealmValidator realmValidator, String hostname) {
         if (hostname == null) {
             return null;
         }
@@ -103,7 +106,7 @@ abstract class SSPIAuthentication {
                 return realm.toUpperCase();
             }
             index = hostname.indexOf(".", index + 1);
-            if (index != -1) {
+            if (-1 != index) {
                 index = index + 1;
             }
         }
@@ -117,7 +120,7 @@ abstract class SSPIAuthentication {
      * @param allowHostnameCanonicalization
      * @return
      */
-    static String enrichSpnWithRealm(String spn, boolean allowHostnameCanonicalization) {
+    String enrichSpnWithRealm(String spn, boolean allowHostnameCanonicalization) {
         if (spn == null) {
             return spn;
         }
@@ -138,11 +141,10 @@ abstract class SSPIAuthentication {
             try {
                 String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
                 realm = findRealmFromHostname(realmValidator, canonicalHostName);
-                // Since we have a match, our hostname is the correct one (for instance of server
-                // name was an IP), so we override dnsName as well
+                // match means hostname is correct (for instance if server name was an IP) so override dnsName as well
                 dnsName = canonicalHostName;
-            } catch (UnknownHostException cannotCanonicalize) {
-                // ignored, but we are in a bad shape
+            } catch (UnknownHostException e) {
+                // ignored, cannot canonicalize
             }
         }
         if (realm == null) {
@@ -161,7 +163,7 @@ abstract class SSPIAuthentication {
      * @return
      * @throws SQLServerException
      */
-    static String getSpn(SQLServerConnection con) throws SQLServerException {
+    String getSpn(SQLServerConnection con) throws SQLServerException {
         if (null == con || null == con.activeConnectionProperties) {
             return null;
         }
@@ -183,73 +185,5 @@ abstract class SSPIAuthentication {
                     con.currentConnectPlaceHolder.getPortNumber());
         }
         return enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
-    }
-}
-
-
-final class SQLIdentifier {
-    // Component names default to empty string (rather than null) for consistency
-    // with API behavior which returns empty string (rather than null) when the
-    // particular value is not present.
-
-    private String serverName = "";
-
-    final String getServerName() {
-        return serverName;
-    }
-
-    final void setServerName(String name) {
-        serverName = name;
-    }
-
-    private String databaseName = "";
-
-    final String getDatabaseName() {
-        return databaseName;
-    }
-
-    final void setDatabaseName(String name) {
-        databaseName = name;
-    }
-
-    private String schemaName = "";
-
-    final String getSchemaName() {
-        return schemaName;
-    }
-
-    final void setSchemaName(String name) {
-        schemaName = name;
-    }
-
-    private String objectName = "";
-
-    final String getObjectName() {
-        return objectName;
-    }
-
-    final void setObjectName(String name) {
-        objectName = name;
-    }
-
-    final String asEscapedString() {
-        StringBuilder fullName = new StringBuilder(256);
-
-        if (serverName.length() > 0)
-            fullName.append("[").append(serverName).append("].");
-
-        if (databaseName.length() > 0)
-            fullName.append("[").append(databaseName).append("].");
-        else
-            assert 0 == serverName.length();
-
-        if (schemaName.length() > 0)
-            fullName.append("[").append(schemaName).append("].");
-        else if (databaseName.length() > 0)
-            fullName.append('.');
-
-        fullName.append("[").append(objectName).append("]");
-
-        return fullName.toString();
     }
 }
