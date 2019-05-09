@@ -248,6 +248,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testSetTransactionIsolation() throws SQLException {
         try (Connection conn = getConnection()) {
             conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
