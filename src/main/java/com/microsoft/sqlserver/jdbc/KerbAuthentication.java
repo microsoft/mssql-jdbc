@@ -180,7 +180,7 @@ final class KerbAuthentication extends SSPIAuthentication {
     // Package visible members below.
     KerbAuthentication(SQLServerConnection con, String address, int port) throws SQLServerException {
         this.con = con;
-        this.spn = null != con ? Util.getSpn(con) : null;
+        this.spn = null != con ? getSpn(con) : null;
     }
 
     /**

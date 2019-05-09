@@ -287,7 +287,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
             this.workstation = workstation;
 
-            String spn = null != con ? Util.getSpn(con) : null;
+            String spn = null != con ? getSpn(con) : null;
             this.spnUbytes = null != spn ? unicode(spn) : null;
 
             try {
