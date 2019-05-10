@@ -40,7 +40,6 @@ public class NTLMConnectionTest extends AbstractTest {
 
     private static SQLServerDataSource dsNTLMLocal = null;
     private static String serverFqdn;
-    private static String connectionString;
 
     @BeforeAll
     public static void setUp() throws Exception {
@@ -48,7 +47,7 @@ public class NTLMConnectionTest extends AbstractTest {
         LogManager.getLogManager().reset();
 
         dsNTLMLocal = new SQLServerDataSource();
-        AbstractTest.updateDataSource(connectionString, dsNTLMLocal);
+        AbstractTest.updateDataSource(connectionStringNTLM, dsNTLMLocal);
 
         // grant view server state permission - needed to verify NTLM
         try (Connection con = PrepUtil
@@ -58,8 +57,6 @@ public class NTLMConnectionTest extends AbstractTest {
         } catch (Exception e) {
             fail(e.getMessage());
         }
-
-        connectionString = connectionStringNTLM;
     }
 
     /**
@@ -70,7 +67,7 @@ public class NTLMConnectionTest extends AbstractTest {
     @Test
     public void testNTLMBasicConnection() throws SQLException {
         try (Connection con1 = dsNTLMLocal.getConnection();
-                Connection con2 = PrepUtil.getConnection(connectionString)) {
+                Connection con2 = PrepUtil.getConnection(connectionStringNTLM)) {
             verifyNTLM(con1);
             verifyNTLM(con2);
         }
@@ -82,16 +79,16 @@ public class NTLMConnectionTest extends AbstractTest {
     @Test
     public void testNTLMInvalidProperties() {
         // NTLM without user name
-        testInvalidProperties(TestUtils.addOrOverrideProperty(connectionString, "user", ""),
+        testInvalidProperties(TestUtils.addOrOverrideProperty(connectionStringNTLM, "user", ""),
                 "R_NtlmNoUserPasswordDomain");
 
         // NTLM without password
-        testInvalidProperties(TestUtils.addOrOverrideProperty(connectionString, "password", ""),
+        testInvalidProperties(TestUtils.addOrOverrideProperty(connectionStringNTLM, "password", ""),
                 "R_NtlmNoUserPasswordDomain");
 
         // NTLM with integratedSecurity property
         testInvalidProperties(
-                TestUtils.addOrOverrideProperty(connectionString, "authentication", "ActiveDirectoryIntegrated "),
+                TestUtils.addOrOverrideProperty(connectionStringNTLM, "authentication", "ActiveDirectoryIntegrated "),
                 "R_SetAuthenticationWhenIntegratedSecurityTrue");
     }
 
@@ -102,7 +99,8 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMEncryptedConnection() throws SQLException {
-        try (Connection con = PrepUtil.getConnection(connectionString + ";encrypt=true;trustServerCertificate=true")) {
+        try (Connection con = PrepUtil
+                .getConnection(connectionStringNTLM + ";encrypt=true;trustServerCertificate=true")) {
             verifyNTLM(con);
         }
     }
@@ -119,7 +117,7 @@ public class NTLMConnectionTest extends AbstractTest {
             stmt.executeUpdate("CREATE DATABASE " + AbstractSQLGenerator.escapeIdentifier(databaseName));
         }
         try (Connection con = PrepUtil
-                .getConnection(TestUtils.addOrOverrideProperty(connectionString, "database", databaseName))) {
+                .getConnection(TestUtils.addOrOverrideProperty(connectionStringNTLM, "database", databaseName))) {
             verifyNTLM(con);
             verifyDatabase(con, databaseName);
         }
@@ -138,7 +136,7 @@ public class NTLMConnectionTest extends AbstractTest {
         HikariConfig config1 = new HikariConfig();
         HikariConfig config2 = new HikariConfig();
         config1.setDataSource(dsNTLMLocal);
-        config2.setJdbcUrl(connectionString);
+        config2.setJdbcUrl(connectionStringNTLM);
         try (HikariDataSource dsCP1 = new HikariDataSource(config1);
                 HikariDataSource dsCP2 = new HikariDataSource(config2); Connection con1 = dsCP1.getConnection();
                 Connection con2 = dsCP2.getConnection()) {
@@ -157,7 +155,7 @@ public class NTLMConnectionTest extends AbstractTest {
         String ipAddr;
         try {
             ipAddr = InetAddress.getByName(serverFqdn).getHostAddress();
-            try (Connection con = PrepUtil.getConnection(connectionString + ";servername=" + ipAddr)) {
+            try (Connection con = PrepUtil.getConnection(connectionStringNTLM + ";servername=" + ipAddr)) {
                 verifyNTLM(con);
             }
         } catch (UnknownHostException e) {
@@ -319,7 +317,7 @@ public class NTLMConnectionTest extends AbstractTest {
      * Send a bad NTLM Challenge Token
      */
     private void sendBadToken(byte[] badField, int offset) throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connectionStringNTLM)) {
             getServerFqdn(con);
             SSPIAuthentication auth = new NTLMAuthentication(con, "domainName", "userName", "password", "hostname");
             boolean[] done = {false};
@@ -374,8 +372,8 @@ public class NTLMConnectionTest extends AbstractTest {
     /*
      * Test invalid properties
      */
-    private void testInvalidProperties(String connectionString, String resourceKeyword) {
-        try (Connection con = PrepUtil.getConnection(connectionString)) {
+    private void testInvalidProperties(String connectionStringNTLM, String resourceKeyword) {
+        try (Connection con = PrepUtil.getConnection(connectionStringNTLM)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg(resourceKeyword)));
