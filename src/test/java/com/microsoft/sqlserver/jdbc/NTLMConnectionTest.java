@@ -40,7 +40,7 @@ public class NTLMConnectionTest extends AbstractTest {
 
     private static SQLServerDataSource dsNTLMLocal = null;
     private static String serverFqdn;
-    private static String connectionString = connectionStringNTLM;
+    private static String connectionString;
 
     @BeforeAll
     public static void setUp() throws Exception {
@@ -58,6 +58,8 @@ public class NTLMConnectionTest extends AbstractTest {
         } catch (Exception e) {
             fail(e.getMessage());
         }
+
+        connectionString = connectionStringNTLM;
     }
 
     /**
