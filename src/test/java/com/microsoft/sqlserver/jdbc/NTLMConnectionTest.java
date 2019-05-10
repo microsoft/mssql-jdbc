@@ -111,18 +111,12 @@ public class NTLMConnectionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testNTLMNonDefaultDatabase() throws SQLException {
-        String databaseName = RandomUtil.getIdentifier("NTLM");
-        try (Statement stmt = connection.createStatement()) {
-            stmt.executeUpdate("CREATE DATABASE " + AbstractSQLGenerator.escapeIdentifier(databaseName));
-        }
+    public void testNTLMNonDefaultDatabase() throws SQLException, InterruptedException {
+        String databaseName = "tempdb";
         try (Connection con = PrepUtil
                 .getConnection(TestUtils.addOrOverrideProperty(connectionStringNTLM, "database", databaseName))) {
             verifyNTLM(con);
             verifyDatabase(con, databaseName);
-        }
-        try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropDatabaseIfExists(databaseName, stmt);
         }
     }
 
