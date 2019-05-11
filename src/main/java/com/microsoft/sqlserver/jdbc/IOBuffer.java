@@ -3025,7 +3025,7 @@ final class TDSWriter {
         dataIsLoggable = value;
     }
 
-    SharedTimer getSharedTimer() {
+    SharedTimer getSharedTimer() throws SQLServerException {
         return con.getSharedTimer();
     }
 
