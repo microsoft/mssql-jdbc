@@ -415,6 +415,8 @@ enum JavaType {
     CLOB(Clob.class, JDBCType.CLOB),
     BLOB(Blob.class, JDBCType.BLOB),
     TVP(com.microsoft.sqlserver.jdbc.TVP.class, JDBCType.TVP),
+    GEOMETRY(Geometry.class, JDBCType.GEOMETRY),
+    GEOGRAPHY(Geography.class, JDBCType.GEOGRAPHY),
 
     INPUTSTREAM(InputStream.class, JDBCType.UNKNOWN) {
         // InputStreams are either ASCII or binary
@@ -776,7 +778,11 @@ enum JDBCType {
 
         SQLXML(JDBCType.Category.SQLXML, EnumSet.of(JDBCType.Category.SQLXML)),
 
-        TVP(JDBCType.Category.TVP, EnumSet.of(JDBCType.Category.TVP));
+        TVP(JDBCType.Category.TVP, EnumSet.of(JDBCType.Category.TVP)),
+        
+        GEOMETRY(JDBCType.Category.GEOMETRY, EnumSet.of(JDBCType.Category.GEOMETRY)),
+        
+        GEOGRAPHY(JDBCType.Category.GEOGRAPHY, EnumSet.of(JDBCType.Category.GEOGRAPHY));
 
         private final JDBCType.Category from;
         private final EnumSet<JDBCType.Category> to;
