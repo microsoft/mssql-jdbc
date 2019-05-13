@@ -135,4 +135,27 @@ public class Constants {
         NCLOB,
         BLOB
     };
+
+    public static final String CONFIG_PROPERTIES_FILE = "config.properties";
+    public static final String AZURESERVER = "azureServer";
+    public static final String AZUREDATABASE = "azureDatabase";
+    public static final String AZUREUSERNAME = "azureUserName";
+    public static final String AZUREPASSWORD = "azurePassword";
+    public static final String AZUREGROUPUSERNAME = "azureGroupUserName";
+    public static final String MSAZURESERVER = "msAzureServer";
+    public static final String MSAZUREDATABASE = "msAzureDatabase";
+    public static final String MSAZUREUSERNAME = "msAzureUserName";
+    public static final String MSAZUREPASSWORD = "msAzurePassword";
+    public static final String SPN = "spn";
+    public static final String STSURL = "stsurl";
+    public static final String FEDAUTHCLIENTID = "fedauthClientId";
+    public static final String ENABLEADINTEGRATED = "enableADIntegrated";
+    public static final String ENABLEADMSI = "enableADMSI";
+    public static final String APPLICATIONCLIENTID = "applicationClientId";
+    public static final String APPLICATIONKEY = "applicationKey";
+    public static final String KEYID = "keyId";
+    public static final String JKSPATH = "jksPaths";
+    public static final String JKSPATHSLINUX = "jksPathsLinux";
+    public static final String JAVAKEYALIASES = "javaKeyAliases";
+    public static final String WINDOWSKEYPATH = "windowsKeyPath";
 }

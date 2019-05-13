@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
+import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
@@ -111,10 +112,13 @@ public class TestUtils {
     public static String getConfiguredProperty(String key) {
         String value = System.getProperty(key);
 
-        if (value == null) {
+        if (null == value) {
             value = System.getenv(key);
         }
 
+        if (null == value && null != AbstractTest.properties) {
+            value = AbstractTest.properties.getProperty(key);
+        }
         return value;
     }
 
@@ -127,11 +131,39 @@ public class TestUtils {
     public static String getConfiguredProperty(String key, String defaultValue) {
         String value = getConfiguredProperty(key);
 
-        if (value == null) {
+        if (null == value) {
             value = defaultValue;
         }
 
         return value;
+    }
+    public static void getPropertiesFromFile() {
+        String key = Boolean.toString(AbstractTest.enableADIntegrated);
+        AbstractTest.enableADIntegrated = getConfiguredProperty(Boolean.toString(AbstractTest.enableADIntegrated),
+                Boolean.TRUE.toString()).equalsIgnoreCase(Boolean.TRUE.toString());
+        AbstractTest.enableADIntegrated = getConfiguredProperty(Boolean.toString(AbstractTest.enableADMSI),
+                Boolean.TRUE.toString()).equalsIgnoreCase(Boolean.TRUE.toString());
+        AbstractTest.azureServer = getConfiguredProperty(Constants.AZURESERVER);
+        AbstractTest.azureDatabase = getConfiguredProperty(Constants.AZUREDATABASE);
+        AbstractTest.azureUserName = getConfiguredProperty(Constants.AZUREUSERNAME);
+        AbstractTest.azurePassword = getConfiguredProperty(Constants.AZUREPASSWORD);
+        AbstractTest.spn = getConfiguredProperty(Constants.SPN);
+        AbstractTest.stsurl = getConfiguredProperty(Constants.STSURL);
+        AbstractTest.fedauthClientId = getConfiguredProperty(Constants.FEDAUTHCLIENTID);
+        AbstractTest.azureGroupUserName = getConfiguredProperty(Constants.AZUREGROUPUSERNAME);
+        AbstractTest.msAzureServer = getConfiguredProperty(Constants.MSAZURESERVER);
+        AbstractTest.msAzureDatabase = getConfiguredProperty(Constants.MSAZUREDATABASE);
+        AbstractTest.msAzureUserName = getConfiguredProperty(Constants.MSAZUREUSERNAME);
+        AbstractTest.msAzurePassword = getConfiguredProperty(Constants.MSAZUREPASSWORD);
+        AbstractTest.applicationClientId = getConfiguredProperty(Constants.APPLICATIONCLIENTID);
+        AbstractTest.applicationKey = getConfiguredProperty(Constants.APPLICATIONKEY);
+        AbstractTest.windowsKeyPath = getConfiguredProperty(Constants.WINDOWSKEYPATH);
+        AbstractTest.jksPaths = getConfiguredProperty(Constants.JKSPATH).split(";");
+        AbstractTest.keyIds = getConfiguredProperty(Constants.KEYID).split(";");
+        if (!System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
+            AbstractTest.jksPaths = getConfiguredProperty(Constants.JKSPATHSLINUX).split(";");
+        }
+        AbstractTest.javaKeyAliases = getConfiguredProperty(Constants.JAVAKEYALIASES).split(";");
     }
 
     /**
@@ -703,4 +735,8 @@ public class TestUtils {
         return (".*\\Q" + TestUtils.rBundle.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
     }
 
+    public static String getServerNameFromUrl(String url) {
+        int slash = url.indexOf("//") + 2;
+        return url.substring(slash, url.indexOf(';', slash));
+    }
 }

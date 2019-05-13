@@ -6,11 +6,14 @@
 package com.microsoft.sqlserver.testframework;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -44,14 +47,29 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
  */
 public abstract class AbstractTest {
 
-    static String applicationClientID = null;
-    static String applicationKey = null;
-    static String[] keyIDs = null;
+    public static String applicationClientId = null;
+    public static String applicationKey = null;
+    public static String[] keyIds = null;
 
-    static String[] jksPaths = null;
-    static String[] javaKeyAliases = null;
-    static String windowsKeyPath = null;
+    public static String[] jksPaths = null;
+    public static String jksPathsLinux = null;
+    public static String[] javaKeyAliases = null;
+    public static String windowsKeyPath = null;
 
+    public static String azureServer = null;
+    public static String azureDatabase = null;
+    public static String azureUserName = null;
+    public static String azurePassword = null;
+    public static String azureGroupUserName = null;
+    public static String msAzureServer = null;
+    public static String msAzureDatabase = null;
+    public static String msAzureUserName = null;
+    public static String msAzurePassword = null;
+    public static String spn = null;
+    public static String stsurl = null;
+    public static String fedauthClientId = null;
+    public static boolean enableADIntegrated = false;
+    public static boolean enableADMSI = false;
     protected static SQLServerConnection connection = null;
     protected static ISQLServerDataSource ds = null;
     protected static ISQLServerDataSource dsXA = null;
@@ -60,6 +78,10 @@ public abstract class AbstractTest {
     protected static Connection connectionAzure = null;
     protected static String connectionString = null;
 
+    protected static String accessToken = null;
+    protected static long secondsBeforeExpiration = -1;
+    protected static String secretstrJks = "changeit";
+    protected static String hostNameInCertificate = "*.database.windows.net";
     private static boolean _determinedSqlAzureOrSqlServer = false;
     private static boolean _isSqlAzure = false;
     private static boolean _isSqlAzureDW = false;
@@ -69,6 +91,9 @@ public abstract class AbstractTest {
      */
     public static ByteArrayOutputStream logOutputStream = null;
     private static PrintStream logPrintStream = null;
+
+    // String OS = System.getProperty("os.name").toLowerCase();
+    public static Properties properties = null;
 
     /**
      * This will take care of all initialization before running the Test Suite.
@@ -80,10 +105,14 @@ public abstract class AbstractTest {
         // Invoke fine logging...
         invokeLogging();
 
-        applicationClientID = getConfiguredProperty("applicationClientID");
+        applicationClientId = getConfiguredProperty("applicationClientId");
         applicationKey = getConfiguredProperty("applicationKey");
-        keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
+        keyIds = getConfiguredProperty("keyId", "").split(Constants.SEMI_COLON);
         connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
+        try (InputStream input = new FileInputStream(Constants.CONFIG_PROPERTIES_FILE)) {
+            properties = new Properties();
+            properties.load(input);
+        }
 
         ds = updateDataSource(new SQLServerDataSource());
         dsXA = updateDataSource(new SQLServerXADataSource());

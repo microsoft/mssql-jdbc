@@ -13,7 +13,9 @@ AE_Certificates/
 *.bak
 *.swp
 *~.nib
+*.cer
 local.properties
+config.properties
 .classpath
 .vscode/
 .settings/
