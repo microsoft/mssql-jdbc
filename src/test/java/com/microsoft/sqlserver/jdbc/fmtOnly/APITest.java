@@ -16,33 +16,35 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 public class APITest extends AbstractTest {
 
-    private static final String tableName = "FMT_API_Test_" + UUID.randomUUID();
+    private static final String tableName = RandomUtil.getIdentifier("FMT_API_Test");
 
     @BeforeAll
     private static void setupTest() throws SQLException {
-        try (Statement s = AbstractTest.connection.createStatement()) {
-            s.execute("CREATE TABLE [" + tableName
-                    + "] (c1 int identity, c2 float, c3 real, c4 bigint, c5 nvarchar(4000))");
+        try (Statement s = connection.createStatement()) {
+            s.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (c1 int identity, c2 float, c3 real, c4 bigint, c5 nvarchar(4000))");
         }
     }
 
     @AfterAll
     private static void cleanupTest() throws SQLException {
-        try (Statement s = AbstractTest.connection.createStatement()) {
+        try (Statement s = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, s);
         }
     }
 
     @Test
     public void publicAPITest() throws SQLException {
-        String sql = "INSERT INTO [" + tableName + "] VALUES(?,?,?,?)";
+        String sql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES(?,?,?,?)";
                 
         ds.setUseFmtOnly(true);
         try (Connection cStringConnection = DriverManager.getConnection(connectionString + ";useFMTOnly=true;");

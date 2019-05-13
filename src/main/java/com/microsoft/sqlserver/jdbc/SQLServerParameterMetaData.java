@@ -307,7 +307,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
     private void parseFMTQueryMeta(ResultSetMetaData md, SQLServerFMTQuery f) throws SQLServerException {
         try {
-            List<String> columns = f.getColumns().stream().collect(Collectors.toList());
+            List<String> columns = f.getColumns();
             List<List<String>> params = f.getValuesList();
             int valueListOffset = 0;
             int mdIndex = 1;

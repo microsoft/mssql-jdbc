@@ -17,8 +17,13 @@ import java.util.stream.Collectors;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.Token;
 
-
 class SQLServerFMTQuery {
+
+    private static final String FMT_ON = "SET FMTONLY ON;";
+    private static final String SELECT = "SELECT ";
+    private static final String FROM = " FROM ";
+    private static final String FMT_OFF = ";SET FMTONLY OFF;";
+    
     private String prefix = "";
     private ArrayList<? extends Token> tokenList = null;
     private List<String> userColumns = new ArrayList<>();
@@ -58,19 +63,17 @@ class SQLServerFMTQuery {
     }
 
     String getFMTQuery() {
-        StringBuilder sb = new StringBuilder("SET FMTONLY ON;");
-
+        StringBuilder sb = new StringBuilder(FMT_ON);
         if (prefix != "") {
             sb.append(prefix);
         }
-        sb.append("SELECT ");
+        sb.append(SELECT);
         sb.append(constructColumnTargets());
         if (!tableTarget.isEmpty()) {
-            sb.append(" FROM ");
+            sb.append(FROM);
             sb.append(constructTableTargets());
         }
-
-        sb.append(";SET FMTONLY OFF;");
+        sb.append(FMT_OFF);
         return sb.toString();
     }
 

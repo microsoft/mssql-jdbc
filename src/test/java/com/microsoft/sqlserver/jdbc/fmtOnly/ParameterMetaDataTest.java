@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -112,7 +113,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                 pmd.getScale(i);
             }
         } catch (SQLException e) {
-            fail(e.getMessage());
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
     }
 
@@ -124,7 +125,7 @@ public class ParameterMetaDataTest extends AbstractTest {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg(expectedError)));
             return;
         }
-        fail("No exception thrown");
+        fail(TestResource.getResource("R_expectedFailPassed"));
     }
 
     private void compareFmtAndSp(String userSQL) {
@@ -144,7 +145,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                 assertEquals(pmd1.getScale(i), pmd2.getScale(i));
             }
         } catch (SQLException e) {
-            fail(e.getMessage());
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
     }
 }

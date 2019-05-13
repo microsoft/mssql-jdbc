@@ -582,6 +582,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return !isKatmaiOrLater() || sendTimeAsDatetime;
     }
 
+    /**
+     * Returns the useFmtOnly value.
+     * 
+     * @return flag for using FMTONLY for parameter metadata querying.
+     */
     public final boolean getUseFmtOnly() {
         return useFmtOnly;
     }
@@ -1299,7 +1304,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.USER.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = SQLServerDriverStringProperty.USER.getDefaultValue();
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
@@ -1307,7 +1312,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.PASSWORD.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = SQLServerDriverStringProperty.PASSWORD.getDefaultValue();
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
@@ -1340,7 +1345,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // operation of RFC 3490.
             sPropKey = SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
@@ -1351,7 +1356,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sPropKey = SQLServerDriverStringProperty.SERVER_NAME.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
 
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = "localhost";
             }
 
@@ -1401,14 +1406,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue != null)
+            if (null != sPropValue)
                 validateMaxSQLLoginName(sPropKey, sPropValue);
             else
                 activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.DEFAULT_APP_NAME);
 
             sPropKey = SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
@@ -1443,7 +1448,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
@@ -1451,7 +1456,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 userSetTNIR = false;
                 sPropValue = Boolean
                         .toString(SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
@@ -1461,7 +1466,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverBooleanProperty.ENCRYPT.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
@@ -1471,7 +1476,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = Boolean
                         .toString(SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
@@ -1486,7 +1491,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
             }
 
@@ -1502,7 +1507,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue();
             }
 
@@ -1516,7 +1521,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.APPLICATION_INTENT.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue();
             }
 
@@ -1525,7 +1530,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
@@ -1534,7 +1539,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
@@ -1564,7 +1569,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue != null) {
+            if (null != sPropValue) {
                 integratedSecurity = isBooleanPropertyOn(sPropKey, sPropValue);
             }
 
@@ -1572,7 +1577,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (integratedSecurity) {
                 sPropKey = SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (sPropValue != null) {
+                if (null != sPropValue) {
                     intAuthScheme = AuthenticationScheme.valueOfString(sPropValue);
                 }
             }
@@ -1587,7 +1592,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null) {
+            if (null == sPropValue) {
                 sPropValue = SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue();
             }
             authenticationString = SqlAuthentication.valueOfString(sPropValue).toString().trim();
@@ -5387,7 +5392,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) {
         sendTimeAsDatetime = sendTimeAsDateTimeValue;
     }
-
+    
+    /**
+     * Specifies the flag to use FMTONLY for parameter metadata queries.
+     * 
+     * @param useFmtOnlyValue
+     *        boolean value for useFmtOnlyValue.
+     */
     public void setUseFmtOnly(boolean useFmtOnlyValue) {
         this.useFmtOnly = useFmtOnlyValue;
     }

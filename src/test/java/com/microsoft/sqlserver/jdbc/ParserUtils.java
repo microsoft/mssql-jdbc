@@ -1,5 +1,7 @@
 package com.microsoft.sqlserver.jdbc;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,7 +15,7 @@ import org.antlr.v4.runtime.Token;
 
 public class ParserUtils {
 
-    public static String getTableName(String s) {
+    private static String getTableName(String s) {
         try {
             return new SQLServerFMTQuery(s).constructTableTargets();
         } catch (SQLServerException e) {
@@ -21,7 +23,7 @@ public class ParserUtils {
         }
     }
 
-    public static String getCTE(String s) {
+    private static String getCTE(String s) {
         InputStream stream = new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
         SQLServerLexer lexer = null;
         try {
@@ -31,9 +33,20 @@ public class ParserUtils {
             ListIterator<? extends Token> iter = tokenList.listIterator();
             return SQLServerParser.getCTE(iter);
         } catch (IOException | SQLServerException e) {
-            // TODO Auto-generated catch block
-            return null;
+            return e.getLocalizedMessage();
         }
+    }
+    
+    public static void compareTableName(String tsql, String expected) {
+        // Verbose to make debugging more friendly
+        String extractedTableName = ParserUtils.getTableName(tsql).trim();
+        assertEquals(expected, extractedTableName);
+    }
+    
+    public static void compareCommonTableExpression(String tsql, String expected) {
+        // Verbose to make debugging more friendly
+        String extractedTableName = ParserUtils.getCTE(tsql).trim();
+        assertEquals(expected, extractedTableName);
     }
 
     @SuppressWarnings("deprecation")
