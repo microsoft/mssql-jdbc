@@ -41,15 +41,17 @@
 
 	<properties>
 		<!-- Allowed values for excluded Groups here - - - - - - - - - - - - - 
+			xJDBC42 - - - - - - For tests not compatible with JDBC 42 Specifications 
+			xGradle - - - - - - For tests not compatible with Gradle Script - - - - - 
 			xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014 
-			xSQLv14 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2017 
-			xSQLv15 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2019 
+			xSQLv14 - - - - - - For tests not compatible with SQL Server 2016 - 2017 
+			xSQLv15 - - - - - - For tests not compatible with SQL Server 2019 - - - - 
 			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv14) -->
-		<excludeGroups>xSQLv15</excludeGroups>
+		<excludedGroups>xSQLv15</excludedGroups>
 
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.1</azure.keyvault.version>
@@ -181,7 +183,7 @@
 
 	<profiles>
 		<profile>
-			<id>build42</id>
+			<id>jre8</id>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
 				<plugins>
@@ -216,10 +218,18 @@
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>3.0.0-M1</version>
+						<configuration>
+							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
+							<excludedGroups>${excludedGroups}, xJDBC42</excludedGroups>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-shade-plugin</artifactId>
 						<version>3.2.1</version>
 						<executions>
-							<!-- Run shade goal on package phase -->
 							<execution>
 								<goals>
 									<goal>shade</goal>
@@ -231,49 +241,11 @@
 							</execution>
 						</executions>
 					</plugin>
-					<plugin>
-						<groupId>org.jacoco</groupId>
-						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.8.3</version>
-						<executions>
-							<execution>
-								<id>pre-test</id>
-								<goals>
-									<goal>prepare-agent</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>report</id>
-								<phase>test</phase>
-								<goals>
-									<goal>report</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>3.0.0-M1</version>
-						<configuration>
-							<argLine>
-								${argLine} --illegal-access=permit
-							</argLine>
-							<properties>
-								<excludeTags>${skipTestTag}</excludeTags>
-							</properties>
-							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
-							<excludedGroups>${excludeGroups}, xJDBC42</excludedGroups>
-						</configuration>
-					</plugin>
 				</plugins>
 			</build>
 		</profile>
 		<profile>
-			<id>build43</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
+			<id>jre11</id>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre11-preview</finalName>
 				<plugins>
@@ -307,7 +279,6 @@
 						<artifactId>maven-shade-plugin</artifactId>
 						<version>3.2.1</version>
 						<executions>
-							<!-- Run shade goal on package phase -->
 							<execution>
 								<goals>
 									<goal>shade</goal>
@@ -319,40 +290,57 @@
 							</execution>
 						</executions>
 					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>jre12</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<build>
+				<finalName>${project.artifactId}-${project.version}.jre12-preview</finalName>
+				<plugins>
 					<plugin>
-						<groupId>org.jacoco</groupId>
-						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.8.3</version>
-						<executions>
-							<execution>
-								<id>pre-test</id>
-								<goals>
-									<goal>prepare-agent</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>report</id>
-								<phase>test</phase>
-								<goals>
-									<goal>report</goal>
-								</goals>
-							</execution>
-						</executions>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.8.0</version>
+						<configuration>
+							<excludes>
+								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
+							</excludes>
+							<source>12</source>
+							<target>12</target>
+						</configuration>
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>3.0.0-M1</version>
+						<artifactId>maven-jar-plugin</artifactId>
+						<version>3.1.1</version>
 						<configuration>
-							<argLine>
-								${argLine} --illegal-access=permit
-							</argLine>
-							<properties>
-								<excludeTags>${skipTestTag}</excludeTags>
-							</properties>
-							<excludedGroups>
-								${excludeGroups}</excludedGroups>
+							<archive>
+								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+								<manifestEntries>
+									<Automatic-Module-Name>com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
+								</manifestEntries>
+							</archive>
 						</configuration>
+					</plugin>
+					<plugin>
+						<artifactId>maven-shade-plugin</artifactId>
+						<version>3.2.1</version>
+						<executions>
+							<!-- Run shade goal on package phase -->
+							<execution>
+								<goals>
+									<goal>shade</goal>
+								</goals>
+								<configuration>
+									<shadedArtifactAttached>true</shadedArtifactAttached>
+									<shadedClassifierName>shaded.jre12-preview</shadedClassifierName>
+								</configuration>
+							</execution>
+						</executions>
 					</plugin>
 				</plugins>
 			</build>
@@ -414,6 +402,18 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.0.0-M1</version>
+				<configuration>
+					<argLine>
+						${argLine} --illegal-access=permit
+					</argLine>
+					<excludedGroups>
+						${excludedGroups}</excludedGroups>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -487,6 +487,21 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.3</version>
+				<executions>
+					<execution>
+						<id>pre-test</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
 				<configuration>
 					<fileSets>
 						<fileSet>

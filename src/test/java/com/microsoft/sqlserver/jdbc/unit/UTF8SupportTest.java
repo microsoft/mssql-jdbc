@@ -48,29 +48,27 @@ public class UTF8SupportTest extends AbstractTest {
      */
     @Test
     public void testChar() throws SQLException {
-        if (TestUtils.serverSupportsUTF8(connection)) {
-            createTable("char(10)");
-            validate("teststring");
-            // This is 10 UTF-8 bytes. D1 82 D0 B5 D1 81 D1 82 31 32
-            validate("тест12");
-            // E2 95 A1 E2 95 A4 E2 88 9E 2D
-            validate("╡╤∞-");
+        createTable("char(10)");
+        validate("teststring");
+        // This is 10 UTF-8 bytes. D1 82 D0 B5 D1 81 D1 82 31 32
+        validate("тест12");
+        // E2 95 A1 E2 95 A4 E2 88 9E 2D
+        validate("╡╤∞-");
 
-            createTable("char(4000)");
-            validate(String.join("", Collections.nCopies(400, "teststring")));
-            validate(String.join("", Collections.nCopies(400, "тест12")));
-            validate(String.join("", Collections.nCopies(400, "╡╤∞-")));
+        createTable("char(4000)");
+        validate(String.join("", Collections.nCopies(400, "teststring")));
+        validate(String.join("", Collections.nCopies(400, "тест12")));
+        validate(String.join("", Collections.nCopies(400, "╡╤∞-")));
 
-            createTable("char(4001)");
-            validate(String.join("", Collections.nCopies(400, "teststring")) + "1");
-            validate(String.join("", Collections.nCopies(400, "тест12")) + "1");
-            validate(String.join("", Collections.nCopies(400, "╡╤∞-")) + "1");
+        createTable("char(4001)");
+        validate(String.join("", Collections.nCopies(400, "teststring")) + "1");
+        validate(String.join("", Collections.nCopies(400, "тест12")) + "1");
+        validate(String.join("", Collections.nCopies(400, "╡╤∞-")) + "1");
 
-            createTable("char(8000)");
-            validate(String.join("", Collections.nCopies(800, "teststring")));
-            validate(String.join("", Collections.nCopies(800, "тест12")));
-            validate(String.join("", Collections.nCopies(800, "╡╤∞-")));
-        }
+        createTable("char(8000)");
+        validate(String.join("", Collections.nCopies(800, "teststring")));
+        validate(String.join("", Collections.nCopies(800, "тест12")));
+        validate(String.join("", Collections.nCopies(800, "╡╤∞-")));
     }
 
     /**
@@ -80,50 +78,45 @@ public class UTF8SupportTest extends AbstractTest {
      */
     @Test
     public void testVarchar() throws SQLException {
-        if (TestUtils.serverSupportsUTF8(connection)) {
-            createTable("varchar(10)");
-            validate("teststring");
-            validate("тест12");
-            validate("╡╤∞-");
+        createTable("varchar(10)");
+        validate("teststring");
+        validate("тест12");
+        validate("╡╤∞-");
 
-            createTable("varchar(4000)");
-            validate(String.join("", Collections.nCopies(400, "teststring")));
-            validate(String.join("", Collections.nCopies(400, "тест12")));
-            validate(String.join("", Collections.nCopies(400, "╡╤∞-")));
+        createTable("varchar(4000)");
+        validate(String.join("", Collections.nCopies(400, "teststring")));
+        validate(String.join("", Collections.nCopies(400, "тест12")));
+        validate(String.join("", Collections.nCopies(400, "╡╤∞-")));
 
-            createTable("varchar(4001)");
-            validate(String.join("", Collections.nCopies(400, "teststring")) + "1");
-            validate(String.join("", Collections.nCopies(400, "тест12")) + "1");
-            validate(String.join("", Collections.nCopies(400, "╡╤∞-")) + "1");
+        createTable("varchar(4001)");
+        validate(String.join("", Collections.nCopies(400, "teststring")) + "1");
+        validate(String.join("", Collections.nCopies(400, "тест12")) + "1");
+        validate(String.join("", Collections.nCopies(400, "╡╤∞-")) + "1");
 
-            createTable("varchar(8000)");
-            validate(String.join("", Collections.nCopies(800, "teststring")));
-            validate(String.join("", Collections.nCopies(800, "тест12")));
-            validate(String.join("", Collections.nCopies(800, "╡╤∞-")));
+        createTable("varchar(8000)");
+        validate(String.join("", Collections.nCopies(800, "teststring")));
+        validate(String.join("", Collections.nCopies(800, "тест12")));
+        validate(String.join("", Collections.nCopies(800, "╡╤∞-")));
 
-            createTable("varchar(MAX)");
-            validate(String.join("", Collections.nCopies(800, "teststring")));
-            validate(String.join("", Collections.nCopies(800, "тест12")));
-            validate(String.join("", Collections.nCopies(800, "╡╤∞-")));
-        }
+        createTable("varchar(MAX)");
+        validate(String.join("", Collections.nCopies(800, "teststring")));
+        validate(String.join("", Collections.nCopies(800, "тест12")));
+        validate(String.join("", Collections.nCopies(800, "╡╤∞-")));
     }
 
     @BeforeAll
     public static void setUp() throws ClassNotFoundException, SQLException {
-        if (TestUtils.serverSupportsUTF8(connection)) {
-            databaseName = RandomUtil.getIdentifier("UTF8Database");
-            tableName = RandomUtil.getIdentifier("UTF8Table");
-            createDatabaseWithUTF8Collation();
-            connection.setCatalog(databaseName);
-        }
+        assert (TestUtils.serverSupportsUTF8(connection));
+        databaseName = RandomUtil.getIdentifier("UTF8Database");
+        tableName = RandomUtil.getIdentifier("UTF8Table");
+        createDatabaseWithUTF8Collation();
+        connection.setCatalog(databaseName);
     }
 
     @AfterAll
     public static void cleanUp() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            if (TestUtils.serverSupportsUTF8(connection)) {
-                TestUtils.dropDatabaseIfExists(databaseName, stmt);
-            }
+            TestUtils.dropDatabaseIfExists(databaseName, stmt);
         }
     }
 

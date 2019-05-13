@@ -14,14 +14,18 @@ public class Constants {
      * Use below tags for tests to exclude them from test group:
      * 
      * <pre>
+     * xJDBC42 - - - - - - For tests not compatible with JDBC 42 Specifications
+     * xGradle - - - - - - For tests not compatible with Gradle Script (e.g. Manifest File)
      * xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014
-     * xSQLv14 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2017
-     * xSQLv15 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2019
+     * xSQLv14 - - - - - - For tests not compatible with SQL Server 2016 - 2017
+     * xSQLv15 - - - - - - For tests not compatible with SQL Server 2019
      * xAzureSQLDB - - - - For tests not compatible with Azure SQL Database
      * xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
      * </pre>
      */
+    public static final String xJDBC42 = "xJDBC42";
+    public static final String xGradle = "xGradle";
     public static final String xSQLv12 = "xSQLv12";
     public static final String xSQLv14 = "xSQLv14";
     public static final String xSQLv15 = "xSQLv15";
@@ -63,6 +67,7 @@ public class Constants {
 
     public static final String LOGGING_HANDLER_FILE = "file";
     public static final String LOGGING_HANDLER_CONSOLE = "console";
+    public static final String LOGGING_HANDLER_STREAM = "stream";
 
     public final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     public final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
