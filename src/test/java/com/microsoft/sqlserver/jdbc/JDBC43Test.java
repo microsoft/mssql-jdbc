@@ -16,7 +16,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
-import com.microsoft.sqlserver.testframework.AbstractTest;;
+import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -127,7 +128,7 @@ public class JDBC43Test extends AbstractTest {
      * @since 1.9
      */
     @Test
-    @Tag("xJDBC42")
+    @Tag(Constants.xJDBC42)
     public void setShardingKeyIfValidTest() throws TestAbortedException, SQLException {
         try (SQLServerConnection connection43 = (SQLServerConnection43) getConnection()) {
             try {
@@ -151,7 +152,7 @@ public class JDBC43Test extends AbstractTest {
      * @since 1.9
      */
     @Test
-    @Tag("xJDBC42")
+    @Tag(Constants.xJDBC42)
     public void setShardingKeyTest() throws TestAbortedException, SQLException {
         try (SQLServerConnection connection43 = (SQLServerConnection43) getConnection()) {
             try {
