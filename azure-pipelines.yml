@@ -30,24 +30,29 @@ jobs:
       Remove-Item –path .\JavaKeyStoreBase.txt
     displayName: 'PowerShell Script'
   - task: Maven@3
-    displayName: 'Maven build 43'
+    displayName: 'Maven build jre12'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pbuild43 -DexcludeGroups=$(Ex_Groups)'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre12 -DexcludedGroups=$(Ex_Groups)'
       testResultsFiles: '**/TEST-*.xml'
-      testRunTitle: 'Maven build 43'
+      testRunTitle: 'Maven build jre12'
       javaHomeOption: Path
-      jdkDirectory: $(JDK11)
-      mavenAuthenticateFeed: true
-      checkStyleRunAnalysis: true
-      pmdRunAnalysis: true
+      jdkDirectory: $(JDK12)
   - task: Maven@3
-    displayName: 'Maven build 42'
+    displayName: 'Maven build jre11'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pbuild42 -DexcludeGroups=$(Ex_Groups)'
-      testRunTitle: 'Maven build 42'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre11 -DexcludedGroups=$(Ex_Groups)'
+      testResultsFiles: '**/TEST-*.xml'
+      testRunTitle: 'Maven build jre11'
       javaHomeOption: Path
-      jdkDirectory: $(JDK11)
-      checkStyleRunAnalysis: true
-      pmdRunAnalysis: true
+      jdkDirectory: $(JDK12)
+  - task: Maven@3
+    displayName: 'Maven build jre8'
+    inputs:
+      mavenPomFile: 'pom.xml'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre8 -DexcludedGroups=$(Ex_Groups)'
+      testResultsFiles: '**/TEST-*.xml'
+      testRunTitle: 'Maven build jre8'
+      javaHomeOption: Path
+      jdkDirectory: $(JDK12)

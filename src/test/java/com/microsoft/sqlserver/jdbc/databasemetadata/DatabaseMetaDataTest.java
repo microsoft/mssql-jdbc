@@ -75,6 +75,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      *         IOExcption
      */
     @Test
+    @Tag(Constants.xGradle)
     public void testDriverVersion() throws SQLException, IOException {
         String manifestFile = TestUtils.getCurrentClassPath() + "META-INF/MANIFEST.MF";
         manifestFile = manifestFile.replace("test-classes", "classes");
