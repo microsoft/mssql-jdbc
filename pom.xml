@@ -237,6 +237,16 @@
 								<configuration>
 									<shadedArtifactAttached>true</shadedArtifactAttached>
 									<shadedClassifierName>shaded.jre8-preview</shadedClassifierName>
+								    <filters>
+								        <filter>
+								            <artifact>*:*</artifact>
+								            <excludes>
+								                <exclude>META-INF/*.SF</exclude>
+								                <exclude>META-INF/*.DSA</exclude>
+								                <exclude>META-INF/*.RSA</exclude>
+								            </excludes>
+								        </filter>
+								    </filters>
 								</configuration>
 							</execution>
 						</executions>
@@ -286,6 +296,16 @@
 								<configuration>
 									<shadedArtifactAttached>true</shadedArtifactAttached>
 									<shadedClassifierName>shaded.jre11-preview</shadedClassifierName>
+								    <filters>
+								        <filter>
+								            <artifact>*:*</artifact>
+								            <excludes>
+								                <exclude>META-INF/*.SF</exclude>
+								                <exclude>META-INF/*.DSA</exclude>
+								                <exclude>META-INF/*.RSA</exclude>
+								            </excludes>
+								        </filter>
+								    </filters>
 								</configuration>
 							</execution>
 						</executions>
@@ -338,6 +358,16 @@
 								<configuration>
 									<shadedArtifactAttached>true</shadedArtifactAttached>
 									<shadedClassifierName>shaded.jre12-preview</shadedClassifierName>
+								    <filters>
+								        <filter>
+								            <artifact>*:*</artifact>
+								            <excludes>
+								                <exclude>META-INF/*.SF</exclude>
+								                <exclude>META-INF/*.DSA</exclude>
+								                <exclude>META-INF/*.RSA</exclude>
+								            </excludes>
+								        </filter>
+								    </filters>
 								</configuration>
 							</execution>
 						</executions>
