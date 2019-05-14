@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,8 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.jdbc.dataclassification.InformationType;
+import com.microsoft.sqlserver.jdbc.dataclassification.Label;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityProperty;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -24,6 +27,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDB)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xSQLv14)
@@ -37,13 +41,11 @@ public class DataClassificationTest extends AbstractTest {
      */
     @Test
     public void testDataClassificationMetadata() throws Exception {
-        // Run this test only with newer SQL Servers (version>=2018) that support Data Classification
         try (Statement stmt = connection.createStatement();) {
-            if (TestUtils.serverSupportsDataClassification(stmt)) {
-                createTable(connection, stmt);
-                runTestsForServer(stmt);
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            }
+            assert (TestUtils.serverSupportsDataClassification(stmt));
+            createTable(connection, stmt);
+            runTestsForServer(stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
     }
 
@@ -119,7 +121,7 @@ public class DataClassificationTest extends AbstractTest {
     }
 
     /**
-     * Verifies resultset received to contain data classification information as set.
+     * Verifies ResultSet received to contain data classification information as set.
      * 
      * @param rs
      * @throws SQLException
@@ -130,20 +132,36 @@ public class DataClassificationTest extends AbstractTest {
                     columnPos++) {
                 for (SensitivityProperty sp : rs.getSensitivityClassification().getColumnSensitivities().get(columnPos)
                         .getSensitivityProperties()) {
-                    if (columnPos == 1 || columnPos == 2 || columnPos == 6 || columnPos == 7) {
-                        assert (sp.getLabel() != null);
-                        assert (sp.getLabel().getId().equalsIgnoreCase("L1"));
-                        assert (sp.getLabel().getName().equalsIgnoreCase("PII"));
 
-                        assert (sp.getInformationType() != null);
-                        assert (sp.getInformationType().getId()
-                                .equalsIgnoreCase(columnPos == 1 ? "COMPANY" : (columnPos == 2 ? "NAME" : "CONTACT")));
-                        assert (sp.getInformationType().getName().equalsIgnoreCase(
-                                columnPos == 1 ? "Company name"
-                                               : (columnPos == 2 ? "Person Name" : "Contact Information")));
+                    List<InformationType> infoTypes = rs.getSensitivityClassification().getInformationTypes();
+                    assert (infoTypes.size() == 3);
+                    for (int i = 0; i < infoTypes.size(); i++) {
+                        verifyInfoType(infoTypes.get(i), i + 1);
+                    }
+
+                    List<Label> labels = rs.getSensitivityClassification().getLabels();
+                    assert (labels.size() == 1);
+                    verifyLabel(labels.get(0));
+
+                    if (columnPos == 1 || columnPos == 2 || columnPos == 6 || columnPos == 7) {
+                        verifyLabel(sp.getLabel());
+                        verifyInfoType(sp.getInformationType(), columnPos);
                     }
                 }
             }
         }
+    }
+
+    private void verifyInfoType(InformationType informationType, int i) {
+        assert (informationType != null);
+        assert (informationType.getId().equalsIgnoreCase(i == 1 ? "COMPANY" : (i == 2 ? "NAME" : "CONTACT")));
+        assert (informationType.getName()
+                .equalsIgnoreCase(i == 1 ? "Company name" : (i == 2 ? "Person Name" : "Contact Information")));
+    }
+
+    private void verifyLabel(Label label) {
+        assert (label != null);
+        assert (label.getId().equalsIgnoreCase("L1"));
+        assert (label.getName().equalsIgnoreCase("PII"));
     }
 }

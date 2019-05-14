@@ -81,7 +81,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_cannotOpenDatabase", "Cannot open database"}, {"R_shouldNotConnect", "Should not have connected"},
             {"R_loginFailed", "Login failed"}, {"R_exitedMoreSeconds", "Exited in more than {0} seconds."},
             {"R_exitedLessSeconds", "Exited in less than {0} seconds."},
-            {"R_invalidArgumentExecutor", "The argument executor is not valid"},
             {"R_threadInterruptNotSet", "Thread's interrupt status is not set."},
             {"R_connectMirrored", "Connecting to a mirrored"},
             {"R_trustStorePasswordNotSet", "The DataSource trustStore password needs to be set."},
