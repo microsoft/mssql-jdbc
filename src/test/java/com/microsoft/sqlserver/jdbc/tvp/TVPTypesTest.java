@@ -579,7 +579,7 @@ public class TVPTypesTest extends AbstractTest {
 
             try {
                 table.addRow(3);
-                fail();
+                fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
                 assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
@@ -587,7 +587,7 @@ public class TVPTypesTest extends AbstractTest {
 
             try {
                 table.addRow(-1);
-                fail();
+                fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
                 assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
@@ -595,7 +595,7 @@ public class TVPTypesTest extends AbstractTest {
 
             try {
                 table.addRow(0.6655f);
-                fail();
+                fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
                 assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
@@ -603,7 +603,7 @@ public class TVPTypesTest extends AbstractTest {
 
             try {
                 table.addRow(13243.343d);
-                fail();
+                fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
                 assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
@@ -622,12 +622,12 @@ public class TVPTypesTest extends AbstractTest {
                 table.addRow(-1);
                 table.addRow(unknownTypeInstance);
             } catch (SQLException e) {
-                fail();
+                fail(e.getMessage());
             }
 
             try {
                 table.addRow(0.66f);
-                fail();
+                fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
                 assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
@@ -635,7 +635,7 @@ public class TVPTypesTest extends AbstractTest {
 
             try {
                 table.addRow(1.555d);
-                fail();
+                fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
                 assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
@@ -643,7 +643,7 @@ public class TVPTypesTest extends AbstractTest {
 
             try {
                 table.addRow(Long.parseLong("344563252234"));
-                fail();
+                fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
                 assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
