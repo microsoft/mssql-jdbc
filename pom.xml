@@ -387,7 +387,6 @@
 									<exclude>log4j:log4j:jar:</exclude>
 								</excludes>
 							</artifactSet>
-							<minimizeJar>true</minimizeJar>
 							<shadedArtifactAttached>true</shadedArtifactAttached>
 							<filters>
 								<filter>
