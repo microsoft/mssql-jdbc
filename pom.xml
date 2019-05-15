@@ -235,18 +235,7 @@
 									<goal>shade</goal>
 								</goals>
 								<configuration>
-									<shadedArtifactAttached>true</shadedArtifactAttached>
 									<shadedClassifierName>shaded.jre8-preview</shadedClassifierName>
-								    <filters>
-								        <filter>
-								            <artifact>*:*</artifact>
-								            <excludes>
-								                <exclude>META-INF/*.SF</exclude>
-								                <exclude>META-INF/*.DSA</exclude>
-								                <exclude>META-INF/*.RSA</exclude>
-								            </excludes>
-								        </filter>
-								    </filters>
 								</configuration>
 							</execution>
 						</executions>
@@ -294,18 +283,7 @@
 									<goal>shade</goal>
 								</goals>
 								<configuration>
-									<shadedArtifactAttached>true</shadedArtifactAttached>
 									<shadedClassifierName>shaded.jre11-preview</shadedClassifierName>
-								    <filters>
-								        <filter>
-								            <artifact>*:*</artifact>
-								            <excludes>
-								                <exclude>META-INF/*.SF</exclude>
-								                <exclude>META-INF/*.DSA</exclude>
-								                <exclude>META-INF/*.RSA</exclude>
-								            </excludes>
-								        </filter>
-								    </filters>
 								</configuration>
 							</execution>
 						</executions>
@@ -356,18 +334,7 @@
 									<goal>shade</goal>
 								</goals>
 								<configuration>
-									<shadedArtifactAttached>true</shadedArtifactAttached>
 									<shadedClassifierName>shaded.jre12-preview</shadedClassifierName>
-								    <filters>
-								        <filter>
-								            <artifact>*:*</artifact>
-								            <excludes>
-								                <exclude>META-INF/*.SF</exclude>
-								                <exclude>META-INF/*.DSA</exclude>
-								                <exclude>META-INF/*.RSA</exclude>
-								            </excludes>
-								        </filter>
-								    </filters>
 								</configuration>
 							</execution>
 						</executions>
@@ -401,6 +368,41 @@
 			</testResource>
 		</testResources>
 		<plugins>
+			<plugin>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.2.1</version>
+				<executions>
+					<!-- Run shade goal on package phase -->
+					<execution>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<artifactSet>
+								<excludes>
+									<exclude>junit:junit</exclude>
+									<exclude>jmock:*</exclude>
+									<exclude>*:xml-apis</exclude>
+									<exclude>org.apache.maven:lib:tests</exclude>
+									<exclude>log4j:log4j:jar:</exclude>
+								</excludes>
+							</artifactSet>
+							<minimizeJar>true</minimizeJar>
+							<shadedArtifactAttached>true</shadedArtifactAttached>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
