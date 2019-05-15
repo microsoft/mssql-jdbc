@@ -93,21 +93,21 @@ public class TimeoutTest extends AbstractTest {
     public void testDMLoginTimeoutNotApplied() {
         long timerEnd = 0;
         int timeout = 10;
+        try {
+            DriverManager.setLoginTimeout(timeout * 3); // 30 seconds
+            long timerStart = System.currentTimeMillis();
 
-        DriverManager.setLoginTimeout(timeout * 3); // 30 seconds
-        long timerStart = System.currentTimeMillis();
-
-        try (Connection con = PrepUtil
-                .getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;loginTimeout=" + timeout)) {
-            fail(TestResource.getResource("R_shouldNotConnect"));
-        } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
-            timerEnd = System.currentTimeMillis();
+            try (Connection con = PrepUtil.getConnection(
+                    "jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;loginTimeout=" + timeout)) {
+                fail(TestResource.getResource("R_shouldNotConnect"));
+            } catch (Exception e) {
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
+                timerEnd = System.currentTimeMillis();
+            }
+            verifyTimeout(timerEnd - timerStart, timeout);
+        } finally {
+            DriverManager.setLoginTimeout(0); // Default to 0 again
         }
-
-        verifyTimeout(timerEnd - timerStart, timeout);
-
-        DriverManager.setLoginTimeout(0); // Default to 0 again
     }
 
     @Test
