@@ -68,7 +68,7 @@ public final class SQLServerDataColumn {
             if (hashCode() == aSQLServerDataColumn.hashCode()) {
                 // Compare objects to avoid collision
                 return ((null == columnName && null == aSQLServerDataColumn.columnName
-                        || columnName.equalsIgnoreCase(aSQLServerDataColumn.columnName))
+                        || columnName.equals(aSQLServerDataColumn.columnName))
                         && javaSqlType == aSQLServerDataColumn.javaSqlType
                         && numberOfDigitsIntegerPart == aSQLServerDataColumn.numberOfDigitsIntegerPart
                         && precision == aSQLServerDataColumn.precision && scale == aSQLServerDataColumn.scale);
