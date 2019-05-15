@@ -172,7 +172,6 @@ public final class TestResource extends ListResourceBundle {
                     "Column name or number of supplied values does not match table definition."},
             {"R_incorrectSyntaxTable", "Incorrect syntax near the keyword 'table'."},
             {"R_incorrectSyntaxTableDW", "Incorrect syntax near 'table'."},
-            {"R_TVPIncorrectColumnValue","Input data is not in correct format"},
             {"R_ConnectionStringNull", "Connection String should not be null"},
             {"R_OperandTypeClash", "Operand type clash"}};
 }

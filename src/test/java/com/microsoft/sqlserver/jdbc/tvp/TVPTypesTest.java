@@ -70,8 +70,9 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next()) {
                     assertEquals(rs.getString(1), value);
                 }
@@ -104,8 +105,9 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next()) {
                     assertEquals(rs.getString(1), value);
                 }
@@ -136,8 +138,9 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -167,8 +170,9 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -198,8 +202,9 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -229,8 +234,9 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
 
                 while (rs.next())
                     assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
@@ -260,12 +266,13 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
 
-        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
-            P_C_statement.setStructured(1, tvpName, tvp);
-            P_C_statement.execute();
+        try (SQLServerCallableStatement callableStmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            callableStmt.setStructured(1, tvpName, tvp);
+            callableStmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -293,12 +300,13 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
 
-        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
-            P_C_statement.setStructured(1, tvpName, tvp);
-            P_C_statement.execute();
+        try (SQLServerCallableStatement callableStmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            callableStmt.setStructured(1, tvpName, tvp);
+            callableStmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -326,12 +334,13 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
 
-        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
-            P_C_statement.setStructured(1, tvpName, tvp);
-            P_C_statement.execute();
+        try (SQLServerCallableStatement callableStmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            callableStmt.setStructured(1, tvpName, tvp);
+            callableStmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -360,12 +369,13 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
 
-        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
-            P_C_statement.setStructured(1, tvpName, tvp);
-            P_C_statement.execute();
+        try (SQLServerCallableStatement callableStmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            callableStmt.setStructured(1, tvpName, tvp);
+            callableStmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -394,12 +404,13 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
 
-        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
-            P_C_statement.setStructured(1, tvpName, tvp);
-            P_C_statement.execute();
+        try (SQLServerCallableStatement callableStmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            callableStmt.setStructured(1, tvpName, tvp);
+            callableStmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next())
                     assertEquals(rs.getString(1), value);
             }
@@ -428,12 +439,13 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
 
-        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
-            P_C_statement.setStructured(1, tvpName, tvp);
-            P_C_statement.execute();
+        try (SQLServerCallableStatement callableStmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            callableStmt.setStructured(1, tvpName, tvp);
+            callableStmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next())
                     assertTrue(parseByte(rs.getBytes(1), value.getBytes()));
             }
@@ -462,8 +474,9 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next()) {
                     assertEquals(((SQLServerResultSet) rs).getDateTime(1), value);
                 }
@@ -494,8 +507,9 @@ public class TVPTypesTest extends AbstractTest {
 
             pstmt.execute();
 
-            try (Connection con = getConnection(); Statement stmt = con.createStatement(); ResultSet rs = stmt
-                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next()) {
                     assertEquals(((SQLServerResultSet) rs).getSmallDateTime(1), returnValue);
                 }
@@ -541,12 +555,12 @@ public class TVPTypesTest extends AbstractTest {
 
         final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
 
-        try (SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
-            P_C_statement.setStructured(1, tvpName, tvp);
-            P_C_statement.execute();
+        try (SQLServerCallableStatement callableStmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            callableStmt.setStructured(1, tvpName, tvp);
+            callableStmt.execute();
         }
-        try (Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+        try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(
+                "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
             for (int i = 0; i < 4; i++) {
                 rs.next();
                 assertEquals(false, rs.getObject(1));
@@ -582,7 +596,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
+                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
             }
 
             try {
@@ -590,7 +604,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
+                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
             }
 
             try {
@@ -598,7 +612,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
+                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
             }
 
             try {
@@ -606,7 +620,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
+                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
             }
         }
 
@@ -630,7 +644,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
+                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
             }
 
             try {
@@ -638,7 +652,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
+                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
             }
 
             try {
@@ -646,7 +660,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestResource.getResource("R_TVPIncorrectColumnValue")));
+                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
             }
         }
     }
@@ -709,8 +723,8 @@ public class TVPTypesTest extends AbstractTest {
 
     private void createTables(String colType) throws SQLException {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1 " + colType
-                    + " null);";
+            String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (rowId int IDENTITY, c1 " + colType + " null);";
             stmt.execute(sql);
         }
     }
