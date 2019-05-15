@@ -63,7 +63,7 @@ public final class SQLServerDataColumn {
             return true;
         }
 
-        if (null != object && object instanceof SQLServerDataColumn) {
+        if (null != object && object.getClass() == SQLServerDataColumn.class) {
             SQLServerDataColumn aSQLServerDataColumn = (SQLServerDataColumn) object;
             if (hashCode() == aSQLServerDataColumn.hashCode()) {
                 // Compare objects to avoid collision

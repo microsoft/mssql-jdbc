@@ -349,7 +349,7 @@ public final class SQLServerDataTable {
             return true;
         }
 
-        if (null != object && object instanceof SQLServerDataTable) {
+        if (null != object && object.getClass() == SQLServerDataTable.class) {
             SQLServerDataTable aSQLServerDataTable = (SQLServerDataTable) object;
             if (hashCode() == aSQLServerDataTable.hashCode()) {
 
