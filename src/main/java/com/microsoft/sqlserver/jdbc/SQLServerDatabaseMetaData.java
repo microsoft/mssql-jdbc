@@ -602,8 +602,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public java.sql.ResultSet getColumns(String catalog, String schema, String table,
-            String col) throws SQLException {
+    public java.sql.ResultSet getColumns(String catalog, String schema, String table, String col) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
