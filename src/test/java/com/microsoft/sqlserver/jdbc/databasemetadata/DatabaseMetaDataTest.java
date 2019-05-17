@@ -28,15 +28,19 @@ import java.util.UUID;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
@@ -46,6 +50,9 @@ import com.microsoft.sqlserver.testframework.Constants;
  */
 @RunWith(JUnitPlatform.class)
 public class DatabaseMetaDataTest extends AbstractTest {
+
+    private static final String tableName = RandomUtil.getIdentifier("DBMetadataTable");
+    private static final String functionName = RandomUtil.getIdentifier("DBMetadataFunction");
 
     /**
      * Verify DatabaseMetaData#isWrapperFor and DatabaseMetaData#unwrap.
@@ -291,10 +298,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    /*
-     * try (ResultSet rsCatalog = connection.getMetaData().getCatalogs(); ResultSet rs = connection.getMetaData()
-     * .getTables(rsCatalog.getString("TABLE_CAT"), null, "%", new String[] {"TABLE"})) {
-     */
     public void testDBTables() throws SQLException {
 
         try (Connection con = getConnection()) {
@@ -337,15 +340,20 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
             String[] types = {"TABLE"};
             try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
-
-                // Fetch one table
-                MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-                Object[] msgArgs1 = {"table"};
-                assertTrue(rs.next(), form1.format(msgArgs1));
-
+                if(rs.next()) {
+                    boolean tableFound = false;
+                    do {
+                        if(rs.getString("TABLE_NAME").equalsIgnoreCase(tableName)) {
+                            tableFound=true;
+                        }
+                    } while(!tableFound && rs.next());
+                } else {
+                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                    Object[] msgArgs1 = {"table"};
+                    fail(form1.format(msgArgs1));
+                }
                 // Go through all columns.
-                try (ResultSet rs1 = databaseMetaData.getColumns(null, null, rs.getString("TABLE_NAME"), "%")) {
-
+                try (ResultSet rs1 = databaseMetaData.getColumns(null, null, AbstractSQLGenerator.escapeIdentifier(tableName), "%")) {
                     MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
                     Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"Data Type"}, {"Type"},
                             {"Column Size"}, {"Nullable value"}, {"IS_NULLABLE"}, {"IS_AUTOINCREMENT"}};
@@ -384,14 +392,20 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
             String[] types = {"TABLE"};
-            try (ResultSet rsTables = databaseMetaData.getTables(null, null, "%", types)) {
-
-                // Fetch one table
-                MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-                Object[] msgArgs1 = {"table"};
-                assertTrue(rsTables.next(), form1.format(msgArgs1));
-
-                try (ResultSet rs1 = databaseMetaData.getColumnPrivileges(null, null, rsTables.getString("TABLE_NAME"),
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                if(rs.next()) {
+                    boolean tableFound = false;
+                    do {
+                        if(rs.getString("TABLE_NAME").equalsIgnoreCase(tableName)) {
+                            tableFound=true;
+                        }
+                    } while(!tableFound && rs.next());
+                } else {
+                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                    Object[] msgArgs1 = {"table"};
+                    fail(form1.format(msgArgs1));
+                }
+                try (ResultSet rs1 = databaseMetaData.getColumnPrivileges(null, null, AbstractSQLGenerator.escapeIdentifier(tableName),
                         "%")) {
 
                     MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
@@ -466,14 +480,20 @@ public class DatabaseMetaDataTest extends AbstractTest {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
 
             try (ResultSet rsFunctions = databaseMetaData.getFunctions(null, null, "%")) {
-
-                // Fetch one Function
-                MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-                Object[] msgArgs1 = {"function"};
-                assertTrue(rsFunctions.next(), form1.format(msgArgs1));
-
+                if(rsFunctions.next()) {
+                    boolean tableFound = false;
+                    do {
+                        if(rsFunctions.getString("FUNCTION_NAME").equalsIgnoreCase(functionName)) {
+                            tableFound=true;
+                        }
+                    } while(!tableFound && rsFunctions.next());
+                } else {
+                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                    Object[] msgArgs1 = {"table"};
+                    fail(form1.format(msgArgs1));
+                }
                 try (ResultSet rs = databaseMetaData.getFunctionColumns(null, null,
-                        rsFunctions.getString("FUNCTION_NAME"), "%")) {
+                        AbstractSQLGenerator.escapeIdentifier(functionName), "%")) {
 
                     MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameNull"));
                     Object[][] msgArgs2 = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"COLUMN_NAME"},
@@ -561,6 +581,22 @@ public class DatabaseMetaDataTest extends AbstractTest {
             assertEquals(maxConn, rs.getInt(1));
         } catch (SQLException e) {
             fail(e.getMessage());
+        }
+    }
+    
+    @BeforeAll
+    public static void setupTable() throws SQLException {
+        try (Statement stmt = connection.createStatement()){
+            stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int NOT NULL, col2 varchar(200), col3 decimal(15,2))");
+            stmt.execute("CREATE FUNCTION " + AbstractSQLGenerator.escapeIdentifier(functionName) + " (@p1 INT, @p2 INT) RETURNS INT AS BEGIN DECLARE @result INT; SET @result = @p1 + @p2; RETURN @result; END");
+        }
+    }
+    
+    @AfterAll
+    public static void terminate() throws SQLException {
+        try (Statement stmt = connection.createStatement()){
+            TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropFunctionIfExists(functionName, stmt);
         }
     }
 }
