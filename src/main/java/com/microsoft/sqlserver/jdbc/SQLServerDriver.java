@@ -286,7 +286,9 @@ enum SQLServerDriverStringProperty {
     KEY_STORE_SECRET("keyStoreSecret", ""),
     KEY_STORE_LOCATION("keyStoreLocation", ""),
     SSL_PROTOCOL("sslProtocol", SSLProtocol.TLS.toString()),
-    MSI_CLIENT_ID("msiClientId", ""),;
+    MSI_CLIENT_ID("msiClientId", ""),
+    KEY_VAULT_PROVIDER_CLIENT_ID("keyVaultProviderClientId", ""),
+    KEY_VAULT_PROVIDER_CLIENT_KEY("keyVaultProviderClientKey", "");
 
     private final String name;
     private final String defaultValue;
@@ -518,6 +520,10 @@ public final class SQLServerDriver implements java.sql.Driver {
                     false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),
+                    SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString(),
+                    SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue()), false,
                     TRUE_FALSE),};
@@ -754,19 +760,23 @@ public final class SQLServerDriver implements java.sql.Driver {
             throw new SQLServerException(null, SQLServerException.getErrString("R_nullConnection"), null, 0, false);
         }
 
+        // Pull the URL properties into the connection properties
         Properties connectProperties = Util.parseUrl(Url, drLogger);
-        if (connectProperties == null)
+        if (null == connectProperties)
             return null; // If we are the wrong driver dont throw an exception
 
-        // put the user properties into the connect properties
-        int nTimeout = DriverManager.getLoginTimeout();
-        if (nTimeout > 0) {
-            connectProperties.put(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(),
-                    Integer.valueOf(nTimeout).toString());
+        String loginTimeoutProp = connectProperties.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
+        int dmLoginTimeout = DriverManager.getLoginTimeout();
+
+        // Use Driver Manager's login timeout if it exceeds 0 and loginTimeout connection property is not provided.
+        if (dmLoginTimeout > 0 && null == loginTimeoutProp) {
+            connectProperties.setProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(),
+                    String.valueOf(dmLoginTimeout));
         }
 
         // Merge connectProperties (from URL) and supplied properties from user.
         connectProperties = mergeURLAndSuppliedProperties(connectProperties, suppliedProperties);
+
         return connectProperties;
     }
 

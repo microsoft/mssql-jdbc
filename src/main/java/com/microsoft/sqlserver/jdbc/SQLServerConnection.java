@@ -1446,6 +1446,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
 
+            if (null == globalCustomColumnEncryptionKeyStoreProviders) {
+                sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    String keyVaultColumnEncryptionProviderClientId = sPropValue;
+                    sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null != sPropValue) {
+                        String keyVaultColumnEncryptionProviderClientKey = sPropValue;
+                        SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                                keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
+                        Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+                        keyStoreMap.put(akvProvider.getName(), akvProvider);
+                        registerColumnEncryptionKeyStoreProviders(keyStoreMap);
+                    }
+                }
+            }
+
             sPropKey = SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null == sPropValue) {

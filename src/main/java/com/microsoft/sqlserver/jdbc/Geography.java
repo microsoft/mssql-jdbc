@@ -15,6 +15,8 @@ import java.nio.ByteOrder;
 
 public class Geography extends SQLServerSpatialDatatype {
 
+    protected Geography() {}
+
     /**
      * Private constructor used for creating a Geography object from WKT and Spatial Reference Identifier.
      * 
@@ -25,7 +27,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * @throws SQLServerException
      *         if an exception occurs
      */
-    private Geography(String wkt, int srid) throws SQLServerException {
+    protected Geography(String wkt, int srid) throws SQLServerException {
         if (null == wkt || wkt.length() <= 0) {
             throwIllegalWKT();
         }
@@ -47,7 +49,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * @throws SQLServerException
      *         if an exception occurs
      */
-    private Geography(byte[] wkb) throws SQLServerException {
+    protected Geography(byte[] wkb) throws SQLServerException {
         if (null == wkb || wkb.length <= 0) {
             throwIllegalWKB();
         }

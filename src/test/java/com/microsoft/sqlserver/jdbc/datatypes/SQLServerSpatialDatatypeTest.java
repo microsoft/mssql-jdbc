@@ -860,6 +860,46 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xAzureSQLDW)
+    public void testSetObject() throws SQLException {
+        beforeEachSetup();
+
+        String geoWKT = "POINT(1 2)";
+
+        Geometry geomWKT = Geometry.point(1, 2, 0);
+        Geography geogWKT = Geography.point(2, 1, 4326);
+
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
+                pstmt.setObject(1, geomWKT);
+                pstmt.execute();
+
+                try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                        .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
+                    rs.next();
+                    assertEquals(rs.getGeometry(1).asTextZM(), geoWKT);
+                    assertEquals(rs.getGeometry(1).getSrid(), 0);
+                }
+            }
+
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
+                pstmt.setObject(1, geogWKT);
+                pstmt.execute();
+
+                try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                        .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
+                    rs.next();
+                    assertEquals(rs.getGeography(1).asTextZM(), geoWKT);
+                    assertEquals(rs.getGeography(1).getSrid(), 4326);
+                }
+            }
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testSTAsText() throws SQLException {
         beforeEachSetup();
 
