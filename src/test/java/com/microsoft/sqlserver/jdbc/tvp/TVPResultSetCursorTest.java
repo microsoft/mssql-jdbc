@@ -384,7 +384,7 @@ public class TVPResultSetCursorTest extends AbstractTest {
 
     private static void dropProcedure() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
+            TestUtils.dropProcedureIfExists(procedureName, stmt);
         }
     }
 
