@@ -1133,7 +1133,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         // SQL server only supports integer limits for setting max rows.
         // If <max> is bigger than integer limits then throw an exception, otherwise call setMaxRows(int)
         if (max > Integer.MAX_VALUE) {
-            throw new UnsupportedOperationException(SQLServerException.getErrString("R_invalidMaxRows"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidMaxRows"));
+            Object[] msgArgs = {max};
+            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
         }
         setMaxRows((int) max);
         loggerExternal.exiting(getClassNameLogging(), "setLargeMaxRows");

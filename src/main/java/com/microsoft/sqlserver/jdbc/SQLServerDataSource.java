@@ -878,6 +878,24 @@ public class SQLServerDataSource
     }
 
     @Override
+    public void setKeyVaultProviderClientId(String keyVaultProviderClientId) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),
+                keyVaultProviderClientId);
+    }
+
+    @Override
+    public String getKeyVaultProviderClientId() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),
+                SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.getDefaultValue());
+    }
+
+    @Override
+    public void setKeyVaultProviderClientKey(String keyVaultProviderClientKey) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString(),
+                keyVaultProviderClientKey);
+    }
+
+    @Override
     public void setDomain(String domain) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(), domain);
     }
@@ -886,8 +904,7 @@ public class SQLServerDataSource
     public String getDomain() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(),
                 SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
-    }
-
+    
     /**
      * Sets a property string value.
      * 
