@@ -690,7 +690,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public java.sql.ResultSet executeQuery(String sql) throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery", sql);
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -708,7 +708,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public int executeUpdate(String sql) throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate", sql);
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -728,7 +728,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     public long executeLargeUpdate(String sql) throws SQLServerException, SQLTimeoutException {
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", sql);
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -741,7 +741,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public boolean execute(String sql) throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "execute", sql);
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -838,7 +838,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Note: similar logic in SQLServerPreparedStatement.doExecutePreparedStatement
         setMaxRowsAndMaxFieldSize();
 
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         if (isCursorable(executeMethod) && isSelect(sql)) {
@@ -918,7 +918,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Make sure any previous maxRows limitation on the connection is removed.
         connection.setMaxRows(0);
 
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
@@ -1137,7 +1137,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         // SQL server only supports integer limits for setting max rows.
         // If <max> is bigger than integer limits then throw an exception, otherwise call setMaxRows(int)
         if (max > Integer.MAX_VALUE) {
-            throw new UnsupportedOperationException(SQLServerException.getErrString("R_invalidMaxRows"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidMaxRows"));
+            Object[] msgArgs = {max};
+            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
         }
         setMaxRows((int) max);
         loggerExternal.exiting(getClassNameLogging(), "setLargeMaxRows");
@@ -1618,21 +1620,26 @@ public class SQLServerStatement implements ISQLServerStatement {
             clearLastResult();
         }
 
-        // If there are no more results, then we're done.
-        // All we had to do was to close out the previous results.
+        // If there are no more results, then we're done. All we had to do was to close out the previous results.
         if (!moreResults) {
             return false;
         }
 
         // Figure out the next result.
         NextResult nextResult = new NextResult();
-        TDSParser.parse(resultsReader(), nextResult);
+
+        // Signal to not read all token other than TDS_MSG if reading only warnings
+        TDSParser.parse(resultsReader(), nextResult, !clearFlag);
 
         // Check for errors first.
         if (null != nextResult.getDatabaseError()) {
             SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getErrorMessage(),
                     nextResult.getDatabaseError(), false);
         }
+
+        // If we didn't clear current ResultSet, we wanted to read only warnings. Return back from here.
+        if (!clearFlag)
+            return false;
 
         // Not an error. Is it a result set?
         else if (nextResult.isResultSet()) {
@@ -1779,7 +1786,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     @Override
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeBatch");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -1856,7 +1863,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -2042,7 +2049,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             int autoGeneratedKeys) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, autoGeneratedKeys});
-            if (Util.IsActivityTraceOn()) {
+            if (Util.isActivityTraceOn()) {
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
             }
         }
@@ -2092,7 +2099,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     public final int executeUpdate(String sql, int autoGeneratedKeys) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, autoGeneratedKeys});
-            if (Util.IsActivityTraceOn()) {
+            if (Util.isActivityTraceOn()) {
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
             }
         }
@@ -2120,7 +2127,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", new Object[] {sql, autoGeneratedKeys});
-            if (Util.IsActivityTraceOn()) {
+            if (Util.isActivityTraceOn()) {
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
             }
         }

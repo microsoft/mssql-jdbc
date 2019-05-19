@@ -3025,7 +3025,7 @@ final class TDSWriter {
         dataIsLoggable = value;
     }
 
-    SharedTimer getSharedTimer() {
+    SharedTimer getSharedTimer() throws SQLServerException {
         return con.getSharedTimer();
     }
 
@@ -3115,8 +3115,8 @@ final class TDSWriter {
             boolean includeTraceHeader = false;
             int totalHeaderLength = TDS.MESSAGE_HEADER_LENGTH;
             if (TDS.PKT_QUERY == tdsMessageType || TDS.PKT_RPC == tdsMessageType) {
-                if (con.isDenaliOrLater() && !ActivityCorrelator.getCurrent().isSentToServer()
-                        && Util.IsActivityTraceOn()) {
+                if (con.isDenaliOrLater() && Util.isActivityTraceOn()
+                        && !ActivityCorrelator.getCurrent().isSentToServer()) {
                     includeTraceHeader = true;
                     totalHeaderLength += TDS.TRACE_HEADER_LENGTH;
                 }
@@ -4596,7 +4596,7 @@ final class TDSWriter {
                     writeBytes(cachedTVPHeaders.array(), 0, ((Buffer) cachedTVPHeaders).position());
                 }
 
-                Object[] rowData = value.getRowData();
+                List<Object> rowData = value.getRowData();
 
                 // ROW
                 writeByte((byte) TDS.TVP_ROW);
@@ -4618,8 +4618,8 @@ final class TDSWriter {
                     if (null != rowData) {
                         // if rowData has value for the current column, retrieve it. If not, current column will stay
                         // null.
-                        if (rowData.length > currentColumn) {
-                            currentObject = rowData[currentColumn];
+                        if (rowData.size() > currentColumn) {
+                            currentObject = rowData.get(currentColumn);
                             if (null != currentObject) {
                                 currentColumnStringValue = String.valueOf(currentObject);
                             }

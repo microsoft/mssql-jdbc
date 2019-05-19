@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -19,7 +20,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -30,66 +30,124 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("slow")
 public class TimeoutTest extends AbstractTest {
-    String randomServer = RandomUtil.getIdentifier("Server");
+    static String randomServer = RandomUtil.getIdentifier("Server");
     static String waitForDelaySPName = RandomUtil.getIdentifier("waitForDelaySP");
-    final int waitForDelaySeconds = 10;
+    static final int waitForDelaySeconds = 10;
+    static final int defaultTimeout = 15;
 
     @Test
-    @Tag("slow")
     public void testDefaultLoginTimeout() {
-        long timerStart = 0;
         long timerEnd = 0;
 
-        timerStart = System.currentTimeMillis();
+        long timerStart = System.currentTimeMillis();
         // Try a non existing server and see if the default timeout is 15 seconds
         try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;")) {
-
+            fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
             timerEnd = System.currentTimeMillis();
         }
 
-        assertTrue(0 != timerEnd, TestResource.getResource("R_shouldNotConnect"));
+        verifyTimeout(timerEnd - timerStart, defaultTimeout);
+    }
 
-        long timeDiff = timerEnd - timerStart;
-        assertTrue(timeDiff > 14000);
+    @Test
+    public void testURLLoginTimeout() {
+        long timerEnd = 0;
+        int timeout = 10;
+
+        long timerStart = System.currentTimeMillis();
+
+        try (Connection con = PrepUtil
+                .getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;logintimeout=" + timeout)) {
+            fail(TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
+            timerEnd = System.currentTimeMillis();
+        }
+
+        verifyTimeout(timerEnd - timerStart, timeout);
+    }
+
+    @Test
+    public void testDMLoginTimeoutApplied() {
+        long timerEnd = 0;
+        int timeout = 10;
+
+        DriverManager.setLoginTimeout(timeout);
+        long timerStart = System.currentTimeMillis();
+
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd")) {
+            fail(TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
+            timerEnd = System.currentTimeMillis();
+        }
+
+        verifyTimeout(timerEnd - timerStart, timeout);
+    }
+
+    @Test
+    public void testDMLoginTimeoutNotApplied() {
+        long timerEnd = 0;
+        int timeout = 10;
+        try {
+            DriverManager.setLoginTimeout(timeout * 3); // 30 seconds
+            long timerStart = System.currentTimeMillis();
+
+            try (Connection con = PrepUtil.getConnection(
+                    "jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;loginTimeout=" + timeout)) {
+                fail(TestResource.getResource("R_shouldNotConnect"));
+            } catch (Exception e) {
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
+                timerEnd = System.currentTimeMillis();
+            }
+            verifyTimeout(timerEnd - timerStart, timeout);
+        } finally {
+            DriverManager.setLoginTimeout(0); // Default to 0 again
+        }
     }
 
     @Test
     public void testFailoverInstanceResolution() throws SQLException {
-        long timerStart = 0;
         long timerEnd = 0;
 
-        timerStart = System.currentTimeMillis();
+        long timerStart = System.currentTimeMillis();
         // Try a non existing server and see if the default timeout is 15 seconds
-        try (Connection con = PrepUtil
-                .getConnection("jdbc:sqlserver://" + randomServer + ";databaseName=FailoverDB_abc;failoverPartner="
-                        + randomServer + "\\foo;user=sa;password=pwd;")) {} catch (Exception e) {
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer
+                + ";databaseName=FailoverDB_abc;failoverPartner=" + randomServer + "\\foo;user=sa;password=pwd;")) {
+            fail(TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
             timerEnd = System.currentTimeMillis();
         }
-        assertTrue(0 != timerEnd, TestResource.getResource("R_shouldNotConnect"));
 
-        long timeDiff = timerEnd - timerStart;
-        assertTrue(timeDiff > 14000);
+        verifyTimeout(timerEnd - timerStart, defaultTimeout);
     }
 
     @Test
     public void testFOInstanceResolution2() throws SQLException {
-        long timerStart = 0;
         long timerEnd = 0;
 
-        timerStart = System.currentTimeMillis();
-        try (Connection con = PrepUtil
-                .getConnection("jdbc:sqlserver://" + randomServer + "\\fooggg;databaseName=FailoverDB;failoverPartner="
-                        + randomServer + "\\foo;user=sa;password=pwd;")) {} catch (Exception e) {
+        long timerStart = System.currentTimeMillis();
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer
+                + "\\fooggg;databaseName=FailoverDB;failoverPartner=" + randomServer + "\\foo;user=sa;password=pwd;")) {
+            fail(TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
         }
-        assertTrue(0 != timerEnd, TestResource.getResource("R_shouldNotConnect"));
 
-        long timeDiff = timerEnd - timerStart;
-        assertTrue(timeDiff > 14000);
+        verifyTimeout(timerEnd - timerStart, defaultTimeout);
+    }
+
+    private void verifyTimeout(long timeDiff, int timeout) {
+        // Verify that login timeout does not take less than <timeout> seconds.
+        assertTrue(timeDiff > (timeout - 1) * 1000);
+
+        // Verify that login timeout does not take longer than <timeout * 2> seconds.
+        assertTrue(timeDiff < timeout * 2000);
     }
 
     /**
@@ -98,18 +156,19 @@ public class TimeoutTest extends AbstractTest {
      * @throws Exception
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testQueryTimeout() throws Exception {
         try (Connection conn = getConnection()) {
             dropWaitForDelayProcedure(conn);
             createWaitForDelayPreocedure(conn);
         }
 
-        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(
+        try (Connection conn = PrepUtil.getConnection(
                 connectionString + ";queryTimeout=" + (waitForDelaySeconds / 2) + Constants.SEMI_COLON)) {
 
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
-                throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
+                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception e) {
                 if (!(e instanceof java.sql.SQLTimeoutException)) {
                     throw e;
@@ -134,14 +193,15 @@ public class TimeoutTest extends AbstractTest {
      * @throws Exception
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testCancelQueryTimeout() throws Exception {
         try (Connection conn = getConnection()) {
             dropWaitForDelayProcedure(conn);
             createWaitForDelayPreocedure(conn);
         }
 
-        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString + ";queryTimeout="
-                + (waitForDelaySeconds / 2) + ";cancelQueryTimeout=" + waitForDelaySeconds + Constants.SEMI_COLON)) {
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";queryTimeout=" + (waitForDelaySeconds / 2)
+                + ";cancelQueryTimeout=" + waitForDelaySeconds + Constants.SEMI_COLON)) {
 
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
@@ -154,7 +214,7 @@ public class TimeoutTest extends AbstractTest {
                         TestResource.getResource("R_invalidExceptionMessage"));
             }
 
-            try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+            try (Statement stmt = conn.createStatement()) {
                 stmt.execute("SELECT @@version");
             } catch (Exception e) {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
@@ -170,14 +230,14 @@ public class TimeoutTest extends AbstractTest {
      * @throws Exception
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testCancelQueryTimeoutOnStatement() throws Exception {
         try (Connection conn = getConnection()) {
             dropWaitForDelayProcedure(conn);
             createWaitForDelayPreocedure(conn);
         }
 
-        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil
-                .getConnection(connectionString + Constants.SEMI_COLON)) {
+        try (Connection conn = PrepUtil.getConnection(connectionString + Constants.SEMI_COLON)) {
 
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
                 stmt.setQueryTimeout(waitForDelaySeconds / 2);
@@ -208,18 +268,19 @@ public class TimeoutTest extends AbstractTest {
      * @throws Exception
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testSocketTimeout() throws Exception {
         try (Connection conn = getConnection()) {
             dropWaitForDelayProcedure(conn);
             createWaitForDelayPreocedure(conn);
         }
 
-        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(
+        try (Connection conn = PrepUtil.getConnection(
                 connectionString + ";socketTimeout=" + (waitForDelaySeconds * 1000 / 2) + Constants.SEMI_COLON)) {
 
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
-                throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
+                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception e) {
                 if (!(e instanceof SQLException)) {
                     throw e;
