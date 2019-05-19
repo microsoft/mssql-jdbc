@@ -301,7 +301,6 @@ public final class SQLServerDataTable {
                     throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
             }
         } else {
-            rowValues.set(key, null);
             if (jdbcType == JDBCType.SQL_VARIANT) {
                 throw new SQLServerException(SQLServerException.getErrString("R_invalidValueForTVPWithSQLVariant"),
                         null);
