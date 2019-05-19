@@ -904,7 +904,8 @@ public class SQLServerDataSource
     public String getDomain() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(),
                 SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
-    
+    }
+
     /**
      * Sets a property string value.
      * 
