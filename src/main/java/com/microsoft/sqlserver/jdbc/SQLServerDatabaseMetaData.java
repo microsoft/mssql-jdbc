@@ -9,6 +9,7 @@ import java.io.Serializable;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
@@ -16,7 +17,9 @@ import java.sql.SQLTimeoutException;
 import java.text.MessageFormat;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -476,7 +479,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return "database";
     }
 
-    private static final String[] getColumnPrivilegesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
+    private static final String[] getColumnPrivilegesColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
             /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME, /* 5 */ GRANTOR, /* 6 */ GRANTEE, /* 7 */ PRIVILEGE,
             /* 8 */ IS_GRANTABLE};
 
@@ -503,7 +506,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 getColumnPrivilegesColumnNames);
     }
 
-    private static final String[] getTablesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME,
+    private static final String[] getTablesColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME,
             /* 4 */ TABLE_TYPE, /* 5 */ REMARKS};
 
     @Override
@@ -607,61 +610,162 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        String originalCatalog = null;
-        originalCatalog = switchCatalogs(catalog);
-        String spColumnsSql = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
-                + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
-                + "LENGTH INT, SCALE SMALLINT, RADIX SMALLINT, NULLABLE SMALLINT, REMARKS VARCHAR(254), COLUMN_DEF NVARCHAR(4000),"
-                + "SQL_DATA_TYPE SMALLINT, SQL_DATETIME_SUB SMALLINT, CHAR_OCTET_LENGTH INT, ORDINAL_POSITION INT,"
-                + "IS_NULLABLE VARCHAR(254), SS_IS_SPARSE SMALLINT, SS_IS_COLUMN_SET SMALLINT, SS_IS_COMPUTED SMALLINT,"
-                + "SS_IS_IDENTITY SMALLINT, SS_UDT_CATALOG_NAME NVARCHAR(128), SS_UDT_SCHEMA_NAME NVARCHAR(128),"
-                + "SS_UDT_ASSEMBLY_TYPE_NAME NVARCHAR(max), SS_XML_SCHEMACOLLECTION_CATALOG_NAME NVARCHAR(128),"
-                + "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_NAME NVARCHAR(128),"
-                + "SS_DATA_TYPE TINYINT);"
+        if (!this.connection.isAzureDW()) {
+            String originalCatalog = null;
+            originalCatalog = switchCatalogs(catalog);
+            String spColumnsSql = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
+                    + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
+                    + "LENGTH INT, SCALE SMALLINT, RADIX SMALLINT, NULLABLE SMALLINT, REMARKS VARCHAR(254), COLUMN_DEF NVARCHAR(4000),"
+                    + "SQL_DATA_TYPE SMALLINT, SQL_DATETIME_SUB SMALLINT, CHAR_OCTET_LENGTH INT, ORDINAL_POSITION INT,"
+                    + "IS_NULLABLE VARCHAR(254), SS_IS_SPARSE SMALLINT, SS_IS_COLUMN_SET SMALLINT, SS_IS_COMPUTED SMALLINT,"
+                    + "SS_IS_IDENTITY SMALLINT, SS_UDT_CATALOG_NAME NVARCHAR(128), SS_UDT_SCHEMA_NAME NVARCHAR(128),"
+                    + "SS_UDT_ASSEMBLY_TYPE_NAME NVARCHAR(max), SS_XML_SCHEMACOLLECTION_CATALOG_NAME NVARCHAR(128),"
+                    + "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_NAME NVARCHAR(128),"
+                    + "SS_DATA_TYPE TINYINT);"
 
-                + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC sp_columns_100 ?,?,?,?,?,?;"
+                    + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC sp_columns_100 ?,?,?,?,?,?;"
 
-                + "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, DATA_TYPE,"
-                + "TYPE_NAME, PRECISION AS COLUMN_SIZE, LENGTH AS BUFFER_LENGTH, SCALE AS DECIMAL_DIGITS, RADIX AS NUM_PREC_RADIX,"
-                + "NULLABLE, REMARKS, COLUMN_DEF, SQL_DATA_TYPE, SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE,"
-                + "NULL AS SCOPE_CATALOG, NULL AS SCOPE_SCHEMA, NULL AS SCOPE_TABLE, SS_DATA_TYPE AS SOURCE_DATA_TYPE,"
-                + "CASE SS_IS_IDENTITY WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_AUTOINCREMENT,"
-                + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN, "
-                + "SS_IS_SPARSE, SS_IS_COLUMN_SET, SS_UDT_CATALOG_NAME, SS_UDT_SCHEMA_NAME, SS_UDT_ASSEMBLY_TYPE_NAME,"
-                + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
-                + "FROM @mssqljdbc_temp_sp_columns_result;";
-        SQLServerResultSet rs = null;
-        SQLException errorOnClose = null;
-        java.sql.PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
-        pstmt.closeOnCompletion();
-        try {
-            pstmt.setString(1, (table != null && !table.isEmpty()) ? table : "%");
-            pstmt.setString(2, (schema != null && !schema.isEmpty()) ? schema : "%");
-            pstmt.setString(3, (catalog != null && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
-            pstmt.setString(4, (col != null && !col.isEmpty()) ? col : "%");
-            pstmt.setInt(5, 2);// show sparse columns
-            pstmt.setInt(6, 3);// odbc version
+                    + "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, DATA_TYPE,"
+                    + "TYPE_NAME, PRECISION AS COLUMN_SIZE, LENGTH AS BUFFER_LENGTH, SCALE AS DECIMAL_DIGITS, RADIX AS NUM_PREC_RADIX,"
+                    + "NULLABLE, REMARKS, COLUMN_DEF, SQL_DATA_TYPE, SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE,"
+                    + "NULL AS SCOPE_CATALOG, NULL AS SCOPE_SCHEMA, NULL AS SCOPE_TABLE, SS_DATA_TYPE AS SOURCE_DATA_TYPE,"
+                    + "CASE SS_IS_IDENTITY WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_AUTOINCREMENT,"
+                    + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN, "
+                    + "SS_IS_SPARSE, SS_IS_COLUMN_SET, SS_UDT_CATALOG_NAME, SS_UDT_SCHEMA_NAME, SS_UDT_ASSEMBLY_TYPE_NAME,"
+                    + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
+                    + "FROM @mssqljdbc_temp_sp_columns_result;";
+            SQLServerResultSet rs = null;
+            SQLException errorOnClose = null;
+            PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
+            pstmt.closeOnCompletion();
+            try {
+                pstmt.setString(1, (table != null && !table.isEmpty()) ? table : "%");
+                pstmt.setString(2, (schema != null && !schema.isEmpty()) ? schema : "%");
+                pstmt.setString(3, (catalog != null && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
+                pstmt.setString(4, (col != null && !col.isEmpty()) ? col : "%");
+                pstmt.setInt(5, 2);// show sparse columns
+                pstmt.setInt(6, 3);// odbc version
 
-            rs = (SQLServerResultSet) pstmt.executeQuery();
-            rs.getColumn(5).setFilter(new DataTypeFilter());
-            rs.getColumn(7).setFilter(new ZeroFixupFilter());
-            rs.getColumn(8).setFilter(new ZeroFixupFilter());
-            rs.getColumn(16).setFilter(new ZeroFixupFilter());
-        } catch (SQLException e) {
-            errorOnClose = e;
-            pstmt.close();
-        } finally {
-            if (null != originalCatalog) {
-                connection.setCatalog(originalCatalog);
+                rs = (SQLServerResultSet) pstmt.executeQuery();
+                rs.getColumn(5).setFilter(new DataTypeFilter());
+                rs.getColumn(7).setFilter(new ZeroFixupFilter());
+                rs.getColumn(8).setFilter(new ZeroFixupFilter());
+                rs.getColumn(16).setFilter(new ZeroFixupFilter());
+            } catch (SQLException e) {
+                errorOnClose = e;
+                pstmt.close();
+            } finally {
+                if (null != originalCatalog) {
+                    connection.setCatalog(originalCatalog);
+                }
+                if (errorOnClose != null) {
+                    throw errorOnClose;
+                }
             }
-            if (errorOnClose != null) {
-                throw errorOnClose;
+
+            return rs;
+        } else {
+            try (PreparedStatement stored_proc_pstmt = this.connection
+                    .prepareStatement("EXEC sp_columns_100 ?,?,?,?,?,?;")) {
+                stored_proc_pstmt.setString(1, (table != null && !table.isEmpty()) ? table : "%");
+                stored_proc_pstmt.setString(2, (schema != null && !schema.isEmpty()) ? schema : "%");
+                stored_proc_pstmt.setString(3,
+                        (catalog != null && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
+                stored_proc_pstmt.setString(4, (col != null && !col.isEmpty()) ? col : "%");
+                stored_proc_pstmt.setInt(5, 2);// show sparse columns
+                stored_proc_pstmt.setInt(6, 3);// odbc version
+
+                SQLServerResultSet user_rs = null;
+                SQLException errorOnClose = null;
+                PreparedStatement result_pstmt = null;
+                try (ResultSet rs = stored_proc_pstmt.executeQuery()) {
+                    rs.next();
+                    // Use LinkedHashMap to force retrieve elements in order they were inserted
+                    Map<Integer, String> columns = new LinkedHashMap<>();
+                    columns.put(1, "TABLE_CAT");
+                    columns.put(2, "TABLE_SCHEM");
+                    columns.put(3, "TABLE_NAME");
+                    columns.put(4, "COLUMN_NAME");
+                    columns.put(5, "DATA_TYPE");
+                    columns.put(6, "TYPE_NAME");
+                    columns.put(7, "COLUMN_SIZE");
+                    columns.put(8, "BUFFER_LENGTH");
+                    columns.put(9, "DECIMAL_DIGITS");
+                    columns.put(10, "NUM_PREC_RADIX");
+                    columns.put(11, "NULLABLE");
+                    columns.put(12, "REMARKS");
+                    columns.put(13, "COLUMN_DEF");
+                    columns.put(14, "SQL_DATA_TYPE");
+                    columns.put(15, "SQL_DATETIME_SUB");
+                    columns.put(16, "CHAR_OCTET_LENGTH");
+                    columns.put(17, "ORDINAL_POSITION");
+                    columns.put(18, "IS_NULLABLE");
+                    /*
+                     * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
+                     * be queried as 'NULL'
+                     */
+                    columns.put(-1, "SCOPE_CATALOG");
+                    columns.put(-2, "SCOPE_SCHEMA");
+                    columns.put(-3, "SCOPE_TABLE");
+                    columns.put(29, "SOURCE_DATA_TYPE");
+                    columns.put(22, "IS_AUTOINCREMENT");
+                    columns.put(21, "IS_GENERATEDCOLUMN");
+                    columns.put(19, "SS_IS_SPARSE");
+                    columns.put(20, "SS_IS_COLUMN_SET");
+                    columns.put(23, "SS_UDT_CATALOG_NAME");
+                    columns.put(24, "SS_UDT_SCHEMA_NAME");
+                    columns.put(25, "SS_UDT_ASSEMBLY_TYPE_NAME");
+                    columns.put(26, "SS_XML_SCHEMACOLLECTION_CATALOG_NAME");
+                    columns.put(27, "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME");
+                    columns.put(28, "SS_XML_SCHEMACOLLECTION_NAME");
+
+                    result_pstmt = (SQLServerPreparedStatement) this.connection
+                            .prepareStatement(generateAzureDWSelect(rs, columns));
+                    user_rs = (SQLServerResultSet) result_pstmt.executeQuery();
+                    result_pstmt.closeOnCompletion();
+                    user_rs.getColumn(5).setFilter(new DataTypeFilter());
+                    user_rs.getColumn(7).setFilter(new ZeroFixupFilter());
+                    user_rs.getColumn(8).setFilter(new ZeroFixupFilter());
+                    user_rs.getColumn(16).setFilter(new ZeroFixupFilter());
+                    user_rs.getColumn(23).setFilter(new IntColumnIdentityFilter());
+                    user_rs.getColumn(24).setFilter(new IntColumnIdentityFilter());
+                } catch (SQLException e) {
+                    errorOnClose = e;
+                    if (null != result_pstmt) {
+                        result_pstmt.close();
+                    }
+                } finally {
+                    if (errorOnClose != null) {
+                        throw errorOnClose;
+                    }
+                }
+                return user_rs;
             }
         }
-        return rs;
     }
 
-    private static final String[] getFunctionsColumnNames = {/* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
+    private String generateAzureDWSelect(ResultSet rs, Map<Integer, String> columns) throws SQLException {
+        StringBuilder sb = new StringBuilder("SELECT ");
+        for (Entry<Integer, String> p : columns.entrySet()) {
+            if (p.getKey() < 0) {
+                sb.append("NULL");
+            } else {
+                Object o = rs.getObject(p.getKey());
+                if (null == o) {
+                    sb.append("NULL");
+                } else if (o instanceof Number) {
+                    sb.append(o.toString());
+                } else {
+                    sb.append("'").append(o.toString()).append("'");
+                }
+            }
+            sb.append(" AS ").append(p.getValue()).append(",");
+        }
+        sb.setLength(sb.length() - 1);
+        return sb.toString();
+    }
+
+    private static final String[] getFunctionsColumnNames = { /* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
             /* 3 */ FUNCTION_NAME, /* 4 */ NUM_INPUT_PARAMS, /* 5 */ NUM_OUTPUT_PARAMS, /* 6 */ NUM_RESULT_SETS,
             /* 7 */ REMARKS, /* 8 */ FUNCTION_TYPE};
 
@@ -689,7 +793,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 getFunctionsColumnNames);
     }
 
-    private static final String[] getFunctionsColumnsColumnNames = {/* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
+    private static final String[] getFunctionsColumnsColumnNames = { /* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
             /* 3 */ FUNCTION_NAME, /* 4 */ COLUMN_NAME, /* 5 */ COLUMN_TYPE, /* 6 */ DATA_TYPE, /* 7 */ TYPE_NAME,
             /* 8 */ PRECISION, /* 9 */ LENGTH, /* 10 */ SCALE, /* 11 */ RADIX, /* 12 */ NULLABLE, /* 13 */ REMARKS,
             /* 14 */ COLUMN_DEF, /* 15 */ SQL_DATA_TYPE, /* 16 */ SQL_DATETIME_SUB, /* 17 */ CHAR_OCTET_LENGTH,
@@ -747,7 +851,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 4 */ " cast(NULL as char(1)) as DESCRIPTION " + " where 0 = 1");
     }
 
-    private static final String[] getBestRowIdentifierColumnNames = {/* 1 */ SCOPE, /* 2 */ COLUMN_NAME,
+    private static final String[] getBestRowIdentifierColumnNames = { /* 1 */ SCOPE, /* 2 */ COLUMN_NAME,
             /* 3 */ DATA_TYPE, /* 4 */ TYPE_NAME, /* 5 */ COLUMN_SIZE, /* 6 */ BUFFER_LENGTH, /* 7 */ DECIMAL_DIGITS,
             /* 8 */ PSEUDO_COLUMN};
 
@@ -887,7 +991,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 + "t.PKTABLE_OWNER AS PKTABLE_SCHEM, " + "t.PKTABLE_NAME, " + "t.PKCOLUMN_NAME, "
                 + "t.FKTABLE_QUALIFIER AS FKTABLE_CAT, " + "t.FKTABLE_OWNER AS FKTABLE_SCHEM, " + "t.FKTABLE_NAME, "
                 + "t.FKCOLUMN_NAME, " + "t.KEY_SEQ, " + "CASE s.update_referential_action " + "WHEN 1 THEN 0 " +
-                // cascade - note that sp_fkey and sys.foreign_keys have flipped values for cascade and no action
+                // cascade - note that sp_fkey and sys.foreign_keys have flipped values for
+                // cascade and no action
                 "WHEN 0 THEN 3 " + // no action
                 "WHEN 2 THEN 2 " + // set null
                 "WHEN 3 THEN 4 " + // set default
@@ -913,9 +1018,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    private static final String[] getIndexInfoColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME,
-            /* 4 */ NON_UNIQUE, /* 5 */ INDEX_QUALIFIER, /* 6 */ INDEX_NAME, /* 7 */ TYPE, /* 8 */ ORDINAL_POSITION,
-            /* 9 */ COLUMN_NAME, /* 10 */ ASC_OR_DESC, /* 11 */ CARDINALITY, /* 12 */ PAGES, /* 13 */ FILTER_CONDITION};
+    private static final String[] getIndexInfoColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
+            /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE, /* 5 */ INDEX_QUALIFIER, /* 6 */ INDEX_NAME, /* 7 */ TYPE,
+            /* 8 */ ORDINAL_POSITION, /* 9 */ COLUMN_NAME, /* 10 */ ASC_OR_DESC, /* 11 */ CARDINALITY, /* 12 */ PAGES,
+            /* 13 */ FILTER_CONDITION};
 
     @Override
     public java.sql.ResultSet getIndexInfo(String cat, String schema, String table, boolean unique,
@@ -1090,7 +1196,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,COT,DEGREES,EXP, FLOOR,LOG,LOG10,MOD,PI,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
     }
 
-    private static final String[] getPrimaryKeysColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
+    private static final String[] getPrimaryKeysColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
             /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME, /* 5 */ KEY_SEQ, /* 6 */ PK_NAME};
 
     @Override
@@ -1110,7 +1216,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_PKEYS, arguments, getPrimaryKeysColumnNames);
     }
 
-    private static final String[] getProcedureColumnsColumnNames = {/* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM,
+    private static final String[] getProcedureColumnsColumnNames = { /* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM,
             /* 3 */ PROCEDURE_NAME, /* 4 */ COLUMN_NAME, /* 5 */ COLUMN_TYPE, /* 6 */ DATA_TYPE, /* 7 */ TYPE_NAME,
             /* 8 */ PRECISION, /* 9 */ LENGTH, /* 10 */ SCALE, /* 11 */ RADIX, /* 12 */ NULLABLE, /* 13 */ REMARKS,
             /* 14 */ COLUMN_DEF, /* 15 */ SQL_DATA_TYPE, /* 16 */ SQL_DATETIME_SUB, /* 17 */ CHAR_OCTET_LENGTH,
@@ -1155,7 +1261,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    private static final String[] getProceduresColumnNames = {/* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM,
+    private static final String[] getProceduresColumnNames = { /* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM,
             /* 3 */ PROCEDURE_NAME, /* 4 */ NUM_INPUT_PARAMS, /* 5 */ NUM_OUTPUT_PARAMS, /* 6 */ NUM_RESULT_SETS,
             /* 7 */ REMARKS, /* 8 */ PROCEDURE_TYPE};
 
@@ -1355,7 +1461,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                                        // CTS certification.
     }
 
-    private static final String[] getTablePrivilegesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
+    private static final String[] getTablePrivilegesColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
             /* 3 */ TABLE_NAME, /* 4 */ GRANTOR, /* 5 */ GRANTEE, /* 6 */ PRIVILEGE, /* 7 */ IS_GRANTABLE};
 
     @Override
@@ -1499,8 +1605,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return result;
     }
 
-    private static final String[] getVersionColumnsColumnNames = {/* 1 */ SCOPE, /* 2 */ COLUMN_NAME, /* 3 */ DATA_TYPE,
-            /* 4 */ TYPE_NAME, /* 5 */ COLUMN_SIZE, /* 6 */ BUFFER_LENGTH, /* 7 */ DECIMAL_DIGITS,
+    private static final String[] getVersionColumnsColumnNames = { /* 1 */ SCOPE, /* 2 */ COLUMN_NAME,
+            /* 3 */ DATA_TYPE, /* 4 */ TYPE_NAME, /* 5 */ COLUMN_SIZE, /* 6 */ BUFFER_LENGTH, /* 7 */ DECIMAL_DIGITS,
             /* 8 */ PSEUDO_COLUMN};
 
     @Override
