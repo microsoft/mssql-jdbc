@@ -24,6 +24,8 @@ import java.util.Calendar;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBit;
@@ -279,6 +281,10 @@ public class TestUtils {
 
     /**
      * mimic "DROP TABLE ..."
+     * 
+     * @param tableName
+     * @param stmt
+     * @throws SQLException
      */
     public static void dropTableIfExists(String tableName, java.sql.Statement stmt) throws SQLException {
         dropObjectIfExists(tableName, "U", stmt);
@@ -286,6 +292,10 @@ public class TestUtils {
 
     /**
      * mimic "DROP PROCEDURE ..."
+     * 
+     * @param procName
+     * @param stmt
+     * @throws SQLException
      */
     public static void dropProcedureIfExists(String procName, java.sql.Statement stmt) throws SQLException {
         dropObjectIfExists(procName, "P", stmt);
@@ -293,6 +303,10 @@ public class TestUtils {
 
     /**
      * mimic "DROP FUNCTION ..."
+     * 
+     * @param functionName
+     * @param stmt
+     * @throws SQLException
      */
     public static void dropFunctionIfExists(String functionName, java.sql.Statement stmt) throws SQLException {
         dropObjectIfExists(functionName, "FN", stmt);
@@ -300,6 +314,10 @@ public class TestUtils {
 
     /**
      * mimic "DROP TRIGGER ..."
+     * 
+     * @param triggerName
+     * @param stmt
+     * @throws SQLException
      */
     public static void dropTriggerIfExists(String triggerName, java.sql.Statement stmt) throws SQLException {
         dropObjectIfExists(triggerName, "TR", stmt);
@@ -307,6 +325,10 @@ public class TestUtils {
 
     /**
      * mimic "DROP TYPE ..."
+     * 
+     * @param typeName
+     * @param stmt
+     * @throws SQLException
      */
     public static void dropTypeIfExists(String typeName, java.sql.Statement stmt) throws SQLException {
         dropObjectIfExists(typeName, "TT", stmt);
@@ -314,15 +336,34 @@ public class TestUtils {
 
     /**
      * mimic "DROP DATABASE ..."
+     * 
+     * @param databaseName
+     * @param connectionString
+     * @throws SQLException
      */
-    public static void dropDatabaseIfExists(String databaseName, java.sql.Statement stmt) throws SQLException {
-        stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='"
-                + escapeSingleQuotes(databaseName) + "') DROP DATABASE [" + databaseName + "]");
+    public static void dropDatabaseIfExists(String databaseName, String connectionString) throws SQLException {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";databaseName=master");
+                Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("IF EXISTS(SELECT * from sys.databases WHERE name='" + escapeSingleQuotes(databaseName)
+                    + "') DROP DATABASE [" + databaseName + "]");
+        }
+    }
+
+    /**
+     * mimic "DROP SCHEMA ..."
+     * 
+     * @param schemaName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropSchemaIfExists(String schemaName, Statement stmt) throws SQLException {
+        stmt.execute("if EXISTS (SELECT * FROM sys.schemas where name = '" + escapeSingleQuotes(schemaName)
+                + "') drop schema " + AbstractSQLGenerator.escapeIdentifier(schemaName));
     }
 
     /**
      * <pre>
-     * This method drop objects for below types:
+     * This method drops objects for below types:
      * 
      * TT - TYPE_TABLE 
      * TR - TRIGGER 
@@ -370,7 +411,7 @@ public class TestUtils {
         } else {
             whereClause = "WHERE name LIKE '%" + escapeSingleQuotes(objectName) + "%'";
         }
-        
+
         String sql = "IF EXISTS ( SELECT * from sys.objects " + whereClause + " AND type='" + objectType + "') DROP "
                 + typeName + " " + bracketedObjectName;
         try {

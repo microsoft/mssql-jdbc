@@ -46,6 +46,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_createDropViewFailed", "Create/drop view with preparedStatement failed!"},
             {"R_createDropSchemaFailed", "Create/drop schema with preparedStatement failed!"},
             {"R_createDropTableFailed", "Create/drop table failed!"},
+            {"R_tableNotFound", "Table {0} not found in database."},
             {"R_createDropAlterTableFailed", "Create/drop/alter table with preparedStatement failed!"},
             {"R_grantFailed", "grant table with preparedStatement failed!"},
             {"R_connectionIsClosed", "The connection is closed."},

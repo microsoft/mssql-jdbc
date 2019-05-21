@@ -64,12 +64,6 @@ public class TVPNumericTest extends AbstractTest {
         procedureName = RandomUtil.getIdentifier("procedureThatCallsTVP");
         charTable = RandomUtil.getIdentifier("tvpNumericTable");
 
-        try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropProcedureIfExists(procedureName, stmt);
-            TestUtils.dropTableIfExists(charTable, stmt);
-            TestUtils.dropTypeIfExists(tvpName, stmt);
-        }
-
         createTVPS();
         createTables();
         createProcedure();

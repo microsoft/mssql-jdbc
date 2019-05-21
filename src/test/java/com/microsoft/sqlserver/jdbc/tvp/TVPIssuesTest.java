@@ -135,8 +135,6 @@ public class TVPIssuesTest extends AbstractTest {
     public static void beforeAll() throws SQLException {
         try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
 
-            dropObjects(stmt);
-
             String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax)
                     + " (c1 varchar(max) null);";
             stmt.execute(sql);

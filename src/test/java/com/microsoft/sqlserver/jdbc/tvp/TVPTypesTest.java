@@ -505,12 +505,6 @@ public class TVPTypesTest extends AbstractTest {
         tvpName = RandomUtil.getIdentifier("TVP");
         tableName = RandomUtil.getIdentifier("TVPTable");
         procedureName = RandomUtil.getIdentifier("procedureThatCallsTVP");
-
-        try (Statement stmt = connection.createStatement()) {
-            dropProcedure(stmt);
-            dropTables(stmt);
-            dropTVPS(stmt);
-        }
     }
 
     @AfterAll
