@@ -559,5 +559,6 @@ public final class SQLServerResource extends ListResourceBundle {
             "Determines whether to parse user sql and execute a FMT Only query to retrieve parametermetadata."},
             {"R_invalidOpenqueryCall","OPENQUERY/OPENJSON/OPENDATASOURCE/OPENROWSET/OPENXML must be proceeded by round brackets"},
             {"R_invalidCTEFormat","Invalid syntax: AS must be followed by round brackets in Common Table Expressions."},
+            {"R_noTokensFoundInUserQuery","Invalid user input: No tokens were parsed from the SQL provided."},
             };
 }

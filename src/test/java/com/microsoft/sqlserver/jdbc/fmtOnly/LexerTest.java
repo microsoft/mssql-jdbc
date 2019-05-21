@@ -1,10 +1,13 @@
 package com.microsoft.sqlserver.jdbc.fmtOnly;
 
+import java.sql.SQLException;
+
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ParserUtils;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
@@ -147,6 +150,12 @@ public class LexerTest extends AbstractTest {
                 + "    , Lvl + 1  \r\n" + "FROM r   \r\n" + "    JOIN vw AS t ON t.itmID = r.itmIDComp  \r\n"
                 + ")   \r\n" + "  \r\n" + "SELECT Lvl, N FROM r;",
                 "WITH vw AS ( SELECT itmIDComp , itmID FROM @t1 UNION ALL SELECT itmIDComp , itmID FROM @t2 ) , r AS ( SELECT t . itmID AS itmIDComp , NULL AS itmID , CAST ( 0 AS bigint ) AS N , 1 AS Lvl FROM ( SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 ) AS t ( itmID ) UNION ALL SELECT t . itmIDComp , t . itmID , ROW_NUMBER ( ) OVER ( PARTITION BY t . itmIDComp ORDER BY t . itmIDComp , t . itmID ) AS N , Lvl + 1 FROM r JOIN vw AS t ON t . itmID = r . itmIDComp )");
+    }
+    
+    @Test
+    public void testEmptyString() {
+        ParserUtils.compareTableName("", TestUtils.rBundle.getString("R_noTokensFoundInUserQuery"));
+        ParserUtils.compareTableName(null, TestUtils.rBundle.getString("R_noTokensFoundInUserQuery"));
     }
 
 }
