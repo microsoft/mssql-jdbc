@@ -72,10 +72,16 @@ enum TDSType {
     private final int intValue;
 
     private static final int MAXELEMENTS = 256;
-    private static final TDSType VALUES[] = values();
+    private static final TDSType[] VALUES = values();
+    private static final TDSType valuesTypes[] = new TDSType[MAXELEMENTS];
 
     byte byteValue() {
         return (byte) intValue;
+    }
+
+    static {
+        for (TDSType s : VALUES)
+            valuesTypes[s.intValue] = s;
     }
 
     private TDSType(int intValue) {
@@ -85,7 +91,7 @@ enum TDSType {
     static TDSType valueOf(int intValue) throws IllegalArgumentException {
         TDSType tdsType;
 
-        if (!(0 <= intValue && intValue < VALUES.length) || null == (tdsType = VALUES[intValue])) {
+        if (!(0 <= intValue && intValue < valuesTypes.length) || null == (tdsType = valuesTypes[intValue])) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unknownSSType"));
             Object[] msgArgs = {intValue};
             throw new IllegalArgumentException(form.format(msgArgs));
