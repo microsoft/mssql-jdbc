@@ -124,6 +124,10 @@ final class TDSParser {
                 case TDS.TDS_FEDAUTHINFO:
                     parsing = tdsTokenHandler.onFedAuthInfo(tdsReader);
                     break;
+                case 0:
+                    if (logger.isLoggable(Level.FINEST)) {
+                        logger.log(Level.FINEST, "Encountered token 0x0 which will be treated as EOF.");
+                    }
                 case -1:
                     tdsReader.getCommand().onTokenEOF();
                     tdsTokenHandler.onEOF(tdsReader);
