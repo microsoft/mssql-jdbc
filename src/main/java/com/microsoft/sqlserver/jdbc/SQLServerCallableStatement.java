@@ -1301,12 +1301,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // handle `@name` as well as `name`, since `@name` is what's returned
         // by DatabaseMetaData#getProcedureColumns
-        String columnNameWithoutAtSign = null;
-        if (columnName.startsWith("@")) {
-            columnNameWithoutAtSign = columnName.substring(1, columnName.length());
-        } else {
-            columnNameWithoutAtSign = columnName;
-        }
+        String columnNameWithSign = columnName.startsWith("@") ? columnName : "@" + columnName;
 
         // In order to be as accurate as possible when locating parameter name
         // indexes, as well as be deterministic when running on various client
@@ -1314,27 +1309,19 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // 1. Search using case-sensitive non-locale specific (binary) compare first.
         // 2. Search using case-insensitive, non-locale specific (binary) compare last.
-
-        int i;
+        String[] sParams = new String[l];
         int matchPos = -1;
-        // Search using case-sensitive, non-locale specific (binary) compare.
-        // If the user supplies a true match for the parameter name, we will find it here.
-        for (i = 0; i < l; i++) {
-            String sParam = parameterNames.get(i);
-            sParam = sParam.substring(1, sParam.length());
-            if (sParam.equals(columnNameWithoutAtSign)) {
+        for (int i = 0; i < l; i++) {
+            sParams[i] = parameterNames.get(i);
+            if (sParams[i].equals(columnNameWithSign)) {
                 matchPos = i;
                 break;
             }
         }
-
+        
         if (-1 == matchPos) {
-            // Check for case-insensitive match using a non-locale aware method.
-            // Use VM supplied String.equalsIgnoreCase to do the "case-insensitive search".
-            for (i = 0; i < l; i++) {
-                String sParam = parameterNames.get(i);
-                sParam = sParam.substring(1, sParam.length());
-                if (sParam.equalsIgnoreCase(columnNameWithoutAtSign)) {
+            for (int i = 0; i < l; i++) {
+                if (sParams[i].equalsIgnoreCase(columnNameWithSign)) {
                     matchPos = i;
                     break;
                 }
