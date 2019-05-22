@@ -159,10 +159,10 @@ public class TVPSchemaTest extends AbstractTest {
 
     private void dropObjects() throws SQLException {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-        dropProcedure(stmt);
-        dropTables(stmt);
-        dropTVPS(stmt);
-        dropSchema(stmt);
+            dropProcedure(stmt);
+            dropTables(stmt);
+            dropTVPS(stmt);
+            dropSchema(stmt);
         }
     }
 
@@ -183,7 +183,7 @@ public class TVPSchemaTest extends AbstractTest {
                 + TestUtils.escapeSingleQuotes(procedureName) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + procedureName;
 
-            stmt.execute(sql);
+        stmt.execute(sql);
     }
 
     private static void dropTables(Statement stmt2) throws SQLException {
