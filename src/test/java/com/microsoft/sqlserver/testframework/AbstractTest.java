@@ -88,7 +88,7 @@ public abstract class AbstractTest {
         connectionStringNTLM = connectionString;
 
         // if these properties are defined then NTLM is desired, modify connection string accordingly
-        String domain = System.getProperty("domain");
+        String domain = System.getProperty("domainNTLM");
         String user = System.getProperty("userNTLM");
         String password = System.getProperty("passwordNTLM");
 
