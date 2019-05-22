@@ -374,7 +374,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @return the old catalog
      */
     private String switchCatalogs(String catalog) throws SQLServerException {
-        if (catalog == null)
+        if (null == catalog)
             return null;
         String sCurr = null;
         sCurr = connection.getCatalog().trim();
@@ -382,7 +382,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (sCurr.equals(sNew))
             return null;
         connection.setCatalog(sNew);
-        if (sCurr == null || sCurr.length() == 0)
+        if (null == sCurr || sCurr.length() == 0)
             return null;
         return sCurr;
     }
@@ -530,7 +530,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         arguments[1] = schema;
         arguments[2] = catalog;
 
-        if (types != null) {
+        if (null != types) {
             final StringBuilder tableTypes = new StringBuilder("'");
             for (int i = 0; i < types.length; i++) {
                 if (i > 0)
@@ -639,10 +639,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
             pstmt.closeOnCompletion();
             try {
-                pstmt.setString(1, (table != null && !table.isEmpty()) ? table : "%");
-                pstmt.setString(2, (schema != null && !schema.isEmpty()) ? schema : "%");
-                pstmt.setString(3, (catalog != null && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
-                pstmt.setString(4, (col != null && !col.isEmpty()) ? col : "%");
+                pstmt.setString(1, (null != table && !table.isEmpty()) ? table : "%");
+                pstmt.setString(2, (null != schema && !schema.isEmpty()) ? schema : "%");
+                pstmt.setString(3, (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
+                pstmt.setString(4, (null != col && !col.isEmpty()) ? col : "%");
                 pstmt.setInt(5, 2);// show sparse columns
                 pstmt.setInt(6, 3);// odbc version
 
@@ -658,7 +658,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 if (null != originalCatalog) {
                     connection.setCatalog(originalCatalog);
                 }
-                if (errorOnClose != null) {
+                if (null != errorOnClose) {
                     throw errorOnClose;
                 }
             }
@@ -667,11 +667,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         } else {
             try (PreparedStatement stored_proc_pstmt = this.connection
                     .prepareStatement("EXEC sp_columns_100 ?,?,?,?,?,?;")) {
-                stored_proc_pstmt.setString(1, (table != null && !table.isEmpty()) ? table : "%");
-                stored_proc_pstmt.setString(2, (schema != null && !schema.isEmpty()) ? schema : "%");
+                stored_proc_pstmt.setString(1, (null != table && !table.isEmpty()) ? table : "%");
+                stored_proc_pstmt.setString(2, (null != schema && !schema.isEmpty()) ? schema : "%");
                 stored_proc_pstmt.setString(3,
-                        (catalog != null && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
-                stored_proc_pstmt.setString(4, (col != null && !col.isEmpty()) ? col : "%");
+                        (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
+                stored_proc_pstmt.setString(4, (null != col && !col.isEmpty()) ? col : "%");
                 stored_proc_pstmt.setInt(5, 2);// show sparse columns
                 stored_proc_pstmt.setInt(6, 3);// odbc version
 
@@ -735,7 +735,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                         result_pstmt.close();
                     }
                 } finally {
-                    if (errorOnClose != null) {
+                    if (null != errorOnClose) {
                         throw errorOnClose;
                     }
                 }
@@ -779,7 +779,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          * 'qualifier' ] [ , [@fUsePattern = ] 'fUsePattern' ]
          */ // use default ie use pattern matching.
         // catalog cannot be empty in sql server
-        if (catalog != null && catalog.length() == 0) {
+        if (null != catalog && catalog.length() == 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
             Object[] msgArgs = {"catalog"};
             SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
@@ -809,7 +809,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          */
 
         // catalog cannot be empty in sql server
-        if (catalog != null && catalog.length() == 0) {
+        if (null != catalog && catalog.length() == 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
             Object[] msgArgs = {"catalog"};
             SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
@@ -1006,13 +1006,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             cstmt.setString(i + 1, procParams[i]);
         }
         String currentDB = null;
-        if (procParams[2] != null && procParams[2] != "") {// pktable_qualifier
+        if (null != procParams[2] && procParams[2] != "") {// pktable_qualifier
             currentDB = switchCatalogs(procParams[2]);
-        } else if (procParams[5] != null && procParams[5] != "") {// fktable_qualifier
+        } else if (null != procParams[5] && procParams[5] != "") {// fktable_qualifier
             currentDB = switchCatalogs(procParams[5]);
         }
         ResultSet rs = cstmt.executeQuery();
-        if (currentDB != null) {
+        if (null != currentDB) {
             switchCatalogs(currentDB);
         }
         return rs;
@@ -2269,7 +2269,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public int getSQLStateType() throws SQLServerException {
         checkClosed();
-        if (connection != null && connection.xopenStates)
+        if (null != connection && connection.xopenStates)
             return sqlStateXOpen;
         else
             return sqlStateSQL99;
@@ -2504,7 +2504,7 @@ abstract class IntColumnFilter extends ColumnFilter {
     abstract int oneValueToAnother(int value);
 
     final Object apply(Object value, JDBCType asJDBCType) throws SQLServerException {
-        if (value == null)
+        if (null == value)
             return value;
         // Assumption: values will only be requested in integral or textual
         // format
@@ -2543,7 +2543,7 @@ class IntColumnIdentityFilter extends ColumnFilter {
     }
 
     final Object apply(Object value, JDBCType asJDBCType) throws SQLServerException {
-        if (value == null)
+        if (null == value)
             return value;
         // Assumption: values will only be requested in integral or textual
         // format
