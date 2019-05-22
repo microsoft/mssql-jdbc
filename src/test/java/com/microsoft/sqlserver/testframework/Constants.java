@@ -22,6 +22,7 @@ public class Constants {
      * xAzureSQLDB - - - - For tests not compatible with Azure SQL Database
      * xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
+     * NTLM  - - - - - - - For NTLM tests
      * </pre>
      */
     public static final String xJDBC42 = "xJDBC42";
@@ -32,13 +33,6 @@ public class Constants {
     public static final String xAzureSQLDB = "xAzureSQLDB";
     public static final String xAzureSQLDW = "xAzureSQLDW";
     public static final String xAzureSQLMI = "xAzureSQLMI";
-
-    /**
-     * use below tags for tests to include in test group:
-     * 
-     * <pre>
-     * NTLM - - - - - - For NTLM tests
-     */
     public static final String NTLM = "NTLM";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
