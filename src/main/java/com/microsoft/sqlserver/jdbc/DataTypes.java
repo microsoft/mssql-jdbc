@@ -72,15 +72,10 @@ enum TDSType {
     private final int intValue;
 
     private static final int MAXELEMENTS = 256;
-    private static final TDSType valuesTypes[] = new TDSType[MAXELEMENTS];
+    private static final TDSType VALUES[] = values();
 
     byte byteValue() {
         return (byte) intValue;
-    }
-
-    static {
-        for (TDSType s : values())
-            valuesTypes[s.intValue] = s;
     }
 
     private TDSType(int intValue) {
@@ -90,7 +85,7 @@ enum TDSType {
     static TDSType valueOf(int intValue) throws IllegalArgumentException {
         TDSType tdsType;
 
-        if (!(0 <= intValue && intValue < valuesTypes.length) || null == (tdsType = valuesTypes[intValue])) {
+        if (!(0 <= intValue && intValue < VALUES.length) || null == (tdsType = VALUES[intValue])) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unknownSSType"));
             Object[] msgArgs = {intValue};
             throw new IllegalArgumentException(form.format(msgArgs));
@@ -152,6 +147,7 @@ enum SSType {
     final Category category;
     private final String name;
     private final JDBCType jdbcType;
+    private static final SSType[] VALUES = values();
 
     static final BigDecimal MAX_VALUE_MONEY = new BigDecimal("922337203685477.5807");
     static final BigDecimal MIN_VALUE_MONEY = new BigDecimal("-922337203685477.5808");
@@ -173,7 +169,7 @@ enum SSType {
     }
 
     static SSType of(String typeName) throws SQLServerException {
-        for (SSType ssType : values())
+        for (SSType ssType : VALUES)
             if (ssType.name.equalsIgnoreCase(typeName))
                 return ssType;
 
@@ -201,7 +197,9 @@ enum SSType {
         TIMESTAMP,
         UDT,
         SQL_VARIANT,
-        XML
+        XML;
+
+        private static final Category[] VALUES = values();
     }
 
     enum GetterConversion {
@@ -265,6 +263,7 @@ enum SSType {
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
+        private static final GetterConversion[] VALUES = values();
 
         private GetterConversion(SSType.Category from, EnumSet<JDBCType.Category> to) {
             this.from = from;
@@ -275,10 +274,10 @@ enum SSType {
                 SSType.Category.class);
 
         static {
-            for (SSType.Category category : SSType.Category.values())
+            for (SSType.Category category : SSType.Category.VALUES)
                 conversionMap.put(category, EnumSet.noneOf(JDBCType.Category.class));
 
-            for (GetterConversion conversion : values())
+            for (GetterConversion conversion : VALUES)
                 conversionMap.get(conversion.from).addAll(conversion.to);
         }
 
@@ -473,6 +472,7 @@ enum JavaType {
     private final Class<?> javaClass;
     private final JDBCType jdbcTypeFromJavaType;
     private static double jvmVersion = 0.0;
+    private static final JavaType[] VALUES = values();
 
     private JavaType(Class<?> javaClass, JDBCType jdbcTypeFromJavaType) {
         this.javaClass = javaClass;
@@ -521,7 +521,7 @@ enum JavaType {
         if (obj instanceof SQLServerDataTable || obj instanceof ResultSet || obj instanceof ISQLServerDataRecord)
             return JavaType.TVP;
         if (null != obj) {
-            for (JavaType javaType : values())
+            for (JavaType javaType : VALUES)
                 // if JVM version is prior to Java 8, the javaClass variable can be
                 // null if the java type is introduced in Java 8
                 if (null != javaType.javaClass) {
@@ -578,6 +578,7 @@ enum JavaType {
 
         private final EnumSet<JDBCType> to;
         private final JavaType from;
+        private static final SetterConversionAE[] VALUES = values();
 
         private SetterConversionAE(JavaType from, EnumSet<JDBCType> to) {
             this.from = from;
@@ -587,10 +588,10 @@ enum JavaType {
         private static final EnumMap<JavaType, EnumSet<JDBCType>> setterConversionAEMap = new EnumMap<>(JavaType.class);
 
         static {
-            for (JavaType javaType : JavaType.values())
+            for (JavaType javaType : JavaType.VALUES)
                 setterConversionAEMap.put(javaType, EnumSet.noneOf(JDBCType.class));
 
-            for (SetterConversionAE conversion : values())
+            for (SetterConversionAE conversion : VALUES)
                 setterConversionAEMap.get(conversion.from).addAll(conversion.to);
         }
 
@@ -668,6 +669,7 @@ enum JDBCType {
     final Category category;
     private final int intValue;
     private final String className;
+    private static final JDBCType[] VALUES = values();
 
     final String className() {
         return className;
@@ -711,7 +713,9 @@ enum JDBCType {
         GUID,
         SQL_VARIANT,
         GEOMETRY,
-        GEOGRAPHY
+        GEOGRAPHY;
+
+        private static final Category[] VALUES = values();
     }
 
     // This SetterConversion enum is based on the Category enum
@@ -786,6 +790,7 @@ enum JDBCType {
 
         private final JDBCType.Category from;
         private final EnumSet<JDBCType.Category> to;
+        private static final SetterConversion[] VALUES = values();
 
         private SetterConversion(JDBCType.Category from, EnumSet<JDBCType.Category> to) {
             this.from = from;
@@ -796,10 +801,10 @@ enum JDBCType {
                 JDBCType.Category.class);
 
         static {
-            for (JDBCType.Category category : JDBCType.Category.values())
+            for (JDBCType.Category category : JDBCType.Category.VALUES)
                 conversionMap.put(category, EnumSet.noneOf(JDBCType.Category.class));
 
-            for (SetterConversion conversion : values())
+            for (SetterConversion conversion : VALUES)
                 conversionMap.get(conversion.from).addAll(conversion.to);
         }
 
@@ -885,6 +890,7 @@ enum JDBCType {
 
         private final JDBCType.Category from;
         private final EnumSet<SSType.Category> to;
+        private static final UpdaterConversion[] VALUES = values();
 
         private UpdaterConversion(JDBCType.Category from, EnumSet<SSType.Category> to) {
             this.from = from;
@@ -895,10 +901,10 @@ enum JDBCType {
                 JDBCType.Category.class);
 
         static {
-            for (JDBCType.Category category : JDBCType.Category.values())
+            for (JDBCType.Category category : JDBCType.Category.VALUES)
                 conversionMap.put(category, EnumSet.noneOf(SSType.Category.class));
 
-            for (UpdaterConversion conversion : values())
+            for (UpdaterConversion conversion : VALUES)
                 conversionMap.get(conversion.from).addAll(conversion.to);
         }
 
@@ -912,7 +918,7 @@ enum JDBCType {
     }
 
     static JDBCType of(int intValue) throws SQLServerException {
-        for (JDBCType jdbcType : values())
+        for (JDBCType jdbcType : VALUES)
             if (jdbcType.intValue == intValue)
                 return jdbcType;
 
@@ -1064,6 +1070,7 @@ enum JDBCType {
 
         private final JDBCType from;
         private final EnumSet<SSType> to;
+        private static final NormalizationAE[] VALUES = values();
 
         private NormalizationAE(JDBCType from, EnumSet<SSType> to) {
             this.from = from;
@@ -1073,10 +1080,10 @@ enum JDBCType {
         private static final EnumMap<JDBCType, EnumSet<SSType>> normalizationMapAE = new EnumMap<>(JDBCType.class);
 
         static {
-            for (JDBCType jdbcType : JDBCType.values())
+            for (JDBCType jdbcType : JDBCType.VALUES)
                 normalizationMapAE.put(jdbcType, EnumSet.noneOf(SSType.class));
 
-            for (NormalizationAE conversion : values())
+            for (NormalizationAE conversion : VALUES)
                 normalizationMapAE.get(conversion.from).addAll(conversion.to);
         }
 
