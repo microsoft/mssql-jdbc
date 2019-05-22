@@ -24,8 +24,9 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.UUID;
 
 
@@ -46,7 +47,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     private static final long serialVersionUID = 5044984771674532350L;
 
     /** the call param names */
-    private ArrayList<String> parameterNames;
+    private HashMap<String, Integer> parameterNames;
+    private TreeMap<String, Integer> insensitiveParameterNames;
 
     /** Number of registered OUT parameters */
     int nOutParams = 0;
@@ -1282,10 +1284,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 }
 
                 ResultSet rs = s.executeQueryInternal(metaQuery.toString());
-                parameterNames = new ArrayList<>();
+                parameterNames = new HashMap<>();
+                insensitiveParameterNames = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+                int columnIndex = 0;
                 while (rs.next()) {
-                    String parameterName = rs.getString(4);
-                    parameterNames.add(parameterName.trim());
+                    String p = rs.getString(4);
+                    parameterNames.put(p, columnIndex);
+                    insensitiveParameterNames.put(p, columnIndex++);
                 }
             } catch (SQLException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.toString(), null, false);
@@ -1308,27 +1313,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         // locales, we search for parameter names using the following scheme:
 
         // 1. Search using case-sensitive non-locale specific (binary) compare first.
-        // 2. Search using case-insensitive, non-locale specific (binary) compare last.
-        String[] sParams = new String[l];
-        int matchPos = -1;
-        for (int i = 0; i < l; i++) {
-            sParams[i] = parameterNames.get(i);
-            if (sParams[i].equals(columnNameWithSign)) {
-                matchPos = i;
-                break;
-            }
+        // 2. Search using case-insensitive, non-locale specific (binary) compare last.        
+        Integer matchPos = parameterNames.get(columnNameWithSign);
+        if (null == matchPos) {
+            matchPos = insensitiveParameterNames.get(columnNameWithSign);
         }
-
-        if (-1 == matchPos) {
-            for (int i = 0; i < l; i++) {
-                if (sParams[i].equalsIgnoreCase(columnNameWithSign)) {
-                    matchPos = i;
-                    break;
-                }
-            }
-        }
-
-        if (-1 == matchPos) {
+        if (null == matchPos) {
             MessageFormat form = new MessageFormat(
                     SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
             Object[] msgArgs = {columnName, procedureName};
