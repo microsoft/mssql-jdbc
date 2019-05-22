@@ -34,6 +34,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -187,7 +188,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testPointWkt() throws SQLException {
         beforeEachSetup();
         String geoWKT = "POINT(3 40 5 6)";
@@ -198,7 +199,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testLineStringWkt() throws SQLException {
         beforeEachSetup();
         String geoWKT = "LINESTRING(1 0, 0 1, -1 0)";
@@ -209,7 +210,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testPolygonWkt() throws SQLException {
         beforeEachSetup();
         String geoWKT = "POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1))";
@@ -220,7 +221,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testMultiPointWkt() throws SQLException {
         beforeEachSetup();
         String geoWKT = "MULTIPOINT((2 3), (7 8 9.5))";
@@ -231,7 +232,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testMultiLineStringWkt() throws SQLException {
         beforeEachSetup();
         String geoWKT = "MULTILINESTRING((0 2, 1 1), (1 0, 1 1))";
@@ -242,7 +243,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testMultiPolygonWkt() throws SQLException {
         beforeEachSetup();
         String geoWKT = "MULTIPOLYGON(((1 1, 1 2, 2 1, 1 1), (0 0, 0 3, 3 3, 3 0, 0 0 7)), ((9 9, 9 10, 10 9, 9 9)))";
@@ -253,7 +254,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testGeometryCollectionWkt() throws SQLException {
         String geoWKT;
         if (isDenaliOrLater) {
@@ -273,7 +274,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testCircularStringWkt() throws SQLException {
         if (isDenaliOrLater) {
             beforeEachSetup();
@@ -286,7 +287,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testCompoundCurveWkt() throws SQLException {
         if (isDenaliOrLater) {
             beforeEachSetup();
@@ -299,7 +300,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testCurvePolygonWkt() throws SQLException {
         if (isDenaliOrLater) {
             beforeEachSetup();
@@ -312,7 +313,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testFullGlobeWkt() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             if (isDenaliOrLater) {
@@ -343,7 +344,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testIrregularCases() throws SQLException {
         beforeEachSetup();
 
@@ -457,7 +458,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testAllTypes() throws SQLException {
         if (isDenaliOrLater) {
             beforeEachSetup();
@@ -609,7 +610,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testMixedAllTypes() throws SQLException {
         if (isDenaliOrLater) {
             beforeEachSetupSpatialDatatype();
@@ -766,7 +767,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testDecimalRounding() throws SQLException {
         beforeEachSetup();
 
@@ -777,7 +778,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testParse() throws SQLException {
         beforeEachSetup();
 
@@ -818,7 +819,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testPoint() throws SQLException {
         beforeEachSetup();
 
@@ -858,7 +859,47 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
+    public void testSetObject() throws SQLException {
+        beforeEachSetup();
+
+        String geoWKT = "POINT(1 2)";
+
+        Geometry geomWKT = Geometry.point(1, 2, 0);
+        Geography geogWKT = Geography.point(2, 1, 4326);
+
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geomTableName) + " values (?)");) {
+                pstmt.setObject(1, geomWKT);
+                pstmt.execute();
+
+                try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                        .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
+                    rs.next();
+                    assertEquals(rs.getGeometry(1).asTextZM(), geoWKT);
+                    assertEquals(rs.getGeometry(1).getSrid(), 0);
+                }
+            }
+
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(geogTableName) + " values (?)");) {
+                pstmt.setObject(1, geogWKT);
+                pstmt.execute();
+
+                try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                        .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
+                    rs.next();
+                    assertEquals(rs.getGeography(1).asTextZM(), geoWKT);
+                    assertEquals(rs.getGeography(1).getSrid(), 4326);
+                }
+            }
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testSTAsText() throws SQLException {
         beforeEachSetup();
 
@@ -897,7 +938,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testSTAsBinary() throws SQLException {
         beforeEachSetup();
 
@@ -921,7 +962,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testCheckGeomMetaData() throws SQLException {
         beforeEachSetup();
 
@@ -946,7 +987,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testCheckGeogMetaData() throws SQLException {
         beforeEachSetup();
 
@@ -987,7 +1028,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testNull() throws SQLException {
         if (isDenaliOrLater) {
             beforeEachSetupSpatialDatatype();
@@ -1057,7 +1098,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testWrongtype() throws SQLException {
         beforeEachSetup();
 

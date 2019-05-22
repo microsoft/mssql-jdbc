@@ -31,6 +31,7 @@ import java.util.logging.Level;
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
  */
+@SuppressWarnings("unused")
 public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaData, Serializable {
     /**
      * Always update serialVersionUID when prompted.
@@ -1110,16 +1111,23 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public int getMaxConnections() throws SQLException, SQLTimeoutException {
         checkClosed();
-        try {
-            String s = "sp_configure 'user connections'";
-            SQLServerResultSet rs = getResultSetFromInternalQueries(null, s);
-            if (!rs.next())
+        try (SQLServerResultSet rs = getResultSetFromInternalQueries(null,
+                "select maximum from sys.configurations where name = 'user connections'")) {
+            if (!rs.next()) {
                 return 0;
+            }
             return rs.getInt("maximum");
         } catch (SQLServerException e) {
-            return 0;
+            // Try with sp_configure if users do not have privileges to execute sys.configurations
+            try (SQLServerResultSet rs1 = getResultSetFromInternalQueries(null, "sp_configure 'user connections'")) {
+                if (!rs1.next()) {
+                    return 0;
+                }
+                return rs1.getInt("maximum");
+            } catch (SQLServerException e1) {
+                return 0;
+            }
         }
-
     }
 
     @Override

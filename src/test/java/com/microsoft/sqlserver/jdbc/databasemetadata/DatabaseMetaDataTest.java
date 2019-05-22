@@ -75,6 +75,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      *         IOExcption
      */
     @Test
+    @Tag(Constants.xGradle)
     public void testDriverVersion() throws SQLException, IOException {
         String manifestFile = TestUtils.getCurrentClassPath() + "META-INF/MANIFEST.MF";
         manifestFile = manifestFile.replace("test-classes", "classes");
@@ -130,8 +131,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testDBUserLogin() throws SQLException {
         try (Connection conn = getConnection()) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
@@ -188,8 +189,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testDBSchemasForDashedCatalogName() throws SQLException {
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
@@ -242,8 +243,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testDBSchemasForDashedCatalogNameWithPattern() throws SQLException {
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
@@ -377,7 +378,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testGetColumnPrivileges() throws SQLException {
 
         try (Connection conn = getConnection()) {
@@ -422,8 +423,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
     public void testGetFunctionsWithWrongParams() throws SQLException {
         try (Connection conn = getConnection()) {
             conn.getMetaData().getFunctions("", null, "xp_%");
-            assertTrue(false, TestResource.getResource("R_noSchemaShouldFail"));
-        } catch (Exception ae) {}
+            fail(TestResource.getResource("R_noSchemaShouldFail"));
+        } catch (SQLException e) {
+            assert (e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidArgument")));
+        }
     }
 
     /**
@@ -494,8 +497,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
-    @Tag("xAzureSQLDB")
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testPreparedStatementMetadataCaching() throws SQLException {
         try (Connection connection = getConnection()) {
 
@@ -541,6 +544,23 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 assertSame(stmtMasterCatalog, rs.getStatement());
                 rs.getStatement().close();
             }
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testGetMaxConnections() throws SQLException {
+        try (Statement stmt = connection.createStatement(); ResultSet rs = stmt
+                .executeQuery("select maximum from sys.configurations where name = 'user connections'")) {
+            assert (null != rs);
+            rs.next();
+
+            DatabaseMetaData databaseMetaData = connection.getMetaData();
+            int maxConn = databaseMetaData.getMaxConnections();
+
+            assertEquals(maxConn, rs.getInt(1));
+        } catch (SQLException e) {
+            fail(e.getMessage());
         }
     }
 }

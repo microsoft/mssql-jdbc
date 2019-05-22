@@ -29,11 +29,12 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
-import com.microsoft.sqlserver.testframework.AbstractTest;;
+import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("xAzureSQLDW")
+@Tag(Constants.xAzureSQLDW)
 public class TVPIssuesTest extends AbstractTest {
 
     private static String tvp_varcharMax = RandomUtil.getIdentifier("TVPIssuesTest_varcharMax_TVP");

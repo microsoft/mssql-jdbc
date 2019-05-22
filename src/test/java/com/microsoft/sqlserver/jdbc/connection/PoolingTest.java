@@ -32,6 +32,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -46,8 +47,8 @@ public class PoolingTest extends AbstractTest {
     static String tableName = RandomUtil.getIdentifier("PoolingTestTable");
 
     @Test
-    @Tag("xAzureSQLDB")
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
     @Tag("xAzureSQLMI")
     public void testPooling() throws SQLException {
 

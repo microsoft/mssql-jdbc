@@ -166,13 +166,13 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void batchWithLargeStringTest() throws Exception {
         batchWithLargeStringTestInternal("BatchInsert");
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void batchWithLargeStringTestUseBulkCopyAPI() throws Exception {
         batchWithLargeStringTestInternal("BulkCopy");
     }
@@ -278,7 +278,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void addBatchWithLargeStringTest() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);

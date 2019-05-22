@@ -28,6 +28,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
@@ -55,7 +56,7 @@ public class TimeoutTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testBasicQueryTimeout() {
         assertThrows(SQLTimeoutException.class, () -> {
             runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS);
@@ -63,7 +64,7 @@ public class TimeoutTest extends AbstractTest {
     }
 
     @Test
-    @Tag("xAzureSQLDW")
+    @Tag(Constants.xAzureSQLDW)
     public void testQueryTimeoutValid() {
         long start = System.currentTimeMillis();
         assertThrows(SQLTimeoutException.class, () -> {
@@ -125,6 +126,20 @@ public class TimeoutTest extends AbstractTest {
 
             // Timer should still be running because our original connection is still open
             assertSharedTimerIsRunning();
+        }
+    }
+
+    @Test
+    public void testGetClosedTimer() throws SQLServerException, SQLException {
+        try (SQLServerConnection conn = getConnection()) {
+            conn.close();
+            @SuppressWarnings("unused")
+            SharedTimer timer = conn.getSharedTimer();
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_connectionIsClosed")));
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
     }
 
