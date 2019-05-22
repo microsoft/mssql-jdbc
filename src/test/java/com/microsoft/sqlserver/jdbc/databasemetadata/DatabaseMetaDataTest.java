@@ -345,10 +345,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
                             tableFound = true;
                         }
                     } while (rs.next() && !tableFound);
-                } else {
-                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-                    Object[] msgArgs1 = {"table"};
-                    fail(form1.format(msgArgs1));
                 }
 
                 if (!tableFound) {
@@ -398,34 +394,38 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
             String[] types = {"TABLE"};
+            boolean tableFound = false;
+
             try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
                 if (rs.next()) {
-                    boolean tableFound = false;
                     do {
                         if (rs.getString("TABLE_NAME").equalsIgnoreCase(tableName)) {
                             tableFound = true;
                         }
-                    } while (!tableFound && rs.next());
-                } else {
-                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-                    Object[] msgArgs1 = {"table"};
-                    fail(form1.format(msgArgs1));
+                    } while (rs.next() && !tableFound);
                 }
-                try (ResultSet rs1 = databaseMetaData.getColumnPrivileges(null, null,
-                        AbstractSQLGenerator.escapeIdentifier(tableName), "%")) {
 
-                    MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-                    Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"GRANTOR"}, {"GRANTEE"},
-                            {"PRIVILEGE"}, {"IS_GRANTABLE"}};
-                    while (rs1.next()) {
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTOR")), form2.format(msgArgs2[4]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTEE")), form2.format(msgArgs2[5]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("PRIVILEGE")), form2.format(msgArgs2[6]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("IS_GRANTABLE")), form2.format(msgArgs2[7]));
+                if (!tableFound) {
+                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_tableNotFound"));
+                    Object[] msgArgs1 = {tableName};
+                    fail(form1.format(msgArgs1));
+                } else {
+                    try (ResultSet rs1 = databaseMetaData.getColumnPrivileges(null, null,
+                            AbstractSQLGenerator.escapeIdentifier(tableName), "%")) {
+
+                        MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                        Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"GRANTOR"},
+                                {"GRANTEE"}, {"PRIVILEGE"}, {"IS_GRANTABLE"}};
+                        while (rs1.next()) {
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTOR")), form2.format(msgArgs2[4]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTEE")), form2.format(msgArgs2[5]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("PRIVILEGE")), form2.format(msgArgs2[6]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_GRANTABLE")), form2.format(msgArgs2[7]));
+                        }
                     }
                 }
             }
