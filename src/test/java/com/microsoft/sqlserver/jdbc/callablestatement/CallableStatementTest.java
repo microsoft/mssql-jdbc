@@ -56,7 +56,7 @@ public class CallableStatementTest extends AbstractTest {
 
             createGUIDTable(stmt);
             createGUIDStoredProcedure(stmt);
-            createSetNullPreocedure(stmt);
+            createSetNullProcedure(stmt);
             createInputParamsProcedure(stmt);
         }
     }
