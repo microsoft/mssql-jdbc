@@ -484,36 +484,35 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Connection conn = getConnection()) {
 
             DatabaseMetaData databaseMetaData = conn.getMetaData();
+            boolean functionFound = false;
 
             try (ResultSet rsFunctions = databaseMetaData.getFunctions(null, null, "%")) {
                 if (rsFunctions.next()) {
-                    boolean tableFound = false;
                     do {
                         if (rsFunctions.getString("FUNCTION_NAME").equalsIgnoreCase(functionName)) {
-                            tableFound = true;
+                            functionFound = true;
                         }
-                    } while (!tableFound && rsFunctions.next());
-                } else {
-                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-                    Object[] msgArgs1 = {"table"};
-                    fail(form1.format(msgArgs1));
+                    } while (rsFunctions.next() && !functionFound);
                 }
-                try (ResultSet rs = databaseMetaData.getFunctionColumns(null, null,
-                        AbstractSQLGenerator.escapeIdentifier(functionName), "%")) {
 
-                    MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameNull"));
-                    Object[][] msgArgs2 = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"COLUMN_NAME"},
-                            {"COLUMN_TYPE"}, {"DATA_TYPE"}, {"TYPE_NAME"}, {"NULLABLE"}, {"IS_NULLABLE"}};
-                    while (rs.next()) {
-                        assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")), form2.format(msgArgs2[0]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")), form2.format(msgArgs2[1]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_NAME")), form2.format(msgArgs2[2]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_TYPE")), form2.format(msgArgs2[4]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("DATA_TYPE")), form2.format(msgArgs2[5]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("TYPE_NAME")), form2.format(msgArgs2[6]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("NULLABLE")), form2.format(msgArgs2[7])); // 12
-                        assertTrue(!StringUtils.isEmpty(rs.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 19
+                if (!functionFound) {
+                    try (ResultSet rs = databaseMetaData.getFunctionColumns(null, null,
+                            AbstractSQLGenerator.escapeIdentifier(functionName), "%")) {
+
+                        MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameNull"));
+                        Object[][] msgArgs2 = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"COLUMN_NAME"},
+                                {"COLUMN_TYPE"}, {"DATA_TYPE"}, {"TYPE_NAME"}, {"NULLABLE"}, {"IS_NULLABLE"}};
+                        while (rs.next()) {
+                            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")), form2.format(msgArgs2[0]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")), form2.format(msgArgs2[1]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_NAME")), form2.format(msgArgs2[2]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_TYPE")), form2.format(msgArgs2[4]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("DATA_TYPE")), form2.format(msgArgs2[5]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("TYPE_NAME")), form2.format(msgArgs2[6]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("NULLABLE")), form2.format(msgArgs2[7])); // 12
+                            assertTrue(!StringUtils.isEmpty(rs.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 19
+                        }
                     }
                 }
             }
