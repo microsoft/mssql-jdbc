@@ -1,5 +1,5 @@
 # Microsoft JDBC Driver for SQL Server CI Build triggers tests against below SQL Servers:
-#   - SQL Server 2017
+#   - SQL Server 2019
 #   - SQL Server 2008 R2
 jobs:
 - job: "CI_Build"
@@ -9,8 +9,8 @@ jobs:
   strategy:
     matrix:
       SQL-2017:
-        Target_SQL: 'SQL-2k17-03'
-        Ex_Groups: 'xSQLv14'
+        Target_SQL: 'SQL-2k19-01'
+        Ex_Groups: 'xSQLv15'
       SQL-2008R2:
         Target_SQL: 'SQL-2k8R2-SP3-1'
         Ex_Groups: 'xSQLv12'
