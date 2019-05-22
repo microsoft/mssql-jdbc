@@ -1318,7 +1318,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 break;
             }
         }
-        
+
         if (-1 == matchPos) {
             for (int i = 0; i < l; i++) {
                 if (sParams[i].equalsIgnoreCase(columnNameWithSign)) {
