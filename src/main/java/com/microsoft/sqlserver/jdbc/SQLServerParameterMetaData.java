@@ -307,15 +307,23 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
     private void parseFMTQueryMeta(ResultSetMetaData md, SQLServerFMTQuery f) throws SQLServerException {
         try {
+            // Gets the list of parsed column names/targets
             List<String> columns = f.getColumns();
+            // Gets VALUES(?,?,?...) list. The internal list corresponds to the parameters in the bracket after VALUES.
             List<List<String>> params = f.getValuesList();
             int valueListOffset = 0;
             int mdIndex = 1;
             int mapIndex = 1;
             for (int i = 0; i < columns.size(); i++) {
-                if (columns.get(i).equalsIgnoreCase("*")) {
+                /**
+                 * For INSERT table VALUES(?,?,?...) scenarios where the column names are not specifically defined after
+                 * the table name, the parser adds a '*' followed by '?'s equal to the number of parameters in the
+                 * values bracket. The '*' will retrieve all values from the table and we'll use the '?'s to match their
+                 * position here
+                 */
+                if (columns.get(i).equals("*")) {
                     for (int j = 0; j < params.get(valueListOffset).size(); j++) {
-                        if (params.get(valueListOffset).get(j).equalsIgnoreCase("?")) {
+                        if (params.get(valueListOffset).get(j).equals("?")) {
                             if (!md.isAutoIncrement(mdIndex + j)) {
                                 QueryMeta qm = getQueryMetaFromResultSetMetaData(md, mdIndex + j);
                                 queryMetaMap.put(mapIndex++, qm);
@@ -326,6 +334,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     mdIndex += params.get(valueListOffset).size();
                     valueListOffset++;
                 } else {
+                    /*
+                     * If this is not a INSERT table VALUES(...) situation, just add the entry.
+                     */
                     QueryMeta qm = getQueryMetaFromResultSetMetaData(md, mdIndex);
                     queryMetaMap.put(mapIndex++, qm);
                     mdIndex++;

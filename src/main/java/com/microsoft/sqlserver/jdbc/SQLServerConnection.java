@@ -582,15 +582,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return !isKatmaiOrLater() || sendTimeAsDatetime;
     }
 
-    /**
-     * Returns the useFmtOnly value.
-     * 
-     * @return flag for using FMTONLY for parameter metadata querying.
-     */
-    public final boolean getUseFmtOnly() {
-        return useFmtOnly;
-    }
-
     final int baseYear() {
         return getSendTimeAsDatetime() ? TDS.BASE_YEAR_1970 : TDS.BASE_YEAR_1900;
     }
@@ -5410,15 +5401,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) {
         sendTimeAsDatetime = sendTimeAsDateTimeValue;
     }
-    
-    /**
-     * Specifies the flag to use FMTONLY for parameter metadata queries.
-     * 
-     * @param useFmtOnlyValue
-     *        boolean value for useFmtOnlyValue.
-     */
+
+    @Override
     public void setUseFmtOnly(boolean useFmtOnlyValue) {
         this.useFmtOnly = useFmtOnlyValue;
+    }
+
+    @Override
+    public final boolean getUseFmtOnly() {
+        return useFmtOnly;
     }
 
     @Override

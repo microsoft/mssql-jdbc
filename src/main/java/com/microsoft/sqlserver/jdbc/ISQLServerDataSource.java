@@ -821,7 +821,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     public String getMSIClientId();
 
-    /*
+    /**
      * Sets the Azure Key Vault (AKV) Provider Client Id to provided value to be used for column encryption.
      * 
      * @param keyVaultProviderClientId
@@ -845,17 +845,17 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     public void setKeyVaultProviderClientKey(String keyVaultProviderClientKey);
 
     /**
-     * Sets whether to use FMT Only when retrieving ParameterMetaData
+     * Returns the current flag value for useFmtOnly.
      * 
-     * @param useFmtOnly
-     *        indicates whether FMT Only should be used when retrieving ParameterMetaData
+     * @return 'useFmtOnly' property value.
      */
-    void setUseFmtOnly(boolean useFmtOnly);
+    public boolean getUseFmtOnly();
 
     /**
-     * Returns the boolean value for the connection property 'useFMTOnly'
+     * Specifies the flag to use FMTONLY for parameter metadata queries.
      * 
-     * @return useFmtOnly property value
+     * @param useFmtOnlyValue
+     *        boolean value for 'useFmtOnly'.
      */
-    boolean getUseFmtOnly();
+    public void setUseFmtOnly(boolean useFmtOnly);
 }

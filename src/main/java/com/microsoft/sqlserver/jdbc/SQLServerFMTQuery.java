@@ -17,13 +17,14 @@ import java.util.stream.Collectors;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.Token;
 
+
 class SQLServerFMTQuery {
 
     private static final String FMT_ON = "SET FMTONLY ON;";
     private static final String SELECT = "SELECT ";
     private static final String FROM = " FROM ";
     private static final String FMT_OFF = ";SET FMTONLY OFF;";
-    
+
     private String prefix = "";
     private ArrayList<? extends Token> tokenList = null;
     private List<String> userColumns = new ArrayList<>();
@@ -47,9 +48,16 @@ class SQLServerFMTQuery {
         return possibleAliases;
     }
 
+    /**
+     * Takes the list of user parameters ('?') and appends their respective parsed column names together. In the case of
+     * an INSERT INTO table VALUES(?,?,?...), we need to wait for the server to reply to know the column names. The
+     * parser uses an '*' followed by placeholder '?'s to indicate these unknown columns, and we can't include the '?'s
+     * in column targets. This is method is used to generate the column targets in the FMT Select query: SELECT
+     * {constructColumnTargets} FROM ... .
+     */
     String constructColumnTargets() {
         if (userColumns.contains("?")) {
-            return userColumns.stream().filter(s -> !s.equalsIgnoreCase("?")).map(s -> s.equals("") ? "NULL" : s)
+            return userColumns.stream().filter(s -> !s.equals("?")).map(s -> s.equals("") ? "NULL" : s)
                     .collect(Collectors.joining(","));
         } else {
             return userColumns.isEmpty() ? "*" : userColumns.stream().map(s -> s.equals("") ? "NULL" : s)
@@ -83,7 +91,8 @@ class SQLServerFMTQuery {
 
     SQLServerFMTQuery(String userSql) throws SQLServerException {
         if (null == userSql || userSql.length() == 0) {
-            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_noTokensFoundInUserQuery"), "", false);
+            SQLServerException.makeFromDriverError(null, this,
+                    SQLServerResource.getResource("R_noTokensFoundInUserQuery"), "", false);
         }
         InputStream stream = new ByteArrayInputStream(userSql.getBytes(StandardCharsets.UTF_8));
         SQLServerLexer lexer = null;
@@ -95,7 +104,8 @@ class SQLServerFMTQuery {
 
         this.tokenList = (ArrayList<? extends Token>) lexer.getAllTokens();
         if (tokenList.size() <= 0) {
-            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_noTokensFoundInUserQuery"), "", false);
+            SQLServerException.makeFromDriverError(null, this,
+                    SQLServerResource.getResource("R_noTokensFoundInUserQuery"), "", false);
         }
         ListIterator<? extends Token> iter = this.tokenList.listIterator();
         this.prefix = SQLServerParser.getCTE(iter);
