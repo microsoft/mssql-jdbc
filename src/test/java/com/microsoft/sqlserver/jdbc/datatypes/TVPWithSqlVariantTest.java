@@ -365,7 +365,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         try {
             tvp.addRow((Date) null);
         } catch (Exception e) {
-            assertTrue(e.getMessage().startsWith("Use of TVPs containing null sql_variant columns is not supported."));
+            assertTrue(e.getMessage().startsWith(TestUtils.rBundle.getString("R_invalidValueForTVPWithSQLVariant")));
         }
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
