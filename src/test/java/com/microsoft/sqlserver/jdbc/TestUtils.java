@@ -60,18 +60,21 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlVarCharMax;
  * 
  * @since 6.1.2
  */
-public class TestUtils {
+public final class TestUtils {
     // private static SqlType types = null;
     private static ArrayList<SqlType> types = null;
     private static final char[] HEXCHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E',
             'F'};
 
-    final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
-    final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
-    final static int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
+    static final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+    static final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+    static final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
+
     private static Boolean isAzure = null;
     private static Boolean isAzureDW = null;
     private static Boolean isAzureMI = null;
+
+    private TestUtils() {}
 
     /**
      * Checks if connection is established to Azure server.
@@ -682,7 +685,7 @@ public class TestUtils {
         return name.replace("'", "''");
     }
 
-    public static final ResourceBundle rBundle = getDefaultLocaleBundle();
+    public static final ResourceBundle R_BUNDLE = getDefaultLocaleBundle();
 
     /**
      * Returns the root bundle. This is the bundle from SQLServerResource.java - the English version that gets updated
@@ -697,10 +700,12 @@ public class TestUtils {
     /**
      * Creates a regex where all '{#}' fields will return true for any value when calling match.
      *
+     * @param s
+     *        String to be formatted
      * @return regex expression.
      */
     public static String formatErrorMsg(String s) {
-        return (".*\\Q" + TestUtils.rBundle.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
+        return (".*\\Q" + TestUtils.R_BUNDLE.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
     }
 
     /**

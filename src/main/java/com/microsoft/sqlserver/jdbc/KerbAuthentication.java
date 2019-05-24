@@ -29,7 +29,7 @@ import org.ietf.jgss.Oid;
  * KerbAuthentication for int auth.
  */
 final class KerbAuthentication extends SSPIAuthentication {
-    private final static java.util.logging.Logger authLogger = java.util.logging.Logger
+    private static final java.util.logging.Logger authLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.KerbAuthentication");
 
     private final SQLServerConnection con;
@@ -118,9 +118,7 @@ final class KerbAuthentication extends SSPIAuthentication {
                 peerContext.requestMutualAuth(true);
                 peerContext.requestInteg(true);
             }
-        }
-
-        catch (GSSException ge) {
+        } catch (GSSException ge) {
             authLogger.finer(toString() + "initAuthInit failed GSSException:-" + ge);
             con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                     SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
@@ -133,12 +131,12 @@ final class KerbAuthentication extends SSPIAuthentication {
     }
 
     // We have to do a privileged action to create the credential of the user in the current context
-    private static GSSCredential getClientCredential(final Subject subject, final GSSManager MANAGER,
+    private static GSSCredential getClientCredential(final Subject subject, final GSSManager gssManager,
             final Oid kerboid) throws PrivilegedActionException {
         final PrivilegedExceptionAction<GSSCredential> action = new PrivilegedExceptionAction<GSSCredential>() {
             public GSSCredential run() throws GSSException {
-                return MANAGER.createCredential(null // use the default principal
-                , GSSCredential.DEFAULT_LIFETIME, kerboid, GSSCredential.INITIATE_ONLY);
+                return gssManager.createCredential(null, // use the default principal
+                        GSSCredential.DEFAULT_LIFETIME, kerboid, GSSCredential.INITIATE_ONLY);
             }
         };
         // TO support java 5, 6 we have to do this
@@ -157,8 +155,9 @@ final class KerbAuthentication extends SSPIAuthentication {
 
             if (peerContext.isEstablished()) {
                 done[0] = true;
-                if (authLogger.isLoggable(Level.FINER))
+                if (authLogger.isLoggable(Level.FINER)) {
                     authLogger.finer(toString() + "Authentication done.");
+                }
             } else if (null == byteToken) {
                 // The documentation is not clear on when this can happen but it does say this could happen
                 if (authLogger.isLoggable(Level.INFO)) {
@@ -188,13 +187,13 @@ final class KerbAuthentication extends SSPIAuthentication {
      * @param con
      * @param address
      * @param port
-     * @param ImpersonatedUserCred
+     * @param impersonatedUserCred
      * @throws SQLServerException
      */
-    KerbAuthentication(SQLServerConnection con, String address, int port, GSSCredential ImpersonatedUserCred,
+    KerbAuthentication(SQLServerConnection con, String address, int port, GSSCredential impersonatedUserCred,
             Boolean isUserCreated) throws SQLServerException {
         this(con, address, port);
-        peerCredentials = ImpersonatedUserCred;
+        peerCredentials = impersonatedUserCred;
         this.isUserCreatedCredential = (isUserCreated == null ? false : isUserCreated);
     }
 
@@ -212,10 +211,12 @@ final class KerbAuthentication extends SSPIAuthentication {
             } else if (null != peerCredentials && isUserCreatedCredential) {
                 peerCredentials = null;
             }
-            if (null != peerContext)
+            if (null != peerContext) {
                 peerContext.dispose();
-            if (null != lc)
+            }
+            if (null != lc) {
                 lc.logout();
+            }
         } catch (LoginException e) {
             // yes we are eating exceptions here but this should not fail in the normal circumstances and we do not want
             // to eat previous

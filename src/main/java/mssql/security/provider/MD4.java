@@ -1,7 +1,7 @@
 package mssql.security.provider;
 
 /**
- * This code originates from sun.security.provider.MD4.java. It is modified to remove dependecies to DigestBase,
+ * This code originates from sun.security.provider.MD4.java. It is modified to remove dependencies to DigestBase,
  * Provider, ByteArrayAccess.
  */
 

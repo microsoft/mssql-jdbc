@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
@@ -41,6 +40,12 @@ public class NTLMConnectionTest extends AbstractTest {
     private static SQLServerDataSource dsNTLMLocal = null;
     private static String serverFqdn;
 
+    /**
+     * Setup environment for test.
+     * 
+     * @throws Exception
+     *         when an error occurs
+     */
     @BeforeAll
     public static void setUp() throws Exception {
         // reset logging to avoid servere logs due to negative testing
@@ -63,6 +68,7 @@ public class NTLMConnectionTest extends AbstractTest {
      * Tests basic NTLM authentication.
      * 
      * @throws SQLException
+     *         when an error occurs
      */
     @Test
     public void testNTLMBasicConnection() throws SQLException {
@@ -96,6 +102,7 @@ public class NTLMConnectionTest extends AbstractTest {
      * Tests NTLM authentication when the connection is encrypted.
      * 
      * @throws SQLException
+     *         when an error occurs
      */
     @Test
     public void testNTLMEncryptedConnection() throws SQLException {
@@ -109,9 +116,10 @@ public class NTLMConnectionTest extends AbstractTest {
      * Tests NTLM authentication against a non-default database.
      * 
      * @throws SQLException
+     *         when an error occurs
      */
     @Test
-    public void testNTLMNonDefaultDatabase() throws SQLException, InterruptedException {
+    public void testNTLMNonDefaultDatabase() throws SQLException {
         String databaseName = "tempdb";
         try (Connection con = PrepUtil
                 .getConnection(TestUtils.addOrOverrideProperty(connectionStringNTLM, "database", databaseName))) {
@@ -124,6 +132,7 @@ public class NTLMConnectionTest extends AbstractTest {
      * Tests NTLM authentication when connection pooling is enabled.
      * 
      * @throws SQLException
+     *         when an error occurs
      */
     @Test
     public void testNTLMHikariCP() throws SQLException {
@@ -139,12 +148,13 @@ public class NTLMConnectionTest extends AbstractTest {
         }
     }
 
-    @Test
     /**
      * Test NTLM connection with IP address
      * 
      * @throws SQLException
+     *         when an error occurs
      */
+    @Test
     public void testNTLMipAddr() throws SQLException {
         String ipAddr;
         try {
@@ -157,12 +167,10 @@ public class NTLMConnectionTest extends AbstractTest {
         }
     }
 
-    @Test
     /**
      * Test Bad NTLM Initialization
-     * 
-     * @throws SQLException
      */
+    @Test
     public void testNTLMBadInit() {
         try {
             @SuppressWarnings("unused")
@@ -232,67 +240,82 @@ public class NTLMConnectionTest extends AbstractTest {
     private byte[] challengeTargetInfo2 = {5, 0, 18, 0, 103, 0, 97, 0, 108, 0, 97, 0, 120, 0, 121, 0, 46, 0, 97, 0, 100,
             0, 7, 0, 8, 0, 122, -115, 18, 50, -5, -32, -44, 1, 0, 0, 0, 0};
 
-    private final int NTLM_CHALLENGE_SIGNATURE_OFFSET = 0;
-    private final int NTLM_CHALLENGE_MESSAGETYPE_OFFSET = 8;
+    private final int ntlmChallengeSignatureOffset = 0;
+    private final int ntlmChallengeMessageTypeOffset = 8;
 
-    private final int NTLM_CHALLENGE_TARGETINFOLEN_OFFSET = 40;
-    private final int NTLM_CHALLENGE_TARGETINFO_OFFSET = 68;
+    private final int ntlmChallengeTargetInfoLenOffset = 40;
+    private final int ntlmChallengeTargetInfoOffset = 68;
 
     // offsets for targetinfo av pairs
-    private final int NTLM_CHALLENGE_MSVAVTIMESTAMP_OFFSET = -16;
+    private final int ntlmChallengeMsvAvTimestampOffset = -16;
 
+    /**
+     * Test NTLM Bad Signature
+     */
     @Test
     public void testNTLMBadSignature() {
         try {
             byte[] badSignature = {0, 0, 0, 0, 0, 0, 0, 0};
-            sendBadToken(badSignature, NTLM_CHALLENGE_SIGNATURE_OFFSET);
+            sendBadToken(badSignature, ntlmChallengeSignatureOffset);
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmSignatureError")));
         }
     }
 
+    /**
+     * Test NTLM Bad Message Type
+     */
     @Test
     public void testNTLMBadMessageType() {
         try {
             byte[] badMessageType = {0, 0, 0, 0};
-            sendBadToken(badMessageType, NTLM_CHALLENGE_MESSAGETYPE_OFFSET);
+            sendBadToken(badMessageType, ntlmChallengeMessageTypeOffset);
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmMessageTypeError")));
         }
     }
 
+    /**
+     * Test NTLM Bad Target info length
+     */
     @Test
     public void testNTLMBadTargetInfoLen() {
         try {
             byte[] badTargetInfoLen = {0, 0};
-            sendBadToken(badTargetInfoLen, NTLM_CHALLENGE_TARGETINFOLEN_OFFSET);
+            sendBadToken(badTargetInfoLen, ntlmChallengeTargetInfoLenOffset);
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTargetInfo")));
         }
     }
 
+    /**
+     * Test NTLM Bad Avid
+     */
     @Test
     public void testNTLMBadAvid() {
         try {
             byte[] badAvid = {-1, 0};
-            sendBadToken(badAvid, NTLM_CHALLENGE_TARGETINFO_OFFSET);
+            sendBadToken(badAvid, ntlmChallengeTargetInfoOffset);
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownValue")));
         }
     }
 
+    /**
+     * Test NTLM Bad Timestamp
+     */
     @Test
     public void testNTLMBadTimestamp() {
         try {
             byte[] badTimestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            sendBadToken(badTimestamp, NTLM_CHALLENGE_MSVAVTIMESTAMP_OFFSET);
+            sendBadToken(badTimestamp, ntlmChallengeMsvAvTimestampOffset);
         } catch (Exception e) {
             // this should just generate a log but not fail
             fail(e.getMessage());
         }
     }
 
-    /*
+    /**
      * Get Server FQDN from connection
      */
     private void getServerFqdn(SQLServerConnection con) {
@@ -347,7 +370,7 @@ public class NTLMConnectionTest extends AbstractTest {
         token.put(challengeTargetInfo2);
 
         // update targetinfo len
-        token.position(NTLM_CHALLENGE_TARGETINFOLEN_OFFSET);
+        token.position(ntlmChallengeTargetInfoLenOffset);
         token.putShort((short) targetInfoLen); // len
         token.putShort((short) targetInfoLen); // maxlen
 

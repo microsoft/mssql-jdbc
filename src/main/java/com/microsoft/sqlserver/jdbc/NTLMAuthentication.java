@@ -300,7 +300,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
             this.userNameUbytes = null != userName ? unicode(userName) : null;
             this.upperUserName = userName.toUpperCase();
 
-            this.passwordHash = null != password ? MD4(unicode(password)) : null;
+            this.passwordHash = null != password ? md4(unicode(password)) : null;
 
             this.workstation = workstation;
 
@@ -625,7 +625,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *        input string
      * @return MD4 hash
      */
-    private byte[] MD4(final byte[] str) {
+    private byte[] md4(final byte[] str) {
         MD4 md = new MD4();
         md.reset();
         md.update(str);

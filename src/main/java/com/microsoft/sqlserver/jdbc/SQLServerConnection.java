@@ -834,7 +834,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
     private boolean ntlmAuthentication = false;
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
-    private GSSCredential ImpersonatedUserCred;
+    private GSSCredential impersonatedUserCred;
     private Boolean isUserCreatedCredential;
     // This is the current connect place holder this should point one of the primary or failover place holder
     ServerPortPlaceHolder currentConnectPlaceHolder = null;
@@ -1588,7 +1588,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (intAuthScheme == AuthenticationScheme.javaKerberos) {
                 sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
                 if (activeConnectionProperties.containsKey(sPropKey)) {
-                    ImpersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
+                    impersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
                     isUserCreatedCredential = true;
                 }
             } else if (intAuthScheme == AuthenticationScheme.ntlm) {
@@ -1606,7 +1606,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 toString() + " " + SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"));
                     }
                     throw new SQLServerException(SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"), null);
-
                 }
                 ntlmAuthentication = true;
             }
@@ -2041,9 +2040,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tempFailover = foActual;
             useFailoverHost = foActual.getUseFailoverPartner();
         } else {
-            if (isDBMirroring)
+            if (isDBMirroring) {
                 // Create a temporary class with the mirror info from the user
                 tempFailover = new FailoverInfo(mirror, this, false);
+            }
         }
 
         // useParallel is set to true only for the first connection
@@ -3671,12 +3671,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(),
                         currentConnectPlaceHolder.getPortNumber());
             } else if (AuthenticationScheme.javaKerberos == intAuthScheme) {
-                if (null != ImpersonatedUserCred) {
+                if (null != impersonatedUserCred) {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
-                            currentConnectPlaceHolder.getPortNumber(), ImpersonatedUserCred, isUserCreatedCredential);
-                } else
+                            currentConnectPlaceHolder.getPortNumber(), impersonatedUserCred, isUserCreatedCredential);
+                } else {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber());
+                }
             } else if (ntlmAuthentication) {
                 authentication = new NTLMAuthentication(this, domainName,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
@@ -3725,8 +3726,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     authentication.releaseClientContext();
                     authentication = null;
                 }
-                if (null != ImpersonatedUserCred) {
-                    ImpersonatedUserCred = null;
+                if (null != impersonatedUserCred) {
+                    impersonatedUserCred = null;
                 }
             }
         }
@@ -4826,12 +4827,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             assert false : "prelogin did not disconnect for the old version: " + serverMajorVersion;
         }
 
-        final int TDS_LOGIN_REQUEST_BASE_LEN = 94;
+        final int tdsLoginRequestBaseLength = 94;
         TDSWriter tdsWriter = logonCommand.startRequest(TDS.PKT_LOGON70);
 
-        int len = TDS_LOGIN_REQUEST_BASE_LEN + hostnameBytes.length + appNameBytes.length + serverNameBytes.length
+        int len = tdsLoginRequestBaseLength + hostnameBytes.length + appNameBytes.length + serverNameBytes.length
                 + interfaceLibNameBytes.length + databaseNameBytes.length + ((secBlob != null) ? secBlob.length : 0)
-                + 4;// AE is always on;
+                + 4; // AE is always on;
 
         // only add lengths of password and username if not using SSPI or requesting federated authentication info
         if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
@@ -4860,7 +4861,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.writeInt(0); // Client process ID (0 = ??)
         tdsWriter.writeInt(0); // Primary server connection ID
 
-        tdsWriter.writeByte((byte) ( // OptionFlags1:
+        tdsWriter.writeByte((byte) (// OptionFlags1:
         TDS.LOGIN_OPTION1_ORDER_X86 | // X86 byte order for numeric & datetime types
                 TDS.LOGIN_OPTION1_CHARSET_ASCII | // ASCII character set
                 TDS.LOGIN_OPTION1_FLOAT_IEEE_754 | // IEEE 754 floating point representation
@@ -4898,7 +4899,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.writeInt((byte) 0); // Client time zone
         tdsWriter.writeInt((byte) 0); // Client LCID
 
-        tdsWriter.writeShort((short) TDS_LOGIN_REQUEST_BASE_LEN);
+        tdsWriter.writeShort((short) tdsLoginRequestBaseLength);
 
         // Hostname
         tdsWriter.writeShort((short) ((hostName != null && !hostName.isEmpty()) ? hostName.length() : 0));
@@ -4907,18 +4908,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // Only send user/password over if not NTLM or fSSPI or fed auth ADAL... If both user/password and SSPI are in
         // login rec, only SSPI is used.
         if (ntlmAuthentication) {
-            tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+            tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
             tdsWriter.writeShort((short) (0));
-            tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+            tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
             tdsWriter.writeShort((short) (0));
 
         } else if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
             // User and Password
-            tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+            tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
             tdsWriter.writeShort((short) (sUser == null ? 0 : sUser.length()));
             dataLen += userBytes.length;
 
-            tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+            tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
             tdsWriter.writeShort((short) (sPwd == null ? 0 : sPwd.length()));
             dataLen += passwordLen;
 
@@ -4931,17 +4932,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         // App name
-        tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+        tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
         tdsWriter.writeShort((short) (appName == null ? 0 : appName.length()));
         dataLen += appNameBytes.length;
 
         // Server name
-        tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+        tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
         tdsWriter.writeShort((short) (serverName == null ? 0 : serverName.length()));
         dataLen += serverNameBytes.length;
 
         // Unused
-        tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+        tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
         // AE is always ON
         {
             tdsWriter.writeShort((short) 4);
@@ -4950,7 +4951,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // Interface library name
         assert null != interfaceLibName;
-        tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+        tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
         tdsWriter.writeShort((short) (interfaceLibName.length()));
         dataLen += interfaceLibNameBytes.length;
 
@@ -4959,24 +4960,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.writeShort((short) 0);
 
         // Database
-        tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
+        tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
         tdsWriter.writeShort((short) (databaseName == null ? 0 : databaseName.length()));
         dataLen += databaseNameBytes.length;
 
         // Client ID (from MAC addr)
         tdsWriter.writeBytes(netAddress);
 
-        final int USHRT_MAX = 65535;
+        final int uShortMax = 65535;
         // SSPI data
         if (!integratedSecurity) {
             tdsWriter.writeShort((short) 0);
             tdsWriter.writeShort((short) 0);
         } else {
-            tdsWriter.writeShort((short) (TDS_LOGIN_REQUEST_BASE_LEN + dataLen));
-            if (USHRT_MAX <= secBlob.length) {
-                tdsWriter.writeShort((short) (USHRT_MAX));
-            } else
+            tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
+            if (uShortMax <= secBlob.length) {
+                tdsWriter.writeShort((short) (uShortMax));
+            } else {
                 tdsWriter.writeShort((short) (secBlob.length));
+            }
         }
 
         // Database to attach during connection process
@@ -4989,10 +4991,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsWriter.writeShort((short) 0);
 
             // TDS 7.2: 32-bit SSPI byte count (used if 16 bits above were not sufficient)
-            if (null != secBlob && USHRT_MAX <= secBlob.length)
+            if (null != secBlob && uShortMax <= secBlob.length) {
                 tdsWriter.writeInt(secBlob.length);
-            else
+            } else {
                 tdsWriter.writeInt((short) 0);
+            }
         }
 
         tdsWriter.writeBytes(hostnameBytes);

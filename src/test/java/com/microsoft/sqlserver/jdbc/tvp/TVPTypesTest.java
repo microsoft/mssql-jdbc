@@ -596,7 +596,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
+                assert (e.getMessage().contains(TestUtils.R_BUNDLE.getString("R_TVPInvalidColumnValue")));
             }
 
             try {
@@ -604,7 +604,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
+                assert (e.getMessage().contains(TestUtils.R_BUNDLE.getString("R_TVPInvalidColumnValue")));
             }
 
             try {
@@ -612,7 +612,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
+                assert (e.getMessage().contains(TestUtils.R_BUNDLE.getString("R_TVPInvalidColumnValue")));
             }
 
             try {
@@ -620,7 +620,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
+                assert (e.getMessage().contains(TestUtils.R_BUNDLE.getString("R_TVPInvalidColumnValue")));
             }
         }
 
@@ -644,7 +644,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
+                assert (e.getMessage().contains(TestUtils.R_BUNDLE.getString("R_TVPInvalidColumnValue")));
             }
 
             try {
@@ -652,7 +652,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
+                assert (e.getMessage().contains(TestUtils.R_BUNDLE.getString("R_TVPInvalidColumnValue")));
             }
 
             try {
@@ -660,7 +660,7 @@ public class TVPTypesTest extends AbstractTest {
                 fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assert (null != e);
-                assert (e.getMessage().contains(TestUtils.rBundle.getString("R_TVPInvalidColumnValue")));
+                assert (e.getMessage().contains(TestUtils.R_BUNDLE.getString("R_TVPInvalidColumnValue")));
             }
         }
     }
