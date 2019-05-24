@@ -5405,8 +5405,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     @Override
-    public void setUseFmtOnly(boolean useFmtOnlyValue) {
-        this.useFmtOnly = useFmtOnlyValue;
+    public void setUseFmtOnly(boolean useFmtOnly) {
+        this.useFmtOnly = useFmtOnly;
     }
 
     @Override
