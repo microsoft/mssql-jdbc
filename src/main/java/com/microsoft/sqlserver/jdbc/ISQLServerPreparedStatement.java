@@ -773,10 +773,10 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     /**
      * Specifies the flag to use FMTONLY for parameter metadata queries.
      * 
-     * @param useFmtOnlyValue
+     * @param useFmtOnly
      *        boolean value for 'useFmtOnly'.
-     * @throws SQLServerException 
+     * @throws SQLServerException
+     *         when the connection is closed.
      */
     public void setUseFmtOnly(boolean useFmtOnly) throws SQLServerException;
-
 }

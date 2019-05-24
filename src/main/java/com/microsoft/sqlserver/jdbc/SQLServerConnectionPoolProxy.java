@@ -584,10 +584,12 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
         return wrappedConnection.getDisableStatementPooling();
     }
 
-    public void setUseFmtOnly(boolean useFmtOnlyValue) {
-        wrappedConnection.setUseFmtOnly(useFmtOnlyValue);
+    @Override
+    public void setUseFmtOnly(boolean useFmtOnly) {
+        wrappedConnection.setUseFmtOnly(useFmtOnly);
     }
 
+    @Override
     public boolean getUseFmtOnly() {
         return wrappedConnection.getUseFmtOnly();
     }

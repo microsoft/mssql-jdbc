@@ -854,7 +854,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     /**
      * Specifies the flag to use FMTONLY for parameter metadata queries.
      * 
-     * @param useFmtOnlyValue
+     * @param useFmtOnly
      *        boolean value for 'useFmtOnly'.
      */
     public void setUseFmtOnly(boolean useFmtOnly);

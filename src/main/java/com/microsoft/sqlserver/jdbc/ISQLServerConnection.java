@@ -354,7 +354,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
     /**
      * Specifies the flag to use FMTONLY for parameter metadata queries.
      * 
-     * @param useFmtOnlyValue
+     * @param useFmtOnly
      *        boolean value for 'useFmtOnly'.
      */
     public void setUseFmtOnly(boolean useFmtOnly);
