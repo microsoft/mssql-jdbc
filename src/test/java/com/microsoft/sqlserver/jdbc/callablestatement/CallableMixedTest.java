@@ -1,11 +1,16 @@
 package com.microsoft.sqlserver.jdbc.callablestatement;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -13,6 +18,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -75,6 +81,39 @@ public class CallableMixedTest extends AbstractTest {
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
+            }
+        }
+    }
+
+    @Test
+    @Tag("xAzureSQLDB")
+    @Tag("xAzureSQLDW")
+    @Tag("xAzureSQLMI")
+    public void noPrivilege() throws SQLException {
+        try (Connection c = DriverManager.getConnection(AbstractTest.connectionString);
+                Statement stmt = c.createStatement()) {
+            String tableName = "jdbc_priv" + UUID.randomUUID();
+            String procName = "priv_proc" + UUID.randomUUID();
+            String user = "priv_user" + UUID.randomUUID();
+            String pass = "priv_pass" + UUID.randomUUID();
+
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
+
+            stmt.execute(
+                    "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id int, name varchar(50))");
+            stmt.execute("CREATE PROC " + AbstractSQLGenerator.escapeIdentifier(procName)
+                    + " @id int, @str varchar(50) as INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " values(@id,@str)");
+            stmt.execute(
+                    "CREATE LOGIN " + AbstractSQLGenerator.escapeIdentifier(user) + " WITH password='" + pass + "'");
+            stmt.execute("CREATE USER " + AbstractSQLGenerator.escapeIdentifier(user) + "");
+            try {
+                stmt.execute("EXECUTE AS USER='" + user + "';EXECUTE " + AbstractSQLGenerator.escapeIdentifier(procName)
+                        + " 1,'hi';");
+                fail();
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().matches(TestResource.formatErrorMsg("R_NoPrivilege")));
             }
         }
     }

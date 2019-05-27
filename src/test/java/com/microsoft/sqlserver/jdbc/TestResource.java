@@ -18,6 +18,10 @@ public final class TestResource extends ListResourceBundle {
     public static String getResource(String key) {
         return TestResource.getBundle(Constants.MSSQL_JDBC_PACKAGE + ".TestResource").getString(key);
     }
+    
+    public static String formatErrorMsg(String resource) {
+        return (".*\\Q" + getResource(resource) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
+    }
 
     protected Object[][] getContents() {
         return contents;
@@ -173,5 +177,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_incorrectSyntaxTable", "Incorrect syntax near the keyword 'table'."},
             {"R_incorrectSyntaxTableDW", "Incorrect syntax near 'table'."},
             {"R_ConnectionStringNull", "Connection String should not be null"},
-            {"R_OperandTypeClash", "Operand type clash"}};
+            {"R_OperandTypeClash", "Operand type clash"},
+            {"R_NoPrivilege", "The EXECUTE permission was denied on the object {0}"}};
 }
