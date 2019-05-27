@@ -2873,7 +2873,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final boolean getUseFmtOnly() {
+    public final boolean getUseFmtOnly() throws SQLServerException {
+        checkClosed();
         return this.useFmtOnly;
     }
 

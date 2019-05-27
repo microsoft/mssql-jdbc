@@ -755,9 +755,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * 
      * @param forceRefresh:
      *        If true the cache will not be used to retrieve the metadata.
-     * 
      * @return Per the description.
-     * 
      * @throws SQLServerException
      *         when an error occurs
      */
@@ -767,8 +765,10 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * Returns the current flag value for useFmtOnly.
      * 
      * @return 'useFmtOnly' property value.
+     * @throws SQLServerException
+     *         when the connection is closed.
      */
-    public boolean getUseFmtOnly();
+    public boolean getUseFmtOnly() throws SQLServerException;
 
     /**
      * Specifies the flag to use FMTONLY for parameter metadata queries.
