@@ -12,6 +12,8 @@ import java.util.Deque;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.antlr.v4.runtime.Token;
 
 
@@ -32,7 +34,7 @@ final class SQLServerParser {
     /*
      * Retrieves the table target from a single query.
      */
-    static void parseQuery(ListIterator<? extends Token> iter, SQLServerFMTQuery query) throws SQLServerException {
+    static void parseQuery(SQLServerTokenIterator iter, SQLServerFMTQuery query) throws SQLServerException {
         Token t = null;
         while (iter.hasNext()) {
             t = iter.next();
@@ -124,7 +126,7 @@ final class SQLServerParser {
         }
     }
 
-    static void resetIteratorIndex(ListIterator<? extends Token> iter, int index) {
+    static void resetIteratorIndex(SQLServerTokenIterator iter, int index) {
         if (iter.nextIndex() < index) {
             while (iter.nextIndex() != index) {
                 iter.next();
@@ -136,7 +138,7 @@ final class SQLServerParser {
         }
     }
 
-    private static String getRoundBracketChunk(ListIterator<? extends Token> iter, Token t) {
+    private static String getRoundBracketChunk(SQLServerTokenIterator iter, Token t) {
         StringBuilder sb = new StringBuilder();
         sb.append('(');
         Stack<String> s = new Stack<>();
@@ -156,7 +158,7 @@ final class SQLServerParser {
         return sb.toString();
     }
 
-    private static String getRoundBracketChunkBefore(ListIterator<? extends Token> iter, Token t) {
+    private static String getRoundBracketChunkBefore(SQLServerTokenIterator iter, Token t) {
         StringBuilder sb = new StringBuilder();
         sb.append('(');
         Stack<String> s = new Stack<>();
@@ -183,7 +185,7 @@ final class SQLServerParser {
             SQLServerLexer.OR_ASSIGN, SQLServerLexer.STAR, SQLServerLexer.DIVIDE, SQLServerLexer.MODULE,
             SQLServerLexer.PLUS, SQLServerLexer.MINUS, SQLServerLexer.LIKE, SQLServerLexer.IN, SQLServerLexer.BETWEEN);
 
-    static String findColumnAroundParameter(ListIterator<? extends Token> iter) {
+    static String findColumnAroundParameter(SQLServerTokenIterator iter) {
         int index = iter.nextIndex();
         iter.previous();
         String value = findColumnBeforeParameter(iter);
@@ -195,7 +197,7 @@ final class SQLServerParser {
         return value;
     }
 
-    private static String findColumnAfterParameter(ListIterator<? extends Token> iter) {
+    private static String findColumnAfterParameter(SQLServerTokenIterator iter) {
         StringBuilder sb = new StringBuilder();
         while (sb.length() == 0 && iter.hasNext()) {
             Token t = iter.next();
@@ -226,7 +228,7 @@ final class SQLServerParser {
         return sb.toString();
     }
 
-    private static String findColumnBeforeParameter(ListIterator<? extends Token> iter) {
+    private static String findColumnBeforeParameter(SQLServerTokenIterator iter) {
         StringBuilder sb = new StringBuilder();
         while (sb.length() == 0 && iter.hasPrevious()) {
             Token t = iter.previous();
@@ -277,7 +279,7 @@ final class SQLServerParser {
         return sb.toString();
     }
 
-    static List<String> getValuesList(ListIterator<? extends Token> iter) {
+    static List<String> getValuesList(SQLServerTokenIterator iter) {
         Token t = iter.next();
         if (t.getType() == SQLServerLexer.LR_BRACKET) {
             ArrayList<String> parameterColumns = new ArrayList<>();
@@ -327,7 +329,7 @@ final class SQLServerParser {
     /*
      * Moves the iterator past the TOP clause to the next token. Returns the first token after the TOP clause.
      */
-    static Token skipTop(ListIterator<? extends Token> iter) throws SQLServerException {
+    static Token skipTop(SQLServerTokenIterator iter) throws SQLServerException {
         // Look for the TOP token
         Token t = iter.next();
         if (t.getType() == SQLServerLexer.TOP) {
@@ -359,7 +361,7 @@ final class SQLServerParser {
         return t;
     }
 
-    static String getCTE(ListIterator<? extends Token> iter) throws SQLServerException {
+    static String getCTE(SQLServerTokenIterator iter) throws SQLServerException {
         Token t = iter.next();
         if (t.getType() == SQLServerLexer.WITH) {
             StringBuilder sb = new StringBuilder("WITH ");
@@ -371,7 +373,7 @@ final class SQLServerParser {
         }
     }
 
-    static void getCTESegment(ListIterator<? extends Token> iter, StringBuilder sb) throws SQLServerException {
+    static void getCTESegment(SQLServerTokenIterator iter, StringBuilder sb) throws SQLServerException {
         sb.append(getTableTargetChunk(iter, null, Arrays.asList(SQLServerLexer.AS)));
         iter.next();
         Token t = iter.next();
@@ -399,7 +401,7 @@ final class SQLServerParser {
         }
     }
 
-    private static String getTableTargetChunk(ListIterator<? extends Token> iter, List<String> possibleAliases,
+    private static String getTableTargetChunk(SQLServerTokenIterator iter, List<String> possibleAliases,
             List<Integer> delimiters) throws SQLServerException {
         StringBuilder sb = new StringBuilder();
         Token t = iter.next();
@@ -444,5 +446,40 @@ final class SQLServerParser {
             iter.previous();
         }
         return sb.toString().trim();
+    }
+}
+
+
+final class SQLServerTokenIterator {
+    private final AtomicInteger index;
+    private final int listSize;
+    private final ListIterator<? extends Token> iter;
+
+    SQLServerTokenIterator(ArrayList<? extends Token> tokenList) {
+        this.iter = tokenList.listIterator();
+        this.index = new AtomicInteger(0);
+        this.listSize = tokenList.size();
+    }
+
+    Token next() {
+        index.incrementAndGet();
+        return iter.next();
+    }
+
+    Token previous() {
+        index.decrementAndGet();
+        return iter.previous();
+    }
+
+    boolean hasNext() {
+        return (index.intValue() < listSize);
+    }
+
+    boolean hasPrevious() {
+        return (index.intValue() > 0);
+    }
+
+    int nextIndex() {
+        return index.intValue() + 1;
     }
 }

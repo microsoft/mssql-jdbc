@@ -30,19 +30,19 @@ public class ParserUtils {
             lexer = new SQLServerLexer(CharStreams.fromStream(stream));
             invokeANTLRMethods(lexer);
             ArrayList<? extends Token> tokenList = (ArrayList<? extends Token>) lexer.getAllTokens();
-            ListIterator<? extends Token> iter = tokenList.listIterator();
+            SQLServerTokenIterator iter = new SQLServerTokenIterator(tokenList);
             return SQLServerParser.getCTE(iter);
         } catch (IOException | SQLServerException e) {
             return e.getLocalizedMessage();
         }
     }
-    
+
     public static void compareTableName(String tsql, String expected) {
         // Verbose to make debugging more friendly
         String extractedTableName = ParserUtils.getTableName(tsql).trim();
         assertEquals(expected, extractedTableName);
     }
-    
+
     public static void compareCommonTableExpression(String tsql, String expected) {
         // Verbose to make debugging more friendly
         String extractedTableName = ParserUtils.getCTE(tsql).trim();

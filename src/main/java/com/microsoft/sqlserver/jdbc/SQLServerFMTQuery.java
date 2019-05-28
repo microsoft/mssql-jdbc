@@ -52,7 +52,7 @@ class SQLServerFMTQuery {
      * Takes the list of user parameters ('?') and appends their respective parsed column names together. In the case of
      * an INSERT INTO table VALUES(?,?,?...), we need to wait for the server to reply to know the column names. The
      * parser uses an '*' followed by placeholder '?'s to indicate these unknown columns, and we can't include the '?'s
-     * in column targets. This is method is used to generate the column targets in the FMT Select query: SELECT
+     * in column targets. This method is used to generate the column targets in the FMT Select query: SELECT
      * {constructColumnTargets} FROM ... .
      */
     String constructColumnTargets() {
@@ -107,7 +107,7 @@ class SQLServerFMTQuery {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_noTokensFoundInUserQuery"), "", false);
         }
-        ListIterator<? extends Token> iter = this.tokenList.listIterator();
+        SQLServerTokenIterator iter = new SQLServerTokenIterator(tokenList);
         this.prefix = SQLServerParser.getCTE(iter);
         SQLServerParser.parseQuery(iter, this);
     }
