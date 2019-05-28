@@ -1300,7 +1300,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         }
 
         int l = 0;
-        if (parameterNames != null) {
+        if (null != parameterNames) {
             l = parameterNames.size();
         }
         if (l == 0) { // Server didn't return anything, user might not have access
