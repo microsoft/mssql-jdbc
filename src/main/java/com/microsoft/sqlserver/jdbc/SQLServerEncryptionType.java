@@ -19,6 +19,7 @@ enum SQLServerEncryptionType {
     PlainText((byte) 0);
 
     final byte value;
+    private static final SQLServerEncryptionType[] VALUES = values();
 
     SQLServerEncryptionType(byte val) {
         this.value = val;
@@ -29,7 +30,7 @@ enum SQLServerEncryptionType {
     }
 
     static SQLServerEncryptionType of(byte val) throws SQLServerException {
-        for (SQLServerEncryptionType type : values())
+        for (SQLServerEncryptionType type : VALUES)
             if (val == type.value)
                 return type;
 
