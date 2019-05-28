@@ -1,7 +1,5 @@
 package com.microsoft.sqlserver.jdbc.fmtOnly;
 
-import java.sql.SQLException;
-
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;

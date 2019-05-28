@@ -8,7 +8,6 @@ import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.UUID;
 
 import javax.sql.DataSource;
 
