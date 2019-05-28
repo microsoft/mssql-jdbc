@@ -666,20 +666,26 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
             return rs;
         } else {
-            try (PreparedStatement stored_proc_pstmt = this.connection
+            /**
+             * Can't actually switchCatalogs on Azure DW. This is here to keep consistency in behavior with SQL Azure DB
+             * when user provides a different catalog than the one they're currently connected to. Will throw exception
+             * when it's different and do nothing if it's the same/null.
+             */
+            switchCatalogs(catalog);
+            try (PreparedStatement storedProcPstmt = this.connection
                     .prepareStatement("EXEC sp_columns_100 ?,?,?,?,?,?;")) {
-                stored_proc_pstmt.setString(1, (null != table && !table.isEmpty()) ? table : "%");
-                stored_proc_pstmt.setString(2, (null != schema && !schema.isEmpty()) ? schema : "%");
-                stored_proc_pstmt.setString(3,
+                storedProcPstmt.setString(1, (null != table && !table.isEmpty()) ? table : "%");
+                storedProcPstmt.setString(2, (null != schema && !schema.isEmpty()) ? schema : "%");
+                storedProcPstmt.setString(3,
                         (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
-                stored_proc_pstmt.setString(4, (null != col && !col.isEmpty()) ? col : "%");
-                stored_proc_pstmt.setInt(5, 2);// show sparse columns
-                stored_proc_pstmt.setInt(6, 3);// odbc version
+                storedProcPstmt.setString(4, (null != col && !col.isEmpty()) ? col : "%");
+                storedProcPstmt.setInt(5, 2);// show sparse columns
+                storedProcPstmt.setInt(6, 3);// odbc version
 
-                SQLServerResultSet user_rs = null;
+                SQLServerResultSet userRs = null;
                 SQLException errorOnClose = null;
                 PreparedStatement result_pstmt = null;
-                try (ResultSet rs = stored_proc_pstmt.executeQuery()) {
+                try (ResultSet rs = storedProcPstmt.executeQuery()) {
                     rs.next();
                     // Use LinkedHashMap to force retrieve elements in order they were inserted
                     Map<Integer, String> columns = new LinkedHashMap<>();
@@ -722,14 +728,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
                     result_pstmt = (SQLServerPreparedStatement) this.connection
                             .prepareStatement(generateAzureDWSelect(rs, columns));
-                    user_rs = (SQLServerResultSet) result_pstmt.executeQuery();
+                    userRs = (SQLServerResultSet) result_pstmt.executeQuery();
                     result_pstmt.closeOnCompletion();
-                    user_rs.getColumn(5).setFilter(new DataTypeFilter());
-                    user_rs.getColumn(7).setFilter(new ZeroFixupFilter());
-                    user_rs.getColumn(8).setFilter(new ZeroFixupFilter());
-                    user_rs.getColumn(16).setFilter(new ZeroFixupFilter());
-                    user_rs.getColumn(23).setFilter(new IntColumnIdentityFilter());
-                    user_rs.getColumn(24).setFilter(new IntColumnIdentityFilter());
+                    userRs.getColumn(5).setFilter(new DataTypeFilter());
+                    userRs.getColumn(7).setFilter(new ZeroFixupFilter());
+                    userRs.getColumn(8).setFilter(new ZeroFixupFilter());
+                    userRs.getColumn(16).setFilter(new ZeroFixupFilter());
+                    userRs.getColumn(23).setFilter(new IntColumnIdentityFilter());
+                    userRs.getColumn(24).setFilter(new IntColumnIdentityFilter());
                 } catch (SQLException e) {
                     errorOnClose = e;
                     if (null != result_pstmt) {
@@ -740,7 +746,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                         throw errorOnClose;
                     }
                 }
-                return user_rs;
+                return userRs;
             }
         }
     }
