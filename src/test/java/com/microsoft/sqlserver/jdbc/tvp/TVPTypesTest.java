@@ -670,49 +670,31 @@ public class TVPTypesTest extends AbstractTest {
         tvpName = RandomUtil.getIdentifier("TVP");
         tableName = RandomUtil.getIdentifier("TVPTable");
         procedureName = RandomUtil.getIdentifier("procedureThatCallsTVP");
-
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            dropProcedure();
-            dropTables();
-            dropTVPS();
-        }
     }
 
     @AfterAll
     public static void terminate() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            dropProcedure();
-            dropTables();
-            dropTVPS();
+        try (Statement stmt = connection.createStatement()) {
+            dropProcedure(stmt);
+            dropTables(stmt);
+            dropTVPS(stmt);
         }
     }
 
-    private static void dropProcedure() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'"
-                    + TestUtils.escapeSingleQuotes(procedureName) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
-                    + " DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName);
-            stmt.execute(sql);
-        }
+    private static void dropProcedure(Statement stmt) throws SQLException {
+        TestUtils.dropProcedureIfExists(procedureName, stmt);
     }
 
-    private static void dropTables() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(tableName) + "','U') is not null"
-                    + " drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
-        }
+    private static void dropTables(Statement stmt) throws SQLException {
+        TestUtils.dropTableIfExists(tableName, stmt);
     }
 
-    private static void dropTVPS() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
-                    + TestUtils.escapeSingleQuotes(tvpName) + "') " + " drop type "
-                    + AbstractSQLGenerator.escapeIdentifier(tvpName));
-        }
+    private static void dropTVPS(Statement stmt) throws SQLException {
+        TestUtils.dropTypeIfExists(tvpName, stmt);
     }
 
     private static void createProcedure() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
                     + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN "
                     + " INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SELECT * FROM @InputData"
@@ -722,7 +704,7 @@ public class TVPTypesTest extends AbstractTest {
     }
 
     private void createTables(String colType) throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (rowId int IDENTITY, c1 " + colType + " null);";
             stmt.execute(sql);
@@ -730,7 +712,7 @@ public class TVPTypesTest extends AbstractTest {
     }
 
     private void createTVPS(String colType) throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpName) + " as table (c1 "
                     + colType + " null)";
             stmt.executeUpdate(TVPCreateCmd);
@@ -748,9 +730,11 @@ public class TVPTypesTest extends AbstractTest {
 
     @AfterEach
     public void terminateVariation() throws SQLException {
-        dropProcedure();
-        dropTables();
-        dropTVPS();
+        try (Statement stmt = connection.createStatement()) {
+            dropProcedure(stmt);
+            dropTables(stmt);
+            dropTVPS(stmt);
+        }
 
         if (null != tvp) {
             tvp.clear();

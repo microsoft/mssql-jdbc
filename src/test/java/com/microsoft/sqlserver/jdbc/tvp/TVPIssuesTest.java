@@ -37,12 +37,12 @@ import com.microsoft.sqlserver.testframework.Constants;
 @Tag(Constants.xAzureSQLDW)
 public class TVPIssuesTest extends AbstractTest {
 
-    private static String tvp_varcharMax = RandomUtil.getIdentifier("TVPIssuesTest_varcharMax_TVP");
+    private static String tvp_varcharMax = RandomUtil.getIdentifier("TVP");
     private static String spName_varcharMax = RandomUtil.getIdentifier("TVPIssuesTest_varcharMax_SP");
     private static String srcTable_varcharMax = RandomUtil.getIdentifier("TVPIssuesTest_varcharMax_srcTable");
     private static String desTable_varcharMax = RandomUtil.getIdentifier("TVPIssuesTest_varcharMax_destTable");
 
-    private static String tvp_time_6 = RandomUtil.getIdentifier("TVPIssuesTest_time_6_TVP");
+    private static String tvp_time_6 = RandomUtil.getIdentifier("TVP");
     private static String srcTable_time_6 = RandomUtil.getIdentifier("TVPIssuesTest_time_6_srcTable");
     private static String desTable_time_6 = RandomUtil.getIdentifier("TVPIssuesTest_time_6_destTable");
 
@@ -75,7 +75,7 @@ public class TVPIssuesTest extends AbstractTest {
         try (Statement stmt = connection.createStatement(); ResultSet rs = stmt
                 .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax))) {
 
-            dropProcedure(stmt);
+            TestUtils.dropProcedureIfExists(spName_varcharMax, stmt);
             String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(spName_varcharMax) + "(?)}";
 
             try (SQLServerCallableStatement Cstmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
@@ -135,20 +135,6 @@ public class TVPIssuesTest extends AbstractTest {
     public static void beforeAll() throws SQLException {
         try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
 
-            dropProcedure(stmt);
-
-            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
-                    + TestUtils.escapeSingleQuotes(tvp_varcharMax) + "') " + " drop type "
-                    + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax));
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax), stmt);
-
-            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
-                    + TestUtils.escapeSingleQuotes(tvp_time_6) + "') " + " drop type "
-                    + AbstractSQLGenerator.escapeIdentifier(tvp_time_6));
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable_time_6), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(desTable_time_6), stmt);
-
             String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax)
                     + " (c1 varchar(max) null);";
             stmt.execute(sql);
@@ -197,10 +183,6 @@ public class TVPIssuesTest extends AbstractTest {
         stmt.execute(sql);
     }
 
-    private static void dropProcedure(Statement stmt) throws SQLException {
-        TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(spName_varcharMax), stmt);
-    }
-
     private static void createProcedure(Statement stmt) throws SQLException {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(spName_varcharMax) + " @InputData "
                 + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax) + " READONLY " + " AS " + " BEGIN "
@@ -213,18 +195,19 @@ public class TVPIssuesTest extends AbstractTest {
     @AfterAll
     public static void terminateVariation() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            dropProcedure(stmt);
-            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
-                    + TestUtils.escapeSingleQuotes(tvp_varcharMax) + "') " + " drop type "
-                    + AbstractSQLGenerator.escapeIdentifier(tvp_varcharMax));
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(desTable_varcharMax), stmt);
-
-            stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
-                    + TestUtils.escapeSingleQuotes(tvp_time_6) + "') " + " drop type "
-                    + AbstractSQLGenerator.escapeIdentifier(tvp_time_6));
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(srcTable_time_6), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(desTable_time_6), stmt);
+            dropObjects(stmt);
         }
+    }
+
+    private static void dropObjects(Statement stmt) throws SQLException {
+        TestUtils.dropProcedureIfExists(spName_varcharMax, stmt);
+
+        TestUtils.dropTypeIfExists(tvp_varcharMax, stmt);
+        TestUtils.dropTableIfExists(srcTable_varcharMax, stmt);
+        TestUtils.dropTableIfExists(desTable_varcharMax, stmt);
+
+        TestUtils.dropTypeIfExists(tvp_time_6, stmt);
+        TestUtils.dropTableIfExists(srcTable_time_6, stmt);
+        TestUtils.dropTableIfExists(desTable_time_6, stmt);
     }
 }

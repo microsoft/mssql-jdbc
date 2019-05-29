@@ -25,7 +25,7 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
-import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBit;
@@ -61,7 +61,6 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlVarCharMax;
  * @since 6.1.2
  */
 public class TestUtils {
-    // private static SqlType types = null;
     private static ArrayList<SqlType> types = null;
     private static final char[] HEXCHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E',
             'F'};
@@ -69,6 +68,8 @@ public class TestUtils {
     final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     final static int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
+
+    @SuppressWarnings("unused")
     private static Boolean isAzure = null;
     private static Boolean isAzureDW = null;
     private static Boolean isAzureMI = null;
@@ -279,36 +280,121 @@ public class TestUtils {
     }
 
     /**
-     * mimic "DROP TABLE IF EXISTS ..." for older versions of SQL Server
+     * mimic "DROP TABLE ..."
+     * 
+     * @param tableName
+     * @param stmt
+     * @throws SQLException
      */
     public static void dropTableIfExists(String tableName, java.sql.Statement stmt) throws SQLException {
-        dropObjectIfExists(tableName, "IsTable", stmt);
+        dropObjectIfExists(tableName, "U", stmt);
     }
 
     /**
-     * mimic "DROP PROCEDURE IF EXISTS ..." for older versions of SQL Server
+     * mimic "DROP PROCEDURE ..."
+     * 
+     * @param procName
+     * @param stmt
+     * @throws SQLException
      */
     public static void dropProcedureIfExists(String procName, java.sql.Statement stmt) throws SQLException {
-        dropObjectIfExists(procName, "IsProcedure", stmt);
-    }
-
-    public static void dropDatabaseIfExists(String databaseName, java.sql.Statement stmt) throws SQLException {
-        stmt.executeUpdate("USE MASTER; IF EXISTS(SELECT * from sys.databases WHERE name='"
-                + escapeSingleQuotes(databaseName) + "') DROP DATABASE [" + databaseName + "]");
-    }
-
-    public static void dropTriggerIfExists(String triggerName, java.sql.Statement stmt) throws SQLException {
-        stmt.execute("IF EXISTS (\r\n" + "    SELECT *\r\n" + "    FROM sys.objects\r\n"
-                + "    WHERE [type] = 'TR' AND [name] = '" + TestUtils.escapeSingleQuotes(triggerName) + "'\r\n"
-                + "    )\r\n" + "    DROP TRIGGER " + AbstractSQLGenerator.escapeIdentifier(triggerName)
-                + Constants.SEMI_COLON);
+        dropObjectIfExists(procName, "P", stmt);
     }
 
     /**
-     * actually perform the "DROP TABLE / PROCEDURE"
+     * mimic "DROP FUNCTION ..."
+     * 
+     * @param functionName
+     * @param stmt
+     * @throws SQLException
      */
-    private static void dropObjectIfExists(String objectName, String objectProperty,
+    public static void dropFunctionIfExists(String functionName, java.sql.Statement stmt) throws SQLException {
+        dropObjectIfExists(functionName, "FN", stmt);
+    }
+
+    /**
+     * mimic "DROP TRIGGER ..."
+     * 
+     * @param triggerName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropTriggerIfExists(String triggerName, java.sql.Statement stmt) throws SQLException {
+        dropObjectIfExists(triggerName, "TR", stmt);
+    }
+
+    /**
+     * mimic "DROP TYPE ..."
+     * 
+     * @param typeName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropTypeIfExists(String typeName, java.sql.Statement stmt) throws SQLException {
+        dropObjectIfExists(typeName, "TT", stmt);
+    }
+
+    /**
+     * mimic "DROP DATABASE ..."
+     * 
+     * @param databaseName
+     * @param connectionString
+     * @throws SQLException
+     */
+    public static void dropDatabaseIfExists(String databaseName, String connectionString) throws SQLException {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";databaseName=master");
+                Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("IF EXISTS(SELECT * from sys.databases WHERE name='" + escapeSingleQuotes(databaseName)
+                    + "') DROP DATABASE [" + databaseName + "]");
+        }
+    }
+
+    /**
+     * mimic "DROP SCHEMA ..."
+     * 
+     * @param schemaName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropSchemaIfExists(String schemaName, Statement stmt) throws SQLException {
+        stmt.execute("if EXISTS (SELECT * FROM sys.schemas where name = '" + escapeSingleQuotes(schemaName)
+                + "') drop schema " + AbstractSQLGenerator.escapeIdentifier(schemaName));
+    }
+
+    /**
+     * <pre>
+     * This method drops objects for below types:
+     * 
+     * TT - TYPE_TABLE 
+     * TR - TRIGGER 
+     * FN - SQL_SCALAR_FUNCTION 
+     * P -- SQL_STORED_PROCEDURE
+     * U -- USER_TABLE
+     * 
+     * </pre>
+     */
+    private static void dropObjectIfExists(String objectName, String objectType,
             java.sql.Statement stmt) throws SQLException {
+        String typeName = "";
+        switch (objectType) {
+            case "TT":
+                typeName = "TYPE";
+                break;
+            case "TR":
+                typeName = "TRIGGER";
+                break;
+            case "FN":
+                typeName = "FUNCTION";
+                break;
+            case "P":
+                typeName = "PROCEDURE";
+                break;
+            case "U":
+                typeName = "TABLE";
+            default:
+                break;
+        }
+
         StringBuilder sb = new StringBuilder();
         if (!objectName.startsWith("[")) {
             sb.append("[");
@@ -317,11 +403,17 @@ public class TestUtils {
         if (!objectName.endsWith("]")) {
             sb.append("]");
         }
+
         String bracketedObjectName = sb.toString();
-        String sql = String.format("IF EXISTS " + "( " + "SELECT * from sys.objects "
-                + "WHERE object_id = OBJECT_ID(N'%s') AND OBJECTPROPERTY(object_id, N'%s') = 1 " + ") " + "DROP %s %s ",
-                escapeSingleQuotes(bracketedObjectName), objectProperty,
-                "IsProcedure".equals(objectProperty) ? "PROCEDURE" : "TABLE", bracketedObjectName);
+        String whereClause = "";
+        if (objectType != "TT") {
+            whereClause = "WHERE object_id = OBJECT_ID(N'" + escapeSingleQuotes(bracketedObjectName) + "')";
+        } else {
+            whereClause = "WHERE name LIKE '%" + escapeSingleQuotes(objectName) + "%'";
+        }
+
+        String sql = "IF EXISTS ( SELECT * from sys.objects " + whereClause + " AND type='" + objectType + "') DROP "
+                + typeName + " " + bracketedObjectName;
         try {
             stmt.executeUpdate(sql);
         } catch (SQLException e) {
