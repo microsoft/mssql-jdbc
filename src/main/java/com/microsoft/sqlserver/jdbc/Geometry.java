@@ -15,6 +15,8 @@ import java.nio.ByteOrder;
 
 public class Geometry extends SQLServerSpatialDatatype {
 
+    protected Geometry() {}
+
     /**
      * Private constructor used for creating a Geometry object from WKT and Spatial Reference Identifier.
      * 
@@ -25,7 +27,7 @@ public class Geometry extends SQLServerSpatialDatatype {
      * @throws SQLServerException
      *         if an exception occurs
      */
-    private Geometry(String wkt, int srid) throws SQLServerException {
+    protected Geometry(String wkt, int srid) throws SQLServerException {
         if (null == wkt || wkt.length() <= 0) {
             throwIllegalWKT();
         }
@@ -47,7 +49,7 @@ public class Geometry extends SQLServerSpatialDatatype {
      * @throws SQLServerException
      *         if an exception occurs
      */
-    private Geometry(byte[] wkb) throws SQLServerException {
+    protected Geometry(byte[] wkb) throws SQLServerException {
         if (null == wkb || wkb.length <= 0) {
             throwIllegalWKB();
         }

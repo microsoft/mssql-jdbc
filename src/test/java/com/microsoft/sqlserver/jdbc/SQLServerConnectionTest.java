@@ -531,7 +531,7 @@ public class SQLServerConnectionTest extends AbstractTest {
             try {
                 conn.abort(null);
             } catch (SQLException e) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidArgumentExecutor")));
+                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidArgument")));
             }
         }
     }

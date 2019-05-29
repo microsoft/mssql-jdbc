@@ -54,7 +54,7 @@ abstract class SQLServerSpatialDatatype {
     // serialization properties
     protected boolean hasZvalues = false;
     protected boolean hasMvalues = false;
-    protected boolean isValid = false;
+    protected boolean isValid = true;
     protected boolean isSinglePoint = false;
     protected boolean isSingleLineSegment = false;
     protected boolean isLargerThanHemisphere = false;
