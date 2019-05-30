@@ -114,6 +114,11 @@ public class CallableMixedTest extends AbstractTest {
                 fail();
             } catch (SQLException e) {
                 assertTrue(e.getMessage().matches(TestResource.formatErrorMsg("R_NoPrivilege")));
+            } finally {
+                TestUtils.dropProcedureIfExists(procName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
+                stmt.execute("DROP USER " + user);
+                stmt.execute("DROP LOGIN " + user);
             }
         }
     }
