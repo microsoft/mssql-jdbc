@@ -1093,8 +1093,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Returns if Federated Authentication is in use or is about to expire soon
      * 
      * @return true/false
-     * @throws SQLServerException
-     *         if an error occurs.
      */
     protected boolean needsReconnect() {
         return (null != fedAuthToken && Util.checkIfNeedNewAccessToken(this, fedAuthToken.expiresOn));
