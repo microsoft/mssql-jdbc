@@ -156,7 +156,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     private boolean updatedCurrentRow = false;
 
     // Column name hash map for caching.
-    private final Map<String,Integer> columnNames = new HashMap<>();
+    private final Map<String, Integer> columnNames = new HashMap<>();
 
     final boolean getUpdatedCurrentRow() {
         return updatedCurrentRow;
@@ -647,7 +647,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public int findColumn(String userProvidedColumnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "findColumn", userProvidedColumnName);
         checkClosed();
-        
+
         Integer value = columnNames.get(userProvidedColumnName);
         if (null != value) {
             return value;
@@ -675,7 +675,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // If the user supplies a true match for the column name, we will find it here.
         for (int i = 0; i < columns.length; i++) {
             if (columns[i].getColumnName().equals(userProvidedColumnName)) {
-                columnNames.put(columns[i].getColumnName(),i+1);
+                columnNames.put(columns[i].getColumnName(), i + 1);
                 loggerExternal.exiting(getClassNameLogging(), "findColumn", i + 1);
                 return i + 1;
             }
@@ -687,7 +687,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // Use VM supplied String.equalsIgnoreCase to do the "case-insensitive search".
         for (int i = 0; i < columns.length; i++) {
             if (columns[i].getColumnName().equalsIgnoreCase(userProvidedColumnName)) {
-                columnNames.put(columns[i].getColumnName(),i+1);
+                columnNames.put(columns[i].getColumnName(), i + 1);
                 loggerExternal.exiting(getClassNameLogging(), "findColumn", i + 1);
                 return i + 1;
             }
