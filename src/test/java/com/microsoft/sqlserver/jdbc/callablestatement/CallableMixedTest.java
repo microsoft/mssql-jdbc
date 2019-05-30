@@ -92,7 +92,7 @@ public class CallableMixedTest extends AbstractTest {
     public void noPrivilege() throws SQLException {
         try (Connection c = DriverManager.getConnection(AbstractTest.connectionString);
                 Statement stmt = c.createStatement()) {
-            String tableName = "jdbc_priv" + UUID.randomUUID();
+            String tableName = RandomUtil.getIdentifier("jdbc_priv");
             String procName = "priv_proc" + UUID.randomUUID();
             String user = "priv_user" + UUID.randomUUID();
             String pass = "priv_pass" + UUID.randomUUID();
