@@ -93,7 +93,7 @@ public class CallableMixedTest extends AbstractTest {
         try (Connection c = DriverManager.getConnection(AbstractTest.connectionString);
                 Statement stmt = c.createStatement()) {
             String tableName = RandomUtil.getIdentifier("jdbc_priv");
-            String procName = "priv_proc" + UUID.randomUUID();
+            String procName = RandomUtil.getIdentifier("priv_proc");
             String user = "priv_user" + UUID.randomUUID();
             String pass = "priv_pass" + UUID.randomUUID();
 
