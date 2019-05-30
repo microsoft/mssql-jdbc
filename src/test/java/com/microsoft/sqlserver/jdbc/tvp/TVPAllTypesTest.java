@@ -195,8 +195,8 @@ public class TVPAllTypesTest extends AbstractTest {
         tvpName = RandomUtil.getIdentifier("TVP");
         procedureName = RandomUtil.getIdentifier("TVP");
 
-        TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tvpName), stmt);
+        TestUtils.dropProcedureIfExists(procedureName, stmt);
+        TestUtils.dropTypeIfExists(tvpName, stmt);
 
         try (DBConnection dbConnection = new DBConnection(connectionString);
                 DBStatement dbStmt = dbConnection.createStatement()) {
@@ -217,9 +217,11 @@ public class TVPAllTypesTest extends AbstractTest {
     private void terminateVariation() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procedureName), stmt);
-            TestUtils.dropTableIfExists(tableSrc.getEscapedTableName(), stmt);
-            TestUtils.dropTableIfExists(tableDest.getEscapedTableName(), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tvpName), stmt);
+            if (null != tableSrc)
+                TestUtils.dropTableIfExists(tableSrc.getTableName(), stmt);
+            if (null != tableDest)
+                TestUtils.dropTableIfExists(tableDest.getTableName(), stmt);
+            TestUtils.dropTypeIfExists(tvpName, stmt);
         }
     }
 }

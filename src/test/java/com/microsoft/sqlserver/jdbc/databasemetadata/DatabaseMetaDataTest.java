@@ -28,15 +28,19 @@ import java.util.UUID;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
@@ -46,6 +50,9 @@ import com.microsoft.sqlserver.testframework.Constants;
  */
 @RunWith(JUnitPlatform.class)
 public class DatabaseMetaDataTest extends AbstractTest {
+
+    private static final String tableName = RandomUtil.getIdentifier("DBMetadataTable");
+    private static final String functionName = RandomUtil.getIdentifier("DBMetadataFunction");
 
     /**
      * Verify DatabaseMetaData#isWrapperFor and DatabaseMetaData#unwrap.
@@ -196,8 +203,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
         String testCatalog = "dash-catalog" + id;
         String testSchema = "some-schema" + id;
 
-        try (Connection conn = getConnection(); Statement stmt = connection.createStatement()) {
-            TestUtils.dropDatabaseIfExists(testCatalog, stmt);
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropDatabaseIfExists(testCatalog, connectionString);
             stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
             stmt.execute(String.format("USE [%s]", testCatalog));
             stmt.execute(String.format("CREATE SCHEMA [%s]", testSchema));
@@ -227,12 +234,11 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
                 MessageFormat dashCatalogFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
                 assertTrue(hasDashCatalogSchema, dashCatalogFormat.format(new Object[] {testSchema}));
-            } finally {
-                TestUtils.dropDatabaseIfExists(testCatalog, stmt);
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
-
+        } finally {
+            TestUtils.dropDatabaseIfExists(testCatalog, connectionString);
         }
     }
 
@@ -251,9 +257,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
         String testSchema = "some-schema" + id;
 
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            TestUtils.dropDatabaseIfExists(testCatalog, stmt);
+            TestUtils.dropDatabaseIfExists(testCatalog, connectionString);
             stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
-
             stmt.execute(String.format("USE [%s]", testCatalog));
             stmt.execute(String.format("CREATE SCHEMA [%s]", testSchema));
 
@@ -276,12 +281,11 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
                 MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
                 assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
-            } finally {
-                TestUtils.dropDatabaseIfExists(testCatalog, stmt);
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
-
+        } finally {
+            TestUtils.dropDatabaseIfExists(testCatalog, connectionString);
         }
     }
 
@@ -291,10 +295,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    /*
-     * try (ResultSet rsCatalog = connection.getMetaData().getCatalogs(); ResultSet rs = connection.getMetaData()
-     * .getTables(rsCatalog.getString("TABLE_CAT"), null, "%", new String[] {"TABLE"})) {
-     */
     public void testDBTables() throws SQLException {
 
         try (Connection con = getConnection()) {
@@ -336,30 +336,40 @@ public class DatabaseMetaDataTest extends AbstractTest {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
 
             String[] types = {"TABLE"};
+            boolean tableFound = false;
+
             try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                if (rs.next()) {
+                    do {
+                        if (rs.getString("TABLE_NAME").equalsIgnoreCase(tableName)) {
+                            tableFound = true;
+                        }
+                    } while (rs.next() && !tableFound);
+                }
 
-                // Fetch one table
-                MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-                Object[] msgArgs1 = {"table"};
-                assertTrue(rs.next(), form1.format(msgArgs1));
-
-                // Go through all columns.
-                try (ResultSet rs1 = databaseMetaData.getColumns(null, null, rs.getString("TABLE_NAME"), "%")) {
-
-                    MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-                    Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"Data Type"}, {"Type"},
-                            {"Column Size"}, {"Nullable value"}, {"IS_NULLABLE"}, {"IS_AUTOINCREMENT"}};
-                    while (rs1.next()) {
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("DATA_TYPE")), form2.format(msgArgs2[4]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("TYPE_NAME")), form2.format(msgArgs2[5]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_SIZE")), form2.format(msgArgs2[6]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("NULLABLE")), form2.format(msgArgs2[7])); // 11
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 18
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")), form2.format(msgArgs2[9])); // 22
+                if (!tableFound) {
+                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_tableNotFound"));
+                    Object[] msgArgs1 = {tableName};
+                    fail(form1.format(msgArgs1));
+                } else {
+                    try (ResultSet rs1 = databaseMetaData.getColumns(null, null,
+                            AbstractSQLGenerator.escapeIdentifier(tableName), "%")) {
+                        MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                        Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"Data Type"}, {"Type"},
+                                {"Column Size"}, {"Nullable value"}, {"IS_NULLABLE"}, {"IS_AUTOINCREMENT"}};
+                        while (rs1.next()) {
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("DATA_TYPE")), form2.format(msgArgs2[4]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("TYPE_NAME")), form2.format(msgArgs2[5]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_SIZE")), form2.format(msgArgs2[6]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("NULLABLE")), form2.format(msgArgs2[7])); // 11
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 18
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")),
+                                    form2.format(msgArgs2[9])); // 22
+                        }
                     }
                 }
             }
@@ -384,28 +394,38 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
             String[] types = {"TABLE"};
-            try (ResultSet rsTables = databaseMetaData.getTables(null, null, "%", types)) {
+            boolean tableFound = false;
 
-                // Fetch one table
-                MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-                Object[] msgArgs1 = {"table"};
-                assertTrue(rsTables.next(), form1.format(msgArgs1));
+            try (ResultSet rs = databaseMetaData.getTables(null, null, "%", types)) {
+                if (rs.next()) {
+                    do {
+                        if (rs.getString("TABLE_NAME").equalsIgnoreCase(tableName)) {
+                            tableFound = true;
+                        }
+                    } while (rs.next() && !tableFound);
+                }
 
-                try (ResultSet rs1 = databaseMetaData.getColumnPrivileges(null, null, rsTables.getString("TABLE_NAME"),
-                        "%")) {
+                if (!tableFound) {
+                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_tableNotFound"));
+                    Object[] msgArgs1 = {tableName};
+                    fail(form1.format(msgArgs1));
+                } else {
+                    try (ResultSet rs1 = databaseMetaData.getColumnPrivileges(null, null,
+                            AbstractSQLGenerator.escapeIdentifier(tableName), "%")) {
 
-                    MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-                    Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"GRANTOR"}, {"GRANTEE"},
-                            {"PRIVILEGE"}, {"IS_GRANTABLE"}};
-                    while (rs1.next()) {
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTOR")), form2.format(msgArgs2[4]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTEE")), form2.format(msgArgs2[5]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("PRIVILEGE")), form2.format(msgArgs2[6]));
-                        assertTrue(!StringUtils.isEmpty(rs1.getString("IS_GRANTABLE")), form2.format(msgArgs2[7]));
+                        MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                        Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"GRANTOR"},
+                                {"GRANTEE"}, {"PRIVILEGE"}, {"IS_GRANTABLE"}};
+                        while (rs1.next()) {
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTOR")), form2.format(msgArgs2[4]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("GRANTEE")), form2.format(msgArgs2[5]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("PRIVILEGE")), form2.format(msgArgs2[6]));
+                            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_GRANTABLE")), form2.format(msgArgs2[7]));
+                        }
                     }
                 }
             }
@@ -464,30 +484,35 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Connection conn = getConnection()) {
 
             DatabaseMetaData databaseMetaData = conn.getMetaData();
+            boolean functionFound = false;
 
             try (ResultSet rsFunctions = databaseMetaData.getFunctions(null, null, "%")) {
+                if (rsFunctions.next()) {
+                    do {
+                        if (rsFunctions.getString("FUNCTION_NAME").equalsIgnoreCase(functionName)) {
+                            functionFound = true;
+                        }
+                    } while (rsFunctions.next() && !functionFound);
+                }
 
-                // Fetch one Function
-                MessageFormat form1 = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
-                Object[] msgArgs1 = {"function"};
-                assertTrue(rsFunctions.next(), form1.format(msgArgs1));
+                if (!functionFound) {
+                    try (ResultSet rs = databaseMetaData.getFunctionColumns(null, null,
+                            AbstractSQLGenerator.escapeIdentifier(functionName), "%")) {
 
-                try (ResultSet rs = databaseMetaData.getFunctionColumns(null, null,
-                        rsFunctions.getString("FUNCTION_NAME"), "%")) {
-
-                    MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameNull"));
-                    Object[][] msgArgs2 = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"COLUMN_NAME"},
-                            {"COLUMN_TYPE"}, {"DATA_TYPE"}, {"TYPE_NAME"}, {"NULLABLE"}, {"IS_NULLABLE"}};
-                    while (rs.next()) {
-                        assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")), form2.format(msgArgs2[0]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")), form2.format(msgArgs2[1]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_NAME")), form2.format(msgArgs2[2]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_TYPE")), form2.format(msgArgs2[4]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("DATA_TYPE")), form2.format(msgArgs2[5]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("TYPE_NAME")), form2.format(msgArgs2[6]));
-                        assertTrue(!StringUtils.isEmpty(rs.getString("NULLABLE")), form2.format(msgArgs2[7])); // 12
-                        assertTrue(!StringUtils.isEmpty(rs.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 19
+                        MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameNull"));
+                        Object[][] msgArgs2 = {{"FUNCTION_CAT"}, {"FUNCTION_SCHEM"}, {"FUNCTION_NAME"}, {"COLUMN_NAME"},
+                                {"COLUMN_TYPE"}, {"DATA_TYPE"}, {"TYPE_NAME"}, {"NULLABLE"}, {"IS_NULLABLE"}};
+                        while (rs.next()) {
+                            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_CAT")), form2.format(msgArgs2[0]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_SCHEM")), form2.format(msgArgs2[1]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("FUNCTION_NAME")), form2.format(msgArgs2[2]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("COLUMN_TYPE")), form2.format(msgArgs2[4]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("DATA_TYPE")), form2.format(msgArgs2[5]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("TYPE_NAME")), form2.format(msgArgs2[6]));
+                            assertTrue(!StringUtils.isEmpty(rs.getString("NULLABLE")), form2.format(msgArgs2[7])); // 12
+                            assertTrue(!StringUtils.isEmpty(rs.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 19
+                        }
                     }
                 }
             }
@@ -561,6 +586,24 @@ public class DatabaseMetaDataTest extends AbstractTest {
             assertEquals(maxConn, rs.getInt(1));
         } catch (SQLException e) {
             fail(e.getMessage());
+        }
+    }
+
+    @BeforeAll
+    public static void setupTable() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (col1 int NOT NULL, col2 varchar(200), col3 decimal(15,2))");
+            stmt.execute("CREATE FUNCTION " + AbstractSQLGenerator.escapeIdentifier(functionName)
+                    + " (@p1 INT, @p2 INT) RETURNS INT AS BEGIN DECLARE @result INT; SET @result = @p1 + @p2; RETURN @result; END");
+        }
+    }
+
+    @AfterAll
+    public static void terminate() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropFunctionIfExists(functionName, stmt);
         }
     }
 }

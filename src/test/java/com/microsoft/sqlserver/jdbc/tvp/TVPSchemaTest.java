@@ -39,7 +39,7 @@ public class TVPSchemaTest extends AbstractTest {
     static String expectecValue2 = "world";
     static String expectecValue3 = "again";
     private static String schemaName;
-    private static String tvpNameWithouSchema;
+    private static String tvpNameWithoutSchema;
     private static String tvpNameWithSchema;
     private static String charTable;
     private static String procedureName;
@@ -132,21 +132,15 @@ public class TVPSchemaTest extends AbstractTest {
     @BeforeEach
     public void testSetup() throws SQLException {
         schemaName = RandomUtil.getIdentifier("anotherSchema");
-        tvpNameWithouSchema = RandomUtil.getIdentifier("charTVP");
+        tvpNameWithoutSchema = RandomUtil.getIdentifier("charTVP");
         tvpNameWithSchema = AbstractSQLGenerator.escapeIdentifier(schemaName) + "."
-                + AbstractSQLGenerator.escapeIdentifier(tvpNameWithouSchema);
-
+                + AbstractSQLGenerator.escapeIdentifier(tvpNameWithoutSchema);
         charTable = AbstractSQLGenerator.escapeIdentifier(schemaName) + "."
                 + AbstractSQLGenerator.escapeIdentifier("tvpCharTable");
         procedureName = AbstractSQLGenerator.escapeIdentifier(schemaName) + "."
                 + AbstractSQLGenerator.escapeIdentifier("procedureThatCallsTVP");
 
-        dropProcedure();
-        dropTables();
-        dropTVPS();
-
-        dropAndCreateSchema();
-
+        createSchema();
         createTVPS();
         createTables();
         createPreocedure();
@@ -163,6 +157,15 @@ public class TVPSchemaTest extends AbstractTest {
         tvp.addRow(expectecValue1, expectecValue2, expectecValue3);
     }
 
+    private void dropObjects() throws SQLException {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            dropProcedure(stmt);
+            dropTables(stmt);
+            dropTVPS(stmt);
+            dropSchema(stmt);
+        }
+    }
+
     private void verify(ResultSet rs) throws SQLException {
         while (rs.next()) {
             String actualValue1 = rs.getString(1);
@@ -175,35 +178,29 @@ public class TVPSchemaTest extends AbstractTest {
         }
     }
 
-    private void dropProcedure() throws SQLException {
+    private void dropProcedure(Statement stmt) throws SQLException {
         String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'"
                 + TestUtils.escapeSingleQuotes(procedureName) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + procedureName;
 
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.execute(sql);
+        stmt.execute(sql);
+    }
+
+    private static void dropTables(Statement stmt2) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(charTable, stmt);
         }
     }
 
-    private static void dropTables() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(charTable) + "','U') is not null"
-                    + " drop table " + charTable);
-        }
-    }
-
-    private static void dropTVPS() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+    private static void dropTVPS(Statement stmt2) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
-                    + TestUtils.escapeSingleQuotes(tvpNameWithouSchema) + "') " + " drop type " + tvpNameWithSchema);
+                    + TestUtils.escapeSingleQuotes(tvpNameWithoutSchema) + "') " + " drop type " + tvpNameWithSchema);
         }
     }
 
-    private static void dropAndCreateSchema() throws SQLException {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.execute(
-                    "if EXISTS (SELECT * FROM sys.schemas where name = '" + TestUtils.escapeSingleQuotes(schemaName)
-                            + "') drop schema " + AbstractSQLGenerator.escapeIdentifier(schemaName));
+    private static void createSchema() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
             stmt.execute("CREATE SCHEMA " + AbstractSQLGenerator.escapeIdentifier(schemaName));
         }
     }
@@ -211,8 +208,7 @@ public class TVPSchemaTest extends AbstractTest {
     private static void createPreocedure() throws SQLException {
         String sql = "CREATE PROCEDURE " + procedureName + " @InputData " + tvpNameWithSchema + " READONLY " + " AS "
                 + " BEGIN " + " INSERT INTO " + charTable + " SELECT * FROM @InputData" + " END";
-
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }
     }
@@ -220,7 +216,7 @@ public class TVPSchemaTest extends AbstractTest {
     private void createTables() throws SQLException {
         String sql = "create table " + charTable + " (" + "PlainChar char(50) null," + "PlainVarchar varchar(50) null,"
                 + "PlainVarcharMax varchar(max) null," + ");";
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }
     }
@@ -228,19 +224,21 @@ public class TVPSchemaTest extends AbstractTest {
     private void createTVPS() throws SQLException {
         String TVPCreateCmd = "CREATE TYPE " + tvpNameWithSchema + " as table ( " + "PlainChar char(50) null,"
                 + "PlainVarchar varchar(50) null," + "PlainVarcharMax varchar(max) null" + ")";
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate(TVPCreateCmd);
         }
     }
 
     @AfterEach
     public void terminateVariation() throws SQLException {
-        dropProcedure();
-        dropTables();
-        dropTVPS();
+        dropObjects();
 
         if (null != tvp) {
             tvp.clear();
         }
+    }
+
+    private void dropSchema(Statement stmt) throws SQLException {
+        TestUtils.dropSchemaIfExists(schemaName, stmt);
     }
 }
