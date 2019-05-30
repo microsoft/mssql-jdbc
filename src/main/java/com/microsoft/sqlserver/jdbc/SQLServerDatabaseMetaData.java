@@ -653,14 +653,17 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 rs.getColumn(8).setFilter(new ZeroFixupFilter());
                 rs.getColumn(16).setFilter(new ZeroFixupFilter());
             } catch (SQLException e) {
-                errorOnClose = e;
-                pstmt.close();
+                if (null != pstmt) {
+                    try {
+                        pstmt.close();
+                    } catch (SQLServerException ignore) {
+                        // do nothing but catch it
+                    }
+                }
+                throw e;
             } finally {
                 if (null != originalCatalog) {
                     connection.setCatalog(originalCatalog);
-                }
-                if (null != errorOnClose) {
-                    throw errorOnClose;
                 }
             }
 
@@ -684,7 +687,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
                 SQLServerResultSet userRs = null;
                 SQLException errorOnClose = null;
-                PreparedStatement result_pstmt = null;
+                PreparedStatement resultPstmt = null;
                 try (ResultSet rs = storedProcPstmt.executeQuery()) {
                     rs.next();
                     // Use LinkedHashMap to force retrieve elements in order they were inserted
@@ -726,10 +729,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     columns.put(27, "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME");
                     columns.put(28, "SS_XML_SCHEMACOLLECTION_NAME");
 
-                    result_pstmt = (SQLServerPreparedStatement) this.connection
+                    resultPstmt = (SQLServerPreparedStatement) this.connection
                             .prepareStatement(generateAzureDWSelect(rs, columns));
-                    userRs = (SQLServerResultSet) result_pstmt.executeQuery();
-                    result_pstmt.closeOnCompletion();
+                    userRs = (SQLServerResultSet) resultPstmt.executeQuery();
+                    resultPstmt.closeOnCompletion();
                     userRs.getColumn(5).setFilter(new DataTypeFilter());
                     userRs.getColumn(7).setFilter(new ZeroFixupFilter());
                     userRs.getColumn(8).setFilter(new ZeroFixupFilter());
@@ -737,14 +740,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     userRs.getColumn(23).setFilter(new IntColumnIdentityFilter());
                     userRs.getColumn(24).setFilter(new IntColumnIdentityFilter());
                 } catch (SQLException e) {
-                    errorOnClose = e;
-                    if (null != result_pstmt) {
-                        result_pstmt.close();
+                    if (null != resultPstmt) {
+                        try {
+                            resultPstmt.close();
+                        } catch (SQLServerException ignore) {
+                            // do nothing but catch it
+                        }
                     }
-                } finally {
-                    if (null != errorOnClose) {
-                        throw errorOnClose;
-                    }
+                    throw e;
                 }
                 return userRs;
             }
