@@ -90,7 +90,7 @@ public class CallableMixedTest extends AbstractTest {
     @Tag("xAzureSQLDW")
     @Tag("xAzureSQLMI")
     public void noPrivilege() throws SQLException {
-        try (Connection c = DriverManager.getConnection(AbstractTest.connectionString);
+        try (Connection c = getConnection();
                 Statement stmt = c.createStatement()) {
             String tableName = RandomUtil.getIdentifier("jdbc_priv");
             String procName = RandomUtil.getIdentifier("priv_proc");
