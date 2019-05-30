@@ -578,14 +578,10 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_MSITokenFailureEndpoint", "MSI Token failure: Failed to acquire token from MSI Endpoint"},
             {"R_propertyNotSupported",
                     "Microsoft JDBC Driver for SQL Server currently does not support the property: {0}"},
-            {"R_ntlmInitError", "Unable to initialize NTLM authentication: \"{0}\""},
             {"R_ntlmHmacMD5Error", "Unable to initialize NTLM authentication: Hmac MD5 init error"},
             {"R_ntlmSignatureError", "NTLM Challenge Message signature error: {0}"},
             {"R_ntlmMessageTypeError", "NTLM Challenge Message type error: {0}"},
             {"R_ntlmAuthenticateError", "NTLM error constructing Authenticate Message: {0}"},
             {"R_ntlmNoTargetInfo", "NTLM Challenge Message is missing target info."},
-            {"R_ntlmAvp", "NTLM Challenge Message target info: AvId \"{0}\", value \"{1}\""},
-            {"R_ntlmNoTimestamp", "NTLM Challenge Message target info error: missing timestamp"},
-            {"R_ntlmUnknownValue", "NTLM Challenge Message target info error: unknown value \"{0}\""},
-            {"R_ntlmAuthError", "NTLM authentication error: {0}"}};
+            {"R_ntlmUnknownValue", "NTLM Challenge Message target info error: unknown value \"{0}\""}};
 }

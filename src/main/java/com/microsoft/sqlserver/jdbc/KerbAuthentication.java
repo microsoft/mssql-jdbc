@@ -119,11 +119,15 @@ final class KerbAuthentication extends SSPIAuthentication {
                 peerContext.requestInteg(true);
             }
         } catch (GSSException ge) {
-            authLogger.finer(toString() + "initAuthInit failed GSSException:-" + ge);
+            if (authLogger.isLoggable(Level.FINER)) {
+                authLogger.finer(toString() + "initAuthInit failed GSSException:-" + ge);
+            }
             con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                     SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
         } catch (PrivilegedActionException ge) {
-            authLogger.finer(toString() + "initAuthInit failed privileged exception:-" + ge);
+            if (authLogger.isLoggable(Level.FINER)) {
+                authLogger.finer(toString() + "initAuthInit failed privileged exception:-" + ge);
+            }
             con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                     SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
         }
@@ -168,7 +172,9 @@ final class KerbAuthentication extends SSPIAuthentication {
             }
             return byteToken;
         } catch (GSSException ge) {
-            authLogger.finer(toString() + "initSecContext Failed :-" + ge);
+            if (authLogger.isLoggable(Level.FINER)) {
+                authLogger.finer(toString() + "initSecContext Failed :-" + ge);
+            }
             con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                     SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
         }
@@ -177,7 +183,7 @@ final class KerbAuthentication extends SSPIAuthentication {
     }
 
     // Package visible members below.
-    KerbAuthentication(SQLServerConnection con, String address, int port) throws SQLServerException {
+    KerbAuthentication(SQLServerConnection con, String address, int port) {
         this.con = con;
         this.spn = null != con ? getSpn(con) : null;
     }
@@ -188,10 +194,9 @@ final class KerbAuthentication extends SSPIAuthentication {
      * @param address
      * @param port
      * @param impersonatedUserCred
-     * @throws SQLServerException
      */
     KerbAuthentication(SQLServerConnection con, String address, int port, GSSCredential impersonatedUserCred,
-            Boolean isUserCreated) throws SQLServerException {
+            Boolean isUserCreated) {
         this(con, address, port);
         peerCredentials = impersonatedUserCred;
         this.isUserCreatedCredential = (isUserCreated == null ? false : isUserCreated);
@@ -204,7 +209,7 @@ final class KerbAuthentication extends SSPIAuthentication {
         return intAuthHandShake(pin, done);
     }
 
-    int releaseClientContext() throws SQLServerException {
+    void releaseClientContext() {
         try {
             if (null != peerCredentials && !isUserCreatedCredential) {
                 peerCredentials.dispose();
@@ -219,15 +224,16 @@ final class KerbAuthentication extends SSPIAuthentication {
             }
         } catch (LoginException e) {
             // yes we are eating exceptions here but this should not fail in the normal circumstances and we do not want
-            // to eat previous
-            // login errors if caused before which is more useful to the user than the cleanup errors.
-            authLogger.fine(toString() + " Release of the credentials failed LoginException: " + e);
+            // to eat previous login errors if caused before which is more useful to the user than the cleanup errors.
+            if (authLogger.isLoggable(Level.FINE)) {
+                authLogger.fine(toString() + " Release of the credentials failed LoginException: " + e);
+            }
         } catch (GSSException e) {
             // yes we are eating exceptions here but this should not fail in the normal circumstances and we do not want
-            // to eat previous
-            // login errors if caused before which is more useful to the user than the cleanup errors.
-            authLogger.fine(toString() + " Release of the credentials failed GSSException: " + e);
+            // to eat previous login errors if caused before which is more useful to the user than the cleanup errors.
+            if (authLogger.isLoggable(Level.FINE)) {
+                authLogger.fine(toString() + " Release of the credentials failed GSSException: " + e);
+            }
         }
-        return 0;
     }
 }

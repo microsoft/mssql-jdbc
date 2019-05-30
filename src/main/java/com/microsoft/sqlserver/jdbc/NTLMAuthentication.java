@@ -154,7 +154,6 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final short NTLM_AVID_MSVAVTIMESTAMP = 0x0007;
     private static final short NTLM_AVID_MSVAVSINGLEHOST = 0x0008;
     private static final short NTLM_AVID_MSVAVTARGETNAME = 0x0009;
-    private static final short NTLM_AVID_MSVCHANNELBINDINGS = 0x000A;
 
     /**
      * Section 2.2.2.1 AV_PAIR
@@ -167,16 +166,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
      */
     private static final int NTLM_AVID_LENGTH = 2; // length of an AvId
     private static final int NTLM_AVLEN_LENGTH = 2; // length of an AVLen
-    private static final int NTLM_AVVALUE_LENGTH = 4; // length of a AV value
-
-    private static final int NTLM_AVP_LENGTH = NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + NTLM_AVVALUE_LENGTH; // total
-                                                                                                           // length of
-                                                                                                           // an AVP
 
     private static final int NTLM_AVFLAG_VALUE_MIC = 0x00000002; // indicates MIC is provided
     private static final int NTLM_MIC_LENGTH = 16; // length of MIC field
-
-    private static final int NTLM_CHANNELBINDINGS_LENGTH = 16; // length of the channel binding
 
     private static final int NTLM_AVID_MSVAVFLAGS_LEN = 4; // length of MSVAVFLAG
 
@@ -293,12 +285,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
         NTLMContext(final SQLServerConnection con, final String domainName, final String userName,
                 final String password, final String workstation) throws SQLServerException {
 
-            this.domainName = null != domainName ? domainName.toUpperCase()
-                                                 : SQLServerDriverStringProperty.DOMAIN.getDefaultValue();
+            this.domainName = domainName.toUpperCase();
             this.domainUbytes = unicode(this.domainName);
 
             this.userNameUbytes = null != userName ? unicode(userName) : null;
-            this.upperUserName = userName.toUpperCase();
+            this.upperUserName = null != userName ? userName.toUpperCase() : null;
 
             this.passwordHash = null != password ? md4(unicode(password)) : null;
 
@@ -306,6 +297,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
             String spn = null != con ? getSpn(con) : null;
             this.spnUbytes = null != spn ? unicode(spn) : null;
+
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest(toString() + " SPN detected: " + spn);
+            }
 
             try {
                 mac = Mac.getInstance("HmacMD5");
@@ -366,9 +361,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *         if error occurs
      */
     @Override
-    int releaseClientContext() throws SQLServerException {
+    void releaseClientContext() {
         context = null;
-        return 0;
     }
 
     /**
@@ -467,9 +461,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
             }
 
             if (logger.isLoggable(Level.FINEST)) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmAvp"));
-                Object[] msgArgs = {id};
-                logger.finer(form.format(msgArgs));
+                logger.finest(toString() + " NTLM Challenge Message target info: AvId " + id);
             }
         }
 
@@ -483,8 +475,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
          */
         if (null == context.timestamp || 0 >= context.timestamp.length) {
             // this SHOULD always be present but for some reason occasionally this had seen to be missing
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finer(SQLServerException.getErrString("R_ntlmNoTimestamp"));
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(toString() + " NTLM Challenge Message target info error: Missing timestamp.");
             }
         } else {
             // save msg for calculating MIC in Authenticate msg
@@ -550,8 +542,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
                         + NTLM_CLIENT_CHALLENGE_RESERVED2.length + currentTime.length + NTLM_CLIENT_NONCE_LENGTH
                         + NTLM_CLIENT_CHALLENGE_RESERVED3.length + context.targetInfo.length
                         + /* add MIC */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + NTLM_AVID_MSVAVFLAGS_LEN
-                        + /* add SPN */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + context.spnUbytes.length
-                        + /* add channel bindings */ NTLM_AVID_LENGTH + NTLM_AVP_LENGTH + NTLM_CHANNELBINDINGS_LENGTH)
+                        + /* add SPN */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + context.spnUbytes.length)
                 .order(ByteOrder.LITTLE_ENDIAN);
 
         token.put(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE);
@@ -569,6 +560,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
          */
         if (null == context.timestamp || 0 >= context.timestamp.length) {
             token.put(context.targetInfo, 0, context.targetInfo.length);
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(toString()
+                        + " MsvAvTimestamp not recieved from SQL Server in Challenge Message. MIC field will not be set.");
+            }
         } else {
             // copy targetInfo up to NTLM_AVID_MSVAVEOL
             token.put(context.targetInfo, 0, context.targetInfo.length - NTLM_AVID_LENGTH - NTLM_AVLEN_LENGTH);
@@ -577,24 +572,16 @@ final class NTLMAuthentication extends SSPIAuthentication {
             token.putShort(NTLM_AVID_MSVAVFLAGS);
             token.putShort((short) NTLM_AVID_MSVAVFLAGS_LEN);
             token.putInt((int) NTLM_AVFLAG_VALUE_MIC);
-
-            // SPN
-            token.putShort(NTLM_AVID_MSVAVTARGETNAME);
-            token.putShort((short) context.spnUbytes.length);
-            token.put(context.spnUbytes, 0, context.spnUbytes.length);
-
-            /*
-             * Section 2.2.2.1 AV_PAIR An all-zero value of the hash is used to indicate absence of channel bindings
-             */
-            byte[] channelBinding = new byte[NTLM_CHANNELBINDINGS_LENGTH];
-            token.putShort(NTLM_AVID_MSVCHANNELBINDINGS);
-            token.putShort((short) NTLM_CHANNELBINDINGS_LENGTH);
-            token.put(channelBinding, 0, NTLM_CHANNELBINDINGS_LENGTH);
-
-            // EOL
-            token.putShort(NTLM_AVID_MSVAVEOL);
-            token.putShort((short) 0);
         }
+
+        // SPN
+        token.putShort(NTLM_AVID_MSVAVTARGETNAME);
+        token.putShort((short) context.spnUbytes.length);
+        token.put(context.spnUbytes, 0, context.spnUbytes.length);
+
+        // EOL
+        token.putShort(NTLM_AVID_MSVAVEOL);
+        token.putShort((short) 0);
 
         return token.array();
     }
@@ -708,10 +695,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @return computed response
      * @throws InvalidKeyException
      *         if error getting hash due to invalid key
-     * @throws NoSuchAlgorithmException
-     *         if error getting hash due to algorithim error
      */
-    private byte[] computeResponse(final byte[] responseKeyNT) throws InvalidKeyException, NoSuchAlgorithmException {
+    private byte[] computeResponse(final byte[] responseKeyNT) throws InvalidKeyException {
         // get random client challenge nonce
         byte[] clientNonce = new byte[NTLM_CLIENT_NONCE_LENGTH];
         ThreadLocalRandom.current().nextBytes(clientNonce);
@@ -734,10 +719,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @return NT challenge response
      * @throws InvalidKeyException
      *         if error getting hash due to invalid key
-     * @throws NoSuchAlgorithmException
-     *         if error getting hash due to algorithm
      */
-    private byte[] getNtChallengeResp() throws InvalidKeyException, NoSuchAlgorithmException {
+    private byte[] getNtChallengeResp() throws InvalidKeyException {
         byte[] responseKeyNT = ntowfv2();
         return computeResponse(responseKeyNT);
     }
@@ -846,7 +829,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
                 // put calculated MIC into Authenticate msg
                 System.arraycopy(mic, 0, msg, micPosition, NTLM_MIC_LENGTH);
             }
-        } catch (InvalidKeyException | NoSuchAlgorithmException e) {
+        } catch (InvalidKeyException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ntlmAuthenticateError"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(form.format(msgArgs), e);

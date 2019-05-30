@@ -470,8 +470,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private String hostName = null;
 
-    private String domainName = null;
-
     boolean sendStringParametersAsUnicode() {
         return sendStringParametersAsUnicode;
     }
@@ -1594,7 +1592,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             } else if (intAuthScheme == AuthenticationScheme.ntlm) {
                 String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN.toString();
                 String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
-                domainName = sPropValueDomain;
+                if (null == sPropValueDomain) {
+                    activeConnectionProperties.setProperty(sPropKeyDomain,
+                            SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
+                }
 
                 // NTLM and no user or password
                 if (activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
@@ -3679,10 +3680,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             currentConnectPlaceHolder.getPortNumber());
                 }
             } else if (ntlmAuthentication) {
-                authentication = new NTLMAuthentication(this, domainName,
+                authentication = new NTLMAuthentication(this,
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DOMAIN.toString()),
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                         hostName);
+                activeConnectionProperties.remove(SQLServerDriverStringProperty.PASSWORD.toString());
             }
         }
 
@@ -4650,10 +4653,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * 
      * @param s
      *        the string
-     * @throws SQLServerException
      * @return the encoded data
      */
-    private byte[] toUCS16(String s) throws SQLServerException {
+    private byte[] toUCS16(String s) {
         if (s == null)
             return new byte[0];
         int l = s.length();
@@ -4999,6 +5001,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         tdsWriter.writeBytes(hostnameBytes);
+
+        // Don't allow user credentials to be logged
+        tdsWriter.setDataLoggable(false);
 
         // if we are using NTLM or SSPI or fed auth ADAL, do not send over username/password, since we will use SSPI
         // instead

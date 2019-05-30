@@ -168,20 +168,6 @@ public class NTLMConnectionTest extends AbstractTest {
     }
 
     /**
-     * Test Bad NTLM Initialization
-     */
-    @Test
-    public void testNTLMBadInit() {
-        try {
-            @SuppressWarnings("unused")
-            SSPIAuthentication auth = new NTLMAuthentication(new SQLServerConnection("dummy"), "domainName", "userName",
-                    "password", "hostname");
-        } catch (SQLException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmInitError")));
-        }
-    }
-
-    /**
      * The following testNTLMBad* tests use the following hardcoded challenge message token and modifies the fields with
      * generateClientToken to trigger errors.
      * 
@@ -257,6 +243,7 @@ public class NTLMConnectionTest extends AbstractTest {
         try {
             byte[] badSignature = {0, 0, 0, 0, 0, 0, 0, 0};
             sendBadToken(badSignature, ntlmChallengeSignatureOffset);
+            fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmSignatureError")));
         }
@@ -270,6 +257,7 @@ public class NTLMConnectionTest extends AbstractTest {
         try {
             byte[] badMessageType = {0, 0, 0, 0};
             sendBadToken(badMessageType, ntlmChallengeMessageTypeOffset);
+            fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmMessageTypeError")));
         }
@@ -283,6 +271,7 @@ public class NTLMConnectionTest extends AbstractTest {
         try {
             byte[] badTargetInfoLen = {0, 0};
             sendBadToken(badTargetInfoLen, ntlmChallengeTargetInfoLenOffset);
+            fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmNoTargetInfo")));
         }
@@ -296,6 +285,7 @@ public class NTLMConnectionTest extends AbstractTest {
         try {
             byte[] badAvid = {-1, 0};
             sendBadToken(badAvid, ntlmChallengeTargetInfoOffset);
+            fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_ntlmUnknownValue")));
         }

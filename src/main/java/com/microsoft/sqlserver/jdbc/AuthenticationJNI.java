@@ -113,13 +113,15 @@ final class AuthenticationJNI extends SSPIAuthentication {
         return output;
     }
 
-    int releaseClientContext() {
+    void releaseClientContext() {
         int success = 0;
         if (sniSecLen[0] > 0) {
             success = SNISecReleaseClientContext(sniSec, sniSecLen[0], authLogger);
             sniSecLen[0] = 0;
         }
-        return success;
+        if (authLogger.isLoggable(Level.FINER)) {
+            authLogger.finer(toString() + " Release client context status : " + success);
+        }
     }
 
     // note we handle the failures of the GetDNSName in this function, this function will return an empty string if the

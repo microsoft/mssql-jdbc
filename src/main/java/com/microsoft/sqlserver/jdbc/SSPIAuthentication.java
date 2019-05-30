@@ -24,7 +24,7 @@ import com.microsoft.sqlserver.jdbc.dns.DNSKerberosLocator;
 abstract class SSPIAuthentication {
     abstract byte[] generateClientContext(byte[] pin, boolean[] done) throws SQLServerException;
 
-    abstract int releaseClientContext() throws SQLServerException;
+    abstract void releaseClientContext();
 
     /**
      * SPN pattern for matching
@@ -42,10 +42,8 @@ abstract class SSPIAuthentication {
      * @param port
      *        port number
      * @return SPN
-     * @throws SQLServerException
-     *         if error occurs
      */
-    private String makeSpn(SQLServerConnection con, String server, int port) throws SQLServerException {
+    private String makeSpn(SQLServerConnection con, String server, int port) {
         StringBuilder spn = new StringBuilder("MSSQLSvc/");
         // Format is MSSQLSvc/myhost.domain.company.com:1433 FQDN must be provided
         if (con.serverNameAsACE()) {
@@ -168,10 +166,8 @@ abstract class SSPIAuthentication {
      * @param con
      *        connection to SQL server
      * @return SPN
-     * @throws SQLServerException
-     *         if error occurs
      */
-    String getSpn(SQLServerConnection con) throws SQLServerException {
+    String getSpn(SQLServerConnection con) {
         if (null == con || null == con.activeConnectionProperties) {
             return null;
         }
