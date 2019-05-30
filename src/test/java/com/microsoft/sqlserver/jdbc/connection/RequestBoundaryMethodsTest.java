@@ -135,13 +135,9 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                         holdability2, sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                         serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
                         useBulkCopyForBatchInsert2);
-                // drop the database
-                con.setCatalog("master");
             }
         } finally {
-            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                TestUtils.dropDatabaseIfExists(sCatalog2, stmt);
-            }
+            TestUtils.dropDatabaseIfExists(sCatalog2, connectionString);
         }
     }
 
