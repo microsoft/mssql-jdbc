@@ -675,7 +675,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // If the user supplies a true match for the column name, we will find it here.
         for (int i = 0; i < columns.length; i++) {
             if (columns[i].getColumnName().equals(userProvidedColumnName)) {
-                columnNames.put(columns[i].getColumnName(), i + 1);
+                columnNames.put(userProvidedColumnName, i + 1);
                 loggerExternal.exiting(getClassNameLogging(), "findColumn", i + 1);
                 return i + 1;
             }
@@ -687,7 +687,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // Use VM supplied String.equalsIgnoreCase to do the "case-insensitive search".
         for (int i = 0; i < columns.length; i++) {
             if (columns[i].getColumnName().equalsIgnoreCase(userProvidedColumnName)) {
-                columnNames.put(columns[i].getColumnName(), i + 1);
+                columnNames.put(userProvidedColumnName, i + 1);
                 loggerExternal.exiting(getClassNameLogging(), "findColumn", i + 1);
                 return i + 1;
             }
