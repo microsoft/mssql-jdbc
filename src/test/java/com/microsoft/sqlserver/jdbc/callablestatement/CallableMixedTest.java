@@ -115,8 +115,12 @@ public class CallableMixedTest extends AbstractTest {
             } finally {
                 TestUtils.dropProcedureIfExists(procName, stmt);
                 TestUtils.dropTableIfExists(tableName, stmt);
-                stmt.execute("DROP USER " + user);
-                stmt.execute("DROP LOGIN " + user);
+                stmt.close();
+                c.close();
+                try (Connection c2 = getConnection(); Statement stmt2 = c2.createStatement()) {
+                    stmt2.execute("DROP USER " + AbstractSQLGenerator.escapeIdentifier(user));
+                    stmt2.execute("DROP LOGIN " + AbstractSQLGenerator.escapeIdentifier(user));
+                }
             }
         }
     }
