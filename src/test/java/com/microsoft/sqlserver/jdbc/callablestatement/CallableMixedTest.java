@@ -109,7 +109,7 @@ public class CallableMixedTest extends AbstractTest {
             try {
                 stmt.execute("EXECUTE AS USER='" + user + "';EXECUTE " + AbstractSQLGenerator.escapeIdentifier(procName)
                         + " 1,'hi';");
-                fail(TestResource.getResource("R_shouldThrowException");
+                fail(TestResource.getResource("R_shouldThrowException"));
             } catch (SQLException e) {
                 assertTrue(e.getMessage().matches(TestResource.formatErrorMsg("R_NoPrivilege")));
             } finally {
