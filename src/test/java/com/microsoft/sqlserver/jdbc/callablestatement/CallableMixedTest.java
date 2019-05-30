@@ -98,7 +98,6 @@ public class CallableMixedTest extends AbstractTest {
             String pass = "priv_pass" + UUID.randomUUID();
 
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
 
             stmt.execute(
                     "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id int, name varchar(50))");
