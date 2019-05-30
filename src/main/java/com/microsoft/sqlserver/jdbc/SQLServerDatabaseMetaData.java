@@ -612,8 +612,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         checkClosed();
         if (!this.connection.isAzureDW()) {
-            String originalCatalog = null;
-            originalCatalog = switchCatalogs(catalog);
+            String originalCatalog = switchCatalogs(catalog);
             String spColumnsSql = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
                     + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
                     + "LENGTH INT, SCALE SMALLINT, RADIX SMALLINT, NULLABLE SMALLINT, REMARKS VARCHAR(254), COLUMN_DEF NVARCHAR(4000),"
@@ -636,7 +635,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
                     + "FROM @mssqljdbc_temp_sp_columns_result;";
             SQLServerResultSet rs = null;
-            SQLException errorOnClose = null;
             PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
             pstmt.closeOnCompletion();
             try {
@@ -657,7 +655,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     try {
                         pstmt.close();
                     } catch (SQLServerException ignore) {
-                        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
+                        if (loggerExternal.isLoggable(Level.FINER)) {
                             loggerExternal.finer("findColumn() threw an exception when attempting to close PreparedStatement");
                         }
                     }
@@ -688,7 +686,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 storedProcPstmt.setInt(6, 3);// odbc version
 
                 SQLServerResultSet userRs = null;
-                SQLException errorOnClose = null;
                 PreparedStatement resultPstmt = null;
                 try (ResultSet rs = storedProcPstmt.executeQuery()) {
                     rs.next();
@@ -746,7 +743,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                         try {
                             resultPstmt.close();
                         } catch (SQLServerException ignore) {
-                            if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
+                            if (loggerExternal.isLoggable(Level.FINER)) {
                                 loggerExternal.finer("findColumn() threw an exception when attempting to close PreparedStatement");
                             }
                         }
