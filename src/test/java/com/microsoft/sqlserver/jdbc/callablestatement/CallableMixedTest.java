@@ -89,7 +89,7 @@ public class CallableMixedTest extends AbstractTest {
     @Tag("xAzureSQLDB")
     @Tag("xAzureSQLDW")
     @Tag("xAzureSQLMI")
-    public void noPrivilege() throws SQLException {
+    public void noPrivilegeTest() throws SQLException {
         try (Connection c = getConnection();
                 Statement stmt = c.createStatement()) {
             String tableName = RandomUtil.getIdentifier("jdbc_priv");
