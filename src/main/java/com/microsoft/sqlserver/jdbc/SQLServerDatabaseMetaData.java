@@ -656,7 +656,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                         pstmt.close();
                     } catch (SQLServerException ignore) {
                         if (loggerExternal.isLoggable(Level.FINER)) {
-                            loggerExternal.finer("findColumn() threw an exception when attempting to close PreparedStatement");
+                            loggerExternal.finer("getColumns() threw an exception when attempting to close PreparedStatement");
                         }
                     }
                 }
@@ -744,7 +744,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                             resultPstmt.close();
                         } catch (SQLServerException ignore) {
                             if (loggerExternal.isLoggable(Level.FINER)) {
-                                loggerExternal.finer("findColumn() threw an exception when attempting to close PreparedStatement");
+                                loggerExternal.finer("getColumns() threw an exception when attempting to close PreparedStatement");
                             }
                         }
                     }
