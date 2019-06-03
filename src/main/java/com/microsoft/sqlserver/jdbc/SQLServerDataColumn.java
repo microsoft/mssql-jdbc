@@ -45,4 +45,35 @@ public final class SQLServerDataColumn {
     public int getColumnType() {
         return javaSqlType;
     }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 31 * hash + javaSqlType;
+        hash = 31 * hash + precision;
+        hash = 31 * hash + scale;
+        hash = 31 * hash + numberOfDigitsIntegerPart;
+        hash = 31 * hash + (null != columnName ? columnName.hashCode() : 0);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (null != object && object.getClass() == SQLServerDataColumn.class) {
+            SQLServerDataColumn aSQLServerDataColumn = (SQLServerDataColumn) object;
+            if (hashCode() == aSQLServerDataColumn.hashCode()) {
+                // Compare objects to avoid collision
+                return ((null == columnName && null == aSQLServerDataColumn.columnName
+                        || columnName.equals(aSQLServerDataColumn.columnName))
+                        && javaSqlType == aSQLServerDataColumn.javaSqlType
+                        && numberOfDigitsIntegerPart == aSQLServerDataColumn.numberOfDigitsIntegerPart
+                        && precision == aSQLServerDataColumn.precision && scale == aSQLServerDataColumn.scale);
+            }
+        }
+        return false;
+    }
 }

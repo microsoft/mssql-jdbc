@@ -129,6 +129,20 @@ public class TimeoutTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testGetClosedTimer() throws SQLServerException, SQLException {
+        try (SQLServerConnection conn = getConnection()) {
+            conn.close();
+            @SuppressWarnings("unused")
+            SharedTimer timer = conn.getSharedTimer();
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_connectionIsClosed")));
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+    }
+
     private static void runQuery(String query, int timeout) throws SQLException {
         try (Connection conn = getConnection()) {
             runQuery(conn, query, timeout);

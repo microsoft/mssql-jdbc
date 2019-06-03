@@ -154,10 +154,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Return an existing cached SharedTimer associated with this Connection or create a new one.
      *
      * The SharedTimer will be released when the Connection is closed.
+     * 
+     * @throws SQLServerException
      */
-    SharedTimer getSharedTimer() {
+    SharedTimer getSharedTimer() throws SQLServerException {
         if (state == State.Closed) {
-            throw new IllegalStateException(SQLServerException.getErrString("R_connectionIsClosed"));
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
+                    null, false);
         }
         if (null == sharedTimer) {
             this.sharedTimer = SharedTimer.getTimer();
@@ -1087,6 +1090,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Returns if Federated Authentication is in use or is about to expire soon
+     * 
+     * @return true/false
+     * @throws SQLServerException
+     *         if an error occurs.
      */
     protected boolean needsReconnect() throws SQLServerException {
         return (null != fedAuthToken && Util.checkIfNeedNewAccessToken(this, fedAuthToken.expiresOn));
@@ -1432,6 +1439,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
+
+            if (null == globalCustomColumnEncryptionKeyStoreProviders) {
+                sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    String keyVaultColumnEncryptionProviderClientId = sPropValue;
+                    sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null != sPropValue) {
+                        String keyVaultColumnEncryptionProviderClientKey = sPropValue;
+                        SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                                keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
+                        Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+                        keyStoreMap.put(akvProvider.getName(), akvProvider);
+                        registerColumnEncryptionKeyStoreProviders(keyStoreMap);
+                    }
+                }
+            }
 
             sPropKey = SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);

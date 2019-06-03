@@ -877,6 +877,24 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue());
     }
 
+    @Override
+    public void setKeyVaultProviderClientId(String keyVaultProviderClientId) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),
+                keyVaultProviderClientId);
+    }
+
+    @Override
+    public String getKeyVaultProviderClientId() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),
+                SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.getDefaultValue());
+    }
+
+    @Override
+    public void setKeyVaultProviderClientKey(String keyVaultProviderClientKey) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString(),
+                keyVaultProviderClientKey);
+    }
+
     /**
      * Sets a property string value.
      * 
