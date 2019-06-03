@@ -611,8 +611,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
+        String originalCatalog = switchCatalogs(catalog);
         if (!this.connection.isAzureDW()) {
-            String originalCatalog = switchCatalogs(catalog);
             String spColumnsSql = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
                     + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
                     + "LENGTH INT, SCALE SMALLINT, RADIX SMALLINT, NULLABLE SMALLINT, REMARKS VARCHAR(254), COLUMN_DEF NVARCHAR(4000),"
@@ -674,7 +674,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
              * when user provides a different catalog than the one they're currently connected to. Will throw exception
              * when it's different and do nothing if it's the same/null.
              */
-            switchCatalogs(catalog);
             try (PreparedStatement storedProcPstmt = this.connection
                     .prepareStatement("EXEC sp_columns_100 ?,?,?,?,?,?;")) {
                 storedProcPstmt.setString(1, (null != table && !table.isEmpty()) ? table : "%");
