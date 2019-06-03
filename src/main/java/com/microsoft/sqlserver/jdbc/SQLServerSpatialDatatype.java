@@ -139,7 +139,11 @@ abstract class SQLServerSpatialDatatype {
         }
 
         if (isSinglePoint || isSingleLineSegment) {
-            wkb = buf.array();
+            if (noZM) {
+                wkbNoZM = buf.array();
+            } else {
+                wkb = buf.array();
+            }
             return;
         }
 
