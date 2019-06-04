@@ -107,10 +107,10 @@ final class SQLServerSymmetricKeyCache {
             if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
                 aeLogger.fine("Checking trusted master key path...");
             }
-            Boolean[] hasEntry = new Boolean[1];
+            boolean hasEntry = false;
             List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
                     hasEntry);
-            if (hasEntry[0]) {
+            if (hasEntry) {
                 if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size())
                         || (!trustedKeyPaths.contains(keyInfo.keyPath))) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));

@@ -3723,9 +3723,7 @@ final class ServerDTVImpl extends DTVImpl {
                             JDBCType.VARBINARY, streamGetterArgs);
                 }
 
-                if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
-                    aeLogger.fine("Encrypted data is retrieved.");
-                }
+                aeLogger.fine("Encrypted data is retrieved.");
 
                 // AE does not support streaming types
                 if ((convertedValue instanceof SimpleInputStream) || (convertedValue instanceof PLPInputStream)) {
