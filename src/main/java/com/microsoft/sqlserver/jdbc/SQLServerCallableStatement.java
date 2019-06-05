@@ -1283,14 +1283,15 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "07009", false);
                 }
 
-                ResultSet rs = s.executeQueryInternal(metaQuery.toString());
-                parameterNames = new HashMap<>();
-                insensitiveParameterNames = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-                int columnIndex = 0;
-                while (rs.next()) {
-                    String p = rs.getString(4);
-                    parameterNames.put(p, columnIndex);
-                    insensitiveParameterNames.put(p, columnIndex++);
+                try (ResultSet rs = s.executeQueryInternal(metaQuery.toString())) {
+                    parameterNames = new HashMap<>();
+                    insensitiveParameterNames = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+                    int columnIndex = 0;
+                    while (rs.next()) {
+                        String p = rs.getString(4);
+                        parameterNames.put(p, columnIndex);
+                        insensitiveParameterNames.put(p, columnIndex++);
+                    }
                 }
             } catch (SQLException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.toString(), null, false);
@@ -1314,11 +1315,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // 1. Search using case-sensitive non-locale specific (binary) compare first.
         // 2. Search using case-insensitive, non-locale specific (binary) compare last.
-        Integer matchPos = parameterNames.get(columnNameWithSign);
-        if (null == matchPos) {
+        int matchPos = parameterNames.get(columnNameWithSign) != null ? parameterNames.get(columnNameWithSign)
+                .intValue() : -1;
+        if (-1 == matchPos) {
             matchPos = insensitiveParameterNames.get(columnNameWithSign);
         }
-        if (null == matchPos) {
+        if (-1 == matchPos) {
             MessageFormat form = new MessageFormat(
                     SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
             Object[] msgArgs = {columnName, procedureName};
