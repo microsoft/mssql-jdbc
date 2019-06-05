@@ -698,7 +698,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         loggerExternal.entering(getClassNameLogging(), "getObject", index);
         checkClosed();
         Object value = getValue(index,
-                getterGetParam(index).getJdbcTypeSetByUser() != null ? getterGetParam(index).getJdbcTypeSetByUser()
+                null != getterGetParam(index).getJdbcTypeSetByUser() ? getterGetParam(index).getJdbcTypeSetByUser()
                                                                      : getterGetParam(index).getJdbcType());
         loggerExternal.exiting(getClassNameLogging(), "getObject", value);
         return value;
@@ -739,7 +739,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         } else if (type == UUID.class) {
             // read binary, avoid string allocation and parsing
             byte[] guid = getBytes(index);
-            returnValue = guid != null ? Util.readGUIDtoUUID(guid) : null;
+            returnValue = null != guid ? Util.readGUIDtoUUID(guid) : null;
         } else if (type == SQLXML.class) {
             returnValue = getSQLXML(index);
         } else if (type == Blob.class) {
@@ -774,7 +774,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         checkClosed();
         int parameterIndex = findColumn(parameterName);
         Object value = getValue(parameterIndex,
-                getterGetParam(parameterIndex).getJdbcTypeSetByUser() != null ? getterGetParam(parameterIndex)
+                null != getterGetParam(parameterIndex).getJdbcTypeSetByUser() ? getterGetParam(parameterIndex)
                         .getJdbcTypeSetByUser() : getterGetParam(parameterIndex).getJdbcType());
         loggerExternal.exiting(getClassNameLogging(), "getObject", value);
         return value;
@@ -1249,7 +1249,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      * @return the index
      */
     private int findColumn(String columnName) throws SQLServerException {
-        if (parameterNames == null) {
+        if (null == parameterNames) {
             try (SQLServerStatement s = (SQLServerStatement) connection.createStatement()) {
                 // Note we are concatenating the information from the passed in sql, not any arguments provided by the
                 // user
@@ -1299,7 +1299,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         }
 
         int l = 0;
-        if (parameterNames != null)
+        if (null != parameterNames)
             l = parameterNames.size();
         if (l == 0)// Server didn't return anything, user might not have access
             return 1;// attempting to look up the first column will return no access exception
@@ -1313,7 +1313,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         // locales, we search for parameter names using the following scheme:
 
         // 1. Search using case-sensitive non-locale specific (binary) compare first.
-        // 2. Search using case-insensitive, non-locale specific (binary) compare last.        
+        // 2. Search using case-insensitive, non-locale specific (binary) compare last.
         Integer matchPos = parameterNames.get(columnNameWithSign);
         if (null == matchPos) {
             matchPos = insensitiveParameterNames.get(columnNameWithSign);
