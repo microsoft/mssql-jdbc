@@ -1315,12 +1315,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // 1. Search using case-sensitive non-locale specific (binary) compare first.
         // 2. Search using case-insensitive, non-locale specific (binary) compare last.
-        int matchPos = parameterNames.get(columnNameWithSign) != null ? parameterNames.get(columnNameWithSign)
-                .intValue() : -1;
-        if (-1 == matchPos) {
+        Integer matchPos = parameterNames.get(columnNameWithSign);
+        if (null == matchPos) {
             matchPos = insensitiveParameterNames.get(columnNameWithSign);
         }
-        if (-1 == matchPos) {
+        if (null == matchPos) {
             MessageFormat form = new MessageFormat(
                     SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
             Object[] msgArgs = {columnName, procedureName};
