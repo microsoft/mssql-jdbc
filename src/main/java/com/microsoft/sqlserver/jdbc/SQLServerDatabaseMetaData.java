@@ -766,7 +766,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 } else if (o instanceof Number) {
                     sb.append(o.toString());
                 } else {
-                    sb.append("'").append(o.toString()).append("'");
+                    sb.append("'").append(Util.escapeSingleQuotes(o.toString())).append("'");
                 }
             }
             sb.append(" AS ").append(p.getValue()).append(",");
