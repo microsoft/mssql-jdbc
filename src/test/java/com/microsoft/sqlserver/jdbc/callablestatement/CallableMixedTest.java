@@ -77,8 +77,6 @@ public class CallableMixedTest extends AbstractTest {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
                 TestUtils.dropProcedureIfExists(escapedProcName, stmt);
-            } catch (SQLException e) {
-                fail(e.getMessage());
             }
         }
     }
