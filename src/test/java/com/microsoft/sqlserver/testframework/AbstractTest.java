@@ -5,6 +5,8 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -14,6 +16,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -26,6 +30,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
+import com.microsoft.aad.adal4j.AuthenticationContext;
+import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
@@ -51,25 +57,34 @@ public abstract class AbstractTest {
     public static String applicationKey = null;
     public static String[] keyIds = null;
 
-    public static String[] jksPaths = null;
-    public static String jksPathsLinux = null;
-    public static String[] javaKeyAliases = null;
-    public static String windowsKeyPath = null;
-
     public static String azureServer = null;
     public static String azureDatabase = null;
     public static String azureUserName = null;
     public static String azurePassword = null;
     public static String azureGroupUserName = null;
-    public static String msAzureServer = null;
-    public static String msAzureDatabase = null;
-    public static String msAzureUserName = null;
-    public static String msAzurePassword = null;
+
     public static String spn = null;
     public static String stsurl = null;
     public static String fedauthClientId = null;
-    public static boolean enableADIntegrated = false;
-    public static boolean enableADMSI = false;
+
+    public static String accessToken = null;
+    public static String secretstrJks = "changeit";
+    public static String hostNameInCertificate = "*.database.windows.net";
+    public static long secondsBeforeExpiration = -1;
+
+    public static String[] jksPaths = null;
+    public static String[] jksPathsLinux = null;
+    public static String[] javaKeyAliases = null;
+    public static String windowsKeyPath = null;
+
+    public enum AzureAuthMode {
+        SqlPassword,
+        ActiveDirectoryIntegrated,
+        ActiveDirectoryMSI
+    };
+
+    public static AzureAuthMode azureAuthMode = null;
+
     protected static SQLServerConnection connection = null;
     protected static ISQLServerDataSource ds = null;
     protected static ISQLServerDataSource dsXA = null;
@@ -78,10 +93,6 @@ public abstract class AbstractTest {
     protected static Connection connectionAzure = null;
     protected static String connectionString = null;
 
-    protected static String accessToken = null;
-    protected static long secondsBeforeExpiration = -1;
-    protected static String secretstrJks = "changeit";
-    protected static String hostNameInCertificate = "*.database.windows.net";
     private static boolean _determinedSqlAzureOrSqlServer = false;
     private static boolean _isSqlAzure = false;
     private static boolean _isSqlAzureDW = false;
@@ -105,14 +116,39 @@ public abstract class AbstractTest {
         // Invoke fine logging...
         invokeLogging();
 
-        applicationClientId = getConfiguredProperty("applicationClientId");
-        applicationKey = getConfiguredProperty("applicationKey");
-        keyIds = getConfiguredProperty("keyId", "").split(Constants.SEMI_COLON);
-        connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
+        // get Properties from config file
         try (InputStream input = new FileInputStream(Constants.CONFIG_PROPERTIES_FILE)) {
             properties = new Properties();
             properties.load(input);
         }
+
+        String authMode = getConfiguredProperty("azureAuthMode");
+        if (authMode.equals(AzureAuthMode.ActiveDirectoryIntegrated.toString())) {
+            azureAuthMode = AzureAuthMode.ActiveDirectoryIntegrated;
+        } else if (authMode.equals(AzureAuthMode.ActiveDirectoryMSI.toString())) {
+            azureAuthMode = AzureAuthMode.ActiveDirectoryMSI;
+        } else {
+            azureAuthMode = AzureAuthMode.SqlPassword;
+        }
+
+        applicationClientId = getConfiguredProperty("applicationClientId");
+        applicationKey = getConfiguredProperty("applicationKey");
+        keyIds = getConfiguredProperty("keyId", "").split(Constants.SEMI_COLON);
+        jksPaths = getConfiguredProperty("jksPaths", "").split(Constants.SEMI_COLON);
+        jksPathsLinux = getConfiguredProperty("jksPathsLinux", "").split(Constants.SEMI_COLON);
+        javaKeyAliases = getConfiguredProperty("javaKeyAliases", "").split(Constants.SEMI_COLON);
+
+        azureServer = getConfiguredProperty("azureServer");
+        azureDatabase = getConfiguredProperty("azureDatabase");
+        azureUserName = getConfiguredProperty("azureUserName");
+        azurePassword = getConfiguredProperty("azurePassword");
+        azureGroupUserName = getConfiguredProperty("azureGroupUserName");
+
+        spn = getConfiguredProperty("spn");
+        stsurl = getConfiguredProperty("stsurl");
+        fedauthClientId = getConfiguredProperty("fedauthClientId");
+
+        connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
 
         ds = updateDataSource(new SQLServerDataSource());
         dsXA = updateDataSource(new SQLServerXADataSource());
@@ -359,6 +395,22 @@ public abstract class AbstractTest {
                     || engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
             _isSqlAzureDW = (engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
             _determinedSqlAzureOrSqlServer = true;
+        }
+    }
+
+    /**
+     * Get Fedauth info
+     * 
+     */
+    protected static void getFedauthInfo() {
+        try {
+            AuthenticationContext context = new AuthenticationContext(stsurl, false, Executors.newFixedThreadPool(1));
+            Future<AuthenticationResult> future = context.acquireToken(spn, fedauthClientId, azureUserName,
+                    azurePassword, null);
+            secondsBeforeExpiration = future.get().getExpiresAfter();
+            accessToken = future.get().getAccessToken();
+        } catch (Exception e) {
+            fail(e.getMessage());
         }
     }
 }

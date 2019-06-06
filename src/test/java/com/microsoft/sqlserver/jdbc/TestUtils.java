@@ -26,7 +26,6 @@ import java.util.ResourceBundle;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
@@ -140,11 +139,11 @@ public class TestUtils {
         return value;
     }
 
+    /*
     public static void getPropertiesFromFile() {
-        String key = Boolean.toString(AbstractTest.enableADIntegrated);
         AbstractTest.enableADIntegrated = getConfiguredProperty(Boolean.toString(AbstractTest.enableADIntegrated),
                 Boolean.TRUE.toString()).equalsIgnoreCase(Boolean.TRUE.toString());
-        AbstractTest.enableADIntegrated = getConfiguredProperty(Boolean.toString(AbstractTest.enableADMSI),
+        AbstractTest.enableADMSI = getConfiguredProperty(Boolean.toString(AbstractTest.enableADMSI),
                 Boolean.TRUE.toString()).equalsIgnoreCase(Boolean.TRUE.toString());
         AbstractTest.azureServer = getConfiguredProperty(Constants.AZURESERVER);
         AbstractTest.azureDatabase = getConfiguredProperty(Constants.AZUREDATABASE);
@@ -168,7 +167,8 @@ public class TestUtils {
         }
         AbstractTest.javaKeyAliases = getConfiguredProperty(Constants.JAVAKEYALIASES).split(";");
     }
-
+*/
+    
     /**
      * 
      * @param javatype
