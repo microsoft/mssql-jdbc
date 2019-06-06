@@ -330,6 +330,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testGetDBColumn() throws SQLException {
 
         try (Connection conn = getConnection()) {
