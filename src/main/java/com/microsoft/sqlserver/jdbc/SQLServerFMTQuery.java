@@ -59,10 +59,10 @@ class SQLServerFMTQuery {
      */
     String constructColumnTargets() {
         if (userColumns.contains("?")) {
-            return userColumns.stream().filter(s -> !s.equals("?")).map(s -> s.equals("") ? "NULL" : s)
+            return userColumns.stream().filter(s -> !"?".equals(s)).map(s -> "".equals(s) ? "NULL" : s)
                     .collect(Collectors.joining(","));
         } else {
-            return userColumns.isEmpty() ? "*" : userColumns.stream().map(s -> s.equals("") ? "NULL" : s)
+            return userColumns.isEmpty() ? "*" : userColumns.stream().map(s -> "".equals(s) ? "NULL" : s)
                     .collect(Collectors.joining(","));
         }
     }
