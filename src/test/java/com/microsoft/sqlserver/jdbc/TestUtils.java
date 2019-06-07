@@ -139,35 +139,6 @@ public class TestUtils {
         return value;
     }
 
-    /*
-    public static void getPropertiesFromFile() {
-        AbstractTest.enableADIntegrated = getConfiguredProperty(Boolean.toString(AbstractTest.enableADIntegrated),
-                Boolean.TRUE.toString()).equalsIgnoreCase(Boolean.TRUE.toString());
-        AbstractTest.enableADMSI = getConfiguredProperty(Boolean.toString(AbstractTest.enableADMSI),
-                Boolean.TRUE.toString()).equalsIgnoreCase(Boolean.TRUE.toString());
-        AbstractTest.azureServer = getConfiguredProperty(Constants.AZURESERVER);
-        AbstractTest.azureDatabase = getConfiguredProperty(Constants.AZUREDATABASE);
-        AbstractTest.azureUserName = getConfiguredProperty(Constants.AZUREUSERNAME);
-        AbstractTest.azurePassword = getConfiguredProperty(Constants.AZUREPASSWORD);
-        AbstractTest.spn = getConfiguredProperty(Constants.SPN);
-        AbstractTest.stsurl = getConfiguredProperty(Constants.STSURL);
-        AbstractTest.fedauthClientId = getConfiguredProperty(Constants.FEDAUTHCLIENTID);
-        AbstractTest.azureGroupUserName = getConfiguredProperty(Constants.AZUREGROUPUSERNAME);
-        AbstractTest.msAzureServer = getConfiguredProperty(Constants.MSAZURESERVER);
-        AbstractTest.msAzureDatabase = getConfiguredProperty(Constants.MSAZUREDATABASE);
-        AbstractTest.msAzureUserName = getConfiguredProperty(Constants.MSAZUREUSERNAME);
-        AbstractTest.msAzurePassword = getConfiguredProperty(Constants.MSAZUREPASSWORD);
-        AbstractTest.applicationClientId = getConfiguredProperty(Constants.APPLICATIONCLIENTID);
-        AbstractTest.applicationKey = getConfiguredProperty(Constants.APPLICATIONKEY);
-        AbstractTest.windowsKeyPath = getConfiguredProperty(Constants.WINDOWSKEYPATH);
-        AbstractTest.jksPaths = getConfiguredProperty(Constants.JKSPATH).split(";");
-        AbstractTest.keyIds = getConfiguredProperty(Constants.KEYID).split(";");
-        if (!System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
-            AbstractTest.jksPaths = getConfiguredProperty(Constants.JKSPATHSLINUX).split(";");
-        }
-        AbstractTest.javaKeyAliases = getConfiguredProperty(Constants.JAVAKEYALIASES).split(";");
-    }
-*/
     
     /**
      * 

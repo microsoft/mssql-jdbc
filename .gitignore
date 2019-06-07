@@ -14,6 +14,7 @@ AE_Certificates/
 *.swp
 *~.nib
 *.cer
+*.jks
 local.properties
 config.properties
 .classpath
