@@ -895,6 +895,17 @@ public class SQLServerDataSource
                 keyVaultProviderClientKey);
     }
 
+    @Override
+    public void setDomain(String domain) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(), domain);
+    }
+
+    @Override
+    public String getDomain() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(),
+                SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
+    }
+
     /**
      * Sets a property string value.
      * 

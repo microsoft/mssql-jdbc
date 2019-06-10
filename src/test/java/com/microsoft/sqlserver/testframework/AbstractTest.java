@@ -47,7 +47,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
  * <li>Connection pool
  * <li>Configured Property file instead of passing from args.
  * <li>Think of different property files for different settings. / flag etc.
- * <Li>Think about what kind of logging we are going use it. <B>util.logging<B> will be preference.
+ * <Li>Think about what kind of logging we are going use it. <B>util.logging</B> will be preference.
  * 
  * @since 6.1.2
  */
@@ -92,15 +92,16 @@ public abstract class AbstractTest {
 
     protected static Connection connectionAzure = null;
     protected static String connectionString = null;
+    protected static String connectionStringNTLM;
 
-    private static boolean _determinedSqlAzureOrSqlServer = false;
-    private static boolean _isSqlAzure = false;
-    private static boolean _isSqlAzureDW = false;
+    private static boolean determinedSqlAzureOrSqlServer = false;
+    private static boolean isSqlAzure = false;
+    private static boolean isSqlAzureDW = false;
 
     /**
-     * Bytearray containing streamed logging output. Content can be retrieved using toByteArray() or toString()
+     * Byte Array containing streamed logging output. Content can be retrieved using toByteArray() or toString()
      */
-    public static ByteArrayOutputStream logOutputStream = null;
+    private static ByteArrayOutputStream logOutputStream = null;
     private static PrintStream logPrintStream = null;
 
     // String OS = System.getProperty("os.name").toLowerCase();
@@ -109,7 +110,7 @@ public abstract class AbstractTest {
     /**
      * This will take care of all initialization before running the Test Suite.
      * 
-     * @throws Exception
+     * @throws Exception when an error occurs
      */
     @BeforeAll
     public static void setup() throws Exception {
@@ -149,16 +150,41 @@ public abstract class AbstractTest {
         fedauthClientId = getConfiguredProperty("fedauthClientId");
 
         connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
+        connectionStringNTLM = connectionString;
 
-        ds = updateDataSource(new SQLServerDataSource());
-        dsXA = updateDataSource(new SQLServerXADataSource());
-        dsPool = updateDataSource(new SQLServerConnectionPoolDataSource());
+        // if these properties are defined then NTLM is desired, modify connection string accordingly
+        String domain = System.getProperty("domainNTLM");
+        String user = System.getProperty("userNTLM");
+        String password = System.getProperty("passwordNTLM");
+
+        if (null != domain) {
+            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "domain", domain);
+        }
+
+        if (null != user) {
+            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "user", user);
+        }
+
+        if (null != password) {
+            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "password", password);
+        }
+
+        if (null != user && null != password) {
+            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "authenticationScheme",
+                    "NTLM");
+            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");
+        }
+
+        ds = updateDataSource(connectionString, new SQLServerDataSource());
+        dsXA = updateDataSource(connectionString, new SQLServerXADataSource());
+        dsPool = updateDataSource(connectionString, new SQLServerConnectionPoolDataSource());
 
         try {
             Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
             Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
-            if (!SQLServerDriver.isRegistered())
+            if (!SQLServerDriver.isRegistered()) {
                 SQLServerDriver.register();
+            }
             if (null == connection || connection.isClosed()) {
                 connection = getConnection();
             }
@@ -176,7 +202,7 @@ public abstract class AbstractTest {
      *        DataSource to be configured
      * @return ISQLServerDataSource
      */
-    protected static ISQLServerDataSource updateDataSource(ISQLServerDataSource ds) {
+    protected static ISQLServerDataSource updateDataSource(String connectionString, ISQLServerDataSource ds) {
         if (null != connectionString && connectionString.startsWith(Constants.JDBC_PREFIX)) {
             String extract = connectionString.substring(Constants.JDBC_PREFIX.length());
             String[] identifiers = extract.split(Constants.SEMI_COLON);
@@ -198,6 +224,7 @@ public abstract class AbstractTest {
                     switch (name.toUpperCase()) {
                         case Constants.INTEGRATED_SECURITY:
                             ds.setIntegratedSecurity(Boolean.parseBoolean(value));
+                            break;
                         case Constants.USER:
                         case Constants.USER_NAME:
                             ds.setUser(value);
@@ -208,6 +235,10 @@ public abstract class AbstractTest {
                             break;
                         case Constants.PASSWORD:
                             ds.setPassword(value);
+                            break;
+                        case Constants.DOMAIN:
+                        case Constants.DOMAIN_NAME:
+                            ds.setDomain(value);
                             break;
                         case Constants.DATABASE:
                         case Constants.DATABASE_NAME:
@@ -257,7 +288,7 @@ public abstract class AbstractTest {
     /**
      * Get the connection String
      * 
-     * @return
+     * @return connectionString
      */
     public static String getConnectionString() {
         return connectionString;
@@ -276,7 +307,7 @@ public abstract class AbstractTest {
     /**
      * This will take care of all clean ups after running the Test Suite.
      * 
-     * @throws Exception
+     * @throws Exception when an error occurs
      */
     @AfterAll
     public static void teardown() throws Exception {
@@ -303,6 +334,7 @@ public abstract class AbstractTest {
      * Read variable from property files if found null try to read from env.
      * 
      * @param key
+     *        Key
      * @return Value
      */
     public static String getConfiguredProperty(String key) {
@@ -313,6 +345,9 @@ public abstract class AbstractTest {
      * Convenient method for {@link #getConfiguredProperty(String)}
      * 
      * @param key
+     *        Key
+     * @param defaultValue
+     *        Default Value
      * @return Value
      */
     public static String getConfiguredProperty(String key, String defaultValue) {
@@ -366,12 +401,22 @@ public abstract class AbstractTest {
         }
     }
 
+    /**
+     * Returns if target Server is SQL Azure Database
+     * 
+     * @return true/false
+     */
     public static boolean isSqlAzure() {
-        return _isSqlAzure;
+        return isSqlAzure;
     }
 
+    /**
+     * Returns if target Server is SQL Azure DW
+     * 
+     * @return true/false
+     */
     public static boolean isSqlAzureDW() {
-        return _isSqlAzureDW;
+        return isSqlAzureDW;
     }
 
     /**
@@ -383,7 +428,7 @@ public abstract class AbstractTest {
      * @throws SQLException
      */
     private static void isSqlAzureOrAzureDW(Connection con) throws SQLException {
-        if (_determinedSqlAzureOrSqlServer) {
+        if (determinedSqlAzureOrSqlServer) {
             return;
         }
 
@@ -391,10 +436,10 @@ public abstract class AbstractTest {
                 ResultSet rs = stmt.executeQuery("SELECT CAST(SERVERPROPERTY('EngineEdition') as INT)")) {
             rs.next();
             int engineEdition = rs.getInt(1);
-            _isSqlAzure = (engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE
+            isSqlAzure = (engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE
                     || engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
-            _isSqlAzureDW = (engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
-            _determinedSqlAzureOrSqlServer = true;
+            isSqlAzureDW = (engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
+            determinedSqlAzureOrSqlServer = true;
         }
     }
 

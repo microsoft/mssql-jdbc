@@ -352,8 +352,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     Object[] msgArgs1 = {tableName};
                     fail(form1.format(msgArgs1));
                 } else {
-                    try (ResultSet rs1 = databaseMetaData.getColumns(null, null,
-                            AbstractSQLGenerator.escapeIdentifier(tableName), "%")) {
+                    try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "%")) {
                         MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
                         Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"Data Type"}, {"Type"},
                                 {"Column Size"}, {"Nullable value"}, {"IS_NULLABLE"}, {"IS_AUTOINCREMENT"}};
