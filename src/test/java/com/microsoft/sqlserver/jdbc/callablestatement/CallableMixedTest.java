@@ -89,13 +89,11 @@ public class CallableMixedTest extends AbstractTest {
     @Tag("xAzureSQLDW")
     @Tag("xAzureSQLMI")
     public void noPrivilegeTest() throws SQLException {
-        try (Connection c = getConnection();
-                Statement stmt = c.createStatement()) {
+        try (Connection c = getConnection(); Statement stmt = c.createStatement()) {
             String tableName = RandomUtil.getIdentifier("jdbc_priv");
             String procName = RandomUtil.getIdentifier("priv_proc");
             String user = "priv_user" + UUID.randomUUID();
             String pass = "priv_pass" + UUID.randomUUID();
-
 
             stmt.execute(
                     "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id int, name varchar(50))");
