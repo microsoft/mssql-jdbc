@@ -9,7 +9,9 @@ import java.util.logging.Logger;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 
 
-public class Constants {
+public final class Constants {
+    private Constants() {}
+
     /**
      * Use below tags for tests to exclude them from test group:
      * 
@@ -22,6 +24,7 @@ public class Constants {
      * xAzureSQLDB - - - - For tests not compatible with Azure SQL Database
      * xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
+     * NTLM  - - - - - - - For NTLM tests
      * </pre>
      */
     public static final String xJDBC42 = "xJDBC42";
@@ -32,6 +35,7 @@ public class Constants {
     public static final String xAzureSQLDB = "xAzureSQLDB";
     public static final String xAzureSQLDW = "xAzureSQLDW";
     public static final String xAzureSQLMI = "xAzureSQLMI";
+    public static final String NTLM = "NTLM";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");
@@ -69,8 +73,8 @@ public class Constants {
     public static final String LOGGING_HANDLER_CONSOLE = "console";
     public static final String LOGGING_HANDLER_STREAM = "stream";
 
-    public final static int ENGINE_EDITION_FOR_SQL_AZURE = 5;
-    public final static int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
+    public static final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
+    public static final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
 
     public static final Date DATE = new Date(new java.util.Date().getTime());
     public static final LocalDateTime NOW = LocalDateTime.now();
@@ -111,6 +115,8 @@ public class Constants {
     public static final String PORT = "PORT";
     public static final String PORT_NUMBER = "PORTNUMBER";
     public static final String PASSWORD = "PASSWORD";
+    public static final String DOMAIN = "DOMAIN";
+    public static final String DOMAIN_NAME = "DOMAINNAME";
     public static final String DATABASE = "DATABASE";
     public static final String DATABASE_NAME = "DATABASENAME";
     public static final String COLUMN_ENCRYPTION_SETTING = "COLUMNENCRYPTIONSETTING";
@@ -130,7 +136,7 @@ public class Constants {
     public static final String TRUST_STORE_PASSWORD = "TRUSTSTOREPASSWORD";
     public static final String TRUST_STORE = "TRUSTSTORE";
 
-    public static enum LOB {
+    public enum LOB {
         CLOB,
         NCLOB,
         BLOB

@@ -365,7 +365,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         try {
             tvp.addRow((Date) null);
         } catch (Exception e) {
-            assertTrue(e.getMessage().startsWith(TestUtils.rBundle.getString("R_invalidValueForTVPWithSQLVariant")));
+            assertTrue(e.getMessage().startsWith(TestUtils.R_BUNDLE.getString("R_invalidValueForTVPWithSQLVariant")));
         }
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
