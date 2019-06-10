@@ -556,7 +556,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_propertyNotSupported",
                     "Microsoft JDBC Driver for SQL Server currently does not support the property: {0}"},
             {"R_useFmtOnlyPropertyDescription",
-                    "Determines whether to parse user SQL and execute a FMTONLY query to retrieve parametermetadata."},
+                    "Determines whether to enable/disable use of SET FMTONLY to retrieve parameter metadata."},
             {"R_invalidOpenqueryCall",
                     "Invalid syntax: OPENQUERY/OPENJSON/OPENDATASOURCE/OPENROWSET/OPENXML must be preceded by round brackets"},
             {"R_invalidCTEFormat",
