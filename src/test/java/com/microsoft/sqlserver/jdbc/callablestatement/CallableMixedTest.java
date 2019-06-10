@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -90,13 +89,11 @@ public class CallableMixedTest extends AbstractTest {
     @Tag("xAzureSQLDW")
     @Tag("xAzureSQLMI")
     public void noPrivilegeTest() throws SQLException {
-        try (Connection c = getConnection();
-                Statement stmt = c.createStatement()) {
+        try (Connection c = getConnection(); Statement stmt = c.createStatement()) {
             String tableName = RandomUtil.getIdentifier("jdbc_priv");
             String procName = RandomUtil.getIdentifier("priv_proc");
             String user = "priv_user" + UUID.randomUUID();
             String pass = "priv_pass" + UUID.randomUUID();
-
 
             stmt.execute(
                     "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id int, name varchar(50))");
@@ -113,11 +110,9 @@ public class CallableMixedTest extends AbstractTest {
             } catch (SQLException e) {
                 assertTrue(e.getMessage().matches(TestResource.formatErrorMsg("R_NoPrivilege")));
             } finally {
-                TestUtils.dropProcedureIfExists(procName, stmt);
-                TestUtils.dropTableIfExists(tableName, stmt);
-                stmt.close();
-                c.close();
                 try (Connection c2 = getConnection(); Statement stmt2 = c2.createStatement()) {
+                    TestUtils.dropProcedureIfExists(procName, stmt2);
+                    TestUtils.dropTableIfExists(tableName, stmt2);
                     stmt2.execute("DROP USER " + AbstractSQLGenerator.escapeIdentifier(user));
                     stmt2.execute("DROP LOGIN " + AbstractSQLGenerator.escapeIdentifier(user));
                 }

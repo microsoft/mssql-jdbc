@@ -70,7 +70,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return "SQLServerCallableStatement";
     }
 
-    Map<String,Integer> map = new ConcurrentHashMap<>();
+    Map<String, Integer> map = new ConcurrentHashMap<>();
     AtomicInteger ai = new AtomicInteger(0);
 
     /**
@@ -1304,7 +1304,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             l = parameterNames.size();
         }
         if (l == 0) { // Server didn't return anything, user might not have access
-            map.putIfAbsent(columnName,ai.incrementAndGet());
+            map.putIfAbsent(columnName, ai.incrementAndGet());
             return map.get(columnName);// attempting to look up the first column will return no access exception
         }
 
