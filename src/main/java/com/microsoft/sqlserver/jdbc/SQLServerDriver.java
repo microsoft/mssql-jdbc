@@ -171,6 +171,7 @@ enum KeyStoreAuthentication {
 
 enum AuthenticationScheme {
     nativeAuthentication,
+    ntlm,
     javaKerberos;
 
     static AuthenticationScheme valueOfString(String value) throws SQLServerException {
@@ -180,6 +181,8 @@ enum AuthenticationScheme {
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(AuthenticationScheme.nativeAuthentication.toString())) {
             scheme = AuthenticationScheme.nativeAuthentication;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(AuthenticationScheme.ntlm.toString())) {
+            scheme = AuthenticationScheme.ntlm;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidAuthenticationScheme"));
             Object[] msgArgs = {value};
@@ -269,6 +272,7 @@ enum SQLServerDriverStringProperty {
     PASSWORD("password", ""),
     RESPONSE_BUFFERING("responseBuffering", "adaptive"),
     SELECT_METHOD("selectMethod", "direct"),
+    DOMAIN("domain", ""),
     SERVER_NAME("serverName", ""),
     SERVER_SPN("serverSpn", ""),
     TRUST_STORE_TYPE("trustStoreType", "JKS"),
@@ -450,6 +454,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.getDefaultValue()), false,
                     TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DOMAIN.toString(),
+                    SQLServerDriverStringProperty.DOMAIN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_NAME.toString(),
                     SQLServerDriverStringProperty.SERVER_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_SPN.toString(),
@@ -483,7 +489,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(),
                     SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.getDefaultValue(), false,
                     new String[] {AuthenticationScheme.javaKerberos.toString(),
-                            AuthenticationScheme.nativeAuthentication.toString()}),
+                            AuthenticationScheme.nativeAuthentication.toString(),
+                            AuthenticationScheme.ntlm.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION.toString(),
                     SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(), false,
                     new String[] {SqlAuthentication.NotSpecified.toString(), SqlAuthentication.SqlPassword.toString(),
@@ -543,6 +550,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             {"database", SQLServerDriverStringProperty.DATABASE_NAME.toString()},
             {"userName", SQLServerDriverStringProperty.USER.toString()},
             {"server", SQLServerDriverStringProperty.SERVER_NAME.toString()},
+            {"domainName", SQLServerDriverStringProperty.DOMAIN.toString()},
             {"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}};
     static private final AtomicInteger baseID = new AtomicInteger(0); // Unique id generator for each instance (used for
                                                                       // logging).
