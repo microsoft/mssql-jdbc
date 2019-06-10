@@ -116,7 +116,7 @@ public class ParameterMetaDataTest extends AbstractTest {
             }
         }
     }
-    
+
     @Test
     public void viewTest() throws SQLException {
         String tempViewName = "[jdbc_view" + UUID.randomUUID() + "]";
