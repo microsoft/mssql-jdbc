@@ -23,6 +23,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 public class ParameterMetaDataTest extends AbstractTest {
@@ -31,8 +32,7 @@ public class ParameterMetaDataTest extends AbstractTest {
 
     @BeforeEach
     public void setupTests() throws SQLException {
-        try (Connection c = DriverManager.getConnection(AbstractTest.connectionString);
-                Statement s = c.createStatement()) {
+        try (Connection c = getConnection(); Statement s = c.createStatement()) {
             s.execute("CREATE TABLE " + tableName
                     + "(cBigint bigint, cNumeric numeric, cBit bit, cSmallint smallint, cDecimal decimal, "
                     + "cSmallmoney smallmoney, cInt int, cTinyint tinyint, cMoney money, cFloat float, cReal real, "
@@ -44,8 +44,7 @@ public class ParameterMetaDataTest extends AbstractTest {
 
     @AfterEach
     public void cleanupTests() throws SQLException {
-        try (Connection c = DriverManager.getConnection(AbstractTest.connectionString);
-                Statement s = c.createStatement()) {
+        try (Connection c = getConnection(); Statement s = c.createStatement()) {
             TestUtils.dropTableIfExists(tableName, s);
         }
     }
@@ -100,8 +99,44 @@ public class ParameterMetaDataTest extends AbstractTest {
         executeInvalidFmt("WITH INVALID_CTE AS SELECT * FROM FOO", "R_invalidCTEFormat");
     }
 
+    @Test
+    public void tempTableTest() throws SQLException {
+        String tempTableName = "[#jdbc_temp" + UUID.randomUUID() + "]";
+        try (Connection c = PrepUtil.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
+                Statement s = c.createStatement()) {
+            TestUtils.dropTableIfExists(tempTableName, s);
+            s.execute("CREATE TABLE " + tempTableName + " (c1 int)");
+            try (PreparedStatement p = c.prepareStatement("SELECT * FROM " + tempTableName + " WHERE c1 = ?")) {
+                ParameterMetaData pmd = p.getParameterMetaData();
+                assertTrue(pmd.getParameterCount() == 1);
+            }
+        } finally {
+            try (Statement s = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tempTableName, s);
+            }
+        }
+    }
+    
+    @Test
+    public void viewTest() throws SQLException {
+        String tempViewName = "[jdbc_view" + UUID.randomUUID() + "]";
+        try (Connection c = PrepUtil.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
+                Statement s = c.createStatement()) {
+            TestUtils.dropViewIfExists(tempViewName, s);
+            s.execute("CREATE VIEW " + tempViewName + " AS SELECT cBigInt FROM" + tableName);
+            try (PreparedStatement p = c.prepareStatement("SELECT * FROM " + tempViewName + " WHERE cBigInt = ?")) {
+                ParameterMetaData pmd = p.getParameterMetaData();
+                assertTrue(pmd.getParameterCount() == 1);
+            }
+        } finally {
+            try (Statement s = connection.createStatement()) {
+                TestUtils.dropViewIfExists(tempViewName, s);
+            }
+        }
+    }
+
     private void executeFmt(String userSQL) {
-        try (Connection c = DriverManager.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
+        try (Connection c = PrepUtil.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
                 PreparedStatement pstmt = c.prepareStatement(userSQL)) {
             ParameterMetaData pmd = pstmt.getParameterMetaData();
             for (int i = 1; i <= pmd.getParameterCount(); i++) {
@@ -118,19 +153,19 @@ public class ParameterMetaDataTest extends AbstractTest {
     }
 
     private void executeInvalidFmt(String userSQL, String expectedError) {
-        try (Connection c = DriverManager.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
+
+        try (Connection c = PrepUtil.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
                 PreparedStatement pstmt = c.prepareStatement(userSQL)) {
             pstmt.getParameterMetaData();
+            fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg(expectedError)));
-            return;
         }
-        fail(TestResource.getResource("R_expectedFailPassed"));
     }
 
     private void compareFmtAndSp(String userSQL) {
-        try (Connection c = DriverManager.getConnection(AbstractTest.connectionString);
-                Connection c2 = DriverManager.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
+        try (Connection c = getConnection();
+                Connection c2 = PrepUtil.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
                 PreparedStatement stmt1 = c.prepareStatement(userSQL);
                 PreparedStatement stmt2 = c2.prepareStatement(userSQL)) {
             ParameterMetaData pmd1 = stmt1.getParameterMetaData();

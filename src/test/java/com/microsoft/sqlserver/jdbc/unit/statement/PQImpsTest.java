@@ -764,7 +764,7 @@ public class PQImpsTest extends AbstractTest {
             String sql = "SELECT FirstName,LastName" + " FROM " + AbstractSQLGenerator.escapeIdentifier(nameTable)
                     + " a WHERE a.ID IN " + " (SELECT ID" + " FROM "
                     + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable)
-                    + " b WHERE b.PhoneNumber = ? and b.ID = ? and b.PlainID = ?" + ")";
+                    + " WHERE PhoneNumber = ? and ID = ? and PlainID = ?" + ")";
 
             pstmt = connection.prepareStatement(sql);
 

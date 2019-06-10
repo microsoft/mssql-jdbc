@@ -20,6 +20,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 public class APITest extends AbstractTest {
@@ -44,10 +45,10 @@ public class APITest extends AbstractTest {
     @Test
     public void publicAPITest() throws SQLException {
         String sql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES(?,?,?,?)";
-                
+
         ds.setUseFmtOnly(true);
-        try (Connection cStringConnection = DriverManager.getConnection(connectionString + ";useFMTOnly=true;");
-                Connection statementConnection = DriverManager.getConnection(connectionString);
+        try (Connection cStringConnection = PrepUtil.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
+                Connection statementConnection = getConnection();
                 Connection dsConnection = ((DataSource) ds).getConnection()) {
             try (PreparedStatement cStringPstmt = cStringConnection.prepareStatement(sql);
                     PreparedStatement statementPstmt = statementConnection.prepareStatement(sql);
@@ -56,21 +57,23 @@ public class APITest extends AbstractTest {
                 ParameterMetaData cStringMD = cStringPstmt.getParameterMetaData();
                 ParameterMetaData statementMD = statementPstmt.getParameterMetaData();
                 ParameterMetaData dsMD = dsPstmt.getParameterMetaData();
-                compare(cStringMD.getParameterCount(),statementMD.getParameterCount(),dsMD.getParameterCount());
-                for (int i = 1; i <= cStringMD.getParameterCount();i++) {
-                    compare(cStringMD.getParameterClassName(i),statementMD.getParameterClassName(i),dsMD.getParameterClassName(i));
-                    compare(cStringMD.getParameterMode(i),statementMD.getParameterMode(i),dsMD.getParameterMode(i));
-                    compare(cStringMD.getParameterType(i),statementMD.getParameterType(i),dsMD.getParameterType(i));
-                    compare(cStringMD.getParameterTypeName(i),statementMD.getParameterTypeName(i),dsMD.getParameterTypeName(i));
-                    compare(cStringMD.getPrecision(i),statementMD.getPrecision(i),dsMD.getPrecision(i));
-                    compare(cStringMD.getScale(i),statementMD.getScale(i),dsMD.getScale(i));
+                compare(cStringMD.getParameterCount(), statementMD.getParameterCount(), dsMD.getParameterCount());
+                for (int i = 1; i <= cStringMD.getParameterCount(); i++) {
+                    compare(cStringMD.getParameterClassName(i), statementMD.getParameterClassName(i),
+                            dsMD.getParameterClassName(i));
+                    compare(cStringMD.getParameterMode(i), statementMD.getParameterMode(i), dsMD.getParameterMode(i));
+                    compare(cStringMD.getParameterType(i), statementMD.getParameterType(i), dsMD.getParameterType(i));
+                    compare(cStringMD.getParameterTypeName(i), statementMD.getParameterTypeName(i),
+                            dsMD.getParameterTypeName(i));
+                    compare(cStringMD.getPrecision(i), statementMD.getPrecision(i), dsMD.getPrecision(i));
+                    compare(cStringMD.getScale(i), statementMD.getScale(i), dsMD.getScale(i));
                 }
             }
         }
     }
-    
+
     private void compare(Object a, Object b, Object c) {
-        assertEquals(a,b);
-        assertEquals(b,c);
+        assertEquals(a, b);
+        assertEquals(b, c);
     }
 }
