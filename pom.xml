@@ -226,21 +226,6 @@
 							<excludedGroups>${excludedGroups}, xJDBC42</excludedGroups>
 						</configuration>
 					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-shade-plugin</artifactId>
-						<version>3.2.1</version>
-						<executions>
-							<execution>
-								<goals>
-									<goal>shade</goal>
-								</goals>
-								<configuration>
-									<shadedClassifierName>shaded.jre8-preview</shadedClassifierName>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
 				</plugins>
 			</build>
 		</profile>
@@ -273,21 +258,6 @@
 								</manifestEntries>
 							</archive>
 						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-shade-plugin</artifactId>
-						<version>3.2.1</version>
-						<executions>
-							<execution>
-								<goals>
-									<goal>shade</goal>
-								</goals>
-								<configuration>
-									<shadedClassifierName>shaded.jre11-preview</shadedClassifierName>
-								</configuration>
-							</execution>
-						</executions>
 					</plugin>
 				</plugins>
 			</build>
@@ -324,21 +294,6 @@
 								</manifestEntries>
 							</archive>
 						</configuration>
-					</plugin>
-					<plugin>
-						<artifactId>maven-shade-plugin</artifactId>
-						<version>3.2.1</version>
-						<executions>
-							<!-- Run shade goal on package phase -->
-							<execution>
-								<goals>
-									<goal>shade</goal>
-								</goals>
-								<configuration>
-									<shadedClassifierName>shaded.jre12-preview</shadedClassifierName>
-								</configuration>
-							</execution>
-						</executions>
 					</plugin>
 				</plugins>
 			</build>
@@ -547,6 +502,21 @@
 					<!-- File containing the merged coverage data -->
 					<destFile>${project.build.directory}/jacoco.exec</destFile>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.2.1</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<outputFile>${project.build.directory}/${project.build.finalName}-shaded.jar</outputFile>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
