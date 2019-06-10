@@ -163,8 +163,8 @@ public class LexerTest extends AbstractTest {
 
     @Test
     public void testEmptyString() {
-        ParserUtils.compareTableName("", TestUtils.rBundle.getString("R_noTokensFoundInUserQuery"));
-        ParserUtils.compareTableName(null, TestUtils.rBundle.getString("R_noTokensFoundInUserQuery"));
+        ParserUtils.compareTableName("", TestUtils.R_BUNDLE.getString("R_noTokensFoundInUserQuery"));
+        ParserUtils.compareTableName(null, TestUtils.R_BUNDLE.getString("R_noTokensFoundInUserQuery"));
     }
 
 }
