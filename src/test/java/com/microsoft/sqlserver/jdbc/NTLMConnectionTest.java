@@ -409,12 +409,4 @@ public class NTLMConnectionTest extends AbstractTest {
             }
         }
     }
-
-    static String extractPort(String server, SQLServerDataSource ds) {
-        if (server.contains(":")) {
-            ds.setPortNumber(Integer.parseInt(server.substring(server.indexOf(":") + 1)));
-            server = server.substring(0, server.indexOf(":"));
-        }
-        return server;
-    }
 }
