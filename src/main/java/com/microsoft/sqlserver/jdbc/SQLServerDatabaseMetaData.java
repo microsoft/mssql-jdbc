@@ -346,7 +346,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 // note individual arguments can be null.
                 call.setString(i, arguments[i - 1]);
             }
+            call.closeOnCompletion();
             rs = (SQLServerResultSet) call.executeQueryInternal();
+        } catch (SQLException e) {
+            throw (SQLServerException) e;
         } finally {
             if (null != orgCat) {
                 connection.setCatalog(orgCat);
