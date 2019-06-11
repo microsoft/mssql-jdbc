@@ -34,7 +34,7 @@ jobs:
     inputs:
       secureFile: "config.properties"
   - task: DownloadSecureFile@1
-    displayName: "Download java keystore'
+    displayName: 'Download java keystore'
     inputs:
       secureFile: "3b82f8.jks"
   - task: Maven@3
