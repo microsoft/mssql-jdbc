@@ -220,26 +220,6 @@ public class fedauthTest extends AbstractTest {
     }
 
     @Test
-    public void testSqlPasswordWithTrustedSqlDB() throws SQLException {
-        java.util.Properties info = new Properties();
-        info.put("Authentication", "SqlPassword");
-
-        try {
-            String certificateName = TestUtils.getServerNameFromUrl(connectionString).trim() + ".cer";
-            info.put("trustStore", (new TrustStore(certificateName)).getFileName());
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-
-        try (Connection conn = DriverManager.getConnection(connectionString, info)) {
-            testUserName(conn, "sa");
-            testCharTable(conn);
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-    }
-
-    @Test
     public void testCorrectAccessToken() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";"
                 + "HostNameInCertificate=" + hostNameInCertificate;
