@@ -346,10 +346,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 // note individual arguments can be null.
                 call.setString(i, arguments[i - 1]);
             }
-            call.closeOnCompletion();
             rs = (SQLServerResultSet) call.executeQueryInternal();
-        } catch (SQLException e) {
-            throw (SQLServerException) e;
         } finally {
             if (null != orgCat) {
                 connection.setCatalog(orgCat);
@@ -659,7 +656,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                         pstmt.close();
                     } catch (SQLServerException ignore) {
                         if (loggerExternal.isLoggable(Level.FINER)) {
-                            loggerExternal.finer("getColumns() threw an exception when attempting to close PreparedStatement");
+                            loggerExternal.finer(
+                                    "getColumns() threw an exception when attempting to close PreparedStatement");
                         }
                     }
                 }
@@ -746,7 +744,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                             resultPstmt.close();
                         } catch (SQLServerException ignore) {
                             if (loggerExternal.isLoggable(Level.FINER)) {
-                                loggerExternal.finer("getColumns() threw an exception when attempting to close PreparedStatement");
+                                loggerExternal.finer(
+                                        "getColumns() threw an exception when attempting to close PreparedStatement");
                             }
                         }
                     }
