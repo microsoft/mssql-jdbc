@@ -33,17 +33,12 @@ jobs:
     displayName: 'Download config.properties'
     inputs:
       secureFile: config.properties
-  - task: CopyFiles@2
-    displayName: 'Copy config.properties'
-    inputs:
-      SourceFolder: '$(Agent.TempDirectory)'
-      TargetFolder: .
   - task: DownloadSecureFile@1
     displayName: 'Download java keystore file'
     inputs:
       secureFile: 3b82f8.jks
   - task: CopyFiles@2
-    displayName: 'Copy java keystore'
+    displayName: 'Copy config files'
     inputs:
       SourceFolder: '$(Agent.TempDirectory)'
       TargetFolder: .
