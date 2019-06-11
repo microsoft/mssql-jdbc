@@ -583,5 +583,12 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_ntlmMessageTypeError", "NTLM Challenge Message type error: {0}"},
             {"R_ntlmAuthenticateError", "NTLM error constructing Authenticate Message: {0}"},
             {"R_ntlmNoTargetInfo", "NTLM Challenge Message is missing target info."},
-            {"R_ntlmUnknownValue", "NTLM Challenge Message target info error: unknown value \"{0}\""}};
-}
+            {"R_ntlmUnknownValue", "NTLM Challenge Message target info error: unknown value \"{0}\""},
+            {"R_useFmtOnlyPropertyDescription",
+                    "Determines whether to enable/disable use of SET FMTONLY to retrieve parameter metadata."},
+            {"R_invalidOpenqueryCall",
+                    "Invalid syntax: OPENQUERY/OPENJSON/OPENDATASOURCE/OPENROWSET/OPENXML must be preceded by round brackets"},
+            {"R_invalidCTEFormat",
+                    "Invalid syntax: AS must be followed by round brackets in Common Table Expressions."},
+            {"R_noTokensFoundInUserQuery", "Invalid query: No tokens were parsed from the SQL provided."}};
+};

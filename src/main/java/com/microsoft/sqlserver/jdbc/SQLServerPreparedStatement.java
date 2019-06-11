@@ -92,6 +92,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Set to true if the statement is a stored procedure call that expects a return value */
     final boolean bReturnValueSyntax;
 
+    private boolean useFmtOnly = this.connection.getUseFmtOnly();
+
     /**
      * The number of OUT parameters to skip in the response to get to the first app-declared OUT parameter.
      *
@@ -2862,6 +2864,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 break;
             }
         }
+    }
+
+    @Override
+    public final void setUseFmtOnly(boolean useFmtOnly) throws SQLServerException {
+        checkClosed();
+        this.useFmtOnly = useFmtOnly;
+    }
+
+    @Override
+    public final boolean getUseFmtOnly() throws SQLServerException {
+        checkClosed();
+        return this.useFmtOnly;
     }
 
     @Override

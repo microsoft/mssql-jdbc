@@ -7,6 +7,8 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -598,6 +600,23 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             populateNumericNormalCase(numericValuesNormalization);
             testNumeric(stmt, numericValuesNormalization, false);
             testNumeric(null, numericValuesNormalization2, false);
+        }
+    }
+
+    @Test
+    public void testAEFMTOnly() throws SQLException {
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";useFmtOnly=true", AEInfo);
+                Statement s = c.createStatement()) {
+            dropTables(s);
+            createNumericTable();
+            String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE)
+                    + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                    + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
+                    + ")";
+            try (PreparedStatement p = c.prepareStatement(sql)) {
+                ParameterMetaData pmd = p.getParameterMetaData();
+                assertTrue(pmd.getParameterCount() == 48);
+            }
         }
     }
 
