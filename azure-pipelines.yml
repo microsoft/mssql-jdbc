@@ -34,9 +34,17 @@ jobs:
     inputs:
       secureFile: config.properties
   - task: DownloadSecureFile@1
-    displayName: 'Download java keystore'
+    displayName: 'Download java keystore file'
     inputs:
       secureFile: 3b82f8.jks
+  - script: |
+      dir $(Agent.TempDirectory)/
+      echo Copy config.properties
+      copy $(Agent.TempDirectory)/configure.properties . 
+      echo Copy java keystore file
+      copy $(Agent.TempDirectory)/3b82f8.jks .  
+      dir
+    displayName: 'Copy config files'
   - task: Maven@3
     displayName: 'Maven build jre12'
     inputs:
