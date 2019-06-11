@@ -30,21 +30,23 @@ jobs:
       Remove-Item –path .\JavaKeyStoreBase.txt
     displayName: 'Setup AE Certificates'
   - task: DownloadSecureFile@1
-    displayName: 'Download configure.properties'
+    displayName: 'Download config.properties'
     inputs:
       secureFile: config.properties
+  - task: CopyFiles@2
+    displayName: 'Copy config.properties'
+    inputs:
+      SourceFolder: '$(Agent.TempDirectory)'
+      TargetFolder: .
   - task: DownloadSecureFile@1
     displayName: 'Download java keystore file'
     inputs:
       secureFile: 3b82f8.jks
-  - script: |
-      dir $(Agent.TempDirectory)/
-      echo Copy config.properties
-      copy $(Agent.TempDirectory)/configure.properties . 
-      echo Copy java keystore file
-      copy $(Agent.TempDirectory)/3b82f8.jks .  
-      dir
-    displayName: 'Copy config files'
+  - task: CopyFiles@2
+    displayName: 'Copy java keystore'
+    inputs:
+      SourceFolder: '$(Agent.TempDirectory)'
+      TargetFolder: .
   - task: Maven@3
     displayName: 'Maven build jre12'
     inputs:
