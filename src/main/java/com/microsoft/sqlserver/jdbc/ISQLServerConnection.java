@@ -343,4 +343,19 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @return true if statement pooling is disabled, false if it is enabled.
      */
     public boolean getDisableStatementPooling();
+
+    /**
+     * Returns the current flag value for useFmtOnly.
+     * 
+     * @return 'useFmtOnly' property value.
+     */
+    public boolean getUseFmtOnly();
+
+    /**
+     * Specifies the flag to use FMTONLY for parameter metadata queries.
+     * 
+     * @param useFmtOnly
+     *        boolean value for 'useFmtOnly'.
+     */
+    public void setUseFmtOnly(boolean useFmtOnly);
 }

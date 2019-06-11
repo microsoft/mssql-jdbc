@@ -292,6 +292,17 @@ public final class TestUtils {
     }
 
     /**
+     * mimic "DROP View ..."
+     * 
+     * @param tableName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropViewIfExists(String tableName, java.sql.Statement stmt) throws SQLException {
+        dropObjectIfExists(tableName, "V", stmt);
+    }
+
+    /**
      * mimic "DROP PROCEDURE ..."
      * 
      * @param procName
@@ -392,6 +403,10 @@ public final class TestUtils {
                 break;
             case "U":
                 typeName = "TABLE";
+                break;
+            case "V":
+                typeName = "VIEW";
+                break;
             default:
                 break;
         }

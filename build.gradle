@@ -113,7 +113,8 @@ dependencies {
 	compileOnly 'com.microsoft.azure:azure-keyvault:1.2.0',
 			'com.microsoft.azure:azure-keyvault-webkey:1.2.0',
 			'com.microsoft.rest:client-runtime:1.6.5',
-			'com.microsoft.azure:adal4j:1.6.3'
+			'com.microsoft.azure:adal4j:1.6.3',
+			'org.antlr:antlr4-runtime:4.7.2'
 	testCompile 'org.junit.platform:junit-platform-console:1.4.0', 
 			'org.junit.platform:junit-platform-commons:1.4.0', 
 			'org.junit.platform:junit-platform-engine:1.4.0', 
