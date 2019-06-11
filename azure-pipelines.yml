@@ -30,11 +30,11 @@ jobs:
       Remove-Item –path .\JavaKeyStoreBase.txt
     displayName: 'Setup AE Certificates'
   - task: DownloadSecureFile@1
-    displayName: 'Download configure.properties"
+    displayName: 'Download configure.properties'
     inputs:
       secureFile: "config.properties"
   - task: DownloadSecureFile@1
-    displayName: 'Download java keystore"
+    displayName: "Download java keystore'
     inputs:
       secureFile: "config.properties"
   - task: Maven@3
