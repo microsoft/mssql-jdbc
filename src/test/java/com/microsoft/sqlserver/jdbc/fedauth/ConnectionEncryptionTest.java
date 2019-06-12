@@ -39,10 +39,10 @@ public class ConnectionEncryptionTest extends AbstractTest {
     @Test
     public void testCorrectCertificate() throws SQLException {
 
-        String connectionUrl = "jdbc:sqlserver://" + fedauthTest.azureServer + ";database=" + fedauthTest.azureDatabase
-                + ";" + "userName=" + fedauthTest.azureUserName + ";password=" + fedauthTest.azurePassword + ";"
+        String connectionUrl = "jdbc:sqlserver://" + FedauthTest.azureServer + ";database=" + FedauthTest.azureDatabase
+                + ";" + "userName=" + FedauthTest.azureUserName + ";password=" + FedauthTest.azurePassword + ";"
                 + "Authentication=ActiveDirectoryPassword;" + "HostNameInCertificate="
-                + fedauthTest.hostNameInCertificate;
+                + FedauthTest.hostNameInCertificate;
 
         try (Connection connection = DriverManager.getConnection(connectionUrl);
                 Statement stmt = connection.createStatement();
@@ -50,12 +50,12 @@ public class ConnectionEncryptionTest extends AbstractTest {
             rs.next();
 
             String retrievedUserName = rs.getString(1);
-            assertTrue(retrievedUserName.equals(fedauthTest.azureUserName));
+            assertTrue(retrievedUserName.equals(FedauthTest.azureUserName));
             try {
                 TestUtils.dropTableIfExists(charTable, stmt);
-                fedauthTest.createTable(stmt, charTable);
-                fedauthTest.populateCharTable(connection, charTable);
-                fedauthTest.testChar(stmt, charTable);
+                FedauthTest.createTable(stmt, charTable);
+                FedauthTest.populateCharTable(connection, charTable);
+                FedauthTest.testChar(stmt, charTable);
             } finally {
                 TestUtils.dropTableIfExists(charTable, stmt);
             }
@@ -66,8 +66,8 @@ public class ConnectionEncryptionTest extends AbstractTest {
 
     @Test
     public void testWrongCertificate() throws SQLException {
-        String connectionUrl = "jdbc:sqlserver://" + fedauthTest.azureServer + ";database=" + fedauthTest.azureDatabase
-                + ";" + "userName=" + fedauthTest.azureUserName + ";password=" + fedauthTest.azurePassword + ";"
+        String connectionUrl = "jdbc:sqlserver://" + FedauthTest.azureServer + ";database=" + FedauthTest.azureDatabase
+                + ";" + "userName=" + FedauthTest.azureUserName + ";password=" + FedauthTest.azurePassword + ";"
                 + "Authentication=ActiveDirectoryPassword;" + "HostNameInCertificate=WrongCertificate";
 
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
@@ -85,8 +85,8 @@ public class ConnectionEncryptionTest extends AbstractTest {
     // set TrustServerCertificate to true, which skips server certificate validation.
     @Test
     public void testWrongCertificateButTrustServerCertificate() throws SQLException {
-        String connectionUrl = "jdbc:sqlserver://" + fedauthTest.azureServer + ";database=" + fedauthTest.azureDatabase
-                + ";" + "userName=" + fedauthTest.azureUserName + ";password=" + fedauthTest.azurePassword + ";"
+        String connectionUrl = "jdbc:sqlserver://" + FedauthTest.azureServer + ";database=" + FedauthTest.azureDatabase
+                + ";" + "userName=" + FedauthTest.azureUserName + ";password=" + FedauthTest.azurePassword + ";"
                 + "Authentication=ActiveDirectoryPassword;" + "HostNameInCertificate=WrongCertificate;"
                 + "TrustServerCertificate=true";
 
@@ -96,12 +96,12 @@ public class ConnectionEncryptionTest extends AbstractTest {
             rs.next();
 
             String retrievedUserName = rs.getString(1);
-            assertTrue(retrievedUserName.equals(fedauthTest.azureUserName));
+            assertTrue(retrievedUserName.equals(FedauthTest.azureUserName));
             try {
                 TestUtils.dropTableIfExists(charTable, stmt);
-                fedauthTest.createTable(stmt, charTable);
-                fedauthTest.populateCharTable(connection, charTable);
-                fedauthTest.testChar(stmt, charTable);
+                FedauthTest.createTable(stmt, charTable);
+                FedauthTest.populateCharTable(connection, charTable);
+                FedauthTest.testChar(stmt, charTable);
             } finally {
                 TestUtils.dropTableIfExists(charTable, stmt);
             }

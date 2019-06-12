@@ -53,7 +53,7 @@ public class FedAuthWithAE extends AbstractTest {
     public static void setupTests() throws Throwable {
         getFedauthInfo();
         if (null == ds) {
-            ds = fedauthTest.getDataSource();
+            ds = FedauthTest.getDataSource();
             @SuppressWarnings("deprecation")
             Long n1 = new Long((long) (Math.random() * Math.pow(10, 10)));
             charTableOld = charTablePrefix + team + "_Old_" + n1.toString();
@@ -281,7 +281,7 @@ public class FedAuthWithAE extends AbstractTest {
     }
 
     private void setupCMK_JKS(String cmkName, Statement stmt) throws SQLException {
-        createCMK(cmkName, "MSSQL_JAVA_KEYSTORE", fedauthTest.javaKeyAliases[0], stmt);
+        createCMK(cmkName, "MSSQL_JAVA_KEYSTORE", FedauthTest.javaKeyAliases[0], stmt);
     }
 
     private void setupCMK_AKVOld(String cmkName, Statement stmt) throws SQLException {
@@ -293,12 +293,12 @@ public class FedAuthWithAE extends AbstractTest {
     }
 
     private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_JKS() throws SQLException {
-        return new SQLServerColumnEncryptionJavaKeyStoreProvider(jksPaths[0], fedauthTest.secretstrJks.toCharArray());
+        return new SQLServerColumnEncryptionJavaKeyStoreProvider(jksPaths[0], FedauthTest.secretstrJks.toCharArray());
     }
 
     private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_AKVNew() throws SQLServerException {
         return registerAKVProvider(
-                new SQLServerColumnEncryptionAzureKeyVaultProvider(fedauthTest.applicationClientId, applicationKey));
+                new SQLServerColumnEncryptionAzureKeyVaultProvider(FedauthTest.applicationClientId, applicationKey));
     }
 
     private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_AKVOld() throws SQLServerException {

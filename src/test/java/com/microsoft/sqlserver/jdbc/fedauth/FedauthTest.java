@@ -22,6 +22,7 @@ import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -32,10 +33,11 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-public class fedauthTest extends AbstractTest {
+public class FedauthTest extends AbstractTest {
     static String charTable = RandomUtil.getIdentifier("charTableFedAuth");
 
     static class TrustStore {
@@ -182,6 +184,7 @@ public class fedauthTest extends AbstractTest {
         testNotValid("SqlPassword", true, true);
     }
 
+    @Tag(Constants.xWindows)
     @Test
     public void testNotValidActiveDirectoryIntegrated() throws SQLException {
         testNotValid("ActiveDirectoryIntegrated", false, true);
@@ -207,6 +210,7 @@ public class fedauthTest extends AbstractTest {
         testValid("SqlPassword", true, true);
     }
 
+    @Tag(Constants.xWindows)
     @Test
     public void testValidActiveDirectoryIntegrated() throws SQLException {
         testValid("ActiveDirectoryIntegrated", false, true);
