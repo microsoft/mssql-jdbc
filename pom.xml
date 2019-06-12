@@ -57,7 +57,7 @@
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.1</azure.keyvault.version>
 		<azure.adal4j.version>1.6.4</azure.adal4j.version>
-		<rest.client.version>1.6.7</rest.client.version>
+		<rest.client.version>1.6.8</rest.client.version>
 		<osgi.core.version>6.0.0</osgi.core.version>
 		<osgi.comp.version>5.0.0</osgi.comp.version>
 		<antlr.runtime.version>4.7.2</antlr.runtime.version>
@@ -94,7 +94,7 @@
 			<version>${rest.client.version}</version>
 			<optional>true</optional>
 		</dependency>
-		
+
 		<!-- dependencies for ANTLR -->
 		<dependency>
 			<groupId>org.antlr</groupId>
@@ -335,6 +335,7 @@
 		</testResources>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
 				<version>3.2.1</version>
 				<executions>
@@ -361,9 +362,11 @@
 										<exclude>META-INF/*.SF</exclude>
 										<exclude>META-INF/*.DSA</exclude>
 										<exclude>META-INF/*.RSA</exclude>
+										<exclude>META-INF/NOTICE*</exclude>
 									</excludes>
 								</filter>
 							</filters>
+							<outputFile>${project.build.directory}\${project.build.finalName}-shaded.jar</outputFile>
 						</configuration>
 					</execution>
 				</executions>
@@ -512,21 +515,6 @@
 					<!-- File containing the merged coverage data -->
 					<destFile>${project.build.directory}/jacoco.exec</destFile>
 				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.2.1</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<outputFile>${project.build.directory}/${project.build.finalName}-shaded.jar</outputFile>
-						</configuration>
-					</execution>
-				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
