@@ -362,10 +362,10 @@
 										<exclude>META-INF/*.SF</exclude>
 										<exclude>META-INF/*.DSA</exclude>
 										<exclude>META-INF/*.RSA</exclude>
+										<exclude>META-INF/NOTICE*</exclude>
 									</excludes>
 								</filter>
 							</filters>
-							<shadedArtifactId>${project.artifactId}-shaded</shadedArtifactId>
 							<outputFile>${project.build.directory}\${project.build.finalName}-shaded.jar</outputFile>
 						</configuration>
 					</execution>
