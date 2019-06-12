@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -21,6 +22,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
@@ -171,6 +173,10 @@ public class ErrorMessageTest extends AbstractTest {
         }
     }
 
+    @Tag(Constants.xWindows)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLMI)
     @Test
     public void testSQLPasswordWithUntrustedSqlDB() throws SQLException {
         Connection connection = null;
@@ -236,6 +242,10 @@ public class ErrorMessageTest extends AbstractTest {
         }
     }
 
+    @Tag(Constants.xWindows)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLMI)
     @Test
     public void testAuthenticationAgainstSQLServer() throws SQLException {
         java.util.Properties info = new Properties();
