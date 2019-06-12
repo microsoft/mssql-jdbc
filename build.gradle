@@ -126,5 +126,6 @@ dependencies {
 			'com.zaxxer:HikariCP:3.3.1', 
 			'org.apache.commons:commons-dbcp2:2.6.0', 
 			'org.slf4j:slf4j-nop:1.7.26',
-			'org.eclipse.gemini.blueprint:gemini-blueprint-mock:2.1.0.RELEASE'
+			'org.eclipse.gemini.blueprint:gemini-blueprint-mock:2.1.0.RELEASE',
+			'org.antlr:antlr4-runtime:4.7.2'
 }
