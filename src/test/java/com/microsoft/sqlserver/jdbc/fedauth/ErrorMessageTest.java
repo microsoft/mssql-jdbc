@@ -24,7 +24,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
-
+@Tag(Constants.xWindows)
 @RunWith(JUnitPlatform.class)
 public class ErrorMessageTest extends AbstractTest {
 
@@ -173,7 +173,6 @@ public class ErrorMessageTest extends AbstractTest {
         }
     }
 
-    @Tag(Constants.xWindows)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLMI)
@@ -242,7 +241,6 @@ public class ErrorMessageTest extends AbstractTest {
         }
     }
 
-    @Tag(Constants.xWindows)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLMI)
