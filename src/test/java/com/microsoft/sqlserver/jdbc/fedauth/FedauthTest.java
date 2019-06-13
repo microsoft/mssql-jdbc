@@ -204,6 +204,9 @@ public class FedauthTest extends AbstractTest {
         testValid("Notspecified", true, true);
     }
 
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLMI)
     @Test
     public void testValidSqlPassword() throws SQLException {
         testValid("SqlPassword", false, true);
