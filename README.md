@@ -35,7 +35,7 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 * [**Windows + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/windows)
 
 ## Build
-### Pre-requisites
+### Prerequisites
 * Java 11 or Java 12
 * [Maven](http://maven.apache.org/download.cgi)
 * An instance of SQL Server or Azure SQL Database that you can connect to. 
@@ -92,7 +92,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.3.1.jre11-preview</version>
+	<version>7.3.1.jre12-preview</version>
 </dependency>
 ```
 
@@ -127,7 +127,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.3.1.jre11-preview</version>
+	<version>7.3.1.jre12-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -150,7 +150,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.3.1.jre11-preview</version>
+	<version>7.3.1.jre12-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -183,7 +183,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.3.1.jre11-preview</version>
+	<version>7.3.1.jre12-preview</version>
 </dependency>
 
 <dependency>

@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added support for JDK 12 and build additional "jre12" JAR [#1050](https://github.com/Microsoft/mssql-jdbc/pull/1050)
 - Added 'keyVaultProviderClientId' and 'keyVaultProviderClientKey' connection properties to enhance Always Encrypted usability [#902](https://github.com/Microsoft/mssql-jdbc/pull/902)
 - Implemented `hashCode()` and `equals()` APIs for `SQLServerDataTable` and `SQLServerDataColumn` [#1025](https://github.com/Microsoft/mssql-jdbc/pull/1025)
-- Added Maven shade plugin configuration to package the driver in uber-jar [#1043](https://github.com/Microsoft/mssql-jdbc/pull/1043) [#1078](https://github.com/Microsoft/mssql-jdbc/pull/1078) [#1081](https://github.com/Microsoft/mssql-jdbc/pull/1081)
+- Added Maven shade plugin configuration to package the driver jars in uber-jars [#1043](https://github.com/Microsoft/mssql-jdbc/pull/1043) [#1078](https://github.com/Microsoft/mssql-jdbc/pull/1078) [#1081](https://github.com/Microsoft/mssql-jdbc/pull/1081)
 
 ### Fixed Issues
 - Fixed `DatabaseMetadata.getColumns()` API to return `ResultSet` as per JDBC 4.3 Specifications [#1016](https://github.com/Microsoft/mssql-jdbc/pull/1016)
