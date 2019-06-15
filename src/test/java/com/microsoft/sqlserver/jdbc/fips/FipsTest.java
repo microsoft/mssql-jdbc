@@ -11,7 +11,6 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -28,13 +27,12 @@ import com.microsoft.sqlserver.testframework.PrepUtil;;
  * Test class for testing FIPS property settings.
  */
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class FipsTest extends AbstractTest {
 
     /**
      * Test after setting TrustServerCertificate as true.
      * 
-     * @throws Exception
+     * @throws Exception when an error occurs
      */
     @Test
     public void fipsTrustServerCertificateTest() throws Exception {
@@ -51,7 +49,7 @@ public class FipsTest extends AbstractTest {
     /**
      * Test after passing encrypt as false.
      * 
-     * @throws Exception
+     * @throws Exception when an error occurs
      */
     @Test
     public void fipsEncryptTest() throws Exception {
@@ -68,7 +66,7 @@ public class FipsTest extends AbstractTest {
     /**
      * Test after removing fips, encrypt & trustStore it should work appropriately.
      * 
-     * @throws Exception
+     * @throws Exception when an error occurs
      */
     @Test
     public void fipsPropertyTest() throws Exception {
@@ -86,7 +84,7 @@ public class FipsTest extends AbstractTest {
     /**
      * Tests after removing all FIPS related properties.
      * 
-     * @throws Exception
+     * @throws Exception when an error occurs
      */
     @Test
     public void fipsDataSourcePropertyTest() throws Exception {
@@ -122,7 +120,7 @@ public class FipsTest extends AbstractTest {
     /**
      * Test after setting TrustServerCertificate as true.
      * 
-     * @throws Exception
+     * @throws Exception when an error occurs
      */
     @Test
     public void fipsDataSourceTrustServerCertificateTest() throws Exception {
@@ -144,7 +142,7 @@ public class FipsTest extends AbstractTest {
      * @param ds
      */
     private void setDataSourceProperties(SQLServerDataSource ds) {
-        ds = (SQLServerDataSource) updateDataSource(ds);
+        ds = (SQLServerDataSource) updateDataSource(connectionString, ds);
 
         // Set all properties for FIPS
         ds.setFIPS(true);

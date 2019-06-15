@@ -15,6 +15,7 @@ import java.sql.SQLTimeoutException;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -31,11 +32,13 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlDate;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class TVPWithSqlVariantTest extends AbstractTest {
 
     private static SQLServerConnection conn = null;
@@ -362,7 +365,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
         try {
             tvp.addRow((Date) null);
         } catch (Exception e) {
-            assertTrue(e.getMessage().startsWith("Use of TVPs containing null sql_variant columns is not supported."));
+            assertTrue(e.getMessage().startsWith(TestUtils.R_BUNDLE.getString("R_invalidValueForTVPWithSQLVariant")));
         }
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(

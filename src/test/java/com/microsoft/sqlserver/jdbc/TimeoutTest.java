@@ -10,7 +10,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -29,10 +28,10 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class TimeoutTest extends AbstractTest {
     private static final int TIMEOUT_SECONDS = 2;
     private static final String WAIT_FOR_ONE_MINUTE_SQL = "WAITFOR DELAY '00:01:00'";
@@ -57,16 +56,16 @@ public class TimeoutTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testBasicQueryTimeout() {
-        assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         assertThrows(SQLTimeoutException.class, () -> {
             runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS);
         });
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testQueryTimeoutValid() {
-        assumeTrue(!isSqlAzureDW(), TestResource.getResource("R_issueAzureDW"));
         long start = System.currentTimeMillis();
         assertThrows(SQLTimeoutException.class, () -> {
             runQuery(WAIT_FOR_ONE_MINUTE_SQL, TIMEOUT_SECONDS);
@@ -127,6 +126,20 @@ public class TimeoutTest extends AbstractTest {
 
             // Timer should still be running because our original connection is still open
             assertSharedTimerIsRunning();
+        }
+    }
+
+    @Test
+    public void testGetClosedTimer() throws SQLServerException, SQLException {
+        try (SQLServerConnection conn = getConnection()) {
+            conn.close();
+            @SuppressWarnings("unused")
+            SharedTimer timer = conn.getSharedTimer();
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_connectionIsClosed")));
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
     }
 

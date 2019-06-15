@@ -252,7 +252,7 @@ public class DBConnection extends AbstractParentWrapper implements AutoCloseable
                     serverversion = 16;
                 }
             } catch (Exception e) {
-                throw new Exception("Unable to get dbms major version", e);
+                fail("Unable to get dbms major version", e);
             }
         }
         return serverversion;

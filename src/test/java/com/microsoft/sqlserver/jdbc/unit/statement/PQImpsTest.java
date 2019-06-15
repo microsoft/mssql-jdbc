@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.Connection;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,6 +18,7 @@ import java.sql.Statement;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -36,10 +38,11 @@ import com.microsoft.sqlserver.testframework.Constants;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class PQImpsTest extends AbstractTest {
     private static final int SQL_SERVER_2012_VERSION = 11;
 
-    private static SQLServerConnection connection = null;
+    private static Connection connection = null;
     private static Statement stmt = null;
     private static PreparedStatement pstmt = null;
     private static ResultSet rs = null;
@@ -64,7 +67,7 @@ public class PQImpsTest extends AbstractTest {
      */
     @BeforeAll
     public static void BeforeTests() throws SQLException {
-        connection = (SQLServerConnection) getConnection();
+        connection = getConnection();
         stmt = connection.createStatement();
         version = getSQLServerVersion();
         createMultipleTypesTable();
@@ -759,7 +762,7 @@ public class PQImpsTest extends AbstractTest {
     public void testSubquery() throws SQLException {
         if (version >= SQL_SERVER_2012_VERSION) {
             String sql = "SELECT FirstName,LastName" + " FROM " + AbstractSQLGenerator.escapeIdentifier(nameTable)
-                    + " WHERE ID IN " + " (SELECT ID" + " FROM "
+                    + " a WHERE a.ID IN " + " (SELECT ID" + " FROM "
                     + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable)
                     + " WHERE PhoneNumber = ? and ID = ? and PlainID = ?" + ")";
 
@@ -825,7 +828,8 @@ public class PQImpsTest extends AbstractTest {
     @Test
     @DisplayName("Merge Queries")
     public void testMerge() throws SQLException {
-        if (version >= SQL_SERVER_2012_VERSION) {
+        // FMTOnly currently only supports SELECT/INSERT/DELETE/UPDATE
+        if (version >= SQL_SERVER_2012_VERSION && !((SQLServerConnection)connection).getUseFmtOnly()) {
             String sql = "merge " + AbstractSQLGenerator.escapeIdentifier(mergeNameDesTable) + " as T" + " using "
                     + AbstractSQLGenerator.escapeIdentifier(nameTable) + " as S" + " on T.PlainID=S.PlainID"
                     + " when matched" + " then update set T.firstName = ?, T.lastName = ?;";
@@ -1141,7 +1145,7 @@ public class PQImpsTest extends AbstractTest {
         if (version >= SQL_SERVER_2012_VERSION) {
 
             String sql = "select lower(FirstName), count(lastName) from "
-                    + AbstractSQLGenerator.escapeIdentifier(nameTable) + "where ID = ? and FirstName in" + "("
+                    + AbstractSQLGenerator.escapeIdentifier(nameTable) + " a where a.ID = ? and FirstName in" + "("
                     + " select " + AbstractSQLGenerator.escapeIdentifier(nameTable) + ".FirstName from "
                     + AbstractSQLGenerator.escapeIdentifier(nameTable) + " join "
                     + AbstractSQLGenerator.escapeIdentifier(phoneNumberTable) + " on "

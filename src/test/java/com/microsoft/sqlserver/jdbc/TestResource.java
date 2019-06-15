@@ -18,6 +18,10 @@ public final class TestResource extends ListResourceBundle {
     public static String getResource(String key) {
         return TestResource.getBundle(Constants.MSSQL_JDBC_PACKAGE + ".TestResource").getString(key);
     }
+    
+    public static String formatErrorMsg(String resource) {
+        return (".*\\Q" + getResource(resource) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
+    }
 
     protected Object[][] getContents() {
         return contents;
@@ -46,10 +50,11 @@ public final class TestResource extends ListResourceBundle {
             {"R_createDropViewFailed", "Create/drop view with preparedStatement failed!"},
             {"R_createDropSchemaFailed", "Create/drop schema with preparedStatement failed!"},
             {"R_createDropTableFailed", "Create/drop table failed!"},
+            {"R_tableNotFound", "Table {0} not found in database."},
             {"R_createDropAlterTableFailed", "Create/drop/alter table with preparedStatement failed!"},
             {"R_grantFailed", "grant table with preparedStatement failed!"},
             {"R_connectionIsClosed", "The connection is closed."},
-            {"R_ConnectionURLNull", "The connection URL is null." },
+            {"R_ConnectionURLNull", "The connection URL is null."},
             {"R_connectionIsNotClosed", "The connection is not closed."},
             {"R_invalidExceptionMessage", "Invalid exception message"},
             {"R_failedValidate", "failed to validate values in $0} "}, {"R_tableNotDropped", "table not dropped. "},
@@ -81,7 +86,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_cannotOpenDatabase", "Cannot open database"}, {"R_shouldNotConnect", "Should not have connected"},
             {"R_loginFailed", "Login failed"}, {"R_exitedMoreSeconds", "Exited in more than {0} seconds."},
             {"R_exitedLessSeconds", "Exited in less than {0} seconds."},
-            {"R_invalidArgumentExecutor", "The argument executor is not valid"},
             {"R_threadInterruptNotSet", "Thread's interrupt status is not set."},
             {"R_connectMirrored", "Connecting to a mirrored"},
             {"R_trustStorePasswordNotSet", "The DataSource trustStore password needs to be set."},
@@ -174,5 +178,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_incorrectSyntaxTable", "Incorrect syntax near the keyword 'table'."},
             {"R_incorrectSyntaxTableDW", "Incorrect syntax near 'table'."},
             {"R_ConnectionStringNull", "Connection String should not be null"},
-            {"R_OperandTypeClash", "Operand type clash"}};
+            {"R_OperandTypeClash", "Operand type clash"},
+            {"R_NoPrivilege", "The EXECUTE permission was denied on the object {0}"}};
 }

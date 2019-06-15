@@ -7,11 +7,14 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedList;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -34,6 +37,9 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLDB)
 public class JDBCEncryptionDecryptionTest extends AESetup {
 
     private boolean nullable = false;
@@ -594,6 +600,23 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             populateNumericNormalCase(numericValuesNormalization);
             testNumeric(stmt, numericValuesNormalization, false);
             testNumeric(null, numericValuesNormalization2, false);
+        }
+    }
+
+    @Test
+    public void testAEFMTOnly() throws SQLException {
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";useFmtOnly=true", AEInfo);
+                Statement s = c.createStatement()) {
+            dropTables(s);
+            createNumericTable();
+            String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE)
+                    + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                    + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
+                    + ")";
+            try (PreparedStatement p = c.prepareStatement(sql)) {
+                ParameterMetaData pmd = p.getParameterMetaData();
+                assertTrue(pmd.getParameterCount() == 48);
+            }
         }
     }
 

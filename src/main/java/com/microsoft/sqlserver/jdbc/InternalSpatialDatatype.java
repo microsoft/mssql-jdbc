@@ -24,6 +24,7 @@ public enum InternalSpatialDatatype {
 
     private byte typeCode;
     private String typeName;
+    private static final InternalSpatialDatatype[] VALUES = values();
 
     private InternalSpatialDatatype(byte typeCode, String typeName) {
         this.typeCode = typeCode;
@@ -39,7 +40,7 @@ public enum InternalSpatialDatatype {
     }
 
     static InternalSpatialDatatype valueOf(byte typeCode) {
-        for (InternalSpatialDatatype internalType : values()) {
+        for (InternalSpatialDatatype internalType : VALUES) {
             if (internalType.typeCode == typeCode) {
                 return internalType;
             }

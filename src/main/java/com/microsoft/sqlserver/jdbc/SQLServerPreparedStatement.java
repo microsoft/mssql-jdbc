@@ -92,6 +92,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Set to true if the statement is a stored procedure call that expects a return value */
     final boolean bReturnValueSyntax;
 
+    private boolean useFmtOnly = this.connection.getUseFmtOnly();
+
     /**
      * The number of OUT parameters to skip in the response to get to the first app-declared OUT parameter.
      *
@@ -437,7 +439,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public java.sql.ResultSet executeQuery() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -462,7 +464,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public int executeUpdate() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
@@ -484,7 +486,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public long executeLargeUpdate() throws SQLServerException, SQLTimeoutException {
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -496,7 +498,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public boolean execute() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "execute");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -544,7 +546,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Note: similar logic in SQLServerStatement.doExecuteStatement
         setMaxRowsAndMaxFieldSize();
 
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
@@ -1938,7 +1940,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeBatch");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -2095,7 +2097,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
@@ -2701,7 +2703,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Make sure any previous maxRows limitation on the connection is removed.
         connection.setMaxRows(0);
 
-        if (loggerExternal.isLoggable(Level.FINER) && Util.IsActivityTraceOn()) {
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         // Create the parameter array that we'll use for all the items in this batch.
@@ -2862,6 +2864,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 break;
             }
         }
+    }
+
+    @Override
+    public final void setUseFmtOnly(boolean useFmtOnly) throws SQLServerException {
+        checkClosed();
+        this.useFmtOnly = useFmtOnly;
+    }
+
+    @Override
+    public final boolean getUseFmtOnly() throws SQLServerException {
+        checkClosed();
+        return this.useFmtOnly;
     }
 
     @Override

@@ -13,7 +13,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -31,7 +30,6 @@ import com.microsoft.sqlserver.testframework.DBConnection;
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag("AzureDWTest")
 public class WrapperTest extends AbstractTest {
 
     /**
@@ -120,7 +118,7 @@ public class WrapperTest extends AbstractTest {
      */
     @Test
     public void unWrapFailureTest() throws Exception {
-        try (Connection con = getConnection(); SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             String str = "java.lang.String";
             boolean isWrapper = stmt.isWrapperFor(Class.forName(str));
             stmt.unwrap(Class.forName(str));

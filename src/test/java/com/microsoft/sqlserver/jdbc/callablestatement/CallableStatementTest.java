@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -32,6 +33,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  * Test CallableStatement
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class CallableStatementTest extends AbstractTest {
     private static String tableNameGUID = RandomUtil.getIdentifier("uniqueidentifier_Table");
     private static String outputProcedureNameGUID = RandomUtil.getIdentifier("uniqueidentifier_SP");
@@ -46,7 +48,7 @@ public class CallableStatementTest extends AbstractTest {
     @BeforeAll
     public static void setupTest() throws SQLException {
 
-        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
@@ -54,7 +56,7 @@ public class CallableStatementTest extends AbstractTest {
 
             createGUIDTable(stmt);
             createGUIDStoredProcedure(stmt);
-            createSetNullPreocedure(stmt);
+            createSetNullProcedure(stmt);
             createInputParamsProcedure(stmt);
         }
     }
@@ -172,7 +174,7 @@ public class CallableStatementTest extends AbstractTest {
      */
     @AfterAll
     public static void cleanup() throws SQLException {
-        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
@@ -193,7 +195,7 @@ public class CallableStatementTest extends AbstractTest {
         stmt.execute(sql);
     }
 
-    private static void createSetNullPreocedure(Statement stmt) throws SQLException {
+    private static void createSetNullProcedure(Statement stmt) throws SQLException {
         stmt.execute("create procedure " + AbstractSQLGenerator.escapeIdentifier(setNullProcedureName)
                 + " (@p1 nvarchar(255), @p2 nvarchar(255) output) as select @p2=@p1 return 0");
     }

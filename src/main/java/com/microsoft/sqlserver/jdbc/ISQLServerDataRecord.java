@@ -5,6 +5,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.List;
+
 /**
  * Provides an interface to create classes that read in data from any source (such as a file) and allow a structured
  * type to be sent to SQL Server tables.
@@ -34,7 +36,7 @@ public interface ISQLServerDataRecord {
      * 
      * @return The data for the row.
      */
-    public Object[] getRowData();
+    public List<Object> getRowData();
 
     /**
      * Advances to the next data row.

@@ -5,10 +5,9 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -33,7 +32,6 @@ import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -42,6 +40,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
@@ -49,6 +48,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
@@ -63,6 +63,7 @@ public class StatementTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("StatementTest");
 
     @Nested
+    @Tag(Constants.xAzureSQLDW)
     public class TCAttentionHandling {
         private static final int NUM_TABLE_ROWS = 1000;
         private static final int MIN_TABLE_ROWS = 100;
@@ -77,9 +78,7 @@ public class StatementTest extends AbstractTest {
             try (Connection con = getConnection()) {
                 con.setAutoCommit(false);
                 try (Statement stmt = con.createStatement()) {
-                    try {
-                        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                    } catch (SQLException e) {}
+                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                     stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                             + " (col1 INT, col2 VARCHAR(" + TEST_STRING.length() + "))");
                     for (int i = 0; i < NUM_TABLE_ROWS; i++)
@@ -92,10 +91,8 @@ public class StatementTest extends AbstractTest {
 
         @AfterEach
         public void terminate() throws Exception {
-            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                try {
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                } catch (SQLException e) {}
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
 
@@ -106,7 +103,6 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testCancelBeforeExecute() throws Exception {
-
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.cancel();
                 try (ResultSet rs = stmt
@@ -114,7 +110,6 @@ public class StatementTest extends AbstractTest {
                     int numSelectedRows = 0;
                     while (rs.next())
                         ++numSelectedRows;
-
                     // Wrong number of rows returned
                     assertEquals(NUM_TABLE_ROWS, numSelectedRows, TestResource.getResource("R_valueNotMatch"));
                 }
@@ -214,9 +209,6 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testCancelLongResponse() throws Exception {
-            assumeTrue("JDBC42".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
-                    TestResource.getResource("R_incompatJDBC"));
-
             try (Connection con = getConnection(); Statement stmt = con
                     .createStatement(SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
                 ((SQLServerStatement) stmt).setResponseBuffering("adaptive");
@@ -225,9 +217,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     stmt.closeOnCompletion();
                 } catch (Exception e) {
-
-                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
-
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 try (ResultSet rs = stmt.executeQuery(
@@ -252,8 +242,7 @@ public class StatementTest extends AbstractTest {
 
                         assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
                     } catch (SQLException e) {
-                        assertEquals(TestResource.getResource("R_queryCancelled"),
-                                TestResource.getResource("R_unexpectedException"));
+                        assertEquals(TestResource.getResource("R_queryCancelled"), e.getMessage());
                     }
 
                     assertEquals(false, NUM_TABLE_ROWS * NUM_TABLE_ROWS == numSelectedRows,
@@ -700,11 +689,10 @@ public class StatementTest extends AbstractTest {
                 }
 
                 void start(final Connection con) {
-
                     try {
                         newStmt = con.createStatement();
                     } catch (SQLException e) {
-                        fail(id + " " + e.getMessage());
+                        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                     }
 
                     final Statement stmt = newStmt;
@@ -844,9 +832,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     result = ps.isCloseOnCompletion();
                 } catch (Exception e) {
-
-                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
-
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 assertEquals(false, result, "isCloseOnCompletion: " + TestResource.getResource("R_incorrectDefault"));
@@ -862,8 +848,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     ps.closeOnCompletion();
                 } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
-
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 try (ResultSet rs = ps.executeQuery()) {
@@ -878,7 +863,6 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
-    @Tag("AzureDWTest")
     public class TCStatement {
         private final String table1Name = RandomUtil.getIdentifier("TCStatement1");
         private final String table2Name = RandomUtil.getIdentifier("TCStatement2");
@@ -898,7 +882,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     stmt.closeOnCompletion();
                 } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 assertEquals(true, stmt.isCloseOnCompletion(),
@@ -916,9 +900,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     stmt.closeOnCompletion();
                 } catch (Exception e) {
-
-                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
-
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
@@ -938,21 +920,17 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testConsecutiveQueries() throws Exception {
+        public void testConsecutiveQueries() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 // enable isCloseOnCompletion
                 try {
                     stmt.closeOnCompletion();
                 } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException") + ": ", e);
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
-                try {
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1Name), stmt);
-                } catch (SQLException e) {}
-                try {
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2Name), stmt);
-                } catch (SQLException e) {}
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1Name), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2Name), stmt);
 
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table1Name) + " (col1 INT)");
                 stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table2Name) + " (col1 INT)");
@@ -964,83 +942,120 @@ public class StatementTest extends AbstractTest {
             }
         }
 
-        /**
-         * TestJDBCVersion.value < 42 getLargeMaxRows / setLargeMaxRows should throw exception for version before
-         * sqljdbc42
-         * 
-         * @throws Exception
-         */
         @Test
-        public void testLargeMaxRowsJDBC41() throws Exception {
-            assumeTrue("JDBC41".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
-                    TestResource.getResource("R_incompatJDBC"));
+        public void testMaxFetchSize() throws SQLException {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
-            try (Connection con = getConnection();
-                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+                // Default value should return zero
+                long actual = stmt.getMaxFieldSize();
+                assertEquals(0, actual, 0, "getMaxFieldSize(): " + TestResource.getResource("R_incorrectDefault"));
 
-                // testing exception for getLargeMaxRows method
+                // Set a new value less than MAX_VALUE, and then get the modified value
+                int newValue = 2012;
+                stmt.setMaxFieldSize(newValue);
+                actual = stmt.getMaxFieldSize();
+                assertEquals(newValue, actual,
+                        "getMaxFieldSize(): " + TestResource.getResource("R_valuesAreDifferent"));
+
+                // execute a statement with this new max field size
+                stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
+
+                /*
+                 * Set a new value greater than MAX_VALUE, and then get the modified value. SQL Server only supports
+                 * integer limits for setting max rows If the value MAX_VALUE + 1 is accepted, throw exception
+                 */
                 try {
-                    stmt.getLargeMaxRows();
-                    throw new SQLException(TestResource.getResource("R_unexpectedException"));
+                    newValue = Integer.MAX_VALUE + 1;
+                    stmt.setMaxFieldSize(newValue);
+                    fail(TestResource.getResource("R_expectedFailPassed"));
+                } catch (SQLServerException e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidLength")));
                 } catch (Exception e) {
-                    fail(e.getMessage());
-                }
-
-                // testing exception for setLargeMaxRows method
-                try {
-                    stmt.setLargeMaxRows(2015);
-                    throw new SQLException(TestResource.getResource("R_unexpectedException"));
-                } catch (Exception e) {
-                    fail(e.getMessage());
+                    fail(TestResource.getResource("R_unexpectedException"));
                 }
             }
         }
 
-        /**
-         * testLargeMaxRows on JDBCVersion = 42 or later
-         * 
-         * @throws Exception
-         */
         @Test
-        public void testLargeMaxRowsJDBC42() throws Exception {
-            assumeTrue("JDBC42".equals(TestUtils.getConfiguredProperty("JDBC_Version")),
-                    TestResource.getResource("R_incompatJDBC"));
+        public void testMaxRows() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
+                // Default value should return zero
+                long actual = stmt.getMaxRows();
+                assertEquals(0, actual, "getMaxRows(): " + TestResource.getResource("R_incorrectDefault"));
+
+                // Set a new value less than MAX_VALUE, and then get the modified value
+                int newValue = 2012;
+                stmt.setMaxRows(newValue);
+                actual = stmt.getMaxRows();
+                assertEquals(newValue, actual, "getMaxRows(): " + TestResource.getResource("R_valuesAreDifferent"));
+
+                // execute a statement with this new max field size
+                stmt.execute("SELECT @@VERSION AS 'SQL Server Version'");
+
+                /*
+                 * Set a new value greater than MAX_VALUE, and then get the modified value. SQL Server only supports
+                 * integer limits for setting max rows If the value MAX_VALUE + 1 is accepted, throw exception
+                 */
+                try {
+                    newValue = Integer.MAX_VALUE + 1;
+                    stmt.setMaxRows(newValue);
+                    fail(TestResource.getResource("R_expectedFailPassed"));
+                } catch (SQLServerException e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidRowcount")));
+                } catch (Exception e) {
+                    fail(TestResource.getResource("R_unexpectedException"));
+                }
+
+                // Set a negative value. If negative is accepted, throw exception
+                try {
+                    stmt.setMaxRows(-2012);
+                    fail(TestResource.getResource("R_expectedFailPassed"));
+                } catch (SQLServerException e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidRowcount")));
+                } catch (Exception e) {
+                    fail(TestResource.getResource("R_unexpectedException"));
+                }
+            }
+        }
+
+        @Test
+        public void testLargeMaxRows() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
                 // Default value should return zero
                 long actual = stmt.getLargeMaxRows();
-                assertEquals(actual, (long) 0, "getLargeMaxRows():" + TestResource.getResource("R_incorrectDefault"));
+                assertEquals(0, actual, "getLargeMaxRows(): " + TestResource.getResource("R_incorrectDefault"));
 
                 // Set a new value less than MAX_VALUE, and then get the modified value
                 long newValue = 2012L;
                 stmt.setLargeMaxRows(newValue);
                 actual = stmt.getLargeMaxRows();
-                assertEquals(actual, newValue, "LargeMaxRows() : set/get problem");
+                assertEquals(newValue, actual,
+                        "getLargeMaxRows(): " + TestResource.getResource("R_valuesAreDifferent"));
 
-                // Set a new value grater than MAX_VALUE, and then get the modified value
-                // SQL Server only supports integer limits for setting max rows
-                // If the value MAX_VALUE + 1 is accepted, throw exception
+                /*
+                 * Set a new value grater than MAX_VALUE, and then get the modified value SQL Server only supports
+                 * integer limits for setting max rows If the value MAX_VALUE + 1 is accepted, throw exception
+                 */
                 try {
                     newValue = (long) Integer.MAX_VALUE + 1;
                     stmt.setLargeMaxRows(newValue);
-                    throw new SQLException("setLargeMaxRows(): Long values should not be set");
+                    fail(TestResource.getResource("R_expectedFailPassed"));
+                } catch (SQLServerException e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidMaxRows")));
                 } catch (Exception e) {
-                    assertEquals(
-                            ("calling setLargeMaxRows failed : java.lang.UnsupportedOperationException: "
-                                    + "The supported maximum row count for a result set is Integer.MAX_VALUE or less."),
-                            (e.getMessage()), TestResource.getResource("R_unexpectedException"));
+                    fail(TestResource.getResource("R_unexpectedException"));
                 }
 
                 // Set a negative value. If negative is accepted, throw exception
                 try {
                     stmt.setLargeMaxRows(-2012L);
-                    throw new SQLException("setLargeMaxRows():  Negative value not allowed");
+                    fail(TestResource.getResource("R_expectedFailPassed"));
+                } catch (SQLServerException e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidRowcount")));
                 } catch (Exception e) {
-                    assertEquals(
-                            "calling setLargeMaxRows failed : com.microsoft.sqlserver.jdbc.SQLServerException: "
-                                    + "The maximum row count -2,012 for a result set must be non-negative.",
-                            e.getMessage(), TestResource.getResource("R_unexpectedException"));
+                    fail(TestResource.getResource("R_unexpectedException"));
                 }
             }
         }
@@ -1066,6 +1081,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testJdbc41CallableStatementMethods() throws Exception {
             // Prepare database setup
 
@@ -1224,6 +1240,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testStatementOutParamGetsTwice() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
@@ -1272,6 +1289,7 @@ public class StatementTest extends AbstractTest {
         }
 
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testStatementOutManyParamGetsTwiceRandomOrder() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
@@ -1305,6 +1323,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testStatementOutParamGetsTwiceInOut() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
@@ -1334,6 +1353,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testResultSetParams() throws Exception {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
@@ -1369,6 +1389,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testResultSetNullParams() throws Exception {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
@@ -1433,6 +1454,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testResultSetErrors() throws Exception {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
@@ -1463,19 +1485,19 @@ public class StatementTest extends AbstractTest {
          * Verify proper handling of row errors in ResultSets.
          */
         @Test
-        @Disabled
-        // TODO: We are commenting this out due to random AppVeyor failures. We will investigate later.
+        @Tag(Constants.xAzureSQLDW)
         public void testRowError() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (ROWID int IDENTITY, col1 int)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(1)");
                 stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(2)");
                 stmt.execute(
                         "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName) + " @col1Value int AS "
                                 + " BEGIN " + "    SELECT col1 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                                + "       WITH (UPDLOCK) WHERE (col1 = @col1Value) " + " END");
+                                + "       WITH (UPDLOCK) WHERE (col1 = @col1Value) ORDER BY ROWID" + " END");
 
                 // For the test, lock each row in the table, one by one, for update
                 // on one connection and, on another connection, verify that the
@@ -1499,7 +1521,7 @@ public class StatementTest extends AbstractTest {
                             try {
                                 cstmt.closeOnCompletion();
                             } catch (Exception e) {
-                                throw new SQLException(TestResource.getResource("R_unexpectedException"));
+                                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                             }
 
                             try (ResultSet rs = cstmt.executeQuery()) {
@@ -1515,8 +1537,9 @@ public class StatementTest extends AbstractTest {
                                 try (Statement stmt2 = testConn2.createStatement()) {
                                     stmt2.executeUpdate("SET LOCK_TIMEOUT 0");
 
-                                    try (CallableStatement cstmt2 = testConn2.prepareCall("SELECT col1 FROM "
-                                            + AbstractSQLGenerator.escapeIdentifier(tableName) + " WITH (UPDLOCK)")) {
+                                    try (CallableStatement cstmt2 = testConn2.prepareCall(
+                                            "SELECT col1 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                                    + " WITH (UPDLOCK) ORDER BY ROWID")) {
 
                                         // Verify that the result set can be closed after
                                         // the lock timeout error
@@ -1527,10 +1550,7 @@ public class StatementTest extends AbstractTest {
                                         // indicated row and continues to report that exception on subsequent
                                         // accesses to that row.
                                         try (ResultSet rs = cstmt2.executeQuery()) {
-                                            for (int i = 0; i < row; i++)
-                                                assertEquals(true, rs.next(), "Query returned wrong number of rows.");
-
-                                            for (int i = 0; i < 2; i++) {
+                                            for (int i = 0; i < row; i++) {
                                                 try {
                                                     rs.next();
                                                     assertEquals(false, true, "lock timeout"
@@ -1556,14 +1576,10 @@ public class StatementTest extends AbstractTest {
         }
 
         @AfterEach
-        public void terminate() throws Exception {
-            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                try {
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
-                } catch (SQLException e) {
-                    fail(e.getMessage());
-                }
+        public void terminate() throws SQLException {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
             }
         }
     }
@@ -1607,6 +1623,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testNBCROWNullsForLOBs() throws Exception {
             try (DBConnection dbconn = new DBConnection(connectionString)) {
                 if (dbconn.getServerVersion() <= 9.0) {
@@ -1640,6 +1657,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testSparseColumnSetValues() throws Exception {
             try (DBConnection dbconn = new DBConnection(connectionString)) {
                 if (dbconn.getServerVersion() <= 9.0) {
@@ -1679,6 +1697,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testSparseColumnSetIndex() throws Exception {
             try (DBConnection dbconn = new DBConnection(connectionString)) {
                 if (dbconn.getServerVersion() <= 9.0) {
@@ -1717,6 +1736,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testSparseColumnSetForException() throws Exception {
             try (DBConnection dbconn = new DBConnection(connectionString)) {
                 if (dbconn.getServerVersion() <= 9.0) {
@@ -1754,6 +1774,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testNBCRowForAllNulls() throws Exception {
             try (DBConnection dbconn = new DBConnection(connectionString)) {
                 if (dbconn.getServerVersion() <= 9.0) {
@@ -1802,6 +1823,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
+        @Tag(Constants.xAzureSQLDW)
         public void testNBCROWWithRandomAccess() throws Exception {
             try (DBConnection dbconn = new DBConnection(connectionString)) {
                 if (dbconn.getServerVersion() <= 9.0) {
@@ -1907,7 +1929,6 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
-    @Tag("AzureDWTest")
     public class TCStatementIsClosed {
         @Test
         public void testActiveStatement() throws Exception {
@@ -1971,7 +1992,6 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
-    @Tag("AzureDWTest")
     public class TCResultSetIsClosed {
 
         /**
@@ -1986,7 +2006,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     stmt.closeOnCompletion();
                 } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException"));
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT 1")) {
@@ -2016,7 +2036,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     stmt.closeOnCompletion();
                 } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException"));
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT 1")) {
@@ -2076,6 +2096,7 @@ public class StatementTest extends AbstractTest {
     }
 
     @Nested
+    @Tag(Constants.xAzureSQLDW)
     public class TCUpdateCountWithTriggers {
         private static final int NUM_ROWS = 3;
 
@@ -2095,7 +2116,7 @@ public class StatementTest extends AbstractTest {
                                 + TestUtils.escapeSingleQuotes((triggerName)) + "') drop trigger "
                                 + AbstractSQLGenerator.escapeIdentifier(triggerName));
                     } catch (SQLException e) {
-                        throw new SQLException(e);
+                        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                     }
                     stmt.executeUpdate(
                             "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 INT )");
@@ -2211,23 +2232,20 @@ public class StatementTest extends AbstractTest {
         }
 
         @AfterEach
-        public void terminate() throws Exception {
-            try (Connection con = getConnection(); Statement stmt = con.createStatement();) {
-                try {
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2Name), stmt);
-                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(sprocName), stmt);
-                } catch (SQLException e) {
-                    fail(e.getMessage());
-                }
+        public void terminate() throws SQLException {
+            try (Statement stmt = connection.createStatement();) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2Name), stmt);
+                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(sprocName), stmt);
             }
         }
     }
 
     @Nested
+    @Tag(Constants.xAzureSQLDW)
     public class TCUpdateCountAfterRaiseError {
         private final String tableName = RandomUtil.getIdentifier("TCUpdateCountAfterRaiseError");
-        private final String triggerName = "TCUpdateCountAfterRaiseErrorTrigger";
+        private final String triggerName = tableName + "Trigger";
         private final int NUM_ROWS = 3;
         private final String errorMessage50001InSqlAzure = "Error 50001, severity 17, state 1 was raised, but no message with that error number was found in sys.messages. If error is larger than 50000, make sure the user-defined message is added using sp_addmessage.";
 
@@ -2285,7 +2303,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     pstmt.closeOnCompletion();
                 } catch (Exception e) {
-                    throw new SQLException(TestResource.getResource("R_unexpectedException"));
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
 
                 boolean result = pstmt.execute();
@@ -2427,13 +2445,14 @@ public class StatementTest extends AbstractTest {
                 try {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 } catch (SQLException e) {
-                    fail(e.getMessage());
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
             }
         }
     }
 
     @Nested
+    @Tag(Constants.xAzureSQLDW)
     public class TCNocount {
         private final String tableName = RandomUtil.getIdentifier("TCNoCount");
 
@@ -2449,7 +2468,7 @@ public class StatementTest extends AbstractTest {
                     try {
                         stmt.closeOnCompletion();
                     } catch (Exception e) {
-                        throw new SQLException(TestResource.getResource("R_unexpectedException"), e);
+                        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                     }
                     stmt.executeUpdate(
                             "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 INT )");
@@ -2498,7 +2517,7 @@ public class StatementTest extends AbstractTest {
                 try {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 } catch (SQLException e) {
-                    fail(e.getMessage());
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                 }
             }
         }

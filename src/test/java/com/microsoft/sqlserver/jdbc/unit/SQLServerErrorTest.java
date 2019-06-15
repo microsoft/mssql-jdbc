@@ -14,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -24,6 +25,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerError;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
@@ -31,6 +33,7 @@ public class SQLServerErrorTest extends AbstractTest {
     static int loginTimeOutInSeconds = 10;
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testLoginFailedError() {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
