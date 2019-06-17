@@ -197,12 +197,6 @@ public class SQLServerDataSource
     }
 
     @Override
-    public boolean getIntegratedSecurity() {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString(),
-                SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue());
-    }
-
-    @Override
     public void setAuthenticationScheme(String authenticationScheme) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(),
                 authenticationScheme);

@@ -24,7 +24,6 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
-@Tag(Constants.xWindows)
 @RunWith(JUnitPlatform.class)
 public class ErrorMessageTest extends AbstractTest {
 

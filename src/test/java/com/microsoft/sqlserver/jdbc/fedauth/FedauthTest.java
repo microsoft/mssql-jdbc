@@ -35,7 +35,6 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
-@Tag(Constants.xWindows)
 @RunWith(JUnitPlatform.class)
 public class FedauthTest extends AbstractTest {
     static String charTable = RandomUtil.getIdentifier("charTableFedAuth");

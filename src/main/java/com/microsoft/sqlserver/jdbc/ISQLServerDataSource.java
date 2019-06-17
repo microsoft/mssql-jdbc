@@ -86,13 +86,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setIntegratedSecurity(boolean enable);
 
     /**
-     * Returns a Boolean value that indicates if the integratedSecurity property is enabled.
-     * 
-     * @return true if integratedSecurity is enabled. Otherwise, false.
-     */
-    boolean getIntegratedSecurity();
-
-    /**
      * Sets a Boolean value that indicates if the lastUpdateCount property is enabled.
      * 
      * @param lastUpdateCount
