@@ -24,6 +24,7 @@ public final class Constants {
      * xAzureSQLDB - - - - For tests not compatible with Azure SQL Database
      * xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
+     * xUnix - - - - - - - For tests not compatible with Unix platform
      * NTLM  - - - - - - - For NTLM tests
      * </pre>
      */
@@ -35,6 +36,7 @@ public final class Constants {
     public static final String xAzureSQLDB = "xAzureSQLDB";
     public static final String xAzureSQLDW = "xAzureSQLDW";
     public static final String xAzureSQLMI = "xAzureSQLMI";
+    public static final String xUnix = "xUnix";
     public static final String NTLM = "NTLM";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();

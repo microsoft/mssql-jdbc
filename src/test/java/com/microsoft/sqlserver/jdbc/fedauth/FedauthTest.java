@@ -183,6 +183,7 @@ public class FedauthTest extends AbstractTest {
         testNotValid("SqlPassword", true, true);
     }
 
+    @Tag(Constants.xUnix)
     @Test
     public void testNotValidActiveDirectoryIntegrated() throws SQLException {
         testNotValid("ActiveDirectoryIntegrated", false, true);
@@ -211,6 +212,7 @@ public class FedauthTest extends AbstractTest {
         testValid("SqlPassword", true, true);
     }
 
+    @Tag(Constants.xUnix)
     @Test
     public void testValidActiveDirectoryIntegrated() throws SQLException {
         testValid("ActiveDirectoryIntegrated", false, true);
