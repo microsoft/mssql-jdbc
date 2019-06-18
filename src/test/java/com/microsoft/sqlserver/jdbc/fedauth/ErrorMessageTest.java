@@ -24,6 +24,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
+
 @RunWith(JUnitPlatform.class)
 public class ErrorMessageTest extends AbstractTest {
 
@@ -65,7 +66,7 @@ public class ErrorMessageTest extends AbstractTest {
             if (!(e instanceof SQLServerException)) {
                 fail(e.getMessage());
             }
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(e.getMessage(), e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         } finally {
             if (null != connection) {
                 connection.close();
@@ -84,7 +85,7 @@ public class ErrorMessageTest extends AbstractTest {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(e.getMessage(), e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         }
     }
 
@@ -119,7 +120,7 @@ public class ErrorMessageTest extends AbstractTest {
             }
 
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(
+            assertTrue(e.getMessage(),
                     e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
         } finally {
             if (null != connection) {
@@ -163,7 +164,7 @@ public class ErrorMessageTest extends AbstractTest {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(
+            assertTrue(e.getMessage(),
                     e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
         } finally {
             if (null != connection) {
@@ -188,7 +189,7 @@ public class ErrorMessageTest extends AbstractTest {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_SQL_AUTH_FAILED_SSL));
+            assertTrue(e.getMessage(), e.getMessage().startsWith(ERR_MSG_SQL_AUTH_FAILED_SSL));
         } finally {
             if (null != connection) {
                 connection.close();
@@ -228,11 +229,12 @@ public class ErrorMessageTest extends AbstractTest {
 
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage()
-                    .contains("Failed to authenticate the user " + userName
-                            + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                    && e.getCause().getCause().getMessage()
-                            .contains("To sign into this application, the account must be added to"));
+            assertTrue(e.getMessage(),
+                    e.getMessage()
+                            .contains("Failed to authenticate the user " + userName
+                                    + " in Active Directory (Authentication=ActiveDirectoryPassword).")
+                            && e.getCause().getCause().getMessage()
+                                    .contains("To sign into this application, the account must be added to"));
         } finally {
             if (null != connection) {
                 connection.close();
@@ -266,7 +268,7 @@ public class ErrorMessageTest extends AbstractTest {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(e.getMessage(), e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         } finally {
             if (null != connection) {
                 connection.close();
@@ -316,7 +318,7 @@ public class ErrorMessageTest extends AbstractTest {
                 }
 
                 String wrongUserName = azureUserName.split("@")[1];
-                assertTrue(e.getMessage()
+                assertTrue(e.getMessage(), e.getMessage()
                         .startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
                 retry = false;
             } finally {
@@ -340,7 +342,7 @@ public class ErrorMessageTest extends AbstractTest {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(e.getMessage(), e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         }
     }
 

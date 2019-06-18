@@ -35,6 +35,7 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
+
 @RunWith(JUnitPlatform.class)
 public class FedauthTest extends AbstractTest {
     static String charTable = RandomUtil.getIdentifier("charTableFedAuth");
@@ -289,11 +290,11 @@ public class FedauthTest extends AbstractTest {
 
         } catch (Exception e) {
             if (authentication.toLowerCase().contains("activedirectory")) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed"))
+                assertTrue(e.getMessage(), e.getMessage().contains(TestResource.getResource("R_loginFailed"))
                         || e.getMessage().contains("Failed to authenticate"));
 
             } else {
-                assertTrue(e.getMessage().contains("Cannot open server"));
+                assertTrue(e.getMessage(), e.getMessage().contains("Cannot open server"));
             }
         }
     }
@@ -319,11 +320,11 @@ public class FedauthTest extends AbstractTest {
 
         } catch (Exception e) {
             if (authentication.toLowerCase().contains("activedirectory")) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed"))
+                assertTrue(e.getMessage(), e.getMessage().contains(TestResource.getResource("R_loginFailed"))
                         || e.getMessage().contains("Failed to authenticate"));
 
             } else {
-                assertTrue(e.getMessage().contains("Cannot open server"));
+                assertTrue(e.getMessage(), e.getMessage().contains("Cannot open server"));
             }
         }
     }
@@ -333,7 +334,7 @@ public class FedauthTest extends AbstractTest {
             int numberOfColumns = rs.getMetaData().getColumnCount();
             rs.next();
             for (int i = 1; i <= numberOfColumns; i++) {
-                assertTrue(rs.getString(i).trim().equals("hello world!!!"));
+                assertTrue(rs.getString(i), rs.getString(i).trim().equals("hello world!!!"));
             }
         }
     }
@@ -342,7 +343,7 @@ public class FedauthTest extends AbstractTest {
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
             rs.next();
             String retrievedUserName = rs.getString(1);
-            assertTrue(retrievedUserName.equals(user));
+            assertTrue(retrievedUserName, retrievedUserName.equals(user));
         }
     }
 

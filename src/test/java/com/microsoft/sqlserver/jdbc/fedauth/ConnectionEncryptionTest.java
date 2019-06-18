@@ -25,6 +25,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
+
 @RunWith(JUnitPlatform.class)
 public class ConnectionEncryptionTest extends AbstractTest {
 
@@ -49,7 +50,7 @@ public class ConnectionEncryptionTest extends AbstractTest {
             rs.next();
 
             String retrievedUserName = rs.getString(1);
-            assertTrue(retrievedUserName.equals(FedauthTest.azureUserName));
+            assertTrue(retrievedUserName, retrievedUserName.equals(FedauthTest.azureUserName));
             try {
                 TestUtils.dropTableIfExists(charTable, stmt);
                 FedauthTest.createTable(stmt, charTable);
@@ -76,7 +77,7 @@ public class ConnectionEncryptionTest extends AbstractTest {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
 
-            assertTrue(e.getMessage().startsWith(
+            assertTrue(e.getMessage(), e.getMessage().startsWith(
                     "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption."));
         }
     }
@@ -95,7 +96,7 @@ public class ConnectionEncryptionTest extends AbstractTest {
             rs.next();
 
             String retrievedUserName = rs.getString(1);
-            assertTrue(retrievedUserName.equals(FedauthTest.azureUserName));
+            assertTrue(retrievedUserName, retrievedUserName.equals(FedauthTest.azureUserName));
             try {
                 TestUtils.dropTableIfExists(charTable, stmt);
                 FedauthTest.createTable(stmt, charTable);

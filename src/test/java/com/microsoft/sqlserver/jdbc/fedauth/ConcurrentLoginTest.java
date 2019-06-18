@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
+
 @RunWith(JUnitPlatform.class)
 public class ConcurrentLoginTest extends AbstractTest {
 
@@ -28,7 +29,7 @@ public class ConcurrentLoginTest extends AbstractTest {
         Random rand = new Random();
         int numberOfThreadsForEachType = rand.nextInt(15) + 1; // 1 to 15
 
-       getFedauthInfo();
+        getFedauthInfo();
 
         for (int i = 0; i < numberOfThreadsForEachType; i++) {
             // Access token based authentication
@@ -45,7 +46,7 @@ public class ConcurrentLoginTest extends AbstractTest {
                                 ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                             if (rs.next()) {
                                 String retrievedUserName = rs.getString(1);
-                                assertTrue(retrievedUserName.equals(azureUserName));
+                                assertTrue(retrievedUserName, retrievedUserName.equals(azureUserName));
                             }
                         }
                     } catch (SQLException e) {
@@ -70,7 +71,7 @@ public class ConcurrentLoginTest extends AbstractTest {
                                 ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                             if (rs.next()) {
                                 String retrievedUserName = rs.getString(1);
-                                assertTrue(retrievedUserName.equals(azureUserName));
+                                assertTrue(retrievedUserName, retrievedUserName.equals(azureUserName));
                             }
                         }
                     } catch (SQLException e) {
@@ -95,7 +96,7 @@ public class ConcurrentLoginTest extends AbstractTest {
                                     ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                                 if (rs.next()) {
                                     String retrievedUserName = rs.getString(1);
-                                    assertTrue(retrievedUserName.equals(azureUserName));
+                                    assertTrue(retrievedUserName, retrievedUserName.equals(azureUserName));
                                 }
                             }
                         } catch (SQLException e) {

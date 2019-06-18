@@ -161,9 +161,12 @@ public class FedAuthWithAE extends AbstractTest {
             String stringValue2 = ("" + rs.getString(i + 1)).trim();
             String stringValue3 = ("" + rs.getString(i + 2)).trim();
             try {
-                assertTrue(stringValue1.equalsIgnoreCase("" + values[index])
-                        && stringValue2.equalsIgnoreCase("" + values[index])
-                        && stringValue3.equalsIgnoreCase("" + values[index]));
+                assertTrue(
+                        "stringValue1:" + stringValue1 + " stringValue2: " + stringValue2 + " stringValue2: "
+                                + stringValue2,
+                        stringValue1.equalsIgnoreCase("" + values[index])
+                                && stringValue2.equalsIgnoreCase("" + values[index])
+                                && stringValue3.equalsIgnoreCase("" + values[index]));
             } catch (Exception e) {
                 fail(e.getMessage());
             } finally {
