@@ -656,7 +656,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                         pstmt.close();
                     } catch (SQLServerException ignore) {
                         if (loggerExternal.isLoggable(Level.FINER)) {
-                            loggerExternal.finer("getColumns() threw an exception when attempting to close PreparedStatement");
+                            loggerExternal.finer(
+                                    "getColumns() threw an exception when attempting to close PreparedStatement");
                         }
                     }
                 }
@@ -743,7 +744,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                             resultPstmt.close();
                         } catch (SQLServerException ignore) {
                             if (loggerExternal.isLoggable(Level.FINER)) {
-                                loggerExternal.finer("getColumns() threw an exception when attempting to close PreparedStatement");
+                                loggerExternal.finer(
+                                        "getColumns() threw an exception when attempting to close PreparedStatement");
                             }
                         }
                     }
@@ -1009,7 +1011,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 "END as UPDATE_RULE, " + "CASE s.delete_referential_action " + "WHEN 1 THEN 0 " + "WHEN 0 THEN 3 "
                 + "WHEN 2 THEN 2 " + "WHEN 3 THEN 4 " + "END as DELETE_RULE, " + "t.FK_NAME, " + "t.PK_NAME, "
                 + "t.DEFERRABILITY " + "FROM " + tempTableName + " t "
-                + "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name collate database_default;";
+                + "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name COLLATE database_default AND schema_id(t.FKTABLE_OWNER) = s.schema_id";
         SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(sql);
         cstmt.closeOnCompletion();
         for (int i = 0; i < 6; i++) {
