@@ -3,6 +3,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.3.1] Preview Release
+### Added
+- Added support for NTLM Authentication [#998](https://github.com/Microsoft/mssql-jdbc/pull/998)
+- Added new connection property 'useFmtOnly' to retrieve parameter metadata [#1044](https://github.com/Microsoft/mssql-jdbc/pull/1044)
+- Added support for JDK 12 with an additional "jre12" JAR [#1050](https://github.com/Microsoft/mssql-jdbc/pull/1050)
+- Added 'keyVaultProviderClientId' and 'keyVaultProviderClientKey' connection properties to enhance Always Encrypted usability [#902](https://github.com/Microsoft/mssql-jdbc/pull/902)
+- Implemented `hashCode()` and `equals()` APIs for `SQLServerDataTable` and `SQLServerDataColumn` [#1025](https://github.com/Microsoft/mssql-jdbc/pull/1025)
+- Added Maven Shade plugin configuration to package the driver jars in uber-jars [#1043](https://github.com/Microsoft/mssql-jdbc/pull/1043) [#1078](https://github.com/Microsoft/mssql-jdbc/pull/1078) [#1081](https://github.com/Microsoft/mssql-jdbc/pull/1081)
+
+### Fixed Issues
+- Fixed `DatabaseMetadata.getColumns()` API to return `ResultSet` as per JDBC 4.3 Specifications [#1016](https://github.com/Microsoft/mssql-jdbc/pull/1016)
+- Fixed issue with invalid Spatial data types by marking them valid by default [#1035](https://github.com/microsoft/mssql-jdbc/pull/1035)
+- Fixed issues with Login Timeout not getting applied appropriately [#1049](https://github.com/Microsoft/mssql-jdbc/pull/1049)
+- Fixed `SharedTimer` implementation to use class level lock for thread safety [#1046](https://github.com/Microsoft/mssql-jdbc/pull/1046)
+- Fixed issues with `SQLServerDatabaseMetadata.getMaxConnections()` API query [#1009](https://github.com/Microsoft/mssql-jdbc/pull/1009)
+- Fixed issues with next `ResultSet` being consumed when reading warnings [#991](https://github.com/Microsoft/mssql-jdbc/pull/991)
+- Fixed exception handling in `SQLServerPreparedStatement` to make it consistent with `SQLServerStatement` [#1003](https://github.com/Microsoft/mssql-jdbc/pull/1003)
+- Fixed misleading exception message in `SQLServerCallableStatement` implementation [#1064](https://github.com/Microsoft/mssql-jdbc/pull/1064)
+- JUnit Test fixes and improvements [#994](https://github.com/Microsoft/mssql-jdbc/pull/994) [#1004](https://github.com/Microsoft/mssql-jdbc/pull/1004) [#1005](https://github.com/Microsoft/mssql-jdbc/pull/1005) [#1006](https://github.com/Microsoft/mssql-jdbc/pull/1006) [#1008](https://github.com/Microsoft/mssql-jdbc/pull/1008) [#1015](https://github.com/Microsoft/mssql-jdbc/pull/1015) [#1017](https://github.com/Microsoft/mssql-jdbc/pull/1017) [#1019](https://github.com/Microsoft/mssql-jdbc/pull/1019) [#1027](https://github.com/Microsoft/mssql-jdbc/pull/1027) [#1032](https://github.com/Microsoft/mssql-jdbc/pull/1032) [#1034](https://github.com/Microsoft/mssql-jdbc/pull/1034) [#1036](https://github.com/Microsoft/mssql-jdbc/pull/1036) [#1041](https://github.com/Microsoft/mssql-jdbc/pull/1041) [#1047](https://github.com/Microsoft/mssql-jdbc/pull/1047) [#1060](https://github.com/Microsoft/mssql-jdbc/pull/1060)
+
+### Changed
+- Improved performance of driver by continuously cleaning up `ActivityIds` stored in internal Map [#1020](https://github.com/Microsoft/mssql-jdbc/pull/1020)
+- Improved performance by removing `Enum.values()` calls to avoid unnecessary array cloning [#1065](https://github.com/Microsoft/mssql-jdbc/pull/1065)
+- Improved performance of `SQLServerDataTable.internalAddRow()` function [#990](https://github.com/Microsoft/mssql-jdbc/pull/990)
+
 ## [7.3.0] Preview Release
 ### Added
 - Added support in SQLServerBulkCopy to allow Pooled/XA Connection instances during object creation [#968](https://github.com/Microsoft/mssql-jdbc/pull/968)

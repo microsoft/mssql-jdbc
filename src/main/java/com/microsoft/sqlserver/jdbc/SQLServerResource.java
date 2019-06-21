@@ -18,13 +18,12 @@ public final class SQLServerResource extends ListResourceBundle {
     }
 
     protected Object[][] getContents() {
-        return contents;
+        return CONTENTS;
     }
 
-    // the keys must be prefixed with R_ to denote they are resource strings and their names should follow the
-    // camelCasing
-    // convention and be descriptive
-    static final Object[][] contents = {
+    // The keys must be prefixed with R_ to denote they are resource strings and their names should follow the
+    // camelCasing convention and be descriptive
+    static final Object[][] CONTENTS = {
             // LOCALIZE THIS
             {"R_timedOutBeforeRouting", "The timeout expired before connecting to the routing destination."},
             {"R_invalidRoutingInfo",
@@ -43,9 +42,11 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_unknownSSType", "Invalid SQL Server data type {0}."},
             {"R_unknownJDBCType", "Invalid JDBC data type {0}."},
             {"R_notSQLServer",
-                    "The driver received an unexpected pre-login response. Verify the connection properties and check that an instance of SQL Server is running on the host and accepting TCP/IP connections at the port. This driver can be used only with SQL Server 2005 or later."},
+                    "The driver received an unexpected pre-login response. Verify the connection properties and check that an instance of SQL Server is running on the host and accepting "
+                            + "TCP/IP connections at the port. This driver can be used only with SQL Server 2005 or later."},
             {"R_tcpOpenFailed",
-                    "{0}. Verify the connection properties. Make sure that an instance of SQL Server is running on the host and accepting TCP/IP connections at the port. Make sure that TCP connections to the port are not blocked by a firewall."},
+                    "{0}. Verify the connection properties. Make sure that an instance of SQL Server is running on the host and accepting TCP/IP connections at the port. Make sure that TCP "
+                            + "connections to the port are not blocked by a firewall."},
             {"R_unsupportedServerVersion", "SQL Server version {0} is not supported by this driver."},
             {"R_noServerResponse", "SQL Server did not return a response. The connection has been closed."},
             {"R_truncatedServerResponse",
@@ -82,7 +83,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_invalidColumnArrayLength", "The column array is not valid. Its length must be 1."},
             {"R_valueNotSetForParameter", "The value is not set for the parameter number {0}."},
             {"R_sqlBrowserFailed",
-                    "The connection to the host {0}, named instance {1} failed. Error: \"{2}\". Verify the server and instance names and check that no firewall is blocking UDP traffic to port 1434.  For SQL Server 2005 or later, verify that the SQL Server Browser Service is running on the host."},
+                    "The connection to the host {0}, named instance {1} failed. Error: \"{2}\". Verify the server and instance names and check that no firewall is blocking UDP traffic to port 1434. "
+                            + " For SQL Server 2005 or later, verify that the SQL Server Browser Service is running on the host."},
             {"R_notConfiguredToListentcpip", "The server {0} is not configured to listen with TCP/IP."},
             {"R_cantIdentifyTableMetadata", "Unable to identify the table {0} for the metadata."},
             {"R_metaDataErrorForParameter", "A metadata error for the parameter {0} occurred."},
@@ -163,7 +165,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_dataAlreadyAccessed", "The data has been accessed and is not available for this column or parameter."},
             {"R_outParamsNotPermittedinBatch", "The OUT and INOUT parameters are not permitted in a batch."},
             {"R_sslRequiredNoServerSupport",
-                    "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption. The application requested encryption but the server is not configured to support SSL."},
+                    "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption. "
+                            + "The application requested encryption but the server is not configured to support SSL."},
             {"R_sslRequiredByServer",
                     "SQL Server login requires an encrypted connection that uses Secure Sockets Layer (SSL)."},
             {"R_sslFailed",
@@ -180,6 +183,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_userPropertyDescription", "The database user."},
             {"R_passwordPropertyDescription", "The database password."},
             {"R_databaseNamePropertyDescription", "The name of the database to connect to."},
+            {"R_domainPropertyDescription", "The Windows domain to authenticate in using NTLM."},
             {"R_serverNamePropertyDescription", "The computer running SQL Server."},
             {"R_portNumberPropertyDescription", "The TCP port where an instance of SQL Server is listening."},
             {"R_serverSpnPropertyDescription", "SQL Server SPN."},
@@ -239,7 +243,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_socketTimeoutPropertyDescription",
                     "The number of milliseconds to wait before the java.net.SocketTimeoutException is raised."},
             {"R_serverPreparedStatementDiscardThresholdPropertyDescription",
-                    "The threshold for when to close discarded prepare statements on the server (calling a batch of sp_unprepares). A value of 1 or less will cause sp_unprepare to be called immediately on PreparedStatment close."},
+                    "The threshold for when to close discarded prepare statements on the server (calling a batch of sp_unprepares). "
+                            + "A value of 1 or less will cause sp_unprepare to be called immediately on PreparedStatment close."},
             {"R_enablePrepareOnFirstPreparedStatementCallPropertyDescription",
                     "This setting specifies whether a prepared statement is prepared (sp_prepexec) on first use (property=true) or on second after first calling sp_executesql (property=false)."},
             {"R_statementPoolingCacheSizePropertyDescription",
@@ -304,16 +309,21 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_EncryptionFailed", "Internal error while encryption:  {0} "},
             {"R_DecryptionFailed", "Internal error while decryption:  {0} "},
             {"R_InvalidKeySize",
-                    "The column encryption key has been successfully decrypted but it''s length: {0} does not match the length: {1} for algorithm \"{2}\". Verify the encrypted value of the column encryption key in the database."},
+                    "The column encryption key has been successfully decrypted but it''s length: {0} does not match the length: {1} for algorithm \"{2}\". "
+                            + "Verify the encrypted value of the column encryption key in the database."},
             {"R_InvalidEncryptionType",
                     "Encryption type {0} specified for the column in the database is either invalid or corrupted. Valid encryption types for algorithm {1} are: {2}."},
             {"R_UnknownColumnEncryptionAlgorithm",
                     "The Algorithm {0} does not exist. Algorithms registered in the factory are {1}."},
             {"R_KeyExtractionFailed", "Key extraction failed : {0} ."},
             {"R_UntrustedKeyPath",
-                    "The column master key path {0} received from server {1} is not a trusted key path. The column master key path may be corrupt or you should set {0} as a trusted key path using SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths()."},
+                    "The column master key path {0} received from server {1} is not a trusted key path. The column master key path may be corrupt or you should set {0} as a trusted key path "
+                            + "using SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths()."},
             {"R_UnrecognizedKeyStoreProviderName",
-                    "Failed to decrypt a column encryption key. Invalid key store provider name: {0}. A key store provider name must denote either a system key store provider or a registered custom key store provider. Valid system key provider names are: {1}. Valid (currently registered) custom key store provider names are: {2}. Please verify key store provider information in column master key definitions in the database, and verify all custom key store providers used in your application are registered properly."},
+                    "Failed to decrypt a column encryption key. Invalid key store provider name: {0}. A key store provider name must denote either a system key store provider "
+                            + "or a registered custom key store provider. Valid system key provider names are: {1}. Valid (currently registered) custom key store provider names are: "
+                            + "{2}. Please verify key store provider information in column master key definitions in the database, and verify all custom key store providers "
+                            + "used in your application are registered properly."},
             {"R_UnsupportedDataTypeAE", "Encryption and decryption of data type {0} is not supported."},
             {"R_NormalizationErrorAE", "Decryption of the data type {0} failed. Normalization error."},
             {"R_UnsupportedNormalizationVersionAE",
@@ -333,7 +343,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_CertificateError", "Error occurred while retrieving certificate \"{0}\" from keystore \"{1}\"."},
             {"R_ByteToShortConversion", "Error occurred while decrypting column encryption key."},
             {"R_InvalidCertificateSignature",
-                    "The specified encrypted column encryption key signature does not match the signature computed with the column master key (certificate) in \"{0}\". The encrypted column encryption key may be corrupt, or the specified path may be incorrect."},
+                    "The specified encrypted column encryption key signature does not match the signature computed with the column master key (certificate) in \"{0}\". "
+                            + "The encrypted column encryption key may be corrupt, or the specified path may be incorrect."},
             {"R_CEKDecryptionFailed", "Exception while decryption of encrypted column encryption key:  {0} "},
             {"R_NullKeyEncryptionAlgorithm", "Key encryption algorithm cannot be null."},
             {"R_NullKeyEncryptionAlgorithmInternal", "Internal error. Key encryption algorithm cannot be null."},
@@ -345,8 +356,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_EmptyColumnEncryptionKey", "Empty column encryption key specified."},
             {"R_CertificateNotFoundForAlias",
                     "Certificate with alias {0} not found in the store provided by {1}. Verify the certificate has been imported correctly into the certificate location/store."},
-            {"R_UnrecoverableKeyAE",
-                    "Cannot recover private key from keystore with certificate details {0}.  Verify that imported certificate for Always Encrypted contains private key and password provided for certificate is correct."},
+            {"R_UnrecoverableKeyAE", "Cannot recover private key from keystore with certificate details {0}. "
+                    + " Verify that imported certificate for Always Encrypted contains private key and password provided for certificate is correct."},
             {"R_KeyStoreNotFound",
                     "System cannot find the key store file at the specified path. Verify that the path is correct and you have proper permissions to access it."},
             {"R_CustomKeyStoreProviderMapNull",
@@ -385,6 +396,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_UnknownFeatureAck", "Unknown feature acknowledge is received."},
             {"R_SetAuthenticationWhenIntegratedSecurityTrue",
                     "Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."},
+            {"R_NtlmNoUserPasswordDomain",
+                    "\"User\" (or \"UserName\") and \"Password\" connection properties must be specified for NTLM authentication."},
             {"R_SetAccesstokenWhenIntegratedSecurityTrue",
                     "Cannot set the AccessToken property if the \"IntegratedSecurity\" connection string keyword has been set to \"true\"."},
             {"R_IntegratedAuthenticationWithUserPassword",
@@ -403,11 +416,13 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_ForceEncryptionTrue_HonorAEFalse",
                     "Cannot set Force Encryption to true for parameter {0} because enryption is not enabled for the statement or procedure {1}."},
             {"R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn",
-                    "Cannot execute statement or procedure {0} because Force Encryption was set as true for parameter {1} and the database expects this parameter to be sent as plaintext. This may be due to a configuration error."},
+                    "Cannot execute statement or procedure {0} because Force Encryption was set as true for parameter {1} and the database expects this parameter to be sent as plaintext. "
+                            + "This may be due to a configuration error."},
             {"R_ForceEncryptionTrue_HonorAEFalseRS",
                     "Cannot set Force Encryption to true for parameter {0} because encryption is not enabled for the statement or procedure."},
             {"R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumnRS",
-                    "Cannot execute update because Force Encryption was set as true for parameter {0} and the database expects this parameter to be sent as plaintext. This may be due to a configuration error."},
+                    "Cannot execute update because Force Encryption was set as true for parameter {0} and the database expects this parameter to be sent as plaintext. "
+                            + "This may be due to a configuration error."},
             {"R_NullValue", "{0} cannot be null."}, {"R_AKVPathNull", "Azure Key Vault key path cannot be null."},
             {"R_AKVURLInvalid", "Invalid URL specified: {0}."},
             {"R_AKVMasterKeyPathInvalid", "Invalid Azure Key Vault key path specified: {0}."},
@@ -419,14 +434,17 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_InvalidEcryptionAlgorithmVersion",
                     "Specified encrypted column encryption key contains an invalid encryption algorithm version {0}. Expected version is {1}."},
             {"R_AKVKeyLengthError",
-                    "The specified encrypted column encryption key''s ciphertext length: {0} does not match the ciphertext length: {1} when using column master key (Azure Key Vault key) in {2}. The encrypted column encryption key may be corrupt, or the specified Azure Key Vault key path may be incorrect."},
+                    "The specified encrypted column encryption key''s ciphertext length: {0} does not match the ciphertext length: {1} when using column master key (Azure Key Vault key) in {2}. "
+                            + "The encrypted column encryption key may be corrupt, or the specified Azure Key Vault key path may be incorrect."},
             {"R_AKVSignatureLengthError",
-                    "The specified encrypted column encryption key''s signature length: {0} does not match the signature length: {1} when using column master key (Azure Key Vault key) in {2}. The encrypted column encryption key may be corrupt, or the specified Azure Key Vault key path may be incorrect."},
+                    "The specified encrypted column encryption key''s signature length: {0} does not match the signature length: {1} when using column master key (Azure Key Vault key) in {2}. "
+                            + "The encrypted column encryption key may be corrupt, or the specified Azure Key Vault key path may be incorrect."},
             {"R_HashNull", "Hash should not be null while decrypting encrypted column encryption key."},
             {"R_NoSHA256Algorithm", "SHA-256 Algorithm is not supported."},
             {"R_VerifySignature", "Unable to verify signature of the column encryption key."},
             {"R_CEKSignatureNotMatchCMK",
-                    "The specified encrypted column encryption key signature does not match the signature computed with the column master key (Asymmetric key in Azure Key Vault) in {0}. The encrypted column encryption key may be corrupt, or the specified path may be incorrect."},
+                    "The specified encrypted column encryption key signature does not match the signature computed with the column master key (Asymmetric key in Azure Key Vault) in {0}. "
+                            + "The encrypted column encryption key may be corrupt, or the specified path may be incorrect."},
             {"R_DecryptCEKError", "Unable to decrypt column encryption key using specified Azure Key Vault key."},
             {"R_EncryptCEKError", "Unable to encrypt column encryption key using specified Azure Key Vault key."},
             {"R_CipherTextLengthNotMatchRSASize", "CipherText length does not match the RSA key size."},
@@ -455,30 +473,35 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_TVPDuplicateSortOrdinal", "The sort ordinal {0} was specified twice."},
             {"R_TVPMissingSortOrdinal", "The sort ordinal {0} was not specified."},
             {"R_TVPDuplicateColumnName", "A column name {0} already belongs to this SQLServerDataTable."},
-            {"R_InvalidConnectionSetting", "The {0} value \"{1}\" is not valid."}, // This is used for connection
-                                                                                   // settings. {0}-> property name as
-                                                                                   // is, {1}-> value
+            // This is used for connection settings. {0}-> property name as is, {1}-> value
+            {"R_InvalidConnectionSetting", "The {0} value \"{1}\" is not valid."},
             {"R_InvalidWindowsCertificateStoreEncryption",
                     "Cannot encrypt a column encryption key with the Windows Certificate Store."},
             {"R_AEKeypathEmpty",
-                    "Internal error. Certificate path cannot be null. Use the following format: \"certificate location/certificate store/certificate thumbprint\", where \"certificate location\" is either LocalMachine or CurrentUser."},
+                    "Internal error. Certificate path cannot be null. Use the following format: \"certificate location/certificate store/certificate thumbprint\", "
+                            + "where \"certificate location\" is either LocalMachine or CurrentUser."},
             {"R_AEWinApiErr", "Windows Api native error."},
             {"R_AECertpathBad",
-                    "Internal error. Invalid certificate path: {0}. Use the following format: \"certificate location/certificate store/certificate thumbprint\", where \"certificate location\" is either LocalMachine or CurrentUser."},
+                    "Internal error. Invalid certificate path: {0}. Use the following format: \"certificate location/certificate store/certificate thumbprint\", "
+                            + "where \"certificate location\" is either LocalMachine or CurrentUser."},
             {"R_AECertLocBad",
-                    "Internal error. Invalid certificate location {0} in certificate path {1}. Use the following format: \"certificate location/certificate store/certificate thumbprint\", where \"certificate location\" is either LocalMachine or CurrentUser."},
+                    "Internal error. Invalid certificate location {0} in certificate path {1}. Use the following format: \"certificate location/certificate store/certificate thumbprint\", "
+                            + "where \"certificate location\" is either LocalMachine or CurrentUser."},
             {"R_AECertStoreBad",
                     "Internal error. Invalid certificate store {0} specified in certificate path {1}. Expected value: My."},
             {"R_AECertHashEmpty", "Internal error. Empty certificate thumbprint specified in certificate path {0}."},
             {"R_AECertNotFound",
-                    "Certificate with thumbprint {2} not found in certificate store {1} in certificate location {0}. Verify the certificate path in the column master key definition in the database is correct, and the certificate has been imported correctly into the certificate location/store."},
+                    "Certificate with thumbprint {2} not found in certificate store {1} in certificate location {0}. Verify the certificate path in the column master key definition "
+                            + "in the database is correct, and the certificate has been imported correctly into the certificate location/store."},
             {"R_AEMaloc", "Memory allocation failure."},
             {"R_AEKeypathLong",
                     "Internal error. Specified certificate path has {0} bytes, which exceeds maximum length of {1} bytes."},
             {"R_AEECEKLenBad",
-                    "The specified encrypted column encryption key''s ciphertext length: {0} does not match the ciphertext length: {1} when using column master key (certificate) in \"{2}\". The encrypted column encryption key may be corrupt, or the specified certificate path may be incorrect."},
+                    "The specified encrypted column encryption key''s ciphertext length: {0} does not match the ciphertext length: {1} when using column master key (certificate) in \"{2}\". "
+                            + "The encrypted column encryption key may be corrupt, or the specified certificate path may be incorrect."},
             {"R_AEECEKSigLenBad",
-                    "The specified encrypted column encryption key''s signature length {0} does not match the length {1} when using the column master key (certificate) in \"{2}\". The encrypted column encryption key may be corrupt, or the specified certificate path may be incorrect."},
+                    "The specified encrypted column encryption key''s signature length {0} does not match the length {1} when using the column master key (certificate) in \"{2}\". "
+                            + "The encrypted column encryption key may be corrupt, or the specified certificate path may be incorrect."},
             {"R_AEKeyPathEmptyOrReserved",
                     "The certificate path \"{0}\" is invalid; it is empty or contains reserved directory names."},
             {"R_AEKeyPathCurUser",
@@ -554,5 +577,18 @@ public final class SQLServerResource extends ListResourceBundle {
                     "MSI Token failure: Failed to acquire access token from IMDS, unexpected error occurred."},
             {"R_MSITokenFailureEndpoint", "MSI Token failure: Failed to acquire token from MSI Endpoint"},
             {"R_propertyNotSupported",
-                    "Microsoft JDBC Driver for SQL Server currently does not support the property: {0}"}};
-}
+                    "Microsoft JDBC Driver for SQL Server currently does not support the property: {0}"},
+            {"R_ntlmHmacMD5Error", "Unable to initialize NTLM authentication: Hmac MD5 init error"},
+            {"R_ntlmSignatureError", "NTLM Challenge Message signature error: {0}"},
+            {"R_ntlmMessageTypeError", "NTLM Challenge Message type error: {0}"},
+            {"R_ntlmAuthenticateError", "NTLM error constructing Authenticate Message: {0}"},
+            {"R_ntlmNoTargetInfo", "NTLM Challenge Message is missing target info."},
+            {"R_ntlmUnknownValue", "NTLM Challenge Message target info error: unknown value \"{0}\""},
+            {"R_useFmtOnlyPropertyDescription",
+                    "Determines whether to enable/disable use of SET FMTONLY to retrieve parameter metadata."},
+            {"R_invalidOpenqueryCall",
+                    "Invalid syntax: OPENQUERY/OPENJSON/OPENDATASOURCE/OPENROWSET/OPENXML must be preceded by round brackets"},
+            {"R_invalidCTEFormat",
+                    "Invalid syntax: AS must be followed by round brackets in Common Table Expressions."},
+            {"R_noTokensFoundInUserQuery", "Invalid query: No tokens were parsed from the SQL provided."}};
+};
