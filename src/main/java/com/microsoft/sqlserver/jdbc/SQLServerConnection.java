@@ -819,12 +819,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return masterKeyPathCopy;
     }
 
-    static synchronized List<String> getColumnEncryptionTrustedMasterKeyPaths(String server, boolean hasEntry) {
+    static synchronized List<String> getColumnEncryptionTrustedMasterKeyPaths(String server, Boolean[] hasEntry) {
         if (columnEncryptionTrustedMasterKeyPaths.containsKey(server)) {
-            hasEntry = true;
+            hasEntry[0] = true;
             return columnEncryptionTrustedMasterKeyPaths.get(server);
         } else {
-            hasEntry = false;
+            hasEntry[0] = false;
             return null;
         }
     }
