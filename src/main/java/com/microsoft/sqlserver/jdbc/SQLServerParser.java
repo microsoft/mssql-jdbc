@@ -91,13 +91,16 @@ final class SQLServerParser {
                                 }
                                 for (int i = 0; i < ls.size(); i++) {
                                     if (ls.get(i).equalsIgnoreCase("?")) {
-                                        if (i < tableValues.size()) {
-                                            query.getColumns()
-                                                    .add((tableValues.size() == 0) ? "?" : tableValues.get(i));
+                                        if (tableValues.size() == 0) {
+                                            query.getColumns().add("?");
                                         } else {
-                                            SQLServerException.makeFromDriverError(null, null,
-                                                    SQLServerResource.getResource("R_invalidInsertValuesQuery"), "",
-                                                    false);
+                                            if (i < tableValues.size()) {
+                                                query.getColumns().add(tableValues.get(i));
+                                            } else {
+                                                SQLServerException.makeFromDriverError(null, null,
+                                                        SQLServerResource.getResource("R_invalidInsertValuesQuery"), "",
+                                                        false);
+                                            }
                                         }
                                     }
                                 }
