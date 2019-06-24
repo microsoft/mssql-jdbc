@@ -283,7 +283,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
          *         if error occurs
          */
         NTLMContext(final SQLServerConnection con, final String domainName, final String userName,
-                final String password, final String workstation) throws SQLServerException {
+                final byte[] passwordHash, final String workstation) throws SQLServerException {
 
             this.domainName = domainName.toUpperCase();
             this.domainUbytes = unicode(this.domainName);
@@ -291,7 +291,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
             this.userNameUbytes = null != userName ? unicode(userName) : null;
             this.upperUserName = null != userName ? userName.toUpperCase() : null;
 
-            this.passwordHash = null != password ? md4(unicode(password)) : null;
+            this.passwordHash = passwordHash;
 
             this.workstation = workstation;
 
@@ -332,9 +332,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *         if error occurs
      */
     NTLMAuthentication(final SQLServerConnection con, final String domainName, final String userName,
-            final String password, final String workstation) throws SQLServerException {
+            final byte[] passwordHash, final String workstation) throws SQLServerException {
         if (null == context) {
-            this.context = new NTLMContext(con, domainName, userName, password, workstation);
+            this.context = new NTLMContext(con, domainName, userName, passwordHash, workstation);
         }
     }
 
@@ -612,7 +612,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *        input string
      * @return MD4 hash
      */
-    private byte[] md4(final byte[] str) {
+    private static byte[] md4(final byte[] str) {
         MD4 md = new MD4();
         md.reset();
         md.update(str);
@@ -626,7 +626,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *        string to convert to unicode
      * @return unicode of string
      */
-    private byte[] unicode(final String str) {
+    private static byte[] unicode(final String str) {
         return (null != str) ? str.getBytes(java.nio.charset.StandardCharsets.UTF_16LE) : null;
     }
 
@@ -889,5 +889,9 @@ final class NTLMAuthentication extends SSPIAuthentication {
         System.arraycopy(msg, 0, context.negotiateMsg, 0, msg.length);
 
         return msg;
+    }
+
+    public static byte[] getNtlmPasswordHash(String password) {
+        return null != password ? md4(unicode(password)) : null;
     }
 }

@@ -326,7 +326,7 @@ public class NTLMConnectionTest extends AbstractTest {
     private void sendBadToken(byte[] badField, int offset) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connectionStringNTLM)) {
             getServerFqdn(con);
-            SSPIAuthentication auth = new NTLMAuthentication(con, "domainName", "userName", "password", "hostname");
+            SSPIAuthentication auth = new NTLMAuthentication(con, "domainName", "userName", new byte[1], "hostname");
             boolean[] done = {false};
             byte[] badToken = getChallengeToken(offset, badField);
             auth.generateClientContext(badToken, done);
