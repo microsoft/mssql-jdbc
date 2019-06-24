@@ -3,7 +3,6 @@ package com.microsoft.sqlserver.jdbc.fmtOnly;
 import static org.junit.Assert.assertEquals;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
