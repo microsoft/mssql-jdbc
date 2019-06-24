@@ -66,31 +66,40 @@ final class SQLServerParser {
                     }
                     query.getTableTarget().add(getTableTargetChunk(iter, query.getAliases(), INSERT_DELIMITING_WORDS));
 
-                    List<String> tableValues = getValuesList(iter);
-                    // VALUES case
-                    boolean valuesFound = false;
-                    int valuesMarker = iter.nextIndex();
-                    while (!valuesFound && iter.hasNext()) {
-                        t = iter.next();
-                        if (t.getType() == SQLServerLexer.VALUES) {
-                            valuesFound = true;
-                            do {
-                                query.getValuesList().add(getValuesList(iter));
-                            } while (iter.hasNext() && iter.next().getType() == SQLServerLexer.COMMA);
-                            iter.previous();
-                        }
-                    }
-                    if (!valuesFound) {
-                        resetIteratorIndex(iter, valuesMarker);
-                    }
-                    if (!query.getValuesList().isEmpty()) {
-                        for (List<String> ls : query.getValuesList()) {
-                            if (tableValues.isEmpty()) {
-                                query.getColumns().add("*");
+                    if (iter.hasNext()) {
+                        List<String> tableValues = getValuesList(iter);
+                        // VALUES case
+                        boolean valuesFound = false;
+                        int valuesMarker = iter.nextIndex();
+                        while (!valuesFound && iter.hasNext()) {
+                            t = iter.next();
+                            if (t.getType() == SQLServerLexer.VALUES) {
+                                valuesFound = true;
+                                do {
+                                    query.getValuesList().add(getValuesList(iter));
+                                } while (iter.hasNext() && iter.next().getType() == SQLServerLexer.COMMA);
+                                iter.previous();
                             }
-                            for (int i = 0; i < ls.size(); i++) {
-                                if (ls.get(i).equalsIgnoreCase("?")) {
-                                    query.getColumns().add((tableValues.size() == 0) ? "?" : tableValues.get(i));
+                        }
+                        if (!valuesFound) {
+                            resetIteratorIndex(iter, valuesMarker);
+                        }
+                        if (!query.getValuesList().isEmpty()) {
+                            for (List<String> ls : query.getValuesList()) {
+                                if (tableValues.isEmpty()) {
+                                    query.getColumns().add("*");
+                                }
+                                for (int i = 0; i < ls.size(); i++) {
+                                    if (ls.get(i).equalsIgnoreCase("?")) {
+                                        if (i < tableValues.size()) {
+                                            query.getColumns()
+                                                    .add((tableValues.size() == 0) ? "?" : tableValues.get(i));
+                                        } else {
+                                            SQLServerException.makeFromDriverError(null, null,
+                                                    SQLServerResource.getResource("R_invalidInsertValuesQuery"), "",
+                                                    false);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -201,7 +210,7 @@ final class SQLServerParser {
         StringBuilder sb = new StringBuilder();
         while (sb.length() == 0 && iter.hasNext()) {
             Token t = iter.next();
-            if (t.getType() == SQLServerLexer.NOT) {
+            if (t.getType() == SQLServerLexer.NOT && iter.hasNext()) {
                 t = iter.next(); // skip NOT
             }
             if (OPERATORS.contains(t.getType()) && iter.hasNext()) {
@@ -216,8 +225,10 @@ final class SQLServerParser {
                         t = iter.next();
                         if (t.getType() == SQLServerLexer.DOT) {
                             sb.append(".");
-                            t = iter.next();
-                            sb.append(t.getText());
+                            if (iter.hasNext()) {
+                                t = iter.next();
+                                sb.append(t.getText());
+                            }
                         }
                     }
                 }
@@ -232,20 +243,18 @@ final class SQLServerParser {
         StringBuilder sb = new StringBuilder();
         while (sb.length() == 0 && iter.hasPrevious()) {
             Token t = iter.previous();
-            if (t.getType() == SQLServerLexer.DOLLAR) {
+            if (t.getType() == SQLServerLexer.DOLLAR && iter.hasPrevious()) {
                 t = iter.previous(); // skip if it's a $ sign
             }
-            if (t.getType() == SQLServerLexer.AND) {
+            if (t.getType() == SQLServerLexer.AND && iter.hasPrevious()) {
+                t = iter.previous();
                 if (iter.hasPrevious()) {
-                    t = iter.previous();
-                    if (iter.hasPrevious()) {
-                        t = iter.previous(); // try to find BETWEEN
-                        if (t.getType() == SQLServerLexer.BETWEEN) {
-                            iter.next();
-                            continue;
-                        } else {
-                            return "";
-                        }
+                    t = iter.previous(); // try to find BETWEEN
+                    if (t.getType() == SQLServerLexer.BETWEEN && iter.hasNext()) {
+                        iter.next();
+                        continue;
+                    } else {
+                        return "";
                     }
                 }
             }
@@ -262,12 +271,14 @@ final class SQLServerParser {
                         d.push(t.getText());
                     }
                     // Linked-servers can have a maximum of 4 parts
-                    for (int i = 0; i < 3; i++) {
+                    for (int i = 0; i < 3 && iter.hasPrevious(); i++) {
                         t = iter.previous();
                         if (t.getType() == SQLServerLexer.DOT) {
                             d.push(".");
-                            t = iter.previous();
-                            d.push(t.getText());
+                            if (iter.hasPrevious()) {
+                                t = iter.previous();
+                                d.push(t.getText());
+                            }
                         }
                     }
                     d.stream().forEach(sb::append);
@@ -362,88 +373,102 @@ final class SQLServerParser {
     }
 
     static String getCTE(SQLServerTokenIterator iter) throws SQLServerException {
-        Token t = iter.next();
-        if (t.getType() == SQLServerLexer.WITH) {
-            StringBuilder sb = new StringBuilder("WITH ");
-            getCTESegment(iter, sb);
-            return sb.toString();
-        } else {
-            iter.previous();
-            return "";
+        if (iter.hasNext()) {
+            Token t = iter.next();
+            if (t.getType() == SQLServerLexer.WITH) {
+                StringBuilder sb = new StringBuilder("WITH ");
+                getCTESegment(iter, sb);
+                return sb.toString();
+            } else {
+                iter.previous();
+            }
         }
+        return "";
     }
 
     static void getCTESegment(SQLServerTokenIterator iter, StringBuilder sb) throws SQLServerException {
-        sb.append(getTableTargetChunk(iter, null, Arrays.asList(SQLServerLexer.AS)));
-        iter.next();
-        Token t = iter.next();
-        sb.append(" AS ");
-        if (t.getType() != SQLServerLexer.LR_BRACKET) {
+        try {
+            sb.append(getTableTargetChunk(iter, null, Arrays.asList(SQLServerLexer.AS)));
+            iter.next();
+            Token t = iter.next();
+            sb.append(" AS ");
+            if (t.getType() != SQLServerLexer.LR_BRACKET) {
+                SQLServerException.makeFromDriverError(null, null, SQLServerResource.getResource("R_invalidCTEFormat"),
+                        "", false);
+            }
+            int leftRoundBracketCount = 0;
+            do {
+                sb.append(t.getText()).append(' ');
+                if (t.getType() == SQLServerLexer.LR_BRACKET) {
+                    leftRoundBracketCount++;
+                } else if (t.getType() == SQLServerLexer.RR_BRACKET) {
+                    leftRoundBracketCount--;
+                }
+                t = iter.next();
+            } while (leftRoundBracketCount > 0);
+
+            if (t.getType() == SQLServerLexer.COMMA) {
+                sb.append(", ");
+                getCTESegment(iter, sb);
+            } else {
+                iter.previous();
+            }
+        } catch (java.util.NoSuchElementException e) {
             SQLServerException.makeFromDriverError(null, null, SQLServerResource.getResource("R_invalidCTEFormat"), "",
                     false);
-        }
-        int leftRoundBracketCount = 0;
-        do {
-            sb.append(t.getText()).append(' ');
-            if (t.getType() == SQLServerLexer.LR_BRACKET) {
-                leftRoundBracketCount++;
-            } else if (t.getType() == SQLServerLexer.RR_BRACKET) {
-                leftRoundBracketCount--;
-            }
-            t = iter.next();
-        } while (leftRoundBracketCount > 0);
-
-        if (t.getType() == SQLServerLexer.COMMA) {
-            sb.append(", ");
-            getCTESegment(iter, sb);
-        } else {
-            iter.previous();
         }
     }
 
     private static String getTableTargetChunk(SQLServerTokenIterator iter, List<String> possibleAliases,
             List<Integer> delimiters) throws SQLServerException {
         StringBuilder sb = new StringBuilder();
-        Token t = iter.next();
-        do {
-            switch (t.getType()) {
-                case SQLServerLexer.LR_BRACKET:
-                    sb.append(getRoundBracketChunk(iter, t));
-                    break;
-                case SQLServerLexer.OPENDATASOURCE:
-                case SQLServerLexer.OPENJSON:
-                case SQLServerLexer.OPENQUERY:
-                case SQLServerLexer.OPENROWSET:
-                case SQLServerLexer.OPENXML:
-                    sb.append(t.getText());
-                    t = iter.next();
-                    if (t.getType() != SQLServerLexer.LR_BRACKET) {
-                        SQLServerException.makeFromDriverError(null, null,
-                                SQLServerResource.getResource("R_invalidOpenqueryCall"), "", false);
-                    }
-                    sb.append(getRoundBracketChunk(iter, t));
-                    break;
-                case SQLServerLexer.AS:
-                    sb.append(t.getText());
-                    if (iter.hasNext()) {
-                        String s = iter.next().getText();
-                        possibleAliases.add(s);
-                        sb.append(" ").append(s);
-                    }
-                    break;
-                default:
-                    sb.append(t.getText());
-                    break;
-            }
-            if (iter.hasNext()) {
-                sb.append(' ');
-                t = iter.next();
-            } else {
-                break;
-            }
-        } while (!delimiters.contains(t.getType()) && t.getType() != SQLServerLexer.SEMI);
         if (iter.hasNext()) {
-            iter.previous();
+            Token t = iter.next();
+            do {
+                switch (t.getType()) {
+                    case SQLServerLexer.LR_BRACKET:
+                        sb.append(getRoundBracketChunk(iter, t));
+                        break;
+                    case SQLServerLexer.OPENDATASOURCE:
+                    case SQLServerLexer.OPENJSON:
+                    case SQLServerLexer.OPENQUERY:
+                    case SQLServerLexer.OPENROWSET:
+                    case SQLServerLexer.OPENXML:
+                        sb.append(t.getText());
+                        t = iter.next();
+                        if (t.getType() != SQLServerLexer.LR_BRACKET) {
+                            SQLServerException.makeFromDriverError(null, null,
+                                    SQLServerResource.getResource("R_invalidOpenqueryCall"), "", false);
+                        }
+                        sb.append(getRoundBracketChunk(iter, t));
+                        break;
+                    case SQLServerLexer.AS:
+                        sb.append(t.getText());
+                        if (iter.hasNext()) {
+                            String s = iter.next().getText();
+                            if (possibleAliases != null) {
+                                possibleAliases.add(s);
+                            } else {
+                                SQLServerException.makeFromDriverError(null, null,
+                                        SQLServerResource.getResource("R_invalidCTEFormat"), "", false);
+                            }
+                            sb.append(" ").append(s);
+                        }
+                        break;
+                    default:
+                        sb.append(t.getText());
+                        break;
+                }
+                if (iter.hasNext()) {
+                    sb.append(' ');
+                    t = iter.next();
+                } else {
+                    break;
+                }
+            } while (!delimiters.contains(t.getType()) && t.getType() != SQLServerLexer.SEMI);
+            if (iter.hasNext()) {
+                iter.previous();
+            }
         }
         return sb.toString().trim();
     }

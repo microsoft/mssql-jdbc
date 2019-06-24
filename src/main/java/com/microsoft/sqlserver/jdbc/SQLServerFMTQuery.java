@@ -13,7 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 
 
@@ -100,7 +103,8 @@ class SQLServerFMTQuery {
         } catch (IOException e) {
             SQLServerException.makeFromDriverError(null, userSql, e.getLocalizedMessage(), "", false);
         }
-
+        lexer.removeErrorListeners();
+        lexer.addErrorListener(new SQLServerErrorListener());
         this.tokenList = (ArrayList<? extends Token>) lexer.getAllTokens();
         if (tokenList.size() <= 0) {
             SQLServerException.makeFromDriverError(null, this,
@@ -109,5 +113,21 @@ class SQLServerFMTQuery {
         SQLServerTokenIterator iter = new SQLServerTokenIterator(tokenList);
         this.prefix = SQLServerParser.getCTE(iter);
         SQLServerParser.parseQuery(iter, this);
+    }
+}
+
+
+class SQLServerErrorListener extends BaseErrorListener {
+    static final private java.util.logging.Logger logger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerFMTQuery");
+
+    @Override
+    public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
+            String msg, RecognitionException e) {
+        if (logger.isLoggable(java.util.logging.Level.FINE)) {
+            logger.fine("Error occured during token parsing: " + msg);
+            logger.fine("line " + line + ":" + charPositionInLine + " token recognition error at: "
+                    + offendingSymbol.toString());
+        }
     }
 }

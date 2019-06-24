@@ -87,7 +87,7 @@ final class ParameterUtils {
 
                     // Fall through - will fail next if and end up in default case
                 case '-':
-                    if (sql.charAt(offset) == '-') { // If '-- ... \n' comment
+                    if (offset >= 0 && offset < sql.length() && sql.charAt(offset) == '-') { // If '-- ... \n' comment
                         while (++offset < len) { // Go thru comment.
                             if (sql.charAt(offset) == '\n' || sql.charAt(offset) == '\r') {
                                 // If end of comment
