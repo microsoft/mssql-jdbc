@@ -94,21 +94,21 @@ class SQLServerFMTQuery {
     SQLServerFMTQuery(String userSql) throws SQLServerException {
         if (null == userSql || 0 == userSql.length()) {
             SQLServerException.makeFromDriverError(null, this,
-                    SQLServerResource.getResource("R_noTokensFoundInUserQuery"), "", false);
+                    SQLServerResource.getResource("R_noTokensFoundInUserQuery"), null, false);
         }
         InputStream stream = new ByteArrayInputStream(userSql.getBytes(StandardCharsets.UTF_8));
         SQLServerLexer lexer = null;
         try {
             lexer = new SQLServerLexer(CharStreams.fromStream(stream));
         } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, userSql, e.getLocalizedMessage(), "", false);
+            SQLServerException.makeFromDriverError(null, userSql, e.getLocalizedMessage(), null, false);
         }
         lexer.removeErrorListeners();
         lexer.addErrorListener(new SQLServerErrorListener());
         this.tokenList = (ArrayList<? extends Token>) lexer.getAllTokens();
         if (tokenList.size() <= 0) {
             SQLServerException.makeFromDriverError(null, this,
-                    SQLServerResource.getResource("R_noTokensFoundInUserQuery"), "", false);
+                    SQLServerResource.getResource("R_noTokensFoundInUserQuery"), null, false);
         }
         SQLServerTokenIterator iter = new SQLServerTokenIterator(tokenList);
         this.prefix = SQLServerParser.getCTE(iter);

@@ -98,8 +98,8 @@ final class SQLServerParser {
                                                 query.getColumns().add(tableValues.get(i));
                                             } else {
                                                 SQLServerException.makeFromDriverError(null, null,
-                                                        SQLServerResource.getResource("R_invalidInsertValuesQuery"), "",
-                                                        false);
+                                                        SQLServerResource.getResource("R_invalidInsertValuesQuery"),
+                                                        null, false);
                                             }
                                         }
                                     }
@@ -397,7 +397,7 @@ final class SQLServerParser {
             sb.append(" AS ");
             if (t.getType() != SQLServerLexer.LR_BRACKET) {
                 SQLServerException.makeFromDriverError(null, null, SQLServerResource.getResource("R_invalidCTEFormat"),
-                        "", false);
+                        null, false);
             }
             int leftRoundBracketCount = 0;
             do {
@@ -417,8 +417,8 @@ final class SQLServerParser {
                 iter.previous();
             }
         } catch (java.util.NoSuchElementException e) {
-            SQLServerException.makeFromDriverError(null, null, SQLServerResource.getResource("R_invalidCTEFormat"), "",
-                    false);
+            SQLServerException.makeFromDriverError(null, null, SQLServerResource.getResource("R_invalidCTEFormat"),
+                    null, false);
         }
     }
 
@@ -441,7 +441,7 @@ final class SQLServerParser {
                         t = iter.next();
                         if (t.getType() != SQLServerLexer.LR_BRACKET) {
                             SQLServerException.makeFromDriverError(null, null,
-                                    SQLServerResource.getResource("R_invalidOpenqueryCall"), "", false);
+                                    SQLServerResource.getResource("R_invalidOpenqueryCall"), null, false);
                         }
                         sb.append(getRoundBracketChunk(iter, t));
                         break;
@@ -453,7 +453,7 @@ final class SQLServerParser {
                                 possibleAliases.add(s);
                             } else {
                                 SQLServerException.makeFromDriverError(null, null,
-                                        SQLServerResource.getResource("R_invalidCTEFormat"), "", false);
+                                        SQLServerResource.getResource("R_invalidCTEFormat"), null, false);
                             }
                             sb.append(" ").append(s);
                         }
