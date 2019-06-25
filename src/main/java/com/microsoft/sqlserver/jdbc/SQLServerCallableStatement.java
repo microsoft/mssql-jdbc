@@ -1311,7 +1311,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         // handle `@name` as well as `name`, since `@name` is what's returned
         // by DatabaseMetaData#getProcedureColumns
         String columnNameWithoutAtSign = null;
-        if (columnName.startsWith("@")) {
+        if (columnName.charAt(0) == '@') {
             columnNameWithoutAtSign = columnName.substring(1, columnName.length());
         } else {
             columnNameWithoutAtSign = columnName;
@@ -1661,7 +1661,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     @Override
     public final void setBinaryStream(String parameterName, InputStream value) throws SQLException {
-
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {parameterName, value});
         checkClosed();

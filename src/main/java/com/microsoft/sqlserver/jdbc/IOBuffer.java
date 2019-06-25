@@ -3285,7 +3285,7 @@ final class TDSWriter {
      * @param value
      *        the data value
      */
-    void writeReal(Float value) throws SQLServerException {
+    void writeReal(float value) throws SQLServerException {
         writeInt(Float.floatToRawIntBits(value));
     }
 

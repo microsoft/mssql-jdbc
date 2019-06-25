@@ -834,7 +834,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean ntlmAuthentication = false;
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
     private GSSCredential impersonatedUserCred;
-    private Boolean isUserCreatedCredential;
+    private boolean isUserCreatedCredential;
     // This is the current connect place holder this should point one of the primary or failover place holder
     ServerPortPlaceHolder currentConnectPlaceHolder = null;
 
@@ -3924,7 +3924,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 String currentHostName = activeConnectionProperties.getProperty("hostNameInCertificate");
 
                 // skip the check for hostNameInCertificate if routingServerName is null
-                if (null != currentHostName && currentHostName.startsWith("*") && (null != routingServerName)
+                if (null != currentHostName && currentHostName.charAt(0) == '*' && (null != routingServerName)
                         && routingServerName.indexOf('.') != -1) {
                     char[] currentHostNameCharArray = currentHostName.toCharArray();
                     char[] routingServerNameCharArray = routingServerName.toCharArray();
@@ -5180,8 +5180,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public PreparedStatement prepareStatement(String sql, int flag) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, flag});
-
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, flag});
+        }
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, flag,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 
@@ -5192,7 +5193,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public PreparedStatement prepareStatement(String sql, int flag,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, flag, stmtColEncSetting});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "prepareStatement",
+                    new Object[] {sql, flag, stmtColEncSetting});
+        }
         checkClosed();
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, stmtColEncSetting);
@@ -5203,7 +5207,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, columnIndexes});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, columnIndexes});
+        }
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, columnIndexes,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 
@@ -5231,7 +5237,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, columnNames});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, columnNames});
+        }
 
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, columnNames,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
@@ -5548,7 +5556,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public void setClientInfo(String name, String value) throws SQLClientInfoException {
-        loggerExternal.entering(getClassNameLogging(), "setClientInfo", new Object[] {name, value});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "setClientInfo", new Object[] {name, value});
+        }
         // This function is only marked as throwing only SQLClientInfoException so the conversion is necessary
         try {
             checkClosed();

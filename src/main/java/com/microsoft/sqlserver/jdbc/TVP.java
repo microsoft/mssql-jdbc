@@ -9,10 +9,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -114,7 +114,7 @@ class TVP {
     List<Object> getRowData() throws SQLServerException {
         if (TVPType.ResultSet == tvpType) {
             int colCount = columnMetadata.size();
-            List<Object> rowData = new LinkedList<>();
+            List<Object> rowData = new ArrayList<>();
             for (int i = 0; i < colCount; i++) {
                 try {
                     /*

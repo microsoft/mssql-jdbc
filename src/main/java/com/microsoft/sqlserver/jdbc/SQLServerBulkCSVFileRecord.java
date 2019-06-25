@@ -551,7 +551,10 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
 
     @Override
     public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat", new Object[] {dateTimeFormatter});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat",
+                    new Object[] {dateTimeFormatter});
+        }
 
         super.setTimestampWithTimezoneFormat(dateTimeFormatter);
 
@@ -569,7 +572,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
 
     @Override
     public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
+        }
 
         super.setTimeWithTimezoneFormat(dateTimeFormatter);
 

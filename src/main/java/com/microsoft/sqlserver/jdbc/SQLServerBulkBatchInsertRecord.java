@@ -51,7 +51,10 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
      */
     public SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam, ArrayList<String> columnList,
             ArrayList<String> valueList, String encoding) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "SQLServerBulkBatchInsertRecord", new Object[] {batchParam, encoding});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "SQLServerBulkBatchInsertRecord",
+                    new Object[] {batchParam, encoding});
+        }
 
         if (null == batchParam) {
             throwInvalidArgument("batchParam");
@@ -331,9 +334,10 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
     @Override
     void addColumnMetadataInternal(int positionInSource, String name, int jdbcType, int precision, int scale,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "addColumnMetadata",
-                new Object[] {positionInSource, name, jdbcType, precision, scale});
-
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "addColumnMetadata",
+                    new Object[] {positionInSource, name, jdbcType, precision, scale});
+        }
         String colName = "";
 
         if (0 >= positionInSource) {
@@ -407,7 +411,10 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
 
     @Override
     public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat", new Object[] {dateTimeFormatter});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat",
+                    new Object[] {dateTimeFormatter});
+        }
 
         super.setTimestampWithTimezoneFormat(dateTimeFormatter);
 
@@ -425,7 +432,9 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
 
     @Override
     public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
+        }
 
         super.setTimeWithTimezoneFormat(dateTimeFormatter);
 
