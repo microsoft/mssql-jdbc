@@ -3696,13 +3696,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null == ntlmPasswordHash) {
                     ntlmPasswordHash = NTLMAuthentication.getNtlmPasswordHash(
                             activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()));
+                    activeConnectionProperties.remove(SQLServerDriverStringProperty.PASSWORD.toString());
                 }
 
                 authentication = new NTLMAuthentication(this,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DOMAIN.toString()),
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
                         ntlmPasswordHash, hostName);
-                activeConnectionProperties.remove(SQLServerDriverStringProperty.PASSWORD.toString());
             }
         }
 
