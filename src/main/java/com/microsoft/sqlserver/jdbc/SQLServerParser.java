@@ -91,7 +91,7 @@ final class SQLServerParser {
                                 }
                                 for (int i = 0; i < ls.size(); i++) {
                                     if (ls.get(i).equalsIgnoreCase("?")) {
-                                        if (tableValues.size() == 0) {
+                                        if (0 == tableValues.size()) {
                                             query.getColumns().add("?");
                                         } else {
                                             if (i < tableValues.size()) {
@@ -211,7 +211,7 @@ final class SQLServerParser {
 
     private static String findColumnAfterParameter(SQLServerTokenIterator iter) {
         StringBuilder sb = new StringBuilder();
-        while (sb.length() == 0 && iter.hasNext()) {
+        while (0 == sb.length() && iter.hasNext()) {
             Token t = iter.next();
             if (t.getType() == SQLServerLexer.NOT && iter.hasNext()) {
                 t = iter.next(); // skip NOT
@@ -244,7 +244,7 @@ final class SQLServerParser {
 
     private static String findColumnBeforeParameter(SQLServerTokenIterator iter) {
         StringBuilder sb = new StringBuilder();
-        while (sb.length() == 0 && iter.hasPrevious()) {
+        while (0 == sb.length() && iter.hasPrevious()) {
             Token t = iter.previous();
             if (t.getType() == SQLServerLexer.DOLLAR && iter.hasPrevious()) {
                 t = iter.previous(); // skip if it's a $ sign

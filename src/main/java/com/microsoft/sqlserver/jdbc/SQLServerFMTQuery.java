@@ -92,7 +92,7 @@ class SQLServerFMTQuery {
     private SQLServerFMTQuery() {};
 
     SQLServerFMTQuery(String userSql) throws SQLServerException {
-        if (null == userSql || userSql.length() == 0) {
+        if (null == userSql || 0 == userSql.length()) {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_noTokensFoundInUserQuery"), "", false);
         }
