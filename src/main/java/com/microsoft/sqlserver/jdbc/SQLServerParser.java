@@ -150,12 +150,12 @@ final class SQLServerParser {
         }
     }
 
-    private static String getRoundBracketChunk(SQLServerTokenIterator iter, Token t) {
+    private static String getRoundBracketChunk(SQLServerTokenIterator iter, Token t) throws SQLServerException {
         StringBuilder sb = new StringBuilder();
         sb.append('(');
         Stack<String> s = new Stack<>();
         s.push("(");
-        while (!s.empty()) {
+        while (!s.empty() && iter.hasNext()) {
             t = iter.next();
             if (t.getType() == SQLServerLexer.RR_BRACKET) {
                 sb.append(")");
@@ -197,7 +197,7 @@ final class SQLServerParser {
             SQLServerLexer.OR_ASSIGN, SQLServerLexer.STAR, SQLServerLexer.DIVIDE, SQLServerLexer.MODULE,
             SQLServerLexer.PLUS, SQLServerLexer.MINUS, SQLServerLexer.LIKE, SQLServerLexer.IN, SQLServerLexer.BETWEEN);
 
-    static String findColumnAroundParameter(SQLServerTokenIterator iter) {
+    static String findColumnAroundParameter(SQLServerTokenIterator iter) throws SQLServerException {
         int index = iter.nextIndex();
         iter.previous();
         String value = findColumnBeforeParameter(iter);
@@ -209,7 +209,7 @@ final class SQLServerParser {
         return value;
     }
 
-    private static String findColumnAfterParameter(SQLServerTokenIterator iter) {
+    private static String findColumnAfterParameter(SQLServerTokenIterator iter) throws SQLServerException {
         StringBuilder sb = new StringBuilder();
         while (0 == sb.length() && iter.hasNext()) {
             Token t = iter.next();
@@ -293,7 +293,7 @@ final class SQLServerParser {
         return sb.toString();
     }
 
-    static List<String> getValuesList(SQLServerTokenIterator iter) {
+    static List<String> getValuesList(SQLServerTokenIterator iter) throws SQLServerException {
         Token t = iter.next();
         if (t.getType() == SQLServerLexer.LR_BRACKET) {
             ArrayList<String> parameterColumns = new ArrayList<>();
@@ -331,6 +331,9 @@ final class SQLServerParser {
                 }
                 if (iter.hasNext() && !d.isEmpty()) {
                     t = iter.next();
+                } else if (!iter.hasNext() && !d.isEmpty()) {
+                    SQLServerException.makeFromDriverError(null, null,
+                            SQLServerResource.getResource("R_invalidValuesList"), null, false);
                 }
             } while (!d.isEmpty());
             return parameterColumns;
@@ -345,6 +348,10 @@ final class SQLServerParser {
      */
     static Token skipTop(SQLServerTokenIterator iter) throws SQLServerException {
         // Look for the TOP token
+        if (!iter.hasNext()) {
+            SQLServerException.makeFromDriverError(null, null, SQLServerResource.getResource("R_invalidUserSQL"), null,
+                    false);
+        }
         Token t = iter.next();
         if (t.getType() == SQLServerLexer.TOP) {
             t = iter.next();
