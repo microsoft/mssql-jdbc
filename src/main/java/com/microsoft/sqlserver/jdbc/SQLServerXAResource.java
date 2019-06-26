@@ -881,7 +881,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 
     @Override
     public boolean setTransactionTimeout(int seconds) throws XAException {
-
+		// if the timeout value exceeds the upper bound of short int, return false
+		if(seconds > 32767) return false;
         isTransacrionTimeoutSet = 1;
         timeoutSeconds = seconds;
         if (xaLogger.isLoggable(Level.FINER))
