@@ -891,7 +891,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
         return msg;
     }
 
-    public static byte[] getNtlmPasswordHash(String password) {
-        return null != password ? md4(unicode(password)) : null;
+    public static byte[] getNtlmPasswordHash(String password) throws SQLServerException {
+        if (null == password) {
+            throw new SQLServerException(SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"), null);
+        }
+
+        return md4(unicode(password));
     }
 }
