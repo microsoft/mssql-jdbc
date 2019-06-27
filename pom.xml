@@ -57,7 +57,7 @@
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.1</azure.keyvault.version>
 		<azure.adal4j.version>1.6.4</azure.adal4j.version>
-		<rest.client.version>1.6.8</rest.client.version>
+		<rest.client.version>1.6.10</rest.client.version>
 		<osgi.core.version>6.0.0</osgi.core.version>
 		<osgi.comp.version>5.0.0</osgi.comp.version>
 		<antlr.runtime.version>4.7.2</antlr.runtime.version>
