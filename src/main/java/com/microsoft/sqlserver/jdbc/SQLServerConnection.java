@@ -832,6 +832,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     Properties activeConnectionProperties; // the active set of connection properties
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
     private boolean ntlmAuthentication = false;
+    private byte[] ntlmPasswordHash = null;
+
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
     private GSSCredential impersonatedUserCred;
     private boolean isUserCreatedCredential;
@@ -3691,12 +3693,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             currentConnectPlaceHolder.getPortNumber());
                 }
             } else if (ntlmAuthentication) {
+                if (null == ntlmPasswordHash) {
+                    ntlmPasswordHash = NTLMAuthentication.getNtlmPasswordHash(
+                            activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()));
+                    activeConnectionProperties.remove(SQLServerDriverStringProperty.PASSWORD.toString());
+                }
+
                 authentication = new NTLMAuthentication(this,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DOMAIN.toString()),
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
-                        hostName);
-                activeConnectionProperties.remove(SQLServerDriverStringProperty.PASSWORD.toString());
+                        ntlmPasswordHash, hostName);
             }
         }
 
