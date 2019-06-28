@@ -590,5 +590,9 @@ public final class SQLServerResource extends ListResourceBundle {
                     "Invalid syntax: OPENQUERY/OPENJSON/OPENDATASOURCE/OPENROWSET/OPENXML must be preceded by round brackets"},
             {"R_invalidCTEFormat",
                     "Invalid syntax: AS must be followed by round brackets in Common Table Expressions."},
-            {"R_noTokensFoundInUserQuery", "Invalid query: No tokens were parsed from the SQL provided."}};
+            {"R_noTokensFoundInUserQuery", "Invalid query: No tokens were parsed from the SQL provided."},
+            {"R_invalidUserSQL", "An error occurred when attempting to parse user SQL. Please verify SQL syntax."},
+            {"R_invalidInsertValuesQuery",
+                    "An error occurred when matching VALUES list to table columns. Please verify SQL syntax."},
+            {"R_invalidValuesList", "An error occurred when reading VALUES list. Please verify SQL syntax."}};
 };
