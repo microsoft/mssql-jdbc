@@ -593,6 +593,6 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_noTokensFoundInUserQuery", "Invalid query: No tokens were parsed from the SQL provided."},
             {"R_invalidUserSQL", "An error occurred when attempting to parse user SQL. Please verify SQL syntax."},
             {"R_invalidInsertValuesQuery",
-                    "An error occurred when matching VALUES list to table columns. Please verify user SQL."},
-            {"R_invalidValuesList", "An error occurred when reading VALUES list. Please verify user SQL."}};
+                    "An error occurred when matching VALUES list to table columns. Please verify SQL syntax."},
+            {"R_invalidValuesList", "An error occurred when reading VALUES list. Please verify SQL syntax."}};
 };
