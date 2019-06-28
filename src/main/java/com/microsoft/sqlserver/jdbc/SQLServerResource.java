@@ -591,7 +591,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_invalidCTEFormat",
                     "Invalid syntax: AS must be followed by round brackets in Common Table Expressions."},
             {"R_noTokensFoundInUserQuery", "Invalid query: No tokens were parsed from the SQL provided."},
-            {"R_invalidUserSQL", "An error occured when attempting to parse user SQL. Please verify SQL syntax."},
-            {"R_invalidInsertValuesQuery", "Error when matching VALUES list to Table columns. Please verify user SQL."},
-            {"R_invalidValuesList", "Error when reading VALUES list. Please verify user SQL."}};
+            {"R_invalidUserSQL", "An error occurred when attempting to parse user SQL. Please verify SQL syntax."},
+            {"R_invalidInsertValuesQuery", "An error occurred when matching VALUES list to Table columns. Please verify user SQL."},
+            {"R_invalidValuesList", "An error occurred when reading VALUES list. Please verify user SQL."}};
 };
