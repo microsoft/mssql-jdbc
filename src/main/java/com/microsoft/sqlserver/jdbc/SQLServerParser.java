@@ -150,13 +150,13 @@ final class SQLServerParser {
         }
     }
 
-    private static String getRoundBracketChunk(SQLServerTokenIterator iter, Token t) throws SQLServerException {
+    private static String getRoundBracketChunk(SQLServerTokenIterator iter) throws SQLServerException {
         StringBuilder sb = new StringBuilder();
         sb.append('(');
         Stack<String> s = new Stack<>();
         s.push("(");
         while (!s.empty() && iter.hasNext()) {
-            t = iter.next();
+            Token t = iter.next();
             if (t.getType() == SQLServerLexer.RR_BRACKET) {
                 sb.append(")");
                 s.pop();
@@ -170,13 +170,13 @@ final class SQLServerParser {
         return sb.toString();
     }
 
-    private static String getRoundBracketChunkBefore(SQLServerTokenIterator iter, Token t) {
+    private static String getRoundBracketChunkBefore(SQLServerTokenIterator iter) {
         StringBuilder sb = new StringBuilder();
         sb.append('(');
         Stack<String> s = new Stack<>();
         s.push(")");
         while (!s.empty()) {
-            t = iter.previous();
+            Token t = iter.previous();
             if (t.getType() == SQLServerLexer.RR_BRACKET) {
                 sb.append("(");
                 s.push(")");
@@ -220,7 +220,7 @@ final class SQLServerParser {
                 t = iter.next();
                 if (t.getType() != SQLServerLexer.PARAMETER) {
                     if (t.getType() == SQLServerLexer.LR_BRACKET) {
-                        sb.append(getRoundBracketChunk(iter, t));
+                        sb.append(getRoundBracketChunk(iter));
                     } else {
                         sb.append(t.getText());
                     }
@@ -269,7 +269,7 @@ final class SQLServerParser {
                 if (t.getType() != SQLServerLexer.PARAMETER) {
                     Deque<String> d = new ArrayDeque<>();
                     if (t.getType() == SQLServerLexer.RR_BRACKET) {
-                        d.push(getRoundBracketChunkBefore(iter, t));
+                        d.push(getRoundBracketChunkBefore(iter));
                     } else {
                         d.push(t.getText());
                     }
@@ -356,7 +356,7 @@ final class SQLServerParser {
         if (t.getType() == SQLServerLexer.TOP) {
             t = iter.next();
             if (t.getType() == SQLServerLexer.LR_BRACKET) {
-                getRoundBracketChunk(iter, t);
+                getRoundBracketChunk(iter);
             }
             t = iter.next();
 
@@ -437,7 +437,7 @@ final class SQLServerParser {
             do {
                 switch (t.getType()) {
                     case SQLServerLexer.LR_BRACKET:
-                        sb.append(getRoundBracketChunk(iter, t));
+                        sb.append(getRoundBracketChunk(iter));
                         break;
                     case SQLServerLexer.OPENDATASOURCE:
                     case SQLServerLexer.OPENJSON:
@@ -450,7 +450,7 @@ final class SQLServerParser {
                             SQLServerException.makeFromDriverError(null, null,
                                     SQLServerResource.getResource("R_invalidOpenqueryCall"), null, false);
                         }
-                        sb.append(getRoundBracketChunk(iter, t));
+                        sb.append(getRoundBracketChunk(iter));
                         break;
                     case SQLServerLexer.AS:
                         sb.append(t.getText());
