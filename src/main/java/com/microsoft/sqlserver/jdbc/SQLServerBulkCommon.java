@@ -59,6 +59,12 @@ abstract class SQLServerBulkCommon implements ISQLServerBulkRecord {
      */
     protected DateTimeFormatter timeFormatter = null;
 
+    /*
+     * Logger
+     */
+    protected java.util.logging.Logger loggerExternal = null;
+    protected String loggerPackageName = "com.microsoft.jdbc.SQLServerBulkCopyCommon";
+
     @Override
     public void addColumnMetadata(int positionInSource, String name, int jdbcType, int precision, int scale,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {
@@ -94,22 +100,35 @@ abstract class SQLServerBulkCommon implements ISQLServerBulkRecord {
 
     @Override
     public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
+        loggerExternal.entering(loggerPackageName, "setTimestampWithTimezoneFormat", dateTimeFormat);
         this.dateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFormat);
+        loggerExternal.exiting(loggerPackageName, "setTimestampWithTimezoneFormat");
     }
 
     @Override
     public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(loggerPackageName, "setTimestampWithTimezoneFormat",
+                    new Object[] {dateTimeFormatter});
+        }
         this.dateTimeFormatter = dateTimeFormatter;
+        loggerExternal.exiting(loggerPackageName, "setTimestampWithTimezoneFormat");
     }
 
     @Override
     public void setTimeWithTimezoneFormat(String timeFormat) {
+        loggerExternal.entering(loggerPackageName, "setTimeWithTimezoneFormat", timeFormat);
         this.timeFormatter = DateTimeFormatter.ofPattern(timeFormat);
+        loggerExternal.exiting(loggerPackageName, "setTimeWithTimezoneFormat");
     }
 
     @Override
     public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(loggerPackageName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
+        }
         this.timeFormatter = dateTimeFormatter;
+        loggerExternal.exiting(loggerPackageName, "setTimeWithTimezoneFormat");
     }
 
     /*

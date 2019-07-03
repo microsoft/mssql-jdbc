@@ -38,19 +38,15 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
     /*
      * Class name for logging.
      */
-    private static final String loggerPackageName = "com.microsoft.sqlserver.jdbc.SQLServerBulkBatchInsertRecord";
     private static final String loggerClassName = "SQLServerBulkBatchInsertRecord";
-
-    /*
-     * Logger
-     */
-    private static final java.util.logging.Logger loggerExternal = java.util.logging.Logger.getLogger(loggerPackageName);
 
     /*
      * Constructs a SQLServerBulkBatchInsertRecord with the batch parameter, column list, value list, and encoding
      */
     public SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam, ArrayList<String> columnList,
             ArrayList<String> valueList, String encoding) throws SQLServerException {
+        super.loggerExternal = java.util.logging.Logger.getLogger(loggerPackageName);
+        super.loggerPackageName = "com.microsoft.sqlserver.jdbc.SQLServerBulkBatchInsertRecord";
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
             loggerExternal.entering(loggerPackageName, loggerClassName,
                     new Object[] {batchParam, encoding});
@@ -363,47 +359,6 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
         }
 
         loggerExternal.exiting(loggerPackageName, "addColumnMetadata");
-    }
-
-    @Override
-    public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
-        loggerExternal.entering(loggerPackageName, "setTimestampWithTimezoneFormat", dateTimeFormat);
-
-        super.setTimestampWithTimezoneFormat(dateTimeFormat);
-
-        loggerExternal.exiting(loggerPackageName, "setTimestampWithTimezoneFormat");
-    }
-
-    @Override
-    public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(loggerPackageName, "setTimestampWithTimezoneFormat",
-                    new Object[] {dateTimeFormatter});
-        }
-
-        super.setTimestampWithTimezoneFormat(dateTimeFormatter);
-
-        loggerExternal.exiting(loggerPackageName, "setTimestampWithTimezoneFormat");
-    }
-
-    @Override
-    public void setTimeWithTimezoneFormat(String timeFormat) {
-        loggerExternal.entering(loggerPackageName, "setTimeWithTimezoneFormat", timeFormat);
-
-        super.setTimeWithTimezoneFormat(timeFormat);
-
-        loggerExternal.exiting(loggerPackageName, "setTimeWithTimezoneFormat");
-    }
-
-    @Override
-    public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(loggerPackageName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
-        }
-
-        super.setTimeWithTimezoneFormat(dateTimeFormatter);
-
-        loggerExternal.exiting(loggerPackageName, "setTimeWithTimezoneFormat");
     }
 
     @Override

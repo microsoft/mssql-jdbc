@@ -52,14 +52,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
     /*
      * Class names for logging.
      */
-    private static final String loggerPackageName = "com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord";
     private static final String loggerClassName = "SQLServerBulkCSVFileRecord";
-
-    /*
-     * Logger
-     */
-    private static final java.util.logging.Logger loggerExternal = java.util.logging.Logger
-            .getLogger(loggerPackageName);
 
     /**
      * Constructs a simple reader to parse data from a delimited file with the given encoding.
@@ -77,6 +70,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
      */
     public SQLServerBulkCSVFileRecord(String fileToParse, String encoding, String delimiter,
             boolean firstLineIsColumnNames) throws SQLServerException {
+        initLoggerResources();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
             loggerExternal.entering(loggerPackageName, loggerClassName,
                     new Object[] {fileToParse, encoding, delimiter, firstLineIsColumnNames});
@@ -97,7 +91,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
             } else {
                 sr = new InputStreamReader(fis, encoding);
             }
-            initFileRead(sr, encoding, delimiter, firstLineIsColumnNames);
+            initFileReader(sr, encoding, delimiter, firstLineIsColumnNames);
         } catch (UnsupportedEncodingException unsupportedEncoding) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
             throw new SQLServerException(form.format(new Object[] {encoding}), null, 0, unsupportedEncoding);
@@ -107,17 +101,6 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
         columnMetadata = new HashMap<>();
 
         loggerExternal.exiting(loggerPackageName, loggerClassName);
-    }
-
-    private void initFileRead(InputStreamReader sr, String encoding, String demlimeter,
-            boolean firstLineIsColumnNames) throws SQLServerException, IOException {
-        fileReader = new BufferedReader(sr);
-        if (firstLineIsColumnNames) {
-            currentLine = fileReader.readLine();
-            if (null != currentLine) {
-                columnNames = currentLine.split(delimiter, -1);
-            }
-        }
     }
 
     /**
@@ -136,6 +119,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
      */
     public SQLServerBulkCSVFileRecord(InputStream fileToParse, String encoding, String delimiter,
             boolean firstLineIsColumnNames) throws SQLServerException {
+        initLoggerResources();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
             loggerExternal.entering(loggerPackageName, loggerClassName,
                     new Object[] {fileToParse, encoding, delimiter, firstLineIsColumnNames});
@@ -154,7 +138,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
             } else {
                 sr = new InputStreamReader(fileToParse, encoding);
             }
-            initFileRead(sr, encoding, delimiter, firstLineIsColumnNames);
+            initFileReader(sr, encoding, delimiter, firstLineIsColumnNames);
         } catch (UnsupportedEncodingException unsupportedEncoding) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
             throw new SQLServerException(form.format(new Object[] {encoding}), null, 0, unsupportedEncoding);
@@ -199,6 +183,22 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
         this(fileToParse, null, ",", firstLineIsColumnNames);
     }
 
+    private void initFileReader(InputStreamReader sr, String encoding, String demlimeter,
+            boolean firstLineIsColumnNames) throws SQLServerException, IOException {
+        fileReader = new BufferedReader(sr);
+        if (firstLineIsColumnNames) {
+            currentLine = fileReader.readLine();
+            if (null != currentLine) {
+                columnNames = currentLine.split(delimiter, -1);
+            }
+        }
+    }
+    
+    private void initLoggerResources() {
+        super.loggerPackageName = "com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord";
+        super.loggerExternal = java.util.logging.Logger.getLogger(loggerPackageName);
+    }
+    
     /**
      * Releases any resources associated with the file reader.
      * 
@@ -506,47 +506,6 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
         }
 
         loggerExternal.exiting(loggerPackageName, "addColumnMetadata");
-    }
-
-    @Override
-    public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
-        loggerExternal.entering(loggerPackageName, "setTimestampWithTimezoneFormat", dateTimeFormat);
-
-        super.setTimestampWithTimezoneFormat(dateTimeFormat);
-
-        loggerExternal.exiting(loggerPackageName, "setTimestampWithTimezoneFormat");
-    }
-
-    @Override
-    public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(loggerPackageName, "setTimestampWithTimezoneFormat",
-                    new Object[] {dateTimeFormatter});
-        }
-
-        super.setTimestampWithTimezoneFormat(dateTimeFormatter);
-
-        loggerExternal.exiting(loggerPackageName, "setTimestampWithTimezoneFormat");
-    }
-
-    @Override
-    public void setTimeWithTimezoneFormat(String timeFormat) {
-        loggerExternal.entering(loggerPackageName, "setTimeWithTimezoneFormat", timeFormat);
-
-        super.setTimeWithTimezoneFormat(timeFormat);
-
-        loggerExternal.exiting(loggerPackageName, "setTimeWithTimezoneFormat");
-    }
-
-    @Override
-    public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(loggerPackageName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
-        }
-
-        super.setTimeWithTimezoneFormat(dateTimeFormatter);
-
-        loggerExternal.exiting(loggerPackageName, "setTimeWithTimezoneFormat");
     }
 
     @Override
