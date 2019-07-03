@@ -106,9 +106,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
         }
         columnMetadata = new HashMap<>();
 
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.exiting(loggerPackageName, "SQLServerBulkCSVFileRecord");
-        }
+        loggerExternal.exiting(loggerPackageName, loggerClassName);
     }
 
     private void initFileRead(InputStreamReader sr, String encoding, String demlimeter,
