@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Set;
 
 
 /**
@@ -30,7 +29,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
      * Update serialVersionUID when making changes to this file
      */
     private static final long serialVersionUID = -955998113956445541L;
-    
+
     private List<Parameter[]> batchParam;
     private int batchParamIndex = -1;
     private List<String> columnList;
@@ -70,41 +69,6 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
         columnMetadata = new HashMap<>();
 
         loggerExternal.exiting(loggerClassName, "SQLServerBulkBatchInsertRecord");
-    }
-
-    @Override
-    public DateTimeFormatter getColumnDateTimeFormatter(int column) {
-        return columnMetadata.get(column).dateTimeFormatter;
-    }
-
-    @Override
-    public Set<Integer> getColumnOrdinals() {
-        return columnMetadata.keySet();
-    }
-
-    @Override
-    public String getColumnName(int column) {
-        return columnMetadata.get(column).columnName;
-    }
-
-    @Override
-    public int getColumnType(int column) {
-        return columnMetadata.get(column).columnType;
-    }
-
-    @Override
-    public int getPrecision(int column) {
-        return columnMetadata.get(column).precision;
-    }
-
-    @Override
-    public int getScale(int column) {
-        return columnMetadata.get(column).scale;
-    }
-
-    @Override
-    public boolean isAutoIncrement(int column) {
-        return false;
     }
 
     private Object convertValue(ColumnMetadata cm, Object data) throws SQLServerException {

@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.text.MessageFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 
 
@@ -137,5 +138,40 @@ abstract class SQLServerBulkCommon implements ISQLServerBulkRecord {
                 }
             }
         }
+    }
+
+    @Override
+    public DateTimeFormatter getColumnDateTimeFormatter(int column) {
+        return columnMetadata.get(column).dateTimeFormatter;
+    }
+
+    @Override
+    public Set<Integer> getColumnOrdinals() {
+        return columnMetadata.keySet();
+    }
+
+    @Override
+    public String getColumnName(int column) {
+        return columnMetadata.get(column).columnName;
+    }
+
+    @Override
+    public int getColumnType(int column) {
+        return columnMetadata.get(column).columnType;
+    }
+
+    @Override
+    public int getPrecision(int column) {
+        return columnMetadata.get(column).precision;
+    }
+
+    @Override
+    public int getScale(int column) {
+        return columnMetadata.get(column).scale;
+    }
+
+    @Override
+    public boolean isAutoIncrement(int column) {
+        return false;
     }
 }
