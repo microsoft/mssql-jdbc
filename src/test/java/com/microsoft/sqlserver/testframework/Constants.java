@@ -133,7 +133,7 @@ public final class Constants {
     public static final String FIPS = "FIPS";
     public static final String TRUST_STORE_TYPE = "TRUSTSTORETYPE";
     public static final String TRUST_SERVER_CERTIFICATE = "TRUSTSERVERCERTIFICATE";
-    public static final String TRUST_STORE_PASSWORD = "TRUSTSTOREPASSWORD";
+    public static final String TRUST_STORE_SECRET_PROPERTY = "TRUSTSTOREPASSWORD";
     public static final String TRUST_STORE = "TRUSTSTORE";
 
     public enum LOB {
