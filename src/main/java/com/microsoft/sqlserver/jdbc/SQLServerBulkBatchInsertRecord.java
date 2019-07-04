@@ -272,9 +272,9 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
                 /*
                  * if the user has provided a wildcard for this column, fetch the set value from the batchParam.
                  */
-                if (valueData.equalsIgnoreCase("?")) {
+                if ("?".equalsIgnoreCase(valueData)) {
                     rowData = batchParam.get(batchParamIndex)[valueIndex++].getSetterValue();
-                } else if (valueData.equalsIgnoreCase("null")) {
+                } else if ("null".equalsIgnoreCase(valueData)) {
                     rowData = null;
                 }
                 /*
@@ -297,9 +297,9 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
                 if (columnList.size() > columnListIndex
                         && columnList.get(columnListIndex).equalsIgnoreCase(columnMetadata.get(index + 1).columnName)) {
                     valueData = valueList.get(columnListIndex);
-                    if (valueData.equalsIgnoreCase("?")) {
+                    if ("?".equalsIgnoreCase(valueData)) {
                         rowData = batchParam.get(batchParamIndex)[valueIndex++].getSetterValue();
-                    } else if (valueData.equalsIgnoreCase("null")) {
+                    } else if ("null".equalsIgnoreCase(valueData)) {
                         rowData = null;
                     } else {
                         rowData = removeSingleQuote(valueData);

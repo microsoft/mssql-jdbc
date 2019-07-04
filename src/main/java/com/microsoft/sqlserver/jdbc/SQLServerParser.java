@@ -90,7 +90,7 @@ final class SQLServerParser {
                                     query.getColumns().add("*");
                                 }
                                 for (int i = 0; i < ls.size(); i++) {
-                                    if (ls.get(i).equalsIgnoreCase("?")) {
+                                    if ("?".equalsIgnoreCase(ls.get(i))) {
                                         if (0 == tableValues.size()) {
                                             query.getColumns().add("?");
                                         } else {
@@ -202,7 +202,7 @@ final class SQLServerParser {
         iter.previous();
         String value = findColumnBeforeParameter(iter);
         resetIteratorIndex(iter, index);
-        if (value.equalsIgnoreCase("")) {
+        if ("".equalsIgnoreCase(value)) {
             value = findColumnAfterParameter(iter);
             resetIteratorIndex(iter, index);
         }

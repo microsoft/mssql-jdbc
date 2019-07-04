@@ -175,9 +175,9 @@ public final class SQLServerDataTable {
                     } else {
                         String valString = val.toString();
 
-                        if (valString.equals("0") || valString.equalsIgnoreCase(Boolean.FALSE.toString())) {
+                        if ("0".equals(valString) || valString.equalsIgnoreCase(Boolean.FALSE.toString())) {
                             rowValues.set(key, Boolean.FALSE);
-                        } else if (valString.equals("1") || valString.equalsIgnoreCase(Boolean.TRUE.toString())) {
+                        } else if ("1".equals(valString) || valString.equalsIgnoreCase(Boolean.TRUE.toString())) {
                             rowValues.set(key, Boolean.TRUE);
                         } else {
                             MessageFormat form = new MessageFormat(
