@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 
-abstract class SQLServerBulkCommon implements ISQLServerBulkRecord {
+abstract class SQLServerBulkRecord implements ISQLServerBulkRecord {
 
     /**
      * Update serialVersionUID when making changes to this file
@@ -62,8 +62,9 @@ abstract class SQLServerBulkCommon implements ISQLServerBulkRecord {
     /*
      * Logger
      */
-    protected java.util.logging.Logger loggerExternal = null;
-    protected String loggerPackageName = "com.microsoft.jdbc.SQLServerBulkCopyCommon";
+    protected String loggerPackageName = "com.microsoft.jdbc.SQLServerBulkRecord";
+    protected static java.util.logging.Logger loggerExternal = java.util.logging.Logger
+            .getLogger("com.microsoft.jdbc.SQLServerBulkRecord");
 
     @Override
     public void addColumnMetadata(int positionInSource, String name, int jdbcType, int precision, int scale,

@@ -27,7 +27,7 @@ import java.util.Map.Entry;
  * Provides a simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java
  * data types from a delimited file where each line represents a row of data.
  */
-public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements java.lang.AutoCloseable {
+public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements java.lang.AutoCloseable {
     /**
      * Update serialVersionUID when making changes to this file
      */
@@ -196,7 +196,6 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkCommon implements j
     
     private void initLoggerResources() {
         super.loggerPackageName = "com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord";
-        super.loggerExternal = java.util.logging.Logger.getLogger(loggerPackageName);
     }
     
     /**
