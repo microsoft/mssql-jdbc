@@ -89,7 +89,7 @@ public final class Constants {
     // AE Constants
     public static final String JAVA_KEY_STORE_FILENAME = "JavaKeyStore.txt";
     public static final String JAVA_KEY_STORE_NAME = "MSSQL_JAVA_KEYSTORE";
-    public static final String JAVA_KEY_STORE_PASSWORD = "JavaKeyStorePassword";
+    public static final String JAVA_KEY_STORE_SECRET = "JavaKeyStorePassword";
     public static final String JKS = "JKS";
     public static final String JKS_NAME = "clientcert.jks";
     public static final String JKS_SECRET = "password";
