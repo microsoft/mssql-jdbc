@@ -747,10 +747,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
             int ntChallengeLen = getByteArrayLength(ntChallengeResp);
 
             // allocate token buffer
-            ByteBuffer token = ByteBuffer
-                    .allocate(NTLM_AUTHENTICATE_PAYLOAD_OFFSET + NTLM_LMCHALLENAGERESPONSE.length
-                            + ntChallengeResp.length + domainNameLen + userNameLen + workstationLen)
-                    .order(ByteOrder.LITTLE_ENDIAN);
+            ByteBuffer token = ByteBuffer.allocate(NTLM_AUTHENTICATE_PAYLOAD_OFFSET + NTLM_LMCHALLENAGERESPONSE.length
+                    + ntChallengeLen + domainNameLen + userNameLen + workstationLen).order(ByteOrder.LITTLE_ENDIAN);
 
             // set NTLM signature and message type
             token.put(NTLM_HEADER_SIGNATURE, 0, NTLM_HEADER_SIGNATURE.length);

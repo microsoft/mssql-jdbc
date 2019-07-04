@@ -17,20 +17,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Set;
 
 
 /**
  * Provides a simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java
  * data types from an ArrayList of Parameters that were provided by pstmt/cstmt.
  */
-public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
+public class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
 
     /**
      * Update serialVersionUID when making changes to this file
      */
     private static final long serialVersionUID = -955998113956445541L;
-    
+
     private List<Parameter[]> batchParam;
     private int batchParamIndex = -1;
     private List<String> columnList;
@@ -39,20 +38,16 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
     /*
      * Class name for logging.
      */
-    private static final String loggerClassName = "com.microsoft.sqlserver.jdbc.SQLServerBulkBatchInsertRecord";
-
-    /*
-     * Logger
-     */
-    private static final java.util.logging.Logger loggerExternal = java.util.logging.Logger.getLogger(loggerClassName);
+    private static final String loggerClassName = "SQLServerBulkBatchInsertRecord";
 
     /*
      * Constructs a SQLServerBulkBatchInsertRecord with the batch parameter, column list, value list, and encoding
      */
     public SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam, ArrayList<String> columnList,
             ArrayList<String> valueList, String encoding) throws SQLServerException {
+        initLoggerResources();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(loggerClassName, "SQLServerBulkBatchInsertRecord",
+            loggerExternal.entering(loggerPackageName, loggerClassName,
                     new Object[] {batchParam, encoding});
         }
 
@@ -69,42 +64,11 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
         this.valueList = valueList;
         columnMetadata = new HashMap<>();
 
-        loggerExternal.exiting(loggerClassName, "SQLServerBulkBatchInsertRecord");
+        loggerExternal.exiting(loggerPackageName, loggerClassName);
     }
 
-    @Override
-    public DateTimeFormatter getColumnDateTimeFormatter(int column) {
-        return columnMetadata.get(column).dateTimeFormatter;
-    }
-
-    @Override
-    public Set<Integer> getColumnOrdinals() {
-        return columnMetadata.keySet();
-    }
-
-    @Override
-    public String getColumnName(int column) {
-        return columnMetadata.get(column).columnName;
-    }
-
-    @Override
-    public int getColumnType(int column) {
-        return columnMetadata.get(column).columnType;
-    }
-
-    @Override
-    public int getPrecision(int column) {
-        return columnMetadata.get(column).precision;
-    }
-
-    @Override
-    public int getScale(int column) {
-        return columnMetadata.get(column).scale;
-    }
-
-    @Override
-    public boolean isAutoIncrement(int column) {
-        return false;
+    private void initLoggerResources() {
+        super.loggerPackageName = "com.microsoft.sqlserver.jdbc.SQLServerBulkBatchInsertRecord";
     }
 
     private Object convertValue(ColumnMetadata cm, Object data) throws SQLServerException {
@@ -335,7 +299,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
     void addColumnMetadataInternal(int positionInSource, String name, int jdbcType, int precision, int scale,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(loggerClassName, "addColumnMetadata",
+            loggerExternal.entering(loggerPackageName, "addColumnMetadata",
                     new Object[] {positionInSource, name, jdbcType, precision, scale});
         }
         String colName = "";
@@ -397,48 +361,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkCommon {
                         new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));
         }
 
-        loggerExternal.exiting(loggerClassName, "addColumnMetadata");
-    }
-
-    @Override
-    public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
-        loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat", dateTimeFormat);
-
-        super.setTimestampWithTimezoneFormat(dateTimeFormat);
-
-        loggerExternal.exiting(loggerClassName, "setTimestampWithTimezoneFormat");
-    }
-
-    @Override
-    public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(loggerClassName, "setTimestampWithTimezoneFormat",
-                    new Object[] {dateTimeFormatter});
-        }
-
-        super.setTimestampWithTimezoneFormat(dateTimeFormatter);
-
-        loggerExternal.exiting(loggerClassName, "setTimestampWithTimezoneFormat");
-    }
-
-    @Override
-    public void setTimeWithTimezoneFormat(String timeFormat) {
-        loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", timeFormat);
-
-        super.setTimeWithTimezoneFormat(timeFormat);
-
-        loggerExternal.exiting(loggerClassName, "setTimeWithTimezoneFormat");
-    }
-
-    @Override
-    public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(loggerClassName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
-        }
-
-        super.setTimeWithTimezoneFormat(dateTimeFormatter);
-
-        loggerExternal.exiting(loggerClassName, "setTimeWithTimezoneFormat");
+        loggerExternal.exiting(loggerPackageName, "addColumnMetadata");
     }
 
     @Override

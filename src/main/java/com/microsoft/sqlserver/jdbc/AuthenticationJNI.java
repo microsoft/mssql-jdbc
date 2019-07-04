@@ -75,7 +75,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
         }
 
         this.con = con;
-        dnsName = getDNSName(address);
+        dnsName = initDNSArray(address);
         port = serverport;
     }
 
@@ -126,7 +126,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
     // note we handle the failures of the GetDNSName in this function, this function will return an empty string if the
     // underlying call fails.
-    private static String getDNSName(String address) {
+    private static String initDNSArray(String address) {
         String[] dns = new String[1];
         if (GetDNSName(address, dns, authLogger) != 0) {
             // Simply initialize the DNS to address
