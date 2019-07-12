@@ -45,6 +45,12 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
                 .setProperty(SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString(), "true");
         controlConnectionProperties.remove(SQLServerDriverStringProperty.SELECT_METHOD.toString());
 
+        // Add password property for NTLM as physical connection had previously removed. This will be removed again
+        if (AuthenticationScheme.ntlm == AuthenticationScheme.valueOfString(controlConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString()))) {
+            controlConnectionProperties.setProperty(SQLServerDriverStringProperty.PASSWORD.toString(), pwd);
+        }
+
         if (xaLogger.isLoggable(Level.FINER))
             xaLogger.finer("Creating an internal control connection for" + toString());
         physicalControlConnection = null;
