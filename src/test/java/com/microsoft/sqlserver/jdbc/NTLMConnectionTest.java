@@ -38,6 +38,9 @@ import com.zaxxer.hikari.HikariDataSource;
 public class NTLMConnectionTest extends AbstractTest {
 
     private static SQLServerDataSource dsNTLMLocal = null;
+    private static SQLServerDataSource dsNTLMXA = null;
+    private static SQLServerDataSource dsNTLMPool = null;
+
     private static String serverFqdn;
 
     /**
@@ -53,6 +56,12 @@ public class NTLMConnectionTest extends AbstractTest {
 
         dsNTLMLocal = new SQLServerDataSource();
         AbstractTest.updateDataSource(connectionStringNTLM, dsNTLMLocal);
+
+        dsNTLMXA = new SQLServerXADataSource();
+        AbstractTest.updateDataSource(connectionStringNTLM, dsNTLMXA);
+
+        dsNTLMPool = new SQLServerConnectionPoolDataSource();
+        AbstractTest.updateDataSource(connectionStringNTLM, dsNTLMPool);
 
         // grant view server state permission - needed to verify NTLM
         try (Connection con = PrepUtil
@@ -73,9 +82,13 @@ public class NTLMConnectionTest extends AbstractTest {
     @Test
     public void testNTLMBasicConnection() throws SQLException {
         try (Connection con1 = dsNTLMLocal.getConnection();
-                Connection con2 = PrepUtil.getConnection(connectionStringNTLM)) {
+                Connection con2 = dsNTLMXA.getConnection();
+                Connection con3 = dsNTLMPool.getConnection();
+                Connection con4 = PrepUtil.getConnection(connectionStringNTLM)) {
             verifyNTLM(con1);
             verifyNTLM(con2);
+            verifyNTLM(con3);
+            verifyNTLM(con4);
         }
     }
 
