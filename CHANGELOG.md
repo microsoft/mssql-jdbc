@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [7.3.1] Preview Release
 ### Added
-- Added support for NTLM Authentication [#998](https://github.com/Microsoft/mssql-jdbc/pull/9988)
+- Added support for NTLM Authentication [#998](https://github.com/Microsoft/mssql-jdbc/pull/998)
 - Added new connection property 'useFmtOnly' to retrieve parameter metadata [#1044](https://github.com/Microsoft/mssql-jdbc/pull/1044)
 - Added support for JDK 12 with an additional "jre12" JAR [#1050](https://github.com/Microsoft/mssql-jdbc/pull/1050)
 - Added 'keyVaultProviderClientId' and 'keyVaultProviderClientKey' connection properties to enhance Always Encrypted usability [#902](https://github.com/Microsoft/mssql-jdbc/pull/902)
