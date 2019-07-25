@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.4.0] Stable Release
+### Fixed Issues
+- Fixed issues reported by Static Analysis Tool - SonarQube [#1077](https://github.com/Microsoft/mssql-jdbc/pull/1077) [#1103](https://github.com/Microsoft/mssql-jdbc/pull/1103)
+- Fixed issues with array bound checking in 'useFmtOnly' implementation [#1094](https://github.com/Microsoft/mssql-jdbc/pull/1094)
+### Changed
+- Performance improvements [#1075](https://github.com/Microsoft/mssql-jdbc/pull/1075)
+- Changed NTLM Authentication implementation to not store password in plain text [#1095](https://github.com/Microsoft/mssql-jdbc/pull/1095) [#1108](https://github.com/Microsoft/mssql-jdbc/pull/1108)
+- Updated the Maven dependency of 'Java Client Runtime for AutoRest' to 1.6.10 version of the library [#1097](https://github.com/Microsoft/mssql-jdbc/pull/1097)
+- Changed NTLM Authentication error strings [#1105](https://github.com/Microsoft/mssql-jdbc/pull/1105)
+
 ## [7.3.1] Preview Release
 ### Added
 - Added support for NTLM Authentication [#998](https://github.com/Microsoft/mssql-jdbc/pull/998)
