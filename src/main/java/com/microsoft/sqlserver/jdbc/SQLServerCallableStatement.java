@@ -1278,6 +1278,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     metaQuery.append("@procedure_name=");
                     metaQuery.append(threePartName.getProcedurePart());
                     metaQuery.append(" , @ODBCVer=3");
+                    metaQuery.append(", ");
+                    metaQuery.append("@fUsePattern=0");
                 } else {
                     // This should rarely happen, this will only happen if we can't find the stored procedure name
                     // invalidly formatted call syntax.
