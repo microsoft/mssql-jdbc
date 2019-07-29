@@ -3930,7 +3930,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 String currentHostName = activeConnectionProperties.getProperty("hostNameInCertificate");
 
                 // skip the check for hostNameInCertificate if routingServerName is null
-                if (null != currentHostName && currentHostName.charAt(0) == '*' && (null != routingServerName)
+                if (null != currentHostName && currentHostName.startsWith("*") && (null != routingServerName)
                         && routingServerName.indexOf('.') != -1) {
                     char[] currentHostNameCharArray = currentHostName.toCharArray();
                     char[] routingServerNameCharArray = routingServerName.toCharArray();
