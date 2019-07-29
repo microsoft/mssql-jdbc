@@ -121,9 +121,9 @@ public class ComparisonUtil {
 
                 case java.sql.Types.DECIMAL:
                 case java.sql.Types.NUMERIC:
-                    assertEquals(((BigDecimal) expectedValue).stripTrailingZeros(),
-                            ((BigDecimal) actualValue).stripTrailingZeros(),
-                            "Unexpected decimal/numeric/money/smallmoney value");
+                    assertTrue(((BigDecimal) expectedValue).compareTo((BigDecimal) actualValue) == 0,
+                            "Unexpected decimal/numeric/money/smallmoney value. Expected:" + expectedValue + " Actual:"
+                                    + actualValue);
                     break;
 
                 case java.sql.Types.DOUBLE:
