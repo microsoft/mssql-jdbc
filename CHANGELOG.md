@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [7.4.1] HotFix & Stable Release
 ### Fixed Issues
-- Reverted #1025 as it contains breaking changes.
+- Reverted [#1025](https://github.com/Microsoft/mssql-jdbc/pull/1025) as it contains breaking changes.
 
 ## [7.4.0] Stable Release
 ### Fixed Issues
