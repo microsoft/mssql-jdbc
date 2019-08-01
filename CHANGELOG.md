@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [7.4.1] HotFix & Stable Release
+### Fixed Issues
+- Reverted #1025 as it contains breaking changes.
+
 ## [7.4.0] Stable Release
 ### Fixed Issues
 - Fixed issues reported by Static Analysis Tool - SonarQube [#1077](https://github.com/Microsoft/mssql-jdbc/pull/1077) [#1103](https://github.com/Microsoft/mssql-jdbc/pull/1103)

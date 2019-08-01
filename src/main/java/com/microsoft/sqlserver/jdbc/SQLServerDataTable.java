@@ -29,7 +29,6 @@ public final class SQLServerDataTable {
     Map<Integer, SQLServerDataColumn> columnMetadata = null;
     Set<String> columnNames = null;
     Map<Integer, Object[]> rows = null;
-
     private String tvpName = null;
 
     /**
