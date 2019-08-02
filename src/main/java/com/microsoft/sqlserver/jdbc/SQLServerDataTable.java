@@ -156,7 +156,6 @@ public final class SQLServerDataTable {
     private void internalAddrow(JDBCType jdbcType, Object val, Object[] rowValues,
             Map.Entry<Integer, SQLServerDataColumn> pair) throws SQLServerException {
         int key = pair.getKey();
-        rowValues[key] = val;
 
         if (null != val) {
             SQLServerDataColumn currentColumnMetadata = pair.getValue();
