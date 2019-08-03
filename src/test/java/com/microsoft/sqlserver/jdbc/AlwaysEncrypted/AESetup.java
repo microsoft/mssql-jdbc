@@ -84,7 +84,7 @@ public class AESetup extends AbstractTest {
 
         AEInfo = new Properties();
         AEInfo.setProperty("ColumnEncryptionSetting", Constants.ENABLED);
-        AEInfo.setProperty("keyStoreAuthentication", Constants.JAVA_KEY_STORE_PASSWORD);
+        AEInfo.setProperty("keyStoreAuthentication", Constants.JAVA_KEY_STORE_SECRET);
         AEInfo.setProperty("keyStoreLocation", keyPath);
         AEInfo.setProperty("keyStoreSecret", Constants.JKS_SECRET);
 

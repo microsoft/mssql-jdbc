@@ -13,7 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 
 
@@ -56,10 +59,10 @@ class SQLServerFMTQuery {
      */
     String constructColumnTargets() {
         if (userColumns.contains("?")) {
-            return userColumns.stream().filter(s -> !s.equals("?")).map(s -> s.equals("") ? "NULL" : s)
+            return userColumns.stream().filter(s -> !"?".equals(s)).map(s -> "".equals(s) ? "NULL" : s)
                     .collect(Collectors.joining(","));
         } else {
-            return userColumns.isEmpty() ? "*" : userColumns.stream().map(s -> s.equals("") ? "NULL" : s)
+            return userColumns.isEmpty() ? "*" : userColumns.stream().map(s -> "".equals(s) ? "NULL" : s)
                     .collect(Collectors.joining(","));
         }
     }
@@ -89,25 +92,49 @@ class SQLServerFMTQuery {
     private SQLServerFMTQuery() {};
 
     SQLServerFMTQuery(String userSql) throws SQLServerException {
-        if (null == userSql || userSql.length() == 0) {
-            SQLServerException.makeFromDriverError(null, this,
-                    SQLServerResource.getResource("R_noTokensFoundInUserQuery"), "", false);
-        }
-        InputStream stream = new ByteArrayInputStream(userSql.getBytes(StandardCharsets.UTF_8));
-        SQLServerLexer lexer = null;
-        try {
-            lexer = new SQLServerLexer(CharStreams.fromStream(stream));
-        } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, userSql, e.getLocalizedMessage(), "", false);
-        }
+        if (null != userSql && 0 != userSql.length()) {
+            InputStream stream = new ByteArrayInputStream(userSql.getBytes(StandardCharsets.UTF_8));
 
-        this.tokenList = (ArrayList<? extends Token>) lexer.getAllTokens();
-        if (tokenList.size() <= 0) {
+            SQLServerLexer lexer = null;
+            try {
+                lexer = new SQLServerLexer(CharStreams.fromStream(stream));
+            } catch (IOException e) {
+                SQLServerException.makeFromDriverError(null, userSql, e.getLocalizedMessage(), null, false);
+            }
+            if (null != lexer) {
+                lexer.removeErrorListeners();
+                lexer.addErrorListener(new SQLServerErrorListener());
+                this.tokenList = (ArrayList<? extends Token>) lexer.getAllTokens();
+                if (tokenList.size() <= 0) {
+                    SQLServerException.makeFromDriverError(null, this,
+                            SQLServerResource.getResource("R_noTokensFoundInUserQuery"), null, false);
+                }
+                SQLServerTokenIterator iter = new SQLServerTokenIterator(tokenList);
+                this.prefix = SQLServerParser.getCTE(iter);
+                SQLServerParser.parseQuery(iter, this);
+            } else {
+                SQLServerException.makeFromDriverError(null, userSql,
+                        SQLServerResource.getResource("R_noTokensFoundInUserQuery"), null, false);
+            }
+        } else {
             SQLServerException.makeFromDriverError(null, this,
-                    SQLServerResource.getResource("R_noTokensFoundInUserQuery"), "", false);
+                    SQLServerResource.getResource("R_noTokensFoundInUserQuery"), null, false);
         }
-        SQLServerTokenIterator iter = new SQLServerTokenIterator(tokenList);
-        this.prefix = SQLServerParser.getCTE(iter);
-        SQLServerParser.parseQuery(iter, this);
+    }
+}
+
+
+class SQLServerErrorListener extends BaseErrorListener {
+    static final private java.util.logging.Logger logger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerFMTQuery");
+
+    @Override
+    public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
+            String msg, RecognitionException e) {
+        if (logger.isLoggable(java.util.logging.Level.FINE)) {
+            logger.fine("Error occured during token parsing: " + msg);
+            logger.fine("line " + line + ":" + charPositionInLine + " token recognition error at: "
+                    + offendingSymbol.toString());
+        }
     }
 }

@@ -13,7 +13,7 @@ import java.time.format.DateTimeFormatter;
  * Provides an interface used to create classes that read in data from any source (such as a file) and allows a
  * SQLServerBulkCopy class to write the data to SQL Server tables.
  * 
- * This interface is implemented by {@link SQLServerBulkCommon} Class
+ * This interface is implemented by {@link SQLServerBulkRecord} Class
  */
 public interface ISQLServerBulkRecord extends Serializable {
 

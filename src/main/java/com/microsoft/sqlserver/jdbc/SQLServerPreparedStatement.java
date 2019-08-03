@@ -2284,7 +2284,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             case java.sql.Types.VARBINARY:
                 // Spatial datatypes fall under Varbinary, check if the UDT is geometry/geography.
                 typeName = ti.getSSTypeName();
-                if (typeName.equalsIgnoreCase("geometry") || typeName.equalsIgnoreCase("geography")) {
+                if ("geometry".equalsIgnoreCase(typeName) || "geography".equalsIgnoreCase(typeName)) {
                     form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                     throw new IllegalArgumentException(form.format(new Object[] {typeName}));
                 }
@@ -2327,7 +2327,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // This if statement is needed to handle the case where the user has something like:
         // [dbo] . /* random comment */ [tableName]
         if (hasTableBeenFound && !isExpectingTableName) {
-            if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase(".")) {
+            if (checkSQLLength(1) && ".".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
                 sb.append(".");
                 localUserSQL = localUserSQL.substring(1);
                 return sb.toString() + parseUserSQLForTableNameDW(true, true, true, true);
@@ -2336,12 +2336,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
-        if (!hasInsertBeenFound && checkSQLLength(6) && localUserSQL.substring(0, 6).equalsIgnoreCase("insert")) {
+        if (!hasInsertBeenFound && checkSQLLength(6) && "insert".equalsIgnoreCase(localUserSQL.substring(0, 6))) {
             localUserSQL = localUserSQL.substring(6);
             return parseUserSQLForTableNameDW(true, hasIntoBeenFound, hasTableBeenFound, isExpectingTableName);
         }
 
-        if (!hasIntoBeenFound && checkSQLLength(6) && localUserSQL.substring(0, 4).equalsIgnoreCase("into")) {
+        if (!hasIntoBeenFound && checkSQLLength(6) && "into".equalsIgnoreCase(localUserSQL.substring(0, 4))) {
             // is it really "into"?
             // if the "into" is followed by a blank space or /*, then yes.
             if (Character.isWhitespace(localUserSQL.charAt(4))
@@ -2360,7 +2360,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // It could be encapsulated in [], "", or have a database name preceding the table name.
         // If it's encapsulated in [] or "", we need be more careful with parsing as anything could go into []/"".
         // For ] or ", they can be escaped by ]] or "", watch out for this too.
-        if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("[")) {
+        if (checkSQLLength(1) && "[".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
             int tempint = localUserSQL.indexOf("]", 1);
 
             // ] has not been found, this is wrong.
@@ -2381,7 +2381,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // do the same for ""
-        if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("\"")) {
+        if (checkSQLLength(1) && "\"".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
             int tempint = localUserSQL.indexOf("\"", 1);
 
             // \" has not been found, this is wrong.
@@ -2426,7 +2426,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // check if optional column list was provided
         // Columns can have the form of c1, [c1] or "c1". It can escape ] or " by ]] or "".
-        if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
+        if (checkSQLLength(1) && "(".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
             localUserSQL = localUserSQL.substring(1);
             return parseUserSQLForColumnListDWHelper(new ArrayList<String>());
         }
@@ -2531,13 +2531,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         if (!hasValuesBeenFound) {
             // look for keyword "VALUES"
-            if (checkSQLLength(6) && localUserSQL.substring(0, 6).equalsIgnoreCase("VALUES")) {
+            if (checkSQLLength(6) && "VALUES".equalsIgnoreCase(localUserSQL.substring(0, 6))) {
                 localUserSQL = localUserSQL.substring(6);
 
                 // ignore all comments
                 while (checkAndRemoveCommentsAndSpace(false)) {}
 
-                if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
+                if (checkSQLLength(1) && "(".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
                     localUserSQL = localUserSQL.substring(1);
                     return parseUserSQLForValueListDWHelper(new ArrayList<String>());
                 }
@@ -2546,7 +2546,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // ignore all comments
             while (checkAndRemoveCommentsAndSpace(false)) {}
 
-            if (checkSQLLength(1) && localUserSQL.substring(0, 1).equalsIgnoreCase("(")) {
+            if (checkSQLLength(1) && "(".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
                 localUserSQL = localUserSQL.substring(1);
                 return parseUserSQLForValueListDWHelper(new ArrayList<String>());
             }
@@ -2569,7 +2569,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (localUserSQL.charAt(0) == ',' || localUserSQL.charAt(0) == ')') {
                 if (localUserSQL.charAt(0) == ',') {
                     localUserSQL = localUserSQL.substring(1);
-                    if (!sb.toString().equals("?")) {
+                    if (!"?".equals(sb.toString())) {
                         // throw IllegalArgumentException and fallback to original logic for batch insert
                         throw new IllegalArgumentException(
                                 "Only fully parameterized queries are allowed for using Bulk Copy API for batch insert at the moment.");
@@ -2627,7 +2627,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false;
         }
 
-        if (localUserSQL.substring(0, 2).equalsIgnoreCase("/*")) {
+        if ("/*".equalsIgnoreCase(localUserSQL.substring(0, 2))) {
             int temp = localUserSQL.indexOf("*/") + 2;
             if (temp <= 0) {
                 localUserSQL = "";
@@ -2637,7 +2637,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return true;
         }
 
-        if (localUserSQL.substring(0, 2).equalsIgnoreCase("--")) {
+        if ("--".equalsIgnoreCase(localUserSQL.substring(0, 2))) {
             int temp = localUserSQL.indexOf("\n") + 1;
             if (temp <= 0) {
                 localUserSQL = "";

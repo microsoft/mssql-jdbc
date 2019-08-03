@@ -175,7 +175,7 @@ public class SQLServerDriverTest extends AbstractTest {
                 assertTrue(anInfoArray.value.equalsIgnoreCase("someStore"),
                         TestResource.getResource("R_valuesAreDifferent"));
             }
-            if (anInfoArray.name.equalsIgnoreCase(Constants.TRUST_STORE_PASSWORD)) {
+            if (anInfoArray.name.equalsIgnoreCase(Constants.TRUST_STORE_SECRET_PROPERTY)) {
                 assertTrue(anInfoArray.value.equalsIgnoreCase("somepassword"),
                         TestResource.getResource("R_valuesAreDifferent"));
             }
