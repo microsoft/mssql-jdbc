@@ -50,7 +50,14 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     private final String baseUrl = "https://{vaultBaseUrl}";
 
-    private final String azureKeyVaultDomainName = "vault.azure.net";
+    /**
+     * List of Azure trusted endpoints https://docs.microsoft.com/en-us/azure/key-vault/key-vault-secure-your-key-vault
+     */
+    private final String azureTrustedEndpoint[] = {"vault.azure.net", // default
+            "vault.azure.cn", // Azure China
+            "vault.usgovcloudapi.net", // US Government
+            "vault.microsoftazure.de" // Azure Germany
+    };
 
     private final String rsaEncryptionAlgorithmWithOAEPForAKV = "RSA-OAEP";
 
@@ -448,13 +455,15 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             }
 
             // A valid URI.
-            // Check if it is pointing to AKV.
-            if (!parsedUri.getHost().toLowerCase(Locale.ENGLISH).endsWith(azureKeyVaultDomainName)) {
-                // Return an error indicating that the AKV url is invalid.
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVMasterKeyPathInvalid"));
-                Object[] msgArgs = {masterKeyPath};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+            // Check if it is pointing to a trusted endpoint.
+            for (final String endpoint : azureTrustedEndpoint) {
+                if (parsedUri.getHost().toLowerCase(Locale.ENGLISH).endsWith(endpoint)) {
+                    return;
+                }
             }
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVMasterKeyPathInvalid"));
+            Object[] msgArgs = {masterKeyPath};
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
         }
     }
 
