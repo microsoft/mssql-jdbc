@@ -53,7 +53,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     /**
      * List of Azure trusted endpoints https://docs.microsoft.com/en-us/azure/key-vault/key-vault-secure-your-key-vault
      */
-    private final String azureTrustedEndpoint[] = {"vault.azure.net", // default
+    private final String azureTrustedEndpoints[] = {"vault.azure.net", // default
             "vault.azure.cn", // Azure China
             "vault.usgovcloudapi.net", // US Government
             "vault.microsoftazure.de" // Azure Germany
@@ -456,7 +456,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
             // A valid URI.
             // Check if it is pointing to a trusted endpoint.
-            for (final String endpoint : azureTrustedEndpoint) {
+            for (final String endpoint : azureTrustedEndpoints) {
                 if (parsedUri.getHost().toLowerCase(Locale.ENGLISH).endsWith(endpoint)) {
                     return;
                 }
