@@ -7,7 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 final class SQLJdbcVersion {
     static final int major = 7;
-    static final int minor = 4;
-    static final int patch = 1;
+    static final int minor = 5;
+    static final int patch = 0;
     static final int build = 0;
 }
