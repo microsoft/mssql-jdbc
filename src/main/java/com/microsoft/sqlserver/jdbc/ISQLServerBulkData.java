@@ -57,15 +57,6 @@ public interface ISQLServerBulkData extends Serializable {
     int getScale(int column);
 
     /**
-     * Returns whether the column represents an identity column.
-     *
-     * @param column
-     *        Column ordinal
-     * @return True if the column is an identity column; false otherwise.
-     */
-    boolean isAutoIncrement(int column);
-
-    /**
      * Returns the data for the current row as an array of Objects.
      *
      * Each Object must match the Java language Type that is used to represent the indicated JDBC data type for the
