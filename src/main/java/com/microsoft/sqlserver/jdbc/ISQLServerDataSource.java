@@ -844,4 +844,33 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     void setKeyVaultProviderClientKey(String keyVaultProviderClientKey);
 
+    /**
+     * Sets the 'domain' connection property used for NTLM Authentication.
+     *
+     * @param domain
+     *        Windows domain name
+     */
+    void setDomain(String domain);
+
+    /**
+     * Returns the value for the connection property 'domain'.
+     *
+     * @return 'domain' property value
+     */
+    String getDomain();
+
+    /**
+     * Returns the current flag value for useFmtOnly.
+     *
+     * @return 'useFmtOnly' property value.
+     */
+    boolean getUseFmtOnly();
+
+    /**
+     * Specifies the flag to use FMTONLY for parameter metadata queries.
+     *
+     * @param useFmtOnly
+     *        boolean value for 'useFmtOnly'.
+     */
+    void setUseFmtOnly(boolean useFmtOnly);
 }

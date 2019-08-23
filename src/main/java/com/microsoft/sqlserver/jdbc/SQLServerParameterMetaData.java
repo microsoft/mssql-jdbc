@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,9 +48,6 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     final private String traceID = " SQLServerParameterMetaData:" + nextInstanceID();
     boolean isTVP = false;
 
-    private String stringToParse = null;
-    private int indexToBeginParse = -1;
-
     // Returns unique id for each instance.
     private static int nextInstanceID() {
         return baseID.incrementAndGet();
@@ -65,126 +61,6 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     @Override
     final public String toString() {
         return traceID;
-    }
-
-    /**
-     * Parses the columns in a column set.
-     * 
-     * @param columnSet
-     *        the list of columns
-     * @param columnStartToken
-     *        the token that prfixes the column set
-     * @throws SQLServerException
-     */
-    private String parseColumns(String columnSet, String columnStartToken) throws SQLServerException {
-        StringTokenizer st = new StringTokenizer(columnSet, " =?<>!\r\n\t\f", true);
-        final int START = 0;
-        final int PARAMNAME = 1;
-        final int PARAMVALUE = 2;
-
-        int nState = 0;
-        String sLastField = null;
-        StringBuilder sb = new StringBuilder();
-
-        int sTokenIndex = 0;
-        while (st.hasMoreTokens()) {
-
-            String sToken = st.nextToken();
-            sTokenIndex = sTokenIndex + sToken.length();
-
-            if (sToken.equalsIgnoreCase(columnStartToken)) {
-                nState = PARAMNAME;
-                continue;
-            }
-            if (nState == START)
-                continue;
-            if ((sToken.charAt(0) == '=') || sToken.equalsIgnoreCase("is") || (sToken.charAt(0) == '<')
-                    || (sToken.charAt(0) == '>') || sToken.equalsIgnoreCase("like") || sToken.equalsIgnoreCase("not")
-                    || sToken.equalsIgnoreCase("in") || (sToken.charAt(0) == '!')) {
-                nState = PARAMVALUE;
-                continue;
-            }
-            if (sToken.charAt(0) == '?' && sLastField != null) {
-                if (sb.length() != 0) {
-                    sb.append(", ");
-                }
-                sb.append(sLastField);
-                nState = PARAMNAME;
-                sLastField = null;
-                continue;
-            }
-            if (nState == PARAMNAME) {
-                // space get the next token.
-                if (sToken.equals(" "))
-                    continue;
-                String paramN = escapeParse(st, sToken);
-                if (paramN.length() > 0) {
-                    sLastField = paramN;
-                }
-            }
-        }
-
-        indexToBeginParse = sTokenIndex;
-        return sb.toString();
-    }
-
-    /**
-     * Parses the column set in an insert syntax.
-     * 
-     * @param sql
-     *        the sql syntax
-     * @param columnMarker
-     *        the token that denotes the start of the column set
-     * @throws SQLServerException
-     */
-    private String parseInsertColumns(String sql, String columnMarker) throws SQLServerException {
-        StringTokenizer st = new StringTokenizer(sql, " (),", true);
-        int nState = 0;
-        String sLastField = null;
-        StringBuilder sb = new StringBuilder();
-
-        int sTokenIndex = 0;
-        while (st.hasMoreTokens()) {
-            String sToken = st.nextToken();
-            sTokenIndex = sTokenIndex + sToken.length();
-
-            if (sToken.equalsIgnoreCase(columnMarker)) {
-                nState = 1;
-                continue;
-            }
-            if (nState == 0)
-                continue;
-            if (sToken.charAt(0) == '=') {
-                nState = 2;
-                continue;
-            }
-            if ((sToken.charAt(0) == ',' || sToken.charAt(0) == ')' || sToken.charAt(0) == ' ') && sLastField != null) {
-                if (sb.length() != 0)
-                    sb.append(", ");
-                sb.append(sLastField);
-                nState = 1;
-                sLastField = null;
-            }
-            if (sToken.charAt(0) == ')') {
-                nState = 0;
-                break;
-            }
-            if (nState == 1) {
-                if (sToken.trim().length() > 0) {
-                    if (sToken.charAt(0) != ',') {
-                        sLastField = escapeParse(st, sToken);
-
-                        // in case the parameter has braces in its name, e.g. [c2_nvarchar(max)], the original sToken
-                        // variable just
-                        // contains [c2_nvarchar, sLastField actually has the whole name [c2_nvarchar(max)]
-                        sTokenIndex = sTokenIndex + (sLastField.length() - sToken.length());
-                    }
-                }
-            }
-        }
-
-        indexToBeginParse = sTokenIndex;
-        return sb.toString();
     }
 
     /* Used for prepared statement meta data */
@@ -236,10 +112,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                         if (matcher.matches()) {
                             // the datatype has some precision/scale defined explicitly.
                             ssType = SSType.of(matcher.group(1));
-                            if (typename.equalsIgnoreCase("varchar(max)")
-                                    || typename.equalsIgnoreCase("varbinary(max)")) {
+                            if ("varchar(max)".equalsIgnoreCase(typename)
+                                    || "varbinary(max)".equalsIgnoreCase(typename)) {
                                 qm.precision = SQLServerDatabaseMetaData.MAXLOBSIZE;
-                            } else if (typename.equalsIgnoreCase("nvarchar(max)")) {
+                            } else if ("nvarchar(max)".equalsIgnoreCase(typename)) {
                                 qm.precision = SQLServerDatabaseMetaData.MAXLOBSIZE / 2;
                             } else if (SSType.Category.CHARACTER == ssType.category
                                     || SSType.Category.BINARY == ssType.category
@@ -304,24 +180,41 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    private void parseQueryMetaFor2008(ResultSet rsQueryMeta) throws SQLServerException {
-        ResultSetMetaData md;
+    private void parseFMTQueryMeta(ResultSetMetaData md, SQLServerFMTQuery f) throws SQLServerException {
         try {
-            if (null != rsQueryMeta) {
-                md = rsQueryMeta.getMetaData();
-
-                for (int i = 1; i <= md.getColumnCount(); i++) {
-                    QueryMeta qm = new QueryMeta();
-
-                    qm.parameterClassName = md.getColumnClassName(i);
-                    qm.parameterType = md.getColumnType(i);
-                    qm.parameterTypeName = md.getColumnTypeName(i);
-                    qm.precision = md.getPrecision(i);
-                    qm.scale = md.getScale(i);
-                    qm.isNullable = md.isNullable(i);
-                    qm.isSigned = md.isSigned(i);
-
-                    queryMetaMap.put(i, qm);
+            // Gets the list of parsed column names/targets
+            List<String> columns = f.getColumns();
+            // Gets VALUES(?,?,?...) list. The internal list corresponds to the parameters in the bracket after VALUES.
+            List<List<String>> params = f.getValuesList();
+            int valueListOffset = 0;
+            int mdIndex = 1;
+            int mapIndex = 1;
+            for (int i = 0; i < columns.size(); i++) {
+                /**
+                 * For INSERT table VALUES(?,?,?...) scenarios where the column names are not specifically defined after
+                 * the table name, the parser adds a '*' followed by '?'s equal to the number of parameters in the
+                 * values bracket. The '*' will retrieve all values from the table and we'll use the '?'s to match their
+                 * position here
+                 */
+                if ("*".equals(columns.get(i))) {
+                    for (int j = 0; j < params.get(valueListOffset).size(); j++) {
+                        if ("?".equals(params.get(valueListOffset).get(j))) {
+                            if (!md.isAutoIncrement(mdIndex + j)) {
+                                QueryMeta qm = getQueryMetaFromResultSetMetaData(md, mdIndex + j);
+                                queryMetaMap.put(mapIndex++, qm);
+                                i++;
+                            }
+                        }
+                    }
+                    mdIndex += params.get(valueListOffset).size();
+                    valueListOffset++;
+                } else {
+                    /*
+                     * If this is not a INSERT table VALUES(...) situation, just add the entry.
+                     */
+                    QueryMeta qm = getQueryMetaFromResultSetMetaData(md, mdIndex);
+                    queryMetaMap.put(mapIndex++, qm);
+                    mdIndex++;
                 }
             }
         } catch (SQLException e) {
@@ -329,184 +222,16 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         }
     }
 
-    /**
-     * Parses escaped strings properly e.g.[Table Name, ] using tokenizer.
-     * 
-     * @param st
-     *        string tokenizer
-     * @param firstToken
-     * @throws SQLServerException
-     * @returns the full token
-     */
-    private String escapeParse(StringTokenizer st, String firstToken) throws SQLServerException {
-
-        if (null == firstToken) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
-            Object[] msgArgs1 = {"firstToken"};
-            throw new SQLServerException(form.format(msgArgs1), null);
-        }
-
-        // skip spaces
-        while ((0 == firstToken.trim().length()) && st.hasMoreTokens()) {
-            firstToken = st.nextToken();
-        }
-
-        String fullName = firstToken;
-        if (firstToken.charAt(0) == '[' && firstToken.charAt(firstToken.length() - 1) != ']') {
-            while (st.hasMoreTokens()) {
-                firstToken = st.nextToken();
-                fullName = fullName.concat(firstToken);
-                if (firstToken.charAt(firstToken.length() - 1) == ']') {
-                    break;
-                }
-
-            }
-        }
-        fullName = fullName.trim();
-        return fullName;
-    }
-
-    private class MetaInfo {
-        String table;
-        String fields;
-
-        MetaInfo(String table, String fields) {
-            this.table = table;
-            this.fields = fields;
-        }
-    }
-
-    /**
-     * Parses a SQL syntax.
-     * 
-     * @param sql
-     *        String
-     * @param sTableMarker
-     *        the location of the table in the syntax
-     * @throws SQLServerException
-     */
-    private MetaInfo parseStatement(String sql, String sTableMarker) throws SQLServerException {
-        StringTokenizer st = new StringTokenizer(sql, " ,\r\n\t\f(", true);
-
-        /* Find the table */
-
-        String metaTable = null;
-        String metaFields = "";
-        while (st.hasMoreTokens()) {
-            String sToken = st.nextToken().trim();
-
-            if (sToken.contains("*/")) {
-                sToken = removeCommentsInTheBeginning(sToken, 0, 0, "/*", "*/");
-            }
-
-            if (sToken.equalsIgnoreCase(sTableMarker)) {
-                if (st.hasMoreTokens()) {
-                    metaTable = escapeParse(st, st.nextToken());
-                    break;
-                }
-            }
-        }
-
-        if (null != metaTable) {
-            if (sTableMarker.equalsIgnoreCase("UPDATE")) {
-                metaFields = parseColumns(sql, "SET"); // Get the set fields
-                stringToParse = "";
-            } else if (sTableMarker.equalsIgnoreCase("INTO")) { // insert
-                metaFields = parseInsertColumns(sql, "("); // Get the value fields
-                stringToParse = sql.substring(indexToBeginParse); // the index of ')'
-
-                // skip VALUES() clause
-                if (stringToParse.trim().toLowerCase().startsWith("values")) {
-                    parseInsertColumns(stringToParse, "(");
-                    stringToParse = stringToParse.substring(indexToBeginParse); // the index of ')'
-                }
-            } else {
-                metaFields = parseColumns(sql, "WHERE"); // Get the where fields
-                stringToParse = "";
-            }
-
-            return new MetaInfo(metaTable, metaFields);
-        }
-
-        return null;
-    }
-
-    /**
-     * Parses a SQL syntax.
-     * 
-     * @param sql
-     *        the syntax
-     * @throws SQLServerException
-     */
-    private MetaInfo parseStatement(String sql) throws SQLServerException {
-        StringTokenizer st = new StringTokenizer(sql, " \r\n\t\f");
-        if (st.hasMoreTokens()) {
-            String sToken = st.nextToken().trim();
-
-            // filter out multiple line comments in the beginning of the query
-            if (sToken.contains("/*")) {
-                String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0, "/*", "*/");
-                return parseStatement(sqlWithoutCommentsInBeginning);
-            }
-
-            // filter out single line comments in the beginning of the query
-            if (sToken.contains("--")) {
-                String sqlWithoutCommentsInBeginning = removeCommentsInTheBeginning(sql, 0, 0, "--", "\n");
-                return parseStatement(sqlWithoutCommentsInBeginning);
-            }
-
-            if (sToken.equalsIgnoreCase("INSERT"))
-                return parseStatement(sql, "INTO"); // INTO marks the table name
-
-            if (sToken.equalsIgnoreCase("UPDATE"))
-                return parseStatement(sql, "UPDATE");
-
-            if (sToken.equalsIgnoreCase("SELECT"))
-                return parseStatement(sql, "FROM");
-
-            if (sToken.equalsIgnoreCase("DELETE"))
-                return parseStatement(sql, "FROM");
-        }
-
-        return null;
-    }
-
-    private String removeCommentsInTheBeginning(String sql, int startCommentMarkCount, int endCommentMarkCount,
-            String startMark, String endMark) {
-        int startCommentMarkIndex = sql.indexOf(startMark);
-        int endCommentMarkIndex = sql.indexOf(endMark);
-
-        if (-1 == startCommentMarkIndex) {
-            startCommentMarkIndex = Integer.MAX_VALUE;
-        }
-        if (-1 == endCommentMarkIndex) {
-            endCommentMarkIndex = Integer.MAX_VALUE;
-        }
-
-        // Base case. startCommentMarkCount is guaranteed to be bigger than 0 because the method is called when /*
-        // occurs
-        if (startCommentMarkCount == endCommentMarkCount) {
-            if (startCommentMarkCount != 0 && endCommentMarkCount != 0) {
-                return sql;
-            }
-        }
-
-        // filter out first start comment mark
-        if (startCommentMarkIndex < endCommentMarkIndex) {
-            String sqlWithoutCommentsInBeginning = sql.substring(startCommentMarkIndex + startMark.length());
-            return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, ++startCommentMarkCount,
-                    endCommentMarkCount, startMark, endMark);
-        }
-        // filter out first end comment mark
-        else {
-            if (Integer.MAX_VALUE == endCommentMarkIndex) {
-                return sql;
-            }
-
-            String sqlWithoutCommentsInBeginning = sql.substring(endCommentMarkIndex + endMark.length());
-            return removeCommentsInTheBeginning(sqlWithoutCommentsInBeginning, startCommentMarkCount,
-                    ++endCommentMarkCount, startMark, endMark);
-        }
+    private QueryMeta getQueryMetaFromResultSetMetaData(ResultSetMetaData md, int index) throws SQLException {
+        QueryMeta qm = new QueryMeta();
+        qm.parameterClassName = md.getColumnClassName(index);
+        qm.parameterType = md.getColumnType(index);
+        qm.parameterTypeName = md.getColumnTypeName(index);
+        qm.precision = md.getPrecision(index);
+        qm.scale = md.getScale(index);
+        qm.isNullable = md.isNullable(index);
+        qm.isSigned = md.isSigned(index);
+        return qm;
     }
 
     String parseProcIdentifier(String procIdentifier) throws SQLServerException {
@@ -609,9 +334,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // if SQL server version is 2008, then use FMTONLY
             else {
                 queryMetaMap = new HashMap<>();
-
-                if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION) {
-                    // new implementation for SQL verser 2012 and above
+                if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION && !st.getUseFmtOnly()) {
                     String preparedSQL = con.replaceParameterMarkers(stmtParent.userSQL,
                             stmtParent.userSQLParamPositions, stmtParent.inOutParam, stmtParent.bReturnValueSyntax);
 
@@ -621,56 +344,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                         parseQueryMeta(cstmt.executeQueryInternal());
                     }
                 } else {
-                    // old implementation for SQL server 2008
-                    stringToParse = sProcString;
-                    ArrayList<MetaInfo> metaInfoList = new ArrayList<>();
-
-                    while (stringToParse.length() > 0) {
-                        MetaInfo metaInfo = parseStatement(stringToParse);
-                        if (null == metaInfo) {
-                            MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_cantIdentifyTableMetadata"));
-                            Object[] msgArgs = {stringToParse};
-                            SQLServerException.makeFromDriverError(con, stmtParent, form.format(msgArgs), null, false);
-                        }
-
-                        metaInfoList.add(metaInfo);
-                    }
-                    if (metaInfoList.size() <= 0 || metaInfoList.get(0).fields.length() <= 0) {
-                        return;
-                    }
-
-                    StringBuilder sbColumns = new StringBuilder();
-
-                    for (MetaInfo mi : metaInfoList) {
-                        sbColumns = sbColumns.append(mi.fields).append(",");
-                    }
-                    sbColumns.deleteCharAt(sbColumns.length() - 1);
-
-                    String columns = sbColumns.toString();
-
-                    StringBuilder sbTablesAndJoins = new StringBuilder();
-                    for (int i = 0; i < metaInfoList.size(); i++) {
-                        if (i == 0) {
-                            sbTablesAndJoins = sbTablesAndJoins.append(metaInfoList.get(i).table);
-                        } else {
-                            if (metaInfoList.get(i).table.equals(metaInfoList.get(i - 1).table)
-                                    && metaInfoList.get(i).fields.equals(metaInfoList.get(i - 1).fields)) {
-                                continue;
-                            }
-                            sbTablesAndJoins = sbTablesAndJoins.append(" LEFT JOIN ").append(metaInfoList.get(i).table)
-                                    .append(" ON ").append(metaInfoList.get(i - 1).table).append(".")
-                                    .append(metaInfoList.get(i - 1).fields).append("=")
-                                    .append(metaInfoList.get(i).table).append(".").append(metaInfoList.get(i).fields);
-                        }
-                    }
-
-                    String sCom = "sp_executesql N'SET FMTONLY ON SELECT " + columns + " FROM "
-                            + Util.escapeSingleQuotes(sbTablesAndJoins.toString()) + " '";
-
+                    SQLServerFMTQuery f = new SQLServerFMTQuery(sProcString);
                     try (SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
-                            ResultSet rs = stmt.executeQuery(sCom)) {
-                        parseQueryMetaFor2008(rs);
+                            ResultSet rs = stmt.executeQuery(f.getFMTQuery())) {
+                        parseFMTQueryMeta(rs.getMetaData(), f);
                     }
                 }
             }

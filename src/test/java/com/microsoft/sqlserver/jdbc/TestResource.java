@@ -18,6 +18,10 @@ public final class TestResource extends ListResourceBundle {
     public static String getResource(String key) {
         return TestResource.getBundle(Constants.MSSQL_JDBC_PACKAGE + ".TestResource").getString(key);
     }
+    
+    public static String formatErrorMsg(String resource) {
+        return (".*\\Q" + getResource(resource) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
+    }
 
     protected Object[][] getContents() {
         return contents;
@@ -46,6 +50,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_createDropViewFailed", "Create/drop view with preparedStatement failed!"},
             {"R_createDropSchemaFailed", "Create/drop schema with preparedStatement failed!"},
             {"R_createDropTableFailed", "Create/drop table failed!"},
+            {"R_tableNotFound", "Table {0} not found in database."},
             {"R_createDropAlterTableFailed", "Create/drop/alter table with preparedStatement failed!"},
             {"R_grantFailed", "grant table with preparedStatement failed!"},
             {"R_connectionIsClosed", "The connection is closed."},
@@ -173,5 +178,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_incorrectSyntaxTable", "Incorrect syntax near the keyword 'table'."},
             {"R_incorrectSyntaxTableDW", "Incorrect syntax near 'table'."},
             {"R_ConnectionStringNull", "Connection String should not be null"},
-            {"R_OperandTypeClash", "Operand type clash"}};
+            {"R_OperandTypeClash", "Operand type clash"},
+            {"R_NoPrivilege", "The EXECUTE permission was denied on the object {0}"}};
 }

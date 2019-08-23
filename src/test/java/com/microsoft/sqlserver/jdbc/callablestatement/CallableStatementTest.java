@@ -56,7 +56,7 @@ public class CallableStatementTest extends AbstractTest {
 
             createGUIDTable(stmt);
             createGUIDStoredProcedure(stmt);
-            createSetNullPreocedure(stmt);
+            createSetNullProcedure(stmt);
             createInputParamsProcedure(stmt);
         }
     }
@@ -195,7 +195,7 @@ public class CallableStatementTest extends AbstractTest {
         stmt.execute(sql);
     }
 
-    private static void createSetNullPreocedure(Statement stmt) throws SQLException {
+    private static void createSetNullProcedure(Statement stmt) throws SQLException {
         stmt.execute("create procedure " + AbstractSQLGenerator.escapeIdentifier(setNullProcedureName)
                 + " (@p1 nvarchar(255), @p2 nvarchar(255) output) as select @p2=@p1 return 0");
     }

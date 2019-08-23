@@ -40,7 +40,7 @@ final class Util {
         return SYSTEM_JRE.startsWith("IBM");
     }
 
-    static final Boolean isCharType(int jdbcType) {
+    static final boolean isCharType(int jdbcType) {
         switch (jdbcType) {
             case java.sql.Types.CHAR:
             case java.sql.Types.NCHAR:

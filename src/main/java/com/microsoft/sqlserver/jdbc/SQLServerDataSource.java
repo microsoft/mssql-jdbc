@@ -478,7 +478,19 @@ public class SQLServerDataSource
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                 SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
     }
+    
+    @Override
+    public void setUseFmtOnly(boolean useFmtOnly) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString(),
+                useFmtOnly);
+    }
 
+    @Override
+    public boolean getUseFmtOnly() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString(),
+                SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue());
+    }
+    
     /**
      * Sets whether string parameters are sent to the server in UNICODE format.
      * 
@@ -895,6 +907,17 @@ public class SQLServerDataSource
                 keyVaultProviderClientKey);
     }
 
+    @Override
+    public void setDomain(String domain) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(), domain);
+    }
+
+    @Override
+    public String getDomain() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(),
+                SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
+    }
+
     /**
      * Sets a property string value.
      * 
@@ -992,7 +1015,7 @@ public class SQLServerDataSource
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         String propValue = props.getProperty(propKey);
-        Boolean value;
+        boolean value;
         if (null == propValue) {
             value = defaultValue;
         } else {
