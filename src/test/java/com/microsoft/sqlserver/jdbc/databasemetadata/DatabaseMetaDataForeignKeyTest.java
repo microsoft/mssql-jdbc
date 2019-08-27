@@ -48,8 +48,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     private static String FKTable2 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_FKTable2");
 
     private static String schema = null;
-    // private static String anotherSchema = RandomUtil.getIdentifier("anotherSchema");
-    private static String anotherSchema = "anotherSchema";
+    private static String anotherSchema = RandomUtil.getIdentifier("anotherSchema");
     private static String catalog = null;
 
     @BeforeAll
@@ -85,14 +84,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
                     + AbstractSQLGenerator.escapeIdentifier(table5) + "(c51) ON DELETE set default ON UPDATE no action,"
                     + ")");
 
-            TestUtils.dropSchemaIfExists(anotherSchema, stmt);
             stmt.execute("CREATE SCHEMA " + AbstractSQLGenerator.escapeIdentifier(anotherSchema));
-
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(schema) + "."
-                    + AbstractSQLGenerator.escapeIdentifier(PKTable1), stmt);
-
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(anotherSchema) + "."
-                    + AbstractSQLGenerator.escapeIdentifier(PKTable2), stmt);
 
             stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(PKTable1)
                     + " (col int NOT NULL PRIMARY KEY)");
@@ -132,6 +124,8 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(anotherSchema) + "."
                     + AbstractSQLGenerator.escapeIdentifier(PKTable2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(PKTable1), stmt);
+
+            TestUtils.dropSchemaIfExists(anotherSchema, stmt);
 
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
@@ -315,3 +309,4 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         }
     }
 }
+
