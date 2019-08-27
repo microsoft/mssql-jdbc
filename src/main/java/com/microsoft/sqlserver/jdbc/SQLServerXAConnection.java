@@ -52,6 +52,17 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
             controlConnectionProperties.setProperty(SQLServerDriverStringProperty.PASSWORD.toString(), pwd);
         }
 
+        // Add truststore password property for creating the control connection. This will be removed again
+        String trustStorePassword = ds.getTrustStorePassword();
+        if (null == trustStorePassword) {
+                // trustStorePassword can either come from the connection string or added via SQLServerXADataSource::setTrustStorePassword.
+                // if trustStorePassword is null here, then it must have been provided through the connection string.
+                Properties urlProps = Util.parseUrl(ds.getURL(), xaLogger);
+                trustStorePassword = urlProps.getProperty(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
+        }
+
+        controlConnectionProperties.setProperty(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString(), trustStorePassword);
+
         if (xaLogger.isLoggable(Level.FINER))
             xaLogger.finer("Creating an internal control connection for" + toString());
         physicalControlConnection = null;

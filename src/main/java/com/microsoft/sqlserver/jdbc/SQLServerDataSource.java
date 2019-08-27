@@ -358,6 +358,10 @@ public class SQLServerDataSource
                 trustStorePassword);
     }
 
+    String getTrustStorePassword() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString(), null);
+    }
+
     @Override
     public void setHostNameInCertificate(String hostName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), hostName);
