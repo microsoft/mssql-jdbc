@@ -333,13 +333,13 @@ abstract class SQLServerSpatialDatatype {
             }
             byte fa = 0;
 
-            if (version == 1 && (nextToken.equals("CIRCULARSTRING") || nextToken.equals("COMPOUNDCURVE")
-                    || nextToken.equals("CURVEPOLYGON"))) {
+            if (version == 1 && ("CIRCULARSTRING".equals(nextToken) || "COMPOUNDCURVE".equals(nextToken)
+                    || "CURVEPOLYGON".equals(nextToken))) {
                 version = 2;
             }
 
             // check for FULLGLOBE before reading the first open bracket, since FULLGLOBE doesn't have one.
-            if (nextToken.equals("FULLGLOBE")) {
+            if ("FULLGLOBE".equals(nextToken)) {
                 if (sd instanceof Geometry) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalTypeForGeometry"));
                     throw new SQLServerException(form.format(new Object[] {"Fullglobe"}), null, 0, null);
@@ -364,7 +364,7 @@ abstract class SQLServerSpatialDatatype {
 
             switch (nextToken) {
                 case "POINT":
-                    if (startPos == 0 && nextToken.toUpperCase().equals("POINT")) {
+                    if (startPos == 0 && "POINT".equals(nextToken.toUpperCase())) {
                         isSinglePoint = true;
                         internalType = InternalSpatialDatatype.POINT;
                     }
@@ -385,7 +385,7 @@ abstract class SQLServerSpatialDatatype {
 
                     readLineWkt();
 
-                    if (startPos == 0 && nextToken.toUpperCase().equals("LINESTRING") && pointList.size() == 2) {
+                    if (startPos == 0 && "LINESTRING".equals(nextToken.toUpperCase()) && pointList.size() == 2) {
                         isSingleLineSegment = true;
                     }
                     break;
@@ -881,7 +881,7 @@ abstract class SQLServerSpatialDatatype {
                 // handle NULL case
                 // the first check ensures that there is enough space for the wkt to have NULL
                 if (wkt.length() > currentWktPos + 3
-                        && wkt.substring(currentWktPos, currentWktPos + 4).equalsIgnoreCase("null")) {
+                        && "null".equalsIgnoreCase(wkt.substring(currentWktPos, currentWktPos + 4))) {
                     coords[numOfCoordinates] = Double.NaN;
                     currentWktPos = currentWktPos + 4;
                 } else {
@@ -945,29 +945,29 @@ abstract class SQLServerSpatialDatatype {
 
             // if next keyword is empty, continue the loop.
             // Do not check this for polygon.
-            if (!nextToken.equals("POLYGON")
+            if (!"POLYGON".equals(nextToken)
                     && checkEmptyKeyword(parentShapeIndex, InternalSpatialDatatype.valueOf(nextToken), true)) {
                 continue;
             }
 
-            if (nextToken.equals("MULTIPOINT")) {
+            if ("MULTIPOINT".equals(nextToken)) {
                 shapeList.add(
                         new Shape(parentShapeIndex, figureList.size(), InternalSpatialDatatype.POINT.getTypeCode()));
-            } else if (nextToken.equals("MULTILINESTRING")) {
+            } else if ("MULTILINESTRING".equals(nextToken)) {
                 shapeList.add(new Shape(parentShapeIndex, figureList.size(),
                         InternalSpatialDatatype.LINESTRING.getTypeCode()));
             }
 
             if (version == 1) {
-                if (nextToken.equals("MULTIPOINT")) {
+                if ("MULTIPOINT".equals(nextToken)) {
                     fa = FA_STROKE;
-                } else if (nextToken.equals("MULTILINESTRING") || nextToken.equals("POLYGON")) {
+                } else if ("MULTILINESTRING".equals(nextToken) || "POLYGON".equals(nextToken)) {
                     fa = FA_EXTERIOR_RING;
                 }
                 version_one_shape_indexes.add(figureList.size());
             } else if (version == 2) {
-                if (nextToken.equals("MULTIPOINT") || nextToken.equals("MULTILINESTRING") || nextToken.equals("POLYGON")
-                        || nextToken.equals("MULTIPOLYGON")) {
+                if ("MULTIPOINT".equals(nextToken) || "MULTILINESTRING".equals(nextToken) || "POLYGON".equals(nextToken)
+                        || "MULTIPOLYGON".equals(nextToken)) {
                     fa = FA_LINE;
                 }
             }
@@ -998,12 +998,12 @@ abstract class SQLServerSpatialDatatype {
     protected void readCurvePolygon() throws SQLServerException {
         while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
             String nextPotentialToken = getNextStringToken().toUpperCase(Locale.US);
-            if (nextPotentialToken.equals("CIRCULARSTRING")) {
+            if ("CIRCULARSTRING".equals(nextPotentialToken)) {
                 figureList.add(new Figure(FA_ARC, pointList.size()));
                 readOpenBracket();
                 readLineWkt();
                 readCloseBracket();
-            } else if (nextPotentialToken.equals("COMPOUNDCURVE")) {
+            } else if ("COMPOUNDCURVE".equals(nextPotentialToken)) {
                 figureList.add(new Figure(FA_COMPOSITE_CURVE, pointList.size()));
                 readOpenBracket();
                 readCompoundCurveWkt(true);
@@ -1109,7 +1109,7 @@ abstract class SQLServerSpatialDatatype {
     protected void readCompoundCurveWkt(boolean isFirstIteration) throws SQLServerException {
         while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
             String nextPotentialToken = getNextStringToken().toUpperCase(Locale.US);
-            if (nextPotentialToken.equals("CIRCULARSTRING")) {
+            if ("CIRCULARSTRING".equals(nextPotentialToken)) {
                 readOpenBracket();
                 readSegmentWkt(SEGMENT_FIRST_ARC, isFirstIteration);
                 readCloseBracket();
@@ -1429,7 +1429,7 @@ abstract class SQLServerSpatialDatatype {
     protected boolean checkEmptyKeyword(int parentShapeIndex, InternalSpatialDatatype isd,
             boolean isInsideAnotherShape) throws SQLServerException {
         String potentialEmptyKeyword = getNextStringToken().toUpperCase(Locale.US);
-        if (potentialEmptyKeyword.equals("EMPTY")) {
+        if ("EMPTY".equals(potentialEmptyKeyword)) {
 
             byte typeCode = 0;
 
@@ -1460,7 +1460,7 @@ abstract class SQLServerSpatialDatatype {
             return true;
         }
 
-        if (!potentialEmptyKeyword.equals("")) {
+        if (!"".equals(potentialEmptyKeyword)) {
             throwIllegalWKTPosition();
         }
         return false;

@@ -196,10 +196,10 @@ final class KerbAuthentication extends SSPIAuthentication {
      * @param impersonatedUserCred
      */
     KerbAuthentication(SQLServerConnection con, String address, int port, GSSCredential impersonatedUserCred,
-            Boolean isUserCreated) {
+            boolean isUserCreated) {
         this(con, address, port);
-        peerCredentials = impersonatedUserCred;
-        this.isUserCreatedCredential = (isUserCreated == null ? false : isUserCreated);
+        this.peerCredentials = impersonatedUserCred;
+        this.isUserCreatedCredential = isUserCreated;
     }
 
     byte[] generateClientContext(byte[] pin, boolean[] done) throws SQLServerException {

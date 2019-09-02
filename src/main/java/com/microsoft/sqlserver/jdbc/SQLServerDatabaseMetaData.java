@@ -1212,7 +1212,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public String getNumericFunctions() throws SQLServerException {
         checkClosed();
-        return "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,COT,DEGREES,EXP, FLOOR,LOG,LOG10,MOD,PI,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
+        return "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,COT,DEGREES,EXP,FLOOR,LOG,LOG10,MOD,PI,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
     }
 
     private static final String[] getPrimaryKeysColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
@@ -1470,7 +1470,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public String getStringFunctions() throws SQLServerException {
         checkClosed();
-        return "ASCII,CHAR,CONCAT, DIFFERENCE,INSERT,LCASE,LEFT,LENGTH,LOCATE,LTRIM,REPEAT,REPLACE,RIGHT,RTRIM,SOUNDEX,SPACE,SUBSTRING,UCASE";
+        return "ASCII,CHAR,CONCAT,DIFFERENCE,INSERT,LCASE,LEFT,LENGTH,LOCATE,LTRIM,REPEAT,REPLACE,RIGHT,RTRIM,SOUNDEX,SPACE,SUBSTRING,UCASE";
     }
 
     @Override

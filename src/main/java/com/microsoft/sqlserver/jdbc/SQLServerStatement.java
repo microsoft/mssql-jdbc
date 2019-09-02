@@ -559,7 +559,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 // TYPE_SS_SERVER_CURSOR_FORWARD_ONLY accordingly.
                 String selectMethod = con.getSelectMethod();
                 resultSetType = (null == selectMethod
-                        || !selectMethod.equals("cursor")) ? SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY : // Default
+                        || !"cursor".equals(selectMethod)) ? SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY : // Default
                                                                                                               // forward-only,
                                                                                                               // read-only
                                                                                                               // cursor
@@ -972,7 +972,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (null == sql || sql.length() < 6) {
             return false;
         }
-        return temp.substring(0, 6).equalsIgnoreCase("select");
+        return "select".equalsIgnoreCase(temp.substring(0, 6));
     }
 
     /**
@@ -990,11 +990,11 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (null == sql || sql.length() < 6) {
             return false;
         }
-        if (temp.substring(0, 2).equalsIgnoreCase("/*")) {
+        if ("/*".equalsIgnoreCase(temp.substring(0, 2))) {
             int index = temp.indexOf("*/") + 2;
             return isInsert(temp.substring(index));
         }
-        return temp.substring(0, 6).equalsIgnoreCase("insert");
+        return "insert".equalsIgnoreCase(temp.substring(0, 6));
     }
 
     /**
@@ -1032,7 +1032,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             final StringBuilder retSql = new StringBuilder();
             while (st.hasMoreTokens()) {
                 String str = st.nextToken();
-                if (str.equals("'")) {
+                if ("'".equals(str)) {
                     retSql.append("'");
                     beforeColon = !beforeColon;
                     continue;
