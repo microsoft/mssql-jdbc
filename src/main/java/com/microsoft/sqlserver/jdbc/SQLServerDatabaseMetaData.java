@@ -638,10 +638,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
             pstmt.closeOnCompletion();
             try {
-                pstmt.setString(1, (null != table && !table.isEmpty()) ? table : "%");
-                pstmt.setString(2, (null != schema && !schema.isEmpty()) ? schema : "%");
+                pstmt.setString(1, (null != table && !table.isEmpty()) ? EscapeIDName(table) : "%");
+                pstmt.setString(2, (null != schema && !schema.isEmpty()) ? EscapeIDName(schema) : "%");
                 pstmt.setString(3, (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
-                pstmt.setString(4, (null != col && !col.isEmpty()) ? col : "%");
+                pstmt.setString(4, (null != col && !col.isEmpty()) ? EscapeIDName(col) : "%");
                 pstmt.setInt(5, 2);// show sparse columns
                 pstmt.setInt(6, 3);// odbc version
 
