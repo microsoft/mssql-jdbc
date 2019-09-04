@@ -908,16 +908,28 @@ public class SQLServerDataSource
     }
 
     @Override
+    public String getDomain() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(),
+                SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
+    }
+    
+    @Override
     public void setDomain(String domain) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(), domain);
     }
 
     @Override
-    public String getDomain() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(),
-                SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
+    public String getEnclaveAttestationUrl() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATIONURL.toString(),
+                SQLServerDriverStringProperty.ENCLAVE_ATTESTATIONURL.getDefaultValue());
+    }
+    
+    @Override
+    public void setEnclaveAttestationUrl(String url) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATIONURL.toString(), url);
     }
 
+    
     /**
      * Sets a property string value.
      * 

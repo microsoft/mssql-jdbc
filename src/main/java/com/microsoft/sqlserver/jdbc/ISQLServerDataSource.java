@@ -845,19 +845,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setKeyVaultProviderClientKey(String keyVaultProviderClientKey);
     
     /**
+     * Returns the value for the connection property 'domain'.
+     * 
+     * @return 'domain' property value
+     */
+    String getDomain();
+    
+    /**
      * Sets the 'domain' connection property used for NTLM Authentication.
      *
      * @param domain
      *        Windows domain name
      */
     void setDomain(String domain);
-
-    /**
-     * Returns the value for the connection property 'domain'.
-     * 
-     * @return 'domain' property value
-     */
-    String getDomain();
 
     /**
      * Returns the current flag value for useFmtOnly.
@@ -873,4 +873,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        boolean value for 'useFmtOnly'.
      */
     public void setUseFmtOnly(boolean useFmtOnly);
+
+    /**
+     * Returns the enclave attestional url used with enclave based Always Encrypted.
+     * 
+     * @return a String that contains the enclave attestation url.
+     */
+    String getEnclaveAttestationUrl();
+
+    /**
+     * Sets the enclave attestional url to be used with enclave based Always Encrypted.
+     * 
+     * @param url
+     *        A String that contains the enclave attestation url.
+     */
+    void setEnclaveAttestationUrl(String url);
 }
