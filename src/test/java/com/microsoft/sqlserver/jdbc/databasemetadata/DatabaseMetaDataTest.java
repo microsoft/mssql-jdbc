@@ -359,6 +359,14 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "col\\_1")) {
                         testGetDBColumnInternal(rs1, databaseMetaData);
                     }
+                    
+                    try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "col\\%2")) {
+                        testGetDBColumnInternal(rs1, databaseMetaData);
+                    }
+                    
+                    try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "col\\[3")) {
+                        testGetDBColumnInternal(rs1, databaseMetaData);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -604,7 +612,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     public static void setupTable() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (col_1 int NOT NULL, col_2 varchar(200), col_3 decimal(15,2))");
+                    + " ([col_1] int NOT NULL, [col%2] varchar(200), [col[3] decimal(15,2))");
             stmt.execute("CREATE FUNCTION " + AbstractSQLGenerator.escapeIdentifier(functionName)
                     + " (@p1 INT, @p2 INT) RETURNS INT AS BEGIN DECLARE @result INT; SET @result = @p1 + @p2; RETURN @result; END");
         }
