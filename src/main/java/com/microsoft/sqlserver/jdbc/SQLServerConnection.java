@@ -627,6 +627,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (columnEncryptionSetting.equalsIgnoreCase(ColumnEncryptionSetting.Enabled.toString()));
     }
 
+    String enclaveAttestationUrl = null;
+    
     String keyStoreAuthentication = null;
     String keyStoreSecret = null;
     String keyStoreLocation = null;
@@ -1421,6 +1423,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
             columnEncryptionSetting = ColumnEncryptionSetting.valueOfString(sPropValue).toString();
+
+            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATIONURL.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                enclaveAttestationUrl = sPropValue;
+            }
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -3540,9 +3548,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int len = 6; // (1byte = featureID, 4bytes = featureData length, 1 bytes = Version)
 
         if (write) {
-            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TCE
-            tdsWriter.writeInt(1);
-            tdsWriter.writeByte(TDS.MAX_SUPPORTED_TCE_VERSION);
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TC  
+            if (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()) {
+                tdsWriter.writeInt(TDS.AE_VERSION1);
+                tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION1);
+            } else {
+                tdsWriter.writeInt(TDS.AE_VERSION_ENCLAVE);
+                tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);                
+            }
         }
         return len;
     }
@@ -4553,8 +4566,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                byte supportedTceVersion = data[0];
-                if (0 == supportedTceVersion || supportedTceVersion > TDS.MAX_SUPPORTED_TCE_VERSION) {
+                byte aeVersion = data[0];
+                if (0 == aeVersion || aeVersion > TDS.COLUMNENCRYPTION_VERSION2) {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 

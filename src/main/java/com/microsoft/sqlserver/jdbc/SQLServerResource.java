@@ -188,6 +188,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_portNumberPropertyDescription", "The TCP port where an instance of SQL Server is listening."},
             {"R_serverSpnPropertyDescription", "SQL Server SPN."},
             {"R_columnEncryptionSettingPropertyDescription", "The column encryption setting."},
+            {"R_enclaveAttestationUrlPropertyDescription", "The enclave attestation URL."},
             {"R_serverNameAsACEPropertyDescription",
                     "Translates the serverName from Unicode to ASCII Compatible Encoding (ACE), as defined by the ToASCII operation of RFC 3490."},
             {"R_sendStringParametersAsUnicodePropertyDescription",
