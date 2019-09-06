@@ -628,7 +628,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     String enclaveAttestationUrl = null;
-    
+    String enclaveAttestationProtocol = null;
+
     String keyStoreAuthentication = null;
     String keyStoreSecret = null;
     String keyStoreLocation = null;
@@ -636,7 +637,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean serverSupportsColumnEncryption = false;
 
     private String enclaveType = null;
-    
+
     boolean getServerSupportsColumnEncryption() {
         return serverSupportsColumnEncryption;
     }
@@ -1426,10 +1427,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
             columnEncryptionSetting = ColumnEncryptionSetting.valueOfString(sPropValue).toString();
 
-            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATIONURL.toString();
+            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
                 enclaveAttestationUrl = sPropValue;
+            }
+
+            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                enclaveAttestationProtocol = sPropValue;
             }
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();
@@ -3555,7 +3562,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()) {
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION1);
             } else {
-                tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);                
+                tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);
             }
         }
         return len;
@@ -4573,10 +4580,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 serverSupportsColumnEncryption = true;
-                if (TDS.COLUMNENCRYPTION_VERSION2 == aeVersion) {
-                    enclaveType = new String(data, 2, data.length-2);
+
+                if (null != enclaveAttestationUrl) {
+                    if (aeVersion < TDS.COLUMNENCRYPTION_VERSION2) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_enclaveNotSupported"), null);
+                    } else {
+                        enclaveType = new String(data, 2, data.length - 2, UTF_16LE);
+                    }
+
+                    if (null == enclaveType) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_enclaveTypeNotReturned"), null);
+                    }
+
+                    if (!EnclaveType.isValidEnclaveType(enclaveType)) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_enclaveTypeInvalid"));
+                        Object[] msgArgs = {enclaveType};
+                        throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                    }
                 }
-                
                 break;
             }
             case TDS.TDS_FEATURE_EXT_DATACLASSIFICATION: {

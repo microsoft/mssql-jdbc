@@ -920,13 +920,13 @@ public class SQLServerDataSource
 
     @Override
     public String getEnclaveAttestationUrl() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATIONURL.toString(),
-                SQLServerDriverStringProperty.ENCLAVE_ATTESTATIONURL.getDefaultValue());
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString(),
+                SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.getDefaultValue());
     }
     
     @Override
     public void setEnclaveAttestationUrl(String url) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATIONURL.toString(), url);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString(), url);
     }
 
     

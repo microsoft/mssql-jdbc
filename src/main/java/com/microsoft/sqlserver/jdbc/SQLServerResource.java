@@ -189,6 +189,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_serverSpnPropertyDescription", "SQL Server SPN."},
             {"R_columnEncryptionSettingPropertyDescription", "The column encryption setting."},
             {"R_enclaveAttestationUrlPropertyDescription", "The enclave attestation URL."},
+            {"R_enclaveAttestationProtocolPropertyDescription", "The enclave attestation protocol."},
             {"R_serverNameAsACEPropertyDescription",
                     "Translates the serverName from Unicode to ASCII Compatible Encoding (ACE), as defined by the ToASCII operation of RFC 3490."},
             {"R_sendStringParametersAsUnicodePropertyDescription",
@@ -595,5 +596,10 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_invalidUserSQL", "An error occurred when attempting to parse user SQL. Please verify SQL syntax."},
             {"R_invalidInsertValuesQuery",
                     "An error occurred when matching VALUES list to table columns. Please verify SQL syntax."},
-            {"R_invalidValuesList", "An error occurred when reading VALUES list. Please verify SQL syntax."}};
+            {"R_invalidValuesList", "An error occurred when reading VALUES list. Please verify SQL syntax."},
+            {"R_enclaveNotSupported", "The SQL Server instance does not support enclave based computations."},                  
+            {"R_enclaveTypeNotReturned",
+                    "The SQL Server instance did not return an enclave type. Please make sure the enclave type is correct configured in the SQL Server instance."},
+            {"R_enclaveTypeInvalid", "The enclave type {0} is invalid or not supported by the driver."},
+            {"R_attestationUrlInvalid", "Unable to attest enclave specified by {0}."}};
 };
