@@ -635,6 +635,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private boolean serverSupportsColumnEncryption = false;
 
+    private String enclaveType = null;
+    
     boolean getServerSupportsColumnEncryption() {
         return serverSupportsColumnEncryption;
     }
@@ -3548,12 +3550,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int len = 6; // (1byte = featureID, 4bytes = featureData length, 1 bytes = Version)
 
         if (write) {
-            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TC  
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TC
+            tdsWriter.writeInt(1);
             if (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()) {
-                tdsWriter.writeInt(TDS.AE_VERSION1);
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION1);
             } else {
-                tdsWriter.writeInt(TDS.AE_VERSION_ENCLAVE);
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);                
             }
         }
@@ -4572,6 +4573,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 serverSupportsColumnEncryption = true;
+                if (TDS.COLUMNENCRYPTION_VERSION2 == aeVersion) {
+                    enclaveType = new String(data, 2, data.length-2);
+                }
+                
                 break;
             }
             case TDS.TDS_FEATURE_EXT_DATACLASSIFICATION: {
