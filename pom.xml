@@ -184,6 +184,9 @@
 	<profiles>
 		<profile>
 			<id>jre8</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
 				<plugins>
@@ -263,9 +266,6 @@
 		</profile>
 		<profile>
 			<id>jre12</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre12-preview</finalName>
 				<plugins>
