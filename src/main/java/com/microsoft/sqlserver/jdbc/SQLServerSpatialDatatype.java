@@ -1298,7 +1298,7 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected int determineWkbCapacity(boolean noZM) {
+    protected int determineWkbCapacity(boolean excludeZMFromWKB) {
         int totalSize = 0;
 
         totalSize += 6; // SRID + version + SerializationPropertiesByte
@@ -1306,7 +1306,7 @@ abstract class SQLServerSpatialDatatype {
         if (isSinglePoint || isSingleLineSegment) {
             totalSize += 16 * numberOfPoints;
 
-            if (!noZM) {
+            if (!excludeZMFromWKB) {
                 if (hasZvalues) {
                     totalSize += 8 * numberOfPoints;
                 }
@@ -1320,7 +1320,7 @@ abstract class SQLServerSpatialDatatype {
         }
 
         int pointSize = 16;
-        if (!noZM) {
+        if (!excludeZMFromWKB) {
             if (hasZvalues) {
                 pointSize += 8;
             }
