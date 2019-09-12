@@ -9,6 +9,8 @@ import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQ
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 
 import java.sql.BatchUpdateException;
+import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
@@ -765,7 +767,12 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
 
         final boolean doExecute() throws SQLServerException {
-            stmt.doExecuteStatement(this);
+            try {
+                stmt.doExecuteStatement(this);
+            } catch (SQLException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
             return false;
         }
 
@@ -811,7 +818,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
-    final void doExecuteStatement(StmtExecCmd execCmd) throws SQLServerException {
+    final void doExecuteStatement(StmtExecCmd execCmd) throws SQLException {
         resetForReexecute();
 
         // Set this command as the current command
@@ -837,6 +844,28 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
+        
+        if (this.connection.aeVersion == 2) {
+            try (SQLServerCallableStatement c = (SQLServerCallableStatement) this.connection.prepareCall("exec sp_describe_parameter_encryption ?,?,?")) {
+                c.setNString(1, sql);
+                c.setNString(2, "''");
+                c.setBytes(3, this.connection.getAttestationPublicKey());
+                try (ResultSet rs = c.executeQueryInternal()) {
+                    
+                }
+            } catch (SQLException e) {
+                if (e instanceof SQLServerException) {
+                    throw (SQLServerException) e;
+                } else {
+                    throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
+                            0, e);
+                }
+            }
+        }
+        
+        
+        
+        
         if (isCursorable(executeMethod) && isSelect(sql)) {
             if (stmtlogger.isLoggable(java.util.logging.Level.FINE))
                 stmtlogger.fine(toString() + " Executing server side cursor " + sql);
