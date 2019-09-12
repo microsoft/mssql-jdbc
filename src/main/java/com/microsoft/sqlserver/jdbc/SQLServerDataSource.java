@@ -1015,7 +1015,7 @@ public class SQLServerDataSource
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         String propValue = props.getProperty(propKey);
-        Boolean value;
+        boolean value;
         if (null == propValue) {
             value = defaultValue;
         } else {

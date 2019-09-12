@@ -112,10 +112,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                         if (matcher.matches()) {
                             // the datatype has some precision/scale defined explicitly.
                             ssType = SSType.of(matcher.group(1));
-                            if (typename.equalsIgnoreCase("varchar(max)")
-                                    || typename.equalsIgnoreCase("varbinary(max)")) {
+                            if ("varchar(max)".equalsIgnoreCase(typename)
+                                    || "varbinary(max)".equalsIgnoreCase(typename)) {
                                 qm.precision = SQLServerDatabaseMetaData.MAXLOBSIZE;
-                            } else if (typename.equalsIgnoreCase("nvarchar(max)")) {
+                            } else if ("nvarchar(max)".equalsIgnoreCase(typename)) {
                                 qm.precision = SQLServerDatabaseMetaData.MAXLOBSIZE / 2;
                             } else if (SSType.Category.CHARACTER == ssType.category
                                     || SSType.Category.BINARY == ssType.category
@@ -196,9 +196,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                  * values bracket. The '*' will retrieve all values from the table and we'll use the '?'s to match their
                  * position here
                  */
-                if (columns.get(i).equals("*")) {
+                if ("*".equals(columns.get(i))) {
                     for (int j = 0; j < params.get(valueListOffset).size(); j++) {
-                        if (params.get(valueListOffset).get(j).equals("?")) {
+                        if ("?".equals(params.get(valueListOffset).get(j))) {
                             if (!md.isAutoIncrement(mdIndex + j)) {
                                 QueryMeta qm = getQueryMetaFromResultSetMetaData(md, mdIndex + j);
                                 queryMetaMap.put(mapIndex++, qm);

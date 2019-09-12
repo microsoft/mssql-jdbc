@@ -601,7 +601,7 @@ enum JavaType {
                 setterConversionAEMap.get(conversion.from).addAll(conversion.to);
         }
 
-        static boolean converts(JavaType fromJavaType, JDBCType toJDBCType, Boolean sendStringParametersAsUnicode) {
+        static boolean converts(JavaType fromJavaType, JDBCType toJDBCType, boolean sendStringParametersAsUnicode) {
             if ((null == fromJavaType) || (JavaType.OBJECT == fromJavaType))
                 return true;
             else if (!sendStringParametersAsUnicode && fromJavaType == JavaType.BYTEARRAY

@@ -1661,7 +1661,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     @Override
     public final void setBinaryStream(String parameterName, InputStream value) throws SQLException {
-
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {parameterName, value});
         checkClosed();

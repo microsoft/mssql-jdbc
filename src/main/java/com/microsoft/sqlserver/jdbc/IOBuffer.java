@@ -3285,7 +3285,7 @@ final class TDSWriter {
      * @param value
      *        the data value
      */
-    void writeReal(Float value) throws SQLServerException {
+    void writeReal(float value) throws SQLServerException {
         writeInt(Float.floatToRawIntBits(value));
     }
 
@@ -4596,7 +4596,7 @@ final class TDSWriter {
                     writeBytes(cachedTVPHeaders.array(), 0, ((Buffer) cachedTVPHeaders).position());
                 }
 
-                List<Object> rowData = value.getRowData();
+                Object[] rowData = value.getRowData();
 
                 // ROW
                 writeByte((byte) TDS.TVP_ROW);
@@ -4618,8 +4618,8 @@ final class TDSWriter {
                     if (null != rowData) {
                         // if rowData has value for the current column, retrieve it. If not, current column will stay
                         // null.
-                        if (rowData.size() > currentColumn) {
-                            currentObject = rowData.get(currentColumn);
+                        if (rowData.length > currentColumn) {
+                            currentObject = rowData[currentColumn];
                             if (null != currentObject) {
                                 currentColumnStringValue = String.valueOf(currentObject);
                             }

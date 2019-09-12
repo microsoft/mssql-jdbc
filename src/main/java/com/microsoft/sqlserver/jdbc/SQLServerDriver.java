@@ -645,7 +645,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                 if (null != val) {
                     // replace with the driver approved name
                     fixedup.setProperty(newname, val);
-                } else if (newname.equalsIgnoreCase("gsscredential") && (props.get(name) instanceof GSSCredential)) {
+                } else if ("gsscredential".equalsIgnoreCase(newname) && (props.get(name) instanceof GSSCredential)) {
                     fixedup.put(newname, props.get(name));
                 } else {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidpropertyValue"));

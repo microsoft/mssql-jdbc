@@ -31,7 +31,7 @@ public final class DNSKerberosLocator {
         if (realmName == null || realmName.length() < 2) {
             return false;
         }
-        if (realmName.startsWith(".")) {
+        if (realmName.charAt(0) == ('.')) {
             realmName = realmName.substring(1);
         }
         try {
