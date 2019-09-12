@@ -382,7 +382,7 @@ public final class SQLServerDataTable {
         return h;
     }
 
-    public boolean compareRows(Map<Integer, Object[]> otherRows) {
+    private boolean compareRows(Map<Integer, Object[]> otherRows) {
         if (rows == otherRows)
             return true;
         if (rows.size() != otherRows.size())
