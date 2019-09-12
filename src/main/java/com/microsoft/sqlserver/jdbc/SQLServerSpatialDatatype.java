@@ -94,19 +94,19 @@ abstract class SQLServerSpatialDatatype {
     /**
      * Serializes the Geogemetry/Geography instance to WKB.
      * 
-     * @param noZM
-     *        flag to indicate if Z and M coordinates should be included
+     * @param excludeZMFromWKB
+     *        flag to indicate if Z and M coordinates should be excluded from the WKB representation
      * @param type
      *        Type of Spatial Datatype (Geometry/Geography)
      */
-    protected void serializeToWkb(boolean noZM, SQLServerSpatialDatatype type) {
-        ByteBuffer buf = ByteBuffer.allocate(determineWkbCapacity(noZM));
+    protected void serializeToWkb(boolean excludeZMFromWKB, SQLServerSpatialDatatype type) {
+        ByteBuffer buf = ByteBuffer.allocate(determineWkbCapacity(excludeZMFromWKB));
         createSerializationProperties();
 
         buf.order(ByteOrder.LITTLE_ENDIAN);
         buf.putInt(srid);
         buf.put(version);
-        if (noZM) {
+        if (excludeZMFromWKB) {
             byte serializationPropertiesNoZM = serializationProperties;
             if (hasZvalues) {
                 serializationPropertiesNoZM -= hasZvaluesMask;
@@ -136,7 +136,7 @@ abstract class SQLServerSpatialDatatype {
             }
         }
 
-        if (!noZM) {
+        if (!excludeZMFromWKB) {
             if (hasZvalues) {
                 for (int i = 0; i < numberOfPoints; i++) {
                     buf.putDouble(zValues[i]);
@@ -151,7 +151,7 @@ abstract class SQLServerSpatialDatatype {
         }
 
         if (isSinglePoint || isSingleLineSegment) {
-            if (noZM) {
+            if (excludeZMFromWKB) {
                 wkbNoZM = buf.array();
             } else {
                 wkb = buf.array();
@@ -179,7 +179,7 @@ abstract class SQLServerSpatialDatatype {
             }
         }
 
-        if (noZM) {
+        if (excludeZMFromWKB) {
             wkbNoZM = buf.array();
         } else {
             wkb = buf.array();
