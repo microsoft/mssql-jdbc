@@ -5719,6 +5719,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private List<ISQLServerStatement> openStatements;
     private boolean originalUseFmtOnly;
 
+    int aeVersion = 2;
+
     protected void beginRequestInternal() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "beginRequest", this);
         synchronized (this) {
@@ -6407,6 +6409,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (null != openStatements) {
             openStatements.remove(st);
         }
+    }
+
+    ISQLServerEnclaveProvider enclaveProvider = null;
+    byte[] getAttestationPublicKey() {
+        return enclaveProvider.getAttestationParamters().attestationParameters();
     }
 }
 
