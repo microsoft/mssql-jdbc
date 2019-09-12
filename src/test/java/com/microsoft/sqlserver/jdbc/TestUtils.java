@@ -817,6 +817,13 @@ public final class TestUtils {
         return (".*\\Q" + TestUtils.R_BUNDLE.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
     }
 
+    /**
+     * Get the server name from the url
+     *
+     * @param url
+     *        url string to be parsed
+     * @return server name.
+     */
     public static String getServerNameFromUrl(String url) {
         int slash = url.indexOf("//") + 2;
         return url.substring(slash, url.indexOf(';', slash));
