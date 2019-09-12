@@ -590,4 +590,43 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
         return retrievedKey.key().n().length;
     }
+    
+    /* Check that the CEK is signed by an ENCLAVE_COMPUTATIONS CMK
+     * 
+     * The (UTF-16LE) lowercase representations of the KSP name ("mssql_certificate_store"), key path, and the word
+     * "true" (74 00 72 00 75 00 65 00) are concatenated together and hashed with SHA256. The hash is signed using the
+     * private key of the CMK (the one referenced by the key path.) The resulting signature is the one stored in SQL
+     * Server and specified in the CMK metadata.
+     */
+    public boolean verifyCMKMetadata(String keyPath, boolean isEnclaveEnabled, byte[] signature) throws SQLServerException {
+        KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(keyPath);
+
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
+        }
+        
+        // compute hash
+        md.update(name.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+        md.update(keyPath.toLowerCase().getBytes());
+        md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+        byte[] dataToSign = md.digest();
+        if (null == dataToSign) {
+            throw new SQLServerException(SQLServerException.getErrString("R_HashNull"), null);
+        }
+
+        // Sign the hash
+        byte[] signedHash = AzureKeyVaultSignHashedData(dataToSign, keyPath);
+        
+        // Validate the signature
+        if (!AzureKeyVaultVerifySignature(dataToSign, signedHash, keyPath)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CEKSignatureNotMatchCMK"));
+            Object[] msgArgs = {keyPath};
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        }
+        
+        return true;
+    }
 }

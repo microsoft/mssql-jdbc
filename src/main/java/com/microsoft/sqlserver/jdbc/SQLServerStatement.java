@@ -9,8 +9,6 @@ import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQ
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 
 import java.sql.BatchUpdateException;
-import java.sql.CallableStatement;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
@@ -845,7 +843,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         
-        if (this.connection.aeVersion == 2) {
+        if (this.connection.getServerColumnEncryptionVersion().value() >= ColumnEncryptionVersion.AE_v2.value()) {
             try (SQLServerCallableStatement c = (SQLServerCallableStatement) this.connection.prepareCall("exec sp_describe_parameter_encryption ?,?,?")) {
                 c.setNString(1, sql);
                 c.setNString(2, "''");

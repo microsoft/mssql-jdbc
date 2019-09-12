@@ -317,4 +317,11 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
 
     }
 
+    @Override
+    public boolean verifyCMKMetadata(String keyPath, boolean isEnclaveEnabled,
+            byte[] signature) throws SQLServerException {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
 }

@@ -62,4 +62,20 @@ public abstract class SQLServerColumnEncryptionKeyStoreProvider {
     public abstract byte[] encryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] columnEncryptionKey) throws SQLServerException;
 
+    /**
+     * Verify the column master key metatadata
+     * 
+     * @param keyPath
+     *        column master key path
+     * @param isEnclaveEnabled
+     *        indicates if key can be sent to a trusted enclave
+     * @param signature
+     *        signature of the column master key metadata
+     * @return
+     *        whether the column master key metadata can be verified based on the provided signature
+     * @throws SQLServerException
+     *      when an error occurs while verifying the CMK
+     */
+    public abstract boolean verifyCMKMetadata(String keyPath, boolean isEnclaveEnabled, byte[] signature) throws SQLServerException;
+
 }

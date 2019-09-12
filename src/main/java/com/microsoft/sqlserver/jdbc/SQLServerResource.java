@@ -597,7 +597,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_invalidInsertValuesQuery",
                     "An error occurred when matching VALUES list to table columns. Please verify SQL syntax."},
             {"R_invalidValuesList", "An error occurred when reading VALUES list. Please verify SQL syntax."},
-            {"R_enclaveNotSupported", "The SQL Server instance does not support enclave based computations."},                  
+            {"R_enclaveNotSupported", "The SQL Server instance does not support enclave based computations."},
             {"R_enclaveTypeNotReturned",
                     "The SQL Server instance did not return an enclave type. Please make sure the enclave type is correct configured in the SQL Server instance."},
             {"R_enclaveTypeInvalid", "The enclave type {0} is invalid or not supported by the driver."},

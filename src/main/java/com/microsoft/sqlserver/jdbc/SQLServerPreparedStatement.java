@@ -556,9 +556,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
 
-        // if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
-        // && !isInternalEncryptionQuery) {
+        /*************************nooooooooooo        
+        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
+                && !isInternalEncryptionQuery) {
+                **********/
         if (!isInternalEncryptionQuery) {
+
 
             // retrieve parameter encryption metadata if they are not retrieved yet
             if (!encryptionMetadataIsRetrieved) {
@@ -883,6 +886,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         Map<Integer, CekTableEntry> cekList = new HashMap<>();
         CekTableEntry cekEntry = null;
+        boolean isRequestedByEnclave = false;
         try {
             while (rs.next()) {
                 int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
@@ -899,9 +903,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
                         rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
                         rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()),
-                        rs.getByte(DescribeParameterEncryptionResultSet1.KeyRequestedByEnclave.value()),
-                        rs.getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value()));
+                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
+                
+                // servers supporting enclave computations should always return a boolean indicating whether the key is
+                // required by enclave or not.
+                if (ColumnEncryptionVersion.AE_v2.value() <= connection.getServerColumnEncryptionVersion().value()) {
+                    isRequestedByEnclave = rs
+                            .getBoolean(DescribeParameterEncryptionResultSet1.IsRequestedByEnclave.value());
+                }
+                
+                if (isRequestedByEnclave) {
+                
+                }
             }
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Matadata of CEKs is retrieved.");

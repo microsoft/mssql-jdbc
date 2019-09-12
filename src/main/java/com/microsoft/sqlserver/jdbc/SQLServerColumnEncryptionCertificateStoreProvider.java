@@ -5,6 +5,9 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.MessageFormat;
 import java.util.Locale;
 
 
@@ -80,5 +83,38 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
         windowsCertificateStoreLogger.exiting(SQLServerColumnEncryptionCertificateStoreProvider.class.getName(),
                 "decryptColumnEncryptionKey", "Finished decrypting Column Encryption Key.");
         return plainCek;
+    }
+
+    /*
+     * The (UTF-16LE) lowercase representations of the KSP name ("mssql_certificate_store"), key path, and the word
+     * "true" (74 00 72 00 75 00 65 00) are concatenated together and hashed with SHA256. The hash is signed using the
+     * private key of the CMK (the one referenced by the key path.) The resulting signature is the one stored in SQL
+     * Server and specified in the CMK metadata.
+     */
+    @Override
+    public boolean verifyCMKMetadata(String keyPath, boolean isEnclaveEnabled,
+            byte[] signature) throws SQLServerException {
+        // assume cert is already validated?
+        
+        // validate key path
+        if (null == keyPath || keyPath.trim().isEmpty() || keyPath.length() >= Integer.MAX_VALUE ) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_WindowsKeyPathInvalid"));
+            Object[] msgArgs = {keyPath};
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+        }
+        
+        byte[] kspNameBytes = name.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE);
+        byte[] isEnclaveBytes = "true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE);
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
+        }
+        byte[] hash = new byte[kspNameBytes.length+isEnclaveBytes.length+keyPath.length()];
+        
+
+
+        return true;
     }
 }

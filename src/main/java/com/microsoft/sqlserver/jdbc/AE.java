@@ -271,9 +271,11 @@ class CryptoMetadata {
 }
 
 
-// Fields in the first resultset of "sp_describe_parameter_encryption"
-// We expect the server to return the fields in the resultset in the same order as mentioned below.
-// If the server changes the below order, then transparent parameter encryption will break.
+/**
+ * Fields in the first resultset of "sp_describe_parameter_encryption". We expect the server to return the fields in the
+ * resultset in the same order as mentioned below. If the server changes the below order, then transparent parameter
+ * encryption will break.
+ */
 enum DescribeParameterEncryptionResultSet1 {
     KeyOrdinal,
     DbId,
@@ -284,8 +286,8 @@ enum DescribeParameterEncryptionResultSet1 {
     ProviderName,
     KeyPath,
     KeyEncryptionAlgorithm,
-    KeyRequestedByEnclave,
-    EnclaveCMKSignature;
+    IsRequestedByEnclave,
+    KeySignature;
 
     int value() {
         // Column indexing starts from 1;
@@ -294,9 +296,11 @@ enum DescribeParameterEncryptionResultSet1 {
 }
 
 
-// Fields in the second resultset of "sp_describe_parameter_encryption"
-// We expect the server to return the fields in the resultset in the same order as mentioned below.
-// If the server changes the below order, then transparent parameter encryption will break.
+/**
+ * Fields in the second resultset of "sp_describe_parameter_encryption". We expect the server to return the fields in
+ * the resultset in the same order as mentioned below. If the server changes the below order, then transparent parameter
+ * encryption will break.
+ */
 enum DescribeParameterEncryptionResultSet2 {
     ParameterOrdinal,
     ParameterName,
@@ -309,5 +313,30 @@ enum DescribeParameterEncryptionResultSet2 {
         // Column indexing starts from 1;
         return ordinal() + 1;
     }
+}
 
+
+/**
+ * Fields in the third resultset of "sp_describe_parameter_encryption". We expect the server to return the fields in the
+ * resultset in the same order as mentioned below. If the server changes the below order, then transparent parameter
+ * encryption will break.
+ */
+enum DescribeParameterEncryptionResultSet3 {
+    AttestationInfo;
+
+    int value() {
+        // Column indexing starts from 1;
+        return ordinal() + 1;
+    }
+}
+
+enum ColumnEncryptionVersion {
+    AE_NotSupported,
+    AE_v1,
+    AE_v2;
+
+    int value() {
+        // Column indexing starts from 1;
+        return ordinal() + 1;
+    }
 }

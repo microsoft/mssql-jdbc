@@ -633,13 +633,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String keyStoreAuthentication = null;
     String keyStoreSecret = null;
     String keyStoreLocation = null;
-
-    private boolean serverSupportsColumnEncryption = false;
+    
+    private ColumnEncryptionVersion serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_NotSupported;
 
     private String enclaveType = null;
 
     boolean getServerSupportsColumnEncryption() {
-        return serverSupportsColumnEncryption;
+        return (serverColumnEncryptionVersion.value() > ColumnEncryptionVersion.AE_NotSupported.value());
+    }
+
+    ColumnEncryptionVersion getServerColumnEncryptionVersion() {
+        return serverColumnEncryptionVersion;
     }
 
     private boolean serverSupportsDataClassification = false;
@@ -4574,17 +4578,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                byte aeVersion = data[0];
-                if (0 == aeVersion || aeVersion > TDS.COLUMNENCRYPTION_VERSION2) {
+                byte supportedAeVersion = data[0];
+                if (0 == supportedAeVersion || supportedAeVersion > TDS.COLUMNENCRYPTION_VERSION2) {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                serverSupportsColumnEncryption = true;
-
+                serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v1;
+                
                 if (null != enclaveAttestationUrl) {
-                    if (aeVersion < TDS.COLUMNENCRYPTION_VERSION2) {
+                    if (supportedAeVersion < TDS.COLUMNENCRYPTION_VERSION2) {
                         throw new SQLServerException(SQLServerException.getErrString("R_enclaveNotSupported"), null);
                     } else {
+                        serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v2;
                         enclaveType = new String(data, 2, data.length - 2, UTF_16LE);
                     }
 
@@ -5718,8 +5723,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private volatile SQLWarning originalSqlWarnings;
     private List<ISQLServerStatement> openStatements;
     private boolean originalUseFmtOnly;
-
-    int aeVersion = 2;
 
     protected void beginRequestInternal() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "beginRequest", this);

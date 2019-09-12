@@ -6288,6 +6288,7 @@ final class TDSReader implements Serializable {
     private boolean useColumnEncryption = false;
     private boolean serverSupportsColumnEncryption = false;
     private boolean serverSupportsDataClassification = false;
+    private ColumnEncryptionVersion columnEncryptionVersion;
 
     private final byte valueBytes[] = new byte[256];
 
@@ -6312,6 +6313,7 @@ final class TDSReader implements Serializable {
             useColumnEncryption = true;
         }
         serverSupportsColumnEncryption = con.getServerSupportsColumnEncryption();
+        columnEncryptionVersion = con.getServerColumnEncryptionVersion();
         serverSupportsDataClassification = con.getServerSupportsDataClassification();
     }
 
