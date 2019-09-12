@@ -556,8 +556,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
 
-        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
-                && !isInternalEncryptionQuery) {
+        // if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
+        // && !isInternalEncryptionQuery) {
+        if (!isInternalEncryptionQuery) {
 
             // retrieve parameter encryption metadata if they are not retrieved yet
             if (!encryptionMetadataIsRetrieved) {
@@ -855,10 +856,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
             }
 
-            stmt = (SQLServerCallableStatement) connection.prepareCall("exec sp_describe_parameter_encryption ?,?");
+            stmt = (SQLServerCallableStatement) connection.prepareCall("exec sp_describe_parameter_encryption ?,?,?");
             stmt.isInternalEncryptionQuery = true;
             stmt.setNString(1, preparedSQL);
-            stmt.setNString(2, preparedTypeDefinitions);
+            if (preparedTypeDefinitions == null) {
+                stmt.setNString(2, "''");
+            } else {
+                stmt.setNString(2, preparedTypeDefinitions);
+            }
+            stmt.setBytes(3, this.connection.getAttestationPublicKey());
             rs = (SQLServerResultSet) stmt.executeQueryInternal();
         } catch (SQLException e) {
             if (e instanceof SQLServerException) {
@@ -893,7 +899,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
                         rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
                         rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
+                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()),
+                        rs.getByte(DescribeParameterEncryptionResultSet1.KeyRequestedByEnclave.value()),
+                        rs.getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value()));
             }
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Matadata of CEKs is retrieved.");

@@ -6411,7 +6411,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    ISQLServerEnclaveProvider enclaveProvider = null;
+    ISQLServerEnclaveProvider enclaveProvider = new SQLServerVSMEnclaveProvider();
     byte[] getAttestationPublicKey() {
         return enclaveProvider.getAttestationParamters().attestationParameters();
     }
