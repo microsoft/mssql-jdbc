@@ -556,8 +556,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
 
-        // if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
-        // && !isInternalEncryptionQuery) {
         if (!isInternalEncryptionQuery) {
 
             // retrieve parameter encryption metadata if they are not retrieved yet
@@ -779,6 +777,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // No handle used.
         resetPrepStmtHandle(false);
 
+        if (this.connection.enclaveAttestationUrl != null) {
+            tdsWriter.writeBytes(new byte[] {0x0,0x0});
+        }
+        
         // <stmt> IN
         tdsWriter.writeRPCStringUnicode(preparedSQL);
 
@@ -846,7 +848,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
          * is defined as nvarchar(<size of string>). Same for varchar datatypes, exact length is used.
          */
         SQLServerResultSet rs = null;
-        SQLServerCallableStatement stmt = null;
+        SQLServerPreparedStatement stmt = null;
 
         assert connection != null : "Connection should not be null";
 
@@ -856,15 +858,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
             }
 
-            stmt = (SQLServerCallableStatement) connection.prepareCall("exec sp_describe_parameter_encryption ?,?,?");
+            stmt = (SQLServerPreparedStatement) connection.prepareStatement("EXEC sp_describe_parameter_encryption ?,?,?");
             stmt.isInternalEncryptionQuery = true;
-            stmt.setNString(1, preparedSQL);
-            if (preparedTypeDefinitions == null) {
-                stmt.setNString(2, "''");
+            stmt.setNString(1,this.preparedSQL);
+            if (preparedTypeDefinitions != null && preparedTypeDefinitions.length() != 0) {
+                stmt.setNString(2,preparedTypeDefinitions);
             } else {
-                stmt.setNString(2, preparedTypeDefinitions);
+                stmt.setNString(2,"");
             }
-            stmt.setBytes(3, this.connection.getAttestationPublicKey());
+            stmt.setBytes(3,this.connection.getAttestationParameters());
             rs = (SQLServerResultSet) stmt.executeQueryInternal();
         } catch (SQLException e) {
             if (e instanceof SQLServerException) {
@@ -899,9 +901,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
                         rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
                         rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()),
-                        rs.getByte(DescribeParameterEncryptionResultSet1.KeyRequestedByEnclave.value()),
-                        rs.getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value()));
+                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
             }
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Matadata of CEKs is retrieved.");
