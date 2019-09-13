@@ -68,7 +68,6 @@ public abstract class AbstractTest {
     public static String fedauthClientId = null;
 
     public static String accessToken = null;
-    public static String secretstrJks = "changeit";
     public static String hostNameInCertificate = "*.database.windows.net";
     public static long secondsBeforeExpiration = -1;
 
