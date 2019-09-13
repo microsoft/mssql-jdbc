@@ -1,6 +1,8 @@
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.IOException;
 import java.security.KeyPair;
+
 
 public interface ISQLServerEnclaveProvider {
     BaseAttestationRequest getAttestationParamters();
@@ -12,10 +14,11 @@ public interface ISQLServerEnclaveProvider {
     void getEnclaveSession();
 }
 
+
 abstract class BaseAttestationRequest {
     KeyPair key;
-    
-    byte[] attestationParameters() {
-        return key.getPublic().getEncoded();
-    }
+
+    byte[] getBytes() throws IOException {
+        return null;
+    };
 }

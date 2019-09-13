@@ -3549,12 +3549,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TC  
+            tdsWriter.writeInt(1); //length of version
             if (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()) {
-                tdsWriter.writeInt(TDS.AE_VERSION1);
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION1);
             } else {
-                tdsWriter.writeInt(TDS.AE_VERSION_ENCLAVE);
-                tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);                
+                tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);           
             }
         }
         return len;
@@ -6386,8 +6385,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     ISQLServerEnclaveProvider enclaveProvider = new SQLServerVSMEnclaveProvider();
-    byte[] getAttestationPublicKey() {
-        return enclaveProvider.getAttestationParamters().attestationParameters();
+    public byte[] getAttestationParameters() {
+        byte[] b = null;
+        try {
+            b = enclaveProvider.getAttestationParamters().getBytes();
+        } catch (IOException e) {
+            
+        }
+        return b;
     }
 }
 
