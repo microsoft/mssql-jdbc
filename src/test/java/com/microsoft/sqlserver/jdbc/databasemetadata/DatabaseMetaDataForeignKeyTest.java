@@ -170,7 +170,6 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
      * @throws SQLException
      * @throws SQLTimeoutException
      */
-
     public void validateDuplicateForeignKeys() throws SQLException {
         int expectedRowCount = 1;
         int rowCount = 0;
@@ -309,4 +308,3 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
         }
     }
 }
-
