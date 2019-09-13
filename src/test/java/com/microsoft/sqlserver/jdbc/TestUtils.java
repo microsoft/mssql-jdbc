@@ -818,18 +818,6 @@ public final class TestUtils {
     }
 
     /**
-     * Get the server name from the url
-     *
-     * @param url
-     *        url string to be parsed
-     * @return server name.
-     */
-    public static String getServerNameFromUrl(String url) {
-        int slash = url.indexOf("//") + 2;
-        return url.substring(slash, url.indexOf(';', slash));
-    }
-
-    /**
      * Adds or updates the value of the given connection property in the connection string by overriding property.
      * 
      * @param connectionString
