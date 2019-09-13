@@ -296,7 +296,6 @@ public class FedAuthWithAE extends AbstractTest {
     }
 
     private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_JKS() throws SQLException {
-        String secretstrJks = "changeit";
         return new SQLServerColumnEncryptionJavaKeyStoreProvider(jksPaths[0], secretstrJks.toCharArray());
     }
 

@@ -70,6 +70,7 @@ public abstract class AbstractTest {
     public static String accessToken = null;
     public static String hostNameInCertificate = "*.database.windows.net";
     public static long secondsBeforeExpiration = -1;
+    public static String secretstrJks = "";
 
     public static String[] jksPaths = null;
     public static String[] jksPathsLinux = null;
