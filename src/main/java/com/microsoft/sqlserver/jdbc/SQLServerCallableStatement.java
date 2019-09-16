@@ -1288,7 +1288,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     insensitiveParameterNames = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
                     int columnIndex = 0;
                     while (rs.next()) {
-                        String p = rs.getString(4);
+                        String p = rs.getString(4).trim();
                         parameterNames.put(p, columnIndex);
                         insensitiveParameterNames.put(p, columnIndex++);
                     }
