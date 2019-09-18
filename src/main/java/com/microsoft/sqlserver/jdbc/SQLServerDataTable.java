@@ -13,8 +13,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -30,7 +28,7 @@ public final class SQLServerDataTable {
     int columnCount = 0;
     Map<Integer, SQLServerDataColumn> columnMetadata = null;
     Set<String> columnNames = null;
-    Map<Integer, List<Object>> rows = null;
+    Map<Integer, Object[]> rows = null;
     private String tvpName = null;
 
     /**
@@ -63,7 +61,7 @@ public final class SQLServerDataTable {
      * 
      * @return an iterator on the rows of the data table.
      */
-    public synchronized Iterator<Entry<Integer, List<Object>>> getIterator() {
+    public synchronized Iterator<Entry<Integer, Object[]>> getIterator() {
         if ((null != rows) && (null != rows.entrySet())) {
             return rows.entrySet().iterator();
         }
@@ -120,7 +118,7 @@ public final class SQLServerDataTable {
             }
 
             Iterator<Entry<Integer, SQLServerDataColumn>> columnsIterator = columnMetadata.entrySet().iterator();
-            List<Object> rowValues = new LinkedList<>();
+            Object[] rowValues = new Object[columnCount];
             int currentColumn = 0;
             while (columnsIterator.hasNext()) {
                 Object val = null;
@@ -155,10 +153,9 @@ public final class SQLServerDataTable {
      * @throws SQLServerException
      *         when an error occurs
      */
-    private void internalAddrow(JDBCType jdbcType, Object val, List<Object> rowValues,
+    private void internalAddrow(JDBCType jdbcType, Object val, Object[] rowValues,
             Map.Entry<Integer, SQLServerDataColumn> pair) throws SQLServerException {
         int key = pair.getKey();
-        rowValues.add(key, val);
 
         if (null != val) {
             SQLServerDataColumn currentColumnMetadata = pair.getValue();
@@ -166,19 +163,19 @@ public final class SQLServerDataTable {
 
             switch (jdbcType) {
                 case BIGINT:
-                    rowValues.set(key, (val instanceof Long) ? val : Long.parseLong(val.toString()));
+                    rowValues[key] = (val instanceof Long) ? val : Long.parseLong(val.toString());
                     break;
 
                 case BIT:
                     if (val instanceof Boolean) {
-                        rowValues.set(key, val);
+                        rowValues[key] = val;
                     } else {
                         String valString = val.toString();
 
                         if ("0".equals(valString) || valString.equalsIgnoreCase(Boolean.FALSE.toString())) {
-                            rowValues.set(key, Boolean.FALSE);
+                            rowValues[key] = Boolean.FALSE;
                         } else if ("1".equals(valString) || valString.equalsIgnoreCase(Boolean.TRUE.toString())) {
-                            rowValues.set(key, Boolean.TRUE);
+                            rowValues[key] = Boolean.TRUE;
                         } else {
                             MessageFormat form = new MessageFormat(
                                     SQLServerException.getErrString("R_TVPInvalidColumnValue"));
@@ -189,12 +186,12 @@ public final class SQLServerDataTable {
                     break;
 
                 case INTEGER:
-                    rowValues.set(key, (val instanceof Integer) ? val : Integer.parseInt(val.toString()));
+                    rowValues[key] = (val instanceof Integer) ? val : Integer.parseInt(val.toString());
                     break;
 
                 case SMALLINT:
                 case TINYINT:
-                    rowValues.set(key, (val instanceof Short) ? val : Short.parseShort(val.toString()));
+                    rowValues[key] = (val instanceof Short) ? val : Short.parseShort(val.toString());
                     break;
 
                 case DECIMAL:
@@ -226,16 +223,16 @@ public final class SQLServerDataTable {
                                 + currentColumnMetadata.numberOfDigitsIntegerPart;
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
-                    rowValues.set(key, bd);
+                    rowValues[key] = bd;
                     break;
 
                 case DOUBLE:
-                    rowValues.set(key, (val instanceof Double) ? val : Double.parseDouble(val.toString()));
+                    rowValues[key] = (val instanceof Double) ? val : Double.parseDouble(val.toString());
                     break;
 
                 case FLOAT:
                 case REAL:
-                    rowValues.set(key, (val instanceof Float) ? val : Float.parseFloat(val.toString()));
+                    rowValues[key] = (val instanceof Float) ? val : Float.parseFloat(val.toString());
                     break;
 
                 case TIMESTAMP_WITH_TIMEZONE:
@@ -253,9 +250,9 @@ public final class SQLServerDataTable {
                     // java.sql.Date, java.sql.Time and java.sql.Timestamp are subclass of java.util.Date
                     if (val instanceof java.util.Date || val instanceof microsoft.sql.DateTimeOffset
                             || val instanceof OffsetDateTime || val instanceof OffsetTime)
-                        rowValues.set(key, val.toString());
+                        rowValues[key] = val.toString();
                     else
-                        rowValues.set(key, val);
+                        rowValues[key] = val;
                     break;
 
                 case BINARY:
@@ -267,7 +264,7 @@ public final class SQLServerDataTable {
                         currentColumnMetadata.precision = nValueLen;
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
-                    rowValues.set(key, val);
+                    rowValues[key] = val;
                     break;
 
                 case CHAR:
@@ -285,7 +282,7 @@ public final class SQLServerDataTable {
                         currentColumnMetadata.precision = nValueLen;
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
-                    rowValues.set(key, val);
+                    rowValues[key] = val;
                     break;
 
                 case SQL_VARIANT:
@@ -301,6 +298,7 @@ public final class SQLServerDataTable {
                     throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
             }
         } else {
+            rowValues[key] = null;
             if (jdbcType == JDBCType.SQL_VARIANT) {
                 throw new SQLServerException(SQLServerException.getErrString("R_invalidValueForTVPWithSQLVariant"),
                         null);
@@ -335,40 +333,5 @@ public final class SQLServerDataTable {
      */
     public void setTvpName(String tvpName) {
         this.tvpName = tvpName;
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 31 * hash + rowCount;
-        hash = 31 * hash + columnCount;
-        hash = 31 * hash + (null != columnMetadata ? columnMetadata.hashCode() : 0);
-        hash = 31 * hash + (null != columnNames ? columnNames.hashCode() : 0);
-        hash = 31 * hash + (null != rows ? rows.hashCode() : 0);
-        hash = 31 * hash + (null != tvpName ? tvpName.hashCode() : 0);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object object) {
-        if (this == object) {
-            return true;
-        }
-
-        if (null != object && object.getClass() == SQLServerDataTable.class) {
-            SQLServerDataTable aSQLServerDataTable = (SQLServerDataTable) object;
-            if (hashCode() == aSQLServerDataTable.hashCode()) {
-
-                // Compare objects to avoid collision
-                boolean equalColumnMetadata = columnMetadata.equals(aSQLServerDataTable.columnMetadata);
-                boolean equalColumnNames = columnNames.equals(aSQLServerDataTable.columnNames);
-                boolean equalRowData = rows.equals(aSQLServerDataTable.rows);
-
-                return (rowCount == aSQLServerDataTable.rowCount && columnCount == aSQLServerDataTable.columnCount
-                        && tvpName == aSQLServerDataTable.tvpName && equalColumnMetadata && equalColumnNames
-                        && equalRowData);
-            }
-        }
-        return false;
     }
 }

@@ -9,11 +9,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -52,7 +50,7 @@ class TVP {
     ResultSet sourceResultSet = null;
     SQLServerDataTable sourceDataTable = null;
     Map<Integer, SQLServerMetaData> columnMetadata = null;
-    Iterator<Entry<Integer, List<Object>>> sourceDataTableRowIterator = null;
+    Iterator<Entry<Integer, Object[]>> sourceDataTableRowIterator = null;
     ISQLServerDataRecord sourceRecord = null;
     TVPType tvpType = null;
     Set<String> columnNames = null;
@@ -111,10 +109,10 @@ class TVP {
         return (TVPType.Null == tvpType);
     }
 
-    List<Object> getRowData() throws SQLServerException {
+    Object[] getRowData() throws SQLServerException {
         if (TVPType.ResultSet == tvpType) {
             int colCount = columnMetadata.size();
-            List<Object> rowData = new ArrayList<>();
+            Object[] rowData = new Object[colCount];
             for (int i = 0; i < colCount; i++) {
                 try {
                     /*
@@ -122,9 +120,9 @@ class TVP {
                      * later on. If the value is a time object, the millisecond would be removed.
                      */
                     if (java.sql.Types.TIME == sourceResultSet.getMetaData().getColumnType(i + 1)) {
-                        rowData.add(i,sourceResultSet.getTimestamp(i + 1));
+                        rowData[i] = sourceResultSet.getTimestamp(i + 1);
                     } else {
-                        rowData.add(i,sourceResultSet.getObject(i + 1));
+                        rowData[i] = sourceResultSet.getObject(i + 1);
                     }
                 } catch (SQLException e) {
                     throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
@@ -132,7 +130,7 @@ class TVP {
             }
             return rowData;
         } else if (TVPType.SQLServerDataTable == tvpType) {
-            Map.Entry<Integer, List<Object>> rowPair = sourceDataTableRowIterator.next();
+            Map.Entry<Integer, Object[]> rowPair = sourceDataTableRowIterator.next();
             return rowPair.getValue();
         } else
             return sourceRecord.getRowData();
