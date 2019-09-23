@@ -482,11 +482,10 @@ public class SQLServerDataSource
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                 SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
     }
-    
+
     @Override
     public void setUseFmtOnly(boolean useFmtOnly) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString(),
-                useFmtOnly);
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString(), useFmtOnly);
     }
 
     @Override
@@ -494,7 +493,7 @@ public class SQLServerDataSource
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString(),
                 SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue());
     }
-    
+
     /**
      * Sets whether string parameters are sent to the server in UNICODE format.
      * 
