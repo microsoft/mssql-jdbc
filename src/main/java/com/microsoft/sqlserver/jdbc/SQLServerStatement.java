@@ -843,25 +843,6 @@ public class SQLServerStatement implements ISQLServerStatement {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         
-        if (this.connection.getServerColumnEncryptionVersion().value() >= ColumnEncryptionVersion.AE_v2.value()) {
-            try (SQLServerCallableStatement c = (SQLServerCallableStatement) this.connection.prepareCall("exec sp_describe_parameter_encryption ?,?,?")) {
-                c.setNString(1, sql);
-                c.setNString(2, "''");
-                c.setBytes(3, this.connection.getAttestationPublicKey());
-                try (ResultSet rs = c.executeQueryInternal()) {
-                    
-                }
-            } catch (SQLException e) {
-                if (e instanceof SQLServerException) {
-                    throw (SQLServerException) e;
-                } else {
-                    throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
-                            0, e);
-                }
-            }
-        }
-        
-        
         
         
         if (isCursorable(executeMethod) && isSelect(sql)) {

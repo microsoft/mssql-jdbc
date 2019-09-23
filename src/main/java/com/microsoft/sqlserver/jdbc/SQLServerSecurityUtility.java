@@ -191,43 +191,46 @@ class SQLServerSecurityUtility {
 
         return plainText;
     }
-    
-    static void verifyCMKSignature(String keyStoreName, String keyPath, String serverName, boolean isEnclaveEnabled, byte[] CMKSignature) throws SQLServerException {
-        
+
+    /*
+     * Verify the signature for the CMK
+     */
+    static void verifyColumnMasterKeyMetadata(SQLServerConnection connection, String keyStoreName, String keyPath,
+            String serverName, boolean isEnclaveEnabled, byte[] CMKSignature) throws SQLServerException {
+
         // check trusted key paths
         Boolean[] hasEntry = new Boolean[1];
         List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
                 hasEntry);
         if (hasEntry[0]) {
-            if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size())
-                    || (!trustedKeyPaths.contains(keyPath))) {
+            if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size()) || (!trustedKeyPaths.contains(keyPath))) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
                 Object[] msgArgs = {keyPath, serverName};
                 throw new SQLServerException(form.format(msgArgs), null);
             }
         }
-        
-        SQLServerColumnEncryptionKeyStoreProvider provider = SQLServerConnection
-                    .getGlobalSystemColumnEncryptionKeyStoreProvider(keyStoreName);
 
-        // There is no global system provider of this name, check for the global custom providers.
+        // Check for the connection provider first.
+        SQLServerColumnEncryptionKeyStoreProvider provider = connection
+                .getSystemColumnEncryptionKeyStoreProvider(keyStoreName);
+
+        // There is no connection provider of this name, check for the global system providers.
         if (null == provider) {
-            provider = SQLServerConnection
-                    .getGlobalCustomColumnEncryptionKeyStoreProvider(keyStoreName);
+            provider = SQLServerConnection.getGlobalCustomColumnEncryptionKeyStoreProvider(keyStoreName);
         }
 
         // No provider was found of this name.
         if (null == provider) {
+            String systemProviders = connection.getAllSystemColumnEncryptionKeyStoreProviders();
+            String customProviders = SQLServerConnection.getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders();
             MessageFormat form = new MessageFormat(
-                    SQLServerException.getErrString("R_CustomKeyStoreProviderMapNull"));
-            Object[] msgArgs = {keyStoreName};
+                    SQLServerException.getErrString("R_UnrecognizedKeyStoreProviderName"));
+            Object[] msgArgs = {keyStoreName, systemProviders, customProviders};
             throw new SQLServerException(form.format(msgArgs), null);
         }
-        
-        if (true == isEnclaveEnabled) {
-            if (!provider.verifyCMKMetadata(keyPath, isEnclaveEnabled, CMKSignature)) {
-                throw new SQLServerException(SQLServerException.getErrString("R_InvalidSignatureComputed"), null);
-            }
+
+        if (!provider.verifyColumnMasterKeyMetadata(keyPath, isEnclaveEnabled, CMKSignature)) {
+            throw new SQLServerException(SQLServerException.getErrString("R_VerifySignature"), null);
         }
     }
 }

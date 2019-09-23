@@ -160,4 +160,8 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
     static native byte[] DecryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] encryptedColumnEncryptionKey) throws DLLException;
+    
+    static native boolean VerifyColumnMasterKeyMetadata (String keyPath, boolean allowEnclaveComputations, byte[] signature) throws DLLException;
+
+
 }

@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 
@@ -55,6 +54,10 @@ class VSMAtttestationRequest extends BaseAttestationRequest {
     byte[] getBytes() throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         os.write(enclaveType);
+        byte len[] = new byte[] {0x0, 0x0};
+
+        os.write(len);
+
         os.write(enclaveChallenge);
         os.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(key.getPublic().getEncoded().length).array());
         os.write(key.getPublic().getEncoded());

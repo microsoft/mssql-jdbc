@@ -633,12 +633,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String keyStoreSecret = null;
     String keyStoreLocation = null;
 
-    private boolean serverSupportsColumnEncryption = false;
+    private ColumnEncryptionVersion serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_NotSupported;
+
+    private String enclaveType = null;
 
     boolean getServerSupportsColumnEncryption() {
-        return serverSupportsColumnEncryption;
+        return (serverColumnEncryptionVersion.value() > ColumnEncryptionVersion.AE_NotSupported.value());
     }
 
+     ColumnEncryptionVersion getServerColumnEncryptionVersion() {
+        return serverColumnEncryptionVersion;
+    }
+    
     private boolean serverSupportsDataClassification = false;
 
     boolean getServerSupportsDataClassification() {
@@ -654,7 +660,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalCustomColumnEncryptionKeyStoreProviders = null;
     // This is a per-connection store provider. It can be JKS or AKV.
-    Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<>();
+    static Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<>();
 
     /**
      * Registers key store providers in the globalCustomColumnEncryptionKeyStoreProviders.
@@ -1424,7 +1430,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
             columnEncryptionSetting = ColumnEncryptionSetting.valueOfString(sPropValue).toString();
 
-            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATIONURL.toString();
+            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
                 enclaveAttestationUrl = sPropValue;
@@ -4565,13 +4571,33 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                byte aeVersion = data[0];
-                if (0 == aeVersion || aeVersion > TDS.COLUMNENCRYPTION_VERSION2) {
+                byte supportedAeVersion = data[0];
+                if (0 == supportedAeVersion || supportedAeVersion > TDS.COLUMNENCRYPTION_VERSION2) {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                serverSupportsColumnEncryption = true;
+                serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v1;
+                
+                if (null != enclaveAttestationUrl) {
+                    if (supportedAeVersion < TDS.COLUMNENCRYPTION_VERSION2) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_enclaveNotSupported"), null);
+                    } else {
+                        serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v2;
+                        enclaveType = new String(data, 2, data.length - 2, UTF_16LE);
+                    }
+
+                    if (null == enclaveType) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_enclaveTypeNotReturned"), null);
+                    }
+
+                    if (!EnclaveType.isValidEnclaveType(enclaveType)) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_enclaveTypeInvalid"));
+                        Object[] msgArgs = {enclaveType};
+                        throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                    }
+                }
                 break;
+
             }
             case TDS.TDS_FEATURE_EXT_DATACLASSIFICATION: {
                 if (connectionlogger.isLoggable(Level.FINER)) {
