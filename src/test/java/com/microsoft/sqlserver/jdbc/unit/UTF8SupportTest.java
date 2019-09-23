@@ -115,9 +115,8 @@ public class UTF8SupportTest extends AbstractTest {
 
     @AfterAll
     public static void cleanUp() throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropDatabaseIfExists(databaseName, stmt);
-        }
+        connection.close();
+        TestUtils.dropDatabaseIfExists(databaseName, connectionString);
     }
 
     private static void createDatabaseWithUTF8Collation() throws SQLException {

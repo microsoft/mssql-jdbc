@@ -53,6 +53,7 @@ public class DBMetadataTest extends AbstractTest {
                     arguments.getString("COLUMN_NAME");
                     arguments.getString("DATA_TYPE"); // call this function to make sure it does not crash
                 }
+                arguments.getStatement().close();
             }
             stmt.execute(sqlDropFunction);
         }

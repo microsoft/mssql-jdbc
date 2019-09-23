@@ -9,6 +9,7 @@ import java.io.Serializable;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
@@ -16,7 +17,9 @@ import java.sql.SQLTimeoutException;
 import java.text.MessageFormat;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -372,7 +375,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @return the old catalog
      */
     private String switchCatalogs(String catalog) throws SQLServerException {
-        if (catalog == null)
+        if (null == catalog)
             return null;
         String sCurr = null;
         sCurr = connection.getCatalog().trim();
@@ -380,7 +383,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (sCurr.equals(sNew))
             return null;
         connection.setCatalog(sNew);
-        if (sCurr == null || sCurr.length() == 0)
+        if (null == sCurr || sCurr.length() == 0)
             return null;
         return sCurr;
     }
@@ -477,7 +480,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return "database";
     }
 
-    private static final String[] getColumnPrivilegesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
+    private static final String[] getColumnPrivilegesColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
             /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME, /* 5 */ GRANTOR, /* 6 */ GRANTEE, /* 7 */ PRIVILEGE,
             /* 8 */ IS_GRANTABLE};
 
@@ -504,7 +507,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 getColumnPrivilegesColumnNames);
     }
 
-    private static final String[] getTablesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME,
+    private static final String[] getTablesColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME,
             /* 4 */ TABLE_TYPE, /* 5 */ REMARKS};
 
     @Override
@@ -528,7 +531,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         arguments[1] = schema;
         arguments[2] = catalog;
 
-        if (types != null) {
+        if (null != types) {
             final StringBuilder tableTypes = new StringBuilder("'");
             for (int i = 0; i < types.length; i++) {
                 if (i > 0)
@@ -602,77 +605,179 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return outID.toString();
     }
 
-    private static final String[] getColumnsColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME,
-            /* 4 */ COLUMN_NAME, /* 5 */ DATA_TYPE, /* 6 */ TYPE_NAME, /* 7 */ COLUMN_SIZE, /* 8 */ BUFFER_LENGTH,
-            /* 9 */ DECIMAL_DIGITS, /* 10 */ NUM_PREC_RADIX, /* 11 */ NULLABLE, /* 12 */ REMARKS, /* 13 */ COLUMN_DEF,
-            /* 14 */ SQL_DATA_TYPE, /* 15 */ SQL_DATETIME_SUB, /* 16 */ CHAR_OCTET_LENGTH, /* 17 */ ORDINAL_POSITION,
-            /* 18 */ IS_NULLABLE};
-    // SQL10 columns not exahustive we only need to set until the one we want to
-    // change
-    // in this case we want to change SS_IS_IDENTITY 22nd column to
-    // IS_AUTOINCREMENT
-    // to be inline with JDBC spec
-    private static final String[] getColumnsColumnNamesKatmai = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
-            /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME, /* 5 */ DATA_TYPE, /* 6 */ TYPE_NAME, /* 7 */ COLUMN_SIZE,
-            /* 8 */ BUFFER_LENGTH, /* 9 */ DECIMAL_DIGITS, /* 10 */ NUM_PREC_RADIX, /* 11 */ NULLABLE, /* 12 */ REMARKS,
-            /* 13 */ COLUMN_DEF, /* 14 */ SQL_DATA_TYPE, /* 15 */ SQL_DATETIME_SUB, /* 16 */ CHAR_OCTET_LENGTH,
-            /* 17 */ ORDINAL_POSITION, /* 18 */ IS_NULLABLE, /* 20 */ SS_IS_SPARSE, /* 20 */ SS_IS_COLUMN_SET,
-            /* 21 */ IS_GENERATEDCOLUMN, /* 22 */ IS_AUTOINCREMENT};
-
     @Override
-    public java.sql.ResultSet getColumns(String catalog, String schema, String table,
-            String col) throws SQLServerException, SQLTimeoutException {
+    public java.sql.ResultSet getColumns(String catalog, String schema, String table, String col) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
+        String originalCatalog = switchCatalogs(catalog);
+        if (!this.connection.isAzureDW()) {
+            String spColumnsSql = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
+                    + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
+                    + "LENGTH INT, SCALE SMALLINT, RADIX SMALLINT, NULLABLE SMALLINT, REMARKS VARCHAR(254), COLUMN_DEF NVARCHAR(4000),"
+                    + "SQL_DATA_TYPE SMALLINT, SQL_DATETIME_SUB SMALLINT, CHAR_OCTET_LENGTH INT, ORDINAL_POSITION INT,"
+                    + "IS_NULLABLE VARCHAR(254), SS_IS_SPARSE SMALLINT, SS_IS_COLUMN_SET SMALLINT, SS_IS_COMPUTED SMALLINT,"
+                    + "SS_IS_IDENTITY SMALLINT, SS_UDT_CATALOG_NAME NVARCHAR(128), SS_UDT_SCHEMA_NAME NVARCHAR(128),"
+                    + "SS_UDT_ASSEMBLY_TYPE_NAME NVARCHAR(max), SS_XML_SCHEMACOLLECTION_CATALOG_NAME NVARCHAR(128),"
+                    + "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_NAME NVARCHAR(128),"
+                    + "SS_DATA_TYPE TINYINT);"
 
-        // sp_columns supports wild carding schema table and columns
-        String column = EscapeIDName(col);
-        table = EscapeIDName(table);
-        schema = EscapeIDName(schema);
+                    + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC sp_columns_100 ?,?,?,?,?,?;"
 
-        /*
-         * sp_columns [ @table_name = ] object [ , [ @table_owner = ] owner ] [ , [ @table_qualifier = ] qualifier ] [ ,
-         * [ @column_name = ] column ] [ , [ @ODBCVer = ] ODBCVer ]
-         */
-        String[] arguments;
-        if (connection.isKatmaiOrLater())
-            arguments = new String[6];
-        else
-            arguments = new String[5];
-        arguments[0] = table;
-        arguments[1] = schema;
-        arguments[2] = catalog;
-        arguments[3] = column;
-        if (connection.isKatmaiOrLater()) {
-            arguments[4] = "2"; // give information about everything including
-                                // sparse columns
-            arguments[5] = "3"; // odbc version
-        } else
-            arguments[4] = "3"; // odbc version
-        SQLServerResultSet rs;
-        if (connection.isKatmaiOrLater())
-            rs = getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_COLUMNS, arguments,
-                    getColumnsColumnNamesKatmai);
-        else
-            rs = getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_COLUMNS, arguments,
-                    getColumnsColumnNames);
-        // Hook in a filter on the DATA_TYPE column of the result set we're
-        // going to return that converts the ODBC values from sp_columns
-        // into JDBC values.
-        rs.getColumn(5).setFilter(new DataTypeFilter());
+                    + "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, DATA_TYPE,"
+                    + "TYPE_NAME, PRECISION AS COLUMN_SIZE, LENGTH AS BUFFER_LENGTH, SCALE AS DECIMAL_DIGITS, RADIX AS NUM_PREC_RADIX,"
+                    + "NULLABLE, REMARKS, COLUMN_DEF, SQL_DATA_TYPE, SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE,"
+                    + "NULL AS SCOPE_CATALOG, NULL AS SCOPE_SCHEMA, NULL AS SCOPE_TABLE, SS_DATA_TYPE AS SOURCE_DATA_TYPE,"
+                    + "CASE SS_IS_IDENTITY WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_AUTOINCREMENT,"
+                    + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN, "
+                    + "SS_IS_SPARSE, SS_IS_COLUMN_SET, SS_UDT_CATALOG_NAME, SS_UDT_SCHEMA_NAME, SS_UDT_ASSEMBLY_TYPE_NAME,"
+                    + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
+                    + "FROM @mssqljdbc_temp_sp_columns_result;";
+            SQLServerResultSet rs = null;
+            PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
+            pstmt.closeOnCompletion();
+            try {
+                pstmt.setString(1, (null != table && !table.isEmpty()) ? table : "%");
+                pstmt.setString(2, (null != schema && !schema.isEmpty()) ? schema : "%");
+                pstmt.setString(3, (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
+                pstmt.setString(4, (null != col && !col.isEmpty()) ? col : "%");
+                pstmt.setInt(5, 2);// show sparse columns
+                pstmt.setInt(6, 3);// odbc version
 
-        if (connection.isKatmaiOrLater()) {
-            rs.getColumn(22).setFilter(new IntColumnIdentityFilter());
-            rs.getColumn(7).setFilter(new ZeroFixupFilter());
-            rs.getColumn(8).setFilter(new ZeroFixupFilter());
-            rs.getColumn(16).setFilter(new ZeroFixupFilter());
+                rs = (SQLServerResultSet) pstmt.executeQuery();
+                rs.getColumn(5).setFilter(new DataTypeFilter());
+                rs.getColumn(7).setFilter(new ZeroFixupFilter());
+                rs.getColumn(8).setFilter(new ZeroFixupFilter());
+                rs.getColumn(16).setFilter(new ZeroFixupFilter());
+            } catch (SQLException e) {
+                if (null != pstmt) {
+                    try {
+                        pstmt.close();
+                    } catch (SQLServerException ignore) {
+                        if (loggerExternal.isLoggable(Level.FINER)) {
+                            loggerExternal.finer(
+                                    "getColumns() threw an exception when attempting to close PreparedStatement");
+                        }
+                    }
+                }
+                throw e;
+            } finally {
+                if (null != originalCatalog) {
+                    connection.setCatalog(originalCatalog);
+                }
+            }
+
+            return rs;
+        } else {
+            /**
+             * Can't actually switchCatalogs on Azure DW. This is here to keep consistency in behavior with SQL Azure DB
+             * when user provides a different catalog than the one they're currently connected to. Will throw exception
+             * when it's different and do nothing if it's the same/null.
+             */
+            try (PreparedStatement storedProcPstmt = this.connection
+                    .prepareStatement("EXEC sp_columns_100 ?,?,?,?,?,?;")) {
+                storedProcPstmt.setString(1, (null != table && !table.isEmpty()) ? table : "%");
+                storedProcPstmt.setString(2, (null != schema && !schema.isEmpty()) ? schema : "%");
+                storedProcPstmt.setString(3,
+                        (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
+                storedProcPstmt.setString(4, (null != col && !col.isEmpty()) ? col : "%");
+                storedProcPstmt.setInt(5, 2);// show sparse columns
+                storedProcPstmt.setInt(6, 3);// odbc version
+
+                SQLServerResultSet userRs = null;
+                PreparedStatement resultPstmt = null;
+                try (ResultSet rs = storedProcPstmt.executeQuery()) {
+                    rs.next();
+                    // Use LinkedHashMap to force retrieve elements in order they were inserted
+                    Map<Integer, String> columns = new LinkedHashMap<>();
+                    columns.put(1, "TABLE_CAT");
+                    columns.put(2, "TABLE_SCHEM");
+                    columns.put(3, "TABLE_NAME");
+                    columns.put(4, "COLUMN_NAME");
+                    columns.put(5, "DATA_TYPE");
+                    columns.put(6, "TYPE_NAME");
+                    columns.put(7, "COLUMN_SIZE");
+                    columns.put(8, "BUFFER_LENGTH");
+                    columns.put(9, "DECIMAL_DIGITS");
+                    columns.put(10, "NUM_PREC_RADIX");
+                    columns.put(11, "NULLABLE");
+                    columns.put(12, "REMARKS");
+                    columns.put(13, "COLUMN_DEF");
+                    columns.put(14, "SQL_DATA_TYPE");
+                    columns.put(15, "SQL_DATETIME_SUB");
+                    columns.put(16, "CHAR_OCTET_LENGTH");
+                    columns.put(17, "ORDINAL_POSITION");
+                    columns.put(18, "IS_NULLABLE");
+                    /*
+                     * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
+                     * be queried as 'NULL'
+                     */
+                    columns.put(-1, "SCOPE_CATALOG");
+                    columns.put(-2, "SCOPE_SCHEMA");
+                    columns.put(-3, "SCOPE_TABLE");
+                    columns.put(29, "SOURCE_DATA_TYPE");
+                    columns.put(22, "IS_AUTOINCREMENT");
+                    columns.put(21, "IS_GENERATEDCOLUMN");
+                    columns.put(19, "SS_IS_SPARSE");
+                    columns.put(20, "SS_IS_COLUMN_SET");
+                    columns.put(23, "SS_UDT_CATALOG_NAME");
+                    columns.put(24, "SS_UDT_SCHEMA_NAME");
+                    columns.put(25, "SS_UDT_ASSEMBLY_TYPE_NAME");
+                    columns.put(26, "SS_XML_SCHEMACOLLECTION_CATALOG_NAME");
+                    columns.put(27, "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME");
+                    columns.put(28, "SS_XML_SCHEMACOLLECTION_NAME");
+
+                    resultPstmt = (SQLServerPreparedStatement) this.connection
+                            .prepareStatement(generateAzureDWSelect(rs, columns));
+                    userRs = (SQLServerResultSet) resultPstmt.executeQuery();
+                    resultPstmt.closeOnCompletion();
+                    userRs.getColumn(5).setFilter(new DataTypeFilter());
+                    userRs.getColumn(7).setFilter(new ZeroFixupFilter());
+                    userRs.getColumn(8).setFilter(new ZeroFixupFilter());
+                    userRs.getColumn(16).setFilter(new ZeroFixupFilter());
+                    userRs.getColumn(23).setFilter(new IntColumnIdentityFilter());
+                    userRs.getColumn(24).setFilter(new IntColumnIdentityFilter());
+                } catch (SQLException e) {
+                    if (null != resultPstmt) {
+                        try {
+                            resultPstmt.close();
+                        } catch (SQLServerException ignore) {
+                            if (loggerExternal.isLoggable(Level.FINER)) {
+                                loggerExternal.finer(
+                                        "getColumns() threw an exception when attempting to close PreparedStatement");
+                            }
+                        }
+                    }
+                    throw e;
+                }
+                return userRs;
+            }
         }
-        return rs;
     }
 
-    private static final String[] getFunctionsColumnNames = {/* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
+    private String generateAzureDWSelect(ResultSet rs, Map<Integer, String> columns) throws SQLException {
+        StringBuilder sb = new StringBuilder("SELECT ");
+        for (Entry<Integer, String> p : columns.entrySet()) {
+            if (p.getKey() < 0) {
+                sb.append("NULL");
+            } else {
+                Object o = rs.getObject(p.getKey());
+                if (null == o) {
+                    sb.append("NULL");
+                } else if (o instanceof Number) {
+                    sb.append(o.toString());
+                } else {
+                    sb.append("'").append(Util.escapeSingleQuotes(o.toString())).append("'");
+                }
+            }
+            sb.append(" AS ").append(p.getValue()).append(",");
+        }
+        sb.setLength(sb.length() - 1);
+        return sb.toString();
+    }
+
+    private static final String[] getFunctionsColumnNames = { /* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
             /* 3 */ FUNCTION_NAME, /* 4 */ NUM_INPUT_PARAMS, /* 5 */ NUM_OUTPUT_PARAMS, /* 6 */ NUM_RESULT_SETS,
             /* 7 */ REMARKS, /* 8 */ FUNCTION_TYPE};
 
@@ -686,7 +791,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          * 'qualifier' ] [ , [@fUsePattern = ] 'fUsePattern' ]
          */ // use default ie use pattern matching.
         // catalog cannot be empty in sql server
-        if (catalog != null && catalog.length() == 0) {
+        if (null != catalog && catalog.length() == 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
             Object[] msgArgs = {"catalog"};
             SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
@@ -700,7 +805,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 getFunctionsColumnNames);
     }
 
-    private static final String[] getFunctionsColumnsColumnNames = {/* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
+    private static final String[] getFunctionsColumnsColumnNames = { /* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
             /* 3 */ FUNCTION_NAME, /* 4 */ COLUMN_NAME, /* 5 */ COLUMN_TYPE, /* 6 */ DATA_TYPE, /* 7 */ TYPE_NAME,
             /* 8 */ PRECISION, /* 9 */ LENGTH, /* 10 */ SCALE, /* 11 */ RADIX, /* 12 */ NULLABLE, /* 13 */ REMARKS,
             /* 14 */ COLUMN_DEF, /* 15 */ SQL_DATA_TYPE, /* 16 */ SQL_DATETIME_SUB, /* 17 */ CHAR_OCTET_LENGTH,
@@ -716,7 +821,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          */
 
         // catalog cannot be empty in sql server
-        if (catalog != null && catalog.length() == 0) {
+        if (null != catalog && catalog.length() == 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
             Object[] msgArgs = {"catalog"};
             SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
@@ -758,7 +863,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 4 */ " cast(NULL as char(1)) as DESCRIPTION " + " where 0 = 1");
     }
 
-    private static final String[] getBestRowIdentifierColumnNames = {/* 1 */ SCOPE, /* 2 */ COLUMN_NAME,
+    private static final String[] getBestRowIdentifierColumnNames = { /* 1 */ SCOPE, /* 2 */ COLUMN_NAME,
             /* 3 */ DATA_TYPE, /* 4 */ TYPE_NAME, /* 5 */ COLUMN_SIZE, /* 6 */ BUFFER_LENGTH, /* 7 */ DECIMAL_DIGITS,
             /* 8 */ PSEUDO_COLUMN};
 
@@ -898,35 +1003,37 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 + "t.PKTABLE_OWNER AS PKTABLE_SCHEM, " + "t.PKTABLE_NAME, " + "t.PKCOLUMN_NAME, "
                 + "t.FKTABLE_QUALIFIER AS FKTABLE_CAT, " + "t.FKTABLE_OWNER AS FKTABLE_SCHEM, " + "t.FKTABLE_NAME, "
                 + "t.FKCOLUMN_NAME, " + "t.KEY_SEQ, " + "CASE s.update_referential_action " + "WHEN 1 THEN 0 " +
-                // cascade - note that sp_fkey and sys.foreign_keys have flipped values for cascade and no action
+                // cascade - note that sp_fkey and sys.foreign_keys have flipped values for
+                // cascade and no action
                 "WHEN 0 THEN 3 " + // no action
                 "WHEN 2 THEN 2 " + // set null
                 "WHEN 3 THEN 4 " + // set default
                 "END as UPDATE_RULE, " + "CASE s.delete_referential_action " + "WHEN 1 THEN 0 " + "WHEN 0 THEN 3 "
                 + "WHEN 2 THEN 2 " + "WHEN 3 THEN 4 " + "END as DELETE_RULE, " + "t.FK_NAME, " + "t.PK_NAME, "
                 + "t.DEFERRABILITY " + "FROM " + tempTableName + " t "
-                + "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name collate database_default;";
+                + "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name COLLATE database_default AND schema_id(t.FKTABLE_OWNER) = s.schema_id";
         SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(sql);
         cstmt.closeOnCompletion();
         for (int i = 0; i < 6; i++) {
             cstmt.setString(i + 1, procParams[i]);
         }
         String currentDB = null;
-        if (procParams[2] != null && procParams[2] != "") {// pktable_qualifier
+        if (null != procParams[2] && procParams[2] != "") {// pktable_qualifier
             currentDB = switchCatalogs(procParams[2]);
-        } else if (procParams[5] != null && procParams[5] != "") {// fktable_qualifier
+        } else if (null != procParams[5] && procParams[5] != "") {// fktable_qualifier
             currentDB = switchCatalogs(procParams[5]);
         }
         ResultSet rs = cstmt.executeQuery();
-        if (currentDB != null) {
+        if (null != currentDB) {
             switchCatalogs(currentDB);
         }
         return rs;
     }
 
-    private static final String[] getIndexInfoColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM, /* 3 */ TABLE_NAME,
-            /* 4 */ NON_UNIQUE, /* 5 */ INDEX_QUALIFIER, /* 6 */ INDEX_NAME, /* 7 */ TYPE, /* 8 */ ORDINAL_POSITION,
-            /* 9 */ COLUMN_NAME, /* 10 */ ASC_OR_DESC, /* 11 */ CARDINALITY, /* 12 */ PAGES, /* 13 */ FILTER_CONDITION};
+    private static final String[] getIndexInfoColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
+            /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE, /* 5 */ INDEX_QUALIFIER, /* 6 */ INDEX_NAME, /* 7 */ TYPE,
+            /* 8 */ ORDINAL_POSITION, /* 9 */ COLUMN_NAME, /* 10 */ ASC_OR_DESC, /* 11 */ CARDINALITY, /* 12 */ PAGES,
+            /* 13 */ FILTER_CONDITION};
 
     @Override
     public java.sql.ResultSet getIndexInfo(String cat, String schema, String table, boolean unique,
@@ -1105,10 +1212,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public String getNumericFunctions() throws SQLServerException {
         checkClosed();
-        return "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,COT,DEGREES,EXP, FLOOR,LOG,LOG10,MOD,PI,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
+        return "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,COT,DEGREES,EXP,FLOOR,LOG,LOG10,MOD,PI,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
     }
 
-    private static final String[] getPrimaryKeysColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
+    private static final String[] getPrimaryKeysColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
             /* 3 */ TABLE_NAME, /* 4 */ COLUMN_NAME, /* 5 */ KEY_SEQ, /* 6 */ PK_NAME};
 
     @Override
@@ -1128,7 +1235,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_PKEYS, arguments, getPrimaryKeysColumnNames);
     }
 
-    private static final String[] getProcedureColumnsColumnNames = {/* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM,
+    private static final String[] getProcedureColumnsColumnNames = { /* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM,
             /* 3 */ PROCEDURE_NAME, /* 4 */ COLUMN_NAME, /* 5 */ COLUMN_TYPE, /* 6 */ DATA_TYPE, /* 7 */ TYPE_NAME,
             /* 8 */ PRECISION, /* 9 */ LENGTH, /* 10 */ SCALE, /* 11 */ RADIX, /* 12 */ NULLABLE, /* 13 */ REMARKS,
             /* 14 */ COLUMN_DEF, /* 15 */ SQL_DATA_TYPE, /* 16 */ SQL_DATETIME_SUB, /* 17 */ CHAR_OCTET_LENGTH,
@@ -1173,7 +1280,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
-    private static final String[] getProceduresColumnNames = {/* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM,
+    private static final String[] getProceduresColumnNames = { /* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM,
             /* 3 */ PROCEDURE_NAME, /* 4 */ NUM_INPUT_PARAMS, /* 5 */ NUM_OUTPUT_PARAMS, /* 6 */ NUM_RESULT_SETS,
             /* 7 */ REMARKS, /* 8 */ PROCEDURE_TYPE};
 
@@ -1223,12 +1330,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 4 */ " cast(NULL as char(1)) as COLUMN_NAME," +
         /* 5 */ " cast(0 as int) as DATA_TYPE," +
         /* 6 */ " cast(0 as int) as COLUMN_SIZE," +
-        /* 8 */ " cast(0 as int) as DECIMAL_DIGITS," +
-        /* 9 */ " cast(0 as int) as NUM_PREC_RADIX," +
-        /* 10 */ " cast(NULL as char(1)) as COLUMN_USAGE," +
-        /* 11 */ " cast(NULL as char(1)) as REMARKS," +
-        /* 12 */ " cast(0 as int) as CHAR_OCTET_LENGTH," +
-        /* 13 */ " cast(NULL as char(1)) as IS_NULLABLE" + " where 0 = 1");
+        /* 7 */ " cast(0 as int) as DECIMAL_DIGITS," +
+        /* 8 */ " cast(0 as int) as NUM_PREC_RADIX," +
+        /* 9 */ " cast(NULL as char(1)) as COLUMN_USAGE," +
+        /* 10 */ " cast(NULL as char(1)) as REMARKS," +
+        /* 11 */ " cast(0 as int) as CHAR_OCTET_LENGTH," +
+        /* 12 */ " cast(NULL as char(1)) as IS_NULLABLE" + " where 0 = 1");
     }
 
     @Override
@@ -1338,40 +1445,32 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     private static String createSqlKeyWords() {
-        return "ADD,ALL,ALTER,AND,ANY,AS,ASC,AUTHORIZATION," +
-                "BACKUP,BEGIN,BETWEEN,BREAK,BROWSE,BULK,BY," +
-                "CASCADE,CASE,CHECK,CHECKPOINT,CLOSE,CLUSTERED,COALESCE,COLLATE,COLUMN,COMMIT," +
-                "COMPUTE,CONSTRAINT,CONTAINS,CONTAINSTABLE,CONTINUE,CONVERT,CREATE,CROSS,CURRENT," +
-                "CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURRENT_USER,CURSOR," +
-                "DATABASE,DBCC,DEALLOCATE,DECLARE,DEFAULT,DELETE,DENY,DESC,DISK," +
-                "DISTINCT,DISTRIBUTED,DOUBLE,DROP,DUMP," +
-                "ELSE,END,ERRLVL,ESCAPE,EXCEPT,EXEC,EXECUTE,EXISTS,EXIT,EXTERNAL," +
-                "FETCH,FILE,FILLFACTOR,FOR,FOREIGN,FREETEXT,FREETEXTTABLE,FROM,FULL,FUNCTION," +
-                "GOTO,GRANT,GROUP," +
-                "HAVING,HOLDLOCK," +
-                "IDENTITY,IDENTITY_INSERT,IDENTITYCOL,IF,IN,INDEX,INNER,INSERT,INTERSECT,INTO,IS," +
-                "JOIN," +
-                "KEY,KILL," +
-                "LEFT,LIKE,LINENO,LOAD," +
-                "MERGE," +
-                "NATIONAL,NOCHECK,NONCLUSTERED,NOT,NULL,NULLIF," +
-                "OF,OFF,OFFSETS,ON,OPEN,OPENDATASOURCE,OPENQUERY," +
-                "OPENROWSET,OPENXML,OPTION,OR,ORDER,OUTER,OVER," +
-                "PERCENT,PIVOT,PLAN,PRECISION,PRIMARY,PRINT,PROC,PROCEDURE,PUBLIC," +
-                "RAISERROR,READ,READTEXT,RECONFIGURE,REFERENCES,REPLICATION,RESTORE,RESTRICT," +
-                "RETURN,REVERT,REVOKE,RIGHT,ROLLBACK,ROWCOUNT,ROWGUIDCOL,RULE," +
-                "SAVE,SCHEMA,SECURITYAUDIT,SELECT,SEMANTICKEYPHRASETABLE,SEMANTICSIMILARITYDETAILSTABLE," +
-                "SEMANTICSIMILARITYTABLE,SESSION_USER,SET,SETUSER,SHUTDOWN,SOME,STATISTICS,SYSTEM_USER," +
-                "TABLE,TABLESAMPLE,TEXTSIZE,THEN,TO,TOP,TRAN,TRANSACTION,TRIGGER,TRUNCATE,TRY_CONVERT,TSEQUAL," +
-                "UNION,UNIQUE,UNPIVOT,UPDATE,UPDATETEXT,USE,USER," +
-                "VALUES,VARYING,VIEW," +
-                "WAITFOR,WHEN,WHERE,WHILE,WITH,WITHIN GROUP,WRITETEXT";
+        return "ADD,ALL,ALTER,AND,ANY,AS,ASC,AUTHORIZATION," + "BACKUP,BEGIN,BETWEEN,BREAK,BROWSE,BULK,BY,"
+                + "CASCADE,CASE,CHECK,CHECKPOINT,CLOSE,CLUSTERED,COALESCE,COLLATE,COLUMN,COMMIT,"
+                + "COMPUTE,CONSTRAINT,CONTAINS,CONTAINSTABLE,CONTINUE,CONVERT,CREATE,CROSS,CURRENT,"
+                + "CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURRENT_USER,CURSOR,"
+                + "DATABASE,DBCC,DEALLOCATE,DECLARE,DEFAULT,DELETE,DENY,DESC,DISK,"
+                + "DISTINCT,DISTRIBUTED,DOUBLE,DROP,DUMP,"
+                + "ELSE,END,ERRLVL,ESCAPE,EXCEPT,EXEC,EXECUTE,EXISTS,EXIT,EXTERNAL,"
+                + "FETCH,FILE,FILLFACTOR,FOR,FOREIGN,FREETEXT,FREETEXTTABLE,FROM,FULL,FUNCTION," + "GOTO,GRANT,GROUP,"
+                + "HAVING,HOLDLOCK,"
+                + "IDENTITY,IDENTITY_INSERT,IDENTITYCOL,IF,IN,INDEX,INNER,INSERT,INTERSECT,INTO,IS," + "JOIN,"
+                + "KEY,KILL," + "LEFT,LIKE,LINENO,LOAD," + "MERGE," + "NATIONAL,NOCHECK,NONCLUSTERED,NOT,NULL,NULLIF,"
+                + "OF,OFF,OFFSETS,ON,OPEN,OPENDATASOURCE,OPENQUERY," + "OPENROWSET,OPENXML,OPTION,OR,ORDER,OUTER,OVER,"
+                + "PERCENT,PIVOT,PLAN,PRECISION,PRIMARY,PRINT,PROC,PROCEDURE,PUBLIC,"
+                + "RAISERROR,READ,READTEXT,RECONFIGURE,REFERENCES,REPLICATION,RESTORE,RESTRICT,"
+                + "RETURN,REVERT,REVOKE,RIGHT,ROLLBACK,ROWCOUNT,ROWGUIDCOL,RULE,"
+                + "SAVE,SCHEMA,SECURITYAUDIT,SELECT,SEMANTICKEYPHRASETABLE,SEMANTICSIMILARITYDETAILSTABLE,"
+                + "SEMANTICSIMILARITYTABLE,SESSION_USER,SET,SETUSER,SHUTDOWN,SOME,STATISTICS,SYSTEM_USER,"
+                + "TABLE,TABLESAMPLE,TEXTSIZE,THEN,TO,TOP,TRAN,TRANSACTION,TRIGGER,TRUNCATE,TRY_CONVERT,TSEQUAL,"
+                + "UNION,UNIQUE,UNPIVOT,UPDATE,UPDATETEXT,USE,USER," + "VALUES,VARYING,VIEW,"
+                + "WAITFOR,WHEN,WHERE,WHILE,WITH,WITHIN GROUP,WRITETEXT";
     }
 
     @Override
     public String getStringFunctions() throws SQLServerException {
         checkClosed();
-        return "ASCII,CHAR,CONCAT, DIFFERENCE,INSERT,LCASE,LEFT,LENGTH,LOCATE,LTRIM,REPEAT,REPLACE,RIGHT,RTRIM,SOUNDEX,SPACE,SUBSTRING,UCASE";
+        return "ASCII,CHAR,CONCAT,DIFFERENCE,INSERT,LCASE,LEFT,LENGTH,LOCATE,LTRIM,REPEAT,REPLACE,RIGHT,RTRIM,SOUNDEX,SPACE,SUBSTRING,UCASE";
     }
 
     @Override
@@ -1381,7 +1480,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                                        // CTS certification.
     }
 
-    private static final String[] getTablePrivilegesColumnNames = {/* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
+    private static final String[] getTablePrivilegesColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
             /* 3 */ TABLE_NAME, /* 4 */ GRANTOR, /* 5 */ GRANTEE, /* 6 */ PRIVILEGE, /* 7 */ IS_GRANTABLE};
 
     @Override
@@ -1525,8 +1624,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return result;
     }
 
-    private static final String[] getVersionColumnsColumnNames = {/* 1 */ SCOPE, /* 2 */ COLUMN_NAME, /* 3 */ DATA_TYPE,
-            /* 4 */ TYPE_NAME, /* 5 */ COLUMN_SIZE, /* 6 */ BUFFER_LENGTH, /* 7 */ DECIMAL_DIGITS,
+    private static final String[] getVersionColumnsColumnNames = { /* 1 */ SCOPE, /* 2 */ COLUMN_NAME,
+            /* 3 */ DATA_TYPE, /* 4 */ TYPE_NAME, /* 5 */ COLUMN_SIZE, /* 6 */ BUFFER_LENGTH, /* 7 */ DECIMAL_DIGITS,
             /* 8 */ PSEUDO_COLUMN};
 
     @Override
@@ -2189,7 +2288,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public int getSQLStateType() throws SQLServerException {
         checkClosed();
-        if (connection != null && connection.xopenStates)
+        if (null != connection && connection.xopenStates)
             return sqlStateXOpen;
         else
             return sqlStateSQL99;
@@ -2400,12 +2499,10 @@ final class DataTypeFilter extends IntColumnFilter {
                 return SSType.XML.getJDBCType().asJavaSqlType();
             case ODBC_SQL_UDT:
                 return SSType.UDT.getJDBCType().asJavaSqlType();
-
             default:
                 return odbcType;
         }
     }
-
 }
 
 
@@ -2426,7 +2523,7 @@ abstract class IntColumnFilter extends ColumnFilter {
     abstract int oneValueToAnother(int value);
 
     final Object apply(Object value, JDBCType asJDBCType) throws SQLServerException {
-        if (value == null)
+        if (null == value)
             return value;
         // Assumption: values will only be requested in integral or textual
         // format
@@ -2465,7 +2562,7 @@ class IntColumnIdentityFilter extends ColumnFilter {
     }
 
     final Object apply(Object value, JDBCType asJDBCType) throws SQLServerException {
-        if (value == null)
+        if (null == value)
             return value;
         // Assumption: values will only be requested in integral or textual
         // format

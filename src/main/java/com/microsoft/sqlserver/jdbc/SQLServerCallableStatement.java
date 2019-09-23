@@ -27,7 +27,10 @@ import java.text.MessageFormat;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.TreeMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -68,6 +71,9 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     String getClassNameInternal() {
         return "SQLServerCallableStatement";
     }
+
+    Map<String, Integer> map = new ConcurrentHashMap<>();
+    AtomicInteger ai = new AtomicInteger(0);
 
     /**
      * Create a new callable statement.
@@ -1300,10 +1306,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         }
 
         int l = 0;
-        if (null != parameterNames)
+        if (null != parameterNames) {
             l = parameterNames.size();
-        if (l == 0)// Server didn't return anything, user might not have access
-            return 1;// attempting to look up the first column will return no access exception
+        }
+        if (l == 0) { // Server didn't return anything, user might not have access
+            map.putIfAbsent(columnName, ai.incrementAndGet());
+            return map.get(columnName);// attempting to look up the first column will return no access exception
+        }
 
         // handle `@name` as well as `name`, since `@name` is what's returned
         // by DatabaseMetaData#getProcedureColumns
@@ -1630,7 +1639,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     @Override
     public final void setBinaryStream(String parameterName, InputStream value) throws SQLException {
-
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {parameterName, value});
         checkClosed();

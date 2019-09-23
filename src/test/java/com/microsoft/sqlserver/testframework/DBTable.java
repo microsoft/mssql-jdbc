@@ -210,34 +210,34 @@ public class DBTable extends AbstractSQLGenerator {
     }
 
     String createTableSql() {
-        StringJoiner sb = new StringJoiner(SPACE_CHAR);
+        StringJoiner sb = new StringJoiner(Constants.SPACE_CHAR);
 
-        sb.add(CREATE_TABLE);
+        sb.add(Constants.CREATE_TABLE);
         sb.add(escapedTableName);
-        sb.add(OPEN_BRACKET);
+        sb.add(Constants.OPEN_BRACKET);
 
-        StringJoiner sbDefinition = new StringJoiner(SPACE_CHAR);
+        StringJoiner sbDefinition = new StringJoiner(Constants.SPACE_CHAR);
         for (int i = 0; i < totalColumns; i++) {
             DBColumn column = getColumn(i);
             sbDefinition.add(escapeIdentifier(column.getColumnName()));
             sbDefinition.add(column.getSqlType().getName());
             // add precision and scale
             if (VariableLengthType.Precision == column.getSqlType().getVariableLengthType()) {
-                sbDefinition.add(OPEN_BRACKET);
+                sbDefinition.add(Constants.OPEN_BRACKET);
                 sbDefinition.add("" + column.getSqlType().getPrecision());
-                sbDefinition.add(CLOSE_BRACKET);
+                sbDefinition.add(Constants.CLOSE_BRACKET);
             } else if (VariableLengthType.Scale == column.getSqlType().getVariableLengthType()) {
-                sbDefinition.add(OPEN_BRACKET);
+                sbDefinition.add(Constants.OPEN_BRACKET);
                 sbDefinition.add("" + column.getSqlType().getPrecision());
-                sbDefinition.add(COMMA);
+                sbDefinition.add(Constants.COMMA);
                 sbDefinition.add("" + column.getSqlType().getScale());
-                sbDefinition.add(CLOSE_BRACKET);
+                sbDefinition.add(Constants.CLOSE_BRACKET);
             } else if (VariableLengthType.ScaleOnly == column.getSqlType().getVariableLengthType()) {
-                sbDefinition.add(OPEN_BRACKET);
+                sbDefinition.add(Constants.OPEN_BRACKET);
                 sbDefinition.add("" + column.getSqlType().getScale());
-                sbDefinition.add(CLOSE_BRACKET);
+                sbDefinition.add(Constants.CLOSE_BRACKET);
             }
-            sbDefinition.add(COMMA);
+            sbDefinition.add(Constants.COMMA);
         }
         tableDefinition = sbDefinition.toString();
 
@@ -247,7 +247,7 @@ public class DBTable extends AbstractSQLGenerator {
 
         sb.add(tableDefinition);
 
-        sb.add(CLOSE_BRACKET);
+        sb.add(Constants.CLOSE_BRACKET);
         return sb.toString();
     }
 
@@ -279,20 +279,20 @@ public class DBTable extends AbstractSQLGenerator {
             populateValues();
 
             // create the insertion query
-            StringJoiner sb = new StringJoiner(SPACE_CHAR);
+            StringJoiner sb = new StringJoiner(Constants.SPACE_CHAR);
             sb.add("INSERT");
             sb.add("INTO");
             sb.add(escapedTableName);
             sb.add("VALUES");
-            sb.add(OPEN_BRACKET);
+            sb.add(Constants.OPEN_BRACKET);
             for (int colNum = 0; colNum < totalColumns; colNum++) {
-                sb.add(QUESTION_MARK);
+                sb.add(Constants.QUESTION_MARK);
 
                 if (colNum < totalColumns - 1) {
-                    sb.add(COMMA);
+                    sb.add(Constants.COMMA);
                 }
             }
-            sb.add(CLOSE_BRACKET);
+            sb.add(Constants.CLOSE_BRACKET);
             String sql = sb.toString();
 
             dbPStmt.prepareStatement(sql);
@@ -359,7 +359,7 @@ public class DBTable extends AbstractSQLGenerator {
      * @return query to create table
      */
     String populateTableSql() {
-        StringJoiner sb = new StringJoiner(SPACE_CHAR);
+        StringJoiner sb = new StringJoiner(Constants.SPACE_CHAR);
 
         for (int i = 0; i < totalRows; i++) {
             sb.add("INSERT");
@@ -367,7 +367,7 @@ public class DBTable extends AbstractSQLGenerator {
             sb.add(escapedTableName);
             sb.add("VALUES");
 
-            sb.add(OPEN_BRACKET);
+            sb.add(Constants.OPEN_BRACKET);
             for (int colNum = 0; colNum < totalColumns; colNum++) {
 
                 // TODO: consider how to enclose data in case of preparedStatemets
@@ -380,11 +380,11 @@ public class DBTable extends AbstractSQLGenerator {
                 }
 
                 if (colNum < totalColumns - 1) {
-                    sb.add(COMMA);
+                    sb.add(Constants.COMMA);
                 }
             }
-            sb.add(CLOSE_BRACKET);
-            sb.add(SEMI_COLON);
+            sb.add(Constants.CLOSE_BRACKET);
+            sb.add(Constants.SEMI_COLON);
         }
 
         return (sb.toString());
@@ -416,13 +416,13 @@ public class DBTable extends AbstractSQLGenerator {
      * This will give you query for Drop Table.
      */
     String dropTableSql() {
-        StringJoiner sb = new StringJoiner(SPACE_CHAR);
+        StringJoiner sb = new StringJoiner(Constants.SPACE_CHAR);
         sb.add("IF OBJECT_ID");
-        sb.add(OPEN_BRACKET);
+        sb.add(Constants.OPEN_BRACKET);
         sb.add(wrapName(tableName));
         sb.add(",");
         sb.add(wrapName("U"));
-        sb.add(CLOSE_BRACKET);
+        sb.add(Constants.CLOSE_BRACKET);
         sb.add("IS NOT NULL");
         sb.add("DROP TABLE");
         sb.add(escapedTableName); // for drop table no need to wrap.

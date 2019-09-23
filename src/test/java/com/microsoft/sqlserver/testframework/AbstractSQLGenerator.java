@@ -11,9 +11,9 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 /**
  * Common methods needed for any implementation for {@link SQLGeneratorIF}
  */
-public abstract class AbstractSQLGenerator extends Constants {// implements ISQLGenerator {
+public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
 
-    static String WRAP_IDENTIFIER = DEFAULT_WRAP_IDENTIFIER;
+    static String WRAP_IDENTIFIER = Constants.DEFAULT_WRAP_IDENTIFIER;
     static String OPEN_ESCAPE_IDENTIFIER = "[";
     static String CLOSE_ESCAPE_IDENTIFIER = "]";
 
