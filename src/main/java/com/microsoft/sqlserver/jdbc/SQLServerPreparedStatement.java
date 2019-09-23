@@ -8,9 +8,15 @@ package com.microsoft.sqlserver.jdbc;
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQL;
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.sql.BatchUpdateException;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
@@ -28,6 +34,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Level;
+
+import org.apache.commons.codec.DecoderException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
@@ -778,9 +786,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         resetPrepStmtHandle(false);
 
         if (this.connection.enclaveAttestationUrl != null) {
-            tdsWriter.writeBytes(new byte[] {0x0,0x0});
+            tdsWriter.writeBytes(new byte[] {0x0, 0x0});
         }
-        
+
         // <stmt> IN
         tdsWriter.writeRPCStringUnicode(preparedSQL);
 
@@ -858,15 +866,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
             }
 
-            stmt = (SQLServerPreparedStatement) connection.prepareStatement("EXEC sp_describe_parameter_encryption ?,?,?");
+            stmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("EXEC sp_describe_parameter_encryption ?,?,?");
             stmt.isInternalEncryptionQuery = true;
-            stmt.setNString(1,this.preparedSQL);
+            stmt.setNString(1, this.preparedSQL);
             if (preparedTypeDefinitions != null && preparedTypeDefinitions.length() != 0) {
-                stmt.setNString(2,preparedTypeDefinitions);
+                stmt.setNString(2, preparedTypeDefinitions);
             } else {
-                stmt.setNString(2,"");
+                stmt.setNString(2, "");
             }
-            stmt.setBytes(3,this.connection.getAttestationParameters());
+            stmt.setBytes(3, this.connection.getAttestationParameters());
             rs = (SQLServerResultSet) stmt.executeQueryInternal();
         } catch (SQLException e) {
             if (e instanceof SQLServerException) {
@@ -901,7 +910,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
                         rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
                         rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
+                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()),
+                        rs.getByte(DescribeParameterEncryptionResultSet1.KeyRequestedByEnclave.value()),
+                        rs.getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value()));
             }
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Matadata of CEKs is retrieved.");
@@ -979,6 +990,24 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
+        // Process the third resultset.
+        if (!stmt.getMoreResults()) {
+            throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null,
+                    0, false);
+        }
+
+        try {
+            rs = (SQLServerResultSet) stmt.getResultSet();
+            rs.next();
+            byte[] attestationResponse = rs.getBytes(1);
+            AttestationResponse ar = new AttestationResponse(attestationResponse);
+            System.out.println(ar.sessionID);
+            byte[] attestationCerts = getAttestationCertificates();
+            ar.validateCert(attestationCerts);
+        } catch (SQLException | CertificateException | IOException e) {
+            e.printStackTrace();
+        }
+
         // Null check for rs is done already.
         rs.close();
 
@@ -986,6 +1015,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             stmt.close();
         }
         connection.resetCurrentCommand();
+    }
+
+    private byte[] getAttestationCertificates() throws IOException, CertificateException {
+        java.net.URL url = new java.net.URL(
+                connection.enclaveAttestationUrl + "/attestationservice.svc/v2.0/signingCertificates/");
+        java.net.URLConnection con = url.openConnection();
+        String s = new String(con.getInputStream().readAllBytes());
+        // omit the square brackets that come with the JSON
+        String[] bytesString = s.substring(1, s.length() - 1).split(",");
+        byte[] certData = new byte[bytesString.length];
+        for (int i = 0; i < certData.length; i++) {
+            certData[i] = (byte) (Integer.parseInt(bytesString[i]));
+        }
+        return certData;
     }
 
     /**
