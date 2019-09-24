@@ -16,7 +16,9 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -765,12 +767,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
 
         final boolean doExecute() throws SQLServerException {
-            try {
-                stmt.doExecuteStatement(this);
-            } catch (SQLException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+            stmt.doExecuteStatement(this);
             return false;
         }
 
@@ -816,7 +813,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
-    final void doExecuteStatement(StmtExecCmd execCmd) throws SQLException {
+    final void doExecuteStatement(StmtExecCmd execCmd) throws SQLServerException {
         resetForReexecute();
 
         // Set this command as the current command
@@ -837,14 +834,12 @@ public class SQLServerStatement implements ISQLServerStatement {
         // well.
         //
         // Note: similar logic in SQLServerPreparedStatement.doExecutePreparedStatement
-        setMaxRowsAndMaxFieldSize();
+        // setMaxRowsAndMaxFieldSize();
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
-        
-        
-        
+
         if (isCursorable(executeMethod) && isSelect(sql)) {
             if (stmtlogger.isLoggable(java.util.logging.Level.FINE))
                 stmtlogger.fine(toString() + " Executing server side cursor " + sql);
@@ -856,6 +851,10 @@ public class SQLServerStatement implements ISQLServerStatement {
             expectCursorOutParams = false;
 
             TDSWriter tdsWriter = execCmd.startRequest(TDS.PKT_QUERY);
+
+            if (this.connection.enclaveAttestationUrl != null) {
+                tdsWriter.writeBytes(new byte[] {0x0, 0x0});
+            }
 
             tdsWriter.writeString(sql);
 
@@ -891,6 +890,106 @@ public class SQLServerStatement implements ISQLServerStatement {
                         SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
             }
         }
+    }
+
+    public static byte[] hexStringToByteArray(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(s.charAt(i + 1), 16));
+        }
+        return data;
+    }
+
+    private void getParameterEncryptionMetadata(String userSQL) throws SQLServerException {
+        /*
+         * The parameter list is created from the data types provided by the user for the parameters. the data types do
+         * not need to be the same as in the table definition. Also, when string is sent to an int field, the parameter
+         * is defined as nvarchar(<size of string>). Same for varchar datatypes, exact length is used.
+         */
+        SQLServerResultSet rs = null;
+        SQLServerPreparedStatement stmt = null;
+
+        assert connection != null : "Connection should not be null";
+
+        try {
+            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                getStatementLogger().fine(
+                        "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
+            }
+            stmt = (SQLServerPreparedStatement) connection.prepareStatement("exec sp_describe_parameter_encryption N'"
+                    + userSQL
+                    + "',N'',0x03000000000000006800000045434B3330000000c48c7ce6df7b8da9c4433a6b02321814448f6830c37e308cb97df93ce9af0f5baf619d8705c4caf855d7592877aa0a40113a4ff6c84206508bfffd5ffd5309158697e491a2b9e0a29127ce27c34525a9b898ab63ce6342375f85cf31a84d6541");
+            stmt.isInternalEncryptionQuery = true;
+            // stmt.setNString(1,userSQL);
+            // stmt.setNString(2,"");
+            // stmt.setBytes(3, hexStringToByteArray(""));
+            // stmt.setBytes(3,this.connection.getAttestationParameters());
+            rs = (SQLServerResultSet) stmt.executeQueryInternal();
+        } catch (SQLException e) {
+            if (e instanceof SQLServerException) {
+                throw (SQLServerException) e;
+            } else {
+                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
+                        0, e);
+            }
+        }
+
+        if (null == rs) {
+            // No results. Meaning no parameter.
+            // Should never happen.
+            return;
+        }
+
+        Map<Integer, CekTableEntry> cekList = new HashMap<>();
+        CekTableEntry cekEntry = null;
+        try {
+            while (rs.next()) {
+                int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
+                if (!cekList.containsKey(currentOrdinal)) {
+                    cekEntry = new CekTableEntry(currentOrdinal);
+                    cekList.put(cekEntry.ordinal, cekEntry);
+                } else {
+                    cekEntry = cekList.get(currentOrdinal);
+                }
+                cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
+                        rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
+                        rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
+                        rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
+                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()),
+                        rs.getByte(DescribeParameterEncryptionResultSet1.IsRequestedByEnclave.value()),
+                        rs.getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value()));
+            }
+            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                getStatementLogger().fine("Matadata of CEKs is retrieved.");
+            }
+        } catch (SQLException e) {
+            if (e instanceof SQLServerException) {
+                throw (SQLServerException) e;
+            } else {
+                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
+                        0, e);
+            }
+        }
+
+        // Process the second resultset.
+        if (!stmt.getMoreResults()) {
+            throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null,
+                    0, false);
+        }
+
+        // Parameter count in the result set.
+
+        // Null check for rs is done already.
+        rs.close();
+
+        if (null != stmt) {
+            stmt.close();
+        }
+        connection.resetCurrentCommand();
     }
 
     private final class StmtBatchExecCmd extends TDSCommand {

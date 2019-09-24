@@ -5,8 +5,25 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Provider;
+import java.security.Security;
+import java.security.SignatureException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.sql.Blob;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -267,6 +284,85 @@ class CryptoMetadata {
 
     boolean IsAlgorithmInitialized() {
         return null != cipherAlgorithm;
+    }
+}
+
+
+class AttestationResponse {
+    int totalSize;
+    int identitySize;
+    int healthReportSize;
+    int enclaveReportSize;
+
+    byte[] enclavePK;
+    byte[] healthReportCertificate;
+    byte[] enclaveReportPackage;
+
+    int sessionInfoSize;
+    long sessionID;
+    int DHPKsize;
+    int DHPKSsize;
+    byte[] DHpublicKey;
+    byte[] publicKeySig;
+
+    X509Certificate healthCert;
+
+    AttestationResponse(byte[] b) {
+        ByteBuffer response = ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN);
+        this.totalSize = response.getInt();
+        this.identitySize = response.getInt();
+        this.healthReportSize = response.getInt();
+        this.enclaveReportSize = response.getInt();
+
+        enclavePK = new byte[identitySize];
+        healthReportCertificate = new byte[healthReportSize];
+        enclaveReportPackage = new byte[enclaveReportSize];
+
+        response.get(enclavePK, 0, identitySize);
+        response.get(healthReportCertificate, 0, healthReportSize);
+        response.get(enclaveReportPackage, 0, enclaveReportSize);
+
+        this.sessionInfoSize = response.getInt();
+        this.sessionID = response.getLong();
+        this.DHPKsize = response.getInt();
+        this.DHPKSsize = response.getInt();
+
+        DHpublicKey = new byte[DHPKsize];
+        publicKeySig = new byte[DHPKSsize];
+
+        response.get(DHpublicKey, 0, DHPKsize);
+        response.get(publicKeySig, 0, DHPKSsize);
+
+        if (0 != response.remaining()) {
+            // throw exception
+        }
+
+        try {
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            healthCert = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(healthReportCertificate));
+        } catch (CertificateException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    boolean validateCert(byte[] b) throws CertificateException {
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        Collection<X509Certificate> certs = (Collection<X509Certificate>) cf
+                .generateCertificates(new ByteArrayInputStream(b));
+        for (X509Certificate cert : certs) {
+            try {
+                healthCert.verify(cert.getPublicKey());
+                return true;
+            } catch (SignatureException e) {
+                // Doesn't match, invalid
+            } catch (java.security.GeneralSecurityException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        return false;
     }
 }
 

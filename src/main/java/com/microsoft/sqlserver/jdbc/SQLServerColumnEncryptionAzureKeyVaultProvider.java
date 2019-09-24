@@ -606,14 +606,14 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             // value of allowEnclaveComputations is always true here
             md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
 
-            byte[] dataToSign = md.digest();
-            if (null == dataToSign) {
+            byte[] dataToVerify = md.digest();
+            if (null == dataToVerify) {
                 throw new SQLServerException(SQLServerException.getErrString("R_HashNull"), null);
             }
 
             // Sign the hash
-            byte[] dataToVerify = AzureKeyVaultSignHashedData(dataToSign, masterKeyPath);
-            if (null == dataToVerify) {
+            byte[] signedHash = AzureKeyVaultSignHashedData(dataToVerify, masterKeyPath);
+            if (null == signedHash) {
                 throw new SQLServerException(SQLServerException.getErrString("R_SignedHashLengthError"), null);
             }
 
