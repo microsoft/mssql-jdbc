@@ -603,19 +603,22 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(name.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
             md.update(masterKeyPath.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-            // value of allowEnclaveComputations is true
+            // value of allowEnclaveComputations is always true here
             md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-            
+
             byte[] dataToSign = md.digest();
             if (null == dataToSign) {
                 throw new SQLServerException(SQLServerException.getErrString("R_HashNull"), null);
             }
 
             // Sign the hash
-            byte[] signedHash = AzureKeyVaultSignHashedData(dataToSign, masterKeyPath);
+            byte[] dataToVerify = AzureKeyVaultSignHashedData(dataToSign, masterKeyPath);
+            if (null == dataToVerify) {
+                throw new SQLServerException(SQLServerException.getErrString("R_SignedHashLengthError"), null);
+            }
 
             // Validate the signature
-             return AzureKeyVaultVerifySignature(signedHash, signature, masterKeyPath);
+            return AzureKeyVaultVerifySignature(dataToVerify, signature, masterKeyPath);
         } catch (NoSuchAlgorithmException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
         }
