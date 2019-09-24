@@ -383,20 +383,24 @@ public final class SQLServerDataTable {
     }
 
     private boolean compareRows(Map<Integer, Object[]> otherRows) {
-        if (rows == otherRows)
+        if (rows == otherRows) {
             return true;
-        if (rows.size() != otherRows.size())
+        }
+        if (rows.size() != otherRows.size()) {
             return false;
+        }
         try {
             for (Entry<Integer, Object[]> e : rows.entrySet()) {
                 Integer key = e.getKey();
                 Object[] value = e.getValue();
                 if (value == null) {
-                    if (!(otherRows.get(key) == null && otherRows.containsKey(key)))
+                    if (!(otherRows.get(key) == null && otherRows.containsKey(key))) {
                         return false;
+                    }
                 } else {
-                    if (!Arrays.equals(value, otherRows.get(key)))
+                    if (!Arrays.equals(value, otherRows.get(key))) {
                         return false;
+                    }
                 }
             }
         } catch (ClassCastException unused) {
