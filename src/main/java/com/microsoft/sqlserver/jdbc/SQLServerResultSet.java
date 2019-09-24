@@ -786,6 +786,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /* ----------------- JDBC API methods ------------------ */
 
     private void moverInit() throws SQLServerException {
+        columnNames.clear();
         fillLOBs();
         cancelInsert();
         cancelUpdates();
