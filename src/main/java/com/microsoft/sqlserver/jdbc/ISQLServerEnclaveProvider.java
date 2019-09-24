@@ -1,10 +1,8 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.io.IOException;
-import java.security.KeyPair;
-import java.security.PublicKey;
-
-import javax.crypto.KeyAgreement;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
 
 
 public interface ISQLServerEnclaveProvider {
@@ -19,8 +17,8 @@ public interface ISQLServerEnclaveProvider {
 
 
 abstract class BaseAttestationRequest {
-    protected PublicKey publickey;
-    KeyAgreement keyAgreement;
+    protected ECPublicKey publicKey;
+    protected ECPrivateKey privateKey;
     byte[] sharedsecret;
 
     byte[] getBytes() throws IOException {

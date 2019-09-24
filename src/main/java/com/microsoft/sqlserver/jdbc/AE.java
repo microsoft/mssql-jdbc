@@ -355,9 +355,9 @@ class AttestationResponse {
             try {
                 healthCert.verify(cert.getPublicKey());
                 return true;
-            } catch (SignatureException se) {
+            } catch (SignatureException e) {
                 // Doesn't match, invalid
-            } catch (NoSuchAlgorithmException | NoSuchProviderException | java.security.InvalidKeyException e) {
+            } catch (java.security.GeneralSecurityException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
