@@ -3,8 +3,8 @@
  ****************************************************************
  * Instruction for Building JDBC Driver:
  * For building particular version of the driver, use commands:
- * jre12 - - PS> gradle build
-			 PS> gradle build -PbuildProfile=jre12
+ * jre13 - - PS> gradle build
+			 PS> gradle build -PbuildProfile=jre13
  * jre11 - - PS> gradle build -PbuildProfile=jre11
  * jre8  - - PS> gradle build -PbuildProfile=jre8
  *
@@ -35,17 +35,17 @@ test {
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre12")){
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre13")){
 	
-	jreVersion = "jre12"
+	jreVersion = "jre13"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 12
-	targetCompatibility = 12
+	sourceCompatibility = 13
+	targetCompatibility = 13
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre11"){
