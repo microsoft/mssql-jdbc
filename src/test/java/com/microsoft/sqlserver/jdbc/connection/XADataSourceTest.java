@@ -31,6 +31,10 @@ public class XADataSourceTest extends AbstractTest {
     private static String connectionUrlSSL = connectionString + "encrypt=true;trustServerCertificate=false;";
     private static List<String> certificates = new ArrayList<>();
 
+    /**
+     * Tests XA connection with PKCS12 truststore that is password protected.
+     * @throws Exception
+     */
     @Test
     public void testPKCS12() throws Exception {
         SQLServerXADataSource ds = new SQLServerXADataSource();
@@ -50,18 +54,9 @@ public class XADataSourceTest extends AbstractTest {
     }
 
     private static void populateCertificates() {
-        certificates.add("sql-2k8r2-sp3-1.galaxy.ad.cer");
-        certificates.add("sql-2k8-sp4-1.galaxy.ad.cer");
-        certificates.add("sql-2k12-sp3-2.galaxy.ad.cer");
-        certificates.add("sql-2k14-2.galaxy.ad.cer");
-        certificates.add("sql-2k16-01.galaxy.ad.cer");
-        certificates.add("sql-2k16-02.galaxy.ad.cer");
-        certificates.add("sql-2k16-04.galaxy.ad.cer");
-        certificates.add("sql-2k17-01.galaxy.ad.cer");
-        certificates.add("sql-2k17-03.galaxy.ad.cer");
-        certificates.add("sql-2k17-04.galaxy.ad.cer");
-        certificates.add("sql-2k19-01.galaxy.ad.cer");
-        certificates.add("sql-2k19-02.galaxy.ad.cer");
+        // populate the arraylist with all the certificates of servers that are used
+        certificates.add("<server name1>.cer");
+        certificates.add("<server name2>.cer");
     }
 
     static class TrustStore {
@@ -70,7 +65,7 @@ public class XADataSourceTest extends AbstractTest {
         static final String TRUST_STORE_PWD = "<your_password_here>";
 
         TrustStore(List<String> certificateNames) throws Exception {
-            trustStoreFile = File.createTempFile("myTrustStore", null, new File("."));
+            trustStoreFile = File.createTempFile("<your_truststore_name_here>", null, new File("."));
             // trustStoreFile.deleteOnExit();
             KeyStore ks = KeyStore.getInstance("PKCS12");
             ks.load(null, null);
