@@ -131,14 +131,14 @@ class VSMAttestationParameters extends BaseAttestationRequest {
 
     byte[] createSessionSecret(
             byte[] serverResponse) throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, SQLServerException {
-        if (serverResponse.length != 104) {
+        if (serverResponse.length != ENCLAVE_LENGTH) {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_MalformedECDHPublicKey"), "0", false);
         }
         ByteBuffer sr = ByteBuffer.wrap(serverResponse);
         byte[] magic = new byte[8];
         sr.get(magic);
-        if (magic != ECDH_MAGIC) {
+        if (!Arrays.equals(magic,ECDH_MAGIC)) {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_MalformedECDHHeader"),
                     "0", false);
         }
