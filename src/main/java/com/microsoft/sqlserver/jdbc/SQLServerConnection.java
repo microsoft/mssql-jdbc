@@ -20,6 +20,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -628,7 +629,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     String enclaveAttestationUrl = null;
-    
+
     String keyStoreAuthentication = null;
     String keyStoreSecret = null;
     String keyStoreLocation = null;
@@ -3548,12 +3549,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int len = 6; // (1byte = featureID, 4bytes = featureData length, 1 bytes = Version)
 
         if (write) {
-            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TC  
-            tdsWriter.writeInt(1); //length of version
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TC
+            tdsWriter.writeInt(1); // length of version
             if (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()) {
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION1);
             } else {
-                tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);           
+                tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);
             }
         }
         return len;
@@ -4565,7 +4566,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                byte aeVersion = data[0];
+                aeVersion = data[0];
                 if (0 == aeVersion || aeVersion > TDS.COLUMNENCRYPTION_VERSION2) {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
@@ -5692,7 +5693,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private List<ISQLServerStatement> openStatements;
     private boolean originalUseFmtOnly;
 
-    int aeVersion = 2;
+    int aeVersion = 0;
 
     protected void beginRequestInternal() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "beginRequest", this);
@@ -6384,15 +6385,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    boolean isAEv2() {
+        return aeVersion == 2;
+    }
+
     ISQLServerEnclaveProvider enclaveProvider = new SQLServerVSMEnclaveProvider();
-    public byte[] getAttestationParameters() {
-        byte[] b = null;
+
+    byte[] getAttestationParameters() throws SQLServerException {
         try {
-            b = enclaveProvider.getAttestationParamters().getBytes();
-        } catch (IOException e) {
-            
+            return enclaveProvider.getAttestationParamters(false, this.enclaveAttestationUrl).getBytes();
+        } catch (NoSuchAlgorithmException e) {
+            SQLServerException.makeFromDriverError(this, enclaveProvider, e.getLocalizedMessage(), "0", false);
         }
-        return b;
+        return null;
+    }
+
+    public void validateAttestationResponse(byte[] b) throws SQLServerException {
+        enclaveProvider.createEnclaveSession(b);
     }
 }
 

@@ -8,15 +8,9 @@ package com.microsoft.sqlserver.jdbc;
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQL;
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
-import java.net.MalformedURLException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.sql.BatchUpdateException;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
@@ -34,8 +28,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Level;
-
-import org.apache.commons.codec.DecoderException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
@@ -903,16 +895,27 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 } else {
                     cekEntry = cekList.get(currentOrdinal);
                 }
-                cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
-                        rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()),
-                        rs.getByte(DescribeParameterEncryptionResultSet1.KeyRequestedByEnclave.value()),
-                        rs.getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value()));
+                if (this.connection.isAEv2()) {
+                    cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
+                            rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()),
+                            rs.getByte(DescribeParameterEncryptionResultSet1.KeyRequestedByEnclave.value()),
+                            rs.getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value()));
+                } else {
+                    cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
+                            rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
+                }
             }
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Matadata of CEKs is retrieved.");
@@ -927,7 +930,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // Process the second resultset.
-        if (!stmt.getMoreResults()) {
+        if (!stmt.getMoreResults() && !this.connection.isAEv2()) {
             throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null,
                     0, false);
         }
@@ -991,21 +994,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // Process the third resultset.
-        if (!stmt.getMoreResults()) {
-            throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null,
-                    0, false);
-        }
-
-        try {
+        if (this.connection.isAEv2() && stmt.getMoreResults()) {
             rs = (SQLServerResultSet) stmt.getResultSet();
-            rs.next();
-            byte[] attestationResponse = rs.getBytes(1);
-            AttestationResponse ar = new AttestationResponse(attestationResponse);
-            System.out.println(ar.sessionID);
-            byte[] attestationCerts = getAttestationCertificates();
-            ar.validateCert(attestationCerts);
-        } catch (SQLException | CertificateException | IOException e) {
-            e.printStackTrace();
+            while (rs.next()) {
+                // This validates and establishes the enclave session if valid
+                this.connection.validateAttestationResponse(rs.getBytes(1));
+            }
         }
 
         // Null check for rs is done already.
@@ -1015,20 +1009,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             stmt.close();
         }
         connection.resetCurrentCommand();
-    }
-
-    private byte[] getAttestationCertificates() throws IOException, CertificateException {
-        java.net.URL url = new java.net.URL(
-                connection.enclaveAttestationUrl + "/attestationservice.svc/v2.0/signingCertificates/");
-        java.net.URLConnection con = url.openConnection();
-        String s = new String(con.getInputStream().readAllBytes());
-        // omit the square brackets that come with the JSON
-        String[] bytesString = s.substring(1, s.length() - 1).split(",");
-        byte[] certData = new byte[bytesString.length];
-        for (int i = 0; i < certData.length; i++) {
-            certData[i] = (byte) (Integer.parseInt(bytesString[i]));
-        }
-        return certData;
     }
 
     /**

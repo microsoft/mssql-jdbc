@@ -595,5 +595,12 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_invalidUserSQL", "An error occurred when attempting to parse user SQL. Please verify SQL syntax."},
             {"R_invalidInsertValuesQuery",
                     "An error occurred when matching VALUES list to table columns. Please verify SQL syntax."},
-            {"R_invalidValuesList", "An error occurred when reading VALUES list. Please verify SQL syntax."}};
+            {"R_invalidValuesList", "An error occurred when reading VALUES list. Please verify SQL syntax."},
+
+            {"R_EnclaveResponseLengthError",
+                    "More bytes from the server was recieved than expected when parsing Enclave Attestation response."},
+            {"R_MalformedECDHPublicKey", "The ECDH public key from the server must be 104 bits in length."},
+            {"R_MalformedECDHHeader", "Unexpected values for ECDH public key header from the server."},
+
+    };
 };
