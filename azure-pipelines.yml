@@ -29,6 +29,9 @@ jobs:
       Get-Content .\JavaKeyStoreBase.txt | Set-Content -Encoding utf8 JavaKeyStore.txt
       Remove-Item –path .\JavaKeyStoreBase.txt
     displayName: 'PowerShell Script'
+  - task: DownloadSecureFile@1
+    inputs:
+      secureFile: 'pkcs12_truststore'
   - task: Maven@3
     displayName: 'Maven build jre12'
     inputs:
