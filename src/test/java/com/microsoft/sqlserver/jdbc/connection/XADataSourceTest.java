@@ -45,6 +45,9 @@ public class XADataSourceTest extends AbstractTest {
         String url = connectionUrlSSL + "trustStore=" + trustStore + ";";
         ds.setURL(url);
         ds.setTrustStorePassword(System.getProperty("pkcs12_truststore_password"));
+        System.out.println("pkcs12_truststore = " + trustStore);
+        System.out.println("pkcs12_truststore_password = " + System.getProperty("pkcs12_truststore_password"));
+        System.out.println("Working Directory = " + System.getProperty("user.dir"));
         XAConnection connection = ds.getXAConnection();
         connection.close();
     }
