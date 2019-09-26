@@ -25,7 +25,7 @@ public final class Constants {
      * xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
      * NTLM  - - - - - - - For NTLM tests
-     * XA  - - - - - - - - For XA tests
+     * reqExternalSetup  - For tests requiring external setup
      * </pre>
      */
     public static final String xJDBC42 = "xJDBC42";
