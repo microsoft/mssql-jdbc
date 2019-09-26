@@ -33,6 +33,7 @@ public class XADataSourceTest extends AbstractTest {
 
     /**
      * Tests XA connection with PKCS12 truststore that is password protected.
+     * 
      * @throws Exception
      */
     @Test
@@ -59,7 +60,7 @@ public class XADataSourceTest extends AbstractTest {
         certificates.add("<server name2>.cer");
     }
 
-    static class TrustStore {
+    private static class TrustStore {
         private File trustStoreFile;
 
         static final String TRUST_STORE_PWD = "<your_password_here>";
