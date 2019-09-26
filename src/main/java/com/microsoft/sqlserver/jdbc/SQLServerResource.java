@@ -601,5 +601,9 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_enclaveTypeNotReturned",
                     "The SQL Server instance did not return an enclave type. Please make sure the enclave type is correct configured in the SQL Server instance."},
             {"R_enclaveTypeInvalid", "The enclave type {0} is invalid or not supported by the driver."},
-            {"R_attestationUrlInvalid", "Unable to attest enclave specified by {0}."}};
+            {"R_attestationUrlInvalid", "Unable to attest enclave specified by {0}."},
+            {"R_EnclaveResponseLengthError",
+                    "More bytes from the server was recieved than expected when parsing Enclave Attestation response."},
+            {"R_MalformedECDHPublicKey", "The ECDH public key from the server must be 104 bits in length."},
+            {"R_MalformedECDHHeader", "Unexpected values for ECDH public key header from the server."},};
 };

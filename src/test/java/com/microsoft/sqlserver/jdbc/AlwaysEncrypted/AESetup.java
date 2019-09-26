@@ -63,6 +63,60 @@ public class AESetup extends AbstractTest {
 
     static Properties AEInfo;
 
+    /*
+     * List of all the randomized columns in the tests
+     */
+    static String[] randomizedColumns = {
+            "PlainBinary binary(20)",
+            "PlainVarbinary varbinary(50)",
+            "PlainVarbinaryMax varbinary(max)",
+            "PlainBinary512 binary(512)",
+            "PlainBinary8000 varbinary(8000)",
+            "PlainChar char(20)",
+            "PlainVarchar varchar(50)",
+            "PlainVarcharMax varchar(max)",
+            "PlainNchar nchar(30)",
+            "PlainNvarchar nvarchar(60)",
+            "PlainNvarcharMax nvarchar(max)",
+            "PlainUniqueidentifier uniqueidentifier",
+            "PlainVarchar8000 varchar(8000)",
+            "PlainNvarchar4000 nvarchar(4000)",
+            "PlainDate date",
+            "PlainDatetime2Default datetime2",
+            "PlainDatetimeoffsetDefault datetimeoffset",
+            "PlainTimeDefault time",
+            "PlainDatetime datetime",
+            "PlainSmalldatetime smalldatetime",
+            "PlainDatetime2 datetime2(0)",
+            "PlainDatetime2Default datetime2",
+            "PlainDatetimeoffsetDefault datetimeoffset",
+            "PlainTimeDefault time",
+            "PlainTime time(0)",
+            "PlainDatetimeoffset datetimeoffset(0)",
+            "PlainDatetime2 datetime2(2)",
+            "PlainTime time(2)",
+            "PlainDatetimeoffset datetimeoffset(2)",
+            "PlainBit bit",
+            "PlainTinyint tinyint",
+            "PlainSmallint smallint",
+            "PlainInt int",
+            "PlainBigint bigint",
+            "PlainFloatDefault float",
+            "PlainFloat float(30)",
+            "PlainReal real",
+            "PlainDecimalDefault decimal",
+            "PlainDecimal decimal(10,5)",
+            "PlainNumericDefault numeric",
+            "PlainNumeric numeric(8,2)",
+            "PlainSmallMoney smallmoney",
+            "PlainMoney money",
+            "PlainDecimal2 decimal(28,4)",
+            "PlainNumeric2 numeric(28,4)",
+            "PlainFloat float(30)",
+            "PlainDecimal decimal(30)",
+            "PlainNumeric numeric(30)"
+            };
+    
     /**
      * Create connection, statement and generate path of resource file
      * 
@@ -2094,5 +2148,4 @@ public class AESetup extends AbstractTest {
                 + " begin" + " drop column master key " + Constants.CMK_NAME + " end";
         stmt.execute(cekSql);
     }
-
 }

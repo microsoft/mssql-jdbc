@@ -8,11 +8,9 @@ package com.microsoft.sqlserver.jdbc;
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQL;
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
-import java.security.cert.CertificateException;
 import java.sql.BatchUpdateException;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
@@ -938,7 +936,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // Process the second resultset.
-        if (!stmt.getMoreResults()) {
+        if (!stmt.getMoreResults() && !this.connection.isAEv2()) {
             throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null,
                     0, false);
         }
@@ -1002,21 +1000,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // Process the third resultset.
-        if (!stmt.getMoreResults()) {
-            throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null,
-                    0, false);
-        }
-
-        try {
+        if (this.connection.isAEv2() && stmt.getMoreResults()) {
             rs = (SQLServerResultSet) stmt.getResultSet();
-            rs.next();
-            byte[] attestationResponse = rs.getBytes(1);
-            AttestationResponse ar = new AttestationResponse(attestationResponse);
-            System.out.println(ar.sessionID);
-            byte[] attestationCerts = getAttestationCertificates();
-            ar.validateCert(attestationCerts);
-        } catch (SQLException | CertificateException | IOException e) {
-            e.printStackTrace();
+            while (rs.next()) {
+                // This validates and establishes the enclave session if valid
+                this.connection.validateAttestationResponse(rs.getBytes(1));
+            }
         }
 
         // Null check for rs is done already.
@@ -1026,20 +1015,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             stmt.close();
         }
         connection.resetCurrentCommand();
-    }
-
-    private byte[] getAttestationCertificates() throws IOException, CertificateException {
-        java.net.URL url = new java.net.URL(
-                connection.enclaveAttestationUrl + "/attestationservice.svc/v2.0/signingCertificates/");
-        java.net.URLConnection con = url.openConnection();
-        String s = new String(con.getInputStream().readAllBytes());
-        // omit the square brackets that come with the JSON
-        String[] bytesString = s.substring(1, s.length() - 1).split(",");
-        byte[] certData = new byte[bytesString.length];
-        for (int i = 0; i < certData.length; i++) {
-            certData[i] = (byte) (Integer.parseInt(bytesString[i]));
-        }
-        return certData;
     }
 
     /**

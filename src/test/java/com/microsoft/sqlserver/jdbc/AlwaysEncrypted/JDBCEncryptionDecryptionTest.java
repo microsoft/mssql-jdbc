@@ -69,6 +69,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             populateCharNormalCase(charValues);
             testChar(stmt, charValues);
             testChar(null, charValues);
+            testAlterColumnEncryption(stmt);
         }
     }
 
@@ -87,6 +88,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             populateCharSetObject(charValues);
             testChar(stmt, charValues);
             testChar(null, charValues);
+            testAlterColumnEncryption(stmt);
         }
     }
 
@@ -106,6 +108,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             populateCharSetObjectWithJDBCTypes(charValues);
             testChar(stmt, charValues);
             testChar(null, charValues);
+            testAlterColumnEncryption(stmt);
         }
     }
 
@@ -124,6 +127,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             populateCharNormalCase(charValuesNull);
             testChar(stmt, charValuesNull);
             testChar(null, charValuesNull);
+            testAlterColumnEncryption(stmt);
         }
     }
 
@@ -1210,6 +1214,45 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         expectedValue = values[index];
         Compare(expectedValue, value1, value2, value3);
         index++;
+    }
+
+    private void ttestAlterEncryption(SQLServerStatement stmt, String[] values) throws SQLException {
+        String sql = "ALTER TABLE " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE) + "ALTER COLUMN "
+                + "PlainChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (COLUMN_ENCRYPTION_KEY = "
+                + Constants.CEK_NAME
+                + ", ENCRYPTION_TYPE = Deterministic, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256')";
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
+            try (ResultSet rs = (stmt.executeQuery(sql))) {
+                int numberOfColumns = rs.getMetaData().getColumnCount();
+                while (rs.next()) {
+                    testGetString(rs, numberOfColumns, values);
+                    testGetObject(rs, numberOfColumns, values);
+                }
+            }
+        }
+    }
+
+    /**
+     * Alter Column encryption on all the randomized columns to deterministic - this will trigger enclave to re-encrypt
+     * 
+     * @throws SQLException
+     */
+    private void testAlterColumnEncryption(SQLServerStatement stmt) throws SQLException {
+        for (int i = 0; i < randomizedColumns.length; i++) {
+            String sql = "ALTER TABLE " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE)
+                    + "ALTER COLUMN " + randomizedColumns[i]
+                    + " COLLATE Latin1_General_BIN2 ENCRYPTED WITH (COLUMN_ENCRYPTION_KEY = " + Constants.CEK_NAME
+                    + ",ENCRYPTION_TYPE = Deterministic, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256')";
+            try {
+                stmt.execute(sql);
+                stmt.execute("DBCC FREEPROCCACHE");
+            } catch (SQLException e) {
+                fail(e.getMessage());
+            }
+        }
     }
 
     private void Compare(String expectedValue, String value1, String value2, String value3) {
