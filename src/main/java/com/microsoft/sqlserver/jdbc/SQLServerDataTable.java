@@ -393,8 +393,8 @@ public final class SQLServerDataTable {
             for (Entry<Integer, Object[]> e : rows.entrySet()) {
                 Integer key = e.getKey();
                 Object[] value = e.getValue();
-                if (value == null) {
-                    if (!(otherRows.get(key) == null && otherRows.containsKey(key))) {
+                if (null == value) {
+                    if (!(null == otherRows.get(key) && otherRows.containsKey(key))) {
                         return false;
                     }
                 } else {
