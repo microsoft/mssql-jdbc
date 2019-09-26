@@ -37,7 +37,7 @@ public final class Constants {
     public static final String xAzureSQLDW = "xAzureSQLDW";
     public static final String xAzureSQLMI = "xAzureSQLMI";
     public static final String NTLM = "NTLM";
-    public static final String XA = "XA";
+    public static final String reqExternalSetup = "reqExternalSetup";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");
