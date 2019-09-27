@@ -49,10 +49,11 @@
 			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
-			NTLM - - - - - - For tests using NTLM Authentication mode (excluded by default) 
+			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
+			reqExternalSetup  - For tests requiring external setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv14) -->
-		<excludedGroups>xSQLv15, NTLM</excludedGroups>
+		<excludedGroups>xSQLv15, NTLM, reqExternalSetup</excludedGroups>
 
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.1</azure.keyvault.version>

@@ -31,7 +31,7 @@ allprojects {
 
 test {
     useJUnitPlatform {
-        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM')
+        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM')
     }
 }
 
@@ -70,7 +70,7 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	targetCompatibility = 1.8
 	test {
 		useJUnitPlatform {
-			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','xJDBC42')
+			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','xJDBC42')
 		}
 	}
 }
