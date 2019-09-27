@@ -270,7 +270,6 @@ class CryptoMetadata {
     }
 }
 
-
 // Fields in the first resultset of "sp_describe_parameter_encryption"
 // We expect the server to return the fields in the resultset in the same order as mentioned below.
 // If the server changes the below order, then transparent parameter encryption will break.

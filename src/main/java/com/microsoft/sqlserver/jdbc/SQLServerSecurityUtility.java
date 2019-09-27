@@ -216,6 +216,11 @@ class SQLServerSecurityUtility {
 
         // There is no connection provider of this name, check for the global system providers.
         if (null == provider) {
+            provider = SQLServerConnection.getGlobalSystemColumnEncryptionKeyStoreProvider(keyStoreName);
+        }
+
+        // There is no global system provider of this name, check for the global custom providers.
+        if (null == provider) {
             provider = SQLServerConnection.getGlobalCustomColumnEncryptionKeyStoreProvider(keyStoreName);
         }
 

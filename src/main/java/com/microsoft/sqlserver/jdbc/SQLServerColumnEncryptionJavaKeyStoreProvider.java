@@ -319,7 +319,8 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
     /*
      * Verify signature against certificate
      */
-    private boolean rsaVerifySignature(byte[] dataToVerify, byte[] signature, CertificateDetails certificateDetails) throws SQLServerException {
+    private boolean rsaVerifySignature(byte[] dataToVerify, byte[] signature,
+            CertificateDetails certificateDetails) throws SQLServerException {
         try {
             Signature sig = Signature.getInstance("SHA256withRSA");
             sig.initSign((PrivateKey) certificateDetails.privateKey);
@@ -337,14 +338,14 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
     }
-    
+
     @Override
     public boolean verifyColumnMasterKeyMetadata(String masterKeyPath, boolean allowEnclaveComputations,
             byte[] signature) throws SQLServerException {
-        
+
         if (!allowEnclaveComputations)
             return false;
-        
+
         KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
         CertificateDetails certificateDetails = getCertificateDetails(masterKeyPath);
 
@@ -352,7 +353,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(name.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
             md.update(masterKeyPath.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-            // value of allowEnclaveComputations is true
+            // value of allowEnclaveComputations is always true here
             md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
             return rsaVerifySignature(md.digest(), signature, certificateDetails);
 
@@ -360,6 +361,5 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
         }
     }
-
 
 }
