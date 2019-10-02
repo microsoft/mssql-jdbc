@@ -179,5 +179,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_incorrectSyntaxTableDW", "Incorrect syntax near 'table'."},
             {"R_ConnectionStringNull", "Connection String should not be null"},
             {"R_OperandTypeClash", "Operand type clash"},
-            {"R_NoPrivilege", "The EXECUTE permission was denied on the object {0}"}};
+            {"R_NoPrivilege", "The EXECUTE permission was denied on the object {0}"},
+            {"R_resultSetEmpty", "Result set is empty."}};
 }
