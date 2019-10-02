@@ -289,8 +289,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 try (SQLServerStatement s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
                         ResultSet.CONCUR_READ_ONLY);
                         SQLServerResultSet rsProcedureMeta = s.executeQueryInternal(
-                                con.isKatmaiOrLater() ? "exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3"
-                                                      : "exec sp_sproc_columns " + sProc + ", @ODBCVer=3")) {
+                                con.isKatmaiOrLater() ? "exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3, @fUsePattern=0"
+                                                      : "exec sp_sproc_columns " + sProc + ", @ODBCVer=3, @fUsePattern=0")) {
 
                     // if rsProcedureMeta has next row, it means the stored procedure is found
                     if (rsProcedureMeta.next()) {
