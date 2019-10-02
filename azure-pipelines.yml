@@ -35,14 +35,14 @@ jobs:
     inputs:
       secureFile: 'pkcs12_truststore'
   - task: Maven@3
-    displayName: 'Maven build jre12'
+    displayName: 'Maven build jre13'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre12 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath)'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre13 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath)'
       testResultsFiles: '**/TEST-*.xml'
-      testRunTitle: 'Maven build jre12'
+      testRunTitle: 'Maven build jre13'
       javaHomeOption: Path
-      jdkDirectory: $(JDK12)
+      jdkDirectory: $(JDK13)
   - task: Maven@3
     displayName: 'Maven build jre11'
     inputs:
@@ -51,7 +51,7 @@ jobs:
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build jre11'
       javaHomeOption: Path
-      jdkDirectory: $(JDK12)
+      jdkDirectory: $(JDK13)
   - task: Maven@3
     displayName: 'Maven build jre8'
     inputs:
@@ -60,4 +60,4 @@ jobs:
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build jre8'
       javaHomeOption: Path
-      jdkDirectory: $(JDK12)
+      jdkDirectory: $(JDK13)

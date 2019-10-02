@@ -274,12 +274,12 @@
 			</build>
 		</profile>
 		<profile>
-			<id>jre12</id>
+			<id>jre13</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre12-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre13-preview</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -289,8 +289,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>12</source>
-							<target>12</target>
+							<source>13</source>
+							<target>13</target>
 						</configuration>
 					</plugin>
 					<plugin>
