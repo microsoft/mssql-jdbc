@@ -11,6 +11,8 @@ import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.BatchUpdateException;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
@@ -556,7 +558,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
 
-        if (!isInternalEncryptionQuery) {
+        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && !isInternalEncryptionQuery) {
 
             // retrieve parameter encryption metadata if they are not retrieved yet
             if (!encryptionMetadataIsRetrieved) {
@@ -753,6 +755,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeRPCInt(null, getPreparedStatementHandle(), true);
         resetPrepStmtHandle(false);
 
+        sendEnclavePackage(tdsWriter, preparedSQL);
+
         // <formal parameter defn> IN
         tdsWriter.writeRPCStringUnicode((preparedTypeDefinitions.length() > 0) ? preparedTypeDefinitions : null);
 
@@ -777,9 +781,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // No handle used.
         resetPrepStmtHandle(false);
 
-        if (this.connection.enclaveAttestationUrl != null) {
-            tdsWriter.writeBytes(new byte[] {0x0, 0x0});
-        }
+        sendEnclavePackage(tdsWriter, preparedSQL);
 
         // <stmt> IN
         tdsWriter.writeRPCStringUnicode(preparedSQL);
@@ -848,7 +850,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
          * is defined as nvarchar(<size of string>). Same for varchar datatypes, exact length is used.
          */
         SQLServerResultSet rs = null;
-        SQLServerPreparedStatement stmt = null;
+        SQLServerCallableStatement stmt = null;
 
         assert connection != null : "Connection should not be null";
 
@@ -858,16 +860,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
             }
 
-            stmt = (SQLServerPreparedStatement) connection
-                    .prepareStatement("EXEC sp_describe_parameter_encryption ?,?,?");
+            stmt = (SQLServerCallableStatement) connection.prepareCall("exec sp_describe_parameter_encryption ?,?");
             stmt.isInternalEncryptionQuery = true;
-            stmt.setNString(1, this.preparedSQL);
-            if (preparedTypeDefinitions != null && preparedTypeDefinitions.length() != 0) {
-                stmt.setNString(2, preparedTypeDefinitions);
-            } else {
-                stmt.setNString(2, "");
-            }
-            stmt.setBytes(3, this.connection.getAttestationParameters());
+            stmt.setNString(1, preparedSQL);
+            stmt.setNString(2, preparedTypeDefinitions);
             rs = (SQLServerResultSet) stmt.executeQueryInternal();
         } catch (SQLException e) {
             if (e instanceof SQLServerException) {
@@ -886,7 +882,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         Map<Integer, CekTableEntry> cekList = new HashMap<>();
         CekTableEntry cekEntry = null;
-        boolean isRequestedByEnclave = false;
         try {
             while (rs.next()) {
                 int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
@@ -896,32 +891,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 } else {
                     cekEntry = cekList.get(currentOrdinal);
                 }
-
-                String keyStoreName = rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value());
-                String algo = rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value());
-                String keyPath = rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value());
-
                 cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
                         rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
                         rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
                         rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
-                        rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()), keyPath, keyStoreName,
-                        algo);
-
-                // servers supporting enclave computations should always return a boolean indicating whether the key is
-                // required by enclave or not.
-                if (ColumnEncryptionVersion.AE_v2.value() <= connection.getServerColumnEncryptionVersion().value()) {
-                    isRequestedByEnclave = rs
-                            .getBoolean(DescribeParameterEncryptionResultSet1.IsRequestedByEnclave.value());
-                }
-
-                if (isRequestedByEnclave) {
-                    byte[] keySignature = rs
-                            .getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value());
-                    String serverName = connection.getTrustedServerNameAE();
-                    SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, keyStoreName, keyPath,
-                            serverName, isRequestedByEnclave, keySignature);
-                }
+                        rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
+                        rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
+                        rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
+                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
             }
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Matadata of CEKs is retrieved.");
@@ -936,7 +913,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // Process the second resultset.
-        if (!stmt.getMoreResults() && !this.connection.isAEv2()) {
+        if (!stmt.getMoreResults()) {
             throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null,
                     0, false);
         }
@@ -997,15 +974,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MissingParamEncryptionMetadata"));
             Object[] msgArgs = {userSQL};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-        }
-
-        // Process the third resultset.
-        if (this.connection.isAEv2() && stmt.getMoreResults()) {
-            rs = (SQLServerResultSet) stmt.getResultSet();
-            while (rs.next()) {
-                // This validates and establishes the enclave session if valid
-                this.connection.validateAttestationResponse(rs.getBytes(1));
-            }
         }
 
         // Null check for rs is done already.

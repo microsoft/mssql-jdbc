@@ -9,10 +9,12 @@ import static java.nio.charset.StandardCharsets.UTF_16LE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.HttpURLConnection;
@@ -20,7 +22,13 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -48,6 +56,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
@@ -55,6 +64,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.sql.XAConnection;
 
 import org.ietf.jgss.GSSCredential;
@@ -6416,18 +6431,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     ISQLServerEnclaveProvider enclaveProvider = new SQLServerVSMEnclaveProvider();
+    ArrayList<byte[]> enclaveCEKs = new ArrayList<>();
 
-    byte[] getAttestationParameters() throws SQLServerException {
+    void establishEnclaveSession(String userSql, String preparedTypeDefinitions, Parameter[] params,
+            ArrayList<String> parameterNames) {
         try {
-            return enclaveProvider.getAttestationParamters(false, this.enclaveAttestationUrl).getBytes();
-        } catch (NoSuchAlgorithmException e) {
-            SQLServerException.makeFromDriverError(this, enclaveProvider, e.getLocalizedMessage(), "0", false);
+            enclaveProvider.getAttestationParamters(false, this.enclaveAttestationUrl);
+            enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
+        } catch (SQLServerException | NoSuchAlgorithmException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
-        return null;
     }
 
-    public void validateAttestationResponse(byte[] b) throws SQLServerException {
-        enclaveProvider.createEnclaveSession(b);
+    boolean enclaveEstablished() {
+        return (null != enclaveProvider.getEnclaveSession());
+    }
+
+    byte[] generateEncalvePackage(String userSQL) {
+        return enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs);
     }
 }
 

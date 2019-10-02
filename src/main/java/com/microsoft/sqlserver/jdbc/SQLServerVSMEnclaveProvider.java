@@ -3,6 +3,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -13,6 +14,7 @@ import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -22,8 +24,17 @@ import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.crypto.KeyAgreement;
 
@@ -31,28 +42,28 @@ import javax.crypto.KeyAgreement;
 public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
 
     private VSMAttestationParameters vsmParams = null;
+    private AttestationResponse hgsResponse = null;
     private String attestationURL = null;
     EnclaveSession enclaveSession = null;
 
     @Override
-    public VSMAttestationParameters getAttestationParamters(boolean createNewParameters,
-            String url) throws NoSuchAlgorithmException {
+    public void getAttestationParamters(boolean createNewParameters, String url) throws NoSuchAlgorithmException {
         if (null == vsmParams || createNewParameters) {
             attestationURL = url;
             vsmParams = new VSMAttestationParameters();
         }
-        return vsmParams;
     }
 
     @Override
-    public void createEnclaveSession(byte[] b) throws SQLServerException {
-        AttestationResponse ar = new AttestationResponse(b);
+    public void createEnclaveSession(SQLServerConnection connection, String userSql, String preparedTypeDefinitions,
+            Parameter[] params, ArrayList<String> parameterNames) throws SQLServerException {
+        describeParameterEncryption(connection, userSql, preparedTypeDefinitions, params, parameterNames);
         try {
-            byte[] attestationCerts = getAttestationCertificates();
-            ar.validateCert(attestationCerts);
-            enclaveSession = new EnclaveSession(ar.getSessionID(), vsmParams.createSessionSecret(ar.DHpublicKey));
-        } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+            enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
+                    vsmParams.createSessionSecret(hgsResponse.DHpublicKey));
+        } catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
     }
 
@@ -68,6 +79,49 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         return enclaveSession;
     }
 
+    private AttestationResponse validateAttestationResponse(byte[] b) throws SQLServerException {
+        AttestationResponse ar = new AttestationResponse(b);
+        try {
+            byte[] attestationCerts = getAttestationCertificates();
+            ar.validateCert(attestationCerts);
+        } catch (IOException e) {
+            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+        }
+        return ar;
+    }
+
+    public byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) {
+        if (null != enclaveSession) {
+            try {
+                ByteArrayOutputStream enclavePackage = new ByteArrayOutputStream();
+                enclavePackage.writeBytes(enclaveSession.getSessionID());
+                ByteArrayOutputStream keys = new ByteArrayOutputStream();
+                byte[] randomGUID = new byte[16];
+                SecureRandom.getInstanceStrong().nextBytes(randomGUID);
+                keys.writeBytes(randomGUID);
+                keys.writeBytes(ByteBuffer.allocate(8).putLong(enclaveSession.getCounter()).array());
+                keys.writeBytes(MessageDigest.getInstance("SHA-256").digest(userSQL.getBytes("UTF-16LE")));
+                for (byte[] b : enclaveCEKs) {
+                    keys.writeBytes(b);
+                }
+                enclaveCEKs.clear();
+                SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
+                        enclaveSession.getSessionSecret(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
+                SQLServerAeadAes256CbcHmac256Algorithm algo = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey,
+                        SQLServerEncryptionType.Randomized, (byte) 0x1);
+                enclavePackage.writeBytes(algo.encryptData(keys.toByteArray()));
+                return enclavePackage.toByteArray();
+            } catch (NoSuchAlgorithmException | SQLServerException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (UnsupportedEncodingException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
     private byte[] getAttestationCertificates() throws IOException {
         java.net.URL url = new java.net.URL(attestationURL + "/attestationservice.svc/v2.0/signingCertificates/");
         java.net.URLConnection con = url.openConnection();
@@ -79,6 +133,181 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             certData[i] = (byte) (Integer.parseInt(bytesString[i]));
         }
         return certData;
+    }
+
+    private void describeParameterEncryption(SQLServerConnection connection, String userSql,
+            String preparedTypeDefinitions, Parameter[] params,
+            ArrayList<String> parameterNames) throws SQLServerException {
+        // if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+        // getStatementLogger().fine(
+        // "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
+        // }
+        ResultSet rs = null;
+        try (PreparedStatement stmt = connection.prepareStatement("EXEC sp_describe_parameter_encryption ?,?,?")) {
+            ((SQLServerPreparedStatement) stmt).isInternalEncryptionQuery = true;
+            stmt.setNString(1, userSql);
+            if (preparedTypeDefinitions != null && preparedTypeDefinitions.length() != 0) {
+                stmt.setNString(2, preparedTypeDefinitions);
+            } else {
+                stmt.setNString(2, "");
+            }
+            stmt.setBytes(3, vsmParams.getBytes());
+            rs = ((SQLServerPreparedStatement) stmt).executeQueryInternal();
+
+            if (null == rs) {
+                // No results. Meaning no parameter.
+                // Should never happen.
+                return;
+            }
+
+            Map<Integer, CekTableEntry> cekList = new HashMap<>();
+            CekTableEntry cekEntry = null;
+            boolean isRequestedByEnclave = false;
+            try {
+                while (rs.next()) {
+                    int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
+                    if (!cekList.containsKey(currentOrdinal)) {
+                        cekEntry = new CekTableEntry(currentOrdinal);
+                        cekList.put(cekEntry.ordinal, cekEntry);
+                    } else {
+                        cekEntry = cekList.get(currentOrdinal);
+                    }
+
+                    String keyStoreName = rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value());
+                    String algo = rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value());
+                    String keyPath = rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value());
+
+                    int dbID = rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value());
+                    byte[] mdVer = rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value());
+                    int keyID = rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value());
+                    byte[] encryptedKey = rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value());
+
+                    cekEntry.add(encryptedKey, dbID, keyID,
+                            rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()), mdVer, keyPath,
+                            keyStoreName, algo);
+
+                    // servers supporting enclave computations should always return a boolean indicating whether the key
+                    // is
+                    // required by enclave or not.
+                    if (ColumnEncryptionVersion.AE_v2.value() <= connection.getServerColumnEncryptionVersion()
+                            .value()) {
+                        isRequestedByEnclave = rs
+                                .getBoolean(DescribeParameterEncryptionResultSet1.IsRequestedByEnclave.value());
+                    }
+
+                    if (isRequestedByEnclave) {
+                        byte[] keySignature = rs
+                                .getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value());
+                        String serverName = connection.getTrustedServerNameAE();
+                        SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, keyStoreName, keyPath,
+                                serverName, isRequestedByEnclave, keySignature);
+
+                        SQLServerColumnEncryptionKeyStoreProvider provider = SQLServerConnection
+                                .getGlobalCustomColumnEncryptionKeyStoreProvider(keyStoreName);
+                        if (null == provider) {
+                            provider = connection.getSystemColumnEncryptionKeyStoreProvider(keyStoreName);
+                        }
+                        if (null == provider) {
+                            provider = SQLServerConnection
+                                    .getGlobalSystemColumnEncryptionKeyStoreProvider(keyStoreName);
+                        }
+                        // DBID(4) + MDVER(8) + KEYID(2) + CEK(32) = 46
+                        ByteBuffer aev2CekEntry = ByteBuffer.allocate(46);
+                        aev2CekEntry.putInt(dbID);
+                        aev2CekEntry.put(mdVer);
+                        aev2CekEntry.putShort((short) keyID);
+                        aev2CekEntry.put(provider.decryptColumnEncryptionKey(keyPath, algo, encryptedKey));
+                        connection.enclaveCEKs.add(aev2CekEntry.array());
+                    }
+                }
+                // if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                // getStatementLogger().fine("Matadata of CEKs is retrieved.");
+                // }
+            } catch (SQLException e) {
+                if (e instanceof SQLServerException) {
+                    throw (SQLServerException) e;
+                } else {
+                    throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"),
+                            null, 0, e);
+                }
+            }
+
+            // Process the second resultset.
+            if (!stmt.getMoreResults()) {
+                throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"),
+                        null, 0, false);
+            }
+
+            // Parameter count in the result set.
+            int paramCount = 0;
+            try {
+                rs = (SQLServerResultSet) stmt.getResultSet();
+                while (rs.next()) {
+                    paramCount++;
+                    String paramName = rs.getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
+                    int paramIndex = parameterNames.indexOf(paramName);
+                    int cekOrdinal = rs
+                            .getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionKeyOrdinal.value());
+                    cekEntry = cekList.get(cekOrdinal);
+
+                    // cekEntry will be null if none of the parameters are encrypted.
+                    if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_InvalidEncryptionKeyOridnal"));
+                        Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
+                        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                    }
+                    SQLServerEncryptionType encType = SQLServerEncryptionType
+                            .of((byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
+                    if (SQLServerEncryptionType.PlainText != encType) {
+                        params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
+                                (byte) rs.getInt(
+                                        DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
+                                null, encType.value, (byte) rs.getInt(
+                                        DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
+                        // Decrypt the symmetric key.(This will also validate and throw if needed).
+                        SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
+                    } else {
+                        if (params[paramIndex].getForceEncryption()) {
+                            MessageFormat form = new MessageFormat(SQLServerException
+                                    .getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
+                            Object[] msgArgs = {userSql, paramIndex + 1};
+                            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
+                        }
+                    }
+                }
+                // if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                // getStatementLogger().fine("Parameter encryption metadata is set.");
+                // }
+            } catch (SQLException e) {
+                if (e instanceof SQLServerException) {
+                    throw (SQLServerException) e;
+                } else {
+                    throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"),
+                            null, 0, e);
+                }
+            }
+
+            // Process the third resultset.
+            if (connection.isAEv2() && stmt.getMoreResults()) {
+                rs = (SQLServerResultSet) stmt.getResultSet();
+                while (rs.next()) {
+                    // This validates and establishes the enclave session if valid
+                    hgsResponse = validateAttestationResponse(rs.getBytes(1));
+                }
+            }
+
+            // Null check for rs is done already.
+            rs.close();
+        } catch (SQLException e) {
+            if (e instanceof SQLServerException) {
+                throw (SQLServerException) e;
+            } else {
+                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
+                        0, e);
+            }
+        }
+        // connection.resetCurrentCommand();
     }
 }
 
@@ -138,7 +367,7 @@ class VSMAttestationParameters extends BaseAttestationRequest {
         ByteBuffer sr = ByteBuffer.wrap(serverResponse);
         byte[] magic = new byte[8];
         sr.get(magic);
-        if (!Arrays.equals(magic,ECDH_MAGIC)) {
+        if (!Arrays.equals(magic, ECDH_MAGIC)) {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_MalformedECDHHeader"),
                     "0", false);
         }
@@ -173,7 +402,7 @@ class AttestationResponse {
     byte[] enclaveReportPackage;
 
     int sessionInfoSize;
-    long sessionID;
+    byte[] sessionID = new byte[8];
     int DHPKsize;
     int DHPKSsize;
     byte[] DHpublicKey;
@@ -197,7 +426,7 @@ class AttestationResponse {
         response.get(enclaveReportPackage, 0, enclaveReportSize);
 
         this.sessionInfoSize = response.getInt();
-        this.sessionID = response.getLong();
+        response.get(sessionID, 0, 8);
         this.DHPKsize = response.getInt();
         this.DHPKSsize = response.getInt();
 
@@ -240,7 +469,7 @@ class AttestationResponse {
         return false;
     }
 
-    long getSessionID() {
+    byte[] getSessionID() {
         return sessionID;
     }
 }
