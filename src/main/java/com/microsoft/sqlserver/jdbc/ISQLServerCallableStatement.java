@@ -559,8 +559,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         method is called on a closed <code>CallableStatement</code>
      * @see #getTime
      */
-    void setTime(String parameterName, java.sql.Time value, int scale,
-            boolean forceEncrypt) throws SQLServerException;
+    void setTime(String parameterName, java.sql.Time value, int scale, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value. The driver converts this to an
@@ -592,8 +591,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setDateTime(String parameterName, java.sql.Timestamp value,
-            boolean forceEncrypt) throws SQLServerException;
+    void setDateTime(String parameterName, java.sql.Timestamp value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value. The driver converts this to an
@@ -796,8 +794,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setBigDecimal(String parameterName, BigDecimal value, int precision,
-            int scale) throws SQLServerException;
+    void setBigDecimal(String parameterName, BigDecimal value, int precision, int scale) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to
@@ -942,8 +939,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    void setStructured(String parameterName, String tvpName,
-            SQLServerDataTable tvpDataTable) throws SQLServerException;
+    void setStructured(String parameterName, String tvpName, SQLServerDataTable tvpDataTable) throws SQLServerException;
 
     /**
      * Populates a table valued parameter passed to a stored procedure with a ResultSet retrieved from another table
@@ -957,8 +953,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    void setStructured(String parameterName, String tvpName,
-            java.sql.ResultSet tvpResultSet) throws SQLServerException;
+    void setStructured(String parameterName, String tvpName, java.sql.ResultSet tvpResultSet) throws SQLServerException;
 
     /**
      * Populates a table valued parameter passed to a stored procedure with an ISQLServerDataRecord object.
@@ -1017,8 +1012,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         If any errors occur.
      */
-    void registerOutParameter(int parameterIndex, SQLType sqlType, int precision,
-            int scale) throws SQLServerException;
+    void registerOutParameter(int parameterIndex, SQLType sqlType, int precision, int scale) throws SQLServerException;
 
     /**
      * Registers the parameter in ordinal position index to be of JDBC type sqlType. All OUT parameters must be
@@ -1039,8 +1033,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         If any errors occur.
      */
-    void registerOutParameter(int parameterIndex, int sqlType, int precision,
-            int scale) throws SQLServerException;
+    void registerOutParameter(int parameterIndex, int sqlType, int precision, int scale) throws SQLServerException;
 
     /**
      * Registers the parameter in ordinal position index to be of JDBC type sqlType. All OUT parameters must be
@@ -1061,8 +1054,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         If any errors occur.
      */
-    void registerOutParameter(String parameterName, int sqlType, int precision,
-            int scale) throws SQLServerException;
+    void registerOutParameter(String parameterName, int sqlType, int precision, int scale) throws SQLServerException;
 
     /**
      * Sets the value of the designated parameter with the given object.

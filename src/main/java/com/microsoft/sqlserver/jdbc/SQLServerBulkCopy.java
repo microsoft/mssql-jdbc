@@ -2074,7 +2074,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         tdsWriter.writeDouble((float) colValue);
                     }
                     break;
-                    
+
                 case java.sql.Types.DOUBLE:
                     if (null == colValue) {
                         writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
@@ -3362,7 +3362,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     Float floatValue = (value instanceof String) ? Float.parseFloat((String) value) : (Float) value;
                     return ByteBuffer.allocate((Float.SIZE / Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN)
                             .putFloat(floatValue).array();
-                    
+
                 case FLOAT:
                 case DOUBLE:
                     Double doubleValue = (value instanceof String) ? Double.parseDouble((String) value)

@@ -836,8 +836,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    void updateTimestamp(int index, java.sql.Timestamp x, int scale,
-            boolean forceEncrypt) throws SQLServerException;
+    void updateTimestamp(int index, java.sql.Timestamp x, int scale, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
@@ -887,8 +886,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    void updateDateTime(int index, java.sql.Timestamp x, Integer scale,
-            boolean forceEncrypt) throws SQLServerException;
+    void updateDateTime(int index, java.sql.Timestamp x, Integer scale, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
@@ -953,8 +951,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x,
-            Integer scale) throws SQLServerException;
+    void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x, Integer scale) throws SQLServerException;
 
     /**
      * Updates the value of the column specified to the DateTimeOffset Class value, given a zero-based column ordinal.
@@ -1029,8 +1026,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    void updateObject(int index, Object x, int precision, int scale,
-            boolean forceEncrypt) throws SQLServerException;
+    void updateObject(int index, Object x, int precision, int scale, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>boolean</code> value. The updater methods are used to update column
@@ -1194,8 +1190,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    void updateBigDecimal(String columnName, BigDecimal x, Integer precision,
-            Integer scale) throws SQLServerException;
+    void updateBigDecimal(String columnName, BigDecimal x, Integer precision, Integer scale) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.BigDecimal</code> value. The updater methods are used to
@@ -1311,8 +1306,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    void updateTime(String columnName, java.sql.Time x, int scale,
-            boolean forceEncrypt) throws SQLServerException;
+    void updateTime(String columnName, java.sql.Time x, int scale, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
@@ -1465,8 +1459,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x,
-            int scale) throws SQLServerException;
+    void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException;
 
     /**
      * Updates the value of the column specified to the DateTimeOffset Class value, given a column name.
