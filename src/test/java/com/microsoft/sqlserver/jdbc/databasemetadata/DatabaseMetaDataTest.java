@@ -353,27 +353,47 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     fail(form1.format(msgArgs1));
                 } else {
                     try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "%")) {
-                        MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-                        Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"Data Type"}, {"Type"},
-                                {"Column Size"}, {"Nullable value"}, {"IS_NULLABLE"}, {"IS_AUTOINCREMENT"}};
-                        while (rs1.next()) {
-                            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
-                            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
-                            assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
-                            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
-                            assertTrue(!StringUtils.isEmpty(rs1.getString("DATA_TYPE")), form2.format(msgArgs2[4]));
-                            assertTrue(!StringUtils.isEmpty(rs1.getString("TYPE_NAME")), form2.format(msgArgs2[5]));
-                            assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_SIZE")), form2.format(msgArgs2[6]));
-                            assertTrue(!StringUtils.isEmpty(rs1.getString("NULLABLE")), form2.format(msgArgs2[7])); // 11
-                            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 18
-                            assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")),
-                                    form2.format(msgArgs2[9])); // 22
-                        }
+                        testGetDBColumnInternal(rs1, databaseMetaData);
+                    }
+                    
+                    try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "col\\_1")) {
+                        testGetDBColumnInternal(rs1, databaseMetaData);
+                    }
+                    
+                    try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "col\\%2")) {
+                        testGetDBColumnInternal(rs1, databaseMetaData);
+                    }
+                    
+                    try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "col\\[3")) {
+                        testGetDBColumnInternal(rs1, databaseMetaData);
                     }
                 }
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
+    }
+
+    private void testGetDBColumnInternal(ResultSet rs1, DatabaseMetaData databaseMetaData) throws SQLException {
+        MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+        Object[][] msgArgs2 = {{"Category"}, {"SCHEMA"}, {"Table"}, {"COLUMN"}, {"Data Type"}, {"Type"},
+                {"Column Size"}, {"Nullable value"}, {"IS_NULLABLE"}, {"IS_AUTOINCREMENT"}};
+        if (!rs1.next()) {
+            fail(TestResource.getResource("R_resultSetEmpty"));
+        } else {
+            do {
+                assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_CAT")), form2.format(msgArgs2[0]));
+                assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_SCHEM")), form2.format(msgArgs2[1]));
+                assertTrue(!StringUtils.isEmpty(rs1.getString("TABLE_NAME")), form2.format(msgArgs2[2]));
+                assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_NAME")), form2.format(msgArgs2[3]));
+                assertTrue(!StringUtils.isEmpty(rs1.getString("DATA_TYPE")), form2.format(msgArgs2[4]));
+                assertTrue(!StringUtils.isEmpty(rs1.getString("TYPE_NAME")), form2.format(msgArgs2[5]));
+                assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_SIZE")), form2.format(msgArgs2[6]));
+                assertTrue(!StringUtils.isEmpty(rs1.getString("NULLABLE")), form2.format(msgArgs2[7])); // 11
+                assertTrue(!StringUtils.isEmpty(rs1.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 18
+                assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")),
+                        form2.format(msgArgs2[9])); // 22
+            } while (rs1.next());
         }
     }
 
@@ -592,7 +612,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     public static void setupTable() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (col1 int NOT NULL, col2 varchar(200), col3 decimal(15,2))");
+                    + " ([col_1] int NOT NULL, [col%2] varchar(200), [col[3] decimal(15,2))");
             stmt.execute("CREATE FUNCTION " + AbstractSQLGenerator.escapeIdentifier(functionName)
                     + " (@p1 INT, @p2 INT) RETURNS INT AS BEGIN DECLARE @result INT; SET @result = @p1 + @p2; RETURN @result; END");
         }

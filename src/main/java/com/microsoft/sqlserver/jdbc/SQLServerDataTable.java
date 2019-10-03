@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -333,5 +334,80 @@ public final class SQLServerDataTable {
      */
     public void setTvpName(String tvpName) {
         this.tvpName = tvpName;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 31 * hash + rowCount;
+        hash = 31 * hash + columnCount;
+        hash = 31 * hash + (null != columnMetadata ? columnMetadata.hashCode() : 0);
+        hash = 31 * hash + (null != columnNames ? columnNames.hashCode() : 0);
+        hash = 31 * hash + getRowsHashCode();
+        hash = 31 * hash + (null != tvpName ? tvpName.hashCode() : 0);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (null != object && object.getClass() == SQLServerDataTable.class) {
+            SQLServerDataTable aSQLServerDataTable = (SQLServerDataTable) object;
+            if (hashCode() == aSQLServerDataTable.hashCode()) {
+
+                // Compare objects to avoid collision
+                boolean equalColumnMetadata = columnMetadata.equals(aSQLServerDataTable.columnMetadata);
+                boolean equalColumnNames = columnNames.equals(aSQLServerDataTable.columnNames);
+                boolean equalRowData = compareRows(aSQLServerDataTable.rows);
+
+                return (rowCount == aSQLServerDataTable.rowCount && columnCount == aSQLServerDataTable.columnCount
+                        && tvpName == aSQLServerDataTable.tvpName && equalColumnMetadata && equalColumnNames
+                        && equalRowData);
+            }
+        }
+        return false;
+    }
+
+    private int getRowsHashCode() {
+        if (null == rows) {
+            return 0;
+        }
+        int h = 0;
+        for (Entry<Integer, Object[]> entry : rows.entrySet()) {
+            h += entry.getKey() ^ Arrays.hashCode(entry.getValue());
+        }
+        return h;
+    }
+
+    private boolean compareRows(Map<Integer, Object[]> otherRows) {
+        if (rows == otherRows) {
+            return true;
+        }
+        if (rows.size() != otherRows.size()) {
+            return false;
+        }
+        try {
+            for (Entry<Integer, Object[]> e : rows.entrySet()) {
+                Integer key = e.getKey();
+                Object[] value = e.getValue();
+                if (null == value) {
+                    if (!(null == otherRows.get(key) && otherRows.containsKey(key))) {
+                        return false;
+                    }
+                } else {
+                    if (!Arrays.equals(value, otherRows.get(key))) {
+                        return false;
+                    }
+                }
+            }
+        } catch (ClassCastException unused) {
+            return false;
+        } catch (NullPointerException unused) {
+            return false;
+        }
+        return true;
     }
 }
