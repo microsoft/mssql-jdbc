@@ -13,7 +13,11 @@ import java.time.format.DateTimeFormatter;
  * SQLServerBulkCopy class to write the data to SQL Server tables.
  * 
  * This interface is implemented by {@link SQLServerBulkRecord} Class
+ *
+ * @deprecated as of 7.5.0, because the interface contains methods which are not called as part of actual bulk copy
+ *             process. Use {@link ISQLServerBulkData}} instead.
  */
+@Deprecated
 public interface ISQLServerBulkRecord extends ISQLServerBulkData {
     /**
      * Returns whether the column represents an identity column.
