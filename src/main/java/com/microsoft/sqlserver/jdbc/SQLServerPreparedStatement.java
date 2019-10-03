@@ -558,7 +558,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
 
-        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && !isInternalEncryptionQuery) {
+        if (connection.isAEv2() && !connection.enclaveEstablished() && !isInternalEncryptionQuery) {
+            connection.establishEnclaveSession(preparedSQL, preparedTypeDefinitions, inOutParam, parameterNames);
+        } else if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection))
+                && !isInternalEncryptionQuery) {
 
             // retrieve parameter encryption metadata if they are not retrieved yet
             if (!encryptionMetadataIsRetrieved) {

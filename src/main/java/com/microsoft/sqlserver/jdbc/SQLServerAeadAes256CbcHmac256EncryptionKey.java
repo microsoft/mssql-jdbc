@@ -22,8 +22,6 @@ class SQLServerAeadAes256CbcHmac256EncryptionKey extends SQLServerSymmetricKey {
 
     // This is the key size in the bits, since we are using AES256, it will 256
     static final int keySize = 256;
-    // Name of algorithm associated with this key
-    private final String algorithmName;
     // Salt used to derive encryption key
     private String encryptionKeySaltFormat;
     // Salt used to derive mac key
@@ -43,19 +41,15 @@ class SQLServerAeadAes256CbcHmac256EncryptionKey extends SQLServerSymmetricKey {
      *        name of the algorithm associated with keys
      * @throws SQLServerException
      */
-    SQLServerAeadAes256CbcHmac256EncryptionKey(byte[] rootKey, String algorithmName) throws SQLServerException {
+    SQLServerAeadAes256CbcHmac256EncryptionKey(byte[] rootKey) throws SQLServerException {
         super(rootKey);
-        this.algorithmName = algorithmName;
-        encryptionKeySaltFormat = "Microsoft SQL Server cell encryption key with encryption algorithm:"
-                + this.algorithmName + " and key length:" + keySize;
-        macKeySaltFormat = "Microsoft SQL Server cell MAC key with encryption algorithm:" + this.algorithmName
-                + " and key length:" + keySize;
-        ivKeySaltFormat = "Microsoft SQL Server cell IV key with encryption algorithm:" + this.algorithmName
-                + " and key length:" + keySize;
+        encryptionKeySaltFormat = "Microsoft SQL Server cell encryption key with encryption algorithm:AEAD_AES_256_CBC_HMAC_SHA256 and key length:256";
+        macKeySaltFormat = "Microsoft SQL Server cell MAC key with encryption algorithm:AEAD_AES_256_CBC_HMAC_SHA256 and key length:256";
+        ivKeySaltFormat = "Microsoft SQL Server cell IV key with encryption algorithm:AEAD_AES_256_CBC_HMAC_SHA256 and key length:256";
         int keySizeInBytes = (keySize / 8);
         if (rootKey.length != keySizeInBytes) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidKeySize"));
-            Object[] msgArgs = {rootKey.length, keySizeInBytes, this.algorithmName};
+            Object[] msgArgs = {rootKey.length, keySizeInBytes};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 
         }

@@ -49,7 +49,7 @@ class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmF
 
         if (!encryptionAlgorithms.containsKey(factoryKey)) {
             SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
-                    columnEncryptionKey.getRootKey(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
+                    columnEncryptionKey.getRootKey());
             aesAlgorithm = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey, encryptionType, algorithmVersion);
             encryptionAlgorithms.putIfAbsent(factoryKey, aesAlgorithm);
         }

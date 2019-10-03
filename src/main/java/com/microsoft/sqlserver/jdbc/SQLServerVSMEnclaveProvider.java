@@ -7,6 +7,8 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -21,14 +23,13 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,7 +48,8 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     EnclaveSession enclaveSession = null;
 
     @Override
-    public void getAttestationParamters(boolean createNewParameters, String url) throws NoSuchAlgorithmException {
+    public void getAttestationParamters(boolean createNewParameters,
+            String url) throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
         if (null == vsmParams || createNewParameters) {
             attestationURL = url;
             vsmParams = new VSMAttestationParameters();
@@ -58,12 +60,14 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     public void createEnclaveSession(SQLServerConnection connection, String userSql, String preparedTypeDefinitions,
             Parameter[] params, ArrayList<String> parameterNames) throws SQLServerException {
         describeParameterEncryption(connection, userSql, preparedTypeDefinitions, params, parameterNames);
-        try {
-            enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
-                    vsmParams.createSessionSecret(hgsResponse.DHpublicKey));
-        } catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        if (null != hgsResponse) {
+            try {
+                enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
+                        vsmParams.createSessionSecret(hgsResponse.DHpublicKey));
+            } catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }
     }
 
@@ -90,6 +94,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         return ar;
     }
 
+    @Override
     public byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) {
         if (null != enclaveSession) {
             try {
@@ -100,21 +105,18 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 SecureRandom.getInstanceStrong().nextBytes(randomGUID);
                 keys.writeBytes(randomGUID);
                 keys.writeBytes(ByteBuffer.allocate(8).putLong(enclaveSession.getCounter()).array());
-                keys.writeBytes(MessageDigest.getInstance("SHA-256").digest(userSQL.getBytes("UTF-16LE")));
+                keys.writeBytes(MessageDigest.getInstance("SHA-256").digest((userSQL).getBytes(UTF_16LE)));
                 for (byte[] b : enclaveCEKs) {
                     keys.writeBytes(b);
                 }
                 enclaveCEKs.clear();
                 SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
-                        enclaveSession.getSessionSecret(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
+                        enclaveSession.getSessionSecret());
                 SQLServerAeadAes256CbcHmac256Algorithm algo = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey,
                         SQLServerEncryptionType.Randomized, (byte) 0x1);
                 enclavePackage.writeBytes(algo.encryptData(keys.toByteArray()));
                 return enclavePackage.toByteArray();
             } catch (NoSuchAlgorithmException | SQLServerException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } catch (UnsupportedEncodingException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
@@ -202,18 +204,25 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                         SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, keyStoreName, keyPath,
                                 serverName, isRequestedByEnclave, keySignature);
 
-                        SQLServerColumnEncryptionKeyStoreProvider provider = SQLServerConnection
-                                .getGlobalCustomColumnEncryptionKeyStoreProvider(keyStoreName);
-                        if (null == provider) {
-                            provider = connection.getSystemColumnEncryptionKeyStoreProvider(keyStoreName);
-                        }
+                        // Check for the connection provider first.
+                        SQLServerColumnEncryptionKeyStoreProvider provider = connection
+                                .getSystemColumnEncryptionKeyStoreProvider(keyStoreName);
+
+                        // There is no connection provider of this name, check for the global system providers.
                         if (null == provider) {
                             provider = SQLServerConnection
                                     .getGlobalSystemColumnEncryptionKeyStoreProvider(keyStoreName);
                         }
+
+                        // There is no global system provider of this name, check for the global custom providers.
+                        if (null == provider) {
+                            provider = SQLServerConnection
+                                    .getGlobalCustomColumnEncryptionKeyStoreProvider(keyStoreName);
+                        }
+
                         // DBID(4) + MDVER(8) + KEYID(2) + CEK(32) = 46
                         ByteBuffer aev2CekEntry = ByteBuffer.allocate(46);
-                        aev2CekEntry.putInt(dbID);
+                        aev2CekEntry.order(ByteOrder.LITTLE_ENDIAN).putInt(dbID);
                         aev2CekEntry.put(mdVer);
                         aev2CekEntry.putShort((short) keyID);
                         aev2CekEntry.put(provider.decryptColumnEncryptionKey(keyPath, algo, encryptedKey));
@@ -238,12 +247,9 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                         null, 0, false);
             }
 
-            // Parameter count in the result set.
-            int paramCount = 0;
             try {
                 rs = (SQLServerResultSet) stmt.getResultSet();
                 while (rs.next()) {
-                    paramCount++;
                     String paramName = rs.getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
                     int paramIndex = parameterNames.indexOf(paramName);
                     int cekOrdinal = rs
@@ -324,16 +330,17 @@ class VSMAttestationParameters extends BaseAttestationRequest {
     byte[] x;
     byte[] y;
 
-    public VSMAttestationParameters() throws NoSuchAlgorithmException {
+    public VSMAttestationParameters() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
         KeyPairGenerator kpg;
         kpg = KeyPairGenerator.getInstance("EC");
-        kpg.initialize(384);
+        kpg.initialize(new ECGenParameterSpec("secp384r1"));
         KeyPair kp = kpg.generateKeyPair();
         ECPublicKey publicKey = (ECPublicKey) kp.getPublic();
         privateKey = kp.getPrivate();
         ECPoint w = publicKey.getW();
         x = w.getAffineX().toByteArray();
         y = w.getAffineY().toByteArray();
+
         /*
          * For some reason toByteArray doesn't have an Signum option like the constructor. Manually remove leading 00
          * byte if it exists.
@@ -470,6 +477,20 @@ class AttestationResponse {
     }
 
     byte[] getSessionID() {
+        System.out.println(bytesToHex(sessionID));
         return sessionID;
     }
+
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
 }

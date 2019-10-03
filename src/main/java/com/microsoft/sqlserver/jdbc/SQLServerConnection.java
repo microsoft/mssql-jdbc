@@ -6438,7 +6438,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         try {
             enclaveProvider.getAttestationParamters(false, this.enclaveAttestationUrl);
             enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
-        } catch (SQLServerException | NoSuchAlgorithmException e) {
+        } catch (SQLServerException | NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
