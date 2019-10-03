@@ -1,4 +1,4 @@
-# Microsoft JDBC Driver for SQL Server CI Build triggers tests against below SQL Servers:
+# Microsoft JDBC Driver for SQL Server CI build triggers tests against below SQL Servers:
 #   - SQL Server 2019
 #   - SQL Server 2012
 jobs:
