@@ -6,8 +6,6 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
-
 
 public final class Constants {
     private Constants() {}
@@ -100,15 +98,10 @@ public final class Constants {
     public static final String UID = UUID.randomUUID().toString();
     public static final Long RANDOM_LONG = Long.valueOf((long) (RANDOM.nextDouble() * Math.pow(10, 10)));
     public static final String CMK_NAME = "JDBC_CMK_" + RANDOM_LONG;
+    public static final String CMK_SIGNATURE = "0x5859A75C4F8C05C9865DAE46CA70F34B94EF1DF25D185DE8AB67918E5CF02953F2C787EFDC57ACAD5AEC2634C24B0A4C98B3A659220E980D948F91238A5D98CD898EF76CCA4AED9A6D51EBF4EABDEAA28CF975A7C8083E188AA4677303DAC9D6F49C81CB42E4BF14365B56BFEDD6E4B0DF0BC69E9FE313A7001613822D724A97055FA110C495A98EE37BE137293DF9E569D0845B96C4A6DD8554D42E83E784E3DCAFFDDD2CB3A7352920C3AAC43EA79BE5B8C7203B0E2F9B7C317C542E632C529BC46D792D9C85E16B5B3EE50D6D5E53103CC27B60175F79ECA1F2B28995FD1C12FA109E53810192BDD38A3B9A5D2CCC2BCBF16F936FE211A55FD999689C8CC4";
     public static final String CEK_NAME = "JDBC_CEK_" + RANDOM_LONG;
     public static final String CEK_ALGORITHM = "RSA_OAEP";
     public static final String CEK_STRING = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-
-    public static final String CHAR_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedChar");
-    public static final String BINARY_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedBinary");
-    public static final String DATE_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedDate");
-    public static final String NUMERIC_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedNumeric");
-    public static final String SCALE_DATE_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedScaleDate");
 
     // Start: Connection Properties parsed in AbstractTest class for creating DataSource.
     public static final String INTEGRATED_SECURITY = "INTEGRATEDSECURITY";
@@ -137,6 +130,8 @@ public final class Constants {
     public static final String TRUST_SERVER_CERTIFICATE = "TRUSTSERVERCERTIFICATE";
     public static final String TRUST_STORE_SECRET_PROPERTY = "TRUSTSTOREPASSWORD";
     public static final String TRUST_STORE = "TRUSTSTORE";
+
+    public static final String ENCLAVE_ATTESTIONURL = "enclaveAttestationUrl";
 
     public enum LOB {
         CLOB,

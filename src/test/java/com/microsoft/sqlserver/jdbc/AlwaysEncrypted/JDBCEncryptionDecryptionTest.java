@@ -65,11 +65,15 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             charValues = createCharValues(nullable);
             dropTables(stmt);
-            createCharTable();
+            createTable(CHAR_TABLE_AE, charTable);
             populateCharNormalCase(charValues);
             testChar(stmt, charValues);
             testChar(null, charValues);
-            testAlterColumnEncryption(stmt);
+
+            if (null != getConfiguredProperty(Constants.ENCLAVE_ATTESTIONURL)) {
+                testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, charValues);
+                testRichQuery(stmt, CHAR_TABLE_AE, charTable, charValues);
+            }
         }
     }
 
@@ -84,11 +88,15 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             charValues = createCharValues(nullable);
             dropTables(stmt);
-            createCharTable();
+            createTable(CHAR_TABLE_AE, charTable);
             populateCharSetObject(charValues);
             testChar(stmt, charValues);
             testChar(null, charValues);
-            testAlterColumnEncryption(stmt);
+
+            if (null != getConfiguredProperty(Constants.ENCLAVE_ATTESTIONURL)) {
+                testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, charValues);
+                testRichQuery(stmt, CHAR_TABLE_AE, charTable, charValues);
+            }
         }
     }
 
@@ -104,11 +112,15 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             charValues = createCharValues(nullable);
             dropTables(stmt);
-            createCharTable();
+            createTable(CHAR_TABLE_AE, charTable);
             populateCharSetObjectWithJDBCTypes(charValues);
             testChar(stmt, charValues);
             testChar(null, charValues);
-            testAlterColumnEncryption(stmt);
+
+            if (null != getConfiguredProperty(Constants.ENCLAVE_ATTESTIONURL)) {
+                testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, charValues);
+                testRichQuery(stmt, CHAR_TABLE_AE, charTable, charValues);
+            }
         }
     }
 
@@ -123,11 +135,10 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] charValuesNull = {null, null, null, null, null, null, null, null, null};
             dropTables(stmt);
-            createCharTable();
+            createTable(CHAR_TABLE_AE, charTable);
             populateCharNormalCase(charValuesNull);
             testChar(stmt, charValuesNull);
             testChar(null, charValuesNull);
-            testAlterColumnEncryption(stmt);
         }
     }
 
@@ -142,7 +153,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] charValuesNull = {null, null, null, null, null, null, null, null, null};
             dropTables(stmt);
-            createCharTable();
+            createTable(CHAR_TABLE_AE, charTable);
             populateCharSetObject(charValuesNull);
             testChar(stmt, charValuesNull);
             testChar(null, charValuesNull);
@@ -160,10 +171,11 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] charValuesNull = {null, null, null, null, null, null, null, null, null};
             dropTables(stmt);
-            createCharTable();
+            createTable(CHAR_TABLE_AE, charTable);
             populateCharNullCase();
             testChar(stmt, charValuesNull);
             testChar(null, charValuesNull);
+
         }
     }
 
@@ -178,7 +190,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> byteValues = createbinaryValues(false);
             dropTables(stmt);
-            createBinaryTable();
+            createTable(BINARY_TABLE_AE, binaryTable);
             populateBinaryNormalCase(byteValues);
             testBinary(stmt, byteValues);
             testBinary(null, byteValues);
@@ -196,7 +208,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byteValuesSetObject = createbinaryValues(false);
             dropTables(stmt);
-            createBinaryTable();
+            createTable(BINARY_TABLE_AE, binaryTable);
             populateBinarySetObject(byteValuesSetObject);
             testBinary(stmt, byteValuesSetObject);
             testBinary(null, byteValuesSetObject);
@@ -214,7 +226,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byteValuesNull = createbinaryValues(true);
             dropTables(stmt);
-            createBinaryTable();
+            createTable(BINARY_TABLE_AE, binaryTable);
             populateBinaryNullCase();
             testBinary(stmt, byteValuesNull);
             testBinary(null, byteValuesNull);
@@ -232,7 +244,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byteValuesNull = createbinaryValues(true);
             dropTables(stmt);
-            createBinaryTable();
+            createTable(BINARY_TABLE_AE, binaryTable);
             populateBinaryNormalCase(null);
             testBinary(stmt, byteValuesNull);
             testBinary(null, byteValuesNull);
@@ -250,7 +262,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byteValuesNull = createbinaryValues(true);
             dropTables(stmt);
-            createBinaryTable();
+            createTable(BINARY_TABLE_AE, binaryTable);
             populateBinarySetObject(null);
             testBinary(stmt, byteValuesNull);
             testBinary(null, byteValuesNull);
@@ -269,7 +281,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byteValuesSetObject = createbinaryValues(false);
             dropTables(stmt);
-            createBinaryTable();
+            createTable(BINARY_TABLE_AE, binaryTable);
             populateBinarySetObjectWithJDBCType(byteValuesSetObject);
             testBinary(stmt, byteValuesSetObject);
             testBinary(null, byteValuesSetObject);
@@ -287,7 +299,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dateValues = createTemporalTypes(nullable);
             dropTables(stmt);
-            createDateTable();
+            createTable(DATE_TABLE_AE, dateTable);
             populateDateNormalCase(dateValues);
             testDate(stmt, dateValues);
             testDate(null, dateValues);
@@ -305,7 +317,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dateValues = createTemporalTypes(nullable);
             dropTables(stmt);
-            createDateTable();
+            createTable(DATE_TABLE_AE, dateTable);
             populateDateSetObject(dateValues, "");
             testDate(stmt, dateValues);
             testDate(null, dateValues);
@@ -323,7 +335,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dateValues = createTemporalTypes(nullable);
             dropTables(stmt);
-            createDateTable();
+            createTable(DATE_TABLE_AE, dateTable);
             populateDateSetObject(dateValues, "setwithJavaType");
             testDate(stmt, dateValues);
             testDate(null, dateValues);
@@ -341,7 +353,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dateValues = createTemporalTypes(nullable);
             dropTables(stmt);
-            createDateTable();
+            createTable(DATE_TABLE_AE, dateTable);
             populateDateSetObject(dateValues, "setwithJDBCType");
             testDate(stmt, dateValues);
             testDate(null, dateValues);
@@ -360,7 +372,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             RandomData.returnMinMax = true;
             dateValues = createTemporalTypes(nullable);
             dropTables(stmt);
-            createDateTable();
+            createTable(DATE_TABLE_AE, dateTable);
             populateDateNormalCase(dateValues);
             testDate(stmt, dateValues);
             testDate(null, dateValues);
@@ -381,7 +393,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
             dateValues = createTemporalTypes(nullable);
             dropTables(stmt);
-            createDateTable();
+            createTable(DATE_TABLE_AE, dateTable);
             populateDateNullCase();
             testDate(stmt, dateValues);
             testDate(null, dateValues);
@@ -405,7 +417,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dateValues = createTemporalTypes(nullable);
             dropTables(stmt);
-            createDateTable();
+            createTable(DATE_TABLE_AE, dateTable);
             populateDateSetObjectNull();
             testDate(stmt, dateValues);
             testDate(null, dateValues);
@@ -429,7 +441,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
-            createNumericTable();
+            createTable(NUMERIC_TABLE_AE, numericTable);
             populateNumeric(numericValues);
             testNumeric(stmt, numericValues, false);
             testNumeric(null, numericValues2, false);
@@ -450,7 +462,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
-            createNumericTable();
+            createTable(NUMERIC_TABLE_AE, numericTable);
             populateNumericSetObject(numericValues);
             testNumeric(null, numericValues, false);
             testNumeric(stmt, numericValues2, false);
@@ -472,7 +484,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             System.arraycopy(numericValues, 0, numericValues2, 0, numericValues.length);
 
             dropTables(stmt);
-            createNumericTable();
+            createTable(NUMERIC_TABLE_AE, numericTable);
             populateNumericSetObjectWithJDBCTypes(numericValues);
             testNumeric(stmt, numericValues, false);
             testNumeric(null, numericValues2, false);
@@ -498,7 +510,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
-            createNumericTable();
+            createTable(NUMERIC_TABLE_AE, numericTable);
             populateNumeric(numericValuesBoundaryPositive);
             testNumeric(stmt, numericValuesBoundaryPositive, false);
             testNumeric(null, numericValuesBoundaryPositive2, false);
@@ -524,7 +536,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
-            createNumericTable();
+            createTable(NUMERIC_TABLE_AE, numericTable);
             populateNumeric(numericValuesBoundaryNegtive);
             testNumeric(stmt, numericValuesBoundaryNegtive, false);
             testNumeric(null, numericValuesBoundaryNegtive2, false);
@@ -547,7 +559,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
-            createNumericTable();
+            createTable(NUMERIC_TABLE_AE, numericTable);
             populateNumericNullCase(numericValuesNull);
             testNumeric(stmt, numericValuesNull, true);
             testNumeric(null, numericValuesNull2, true);
@@ -573,7 +585,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
-            createNumericTable();
+            createTable(NUMERIC_TABLE_AE, numericTable);
             populateNumericSetObjectNull();
             testNumeric(stmt, numericValuesNull, true);
             testNumeric(null, numericValuesNull2, true);
@@ -600,7 +612,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
-            createNumericTable();
+            createTable(NUMERIC_TABLE_AE, numericTable);
             populateNumericNormalCase(numericValuesNormalization);
             testNumeric(stmt, numericValuesNormalization, false);
             testNumeric(null, numericValuesNormalization2, false);
@@ -612,11 +624,10 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";useFmtOnly=true", AEInfo);
                 Statement s = c.createStatement()) {
             dropTables(s);
-            createNumericTable();
-            String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE)
-                    + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                    + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
-                    + ")";
+            createTable(NUMERIC_TABLE_AE, numericTable);
+            String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE) + " values( "
+                    + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                    + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
             try (PreparedStatement p = c.prepareStatement(sql)) {
                 ParameterMetaData pmd = p.getParameterMetaData();
                 assertTrue(pmd.getParameterCount() == 48);
@@ -625,7 +636,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testChar(SQLServerStatement stmt, String[] values) throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE);
+        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(CHAR_TABLE_AE);
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
@@ -641,7 +652,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testBinary(SQLServerStatement stmt, LinkedList<byte[]> values) throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(Constants.BINARY_TABLE_AE);
+        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(BINARY_TABLE_AE.toString());
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -658,7 +669,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testDate(SQLServerStatement stmt, LinkedList<Object> values1) throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE);
+        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE);
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1041,7 +1052,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testNumeric(Statement stmt, String[] numericValues, boolean isNull) throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE);
+        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE);
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1216,43 +1227,93 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         index++;
     }
 
-    private void ttestAlterEncryption(SQLServerStatement stmt, String[] values) throws SQLException {
-        String sql = "ALTER TABLE " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE) + "ALTER COLUMN "
-                + "PlainChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME
-                + ", ENCRYPTION_TYPE = Deterministic, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256')";
+    /**
+     * Alter Column encryption on deterministic columns to randomized - this will trigger enclave to re-encrypt
+     * 
+     * @param stmt
+     * @param tableName
+     * @param table
+     * @param values
+     * @throws SQLException
+     */
+    private void testAlterColumnEncryption(SQLServerStatement stmt, String tableName, String table[][],
+            String[] values) throws SQLException {
+        String sql;// = "ALTER TABLE " + tableName + " ALTER COLUMN ";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+            for (int i = 0; i < table.length; i++) {
+                // alter deterministic to randomized
+                sql = "ALTER TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ALTER COLUMN "
+                        + ColumnType.DETERMINISTIC.name() + table[i][0] + " " + table[i][1]
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), Constants.CEK_NAME) + ")";
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
-            try (ResultSet rs = (stmt.executeQuery(sql))) {
-                int numberOfColumns = rs.getMetaData().getColumnCount();
-                while (rs.next()) {
-                    testGetString(rs, numberOfColumns, values);
-                    testGetObject(rs, numberOfColumns, values);
+                    stmt.execute(sql);
+                    if (!TestUtils.isAEv2(con)) {
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    }
+                } catch (SQLException e) {
+                    if (!TestUtils.isAEv2(con)) {
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    } else {
+                        fail(TestResource.getResource("R_AlterAEv2Error") + e.getMessage());
+                    }
                 }
             }
         }
     }
 
-    /**
-     * Alter Column encryption on all the randomized columns to deterministic - this will trigger enclave to re-encrypt
-     * 
-     * @throws SQLException
-     */
-    private void testAlterColumnEncryption(SQLServerStatement stmt) throws SQLException {
-        for (int i = 0; i < randomizedColumns.length; i++) {
-            String sql = "ALTER TABLE " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE)
-                    + "ALTER COLUMN " + randomizedColumns[i]
-                    + " COLLATE Latin1_General_BIN2 ENCRYPTED WITH (COLUMN_ENCRYPTION_KEY = " + Constants.CEK_NAME
-                    + ",ENCRYPTION_TYPE = Deterministic, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256')";
-            try {
-                stmt.execute(sql);
-                stmt.execute("DBCC FREEPROCCACHE");
-            } catch (SQLException e) {
-                fail(e.getMessage());
+    private void testRichQuery(SQLServerStatement stmt, String tableName, String table[][],
+            String[] values) throws SQLException {
+        String sql;// = "SELECT * FROM " + tableName + "WHERE ";
+        int i;
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+            for (i = 0; i < table.length; i++) {
+                sql = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE "
+                        + ColumnType.PLAIN.name() + table[i][0] + "= ?";
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
+                    switch (table[i][2]) {
+                        case "CHAR":
+                        case "LONGVARCHAR":
+                            pstmt.setString(1, values[i / 3]);
+                            break;
+                        case "NCHAR":
+                        case "LONGNVARCHAR":
+                            pstmt.setNString(1, values[i / 3]);
+                            break;
+                        case "GUID":
+                            pstmt.setUniqueIdentifier(1, null);
+                            pstmt.setUniqueIdentifier(1, Constants.UID);
+                            break;
+                        default:
+                            System.out.println("die");
+
+                    }
+                    try (ResultSet rs = (pstmt.executeQuery())) {
+                        if (!TestUtils.isAEv2(con)) {
+                            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                        }
+
+                        int numberOfColumns = rs.getMetaData().getColumnCount();
+                        while (rs.next()) {
+                            testGetString(rs, numberOfColumns, values);
+                            testGetObject(rs, numberOfColumns, values);
+                        }
+                    } catch (SQLException e) {
+                        if (!TestUtils.isAEv2(con)) {
+                            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                        } else {
+                            fail(TestResource.getResource("R_RichQueryError") + e.getMessage());
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("exception: " + e.getMessage());
+                }
+
             }
         }
+
     }
 
     private void Compare(String expectedValue, String value1, String value2, String value3) {
