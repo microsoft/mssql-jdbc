@@ -13,7 +13,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
-import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
+import com.microsoft.sqlserver.jdbc.ISQLServerBulkData;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.bulkCopy.BulkCopyTestWrapper.ColumnMap;
@@ -314,7 +314,7 @@ class BulkCopyTestUtil {
      * @param srcData
      * @param dstTable
      */
-    static void performBulkCopy(BulkCopyTestWrapper bulkWrapper, ISQLServerBulkRecord srcData, DBTable dstTable) {
+    static void performBulkCopy(BulkCopyTestWrapper bulkWrapper, ISQLServerBulkData srcData, DBTable dstTable) {
         try (DBConnection con = new DBConnection(bulkWrapper.getConnectionString());
                 DBStatement stmt = con.createStatement();
                 SQLServerBulkCopy bc = new SQLServerBulkCopy(bulkWrapper.getConnectionString())) {
@@ -333,7 +333,7 @@ class BulkCopyTestUtil {
      * @param destinationTable
      * @throws Exception
      */
-    static void validateValues(DBConnection con, ISQLServerBulkRecord srcData,
+    static void validateValues(DBConnection con, ISQLServerBulkData srcData,
             DBTable destinationTable) throws Exception {
 
         try (DBStatement dstStmt = con.createStatement();
