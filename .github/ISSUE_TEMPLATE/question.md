@@ -1,6 +1,6 @@
 ---
 name: Question
-about: Discuss an idea to see if it would be an appropriate Issue.
+about: Ask a question
 title: "[QUESTION]"
 labels: question
 assignees: ''

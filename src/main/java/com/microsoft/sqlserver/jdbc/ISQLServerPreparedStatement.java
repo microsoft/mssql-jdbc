@@ -564,8 +564,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x,
-            int scale) throws SQLServerException;
+    void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>microsoft.sql.DatetimeOffset</code> value.
@@ -640,8 +639,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    void setSmallDateTime(int parameterIndex, java.sql.Timestamp x,
-            boolean forceEncrypt) throws SQLServerException;
+    void setSmallDateTime(int parameterIndex, java.sql.Timestamp x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the data table to populates a table valued parameter.
@@ -655,8 +653,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    void setStructured(int parameterIndex, String tvpName,
-            SQLServerDataTable tvpDataTable) throws SQLServerException;
+    void setStructured(int parameterIndex, String tvpName, SQLServerDataTable tvpDataTable) throws SQLServerException;
 
     /**
      * Sets the result set to populate a table-valued parameter.

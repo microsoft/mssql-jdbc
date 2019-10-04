@@ -18,7 +18,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
 
     // Transaction types.
     // TRANSACTION_SNAPSHOT corresponds to -> SET TRANSACTION ISOLATION LEVEL SNAPSHOT
-    final static int TRANSACTION_SNAPSHOT = 0x1000;
+    int TRANSACTION_SNAPSHOT = 0x1000;
 
     /**
      * Returns the connection ID of the most recent connection attempt, regardless of whether the attempt succeeded or
