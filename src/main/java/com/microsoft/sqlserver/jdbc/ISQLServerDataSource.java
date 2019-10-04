@@ -843,7 +843,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Client Key of Azure Key Vault (AKV) Provider to be used for column encryption.
      */
     void setKeyVaultProviderClientKey(String keyVaultProviderClientKey);
-    
+
     /**
      * Sets the 'domain' connection property used for NTLM Authentication.
      *
@@ -854,23 +854,23 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      * Returns the value for the connection property 'domain'.
-     * 
+     *
      * @return 'domain' property value
      */
     String getDomain();
 
     /**
      * Returns the current flag value for useFmtOnly.
-     * 
+     *
      * @return 'useFmtOnly' property value.
      */
-    public boolean getUseFmtOnly();
+    boolean getUseFmtOnly();
 
     /**
      * Specifies the flag to use FMTONLY for parameter metadata queries.
-     * 
+     *
      * @param useFmtOnly
      *        boolean value for 'useFmtOnly'.
      */
-    public void setUseFmtOnly(boolean useFmtOnly);
+    void setUseFmtOnly(boolean useFmtOnly);
 }

@@ -17,16 +17,16 @@ import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification
  */
 public interface ISQLServerResultSet extends java.sql.ResultSet {
 
-    public static final int TYPE_SS_DIRECT_FORWARD_ONLY = 2003; // TYPE_FORWARD_ONLY + 1000
-    public static final int TYPE_SS_SERVER_CURSOR_FORWARD_ONLY = 2004; // TYPE_FORWARD_ONLY + 1001
-    public static final int TYPE_SS_SCROLL_STATIC = 1004; // TYPE_SCROLL_INSENSITIVE
-    public static final int TYPE_SS_SCROLL_KEYSET = 1005; // TYPE_SCROLL_SENSITIVE
-    public static final int TYPE_SS_SCROLL_DYNAMIC = 1006; // TYPE_SCROLL_SENSITIVE + 1
+    int TYPE_SS_DIRECT_FORWARD_ONLY = 2003; // TYPE_FORWARD_ONLY + 1000
+    int TYPE_SS_SERVER_CURSOR_FORWARD_ONLY = 2004; // TYPE_FORWARD_ONLY + 1001
+    int TYPE_SS_SCROLL_STATIC = 1004; // TYPE_SCROLL_INSENSITIVE
+    int TYPE_SS_SCROLL_KEYSET = 1005; // TYPE_SCROLL_SENSITIVE
+    int TYPE_SS_SCROLL_DYNAMIC = 1006; // TYPE_SCROLL_SENSITIVE + 1
 
     /* SQL Server concurrency values */
-    public static final int CONCUR_SS_OPTIMISTIC_CC = 1008; // CONCUR_UPDATABLE
-    public static final int CONCUR_SS_SCROLL_LOCKS = 1009; // CONCUR_UPDATABLE + 1
-    public static final int CONCUR_SS_OPTIMISTIC_CCVAL = 1010; // CONCUR_UPDATABLE + 2
+    int CONCUR_SS_OPTIMISTIC_CC = 1008; // CONCUR_UPDATABLE
+    int CONCUR_SS_SCROLL_LOCKS = 1009; // CONCUR_UPDATABLE + 1
+    int CONCUR_SS_OPTIMISTIC_CCVAL = 1010; // CONCUR_UPDATABLE + 2
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a
@@ -38,7 +38,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public Geometry getGeometry(int columnIndex) throws SQLServerException;
+    Geometry getGeometry(int columnIndex) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a
@@ -50,7 +50,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public Geometry getGeometry(String columnName) throws SQLServerException;
+    Geometry getGeometry(String columnName) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a
@@ -62,7 +62,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public Geography getGeography(int columnIndex) throws SQLServerException;
+    Geography getGeography(int columnIndex) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a
@@ -74,7 +74,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public Geography getGeography(String columnName) throws SQLServerException;
+    Geography getGeography(String columnName) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a String object in the
@@ -86,7 +86,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public String getUniqueIdentifier(int columnIndex) throws SQLServerException;
+    String getUniqueIdentifier(int columnIndex) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a String object in the
@@ -98,7 +98,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public String getUniqueIdentifier(String columnLabel) throws SQLServerException;
+    String getUniqueIdentifier(String columnLabel) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -110,7 +110,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public java.sql.Timestamp getDateTime(int columnIndex) throws SQLServerException;
+    java.sql.Timestamp getDateTime(int columnIndex) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -122,7 +122,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public java.sql.Timestamp getDateTime(String columnName) throws SQLServerException;
+    java.sql.Timestamp getDateTime(String columnName) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -137,7 +137,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public java.sql.Timestamp getDateTime(int columnIndex, Calendar cal) throws SQLServerException;
+    java.sql.Timestamp getDateTime(int columnIndex, Calendar cal) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -153,7 +153,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public java.sql.Timestamp getDateTime(String colName, Calendar cal) throws SQLServerException;
+    java.sql.Timestamp getDateTime(String colName, Calendar cal) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -165,7 +165,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public java.sql.Timestamp getSmallDateTime(int columnIndex) throws SQLServerException;
+    java.sql.Timestamp getSmallDateTime(int columnIndex) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -177,7 +177,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public java.sql.Timestamp getSmallDateTime(String columnName) throws SQLServerException;
+    java.sql.Timestamp getSmallDateTime(String columnName) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -191,7 +191,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public java.sql.Timestamp getSmallDateTime(int columnIndex, Calendar cal) throws SQLServerException;
+    java.sql.Timestamp getSmallDateTime(int columnIndex, Calendar cal) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -205,7 +205,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public java.sql.Timestamp getSmallDateTime(String colName, Calendar cal) throws SQLServerException;
+    java.sql.Timestamp getSmallDateTime(String colName, Calendar cal) throws SQLServerException;
 
     /**
      * Returns the value of the designated column as a microsoft.sql.DateTimeOffset object, given a zero-based column
@@ -217,7 +217,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLServerException;
+    microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLServerException;
 
     /**
      * Returns the value of the column specified as a microsoft.sql.DateTimeOffset object, given a column name.
@@ -228,7 +228,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLServerException;
+    microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLServerException;
 
     /**
      * Returns the value of the column specified as a java.math.BigDecimal object.
@@ -239,7 +239,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public BigDecimal getMoney(int columnIndex) throws SQLServerException;
+    BigDecimal getMoney(int columnIndex) throws SQLServerException;
 
     /**
      * Returns the value of the column specified as a java.math.BigDecimal object.
@@ -250,7 +250,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public BigDecimal getMoney(String columnName) throws SQLServerException;
+    BigDecimal getMoney(String columnName) throws SQLServerException;
 
     /**
      * Returns the value of the column specified as a java.math.BigDecimal object.
@@ -261,7 +261,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public BigDecimal getSmallMoney(int columnIndex) throws SQLServerException;
+    BigDecimal getSmallMoney(int columnIndex) throws SQLServerException;
 
     /**
      * Returns the value of the column specified as a java.math.BigDecimal object.
@@ -272,7 +272,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public BigDecimal getSmallMoney(String columnName) throws SQLServerException;
+    BigDecimal getSmallMoney(String columnName) throws SQLServerException;
 
     /**
      * Updates the value of the column specified to the DateTimeOffset Class value, given a zero-based column ordinal.
@@ -284,7 +284,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x) throws SQLServerException;
+    void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x) throws SQLServerException;
 
     /**
      * Updates the value of the column specified to the DateTimeOffset Class value, given a column name.
@@ -296,7 +296,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x) throws SQLServerException;
+    void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x) throws SQLServerException;
 
     /**
      * Updates the designated column with an {@code Object} value.
@@ -316,7 +316,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateObject(int index, Object x, int precision, int scale) throws SQLServerException;
+    void updateObject(int index, Object x, int precision, int scale) throws SQLServerException;
 
     /**
      * Updates the designated column with an Object value. The updater methods are used to update column values in the
@@ -344,7 +344,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateObject(int index, Object obj, SQLType targetSqlType, int scale,
+    void updateObject(int index, Object obj, SQLType targetSqlType, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -375,7 +375,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateObject(String columnName, Object obj, SQLType targetSqlType, int scale,
+    void updateObject(String columnName, Object obj, SQLType targetSqlType, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -394,7 +394,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateBoolean(int index, boolean x, boolean forceEncrypt) throws SQLServerException;
+    void updateBoolean(int index, boolean x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>byte</code> value. The updater methods are used to update column
@@ -412,7 +412,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateByte(int index, byte x, boolean forceEncrypt) throws SQLServerException;
+    void updateByte(int index, byte x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>short</code> value. The updater methods are used to update column
@@ -430,7 +430,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateShort(int index, short x, boolean forceEncrypt) throws SQLServerException;
+    void updateShort(int index, short x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with an <code>int</code> value. The updater methods are used to update column
@@ -448,7 +448,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateInt(int index, int x, boolean forceEncrypt) throws SQLServerException;
+    void updateInt(int index, int x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>long</code> value. The updater methods are used to update column
@@ -466,7 +466,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateLong(int index, long x, boolean forceEncrypt) throws SQLServerException;
+    void updateLong(int index, long x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>float</code> value. The updater methods are used to update column
@@ -484,7 +484,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateFloat(int index, float x, boolean forceEncrypt) throws SQLServerException;
+    void updateFloat(int index, float x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>double</code> value. The updater methods are used to update column
@@ -502,7 +502,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateDouble(int index, double x, boolean forceEncrypt) throws SQLServerException;
+    void updateDouble(int index, double x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>money</code> value. The updater methods are used to update column
@@ -516,7 +516,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateMoney(int index, BigDecimal x) throws SQLServerException;
+    void updateMoney(int index, BigDecimal x) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>money</code> value. The updater methods are used to update column
@@ -534,7 +534,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateMoney(int index, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
+    void updateMoney(int index, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>money</code> value. The updater methods are used to update column
@@ -548,7 +548,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateMoney(String columnName, BigDecimal x) throws SQLServerException;
+    void updateMoney(String columnName, BigDecimal x) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>money</code> value. The updater methods are used to update column
@@ -566,7 +566,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateMoney(String columnName, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
+    void updateMoney(String columnName, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>smallmoney</code> value. The updater methods are used to update column
@@ -580,7 +580,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateSmallMoney(int index, BigDecimal x) throws SQLServerException;
+    void updateSmallMoney(int index, BigDecimal x) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>smallmoney</code> value. The updater methods are used to update column
@@ -598,7 +598,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateSmallMoney(int index, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
+    void updateSmallMoney(int index, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>smallmoney</code> value. The updater methods are used to update column
@@ -612,7 +612,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateSmallMoney(String columnName, BigDecimal x) throws SQLServerException;
+    void updateSmallMoney(String columnName, BigDecimal x) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>smallmoney</code> value. The updater methods are used to update column
@@ -630,7 +630,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateSmallMoney(String columnName, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
+    void updateSmallMoney(String columnName, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.math.BigDecimal</code> value. The updater methods are used to
@@ -648,7 +648,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateBigDecimal(int index, BigDecimal x, Integer precision, Integer scale) throws SQLServerException;
+    void updateBigDecimal(int index, BigDecimal x, Integer precision, Integer scale) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.math.BigDecimal</code> value. The updater methods are used to
@@ -670,7 +670,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateBigDecimal(int index, BigDecimal x, Integer precision, Integer scale,
+    void updateBigDecimal(int index, BigDecimal x, Integer precision, Integer scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -689,7 +689,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateString(int columnIndex, String stringValue, boolean forceEncrypt) throws SQLServerException;
+    void updateString(int columnIndex, String stringValue, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>String</code> value. It is intended for use when updating
@@ -708,7 +708,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateNString(int columnIndex, String nString, boolean forceEncrypt) throws SQLServerException;
+    void updateNString(int columnIndex, String nString, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>String</code> value. It is intended for use when updating
@@ -728,7 +728,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateNString(String columnLabel, String nString, boolean forceEncrypt) throws SQLServerException;
+    void updateNString(String columnLabel, String nString, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>byte</code> array value. The updater methods are used to update column
@@ -746,7 +746,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateBytes(int index, byte x[], boolean forceEncrypt) throws SQLServerException;
+    void updateBytes(int index, byte x[], boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Date</code> value. The updater methods are used to update
@@ -764,7 +764,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateDate(int index, java.sql.Date x, boolean forceEncrypt) throws SQLServerException;
+    void updateDate(int index, java.sql.Date x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Time</code> value. The updater methods are used to update
@@ -780,7 +780,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateTime(int index, java.sql.Time x, Integer scale) throws SQLServerException;
+    void updateTime(int index, java.sql.Time x, Integer scale) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Time</code> value. The updater methods are used to update
@@ -800,7 +800,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateTime(int index, java.sql.Time x, Integer scale, boolean forceEncrypt) throws SQLServerException;
+    void updateTime(int index, java.sql.Time x, Integer scale, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
@@ -816,58 +816,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateTimestamp(int index, java.sql.Timestamp x, int scale) throws SQLServerException;
-
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
-     * update column values in the current row or the insert row. The updater methods do not update the underlying
-     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
-     *
-     * @param index
-     *        the first column is 1, the second is 2, ...
-     * @param x
-     *        the new column value
-     * @param scale
-     *        the scale of the column
-     * @param forceEncrypt
-     *        If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column
-     *        is encrypted and Always Encrypted is enabled on the connection or on the statement. If the boolean
-     *        forceEncrypt is set to false, the driver will not force encryption on parameters.
-     * @throws SQLServerException
-     *         when an error occurs
-     */
-    public void updateTimestamp(int index, java.sql.Timestamp x, int scale,
-            boolean forceEncrypt) throws SQLServerException;
-
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
-     * update column values in the current row or the insert row. The updater methods do not update the underlying
-     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
-     *
-     * @param index
-     *        the first column is 1, the second is 2, ...
-     * @param x
-     *        the new column value
-     * @throws SQLServerException
-     *         when an error occurs
-     */
-    public void updateDateTime(int index, java.sql.Timestamp x) throws SQLServerException;
-
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
-     * update column values in the current row or the insert row. The updater methods do not update the underlying
-     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
-     *
-     * @param index
-     *        the first column is 1, the second is 2, ...
-     * @param x
-     *        the new column value
-     * @param scale
-     *        the scale of the column
-     * @throws SQLServerException
-     *         when an error occurs
-     */
-    public void updateDateTime(int index, java.sql.Timestamp x, Integer scale) throws SQLServerException;
+    void updateTimestamp(int index, java.sql.Timestamp x, int scale) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
@@ -887,8 +836,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateDateTime(int index, java.sql.Timestamp x, Integer scale,
-            boolean forceEncrypt) throws SQLServerException;
+    void updateTimestamp(int index, java.sql.Timestamp x, int scale, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
@@ -902,7 +850,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateSmallDateTime(int index, java.sql.Timestamp x) throws SQLServerException;
+    void updateDateTime(int index, java.sql.Timestamp x) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
@@ -918,7 +866,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateSmallDateTime(int index, java.sql.Timestamp x, Integer scale) throws SQLServerException;
+    void updateDateTime(int index, java.sql.Timestamp x, Integer scale) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
@@ -938,7 +886,57 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateSmallDateTime(int index, java.sql.Timestamp x, Integer scale,
+    void updateDateTime(int index, java.sql.Timestamp x, Integer scale, boolean forceEncrypt) throws SQLServerException;
+
+    /**
+     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
+     * update column values in the current row or the insert row. The updater methods do not update the underlying
+     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
+     *
+     * @param index
+     *        the first column is 1, the second is 2, ...
+     * @param x
+     *        the new column value
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void updateSmallDateTime(int index, java.sql.Timestamp x) throws SQLServerException;
+
+    /**
+     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
+     * update column values in the current row or the insert row. The updater methods do not update the underlying
+     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
+     *
+     * @param index
+     *        the first column is 1, the second is 2, ...
+     * @param x
+     *        the new column value
+     * @param scale
+     *        the scale of the column
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void updateSmallDateTime(int index, java.sql.Timestamp x, Integer scale) throws SQLServerException;
+
+    /**
+     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
+     * update column values in the current row or the insert row. The updater methods do not update the underlying
+     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
+     *
+     * @param index
+     *        the first column is 1, the second is 2, ...
+     * @param x
+     *        the new column value
+     * @param scale
+     *        the scale of the column
+     * @param forceEncrypt
+     *        If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column
+     *        is encrypted and Always Encrypted is enabled on the connection or on the statement. If the boolean
+     *        forceEncrypt is set to false, the driver will not force encryption on parameters.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void updateSmallDateTime(int index, java.sql.Timestamp x, Integer scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -953,8 +951,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x,
-            Integer scale) throws SQLServerException;
+    void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x, Integer scale) throws SQLServerException;
 
     /**
      * Updates the value of the column specified to the DateTimeOffset Class value, given a zero-based column ordinal.
@@ -972,7 +969,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x, Integer scale,
+    void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x, Integer scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -987,7 +984,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateUniqueIdentifier(int index, String x) throws SQLServerException;
+    void updateUniqueIdentifier(int index, String x) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>String</code> value. The updater methods are used to update column
@@ -1005,7 +1002,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateUniqueIdentifier(int index, String x, boolean forceEncrypt) throws SQLServerException;
+    void updateUniqueIdentifier(int index, String x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with an {@code Object} value.
@@ -1029,8 +1026,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateObject(int index, Object x, int precision, int scale,
-            boolean forceEncrypt) throws SQLServerException;
+    void updateObject(int index, Object x, int precision, int scale, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>boolean</code> value. The updater methods are used to update column
@@ -1048,7 +1044,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void updateBoolean(String columnName, boolean x, boolean forceEncrypt) throws SQLServerException;
+    void updateBoolean(String columnName, boolean x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>byte</code> value. The updater methods are used to update column
@@ -1067,7 +1063,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateByte(String columnName, byte x, boolean forceEncrypt) throws SQLServerException;
+    void updateByte(String columnName, byte x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>short</code> value. The updater methods are used to update column
@@ -1085,7 +1081,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateShort(String columnName, short x, boolean forceEncrypt) throws SQLServerException;
+    void updateShort(String columnName, short x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with an <code>int</code> value. The updater methods are used to update column
@@ -1103,7 +1099,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateInt(String columnName, int x, boolean forceEncrypt) throws SQLServerException;
+    void updateInt(String columnName, int x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>long</code> value. The updater methods are used to update column
@@ -1121,7 +1117,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateLong(String columnName, long x, boolean forceEncrypt) throws SQLServerException;
+    void updateLong(String columnName, long x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>float </code> value. The updater methods are used to update column
@@ -1139,7 +1135,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateFloat(String columnName, float x, boolean forceEncrypt) throws SQLServerException;
+    void updateFloat(String columnName, float x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>double</code> value. The updater methods are used to update column
@@ -1157,7 +1153,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateDouble(String columnName, double x, boolean forceEncrypt) throws SQLServerException;
+    void updateDouble(String columnName, double x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.BigDecimal</code> value. The updater methods are used to
@@ -1175,7 +1171,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateBigDecimal(String columnName, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
+    void updateBigDecimal(String columnName, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.BigDecimal</code> value. The updater methods are used to
@@ -1194,8 +1190,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateBigDecimal(String columnName, BigDecimal x, Integer precision,
-            Integer scale) throws SQLServerException;
+    void updateBigDecimal(String columnName, BigDecimal x, Integer precision, Integer scale) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.BigDecimal</code> value. The updater methods are used to
@@ -1218,7 +1213,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateBigDecimal(String columnName, BigDecimal x, Integer precision, Integer scale,
+    void updateBigDecimal(String columnName, BigDecimal x, Integer precision, Integer scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -1237,7 +1232,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateString(String columnName, String x, boolean forceEncrypt) throws SQLServerException;
+    void updateString(String columnName, String x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a byte array value.
@@ -1257,7 +1252,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateBytes(String columnName, byte x[], boolean forceEncrypt) throws SQLServerException;
+    void updateBytes(String columnName, byte x[], boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Date</code> value. The updater methods are used to update
@@ -1275,7 +1270,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateDate(String columnName, java.sql.Date x, boolean forceEncrypt) throws SQLServerException;
+    void updateDate(String columnName, java.sql.Date x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Time</code> value. The updater methods are used to update
@@ -1291,7 +1286,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateTime(String columnName, java.sql.Time x, int scale) throws SQLServerException;
+    void updateTime(String columnName, java.sql.Time x, int scale) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Time</code> value. The updater methods are used to update
@@ -1311,8 +1306,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateTime(String columnName, java.sql.Time x, int scale,
-            boolean forceEncrypt) throws SQLServerException;
+    void updateTime(String columnName, java.sql.Time x, int scale, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
@@ -1328,58 +1322,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateTimestamp(String columnName, java.sql.Timestamp x, int scale) throws SQLServerException;
-
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
-     * update column values in the current row or the insert row. The updater methods do not update the underlying
-     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
-     *
-     * @param columnName
-     *        is the name of the column
-     * @param x
-     *        the new column value
-     * @param scale
-     *        the scale of the column
-     * @param forceEncrypt
-     *        If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column
-     *        is encrypted and Always Encrypted is enabled on the connection or on the statement. If the boolean
-     *        forceEncrypt is set to false, the driver will not force encryption on parameters.
-     * @throws SQLServerException
-     *         If any errors occur.
-     */
-    public void updateTimestamp(String columnName, java.sql.Timestamp x, int scale,
-            boolean forceEncrypt) throws SQLServerException;
-
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
-     * update column values in the current row or the insert row. The updater methods do not update the underlying
-     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
-     *
-     * @param columnName
-     *        is the name of the column
-     * @param x
-     *        the new column value
-     * @throws SQLServerException
-     *         If any errors occur.
-     */
-    public void updateDateTime(String columnName, java.sql.Timestamp x) throws SQLServerException;
-
-    /**
-     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
-     * update column values in the current row or the insert row. The updater methods do not update the underlying
-     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
-     *
-     * @param columnName
-     *        is the name of the column
-     * @param x
-     *        the new column value
-     * @param scale
-     *        the scale of the column
-     * @throws SQLServerException
-     *         If any errors occur.
-     */
-    public void updateDateTime(String columnName, java.sql.Timestamp x, int scale) throws SQLServerException;
+    void updateTimestamp(String columnName, java.sql.Timestamp x, int scale) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
@@ -1399,7 +1342,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateDateTime(String columnName, java.sql.Timestamp x, int scale,
+    void updateTimestamp(String columnName, java.sql.Timestamp x, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -1414,7 +1357,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateSmallDateTime(String columnName, java.sql.Timestamp x) throws SQLServerException;
+    void updateDateTime(String columnName, java.sql.Timestamp x) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
@@ -1430,7 +1373,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateSmallDateTime(String columnName, java.sql.Timestamp x, int scale) throws SQLServerException;
+    void updateDateTime(String columnName, java.sql.Timestamp x, int scale) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
@@ -1450,7 +1393,58 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateSmallDateTime(String columnName, java.sql.Timestamp x, int scale,
+    void updateDateTime(String columnName, java.sql.Timestamp x, int scale,
+            boolean forceEncrypt) throws SQLServerException;
+
+    /**
+     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
+     * update column values in the current row or the insert row. The updater methods do not update the underlying
+     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
+     *
+     * @param columnName
+     *        is the name of the column
+     * @param x
+     *        the new column value
+     * @throws SQLServerException
+     *         If any errors occur.
+     */
+    void updateSmallDateTime(String columnName, java.sql.Timestamp x) throws SQLServerException;
+
+    /**
+     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
+     * update column values in the current row or the insert row. The updater methods do not update the underlying
+     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
+     *
+     * @param columnName
+     *        is the name of the column
+     * @param x
+     *        the new column value
+     * @param scale
+     *        the scale of the column
+     * @throws SQLServerException
+     *         If any errors occur.
+     */
+    void updateSmallDateTime(String columnName, java.sql.Timestamp x, int scale) throws SQLServerException;
+
+    /**
+     * Updates the designated column with a <code>java.sql.Timestamp</code> value. The updater methods are used to
+     * update column values in the current row or the insert row. The updater methods do not update the underlying
+     * database; instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
+     *
+     * @param columnName
+     *        is the name of the column
+     * @param x
+     *        the new column value
+     * @param scale
+     *        the scale of the column
+     * @param forceEncrypt
+     *        If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column
+     *        is encrypted and Always Encrypted is enabled on the connection or on the statement. If the boolean
+     *        forceEncrypt is set to false, the driver will not force encryption on parameters.
+     * @throws SQLServerException
+     *         If any errors occur.
+     */
+    void updateSmallDateTime(String columnName, java.sql.Timestamp x, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -1465,8 +1459,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x,
-            int scale) throws SQLServerException;
+    void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException;
 
     /**
      * Updates the value of the column specified to the DateTimeOffset Class value, given a column name.
@@ -1484,7 +1477,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x, int scale,
+    void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -1499,7 +1492,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateUniqueIdentifier(String columnName, String x) throws SQLServerException;
+    void updateUniqueIdentifier(String columnName, String x) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>String</code>value. The updater methods are used to update column
@@ -1517,7 +1510,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateUniqueIdentifier(String columnName, String x, boolean forceEncrypt) throws SQLServerException;
+    void updateUniqueIdentifier(String columnName, String x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with an {@code Object} value.
@@ -1537,7 +1530,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateObject(String columnName, Object x, int precision, int scale) throws SQLServerException;
+    void updateObject(String columnName, Object x, int precision, int scale) throws SQLServerException;
 
     /**
      * Updates the designated column with an {@code Object} value.
@@ -1561,7 +1554,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public void updateObject(String columnName, Object x, int precision, int scale,
+    void updateObject(String columnName, Object x, int precision, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -1570,5 +1563,5 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * 
      * @return SensitivityClassification
      */
-    public SensitivityClassification getSensitivityClassification();
+    SensitivityClassification getSensitivityClassification();
 }

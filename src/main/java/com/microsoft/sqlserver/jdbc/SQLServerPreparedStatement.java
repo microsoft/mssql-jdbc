@@ -2025,7 +2025,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     bcOperation.setDestinationTableName(tableName);
                     bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                     bcOperation.setDestinationTableMetadata(rs);
-                    bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
+                    bcOperation.writeToServer(batchRecord);
                     bcOperation.close();
                     updateCounts = new int[batchParamValues.size()];
                     for (int i = 0; i < batchParamValues.size(); ++i) {
@@ -2182,7 +2182,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     bcOperation.setDestinationTableName(tableName);
                     bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                     bcOperation.setDestinationTableMetadata(rs);
-                    bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
+                    bcOperation.writeToServer(batchRecord);
                     bcOperation.close();
                     updateCounts = new long[batchParamValues.size()];
                     for (int i = 0; i < batchParamValues.size(); ++i) {
