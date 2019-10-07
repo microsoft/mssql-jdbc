@@ -902,7 +902,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 tdsWriter.writeShort((short) 0);
             } else {
                 byte[] b = connection.generateEncalvePackage(userSQL);
-                if (b.length == 0) {
+                if (null == b || 0 == b.length) {
                     tdsWriter.writeShort((short) 0);
                 } else {
                     tdsWriter.writeShort((short) b.length);
@@ -2027,6 +2027,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOROPEN);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        sendEnclavePackage(tdsWriter, sql);
 
         // <cursor> OUT
         tdsWriter.writeRPCInt(null, 0, true);

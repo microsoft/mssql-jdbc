@@ -249,7 +249,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
 
             try {
                 rs = (SQLServerResultSet) stmt.getResultSet();
-                while (rs.next()) {
+                while (rs.next() && null != params) {
                     String paramName = rs.getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
                     int paramIndex = parameterNames.indexOf(paramName);
                     int cekOrdinal = rs

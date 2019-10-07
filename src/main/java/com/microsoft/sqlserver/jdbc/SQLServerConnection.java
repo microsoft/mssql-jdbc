@@ -6449,7 +6449,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     byte[] generateEncalvePackage(String userSQL) {
-        return enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs);
+        return (enclaveCEKs.size() > 0) ? enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs) : null;
     }
 }
 

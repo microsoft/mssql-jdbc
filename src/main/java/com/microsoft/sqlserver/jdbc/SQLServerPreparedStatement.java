@@ -708,6 +708,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_CURSORPREPEXEC);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        sendEnclavePackage(tdsWriter, preparedSQL);
 
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
@@ -751,14 +752,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_PREPEXEC);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        sendEnclavePackage(tdsWriter, preparedSQL);
 
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
         // OUT: The newly prepared handle
         tdsWriter.writeRPCInt(null, getPreparedStatementHandle(), true);
         resetPrepStmtHandle(false);
-
-        sendEnclavePackage(tdsWriter, preparedSQL);
 
         // <formal parameter defn> IN
         tdsWriter.writeRPCStringUnicode((preparedTypeDefinitions.length() > 0) ? preparedTypeDefinitions : null);
@@ -780,11 +780,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTESQL);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        sendEnclavePackage(tdsWriter, preparedSQL);
 
         // No handle used.
         resetPrepStmtHandle(false);
-
-        sendEnclavePackage(tdsWriter, preparedSQL);
 
         // <stmt> IN
         tdsWriter.writeRPCStringUnicode(preparedSQL);
@@ -808,6 +807,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOREXECUTE);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
+        sendEnclavePackage(tdsWriter, preparedSQL);
 
         // <handle> IN
         assert hasPreparedStatementHandle();
