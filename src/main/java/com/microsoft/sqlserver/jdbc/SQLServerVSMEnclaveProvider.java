@@ -109,7 +109,6 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 for (byte[] b : enclaveCEKs) {
                     keys.writeBytes(b);
                 }
-                enclaveCEKs.clear();
                 SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
                         enclaveSession.getSessionSecret());
                 SQLServerAeadAes256CbcHmac256Algorithm algo = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey,
@@ -144,6 +143,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         // getStatementLogger().fine(
         // "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
         // }
+        connection.enclaveCEKs.clear();
         ResultSet rs = null;
         try (PreparedStatement stmt = connection.prepareStatement("EXEC sp_describe_parameter_encryption ?,?,?")) {
             ((SQLServerPreparedStatement) stmt).isInternalEncryptionQuery = true;

@@ -840,6 +840,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTE);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
+        sendEnclavePackage(tdsWriter, preparedSQL);
 
         // <handle> IN
         assert hasPreparedStatementHandle();
