@@ -769,9 +769,6 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
 
         final boolean doExecute() throws SQLServerException {
-            if (connection.isAEv2()) {
-                connection.establishEnclaveSession(sql, null, null, null);
-            }
             stmt.doExecuteStatement(this);
             return false;
         }
@@ -828,6 +825,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         // through regular Statement objects. We need to ensure that any such JDBC
         // call syntax is rewritten here as SQL exec syntax.
         String sql = ensureSQLSyntax(execCmd.sql);
+        if (connection.isAEv2()) {
+            connection.establishEnclaveSession(sql, null, null, null);
+        }
 
         // If this request might be a query (as opposed to an update) then make
         // sure we set the max number of rows and max field size for any ResultSet

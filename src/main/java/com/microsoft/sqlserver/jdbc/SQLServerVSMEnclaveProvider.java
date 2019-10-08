@@ -311,7 +311,6 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                         0, e);
             }
         }
-        // connection.resetCurrentCommand();
     }
 }
 

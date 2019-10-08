@@ -588,7 +588,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
                     hasNewTypeDefinitions = false;
                 }
-
                 // Start the request and detach the response reader so that we can
                 // continue using it after we return.
                 TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
