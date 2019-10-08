@@ -6439,13 +6439,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     ArrayList<byte[]> enclaveCEKs = new ArrayList<>();
 
     void establishEnclaveSession(String userSql, String preparedTypeDefinitions, Parameter[] params,
-            ArrayList<String> parameterNames) {
+            ArrayList<String> parameterNames) throws SQLServerException {
         try {
             enclaveProvider.getAttestationParamters(false, this.enclaveAttestationUrl);
             enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
-        } catch (SQLServerException | NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
+            SQLServerException.makeFromDriverError(this, this, e.getLocalizedMessage(), "", false);
         }
     }
 
@@ -6453,7 +6452,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (null != enclaveProvider.getEnclaveSession());
     }
 
-    byte[] generateEncalvePackage(String userSQL) {
+    byte[] generateEncalvePackage(String userSQL) throws SQLServerException {
         return (enclaveCEKs.size() > 0) ? enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs) : null;
     }
 }

@@ -7,9 +7,10 @@ import java.util.ArrayList;
 
 
 public interface ISQLServerEnclaveProvider {
-    byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs);
+    byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException;
 
-    void getAttestationParamters(boolean b, String s) throws NoSuchAlgorithmException, InvalidAlgorithmParameterException;
+    void getAttestationParamters(boolean b,
+            String s) throws NoSuchAlgorithmException, InvalidAlgorithmParameterException;
 
     void createEnclaveSession(SQLServerConnection connection, String userSql, String preparedTypeDefinitions,
             Parameter[] params, ArrayList<String> parameterNames) throws SQLServerException;
@@ -54,6 +55,6 @@ class EnclaveSession {
 
     long getCounter() {
         counter++;
-        return counter-1;
+        return counter - 1;
     }
 }

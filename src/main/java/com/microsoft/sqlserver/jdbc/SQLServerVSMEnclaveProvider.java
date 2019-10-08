@@ -65,8 +65,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
                         vsmParams.createSessionSecret(hgsResponse.DHpublicKey));
             } catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "", false);
             }
         }
     }
@@ -95,7 +94,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     }
 
     @Override
-    public byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) {
+    public byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         if (null != enclaveSession) {
             try {
                 ByteArrayOutputStream enclavePackage = new ByteArrayOutputStream();
@@ -116,8 +115,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 enclavePackage.writeBytes(algo.encryptData(keys.toByteArray()));
                 return enclavePackage.toByteArray();
             } catch (NoSuchAlgorithmException | SQLServerException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false);
             }
         }
         return null;
