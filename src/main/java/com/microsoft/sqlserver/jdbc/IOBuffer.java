@@ -6198,16 +6198,16 @@ final class TDSWriter {
 
     void sendEnclavePackage(String sql) throws SQLServerException {
         if (isConnectionAEv2()) {
-            if (!con.enclaveEstablished() || (null == sql && "" == sql)) {
-                this.writeShort((short) 0);
-            } else {
+            if (null != sql && "" != sql && con.enclaveEstablished()) {
                 byte[] b = con.generateEncalvePackage(sql);
-                if (null == b || 0 == b.length) {
-                    this.writeShort((short) 0);
-                } else {
+                if (null != b && 0 != b.length) {
                     this.writeShort((short) b.length);
                     this.writeBytes(b);
+                } else {
+                    this.writeShort((short) 0);
                 }
+            } else {
+                this.writeShort((short) 0);
             }
         }
     }
