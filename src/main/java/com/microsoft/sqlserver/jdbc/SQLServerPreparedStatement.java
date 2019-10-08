@@ -561,8 +561,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         if (connection.isAEv2() && !connection.enclaveEstablished() && !isInternalEncryptionQuery) {
             connection.establishEnclaveSession(preparedSQL, preparedTypeDefinitions, inOutParam, parameterNames);
-        } else if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection))
-                && !isInternalEncryptionQuery) {
+        }
+
+        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && !isInternalEncryptionQuery) {
 
             // retrieve parameter encryption metadata if they are not retrieved yet
             if (!encryptionMetadataIsRetrieved) {
