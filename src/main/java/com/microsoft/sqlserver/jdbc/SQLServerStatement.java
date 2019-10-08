@@ -8,8 +8,6 @@ package com.microsoft.sqlserver.jdbc;
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQL;
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,9 +16,6 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.ListIterator;
-import java.util.Map;
 import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -839,12 +834,11 @@ public class SQLServerStatement implements ISQLServerStatement {
         // well.
         //
         // Note: similar logic in SQLServerPreparedStatement.doExecutePreparedStatement
-        // setMaxRowsAndMaxFieldSize();
+        setMaxRowsAndMaxFieldSize();
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
-
         if (isCursorable(executeMethod) && isSelect(sql)) {
             if (stmtlogger.isLoggable(java.util.logging.Level.FINE))
                 stmtlogger.fine(toString() + " Executing server side cursor " + sql);

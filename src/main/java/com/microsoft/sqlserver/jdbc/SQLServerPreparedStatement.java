@@ -11,8 +11,6 @@ import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.sql.BatchUpdateException;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;

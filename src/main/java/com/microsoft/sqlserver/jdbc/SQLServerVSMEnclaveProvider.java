@@ -3,7 +3,6 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -137,10 +136,6 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     private void describeParameterEncryption(SQLServerConnection connection, String userSql,
             String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
-        // if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-        // getStatementLogger().fine(
-        // "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
-        // }
         connection.enclaveCEKs.clear();
         ResultSet rs = null;
         try (PreparedStatement stmt = connection.prepareStatement("EXEC sp_describe_parameter_encryption ?,?,?")) {
@@ -280,9 +275,6 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                         }
                     }
                 }
-                // if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                // getStatementLogger().fine("Parameter encryption metadata is set.");
-                // }
             } catch (SQLException e) {
                 if (e instanceof SQLServerException) {
                     throw (SQLServerException) e;
