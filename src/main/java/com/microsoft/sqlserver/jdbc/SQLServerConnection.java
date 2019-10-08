@@ -3045,12 +3045,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             final boolean doExecute() throws SQLServerException {
-                startRequest(TDS.PKT_QUERY).writeString(sql);
+                TDSWriter tdsWriter = startRequest(TDS.PKT_QUERY);
+                tdsWriter.sendEnclavePackage(sql);
+                tdsWriter.writeString(sql);
                 TDSParser.parse(startResponse(), getLogContext());
                 return true;
             }
         }
-
+        if (this.isAEv2()) {
+            this.establishEnclaveSession(sql, null, null, null);
+        }
         executeCommand(new ConnectionCommand(sql, logContext));
     }
 
@@ -4673,6 +4677,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             final boolean doExecute() throws SQLServerException {
                 TDSWriter tdsWriter = startRequest(TDS.PKT_DTC);
+                tdsWriter.sendEnclavePackage(null);
 
                 tdsWriter.writeShort((short) requestType);
                 if (null == payload) {

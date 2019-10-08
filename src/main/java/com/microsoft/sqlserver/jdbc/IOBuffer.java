@@ -6191,6 +6191,26 @@ final class TDSWriter {
         // Write the data
         writeReader(re, reLength, usePLP);
     }
+
+    boolean isConnectionAEv2() {
+        return con.isAEv2();
+    }
+
+    void sendEnclavePackage(String sql) throws SQLServerException {
+        if (isConnectionAEv2()) {
+            if (!con.enclaveEstablished() || (null == sql && "" == sql)) {
+                this.writeShort((short) 0);
+            } else {
+                byte[] b = con.generateEncalvePackage(sql);
+                if (null == b || 0 == b.length) {
+                    this.writeShort((short) 0);
+                } else {
+                    this.writeShort((short) b.length);
+                    this.writeBytes(b);
+                }
+            }
+        }
+    }
 }
 
 

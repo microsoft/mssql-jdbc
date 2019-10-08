@@ -858,7 +858,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
             TDSWriter tdsWriter = execCmd.startRequest(TDS.PKT_QUERY);
 
-            sendEnclavePackage(tdsWriter, sql);
+            tdsWriter.sendEnclavePackage(sql);
 
             tdsWriter.writeString(sql);
 
@@ -892,22 +892,6 @@ public class SQLServerStatement implements ISQLServerStatement {
             if (EXECUTE_UPDATE == executeMethod || EXECUTE_BATCH == executeMethod) {
                 SQLServerException.makeFromDriverError(connection, this,
                         SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
-            }
-        }
-    }
-
-    void sendEnclavePackage(TDSWriter tdsWriter, String userSQL) throws SQLServerException {
-        if (connection.isAEv2()) {
-            if (!connection.enclaveEstablished()) {
-                tdsWriter.writeShort((short) 0);
-            } else {
-                byte[] b = connection.generateEncalvePackage(userSQL);
-                if (null == b || 0 == b.length) {
-                    tdsWriter.writeShort((short) 0);
-                } else {
-                    tdsWriter.writeShort((short) b.length);
-                    tdsWriter.writeBytes(b);
-                }
             }
         }
     }
@@ -953,12 +937,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         TDSWriter tdsWriter = execCmd.startRequest(TDS.PKT_QUERY);
 
         // Write the concatenated batch of statements, delimited by semicolons
-        ListIterator<String> batchIter = batchStatementBuffer.listIterator();
-        tdsWriter.writeString(batchIter.next());
-        while (batchIter.hasNext()) {
-            tdsWriter.writeString(" ; ");
-            tdsWriter.writeString(batchIter.next());
-        }
+        String batchStatementString = String.join(";", batchStatementBuffer);
+        tdsWriter.sendEnclavePackage(batchStatementString);
+        tdsWriter.writeString(batchStatementString);
 
         // Start the response
         ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
@@ -2027,7 +2008,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOROPEN);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-        sendEnclavePackage(tdsWriter, sql);
+        tdsWriter.sendEnclavePackage(sql);
 
         // <cursor> OUT
         tdsWriter.writeRPCInt(null, 0, true);
