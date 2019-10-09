@@ -34,11 +34,7 @@ class EnclaveSession {
     private AtomicInteger counter;
     private byte[] sessionSecret;
 
-    // Don't allow default instantiation
-    @SuppressWarnings("unused")
-    private EnclaveSession() {};
-
-    public EnclaveSession(byte[] cs, byte[] b) {
+    EnclaveSession(byte[] cs, byte[] b) {
         sessionID = cs;
         sessionSecret = b;
         counter = new AtomicInteger(0);
@@ -53,6 +49,7 @@ class EnclaveSession {
     }
 
     long getCounter() {
+        System.out.println("Counter: " + counter);
         return counter.getAndIncrement();
     }
 }

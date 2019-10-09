@@ -20,8 +20,6 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.NoSuchAlgorithmException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -662,7 +660,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalCustomColumnEncryptionKeyStoreProviders = null;
     // This is a per-connection store provider. It can be JKS or AKV.
-    static Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<>();
+    Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<>();
 
     /**
      * Registers key store providers in the globalCustomColumnEncryptionKeyStoreProviders.
@@ -4663,7 +4661,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             final boolean doExecute() throws SQLServerException {
                 TDSWriter tdsWriter = startRequest(TDS.PKT_DTC);
-                tdsWriter.sendEnclavePackage(null, enclaveCEKs);
+                tdsWriter.sendEnclavePackage(null, null);
 
                 tdsWriter.writeShort((short) requestType);
                 if (null == payload) {
@@ -6419,7 +6417,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     boolean isAEv2() {
-        return aeVersion == 2;
+        return (aeVersion == 2);
     }
 
     ISQLServerEnclaveProvider enclaveProvider = new SQLServerVSMEnclaveProvider();

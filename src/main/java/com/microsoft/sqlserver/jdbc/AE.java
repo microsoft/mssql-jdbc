@@ -36,8 +36,6 @@ class EncryptionKeyInfo {
     String keyStoreName;
     String algorithmName;
     byte normalizationRuleVersion;
-    boolean requestedByEnclave;
-    byte[] enclaveCmkSignature;
 }
 
 
@@ -230,6 +228,7 @@ class CryptoMetadata {
         return null != cipherAlgorithm;
     }
 }
+
 
 // Fields in the first resultset of "sp_describe_parameter_encryption"
 // We expect the server to return the fields in the resultset in the same order as mentioned below.

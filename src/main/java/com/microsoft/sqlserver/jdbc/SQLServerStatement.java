@@ -851,7 +851,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
             TDSWriter tdsWriter = execCmd.startRequest(TDS.PKT_QUERY);
 
-            tdsWriter.sendEnclavePackage(sql,execCmd.enclaveCEKs);
+            tdsWriter.sendEnclavePackage(sql, execCmd.enclaveCEKs);
 
             tdsWriter.writeString(sql);
 
@@ -918,6 +918,11 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Make sure any previous maxRows limitation on the connection is removed.
         connection.setMaxRows(0);
 
+        String batchStatementString = String.join(";", batchStatementBuffer);
+        if (connection.isAEv2()) {
+            execCmd.enclaveCEKs = connection.initEnclaveParameters(batchStatementString, null, null, null);
+        }
+
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -930,8 +935,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         TDSWriter tdsWriter = execCmd.startRequest(TDS.PKT_QUERY);
 
         // Write the concatenated batch of statements, delimited by semicolons
-        String batchStatementString = String.join(";", batchStatementBuffer);
-        tdsWriter.sendEnclavePackage(batchStatementString,execCmd.enclaveCEKs);
+        tdsWriter.sendEnclavePackage(batchStatementString, execCmd.enclaveCEKs);
         tdsWriter.writeString(batchStatementString);
 
         // Start the response
@@ -2004,7 +2008,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOROPEN);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-        tdsWriter.sendEnclavePackage(sql,execCmd.enclaveCEKs);
+        tdsWriter.sendEnclavePackage(sql, execCmd.enclaveCEKs);
 
         // <cursor> OUT
         tdsWriter.writeRPCInt(null, 0, true);

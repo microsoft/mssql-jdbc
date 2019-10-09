@@ -557,10 +557,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (connection.isAEv2() && !isInternalEncryptionQuery) {
             this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, inOutParam,
                     parameterNames);
+            encryptionMetadataIsRetrieved = true;
+            setMaxRowsAndMaxFieldSize();
         }
 
-        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && !isInternalEncryptionQuery) {
-
+        if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
+                && !isInternalEncryptionQuery) {
             // retrieve parameter encryption metadata if they are not retrieved yet
             if (!encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(inOutParam);
@@ -584,6 +586,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
                     hasNewTypeDefinitions = false;
                 }
+
                 // Start the request and detach the response reader so that we can
                 // continue using it after we return.
                 TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);

@@ -63,7 +63,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         if (null != hgsResponse && !connection.enclaveEstablished()) {
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
-                        vsmParams.createSessionSecret(hgsResponse.DHpublicKey));
+                        vsmParams.createSessionSecret(hgsResponse.getDHpublicKey()));
             } catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "", false);
             }
@@ -135,7 +135,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         return certData;
     }
 
-    ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, String userSql,
+    private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, String userSql,
             String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
@@ -316,16 +316,16 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
 class VSMAttestationParameters extends BaseAttestationRequest {
 
     // Static byte[] for VSM ECDH
-    static byte ECDH_MAGIC[] = {0x45, 0x43, 0x4b, 0x33, 0x30, 0x00, 0x00, 0x00};
+    private static byte ECDH_MAGIC[] = {0x45, 0x43, 0x4b, 0x33, 0x30, 0x00, 0x00, 0x00};
     // Type 3 is VSM, sent as Little Endian 0x30000000
-    static byte ENCLAVE_TYPE[] = new byte[] {0x3, 0x0, 0x0, 0x0};
+    private static byte ENCLAVE_TYPE[] = new byte[] {0x3, 0x0, 0x0, 0x0};
     // VSM doesn't have a challenge
-    static byte ENCLAVE_CHALLENGE[] = new byte[] {0x0, 0x0, 0x0, 0x0};
-    static int ENCLAVE_LENGTH = 104;
-    byte[] x;
-    byte[] y;
+    private static byte ENCLAVE_CHALLENGE[] = new byte[] {0x0, 0x0, 0x0, 0x0};
+    private static int ENCLAVE_LENGTH = 104;
+    private byte[] x;
+    private byte[] y;
 
-    public VSMAttestationParameters() throws SQLServerException {
+    VSMAttestationParameters() throws SQLServerException {
         KeyPairGenerator kpg = null;
         try {
             kpg = KeyPairGenerator.getInstance("EC");
@@ -398,23 +398,23 @@ class VSMAttestationParameters extends BaseAttestationRequest {
 
 
 class AttestationResponse {
-    int totalSize;
-    int identitySize;
-    int healthReportSize;
-    int enclaveReportSize;
+    private int totalSize;
+    private int identitySize;
+    private int healthReportSize;
+    private int enclaveReportSize;
 
-    byte[] enclavePK;
-    byte[] healthReportCertificate;
-    byte[] enclaveReportPackage;
+    private byte[] enclavePK;
+    private byte[] healthReportCertificate;
+    private byte[] enclaveReportPackage;
 
-    int sessionInfoSize;
-    byte[] sessionID = new byte[8];
-    int DHPKsize;
-    int DHPKSsize;
-    byte[] DHpublicKey;
-    byte[] publicKeySig;
+    private int sessionInfoSize;
+    private byte[] sessionID = new byte[8];
+    private int DHPKsize;
+    private int DHPKSsize;
+    private byte[] DHpublicKey;
+    private byte[] publicKeySig;
 
-    X509Certificate healthCert;
+    private X509Certificate healthCert;
 
     AttestationResponse(byte[] b) throws SQLServerException {
         ByteBuffer response = ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN);
@@ -473,6 +473,10 @@ class AttestationResponse {
             SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
         }
         return false;
+    }
+    
+    byte[] getDHpublicKey() {
+        return DHpublicKey;
     }
 
     byte[] getSessionID() {

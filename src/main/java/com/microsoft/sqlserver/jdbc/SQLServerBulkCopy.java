@@ -1551,6 +1551,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         // Send the bulk data. This is the BulkLoadBCP TDS stream.
         tdsWriter = command.startRequest(TDS.PKT_BULK);
         // Write the COLUMNMETADATA token in the stream.
+
         writeColumnMetaData(tdsWriter);
 
         return tdsWriter;
