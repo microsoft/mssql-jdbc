@@ -52,9 +52,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private static final long serialVersionUID = -6292257029445685221L;
 
-    /** Flag to indicate that it is an internal query to retrieve encryption metadata. */
-    boolean isInternalEncryptionQuery = false;
-
     /** delimiter for multiple statements in a single batch */
     @SuppressWarnings("unused")
     private static final int BATCH_STATEMENT_DELIMITER_TDS_71 = 0x80;

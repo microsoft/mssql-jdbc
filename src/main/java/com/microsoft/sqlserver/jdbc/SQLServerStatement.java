@@ -820,7 +820,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // through regular Statement objects. We need to ensure that any such JDBC
         // call syntax is rewritten here as SQL exec syntax.
         String sql = ensureSQLSyntax(execCmd.sql);
-        if (connection.isAEv2()) {
+        if (connection.isAEv2() && !isInternalEncryptionQuery) {
             execCmd.enclaveCEKs = connection.initEnclaveParameters(sql, null, null, null);
         }
 
@@ -1205,6 +1205,9 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     Vector<SQLWarning> sqlWarnings; // the SQL warnings chain
+
+    /** Flag to indicate that it is an internal query to retrieve encryption metadata. */
+    boolean isInternalEncryptionQuery;
 
     @Override
     public final SQLWarning getWarnings() throws SQLServerException {

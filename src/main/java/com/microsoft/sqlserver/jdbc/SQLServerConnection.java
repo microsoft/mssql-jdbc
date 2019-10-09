@@ -6177,7 +6177,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             try {
                 // Execute the batched set.
-                try (Statement stmt = this.createStatement()) {
+                try (SQLServerStatement stmt = (SQLServerStatement) this.createStatement()) {
+                    stmt.isInternalEncryptionQuery = true;
                     stmt.execute(sql.toString());
                 }
 
