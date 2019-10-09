@@ -18,7 +18,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -29,6 +31,7 @@ import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
@@ -55,10 +58,21 @@ public class AESetup extends AbstractTest {
 
     static String filePath = null;
     static String thumbprint = null;
-    static String keyPath = null;
+    static String javaKeyPath = null;
     static String javaKeyAliases = null;
+    static String windowsKeyPath = null;
+    static String applicationClientID = null;
+    static String applicationKey = null;
+    static String[] keyIDs = null;
+    static String cmk_jks = Constants.CMK_NAME + "_JKS";
+    static String cmk_win = Constants.CMK_NAME + "_WIN";
+    static String cmk_akv = Constants.CMK_NAME + "_AKV";
+    static String cek_jks = Constants.CEK_NAME + "_JKS";
+    static String cek_win = Constants.CEK_NAME + "_WIN";
+    static String cek_akv = Constants.CEK_NAME + "_AKV";
 
-    static SQLServerColumnEncryptionKeyStoreProvider storeProvider = null;
+    static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
+    static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
     static String AETestConnectionString;
 
@@ -89,7 +103,8 @@ public class AESetup extends AbstractTest {
             {"VarcharMax", "varchar(max) COLLATE Latin1_General_BIN2", "LONGVARCHAR"},
             {"Nchar", "nchar(30) COLLATE Latin1_General_BIN2", "NCHAR"},
             {"Nvarchar", "nvarchar(60) COLLATE Latin1_General_BIN2", "NCHAR"},
-            {"NvarcharMax", "nvarchar(max) COLLATE Latin1_General_BIN2", "LONGNVARCHAR"}, {"Uniqueidentifier", "uniqueidentifier", "GUID"},
+            {"NvarcharMax", "nvarchar(max) COLLATE Latin1_General_BIN2", "LONGNVARCHAR"},
+            {"Uniqueidentifier", "uniqueidentifier", "GUID"},
             {"Varchar8000", "varchar(8000) COLLATE Latin1_General_BIN2", "CHAR"},
             {"Nvarchar4000", "nvarchar(4000) COLLATE Latin1_General_BIN2", "NCHAR"},};
 
@@ -123,7 +138,7 @@ public class AESetup extends AbstractTest {
     public static void setUpConnection() throws TestAbortedException, Exception {
         AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
 
-        String enclaveAttestationUrl = System.getProperty("enclaveAttestationUrl");
+        String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
         if (null != enclaveAttestationUrl) {
             AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "enclaveAttestationUrl",
                     enclaveAttestationUrl);
@@ -131,22 +146,53 @@ public class AESetup extends AbstractTest {
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
         try (Connection con = PrepUtil.getConnection(AETestConnectionString); Statement stmt = con.createStatement()) {
-            dropCEK(stmt);
-            dropCMK(stmt);
+            dropCEK(cek_jks, stmt);
+            dropCEK(cek_win, stmt);
+            dropCEK(cek_akv, stmt);
+            dropCMK(cmk_jks, stmt);
+            dropCMK(cmk_win, stmt);
+            dropCMK(cmk_akv, stmt);
         }
 
-        keyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
-        storeProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(keyPath, Constants.JKS_SECRET.toCharArray());
+        javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
+        applicationClientID = TestUtils.getConfiguredProperty("applicationClientID");
+        applicationKey = TestUtils.getConfiguredProperty("applicationKey");
+        String keyID = TestUtils.getConfiguredProperty("keyID");
+        if (null != keyID) {
+            keyIDs = keyID.split(";");
+
+            if (null == jksProvider && null == akvProvider) {
+                jksProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath,
+                        Constants.JKS_SECRET.toCharArray());
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+                Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+                map.put("My_KEYSTORE", jksProvider);
+                map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+                SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
+            }
+        }
+
+        createCMK(cmk_jks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
+        createCMK(cmk_win, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
+        createCMK(cmk_akv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
+        createCEK(cmk_jks, cek_jks, jksProvider);
+        createCEK(cmk_win, cek_win, null);
+        createCEK(cmk_akv, cek_akv, akvProvider);
+
+        windowsKeyPath = TestUtils.getConfiguredProperty("windowsKeyPath");
+        if (null != windowsKeyPath) {
+            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "windowsKeyPath",
+                    windowsKeyPath);
+            createCMK(cmk_win, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
+        }
+
         stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;
 
         AEInfo = new Properties();
         AEInfo.setProperty("ColumnEncryptionSetting", Constants.ENABLED);
         AEInfo.setProperty("keyStoreAuthentication", Constants.JAVA_KEY_STORE_SECRET);
-        AEInfo.setProperty("keyStoreLocation", keyPath);
+        AEInfo.setProperty("keyStoreLocation", javaKeyPath);
         AEInfo.setProperty("keyStoreSecret", Constants.JKS_SECRET);
-
-        createCMK(Constants.JAVA_KEY_STORE_NAME, javaKeyAliases);
-        createCEK(storeProvider);
     }
 
     /**
@@ -159,8 +205,13 @@ public class AESetup extends AbstractTest {
     public static void dropAll() throws Exception {
         try (Statement stmt = connection.createStatement()) {
             dropTables(stmt);
-            dropCEK(stmt);
-            dropCMK(stmt);
+            dropCEK(cek_jks, stmt);
+            dropCEK(cek_win, stmt);
+            dropCEK(cek_akv, stmt);
+            dropCMK(cmk_jks, stmt);
+            dropCMK(cmk_win, stmt);
+            dropCMK(cmk_akv, stmt);
+
         }
     }
 
@@ -202,16 +253,16 @@ public class AESetup extends AbstractTest {
      *        2d array containing table column definitions
      * @throws SQLException
      */
-    protected static void createTable(String tableName, String table[][]) throws SQLException {
+    protected static void createTable(String tableName, String cekName, String table[][]) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String sql = "";
             for (int i = 0; i < table.length; i++) {
                 sql += ColumnType.PLAIN.name() + table[i][0] + " " + table[i][1] + " NULL,";
                 sql += ColumnType.DETERMINISTIC.name() + table[i][0] + " " + table[i][1]
-                        + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), Constants.CEK_NAME) + ") NULL,";
+                        + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), cekName) + ") NULL,";
                 sql += ColumnType.RANDOMIZED.name() + table[i][0] + " " + table[i][1]
-                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), Constants.CEK_NAME) + ") NULL,";
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ") NULL,";
             }
             sql = String.format(createSql, AbstractSQLGenerator.escapeIdentifier(tableName), sql);
             stmt.execute(sql);
@@ -221,8 +272,8 @@ public class AESetup extends AbstractTest {
         }
     }
 
-    protected static void createPrecisionTable(String tableName, String table[][], int floatPrecision, int precision,
-            int scale) throws SQLException {
+    protected static void createPrecisionTable(String tableName, String table[][], String cekName, int floatPrecision,
+            int precision, int scale) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String sql = "";
@@ -231,21 +282,19 @@ public class AESetup extends AbstractTest {
                     sql += ColumnType.PLAIN.name() + table[i][0] + "Precision " + table[i][1] + "(" + floatPrecision
                             + ") NULL,";
                     sql += ColumnType.RANDOMIZED.name() + table[i][0] + "Precision " + table[i][1] + "("
-                            + floatPrecision + ") "
-                            + String.format(encryptSql, ColumnType.RANDOMIZED.name(), Constants.CEK_NAME) + ") NULL,";
+                            + floatPrecision + ") " + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName)
+                            + ") NULL,";
                     sql += ColumnType.DETERMINISTIC.name() + table[i][0] + "Precision " + table[i][1] + "("
                             + floatPrecision + ") "
-                            + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), Constants.CEK_NAME)
-                            + ") NULL,";
+                            + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), cekName) + ") NULL,";
                 } else {
                     sql += ColumnType.PLAIN.name() + table[i][0] + "Precision " + table[i][1] + "(" + precision + ","
                             + scale + ") NULL,";
                     sql += ColumnType.RANDOMIZED.name() + table[i][0] + "Precision " + table[i][1] + "(" + precision
-                            + "," + scale + ") "
-                            + String.format(encryptSql, ColumnType.RANDOMIZED.name(), Constants.CEK_NAME) + ") NULL,";
+                            + "," + scale + ") " + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName)
+                            + ") NULL,";
                     sql += ColumnType.DETERMINISTIC.name() + table[i][0] + "Precision " + table[i][1] + "(" + precision
-                            + "," + scale + ") "
-                            + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), Constants.CEK_NAME)
+                            + "," + scale + ") " + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), cekName)
                             + ") NULL,";
                 }
             }
@@ -257,7 +306,8 @@ public class AESetup extends AbstractTest {
         }
     }
 
-    protected static void createScaleTable(String tableName, String table[][], int scale) throws SQLException {
+    protected static void createScaleTable(String tableName, String table[][], String cekName,
+            int scale) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String sql = "";
@@ -265,15 +315,15 @@ public class AESetup extends AbstractTest {
 
                 sql += ColumnType.PLAIN.name() + table[i][0] + "Scale " + table[i][1] + "(" + scale + ") NULL,";
                 sql += ColumnType.RANDOMIZED.name() + table[i][0] + "Scale " + table[i][1] + "(" + scale + ") "
-                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), Constants.CEK_NAME) + ") NULL,";
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ") NULL,";
                 sql += ColumnType.DETERMINISTIC.name() + table[i][0] + "Scale " + table[i][1] + "(" + scale + ") "
-                        + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), Constants.CEK_NAME) + ") NULL,";
+                        + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), cekName) + ") NULL,";
 
                 sql += ColumnType.PLAIN.name() + table[i][0] + " " + table[i][1] + " NULL,";
                 sql += ColumnType.RANDOMIZED.name() + table[i][0] + " " + table[i][1]
-                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), Constants.CEK_NAME) + ") NULL,";
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ") NULL,";
                 sql += ColumnType.DETERMINISTIC.name() + table[i][0] + " " + table[i][1]
-                        + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), Constants.CEK_NAME) + ") NULL,";
+                        + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), cekName) + ") NULL,";
             }
 
             sql = String.format(createSql, AbstractSQLGenerator.escapeIdentifier(tableName), sql);
@@ -397,14 +447,15 @@ public class AESetup extends AbstractTest {
      * @param keyPath
      * @throws SQLException
      */
-    private static void createCMK(String keyStoreName, String keyPath) throws SQLException {
+    private static void createCMK(String cmkName, String keyStoreName, String keyPath,
+            String signature) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil
                 .getConnection(AETestConnectionString + ";sendTimeAsDateTime=false", AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + Constants.CMK_NAME
-                    + "')" + " begin" + " CREATE COLUMN MASTER KEY " + Constants.CMK_NAME
-                    + " WITH (KEY_STORE_PROVIDER_NAME = '" + keyStoreName + "', KEY_PATH = '" + keyPath +  "'" +
-                    (TestUtils.isAEv2(con) ? ",ENCLAVE_COMPUTATIONS (SIGNATURE = "+Constants.CMK_SIGNATURE+")) end" : ") end");
+            String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
+                    + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
+                    + keyStoreName + "', KEY_PATH = '" + keyPath + "'"
+                    + (TestUtils.isAEv2(con) ? ",ENCLAVE_COMPUTATIONS (SIGNATURE = " + signature + ")) end" : ") end");
             stmt.execute(sql);
         }
     }
@@ -416,17 +467,29 @@ public class AESetup extends AbstractTest {
      * @param certStore
      * @throws SQLException
      */
-    private static void createCEK(SQLServerColumnEncryptionKeyStoreProvider storeProvider) throws SQLException {
+    private static void createCEK(String cmkName, String cekName,
+            SQLServerColumnEncryptionKeyStoreProvider storeProvider) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil
                 .getConnection(AETestConnectionString + ";sendTimeAsDateTime=false", AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byte[] valuesDefault = Constants.CEK_STRING.getBytes();
-            String cekSql = null;
-            byte[] key = storeProvider.encryptColumnEncryptionKey(javaKeyAliases, Constants.CEK_ALGORITHM,
-                    valuesDefault);
-            cekSql = "CREATE COLUMN ENCRYPTION KEY " + Constants.CEK_NAME + " WITH VALUES " + "(COLUMN_MASTER_KEY = "
-                    + Constants.CMK_NAME + ", ALGORITHM = '" + Constants.CEK_ALGORITHM + "', ENCRYPTED_VALUE = 0x"
-                    + TestUtils.bytesToHexString(key, key.length) + ");";
+            String encryptedValue;
+
+            if (storeProvider instanceof SQLServerColumnEncryptionJavaKeyStoreProvider) {
+                byte[] key = storeProvider.encryptColumnEncryptionKey(javaKeyAliases, Constants.CEK_ALGORITHM,
+                        valuesDefault);
+                encryptedValue = "0x" + TestUtils.bytesToHexString(key, key.length);
+            } else if (storeProvider instanceof SQLServerColumnEncryptionAzureKeyVaultProvider) {
+                byte[] key = storeProvider.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM,
+                        valuesDefault);
+                encryptedValue = "0x" + TestUtils.bytesToHexString(key, key.length);
+            } else {
+                encryptedValue = Constants.CEK_ENCRYPTED_VALUE;
+            }
+
+            String cekSql = "CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES " + "(COLUMN_MASTER_KEY = "
+                    + cmkName + ", ALGORITHM = '" + Constants.CEK_ALGORITHM + "', ENCRYPTED_VALUE = " + encryptedValue
+                    + ");";
             stmt.execute(cekSql);
         }
     }
@@ -1802,9 +1865,9 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    private static void dropCEK(Statement stmt) throws SQLException {
-        String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + Constants.CEK_NAME
-                + "')" + " begin" + " drop column encryption key " + Constants.CEK_NAME + " end";
+    private static void dropCEK(String cekName, Statement stmt) throws SQLException {
+        String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
+                + " begin" + " drop column encryption key " + cekName + " end";
         stmt.execute(cekSql);
     }
 
@@ -1813,9 +1876,9 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    private static void dropCMK(Statement stmt) throws SQLException {
-        String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + Constants.CMK_NAME + "')"
-                + " begin" + " drop column master key " + Constants.CMK_NAME + " end";
+    private static void dropCMK(String cmkName, Statement stmt) throws SQLException {
+        String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin"
+                + " drop column master key " + cmkName + " end";
         stmt.execute(cekSql);
     }
 }

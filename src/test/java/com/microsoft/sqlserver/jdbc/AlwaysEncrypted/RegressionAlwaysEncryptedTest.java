@@ -46,19 +46,19 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 
-            createTable(NUMERIC_TABLE_AE, numericTable);
+            createTable(NUMERIC_TABLE_AE, cek_jks, numericTable);
 
             populateNumericTable(connection);
             verifyNumericTable(connection, false);
 
             dropTables(stmt);
-            createTable(DATE_TABLE_AE, dateTable);
+            createTable(DATE_TABLE_AE, cek_jks, dateTable);
 
             populateDateTable(connection);
             verifyDateTable(connection);
 
             dropTables(stmt);
-            createTable(NUMERIC_TABLE_AE, numericTable);
+            createTable(NUMERIC_TABLE_AE, cek_jks, numericTable);
 
             populateNumericTableWithNull(connection);
             verifyNumericTable(connection, true);
@@ -74,17 +74,17 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 
-            createTable(CHAR_TABLE_AE, charTable);
+            createTable(CHAR_TABLE_AE, cek_jks, charTable);
             populateCharTable(connection);
             verifyCharTable(connection);
 
             dropTables(stmt);
-            createTable(DATE_TABLE_AE, dateTable);
+            createTable(DATE_TABLE_AE, cek_jks, dateTable);
             populateDateTable(connection);
             verifyDateTable(connection);
 
             dropTables(stmt);
-            createTable(NUMERIC_TABLE_AE, numericTable);
+            createTable(NUMERIC_TABLE_AE, cek_jks, numericTable);
             populateNumericTableSpecificSetter(connection);
             verifyNumericTable(connection, false);
 

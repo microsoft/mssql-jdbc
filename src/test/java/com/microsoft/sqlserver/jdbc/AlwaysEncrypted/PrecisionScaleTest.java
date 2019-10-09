@@ -82,7 +82,7 @@ public class PrecisionScaleTest extends AESetup {
 
             String[] numeric = {"1.12345", "12345.12", "567.70"};
 
-            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, 30, 8, 2);
+            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cek_jks, 30, 8, 2);
 
             populateNumericNormalCase(numeric, 8, 2);
             populateNumericSetObject(numeric, 8, 2);
@@ -103,7 +103,7 @@ public class PrecisionScaleTest extends AESetup {
             String[] dateSetObject = {GMTDate + ".18", GMTDate + ".177", dateTimeOffsetExpectedValue + ".18 +00:01",
                     dateTimeOffsetExpectedValue + ".177 +00:01", GMTDateWithoutDate, GMTDateWithoutDate,};
 
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, 2);
+            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cek_jks, 2);
             populateDateNormalCase(2);
             populateDateSetObject(2);
 
@@ -119,7 +119,7 @@ public class PrecisionScaleTest extends AESetup {
 
             String[] numeric2 = {"1.12345", "12345", "567"};
 
-            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, 30, 8, 0);
+            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cek_jks, 30, 8, 0);
 
             populateNumericNormalCase(numeric2, 8, 0);
             populateNumericSetObject(numeric2, 8, 0);
@@ -140,7 +140,7 @@ public class PrecisionScaleTest extends AESetup {
             String[] dateSetObject2 = {GMTDate + ".0", GMTDate + ".177", dateTimeOffsetExpectedValue + " +00:01",
                     dateTimeOffsetExpectedValue + ".177 +00:01", GMTDateWithoutDate, GMTDateWithoutDate,};
 
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, 0);
+            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cek_jks, 0);
 
             populateDateNormalCase(0);
             populateDateSetObject(0);
@@ -157,7 +157,7 @@ public class PrecisionScaleTest extends AESetup {
 
             String[] numericNull = {"null", "null", "null"};
 
-            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, 30, 8, 2);
+            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cek_jks, 30, 8, 2);
 
             populateNumericSetObjectNull(8, 2);
 
@@ -173,7 +173,7 @@ public class PrecisionScaleTest extends AESetup {
 
             String[] dateSetObjectNull = {"null", "null", "null", "null", "null", "null"};
 
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, 2);
+            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cek_jks, 2);
 
             populateDateSetObjectNull(2);
 
@@ -189,7 +189,7 @@ public class PrecisionScaleTest extends AESetup {
 
             String[] dateSetObjectNull = {"null", "null", "null", "null", "null", "null"};
 
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, 5);
+            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cek_jks, 5);
 
             populateDateNormalCaseNull(5);
             testDate(dateSetObjectNull, dateSetObjectNull);
