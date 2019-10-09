@@ -110,21 +110,21 @@ public class CallableStatementTest extends AESetup {
         dateValues = createTemporalTypesCallableStatement(nullable);
         charValues = createCharValues(nullable);
 
-        createTables();
+        createTables(cek_jks);
         populateTable3();
         populateTable4();
 
-        createTable(CHAR_TABLE_AE, charTable);
-        createTable(NUMERIC_TABLE_AE, numericTable);
-        createTable(BINARY_TABLE_AE, binaryTable);
+        createTable(CHAR_TABLE_AE, cek_jks, charTable);
+        createTable(NUMERIC_TABLE_AE, cek_jks, numericTable);
+        createTable(BINARY_TABLE_AE, cek_jks, binaryTable);
 
-        createDateTableCallableStatement();
+        createDateTableCallableStatement(cek_jks);
         populateCharNormalCase(charValues);
         populateNumericSetObject(numericValues);
         populateBinaryNormalCase(byteValues);
         populateDateNormalCase();
 
-        createTable(SCALE_DATE_TABLE_AE, dateScaleTable);
+        createTable(SCALE_DATE_TABLE_AE, cek_jks, dateScaleTable);
         populateDateScaleNormalCase(dateValues);
     }
 
@@ -330,19 +330,19 @@ public class CallableStatementTest extends AESetup {
         }
     }
 
-    private static void createTables() throws SQLException {
-        createTable(table1, SP_table1);
-        createTable(table2, SP_table2);
-        createTable(table3, SP_table3);
-        createTable(table4, SP_table4);
+    private static void createTables(String cekName) throws SQLException {
+        createTable(table1, cek_jks, SP_table1);
+        createTable(table2, cek_jks, SP_table2);
+        createTable(table3, cek_jks, SP_table3);
+        createTable(table4, cek_jks, SP_table4);
 
         String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table5) + " ("
                 + "c1 int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cek_jks + ") NULL,"
                 + "c2 smallint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cek_jks + ") NULL,"
                 + "c3 bigint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + ");";
+                + cek_jks + ") NULL," + ");";
 
         try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement stmt = con.createStatement()) {
@@ -353,11 +353,11 @@ public class CallableStatementTest extends AESetup {
 
         sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table6) + " ("
                 + "c1 int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
                 + "c2 smallint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
                 + "c3 bigint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + ");";
+                + cekName + ") NULL," + ");";
 
         try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement stmt = con.createStatement()) {
@@ -2112,61 +2112,61 @@ public class CallableStatementTest extends AESetup {
         }
     }
 
-    protected static void createDateTableCallableStatement() throws SQLException {
+    protected static void createDateTableCallableStatement(String cekName) throws SQLException {
         String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE) + " ("
                 + "PlainDate date null,"
                 + "RandomizedDate date ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
                 + "DeterministicDate date ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
 
                 + "PlainDatetime2Default datetime2 null,"
                 + "RandomizedDatetime2Default datetime2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
                 + "DeterministicDatetime2Default datetime2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
 
                 + "PlainDatetimeoffsetDefault datetimeoffset null,"
                 + "RandomizedDatetimeoffsetDefault datetimeoffset ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
                 + "DeterministicDatetimeoffsetDefault datetimeoffset ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
 
                 + "PlainTimeDefault time null,"
                 + "RandomizedTimeDefault time ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
                 + "DeterministicTimeDefault time ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
 
                 + "PlainDatetime2 datetime2(2) null,"
                 + "RandomizedDatetime2 datetime2(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
                 + "DeterministicDatetime2 datetime2(2) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
 
                 + "PlainTime time(2) null,"
                 + "RandomizedTime time(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
                 + "DeterministicTime time(2) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
 
                 + "PlainDatetimeoffset datetimeoffset(2) null,"
                 + "RandomizedDatetimeoffset datetimeoffset(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
                 + "DeterministicDatetimeoffset datetimeoffset(2) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
 
                 + "PlainDateTime DateTime null,"
                 + "RandomizedDateTime DateTime ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
                 + "DeterministicDateTime DateTime ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
 
                 + "PlainSmallDatetime smalldatetime null,"
                 + "RandomizedSmallDatetime smalldatetime ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
                 + "DeterministicSmallDatetime smalldatetime ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                + cekName + ") NULL,"
 
                 + ");";
 
