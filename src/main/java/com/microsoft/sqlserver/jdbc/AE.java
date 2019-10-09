@@ -27,21 +27,6 @@ class EncryptionKeyInfo {
         algorithmName = algorithmNameVal;
     }
 
-    public EncryptionKeyInfo(byte[] encryptedKeyVal, int dbId, int keyId, int keyVersion, byte[] mdVersion,
-            String keyPathVal, String keyStoreNameVal, String algorithmNameVal, byte requestedByEnclave,
-            byte[] enclaveCmkSignature) {
-        encryptedKey = encryptedKeyVal;
-        databaseId = dbId;
-        cekId = keyId;
-        cekVersion = keyVersion;
-        cekMdVersion = mdVersion;
-        keyPath = keyPathVal;
-        keyStoreName = keyStoreNameVal;
-        algorithmName = algorithmNameVal;
-        this.requestedByEnclave = (requestedByEnclave == 0);
-        this.enclaveCmkSignature = enclaveCmkSignature;
-    }
-
     byte[] encryptedKey; // the encrypted "column encryption key"
     int databaseId;
     int cekId;
@@ -117,30 +102,6 @@ class CekTableEntry {
 
         EncryptionKeyInfo encryptionKey = new EncryptionKeyInfo(encryptedKey, dbId, keyId, keyVersion, mdVersion,
                 keyPath, keyStoreName, algorithmName);
-        columnEncryptionKeyValues.add(encryptionKey);
-
-        if (0 == databaseId) {
-            databaseId = dbId;
-            cekId = keyId;
-            cekVersion = keyVersion;
-            cekMdVersion = mdVersion;
-        } else {
-            assert (databaseId == dbId);
-            assert (cekId == keyId);
-            assert (cekVersion == keyVersion);
-            assert ((null != cekMdVersion) && (null != mdVersion) && (cekMdVersion.length == mdVersion.length));
-        }
-    }
-
-    public void add(byte[] encryptedKey, int dbId, int keyId, int keyVersion, byte[] mdVersion, String keyPath,
-            String keyStoreName, String algorithmName, byte requestedByEnclave, byte[] enclaveCMKSignature) {
-
-        assert null != columnEncryptionKeyValues : "columnEncryptionKeyValues should already be initialized.";
-
-        aeLogger.fine("Retrieving CEK values");
-
-        EncryptionKeyInfo encryptionKey = new EncryptionKeyInfo(encryptedKey, dbId, keyId, keyVersion, mdVersion,
-                keyPath, keyStoreName, algorithmName, requestedByEnclave, enclaveCMKSignature);
         columnEncryptionKeyValues.add(encryptionKey);
 
         if (0 == databaseId) {
@@ -307,20 +268,6 @@ enum DescribeParameterEncryptionResultSet2 {
     int value() {
         // Column indexing starts from 1;
         return ordinal() + 1;
-    }
-
-    /**
-     * Fields in the third resultset of "sp_describe_parameter_encryption". We expect the server to return the fields in the
-     * resultset in the same order as mentioned below. If the server changes the below order, then transparent parameter
-     * encryption will break.
-     */
-    enum DescribeParameterEncryptionResultSet3 {
-        AttestationInfo;
-
-        int value() {
-            // Column indexing starts from 1;
-            return ordinal() + 1;
-        }
     }
 }
 

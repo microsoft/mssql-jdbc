@@ -6427,11 +6427,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         if (!this.enclaveEstablished()) {
-            try {
-                enclaveProvider.getAttestationParamters(false, this.enclaveAttestationUrl);
-            } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
-                SQLServerException.makeFromDriverError(this, this, e.getLocalizedMessage(), "", false);
-            }
+            enclaveProvider.getAttestationParamters(false, this.enclaveAttestationUrl);
         }
         return enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
     }

@@ -47,8 +47,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     EnclaveSession enclaveSession = null;
 
     @Override
-    public void getAttestationParamters(boolean createNewParameters,
-            String url) throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+    public void getAttestationParamters(boolean createNewParameters, String url) throws SQLServerException {
         if (null == vsmParams || createNewParameters) {
             attestationURL = url;
             vsmParams = new VSMAttestationParameters();
@@ -56,9 +55,11 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     }
 
     @Override
-    public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql, String preparedTypeDefinitions,
-            Parameter[] params, ArrayList<String> parameterNames) throws SQLServerException {
-        ArrayList<byte[]> b = describeParameterEncryption(connection, userSql, preparedTypeDefinitions, params, parameterNames);
+    public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql,
+            String preparedTypeDefinitions, Parameter[] params,
+            ArrayList<String> parameterNames) throws SQLServerException {
+        ArrayList<byte[]> b = describeParameterEncryption(connection, userSql, preparedTypeDefinitions, params,
+                parameterNames);
         if (null != hgsResponse && !connection.enclaveEstablished()) {
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
@@ -324,10 +325,14 @@ class VSMAttestationParameters extends BaseAttestationRequest {
     byte[] x;
     byte[] y;
 
-    public VSMAttestationParameters() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
-        KeyPairGenerator kpg;
-        kpg = KeyPairGenerator.getInstance("EC");
-        kpg.initialize(new ECGenParameterSpec("secp384r1"));
+    public VSMAttestationParameters() throws SQLServerException {
+        KeyPairGenerator kpg = null;
+        try {
+            kpg = KeyPairGenerator.getInstance("EC");
+            kpg.initialize(new ECGenParameterSpec("secp384r1"));
+        } catch (InvalidAlgorithmParameterException | NoSuchAlgorithmException e) {
+            SQLServerException.makeFromDriverError(null, kpg, e.getLocalizedMessage(), "", false);
+        }
         KeyPair kp = kpg.generateKeyPair();
         ECPublicKey publicKey = (ECPublicKey) kp.getPublic();
         privateKey = kp.getPrivate();
