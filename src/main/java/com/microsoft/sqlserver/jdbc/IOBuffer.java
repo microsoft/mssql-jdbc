@@ -6194,12 +6194,8 @@ final class TDSWriter {
         writeReader(re, reLength, usePLP);
     }
 
-    boolean isConnectionAEv2() {
-        return con.isAEv2();
-    }
-
     void sendEnclavePackage(String sql, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
-        if (isConnectionAEv2()) {
+        if (con.isAEv2()) {
             if (null != sql && "" != sql && null != enclaveCEKs && 0 < enclaveCEKs.size() && con.enclaveEstablished()) {
                 byte[] b = con.generateEncalvePackage(sql, enclaveCEKs);
                 if (null != b && 0 != b.length) {
