@@ -43,14 +43,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 public class JDBCEncryptionDecryptionTest extends AESetup {
 
     private boolean nullable = false;
-    // private String[] numericValues = null;
-    // private String[] numericValues2 = null;
-    private String[] numericValuesNull = null;
-    private String[] numericValuesNull2 = null;
-
-    private LinkedList<byte[]> byteValuesNull = null;
-
-    private LinkedList<Object> dateValues = null;
 
     enum TestCase {
         NORMAL,
@@ -751,41 +743,41 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String decimalValue1 = "" + rs.getBigDecimal(i);
             String decimalValue2 = "" + rs.getBigDecimal(i + 1);
             String decimalValue3 = "" + rs.getBigDecimal(i + 2);
+            String value = values[index];
 
-            if (decimalValue1.equalsIgnoreCase("0") && (values[index].equalsIgnoreCase(Boolean.TRUE.toString())
-                    || values[index].equalsIgnoreCase(Boolean.FALSE.toString()))) {
+            if (decimalValue1.equalsIgnoreCase("0") && (value.equalsIgnoreCase(Boolean.TRUE.toString())
+                    || value.equalsIgnoreCase(Boolean.FALSE.toString()))) {
                 decimalValue1 = Boolean.FALSE.toString();
                 decimalValue2 = Boolean.FALSE.toString();
                 decimalValue3 = Boolean.FALSE.toString();
-            } else if (decimalValue1.equalsIgnoreCase("1") && (values[index].equalsIgnoreCase(Boolean.TRUE.toString())
-                    || values[index].equalsIgnoreCase(Boolean.FALSE.toString()))) {
+            } else if (decimalValue1.equalsIgnoreCase("1") && (value.equalsIgnoreCase(Boolean.TRUE.toString())
+                    || value.equalsIgnoreCase(Boolean.FALSE.toString()))) {
                 decimalValue1 = Boolean.TRUE.toString();
                 decimalValue2 = Boolean.TRUE.toString();
                 decimalValue3 = Boolean.TRUE.toString();
             }
 
-            if (null != values[index]) {
-                if (values[index].equalsIgnoreCase("1.79E308")) {
-                    values[index] = "1.79E+308";
-                } else if (values[index].equalsIgnoreCase("3.4E38")) {
-                    values[index] = "3.4E+38";
+            if (null != value) {
+                if (value.equalsIgnoreCase("1.79E308")) {
+                    value = "1.79E+308";
+                } else if (value.equalsIgnoreCase("3.4E38")) {
+                    value = "3.4E+38";
                 }
 
-                if (values[index].equalsIgnoreCase("-1.79E308")) {
-                    values[index] = "-1.79E+308";
-                } else if (values[index].equalsIgnoreCase("-3.4E38")) {
-                    values[index] = "-3.4E+38";
+                if (value.equalsIgnoreCase("-1.79E308")) {
+                    value = "-1.79E+308";
+                } else if (value.equalsIgnoreCase("-3.4E38")) {
+                    value = "-3.4E+38";
                 }
             }
 
             try {
                 assertTrue(
-                        decimalValue1.equalsIgnoreCase("" + values[index])
-                                && decimalValue2.equalsIgnoreCase("" + values[index])
-                                && decimalValue3.equalsIgnoreCase("" + values[index]),
+                        decimalValue1.equalsIgnoreCase("" + value) && decimalValue2.equalsIgnoreCase("" + value)
+                                && decimalValue3.equalsIgnoreCase("" + value),
                         TestResource.getResource("R_decryptionFailed") + "getBigDecimal(): " + decimalValue1 + ", "
                                 + decimalValue2 + ", " + decimalValue3 + ".\n"
-                                + TestResource.getResource("R_expectedValue") + values[index]);
+                                + TestResource.getResource("R_expectedValue") + value);
             } finally {
                 index++;
             }
