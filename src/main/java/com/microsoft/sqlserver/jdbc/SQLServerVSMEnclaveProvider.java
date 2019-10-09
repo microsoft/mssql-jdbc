@@ -56,10 +56,10 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     }
 
     @Override
-    public void createEnclaveSession(SQLServerConnection connection, String userSql, String preparedTypeDefinitions,
+    public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql, String preparedTypeDefinitions,
             Parameter[] params, ArrayList<String> parameterNames) throws SQLServerException {
-        describeParameterEncryption(connection, userSql, preparedTypeDefinitions, params, parameterNames);
-        if (null != hgsResponse) {
+        ArrayList<byte[]> b = describeParameterEncryption(connection, userSql, preparedTypeDefinitions, params, parameterNames);
+        if (null != hgsResponse && !connection.enclaveEstablished()) {
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
                         vsmParams.createSessionSecret(hgsResponse.DHpublicKey));
@@ -67,6 +67,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "", false);
             }
         }
+        return b;
     }
 
     @Override
@@ -81,8 +82,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         return enclaveSession;
     }
 
-    private AttestationResponse validateAttestationResponse(byte[] b) throws SQLServerException {
-        AttestationResponse ar = new AttestationResponse(b);
+    private AttestationResponse validateAttestationResponse(AttestationResponse ar) throws SQLServerException {
         try {
             byte[] attestationCerts = getAttestationCertificates();
             ar.validateCert(attestationCerts);
@@ -107,6 +107,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 for (byte[] b : enclaveCEKs) {
                     keys.writeBytes(b);
                 }
+                enclaveCEKs.clear();
                 SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
                         enclaveSession.getSessionSecret());
                 SQLServerAeadAes256CbcHmac256Algorithm algo = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey,
@@ -133,10 +134,10 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         return certData;
     }
 
-    private void describeParameterEncryption(SQLServerConnection connection, String userSql,
+    ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, String userSql,
             String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
-        connection.enclaveCEKs.clear();
+        ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         ResultSet rs = null;
         try (PreparedStatement stmt = connection.prepareStatement("EXEC sp_describe_parameter_encryption ?,?,?")) {
             ((SQLServerPreparedStatement) stmt).isInternalEncryptionQuery = true;
@@ -152,7 +153,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             if (null == rs) {
                 // No results. Meaning no parameter.
                 // Should never happen.
-                return;
+                return enclaveRequestedCEKs;
             }
 
             Map<Integer, CekTableEntry> cekList = new HashMap<>();
@@ -219,7 +220,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                         aev2CekEntry.put(mdVer);
                         aev2CekEntry.putShort((short) keyID);
                         aev2CekEntry.put(provider.decryptColumnEncryptionKey(keyPath, algo, encryptedKey));
-                        connection.enclaveCEKs.add(aev2CekEntry.array());
+                        enclaveRequestedCEKs.add(aev2CekEntry.array());
                     }
                 }
                 // if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
@@ -288,8 +289,11 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             if (connection.isAEv2() && stmt.getMoreResults()) {
                 rs = (SQLServerResultSet) stmt.getResultSet();
                 while (rs.next()) {
+                    hgsResponse = new AttestationResponse(rs.getBytes(1));
                     // This validates and establishes the enclave session if valid
-                    hgsResponse = validateAttestationResponse(rs.getBytes(1));
+                    if (!connection.enclaveEstablished()) {
+                        hgsResponse = validateAttestationResponse(hgsResponse);
+                    }
                 }
             }
 
@@ -303,6 +307,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                         0, e);
             }
         }
+        return enclaveRequestedCEKs;
     }
 }
 

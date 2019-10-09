@@ -3032,14 +3032,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             final boolean doExecute() throws SQLServerException {
                 TDSWriter tdsWriter = startRequest(TDS.PKT_QUERY);
-                tdsWriter.sendEnclavePackage(sql);
+                tdsWriter.sendEnclavePackage(sql, enclaveCEKs);
                 tdsWriter.writeString(sql);
                 TDSParser.parse(startResponse(), getLogContext());
                 return true;
             }
         }
         if (this.isAEv2()) {
-            this.establishEnclaveSession(sql, null, null, null);
+            this.initEnclaveParameters(sql, null, null, null);
         }
         executeCommand(new ConnectionCommand(sql, logContext));
     }
@@ -4663,7 +4663,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             final boolean doExecute() throws SQLServerException {
                 TDSWriter tdsWriter = startRequest(TDS.PKT_DTC);
-                tdsWriter.sendEnclavePackage(null);
+                tdsWriter.sendEnclavePackage(null, enclaveCEKs);
 
                 tdsWriter.writeShort((short) requestType);
                 if (null == payload) {
@@ -6422,23 +6422,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     ISQLServerEnclaveProvider enclaveProvider = new SQLServerVSMEnclaveProvider();
-    ArrayList<byte[]> enclaveCEKs = new ArrayList<>();
 
-    void establishEnclaveSession(String userSql, String preparedTypeDefinitions, Parameter[] params,
+    ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
-        try {
-            enclaveProvider.getAttestationParamters(false, this.enclaveAttestationUrl);
-            enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
-        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
-            SQLServerException.makeFromDriverError(this, this, e.getLocalizedMessage(), "", false);
+        if (!this.enclaveEstablished()) {
+            try {
+                enclaveProvider.getAttestationParamters(false, this.enclaveAttestationUrl);
+            } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
+                SQLServerException.makeFromDriverError(this, this, e.getLocalizedMessage(), "", false);
+            }
         }
+        return enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
     }
 
     boolean enclaveEstablished() {
         return (null != enclaveProvider.getEnclaveSession());
     }
 
-    byte[] generateEncalvePackage(String userSQL) throws SQLServerException {
+    byte[] generateEncalvePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         return (enclaveCEKs.size() > 0) ? enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs) : null;
     }
 }

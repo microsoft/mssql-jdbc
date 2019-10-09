@@ -292,7 +292,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 executedSqlDirectly ? TDS.PROCID_SP_UNPREPARE : TDS.PROCID_SP_CURSORUNPREPARE);
                         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
                         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-                        tdsWriter.sendEnclavePackage(null);
+                        tdsWriter.sendEnclavePackage(null, null);
                         tdsWriter.writeRPCInt(null, handleToClose, false);
                         TDSParser.parse(startResponse(), getLogContext());
                         return true;
@@ -557,8 +557,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
 
-        if (connection.isAEv2() && !connection.enclaveEstablished() && !isInternalEncryptionQuery) {
-            connection.establishEnclaveSession(preparedSQL, preparedTypeDefinitions, inOutParam, parameterNames);
+        if (connection.isAEv2() && !isInternalEncryptionQuery) {
+            this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, inOutParam,
+                    parameterNames);
         }
 
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && !isInternalEncryptionQuery) {
@@ -707,7 +708,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_CURSORPREPEXEC);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-        tdsWriter.sendEnclavePackage(preparedSQL);
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
@@ -751,7 +752,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_PREPEXEC);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-        tdsWriter.sendEnclavePackage(preparedSQL);
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
@@ -779,7 +780,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTESQL);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-        tdsWriter.sendEnclavePackage(preparedSQL);
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // No handle used.
         resetPrepStmtHandle(false);
@@ -806,7 +807,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOREXECUTE);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
-        tdsWriter.sendEnclavePackage(preparedSQL);
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // <handle> IN
         assert hasPreparedStatementHandle();
@@ -839,7 +840,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTE);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
-        tdsWriter.sendEnclavePackage(preparedSQL);
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // <handle> IN
         assert hasPreparedStatementHandle();
@@ -1033,6 +1034,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
         return false;
     }
+
+    private ArrayList<byte[]> enclaveCEKs;
 
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions) throws SQLServerException {

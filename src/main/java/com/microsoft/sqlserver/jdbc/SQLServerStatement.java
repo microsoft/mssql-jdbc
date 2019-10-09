@@ -821,7 +821,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // call syntax is rewritten here as SQL exec syntax.
         String sql = ensureSQLSyntax(execCmd.sql);
         if (connection.isAEv2()) {
-            connection.establishEnclaveSession(sql, null, null, null);
+            execCmd.enclaveCEKs = connection.initEnclaveParameters(sql, null, null, null);
         }
 
         // If this request might be a query (as opposed to an update) then make
@@ -851,7 +851,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
             TDSWriter tdsWriter = execCmd.startRequest(TDS.PKT_QUERY);
 
-            tdsWriter.sendEnclavePackage(sql);
+            tdsWriter.sendEnclavePackage(sql,execCmd.enclaveCEKs);
 
             tdsWriter.writeString(sql);
 
@@ -931,7 +931,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         // Write the concatenated batch of statements, delimited by semicolons
         String batchStatementString = String.join(";", batchStatementBuffer);
-        tdsWriter.sendEnclavePackage(batchStatementString);
+        tdsWriter.sendEnclavePackage(batchStatementString,execCmd.enclaveCEKs);
         tdsWriter.writeString(batchStatementString);
 
         // Start the response
@@ -2001,7 +2001,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOROPEN);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-        tdsWriter.sendEnclavePackage(sql);
+        tdsWriter.sendEnclavePackage(sql,execCmd.enclaveCEKs);
 
         // <cursor> OUT
         tdsWriter.writeRPCInt(null, 0, true);

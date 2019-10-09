@@ -1544,7 +1544,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         // Create and send the initial command for bulk copy ("INSERT BULK ...").
         TDSWriter tdsWriter = command.startRequest(TDS.PKT_QUERY);
         String bulkCmd = createInsertBulkCommand(tdsWriter);
-        tdsWriter.sendEnclavePackage(bulkCmd);
+        tdsWriter.sendEnclavePackage(null, null);
         tdsWriter.writeString(bulkCmd);
         TDSParser.parse(command.startResponse(), command.getLogContext());
 

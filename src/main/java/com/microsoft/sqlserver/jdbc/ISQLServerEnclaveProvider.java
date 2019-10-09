@@ -4,6 +4,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public interface ISQLServerEnclaveProvider {
@@ -12,7 +13,7 @@ public interface ISQLServerEnclaveProvider {
     void getAttestationParamters(boolean b,
             String s) throws NoSuchAlgorithmException, InvalidAlgorithmParameterException;
 
-    void createEnclaveSession(SQLServerConnection connection, String userSql, String preparedTypeDefinitions,
+    ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql, String preparedTypeDefinitions,
             Parameter[] params, ArrayList<String> parameterNames) throws SQLServerException;
 
     void invalidateEnclaveSession();
@@ -32,7 +33,7 @@ abstract class BaseAttestationRequest {
 
 class EnclaveSession {
     private byte[] sessionID;
-    private long counter;
+    private AtomicInteger counter;
     private byte[] sessionSecret;
 
     // Don't allow default instantiation
@@ -42,7 +43,7 @@ class EnclaveSession {
     public EnclaveSession(byte[] cs, byte[] b) {
         sessionID = cs;
         sessionSecret = b;
-        counter = 0;
+        counter = new AtomicInteger(0);
     }
 
     byte[] getSessionID() {
@@ -54,7 +55,6 @@ class EnclaveSession {
     }
 
     long getCounter() {
-        counter++;
-        return counter - 1;
+        return counter.getAndIncrement();
     }
 }

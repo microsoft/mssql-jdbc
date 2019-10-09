@@ -40,6 +40,7 @@ import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
@@ -3703,8 +3704,9 @@ final class TDSWriter {
         int bytesWritten = 0;
         int bytesToWrite;
 
-        if (logger.isLoggable(Level.FINEST))
+        if (logger.isLoggable(Level.FINEST)) {
             logger.finest(toString() + " Writing " + length + " bytes");
+        }
 
         while ((bytesToWrite = length - bytesWritten) > 0) {
             if (0 == stagingBuffer.remaining())
@@ -6196,10 +6198,10 @@ final class TDSWriter {
         return con.isAEv2();
     }
 
-    void sendEnclavePackage(String sql) throws SQLServerException {
+    void sendEnclavePackage(String sql, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         if (isConnectionAEv2()) {
-            if (null != sql && "" != sql && con.enclaveEstablished()) {
-                byte[] b = con.generateEncalvePackage(sql);
+            if (null != sql && "" != sql && null != enclaveCEKs && 0 < enclaveCEKs.size() && con.enclaveEstablished()) {
+                byte[] b = con.generateEncalvePackage(sql, enclaveCEKs);
                 if (null != b && 0 != b.length) {
                     this.writeShort((short) b.length);
                     this.writeBytes(b);
@@ -7185,6 +7187,8 @@ abstract class TDSCommand implements Serializable {
     final boolean readingResponse() {
         return readingResponse;
     }
+
+    protected ArrayList<byte[]> enclaveCEKs;
 
     /**
      * Creates this command with an optional timeout.
