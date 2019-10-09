@@ -49,7 +49,6 @@ class EnclaveSession {
     }
 
     long getCounter() {
-        System.out.println("Counter: " + counter);
         return counter.getAndIncrement();
     }
 }
