@@ -1844,6 +1844,23 @@ abstract class SQLServerSpatialDatatype {
         checkBuffer(8);
         return buffer.getDouble();
     }
+
+    // Allow retrieval of internal structures
+    public List<Point> getPointList() {
+        return pointList;
+    }
+
+    public List<Figure> getFigureList() {
+        return figureList;
+    }
+
+    public List<Shape> getShapeList() {
+        return shapeList;
+    }
+
+    public List<Segment> getSegmentList() {
+        return segmentList;
+    }
 }
 
 
