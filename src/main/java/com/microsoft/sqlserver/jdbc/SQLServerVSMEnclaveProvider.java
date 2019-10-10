@@ -9,6 +9,7 @@ import java.nio.ByteOrder;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 
+import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -17,6 +18,7 @@ import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.SignatureException;
@@ -25,7 +27,6 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
-import java.security.interfaces.RSAPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
@@ -33,7 +34,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.PSSParameterSpec;
-import java.security.spec.X509EncodedKeySpec;
+import java.security.spec.RSAPublicKeySpec;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -96,8 +97,8 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             byte[] attestationCerts = getAttestationCertificates();
             ar.validateCert(attestationCerts);
             ar.validateStatementSignature();
-        } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | InvalidAlgorithmParameterException
-                | SignatureException | InvalidParameterSpecException e) {
+            ar.validateDHPublicKey();
+        } catch (IOException | GeneralSecurityException e) {
             SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
         }
         return ar;
@@ -513,6 +514,35 @@ class AttestationResponse {
         if (!sig.verify(signatureBlob)) {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_InvalidSignedStatement"), "0", false);
+        }
+    }
+
+    void validateDHPublicKey() throws SQLServerException, GeneralSecurityException {
+        ByteBuffer enclavePKBuffer = ByteBuffer.wrap(enclavePK).order(ByteOrder.LITTLE_ENDIAN);
+        byte[] rsa1 = new byte[4];
+        enclavePKBuffer.get(rsa1);
+        int bitCount = enclavePKBuffer.getInt();
+        int publicExponentLength = enclavePKBuffer.getInt();
+        int publicModulusLength = enclavePKBuffer.getInt();
+        int prime1 = enclavePKBuffer.getInt();
+        int prime2 = enclavePKBuffer.getInt();
+        byte[] exponent = new byte[publicExponentLength];
+        enclavePKBuffer.get(exponent);
+        byte[] modulus = new byte[publicModulusLength];
+        enclavePKBuffer.get(modulus);
+        if (enclavePKBuffer.remaining() != 0) {
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_EnclavePKLengthError"),
+                    "0", false);
+        }
+        RSAPublicKeySpec spec = new RSAPublicKeySpec(new BigInteger(1, modulus), new BigInteger(1, exponent));
+        KeyFactory factory = KeyFactory.getInstance("RSA");
+        PublicKey pub = factory.generatePublic(spec);
+        Signature sig = Signature.getInstance("SHA256withRSA");
+        sig.initVerify(pub);
+        sig.update(DHpublicKey); // Or whatever interface specifies.
+        if (!sig.verify(publicKeySig)) {
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidDHKeySignature"),
+                    "0", false);
         }
     }
 
