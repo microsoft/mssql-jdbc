@@ -10,14 +10,10 @@ import java.nio.ByteOrder;
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 
 import java.security.GeneralSecurityException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
@@ -30,8 +26,6 @@ import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.PSSParameterSpec;
 import java.security.spec.RSAPublicKeySpec;
@@ -73,8 +67,8 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
                         vsmParams.createSessionSecret(hgsResponse.getDHpublicKey()));
-            } catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "", false);
+            } catch (GeneralSecurityException e) {
+                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
             }
         }
         return b;
@@ -126,8 +120,8 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                         SQLServerEncryptionType.Randomized, (byte) 0x1);
                 enclavePackage.writeBytes(algo.encryptData(keys.toByteArray()));
                 return enclavePackage.toByteArray();
-            } catch (NoSuchAlgorithmException | SQLServerException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false);
+            } catch (GeneralSecurityException | SQLServerException e) {
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
             }
         }
         return null;
@@ -284,7 +278,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                             MessageFormat form = new MessageFormat(SQLServerException
                                     .getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
                             Object[] msgArgs = {userSql, paramIndex + 1};
-                            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
+                            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "0", true);
                         }
                     }
                 }
@@ -341,8 +335,8 @@ class VSMAttestationParameters extends BaseAttestationRequest {
         try {
             kpg = KeyPairGenerator.getInstance("EC");
             kpg.initialize(new ECGenParameterSpec("secp384r1"));
-        } catch (InvalidAlgorithmParameterException | NoSuchAlgorithmException e) {
-            SQLServerException.makeFromDriverError(null, kpg, e.getLocalizedMessage(), "", false);
+        } catch (GeneralSecurityException e) {
+            SQLServerException.makeFromDriverError(null, kpg, e.getLocalizedMessage(), "0", false);
         }
         KeyPair kp = kpg.generateKeyPair();
         ECPublicKey publicKey = (ECPublicKey) kp.getPublic();
@@ -375,8 +369,7 @@ class VSMAttestationParameters extends BaseAttestationRequest {
         return os.toByteArray();
     }
 
-    byte[] createSessionSecret(
-            byte[] serverResponse) throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, SQLServerException {
+    byte[] createSessionSecret(byte[] serverResponse) throws GeneralSecurityException, SQLServerException {
         if (serverResponse.length != ENCLAVE_LENGTH) {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_MalformedECDHPublicKey"), "0", false);
@@ -480,14 +473,14 @@ class AttestationResponse {
                     // Doesn't match, but continue looping through the rest of the certificates
                 }
             }
-        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | CertificateException e) {
+        } catch (GeneralSecurityException e) {
             SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
         }
         SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidHealthCert"), "0",
                 false);
     }
 
-    void validateStatementSignature() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException, IOException, InvalidParameterSpecException, SQLServerException {
+    void validateStatementSignature() throws SQLServerException, GeneralSecurityException {
         ByteBuffer enclaveReportPackageBuffer = ByteBuffer.wrap(enclaveReportPackage).order(ByteOrder.LITTLE_ENDIAN);
         int packageSize = enclaveReportPackageBuffer.getInt();
         int version = enclaveReportPackageBuffer.getInt();
