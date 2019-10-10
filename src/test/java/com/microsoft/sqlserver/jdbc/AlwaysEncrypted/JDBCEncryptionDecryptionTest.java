@@ -59,19 +59,29 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      * @throws SQLException
      */
     @Test
-    public void testCharSpecificSetter() throws SQLException {
+    public void testCharSpecificSetter_aev1() throws SQLException {
+        testCharSpecificSetter(false);
+    }
+
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testCharSpecificSetter_aev2() throws SQLException {
+        testCharSpecificSetter(true);
+    }
+
+    private void testCharSpecificSetter(boolean isTestEnclave) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cek_jks, charTable, values, TestCase.NORMAL);
+            testChars(stmt, cek_jks, charTable, values, TestCase.NORMAL, isTestEnclave);
 
             if (null != cek_win) {
-                testChars(stmt, cek_win, charTable, values, TestCase.NORMAL);
+                testChars(stmt, cek_win, charTable, values, TestCase.NORMAL, isTestEnclave);
             }
 
             if (null != cek_akv) {
-                testChars(stmt, cek_akv, charTable, values, TestCase.NORMAL);
+                testChars(stmt, cek_akv, charTable, values, TestCase.NORMAL, isTestEnclave);
             }
         }
     }
@@ -82,19 +92,29 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      * @throws SQLException
      */
     @Test
-    public void testCharSetObject() throws SQLException {
+    public void testCharSetObject_aev1() throws SQLException {
+        testCharSetObject(false);
+    }
+
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testCharSetObject_aev2() throws SQLException {
+        testCharSetObject(true);
+    }
+
+    private void testCharSetObject(boolean isTestEnclave) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cek_jks, charTable, values, TestCase.SETOBJECT);
+            testChars(stmt, cek_jks, charTable, values, TestCase.SETOBJECT, isTestEnclave);
 
             if (null != cek_win) {
-                testChars(stmt, cek_win, charTable, values, TestCase.SETOBJECT);
+                testChars(stmt, cek_win, charTable, values, TestCase.SETOBJECT, isTestEnclave);
             }
 
             if (null != cek_akv) {
-                testChars(stmt, cek_akv, charTable, values, TestCase.SETOBJECT);
+                testChars(stmt, cek_akv, charTable, values, TestCase.SETOBJECT, isTestEnclave);
             }
 
         }
@@ -106,20 +126,30 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      * @throws SQLException
      */
     @Test
-    public void testCharSetObjectWithJDBCTypes() throws SQLException {
+    public void testCharSetObjectWithJDBCTypes_aev1() throws SQLException {
+        testCharSetObjectWithJDBCTypes(false);
+    }
+
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testCharSetObjectWithJDBCTypes_aev2() throws SQLException {
+        testCharSetObjectWithJDBCTypes(true);
+    }
+
+    private void testCharSetObjectWithJDBCTypes(boolean isTestEnclave) throws SQLException {
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cek_jks, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            testChars(stmt, cek_jks, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isTestEnclave);
 
             if (null != cek_win) {
-                testChars(stmt, cek_win, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
+                testChars(stmt, cek_win, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isTestEnclave);
             }
 
             if (null != cek_akv) {
-                testChars(stmt, cek_akv, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
+                testChars(stmt, cek_akv, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isTestEnclave);
             }
         }
     }
@@ -131,18 +161,28 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testCharSpecificSetterNull() throws SQLException {
+        testCharSpecificSetterNull(false);
+    }
+
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testCharSpecificSetterNull_aev2() throws SQLException {
+        testCharSpecificSetterNull(true);
+    }
+
+    private void testCharSpecificSetterNull(boolean isTestEnclave) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
-            testChars(stmt, cek_jks, charTable, values, TestCase.NORMAL);
+            testChars(stmt, cek_jks, charTable, values, TestCase.NORMAL, isTestEnclave);
 
             if (null != cek_win) {
-                testChars(stmt, cek_win, charTable, values, TestCase.NORMAL);
+                testChars(stmt, cek_win, charTable, values, TestCase.NORMAL, isTestEnclave);
             }
 
             if (null != cek_akv) {
-                testChars(stmt, cek_akv, charTable, values, TestCase.NORMAL);
+                testChars(stmt, cek_akv, charTable, values, TestCase.NORMAL, isTestEnclave);
             }
         }
     }
@@ -153,19 +193,29 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      * @throws SQLException
      */
     @Test
-    public void testCharSetObjectNull() throws SQLException {
+    public void testCharSetObjectNull_aev1() throws SQLException {
+        testCharSetObjectNull(false);
+    }
+
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testCharSetObjectNull_aev2() throws SQLException {
+        testCharSetObjectNull(true);
+    }
+
+    private void testCharSetObjectNull(boolean isTestEnclave) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
-            testChars(stmt, cek_jks, charTable, values, TestCase.SETOBJECT);
+            testChars(stmt, cek_jks, charTable, values, TestCase.SETOBJECT, isTestEnclave);
 
             if (null != cek_win) {
-                testChars(stmt, cek_win, charTable, values, TestCase.SETOBJECT);
+                testChars(stmt, cek_win, charTable, values, TestCase.SETOBJECT, isTestEnclave);
             }
 
             if (null != cek_akv) {
-                testChars(stmt, cek_akv, charTable, values, TestCase.SETOBJECT);
+                testChars(stmt, cek_akv, charTable, values, TestCase.SETOBJECT, isTestEnclave);
             }
         }
     }
@@ -176,19 +226,29 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      * @throws SQLException
      */
     @Test
-    public void testCharSetNull() throws SQLException {
+    public void testCharSetNull_aev1() throws SQLException {
+        testCharSetNull(false);
+    }
+
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testCharSetNull_aev2() throws SQLException {
+        testCharSetNull(true);
+    }
+
+    private void testCharSetNull(boolean isTestEnclave) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
-            testChars(stmt, cek_jks, charTable, values, TestCase.NULL);
+            testChars(stmt, cek_jks, charTable, values, TestCase.NULL, isTestEnclave);
 
             if (null != cek_win) {
-                testChars(stmt, cek_win, charTable, values, TestCase.NULL);
+                testChars(stmt, cek_win, charTable, values, TestCase.NULL, isTestEnclave);
             }
 
             if (null != cek_akv) {
-                testChars(stmt, cek_akv, charTable, values, TestCase.NULL);
+                testChars(stmt, cek_akv, charTable, values, TestCase.NULL, isTestEnclave);
             }
         }
     }
@@ -1448,7 +1508,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private void testChars(SQLServerStatement stmt, String cekName, String[][] table, String[] values,
-            TestCase testcase) throws SQLException {
+            TestCase testcase, boolean isTestEnclave) throws SQLException {
         TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(CHAR_TABLE_AE), stmt);
         createTable(CHAR_TABLE_AE, cekName, table);
 
@@ -1473,7 +1533,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testChar(stmt, values);
         testChar(null, values);
 
-        if (null != getConfiguredProperty(Constants.ENCLAVE_ATTESTIONURL)) {
+        if (isTestEnclave && null != getConfiguredProperty(Constants.ENCLAVE_ATTESTIONURL)) {
             testAlterColumnEncryption(stmt, CHAR_TABLE_AE, table, cekName, values);
             testRichQuery(stmt, CHAR_TABLE_AE, table, values);
         }

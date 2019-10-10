@@ -175,21 +175,6 @@ public class AESetup extends AbstractTest {
 
         dropAll();
         
-        /*
-        try (Connection con = PrepUtil.getConnection(AETestConnectionString); Statement stmt = con.createStatement()) {
-            dropCEK(cek_jks, stmt);
-
-            if (null != cek_win) {
-                dropCEK(cek_win, stmt);
-                dropCMK(cmk_win, stmt);
-            }
-
-            if (null != cek_akv) {
-                dropCEK(cek_akv, stmt);
-                dropCMK(cmk_akv, stmt);
-            }
-        }
-        */
         // always test JKS
         createCMK(cmk_jks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
         createCEK(cmk_jks, cek_jks, jksProvider);
