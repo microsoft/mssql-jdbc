@@ -1477,21 +1477,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
                     if (connectionlogger.isLoggable(Level.SEVERE)) {
                         connectionlogger.severe(toString() + " "
-                                + SQLServerException.getErrString("R_enclaveInvalidAttestionProtocol"));
+                                + SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"));
                     }
-                    throw new SQLServerException(SQLServerException.getErrString("R_enclaveInvalidAttestionProtocol"),
+                    throw new SQLServerException(SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"),
                             null);
                 }
             }
 
-            // attestionalURL but no enclaveAttestationProtocol specified
+            // enclaveAttestationUrl but no enclaveAttestationProtocol specified
             if (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
                     && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty())) {
                 if (connectionlogger.isLoggable(Level.SEVERE)) {
                     connectionlogger
-                            .severe(toString() + " " + SQLServerException.getErrString("R_enclaveNoAttestionProtocol"));
+                            .severe(toString() + " " + SQLServerException.getErrString("R_enclaveNoAttestationProtocol"));
                 }
-                throw new SQLServerException(SQLServerException.getErrString("R_enclaveNoAttestionProtocol"), null);
+                throw new SQLServerException(SQLServerException.getErrString("R_enclaveNoAttestationProtocol"), null);
             }
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();
