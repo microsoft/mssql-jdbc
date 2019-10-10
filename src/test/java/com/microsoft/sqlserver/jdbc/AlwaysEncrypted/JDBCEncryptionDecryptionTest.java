@@ -66,7 +66,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @Tag(Constants.xSQLv15)
     @Test
     public void testCharSpecificSetter_aev2() throws SQLException {
-        testCharSpecificSetter(true);
+        testCharSpecificSetter(isAEv2Supported);
     }
 
     private void testCharSpecificSetter(boolean isTestEnclave) throws SQLException {
@@ -99,7 +99,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @Tag(Constants.xSQLv15)
     @Test
     public void testCharSetObject_aev2() throws SQLException {
-        testCharSetObject(true);
+        testCharSetObject(isAEv2Supported);
     }
 
     private void testCharSetObject(boolean isTestEnclave) throws SQLException {
@@ -133,7 +133,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @Tag(Constants.xSQLv15)
     @Test
     public void testCharSetObjectWithJDBCTypes_aev2() throws SQLException {
-        testCharSetObjectWithJDBCTypes(true);
+        testCharSetObjectWithJDBCTypes(isAEv2Supported);
     }
 
     private void testCharSetObjectWithJDBCTypes(boolean isTestEnclave) throws SQLException {
@@ -167,7 +167,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @Tag(Constants.xSQLv15)
     @Test
     public void testCharSpecificSetterNull_aev2() throws SQLException {
-        testCharSpecificSetterNull(true);
+        testCharSpecificSetterNull(isAEv2Supported);
     }
 
     private void testCharSpecificSetterNull(boolean isTestEnclave) throws SQLException {
@@ -200,7 +200,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @Tag(Constants.xSQLv15)
     @Test
     public void testCharSetObjectNull_aev2() throws SQLException {
-        testCharSetObjectNull(true);
+        testCharSetObjectNull(isAEv2Supported);
     }
 
     private void testCharSetObjectNull(boolean isTestEnclave) throws SQLException {
@@ -233,7 +233,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @Tag(Constants.xSQLv15)
     @Test
     public void testCharSetNull_aev2() throws SQLException {
-        testCharSetNull(true);
+        testCharSetNull(isAEv2Supported);
     }
 
     private void testCharSetNull(boolean isTestEnclave) throws SQLException {

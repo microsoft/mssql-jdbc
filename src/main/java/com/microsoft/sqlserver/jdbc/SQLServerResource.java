@@ -598,12 +598,21 @@ public final class SQLServerResource extends ListResourceBundle {
                     "An error occurred when matching VALUES list to table columns. Please verify SQL syntax."},
             {"R_invalidValuesList", "An error occurred when reading VALUES list. Please verify SQL syntax."},
             {"R_enclaveNotSupported", "The SQL Server instance does not support enclave based computations."},
+            {"R_enclaveNoAttestionProtocol",
+                    "The \"enclaveAttestionProtocol\" connection property must be specified with \"enclaveAttestionUrl\"."},
+            {"R_enclaveInvalidAttestionProtocol", "The \"enclaveAttestionProtocol\" is invalid."},
             {"R_enclaveTypeNotReturned",
                     "The SQL Server instance did not return an enclave type. Please make sure the enclave type is correct configured in the SQL Server instance."},
             {"R_enclaveTypeInvalid", "The enclave type {0} is invalid or not supported by the driver."},
             {"R_attestationUrlInvalid", "Unable to attest enclave specified by {0}."},
             {"R_EnclaveResponseLengthError",
                     "More bytes from the server was recieved than expected when parsing Enclave Attestation response."},
+            {"R_EnclavePackageLengthError",
+                    "More bytes from the server was recieved than expected when parsing Enclave Package."},
             {"R_MalformedECDHPublicKey", "The ECDH public key from the server must be 104 bits in length."},
-            {"R_MalformedECDHHeader", "Unexpected values for ECDH public key header from the server."},};
+            {"R_MalformedECDHHeader", "Unexpected values for ECDH public key header from the server."},
+            {"R_InvalidHealthCert",
+                    " Enclave Attestation failed, the health report certificate provided in the enclave was not signed by the HGS."},
+            {"R_InvalidSignedStatement",
+                    " Enclave Attestation failed, the statement bytes were not signed by the health certificate."},};
 };

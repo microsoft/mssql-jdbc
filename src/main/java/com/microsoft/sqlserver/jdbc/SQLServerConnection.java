@@ -630,6 +630,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     String enclaveAttestationUrl = null;
+    String enclaveAttestationProtocol = null;
 
     String keyStoreAuthentication = null;
     String keyStoreSecret = null;
@@ -1467,6 +1468,30 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
                 enclaveAttestationUrl = sPropValue;
+            }
+
+            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                enclaveAttestationProtocol = sPropValue;
+                if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " "
+                                + SQLServerException.getErrString("R_enclaveInvalidAttestionProtocol"));
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_enclaveInvalidAttestionProtocol"),
+                            null);
+                }
+            }
+
+            // attestionalURL but no enclaveAttestationProtocol specified
+            if (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                    && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty())) {
+                if (connectionlogger.isLoggable(Level.SEVERE)) {
+                    connectionlogger
+                            .severe(toString() + " " + SQLServerException.getErrString("R_enclaveNoAttestionProtocol"));
+                }
+                throw new SQLServerException(SQLServerException.getErrString("R_enclaveNoAttestionProtocol"), null);
             }
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();

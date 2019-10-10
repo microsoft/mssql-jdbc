@@ -17,6 +17,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
+import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -27,6 +28,9 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.InvalidParameterSpecException;
+import java.security.spec.MGF1ParameterSpec;
+import java.security.spec.PSSParameterSpec;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -88,7 +92,9 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         try {
             byte[] attestationCerts = getAttestationCertificates();
             ar.validateCert(attestationCerts);
-        } catch (IOException e) {
+            ar.validateStatementSignature();
+        } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | InvalidAlgorithmParameterException
+                | SignatureException | InvalidParameterSpecException e) {
             SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
         }
         return ar;
@@ -442,7 +448,7 @@ class AttestationResponse {
     }
 
     @SuppressWarnings("unchecked")
-    boolean validateCert(byte[] b) throws SQLServerException {
+    void validateCert(byte[] b) throws SQLServerException {
         try {
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             Collection<X509Certificate> certs = (Collection<X509Certificate>) cf
@@ -450,7 +456,7 @@ class AttestationResponse {
             for (X509Certificate cert : certs) {
                 try {
                     healthCert.verify(cert.getPublicKey());
-                    return true;
+                    return;
                 } catch (SignatureException e) {
                     // Doesn't match, but continue looping through the rest of the certificates
                 }
@@ -458,7 +464,38 @@ class AttestationResponse {
         } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | CertificateException e) {
             SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
         }
-        return false;
+        SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidHealthCert"), "0",
+                false);
+    }
+
+    void validateStatementSignature() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException, IOException, InvalidParameterSpecException, SQLServerException {
+        ByteBuffer enclaveReportPackageBuffer = ByteBuffer.wrap(enclaveReportPackage).order(ByteOrder.LITTLE_ENDIAN);
+        int packageSize = enclaveReportPackageBuffer.getInt();
+        int version = enclaveReportPackageBuffer.getInt();
+        int signatureScheme = enclaveReportPackageBuffer.getInt();
+        int signedStatementSize = enclaveReportPackageBuffer.getInt();
+        int signatureSize = enclaveReportPackageBuffer.getInt();
+        int reserved = enclaveReportPackageBuffer.getInt();
+
+        byte[] signedStatement = new byte[signedStatementSize];
+        enclaveReportPackageBuffer.get(signedStatement, 0, signedStatementSize);
+        byte[] signatureBlob = new byte[signatureSize];
+        enclaveReportPackageBuffer.get(signatureBlob, 0, signatureSize);
+
+        if (enclaveReportPackageBuffer.remaining() != 0) {
+            SQLServerException.makeFromDriverError(null, this,
+                    SQLServerResource.getResource("R_EnclavePackageLengthError"), "0", false);
+        }
+
+        Signature sig = Signature.getInstance("RSASSA-PSS");
+        PSSParameterSpec pss = new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1);
+        sig.setParameter(pss);
+        sig.initVerify(healthCert);
+        sig.update(signedStatement);
+        if (!sig.verify(signatureBlob)) {
+            SQLServerException.makeFromDriverError(null, this,
+                    SQLServerResource.getResource("R_InvalidSignedStatement"), "0", false);
+        }
     }
 
     byte[] getDHpublicKey() {
