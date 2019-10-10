@@ -210,31 +210,8 @@ class SQLServerSecurityUtility {
             }
         }
 
-        // Check for the connection provider first.
-        SQLServerColumnEncryptionKeyStoreProvider provider = connection
-                .getSystemColumnEncryptionKeyStoreProvider(keyStoreName);
-
-        // There is no connection provider of this name, check for the global system providers.
-        if (null == provider) {
-            provider = SQLServerConnection.getGlobalSystemColumnEncryptionKeyStoreProvider(keyStoreName);
-        }
-
-        // There is no global system provider of this name, check for the global custom providers.
-        if (null == provider) {
-            provider = SQLServerConnection.getGlobalCustomColumnEncryptionKeyStoreProvider(keyStoreName);
-        }
-
-        // No provider was found of this name.
-        if (null == provider) {
-            String systemProviders = connection.getAllSystemColumnEncryptionKeyStoreProviders();
-            String customProviders = SQLServerConnection.getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders();
-            MessageFormat form = new MessageFormat(
-                    SQLServerException.getErrString("R_UnrecognizedKeyStoreProviderName"));
-            Object[] msgArgs = {keyStoreName, systemProviders, customProviders};
-            throw new SQLServerException(form.format(msgArgs), null);
-        }
-
-        if (!provider.verifyColumnMasterKeyMetadata(keyPath, isEnclaveEnabled, CMKSignature)) {
+        if (!connection.getColumnEncryptionKeyStoreProvider(keyStoreName).verifyColumnMasterKeyMetadata(keyPath,
+                isEnclaveEnabled, CMKSignature)) {
             throw new SQLServerException(SQLServerException.getErrString("R_VerifySignature"), null);
         }
     }

@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.Date;
 import java.sql.JDBCType;
 import java.sql.SQLException;
@@ -34,6 +35,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvid
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
@@ -76,6 +78,7 @@ public class AESetup extends AbstractTest {
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
     static String AETestConnectionString;
     static Properties AEInfo;
+    static boolean isAEv2Supported = false;
 
     public static final String tableName = RandomUtil.getIdentifier("AETest_");
 
@@ -136,11 +139,29 @@ public class AESetup extends AbstractTest {
     @BeforeAll
     public static void setUpConnection() throws TestAbortedException, Exception {
         AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
-
+        String tmpConnectionString = AETestConnectionString;
         String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
         if (null != enclaveAttestationUrl) {
-            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "enclaveAttestationUrl",
+            tmpConnectionString = TestUtils.addOrOverrideProperty(tmpConnectionString, "enclaveAttestationUrl",
                     enclaveAttestationUrl);
+        }
+        String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
+        if (null != enclaveAttestationProtocol) {
+            tmpConnectionString = TestUtils.addOrOverrideProperty(tmpConnectionString, "enclaveAttestationProtocol",
+                    enclaveAttestationProtocol);
+        }
+
+        // add enclave properties if AEv2 supported
+        try (Connection con = PrepUtil.getConnection(tmpConnectionString)) {
+            if (TestUtils.isAEv2(con)) {
+                isAEv2Supported = true;
+                AETestConnectionString = tmpConnectionString;
+            }
+        } catch (SQLServerException e) {
+            if (!e.getMessage().matches(TestUtils.formatErrorMsg("R_enclaveNotSupported"))) {
+                // ignore AEv2 not supported errors
+                fail(e.getMessage());
+            }
         }
 
         cmk_jks = Constants.CMK_NAME + "_JKS";
@@ -162,7 +183,7 @@ public class AESetup extends AbstractTest {
                     Constants.JKS_SECRET.toCharArray());
             map.put("My_KEYSTORE", jksProvider);
         }
-        
+
         if (null == akvProvider && null != applicationClientID && null != applicationKey) {
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
             map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
@@ -174,22 +195,7 @@ public class AESetup extends AbstractTest {
         }
 
         dropAll();
-        
-        /*
-        try (Connection con = PrepUtil.getConnection(AETestConnectionString); Statement stmt = con.createStatement()) {
-            dropCEK(cek_jks, stmt);
 
-            if (null != cek_win) {
-                dropCEK(cek_win, stmt);
-                dropCMK(cmk_win, stmt);
-            }
-
-            if (null != cek_akv) {
-                dropCEK(cek_akv, stmt);
-                dropCMK(cmk_akv, stmt);
-            }
-        }
-        */
         // always test JKS
         createCMK(cmk_jks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
         createCEK(cmk_jks, cek_jks, jksProvider);
@@ -231,7 +237,7 @@ public class AESetup extends AbstractTest {
     public static void dropAll() throws Exception {
         try (Statement stmt = connection.createStatement()) {
             dropTables(stmt);
-            
+
             dropCEK(cek_jks, stmt);
             dropCMK(cmk_jks, stmt);
 

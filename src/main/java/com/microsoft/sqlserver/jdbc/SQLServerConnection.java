@@ -125,6 +125,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private ConcurrentLinkedQueue<PreparedStatementHandle> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<>();
     private AtomicInteger discardedPreparedStatementHandleCount = new AtomicInteger(0);
 
+    private SQLServerColumnEncryptionKeyStoreProvider keystoreProvider = null;
+
     private boolean fedAuthRequiredByUser = false;
     private boolean fedAuthRequiredPreLoginResponse = false;
     private boolean federatedAuthenticationRequested = false;
@@ -628,6 +630,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     String enclaveAttestationUrl = null;
+    String enclaveAttestationProtocol = null;
 
     String keyStoreAuthentication = null;
     String keyStoreSecret = null;
@@ -713,13 +716,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         + globalCustomColumnEncryptionKeyStoreProviders.size());
     }
 
-    static synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalSystemColumnEncryptionKeyStoreProvider(
+    synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalSystemColumnEncryptionKeyStoreProvider(
             String providerName) {
         return (null != globalSystemColumnEncryptionKeyStoreProviders && globalSystemColumnEncryptionKeyStoreProviders
                 .containsKey(providerName)) ? globalSystemColumnEncryptionKeyStoreProviders.get(providerName) : null;
     }
 
-    static synchronized String getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders() {
+    synchronized String getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders() {
         return (null != globalCustomColumnEncryptionKeyStoreProviders) ? globalCustomColumnEncryptionKeyStoreProviders
                 .keySet().toString() : null;
     }
@@ -733,7 +736,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return keyStores;
     }
 
-    static synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalCustomColumnEncryptionKeyStoreProvider(
+    synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalCustomColumnEncryptionKeyStoreProvider(
             String providerName) {
         return (null != globalCustomColumnEncryptionKeyStoreProviders && globalCustomColumnEncryptionKeyStoreProviders
                 .containsKey(providerName)) ? globalCustomColumnEncryptionKeyStoreProviders.get(providerName) : null;
@@ -743,6 +746,37 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             String providerName) {
         return (null != systemColumnEncryptionKeyStoreProvider && systemColumnEncryptionKeyStoreProvider
                 .containsKey(providerName)) ? systemColumnEncryptionKeyStoreProvider.get(providerName) : null;
+    }
+
+    synchronized SQLServerColumnEncryptionKeyStoreProvider getColumnEncryptionKeyStoreProvider(
+            String providerName) throws SQLServerException {
+
+        if (null == keystoreProvider) {
+            // Check for the connection provider first.
+            keystoreProvider = getSystemColumnEncryptionKeyStoreProvider(providerName);
+
+            // There is no connection provider of this name, check for the global system providers.
+            if (null == keystoreProvider) {
+                keystoreProvider = getGlobalSystemColumnEncryptionKeyStoreProvider(providerName);
+            }
+
+            // There is no global system provider of this name, check for the global custom providers.
+            if (null == keystoreProvider) {
+                keystoreProvider = getGlobalCustomColumnEncryptionKeyStoreProvider(providerName);
+            }
+
+            // No provider was found of this name.
+            if (null == keystoreProvider) {
+                String systemProviders = getAllSystemColumnEncryptionKeyStoreProviders();
+                String customProviders = getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders();
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_UnrecognizedKeyStoreProviderName"));
+                Object[] msgArgs = {providerName, systemProviders, customProviders};
+                throw new SQLServerException(form.format(msgArgs), null);
+            }
+        }
+
+        return keystoreProvider;
     }
 
     private String trustedServerNameAE = null;
@@ -1434,6 +1468,30 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
                 enclaveAttestationUrl = sPropValue;
+            }
+
+            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                enclaveAttestationProtocol = sPropValue;
+                if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " "
+                                + SQLServerException.getErrString("R_enclaveInvalidAttestionProtocol"));
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_enclaveInvalidAttestionProtocol"),
+                            null);
+                }
+            }
+
+            // attestionalURL but no enclaveAttestationProtocol specified
+            if (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                    && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty())) {
+                if (connectionlogger.isLoggable(Level.SEVERE)) {
+                    connectionlogger
+                            .severe(toString() + " " + SQLServerException.getErrString("R_enclaveNoAttestionProtocol"));
+                }
+                throw new SQLServerException(SQLServerException.getErrString("R_enclaveNoAttestionProtocol"), null);
             }
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();
@@ -5723,7 +5781,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private List<ISQLServerStatement> openStatements;
     private boolean originalUseFmtOnly;
 
-    int aeVersion = 0;
+    int aeVersion = TDS.COLUMNENCRYPTION_NOT_SUPPORTED;
 
     protected void beginRequestInternal() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "beginRequest", this);
@@ -6417,7 +6475,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     boolean isAEv2() {
-        return (aeVersion == 2);
+        return (aeVersion >= TDS.COLUMNENCRYPTION_VERSION2);
     }
 
     ISQLServerEnclaveProvider enclaveProvider = new SQLServerVSMEnclaveProvider();

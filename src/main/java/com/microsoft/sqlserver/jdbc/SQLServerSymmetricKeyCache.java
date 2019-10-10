@@ -125,37 +125,9 @@ final class SQLServerSymmetricKeyCache {
 
             // if ColumnEncryptionKeyCacheTtl is 0 no caching at all
             if (!cache.containsKey(keyLookupValue)) {
-
-                // Check for the connection provider first.
-                SQLServerColumnEncryptionKeyStoreProvider provider = connection
-                        .getSystemColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
-
-                // There is no connection provider of this name, check for the global system providers.
-                if (null == provider) {
-                    provider = SQLServerConnection
-                            .getGlobalSystemColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
-                }
-
-                // There is no global system provider of this name, check for the global custom providers.
-                if (null == provider) {
-                    provider = SQLServerConnection
-                            .getGlobalCustomColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
-                }
-
-                // No provider was found of this name.
-                if (null == provider) {
-                    String systemProviders = connection.getAllSystemColumnEncryptionKeyStoreProviders();
-                    String customProviders = SQLServerConnection
-                            .getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders();
-                    MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_UnrecognizedKeyStoreProviderName"));
-                    Object[] msgArgs = {keyInfo.keyStoreName, systemProviders, customProviders};
-                    throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-                }
-
                 byte[] plaintextKey;
-                plaintextKey = provider.decryptColumnEncryptionKey(keyInfo.keyPath, keyInfo.algorithmName,
-                        keyInfo.encryptedKey);
+                plaintextKey = connection.getColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName)
+                        .decryptColumnEncryptionKey(keyInfo.keyPath, keyInfo.algorithmName, keyInfo.encryptedKey);
                 encryptionKey = new SQLServerSymmetricKey(plaintextKey);
 
                 /*

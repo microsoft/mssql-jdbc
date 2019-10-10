@@ -114,6 +114,7 @@ final class TDS {
     // AE constants
     // 0x03 is for x_eFeatureExtensionId_Rcs
     static final byte TDS_FEATURE_EXT_AE = 0x04;
+    static final byte COLUMNENCRYPTION_NOT_SUPPORTED = 0x00; // column encryption not supported
     static final byte COLUMNENCRYPTION_VERSION1 = 0x01; // column encryption without enclave
     static final byte COLUMNENCRYPTION_VERSION2 = 0x02; // column encryption with enclave
     static final int CUSTOM_CIPHER_ALGORITHM_ID = 0; // max version
