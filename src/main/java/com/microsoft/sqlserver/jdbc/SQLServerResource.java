@@ -604,6 +604,12 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_attestationUrlInvalid", "Unable to attest enclave specified by {0}."},
             {"R_EnclaveResponseLengthError",
                     "More bytes from the server was recieved than expected when parsing Enclave Attestation response."},
+            {"R_EnclavePackageLengthError",
+                    "More bytes from the server was recieved than expected when parsing Enclave Package."},
             {"R_MalformedECDHPublicKey", "The ECDH public key from the server must be 104 bits in length."},
-            {"R_MalformedECDHHeader", "Unexpected values for ECDH public key header from the server."},};
+            {"R_MalformedECDHHeader", "Unexpected values for ECDH public key header from the server."},
+            {"R_InvalidHealthCert",
+                    " Enclave Attestation failed, the health report certificate provided in the enclave was not signed by the HGS."},
+            {"R_InvalidSignedStatement",
+                    " Enclave Attestation failed, the statement bytes were not signed by the health certificate."},};
 };
