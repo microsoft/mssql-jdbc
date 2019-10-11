@@ -850,7 +850,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return 'domain' property value
      */
     String getDomain();
-    
+
     /**
      * Sets the 'domain' connection property used for NTLM Authentication.
      *
@@ -888,4 +888,20 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Enclave attestation url.
      */
     void setEnclaveAttestationUrl(String url);
+
+    /**
+     * Returns the enclave attestation protocol used with enclave based Always Encrypted.
+     * 
+     * @return Enclave attestation protocol.
+     */
+    String getEnclaveAttestationPrototocl();
+
+    /**
+     * Sets the enclave attestation protocol to be used with enclave based Always Encrypted.
+     * 
+     * @param protocol
+     *        Enclave attestation protocol.
+     */
+    void setEnclaveAttestationProtocol(String protocol);
+
 }
