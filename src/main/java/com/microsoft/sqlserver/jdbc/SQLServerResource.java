@@ -608,7 +608,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_EnclaveResponseLengthError",
                     "More bytes from the server was recieved than expected when parsing Enclave Attestation response."},
             {"R_EnclavePackageLengthError",
-                    "More bytes from the server was recieved than expected when parsing Enclave Package."},
+                    "More bytes from the server were received than expected when parsing Enclave Package."},
             {"R_EnclavePKLengthError",
                     "More bytes from the server were received than expected when parsing Enclave PK."},
             {"R_MalformedECDHPublicKey", "The ECDH public key from the server must be 104 bits in length."},
