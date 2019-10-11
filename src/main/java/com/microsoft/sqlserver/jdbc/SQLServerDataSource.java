@@ -933,7 +933,7 @@ public class SQLServerDataSource
     }
 
     @Override
-    public String getEnclaveAttestationPrototocl() {
+    public String getEnclaveAttestationProtocol() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString(),
                 SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.getDefaultValue());
     }
