@@ -448,19 +448,20 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             URI parsedUri = null;
             try {
                 parsedUri = new URI(masterKeyPath);
+                
+                // A valid URI.
+                // Check if it is pointing to a trusted endpoint.
+                for (final String endpoint : azureTrustedEndpoints) {
+                    if (parsedUri.getHost().toLowerCase(Locale.ENGLISH).endsWith(endpoint)) {
+                        return;
+                    }
+                }
             } catch (URISyntaxException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVURLInvalid"));
                 Object[] msgArgs = {masterKeyPath};
                 throw new SQLServerException(form.format(msgArgs), null, 0, e);
             }
 
-            // A valid URI.
-            // Check if it is pointing to a trusted endpoint.
-            for (final String endpoint : azureTrustedEndpoints) {
-                if (parsedUri.getHost().toLowerCase(Locale.ENGLISH).endsWith(endpoint)) {
-                    return;
-                }
-            }
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVMasterKeyPathInvalid"));
             Object[] msgArgs = {masterKeyPath};
             throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
