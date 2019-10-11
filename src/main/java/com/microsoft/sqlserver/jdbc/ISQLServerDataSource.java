@@ -894,7 +894,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * 
      * @return Enclave attestation protocol.
      */
-    String getEnclaveAttestationPrototocl();
+    String getEnclaveAttestationProtocol();
 
     /**
      * Sets the enclave attestation protocol to be used with enclave based Always Encrypted.
