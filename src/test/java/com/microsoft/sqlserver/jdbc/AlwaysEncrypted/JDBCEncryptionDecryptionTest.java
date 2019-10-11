@@ -1533,7 +1533,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testChar(stmt, values);
         testChar(null, values);
 
-        if (isTestEnclave && null != getConfiguredProperty(Constants.ENCLAVE_ATTESTIONURL)) {
+        if (isTestEnclave && null != getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)) {
             testAlterColumnEncryption(stmt, CHAR_TABLE_AE, table, cekName, values);
             testRichQuery(stmt, CHAR_TABLE_AE, table, values);
         }
