@@ -448,11 +448,15 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             URI parsedUri = null;
             try {
                 parsedUri = new URI(masterKeyPath);
-                
+
                 // A valid URI.
                 // Check if it is pointing to a trusted endpoint.
+                String host = parsedUri.getHost();
+                if (null != host) {
+                    host = host.toLowerCase(Locale.ENGLISH);
+                }
                 for (final String endpoint : azureTrustedEndpoints) {
-                    if (parsedUri.getHost().toLowerCase(Locale.ENGLISH).endsWith(endpoint)) {
+                    if (host.endsWith(endpoint)) {
                         return;
                     }
                 }
