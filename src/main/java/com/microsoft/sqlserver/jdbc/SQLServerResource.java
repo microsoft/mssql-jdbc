@@ -606,7 +606,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_enclaveTypeInvalid", "The enclave type {0} is invalid or not supported by the driver."},
             {"R_attestationUrlInvalid", "Unable to attest enclave specified by {0}."},
             {"R_EnclaveResponseLengthError",
-                    "More bytes from the server was recieved than expected when parsing Enclave Attestation response."},
+                    "More bytes from the server were received than expected when parsing Enclave Attestation response."},
             {"R_EnclavePackageLengthError",
                     "More bytes from the server were received than expected when parsing Enclave Package."},
             {"R_EnclavePKLengthError",
