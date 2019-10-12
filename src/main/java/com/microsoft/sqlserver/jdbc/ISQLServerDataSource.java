@@ -882,7 +882,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getEnclaveAttestationUrl();
 
     /**
-     * Sets the enclave attestation url to be used with enclave based Always Encrypted.
+     * Sets the enclave attestation URL used by Always Encrypted with Secure Enclaves.
      * 
      * @param url
      *        Enclave attestation URL.
