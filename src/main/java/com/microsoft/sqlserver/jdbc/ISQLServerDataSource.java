@@ -877,7 +877,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     /**
      * Returns the enclave attestation URL used by Always Encrypted with Secure Enclaves.
      * 
-     * @return Enclave attestation url.
+     * @return enclave attestation URL.
      */
     String getEnclaveAttestationUrl();
 
