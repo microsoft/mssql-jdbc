@@ -885,7 +885,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the enclave attestation url to be used with enclave based Always Encrypted.
      * 
      * @param url
-     *        Enclave attestation url.
+     *        Enclave attestation URL.
      */
     void setEnclaveAttestationUrl(String url);
 
