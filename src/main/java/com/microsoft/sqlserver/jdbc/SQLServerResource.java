@@ -601,8 +601,6 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_enclaveNoAttestationProtocol",
                     "The \"enclaveAttestationProtocol\" connection property must be specified with \"enclaveAttestationUrl\"."},
             {"R_enclaveInvalidAttestationProtocol", "The \"enclaveAttestationProtocol\" is invalid."},
-            {"R_enclaveTypeNotReturned",
-                    "The SQL Server instance did not return an enclave type. Please make sure the enclave type is correct configured in the SQL Server instance."},
             {"R_enclaveTypeInvalid", "The enclave type {0} is invalid or not supported by the driver."},
             {"R_attestationUrlInvalid", "Unable to attest enclave specified by {0}."},
             {"R_EnclaveResponseLengthError",
