@@ -49,7 +49,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     EnclaveSession enclaveSession = null;
 
     @Override
-    public void getAttestationParamters(boolean createNewParameters, String url) throws SQLServerException {
+    public void getAttestationParameters(boolean createNewParameters, String url) throws SQLServerException {
         if (null == vsmParams || createNewParameters) {
             attestationURL = url;
             vsmParams = new VSMAttestationParameters();
@@ -383,6 +383,7 @@ class VSMAttestationParameters extends BaseAttestationRequest {
         return MessageDigest.getInstance("SHA-256").digest(ka.generateSecret());
     }
 }
+
 
 @SuppressWarnings("unused")
 class AttestationResponse {

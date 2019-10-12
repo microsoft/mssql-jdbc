@@ -1484,9 +1484,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
             }
 
-            // enclaveAttestationUrl but no enclaveAttestationProtocol specified
-            if (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
-                    && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty())) {
+            // both enclaveAttestationUrl must be enclaveAttestationProtocol specified
+            if ((null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                    && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty()))
+                    || (null != enclaveAttestationProtocol && !enclaveAttestationProtocol.isEmpty()
+                            && (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()))) {
                 if (connectionlogger.isLoggable(Level.SEVERE)) {
                     connectionlogger.severe(
                             toString() + " " + SQLServerException.getErrString("R_enclaveNoAttestationProtocol"));
@@ -4645,10 +4647,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         enclaveType = new String(data, 2, data.length - 2, UTF_16LE);
                     }
 
-                    if (null == enclaveType) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_enclaveTypeNotReturned"), null);
-                    }
-
                     if (!EnclaveType.isValidEnclaveType(enclaveType)) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_enclaveTypeInvalid"));
                         Object[] msgArgs = {enclaveType};
@@ -6480,7 +6478,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         if (!this.enclaveEstablished()) {
-            enclaveProvider.getAttestationParamters(false, this.enclaveAttestationUrl);
+            enclaveProvider.getAttestationParameters(false, this.enclaveAttestationUrl);
         }
         return enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
     }
