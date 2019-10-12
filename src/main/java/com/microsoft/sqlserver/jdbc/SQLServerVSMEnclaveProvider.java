@@ -384,7 +384,7 @@ class VSMAttestationParameters extends BaseAttestationRequest {
     }
 }
 
-
+@SuppressWarnings("unused")
 class AttestationResponse {
     private int totalSize;
     private int identitySize;
