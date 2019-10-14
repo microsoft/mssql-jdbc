@@ -751,29 +751,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     synchronized SQLServerColumnEncryptionKeyStoreProvider getColumnEncryptionKeyStoreProvider(
             String providerName) throws SQLServerException {
 
+        // Check for the connection provider first.
+        keystoreProvider = getSystemColumnEncryptionKeyStoreProvider(providerName);
+
+        // There is no connection provider of this name, check for the global system providers.
         if (null == keystoreProvider) {
-            // Check for the connection provider first.
-            keystoreProvider = getSystemColumnEncryptionKeyStoreProvider(providerName);
+            keystoreProvider = getGlobalSystemColumnEncryptionKeyStoreProvider(providerName);
+        }
 
-            // There is no connection provider of this name, check for the global system providers.
-            if (null == keystoreProvider) {
-                keystoreProvider = getGlobalSystemColumnEncryptionKeyStoreProvider(providerName);
-            }
+        // There is no global system provider of this name, check for the global custom providers.
+        if (null == keystoreProvider) {
+            keystoreProvider = getGlobalCustomColumnEncryptionKeyStoreProvider(providerName);
+        }
 
-            // There is no global system provider of this name, check for the global custom providers.
-            if (null == keystoreProvider) {
-                keystoreProvider = getGlobalCustomColumnEncryptionKeyStoreProvider(providerName);
-            }
-
-            // No provider was found of this name.
-            if (null == keystoreProvider) {
-                String systemProviders = getAllSystemColumnEncryptionKeyStoreProviders();
-                String customProviders = getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders();
-                MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_UnrecognizedKeyStoreProviderName"));
-                Object[] msgArgs = {providerName, systemProviders, customProviders};
-                throw new SQLServerException(form.format(msgArgs), null);
-            }
+        // No provider was found of this name.
+        if (null == keystoreProvider) {
+            String systemProviders = getAllSystemColumnEncryptionKeyStoreProviders();
+            String customProviders = getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders();
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_UnrecognizedKeyStoreProviderName"));
+            Object[] msgArgs = {providerName, systemProviders, customProviders};
+            throw new SQLServerException(form.format(msgArgs), null);
         }
 
         return keystoreProvider;
