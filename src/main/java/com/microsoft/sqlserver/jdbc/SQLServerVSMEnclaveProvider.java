@@ -51,7 +51,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     private VSMAttestationParameters vsmParams = null;
     private AttestationResponse hgsResponse = null;
     private String attestationURL = null;
-    EnclaveSession enclaveSession = null;
+    private EnclaveSession enclaveSession = null;
 
     @Override
     public void getAttestationParameters(boolean createNewParameters, String url) throws SQLServerException {

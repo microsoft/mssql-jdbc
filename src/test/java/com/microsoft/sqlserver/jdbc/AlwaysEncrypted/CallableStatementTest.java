@@ -110,21 +110,21 @@ public class CallableStatementTest extends AESetup {
         dateValues = createTemporalTypesCallableStatement(nullable);
         charValues = createCharValues(nullable);
 
-        createTables(cek_jks);
+        createTables(cekJks);
         populateTable3();
         populateTable4();
 
-        createTable(CHAR_TABLE_AE, cek_jks, charTable);
-        createTable(NUMERIC_TABLE_AE, cek_jks, numericTable);
-        createTable(BINARY_TABLE_AE, cek_jks, binaryTable);
+        createTable(CHAR_TABLE_AE, cekJks, charTable);
+        createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
+        createTable(BINARY_TABLE_AE, cekJks, binaryTable);
 
-        createDateTableCallableStatement(cek_jks);
+        createDateTableCallableStatement(cekJks);
         populateCharNormalCase(charValues);
         populateNumericSetObject(numericValues);
         populateBinaryNormalCase(byteValues);
         populateDateNormalCase();
 
-        createTable(SCALE_DATE_TABLE_AE, cek_jks, dateScaleTable);
+        createTable(SCALE_DATE_TABLE_AE, cekJks, dateScaleTable);
         populateDateScaleNormalCase(dateValues);
     }
 
@@ -331,18 +331,18 @@ public class CallableStatementTest extends AESetup {
     }
 
     private static void createTables(String cekName) throws SQLException {
-        createTable(table1, cek_jks, SP_table1);
-        createTable(table2, cek_jks, SP_table2);
-        createTable(table3, cek_jks, SP_table3);
-        createTable(table4, cek_jks, SP_table4);
+        createTable(table1, cekJks, SP_table1);
+        createTable(table2, cekJks, SP_table2);
+        createTable(table3, cekJks, SP_table3);
+        createTable(table4, cekJks, SP_table4);
 
         String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table5) + " ("
                 + "c1 int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cek_jks + ") NULL,"
+                + cekJks + ") NULL,"
                 + "c2 smallint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cek_jks + ") NULL,"
+                + cekJks + ") NULL,"
                 + "c3 bigint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + cek_jks + ") NULL," + ");";
+                + cekJks + ") NULL," + ");";
 
         try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement stmt = con.createStatement()) {

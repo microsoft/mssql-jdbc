@@ -456,7 +456,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                     host = host.toLowerCase(Locale.ENGLISH);
                 }
                 for (final String endpoint : azureTrustedEndpoints) {
-                    if (host.endsWith(endpoint)) {
+                    if (null != host && host.endsWith(endpoint)) {
                         return;
                     }
                 }
