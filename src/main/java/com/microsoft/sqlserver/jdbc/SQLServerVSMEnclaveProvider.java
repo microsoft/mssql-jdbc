@@ -119,7 +119,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 }
                 enclaveCEKs.clear();
                 SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
-                        enclaveSession.getSessionSecret());
+                        enclaveSession.getSessionSecret(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
                 SQLServerAeadAes256CbcHmac256Algorithm algo = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey,
                         SQLServerEncryptionType.Randomized, (byte) 0x1);
                 enclavePackage.writeBytes(algo.encryptData(keys.toByteArray()));
