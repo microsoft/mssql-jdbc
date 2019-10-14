@@ -1,3 +1,8 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
@@ -213,9 +218,6 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                         enclaveRequestedCEKs.add(aev2CekEntry.array());
                     }
                 }
-                // if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                // getStatementLogger().fine("Matadata of CEKs is retrieved.");
-                // }
             } catch (SQLException e) {
                 if (e instanceof SQLServerException) {
                     throw (SQLServerException) e;
@@ -406,6 +408,23 @@ class AttestationResponse {
     private X509Certificate healthCert;
 
     AttestationResponse(byte[] b) throws SQLServerException {
+        /*-
+         * Parse the attestation response.
+         * 
+         * Total Size of the response - 4B
+         * Size of the Identity - 4B 
+         * Size of the HealthCert - 4B
+         * Size of the EnclaveReport - 4B
+         * Enclave PK - identitySize bytes
+         * Health Certificate - healthReportSize bytes
+         * Enclave Report Package - enclaveReportSize bytes
+         * Session Info Size - 4B
+         * Session ID - 8B
+         * DH Public Key Size - 4B
+         * DH Public Key Signature Size - 4B
+         * DH Public Key - DHPKsize bytes
+         * DH Public Key Signature - DHPKSsize bytes
+         */
         ByteBuffer response = ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN);
         this.totalSize = response.getInt();
         this.identitySize = response.getInt();
@@ -435,7 +454,7 @@ class AttestationResponse {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_EnclaveResponseLengthError"), "0", false);
         }
-
+        // Create a X.509 certificate from the bytes
         try {
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             healthCert = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(healthReportCertificate));
@@ -466,6 +485,23 @@ class AttestationResponse {
     }
 
     void validateStatementSignature() throws SQLServerException, GeneralSecurityException {
+        /*-
+         * Parse the Enclave Report Package fields.
+         * 
+         * Package Size - 4B
+         * Version - 4B
+         * Signature Scheme - 4B
+         * Signed Statement Bytes Size - 4B 
+         * Signature Size - 4B
+         * Reserved - 4B
+         * Signed Statement - signedStatementSize bytes contains:
+         *      Report Size - 4B
+         *      Report Version - 4B
+         *      Enclave Data - 64B
+         *      Enclave Identity - 152B
+         *      ??? - 720B
+         * Signature Blob - signatureSize bytes
+         */
         ByteBuffer enclaveReportPackageBuffer = ByteBuffer.wrap(enclaveReportPackage).order(ByteOrder.LITTLE_ENDIAN);
         int packageSize = enclaveReportPackageBuffer.getInt();
         int version = enclaveReportPackageBuffer.getInt();
@@ -496,6 +532,19 @@ class AttestationResponse {
     }
 
     void validateDHPublicKey() throws SQLServerException, GeneralSecurityException {
+        /*-
+         * Java doesn't directly support PKCS1 padding for RSA keys. Parse the key bytes and create a RSAPublicKeySpec
+         * with the exponent and modulus.
+         * 
+         * Static string "RSA1" - 4B (Unused)
+         * Bit count - 4B (Unused)
+         * Public Exponent Length - 4B
+         * Public Modulus Length - 4B
+         * Prime 1 - 4B (Unused)
+         * Prime 2 - 4B (Unused)
+         * Exponent - publicExponentLength bytes
+         * Modulus - publicModulusLength bytes
+         */
         ByteBuffer enclavePKBuffer = ByteBuffer.wrap(enclavePK).order(ByteOrder.LITTLE_ENDIAN);
         byte[] rsa1 = new byte[4];
         enclavePKBuffer.get(rsa1);
@@ -517,7 +566,7 @@ class AttestationResponse {
         PublicKey pub = factory.generatePublic(spec);
         Signature sig = Signature.getInstance("SHA256withRSA");
         sig.initVerify(pub);
-        sig.update(DHpublicKey); // Or whatever interface specifies.
+        sig.update(DHpublicKey);
         if (!sig.verify(publicKeySig)) {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidDHKeySignature"),
                     "0", false);

@@ -559,19 +559,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     parameterNames);
             encryptionMetadataIsRetrieved = true;
             setMaxRowsAndMaxFieldSize();
+            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
-                && !isInternalEncryptionQuery) {
+                && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
             // retrieve parameter encryption metadata if they are not retrieved yet
-            if (!encryptionMetadataIsRetrieved) {
-                getParameterEncryptionMetadata(inOutParam);
-                encryptionMetadataIsRetrieved = true;
+            getParameterEncryptionMetadata(inOutParam);
+            encryptionMetadataIsRetrieved = true;
 
-                // maxRows is set to 0 when retreving encryption metadata,
-                // need to set it back
-                setMaxRowsAndMaxFieldSize();
-            }
+            // maxRows is set to 0 when retreving encryption metadata,
+            // need to set it back
+            setMaxRowsAndMaxFieldSize();
 
             // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
             // Connection
@@ -2720,17 +2719,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Create the parameter array that we'll use for all the items in this batch.
         Parameter[] batchParam = new Parameter[inOutParam.length];
 
-        /*
-         * TDSWriter tdsWriter = null; while (numBatchesExecuted < numBatches) { // Fill in the parameter values for
-         * this batch Parameter paramValues[] = batchParamValues.get(numBatchesPrepared); assert paramValues.length ==
-         * batchParam.length; System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length); boolean
-         * hasExistingTypeDefinitions = preparedTypeDefinitions != null; boolean hasNewTypeDefinitions =
-         * buildPreparedStrings(batchParam, false); // Get the encryption metadata for the first batch only. if ((0 ==
-         * numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 <
-         * batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
-         * getParameterEncryptionMetadata(batchParam);
-         */
-
         TDSWriter tdsWriter = null;
         while (numBatchesExecuted < numBatches) {
             // Fill in the parameter values for this batch
@@ -2741,12 +2729,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
 
+            if (connection.isAEv2() && !isInternalEncryptionQuery) {
+                this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
+                        parameterNames);
+                encryptionMetadataIsRetrieved = true;
+                hasNewTypeDefinitions = buildPreparedStrings(batchParam, true);
+            }
+
             // Get the encryption metadata for the first batch only.
             if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection))
                     && (0 < batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
+                // retrieve parameter encryption metadata if they are not retrieved yet
                 getParameterEncryptionMetadata(batchParam);
+                encryptionMetadataIsRetrieved = true;
 
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
+                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
+                // on on
                 // Connection
                 buildPreparedStrings(batchParam, true);
 
