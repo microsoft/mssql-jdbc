@@ -1,3 +1,8 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
@@ -46,7 +51,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     private VSMAttestationParameters vsmParams = null;
     private AttestationResponse hgsResponse = null;
     private String attestationURL = null;
-    EnclaveSession enclaveSession = null;
+    private EnclaveSession enclaveSession = null;
 
     @Override
     public void getAttestationParameters(boolean createNewParameters, String url) throws SQLServerException {
@@ -213,9 +218,6 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                         enclaveRequestedCEKs.add(aev2CekEntry.array());
                     }
                 }
-                // if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                // getStatementLogger().fine("Matadata of CEKs is retrieved.");
-                // }
             } catch (SQLException e) {
                 if (e instanceof SQLServerException) {
                     throw (SQLServerException) e;

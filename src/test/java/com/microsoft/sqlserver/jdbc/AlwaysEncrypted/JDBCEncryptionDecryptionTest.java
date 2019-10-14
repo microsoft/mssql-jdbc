@@ -74,14 +74,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cek_jks, charTable, values, TestCase.NORMAL, isTestEnclave);
+            testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, isTestEnclave);
 
-            if (null != cek_win) {
-                testChars(stmt, cek_win, charTable, values, TestCase.NORMAL, isTestEnclave);
+            if (null != cekWin) {
+                testChars(stmt, cekWin, charTable, values, TestCase.NORMAL, isTestEnclave);
             }
 
-            if (null != cek_akv) {
-                testChars(stmt, cek_akv, charTable, values, TestCase.NORMAL, isTestEnclave);
+            if (null != cekAkv) {
+                testChars(stmt, cekAkv, charTable, values, TestCase.NORMAL, isTestEnclave);
             }
         }
     }
@@ -107,14 +107,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cek_jks, charTable, values, TestCase.SETOBJECT, isTestEnclave);
+            testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT, isTestEnclave);
 
-            if (null != cek_win) {
-                testChars(stmt, cek_win, charTable, values, TestCase.SETOBJECT, isTestEnclave);
+            if (null != cekWin) {
+                testChars(stmt, cekWin, charTable, values, TestCase.SETOBJECT, isTestEnclave);
             }
 
-            if (null != cek_akv) {
-                testChars(stmt, cek_akv, charTable, values, TestCase.SETOBJECT, isTestEnclave);
+            if (null != cekAkv) {
+                testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT, isTestEnclave);
             }
 
         }
@@ -142,14 +142,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cek_jks, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isTestEnclave);
+            testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isTestEnclave);
 
-            if (null != cek_win) {
-                testChars(stmt, cek_win, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isTestEnclave);
+            if (null != cekWin) {
+                testChars(stmt, cekWin, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isTestEnclave);
             }
 
-            if (null != cek_akv) {
-                testChars(stmt, cek_akv, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isTestEnclave);
+            if (null != cekAkv) {
+                testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isTestEnclave);
             }
         }
     }
@@ -175,14 +175,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
-            testChars(stmt, cek_jks, charTable, values, TestCase.NORMAL, isTestEnclave);
+            testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, isTestEnclave);
 
-            if (null != cek_win) {
-                testChars(stmt, cek_win, charTable, values, TestCase.NORMAL, isTestEnclave);
+            if (null != cekWin) {
+                testChars(stmt, cekWin, charTable, values, TestCase.NORMAL, isTestEnclave);
             }
 
-            if (null != cek_akv) {
-                testChars(stmt, cek_akv, charTable, values, TestCase.NORMAL, isTestEnclave);
+            if (null != cekAkv) {
+                testChars(stmt, cekAkv, charTable, values, TestCase.NORMAL, isTestEnclave);
             }
         }
     }
@@ -208,14 +208,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
-            testChars(stmt, cek_jks, charTable, values, TestCase.SETOBJECT, isTestEnclave);
+            testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT, isTestEnclave);
 
-            if (null != cek_win) {
-                testChars(stmt, cek_win, charTable, values, TestCase.SETOBJECT, isTestEnclave);
+            if (null != cekWin) {
+                testChars(stmt, cekWin, charTable, values, TestCase.SETOBJECT, isTestEnclave);
             }
 
-            if (null != cek_akv) {
-                testChars(stmt, cek_akv, charTable, values, TestCase.SETOBJECT, isTestEnclave);
+            if (null != cekAkv) {
+                testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT, isTestEnclave);
             }
         }
     }
@@ -241,14 +241,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
-            testChars(stmt, cek_jks, charTable, values, TestCase.NULL, isTestEnclave);
+            testChars(stmt, cekJks, charTable, values, TestCase.NULL, isTestEnclave);
 
-            if (null != cek_win) {
-                testChars(stmt, cek_win, charTable, values, TestCase.NULL, isTestEnclave);
+            if (null != cekWin) {
+                testChars(stmt, cekWin, charTable, values, TestCase.NULL, isTestEnclave);
             }
 
-            if (null != cek_akv) {
-                testChars(stmt, cek_akv, charTable, values, TestCase.NULL, isTestEnclave);
+            if (null != cekAkv) {
+                testChars(stmt, cekAkv, charTable, values, TestCase.NULL, isTestEnclave);
             }
         }
     }
@@ -264,14 +264,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createbinaryValues(false);
 
-            testBinaries(stmt, cek_jks, binaryTable, values, TestCase.NORMAL);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL);
 
-            if (null != cek_win) {
-                testBinaries(stmt, cek_win, binaryTable, values, TestCase.NORMAL);
+            if (null != cekWin) {
+                testBinaries(stmt, cekWin, binaryTable, values, TestCase.NORMAL);
             }
 
-            if (null != cek_akv) {
-                testBinaries(stmt, cek_akv, binaryTable, values, TestCase.NORMAL);
+            if (null != cekAkv) {
+                testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL);
             }
         }
     }
@@ -287,14 +287,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createbinaryValues(false);
 
-            testBinaries(stmt, cek_jks, binaryTable, values, TestCase.SETOBJECT);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT);
 
-            if (null != cek_win) {
-                testBinaries(stmt, cek_win, binaryTable, values, TestCase.SETOBJECT);
+            if (null != cekWin) {
+                testBinaries(stmt, cekWin, binaryTable, values, TestCase.SETOBJECT);
             }
 
-            if (null != cek_akv) {
-                testBinaries(stmt, cek_akv, binaryTable, values, TestCase.SETOBJECT);
+            if (null != cekAkv) {
+                testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT);
             }
         }
     }
@@ -310,14 +310,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createbinaryValues(true);
 
-            testBinaries(stmt, cek_jks, binaryTable, values, TestCase.NULL);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NULL);
 
-            if (null != cek_win) {
-                testBinaries(stmt, cek_win, binaryTable, values, TestCase.NULL);
+            if (null != cekWin) {
+                testBinaries(stmt, cekWin, binaryTable, values, TestCase.NULL);
             }
 
-            if (null != cek_akv) {
-                testBinaries(stmt, cek_akv, binaryTable, values, TestCase.NULL);
+            if (null != cekAkv) {
+                testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NULL);
             }
         }
     }
@@ -333,14 +333,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createbinaryValues(true);
 
-            testBinaries(stmt, cek_jks, binaryTable, values, TestCase.NORMAL);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL);
 
-            if (null != cek_win) {
-                testBinaries(stmt, cek_win, binaryTable, values, TestCase.NORMAL);
+            if (null != cekWin) {
+                testBinaries(stmt, cekWin, binaryTable, values, TestCase.NORMAL);
             }
 
-            if (null != cek_akv) {
-                testBinaries(stmt, cek_akv, binaryTable, values, TestCase.NORMAL);
+            if (null != cekAkv) {
+                testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL);
             }
         }
     }
@@ -356,14 +356,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createbinaryValues(true);
 
-            testBinaries(stmt, cek_jks, binaryTable, values, TestCase.SETOBJECT_NULL);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_NULL);
 
-            if (null != cek_win) {
-                testBinaries(stmt, cek_win, binaryTable, values, TestCase.SETOBJECT_NULL);
+            if (null != cekWin) {
+                testBinaries(stmt, cekWin, binaryTable, values, TestCase.SETOBJECT_NULL);
             }
 
-            if (null != cek_akv) {
-                testBinaries(stmt, cek_akv, binaryTable, values, TestCase.SETOBJECT_NULL);
+            if (null != cekAkv) {
+                testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_NULL);
             }
         }
     }
@@ -380,14 +380,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createbinaryValues(false);
 
-            testBinaries(stmt, cek_jks, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
 
-            if (null != cek_win) {
-                testBinaries(stmt, cek_win, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            if (null != cekWin) {
+                testBinaries(stmt, cekWin, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
             }
 
-            if (null != cek_akv) {
-                testBinaries(stmt, cek_akv, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            if (null != cekAkv) {
+                testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
             }
         }
     }
@@ -403,14 +403,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cek_jks, dateTable, values, TestCase.NORMAL);
+            testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL);
 
-            if (null != cek_win) {
-                testDates(stmt, cek_win, dateTable, values, TestCase.NORMAL);
+            if (null != cekWin) {
+                testDates(stmt, cekWin, dateTable, values, TestCase.NORMAL);
             }
 
-            if (null != cek_akv) {
-                testDates(stmt, cek_akv, dateTable, values, TestCase.NORMAL);
+            if (null != cekAkv) {
+                testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL);
             }
         }
     }
@@ -426,14 +426,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cek_jks, dateTable, values, TestCase.SETOBJECT);
+            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT);
 
-            if (null != cek_win) {
-                testDates(stmt, cek_win, dateTable, values, TestCase.SETOBJECT);
+            if (null != cekWin) {
+                testDates(stmt, cekWin, dateTable, values, TestCase.SETOBJECT);
             }
 
-            if (null != cek_akv) {
-                testDates(stmt, cek_akv, dateTable, values, TestCase.SETOBJECT);
+            if (null != cekAkv) {
+                testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT);
             }
         }
     }
@@ -449,14 +449,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cek_jks, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES);
+            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES);
 
-            if (null != cek_win) {
-                testDates(stmt, cek_win, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES);
+            if (null != cekWin) {
+                testDates(stmt, cekWin, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES);
             }
 
-            if (null != cek_akv) {
-                testDates(stmt, cek_akv, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES);
+            if (null != cekAkv) {
+                testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES);
             }
         }
     }
@@ -472,14 +472,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cek_jks, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
 
-            if (null != cek_win) {
-                testDates(stmt, cek_win, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            if (null != cekWin) {
+                testDates(stmt, cekWin, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
             }
 
-            if (null != cek_akv) {
-                testDates(stmt, cek_akv, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            if (null != cekAkv) {
+                testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
             }
         }
     }
@@ -496,14 +496,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             RandomData.returnMinMax = true;
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cek_jks, dateTable, values, TestCase.NORMAL);
+            testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL);
 
-            if (null != cek_win) {
-                testDates(stmt, cek_win, dateTable, values, TestCase.NORMAL);
+            if (null != cekWin) {
+                testDates(stmt, cekWin, dateTable, values, TestCase.NORMAL);
             }
 
-            if (null != cek_akv) {
-                testDates(stmt, cek_akv, dateTable, values, TestCase.NORMAL);
+            if (null != cekAkv) {
+                testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL);
             }
         }
     }
@@ -521,14 +521,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             nullable = true;
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cek_jks, dateTable, values, TestCase.NULL);
+            testDates(stmt, cekJks, dateTable, values, TestCase.NULL);
 
-            if (null != cek_win) {
-                testDates(stmt, cek_win, dateTable, values, TestCase.NULL);
+            if (null != cekWin) {
+                testDates(stmt, cekWin, dateTable, values, TestCase.NULL);
             }
 
-            if (null != cek_akv) {
-                testDates(stmt, cek_akv, dateTable, values, TestCase.NULL);
+            if (null != cekAkv) {
+                testDates(stmt, cekAkv, dateTable, values, TestCase.NULL);
             }
         }
 
@@ -550,14 +550,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cek_jks, dateTable, values, TestCase.SETOBJECT_NULL);
+            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_NULL);
 
-            if (null != cek_win) {
-                testDates(stmt, cek_win, dateTable, values, TestCase.SETOBJECT_NULL);
+            if (null != cekWin) {
+                testDates(stmt, cekWin, dateTable, values, TestCase.SETOBJECT_NULL);
             }
 
-            if (null != cek_akv) {
-                testDates(stmt, cek_akv, dateTable, values, TestCase.SETOBJECT_NULL);
+            if (null != cekAkv) {
+                testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_NULL);
             }
         }
 
@@ -579,14 +579,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cek_jks, numericTable, values1, values2, TestCase.NORMAL);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL);
 
-            if (null != cek_win) {
-                testNumerics(stmt, cek_win, numericTable, values1, values2, TestCase.NORMAL);
+            if (null != cekWin) {
+                testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL);
             }
 
-            if (null != cek_akv) {
-                testNumerics(stmt, cek_akv, numericTable, values1, values2, TestCase.NORMAL);
+            if (null != cekAkv) {
+                testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL);
             }
         }
     }
@@ -604,14 +604,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cek_jks, numericTable, values1, values2, TestCase.SETOBJECT);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT);
 
-            if (null != cek_win) {
-                testNumerics(stmt, cek_win, numericTable, values1, values2, TestCase.SETOBJECT);
+            if (null != cekWin) {
+                testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.SETOBJECT);
             }
 
-            if (null != cek_akv) {
-                testNumerics(stmt, cek_akv, numericTable, values1, values2, TestCase.SETOBJECT);
+            if (null != cekAkv) {
+                testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT);
             }
         }
     }
@@ -630,14 +630,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cek_jks, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES);
 
-            if (null != cek_win) {
-                testNumerics(stmt, cek_win, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            if (null != cekWin) {
+                testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES);
             }
 
-            if (null != cek_akv) {
-                testNumerics(stmt, cek_akv, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            if (null != cekAkv) {
+                testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES);
             }
         }
     }
@@ -661,14 +661,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "567812.78", "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
                     "999999999999999999999999.9999"};
 
-            testNumerics(stmt, cek_jks, numericTable, values1, values2, TestCase.NORMAL);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL);
 
-            if (null != cek_win) {
-                testNumerics(stmt, cek_win, numericTable, values1, values2, TestCase.NORMAL);
+            if (null != cekWin) {
+                testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL);
             }
 
-            if (null != cek_akv) {
-                testNumerics(stmt, cek_akv, numericTable, values1, values2, TestCase.NORMAL);
+            if (null != cekAkv) {
+                testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL);
             }
         }
     }
@@ -691,14 +691,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "567812.78", "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
                     "999999999999999999999999.9999"};
 
-            testNumerics(stmt, cek_jks, numericTable, values1, values2, TestCase.NORMAL);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL);
 
-            if (null != cek_win) {
-                testNumerics(stmt, cek_win, numericTable, values1, values2, TestCase.NORMAL);
+            if (null != cekWin) {
+                testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL);
             }
 
-            if (null != cek_akv) {
-                testNumerics(stmt, cek_akv, numericTable, values1, values2, TestCase.NORMAL);
+            if (null != cekAkv) {
+                testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL);
             }
         }
     }
@@ -718,14 +718,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cek_jks, numericTable, values1, values2, TestCase.NULL);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL);
 
-            if (null != cek_win) {
-                testNumerics(stmt, cek_win, numericTable, values1, values2, TestCase.NULL);
+            if (null != cekWin) {
+                testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NULL);
             }
 
-            if (null != cek_akv) {
-                testNumerics(stmt, cek_akv, numericTable, values1, values2, TestCase.NULL);
+            if (null != cekAkv) {
+                testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL);
             }
         }
 
@@ -748,14 +748,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cek_jks, numericTable, values1, values2, TestCase.NULL);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL);
 
-            if (null != cek_win) {
-                testNumerics(stmt, cek_win, numericTable, values1, values2, TestCase.NULL);
+            if (null != cekWin) {
+                testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NULL);
             }
 
-            if (null != cek_akv) {
-                testNumerics(stmt, cek_akv, numericTable, values1, values2, TestCase.NULL);
+            if (null != cekAkv) {
+                testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL);
             }
         }
 
@@ -779,14 +779,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
                     "999999999999999999999999.9999", "999999999999999999999999.9999"};
 
-            testNumerics(stmt, cek_jks, numericTable, values1, values2, TestCase.NORMAL);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL);
 
-            if (null != cek_win) {
-                testNumerics(stmt, cek_win, numericTable, values1, values2, TestCase.NORMAL);
+            if (null != cekWin) {
+                testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL);
             }
 
-            if (null != cek_akv) {
-                testNumerics(stmt, cek_akv, numericTable, values1, values2, TestCase.NORMAL);
+            if (null != cekAkv) {
+                testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL);
             }
         }
     }
@@ -796,7 +796,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";useFmtOnly=true", AEInfo);
                 Statement s = c.createStatement()) {
             dropTables(s);
-            createTable(NUMERIC_TABLE_AE, cek_jks, numericTable);
+            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
             String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE) + " values( "
                     + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                     + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";

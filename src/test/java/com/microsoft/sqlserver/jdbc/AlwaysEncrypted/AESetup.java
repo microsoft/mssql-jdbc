@@ -65,12 +65,12 @@ public class AESetup extends AbstractTest {
     static String applicationClientID = null;
     static String applicationKey = null;
     static String[] keyIDs = null;
-    static String cmk_jks = null;
-    static String cmk_win = null;
-    static String cmk_akv = null;
-    static String cek_jks = null;
-    static String cek_win = null;
-    static String cek_akv = null;
+    static String cmkJks = null;
+    static String cmkWin = null;
+    static String cmkAkv = null;
+    static String cekJks = null;
+    static String cekWin = null;
+    static String cekAkv = null;
 
     static boolean kspRegistered = false;
     static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
@@ -164,8 +164,8 @@ public class AESetup extends AbstractTest {
             }
         }
 
-        cmk_jks = Constants.CMK_NAME + "_JKS";
-        cek_jks = Constants.CEK_NAME + "_JKS";
+        cmkJks = Constants.CMK_NAME + "_JKS";
+        cekJks = Constants.CEK_NAME + "_JKS";
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
 
@@ -197,25 +197,25 @@ public class AESetup extends AbstractTest {
         dropAll();
 
         // always test JKS
-        createCMK(cmk_jks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
-        createCEK(cmk_jks, cek_jks, jksProvider);
+        createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
+        createCEK(cmkJks, cekJks, jksProvider);
 
         if (null != akvProvider) {
-            cmk_akv = Constants.CMK_NAME + "_AKV";
-            cek_akv = Constants.CEK_NAME + "_AKV";
+            cmkAkv = Constants.CMK_NAME + "_AKV";
+            cekAkv = Constants.CEK_NAME + "_AKV";
 
-            createCMK(cmk_akv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
-            createCEK(cmk_akv, cek_akv, akvProvider);
+            createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
+            createCEK(cmkAkv, cekAkv, akvProvider);
         }
 
         windowsKeyPath = TestUtils.getConfiguredProperty("windowsKeyPath");
         if (null != windowsKeyPath) {
             AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "windowsKeyPath",
                     windowsKeyPath);
-            cmk_win = Constants.CMK_NAME + "_WIN";
-            cek_win = Constants.CEK_NAME + "_WIN";
-            createCMK(cmk_win, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
-            createCEK(cmk_win, cek_win, null);
+            cmkWin = Constants.CMK_NAME + "_WIN";
+            cekWin = Constants.CEK_NAME + "_WIN";
+            createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
+            createCEK(cmkWin, cekWin, null);
         }
 
         stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;
@@ -238,17 +238,17 @@ public class AESetup extends AbstractTest {
         try (Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 
-            dropCEK(cek_jks, stmt);
-            dropCMK(cmk_jks, stmt);
+            dropCEK(cekJks, stmt);
+            dropCMK(cmkJks, stmt);
 
-            if (null != cek_win) {
-                dropCEK(cek_win, stmt);
-                dropCMK(cmk_win, stmt);
+            if (null != cekWin) {
+                dropCEK(cekWin, stmt);
+                dropCMK(cmkWin, stmt);
             }
 
-            if (null != cek_akv) {
-                dropCEK(cek_akv, stmt);
-                dropCMK(cmk_akv, stmt);
+            if (null != cekAkv) {
+                dropCEK(cekAkv, stmt);
+                dropCMK(cmkAkv, stmt);
             }
         }
     }
