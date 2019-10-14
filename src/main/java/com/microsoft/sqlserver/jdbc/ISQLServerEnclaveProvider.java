@@ -24,6 +24,7 @@ public interface ISQLServerEnclaveProvider {
      * @param url
      *        attestation url
      * @throws SQLServerException
+     *         when an error occurs.
      */
     void getAttestationParameters(boolean createNewParameters, String url) throws SQLServerException;
 
@@ -41,8 +42,9 @@ public interface ISQLServerEnclaveProvider {
      * @param parameterNames
      *        parameterNames
      * @return
-     *        the enclave session
+     *        list of enclave requested CEKs
      * @throws SQLServerException
+     *         when an error occurs.
      */
     ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql,
             String preparedTypeDefinitions, Parameter[] params,
@@ -56,6 +58,7 @@ public interface ISQLServerEnclaveProvider {
     /**
      * Returns the enclave session
      * @return
+     *         the enclave session
      */
     EnclaveSession getEnclaveSession();
 }
