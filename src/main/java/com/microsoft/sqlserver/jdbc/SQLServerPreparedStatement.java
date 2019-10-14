@@ -563,14 +563,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
-                && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
-            // retrieve parameter encryption metadata if they are not retrieved yet
-            getParameterEncryptionMetadata(inOutParam);
-            encryptionMetadataIsRetrieved = true;
+                && !isInternalEncryptionQuery) {
 
-            // maxRows is set to 0 when retreving encryption metadata,
-            // need to set it back
-            setMaxRowsAndMaxFieldSize();
+            // retrieve parameter encryption metadata if they are not retrieved yet
+            if (!encryptionMetadataIsRetrieved) {
+                getParameterEncryptionMetadata(inOutParam);
+                encryptionMetadataIsRetrieved = true;
+
+                // maxRows is set to 0 when retreving encryption metadata,
+                // need to set it back
+                setMaxRowsAndMaxFieldSize();
+            }
 
             // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
             // Connection
