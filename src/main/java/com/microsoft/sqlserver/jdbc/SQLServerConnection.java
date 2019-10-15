@@ -4631,7 +4631,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 aeVersion = data[0];
-                if (0 == aeVersion || aeVersion > TDS.COLUMNENCRYPTION_VERSION2) {
+                if (TDS.COLUMNENCRYPTION_NOT_SUPPORTED == aeVersion || aeVersion > TDS.COLUMNENCRYPTION_VERSION2) {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 

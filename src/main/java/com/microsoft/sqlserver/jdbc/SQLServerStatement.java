@@ -820,7 +820,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // through regular Statement objects. We need to ensure that any such JDBC
         // call syntax is rewritten here as SQL exec syntax.
         String sql = ensureSQLSyntax(execCmd.sql);
-        if (connection.isAEv2() && !isInternalEncryptionQuery) {
+        if (!isInternalEncryptionQuery && connection.isAEv2()) {
             execCmd.enclaveCEKs = connection.initEnclaveParameters(sql, null, null, null);
         }
 

@@ -46,6 +46,12 @@ import java.util.Map;
 import javax.crypto.KeyAgreement;
 
 
+/**
+ * 
+ * Provides the implementation of the VSM Enclave Provider. The enclave provider encapsulates the client-side
+ * implementation details of the enclave attestation protocol.
+ *
+ */
 public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
 
     private VSMAttestationParameters vsmParams = null;
@@ -90,18 +96,6 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         return enclaveSession;
     }
 
-    private AttestationResponse validateAttestationResponse(AttestationResponse ar) throws SQLServerException {
-        try {
-            byte[] attestationCerts = getAttestationCertificates();
-            ar.validateCert(attestationCerts);
-            ar.validateStatementSignature();
-            ar.validateDHPublicKey();
-        } catch (IOException | GeneralSecurityException e) {
-            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
-        }
-        return ar;
-    }
-
     @Override
     public byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         if (null != enclaveSession) {
@@ -129,6 +123,18 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             }
         }
         return null;
+    }
+
+    private AttestationResponse validateAttestationResponse(AttestationResponse ar) throws SQLServerException {
+        try {
+            byte[] attestationCerts = getAttestationCertificates();
+            ar.validateCert(attestationCerts);
+            ar.validateStatementSignature();
+            ar.validateDHPublicKey();
+        } catch (IOException | GeneralSecurityException e) {
+            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+        }
+        return ar;
     }
 
     private byte[] getAttestationCertificates() throws IOException {
