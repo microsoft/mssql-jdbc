@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [8.1.0] Preview Release
 ### Added
-- Added support for Azure national coulds when using Azure Key Vault [#1130](https://github.com/microsoft/mssql-jdbc/pull/1130)
+- Added support for Azure national clouds when using Azure Key Vault [#1130](https://github.com/microsoft/mssql-jdbc/pull/1130)
 - Implemented hashCode() and equals() APIs for SQLServerDataTable and SQLServerDataColumn [#1146](https://github.com/Microsoft/mssql-jdbc/pull/1146)
 - Added support for JAVA 13 [#1151](https://github.com/Microsoft/mssql-jdbc/pull/1151)
 - Added support for Always Encrypted with Secure Enclaves [#1155](https://github.com/Microsoft/mssql-jdbc/pull/1155)
