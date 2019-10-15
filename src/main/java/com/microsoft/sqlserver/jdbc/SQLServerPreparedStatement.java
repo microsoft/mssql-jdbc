@@ -2736,15 +2736,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
                         parameterNames);
                 encryptionMetadataIsRetrieved = true;
-                hasNewTypeDefinitions = buildPreparedStrings(batchParam, true);
+
+                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
+                // on on
+                // Connection
+                buildPreparedStrings(batchParam, true);
+
+                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                // batches.
+                for (Parameter aBatchParam : batchParam) {
+                    cryptoMetaBatch.add(aBatchParam.cryptoMeta);
+                }
             }
 
             // Get the encryption metadata for the first batch only.
             if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection))
                     && (0 < batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
-                // retrieve parameter encryption metadata if they are not retrieved yet
                 getParameterEncryptionMetadata(batchParam);
-                encryptionMetadataIsRetrieved = true;
 
                 // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
                 // on on
