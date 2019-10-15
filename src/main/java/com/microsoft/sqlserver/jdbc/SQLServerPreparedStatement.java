@@ -570,7 +570,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getParameterEncryptionMetadata(inOutParam);
                 encryptionMetadataIsRetrieved = true;
 
-                // maxRows is set to 0 when retreving encryption metadata,
+                // maxRows is set to 0 when retrieving encryption metadata,
                 // need to set it back
                 setMaxRowsAndMaxFieldSize();
             }
@@ -2732,7 +2732,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
 
-            if (connection.isAEv2() && !isInternalEncryptionQuery) {
+            if (!isInternalEncryptionQuery && connection.isAEv2()) {
                 this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
                         parameterNames);
                 encryptionMetadataIsRetrieved = true;
