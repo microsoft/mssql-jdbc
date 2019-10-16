@@ -20,7 +20,6 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.security.NoSuchAlgorithmException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -125,6 +124,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     // Handle the actual queue of discarded prepared statements.
     private ConcurrentLinkedQueue<PreparedStatementHandle> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<>();
     private AtomicInteger discardedPreparedStatementHandleCount = new AtomicInteger(0);
+
+    private SQLServerColumnEncryptionKeyStoreProvider keystoreProvider = null;
 
     private boolean fedAuthRequiredByUser = false;
     private boolean fedAuthRequiredPreLoginResponse = false;
@@ -629,6 +630,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     String enclaveAttestationUrl = null;
+    String enclaveAttestationProtocol = null;
 
     String keyStoreAuthentication = null;
     String keyStoreSecret = null;
@@ -661,7 +663,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalCustomColumnEncryptionKeyStoreProviders = null;
     // This is a per-connection store provider. It can be JKS or AKV.
-    static Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<>();
+    Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<>();
 
     /**
      * Registers key store providers in the globalCustomColumnEncryptionKeyStoreProviders.
@@ -714,13 +716,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         + globalCustomColumnEncryptionKeyStoreProviders.size());
     }
 
-    static synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalSystemColumnEncryptionKeyStoreProvider(
+    synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalSystemColumnEncryptionKeyStoreProvider(
             String providerName) {
         return (null != globalSystemColumnEncryptionKeyStoreProviders && globalSystemColumnEncryptionKeyStoreProviders
                 .containsKey(providerName)) ? globalSystemColumnEncryptionKeyStoreProviders.get(providerName) : null;
     }
 
-    static synchronized String getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders() {
+    synchronized String getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders() {
         return (null != globalCustomColumnEncryptionKeyStoreProviders) ? globalCustomColumnEncryptionKeyStoreProviders
                 .keySet().toString() : null;
     }
@@ -734,7 +736,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return keyStores;
     }
 
-    static synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalCustomColumnEncryptionKeyStoreProvider(
+    synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalCustomColumnEncryptionKeyStoreProvider(
             String providerName) {
         return (null != globalCustomColumnEncryptionKeyStoreProviders && globalCustomColumnEncryptionKeyStoreProviders
                 .containsKey(providerName)) ? globalCustomColumnEncryptionKeyStoreProviders.get(providerName) : null;
@@ -744,6 +746,35 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             String providerName) {
         return (null != systemColumnEncryptionKeyStoreProvider && systemColumnEncryptionKeyStoreProvider
                 .containsKey(providerName)) ? systemColumnEncryptionKeyStoreProvider.get(providerName) : null;
+    }
+
+    synchronized SQLServerColumnEncryptionKeyStoreProvider getColumnEncryptionKeyStoreProvider(
+            String providerName) throws SQLServerException {
+
+        // Check for the connection provider first.
+        keystoreProvider = getSystemColumnEncryptionKeyStoreProvider(providerName);
+
+        // There is no connection provider of this name, check for the global system providers.
+        if (null == keystoreProvider) {
+            keystoreProvider = getGlobalSystemColumnEncryptionKeyStoreProvider(providerName);
+        }
+
+        // There is no global system provider of this name, check for the global custom providers.
+        if (null == keystoreProvider) {
+            keystoreProvider = getGlobalCustomColumnEncryptionKeyStoreProvider(providerName);
+        }
+
+        // No provider was found of this name.
+        if (null == keystoreProvider) {
+            String systemProviders = getAllSystemColumnEncryptionKeyStoreProviders();
+            String customProviders = getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders();
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_UnrecognizedKeyStoreProviderName"));
+            Object[] msgArgs = {providerName, systemProviders, customProviders};
+            throw new SQLServerException(form.format(msgArgs), null);
+        }
+
+        return keystoreProvider;
     }
 
     private String trustedServerNameAE = null;
@@ -1435,6 +1466,32 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
                 enclaveAttestationUrl = sPropValue;
+            }
+
+            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                enclaveAttestationProtocol = sPropValue;
+                if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " "
+                                + SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"));
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"),
+                            null);
+                }
+            }
+
+            // both enclaveAttestationUrl must be enclaveAttestationProtocol specified
+            if ((null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                    && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty()))
+                    || (null != enclaveAttestationProtocol && !enclaveAttestationProtocol.isEmpty()
+                            && (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()))) {
+                if (connectionlogger.isLoggable(Level.SEVERE)) {
+                    connectionlogger.severe(
+                            toString() + " " + SQLServerException.getErrString("R_enclaveNoAttestationProtocol"));
+                }
+                throw new SQLServerException(SQLServerException.getErrString("R_enclaveNoAttestationProtocol"), null);
             }
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();
@@ -3030,12 +3087,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             final boolean doExecute() throws SQLServerException {
-                startRequest(TDS.PKT_QUERY).writeString(sql);
+                TDSWriter tdsWriter = startRequest(TDS.PKT_QUERY);
+                tdsWriter.sendEnclavePackage(null, null);
+                tdsWriter.writeString(sql);
                 TDSParser.parse(startResponse(), getLogContext());
                 return true;
             }
         }
-
         executeCommand(new ConnectionCommand(sql, logContext));
     }
 
@@ -4573,7 +4631,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 aeVersion = data[0];
-                if (0 == aeVersion || aeVersion > TDS.COLUMNENCRYPTION_VERSION2) {
+                if (TDS.COLUMNENCRYPTION_NOT_SUPPORTED == aeVersion || aeVersion > TDS.COLUMNENCRYPTION_VERSION2) {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
@@ -4585,10 +4643,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     } else {
                         serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v2;
                         enclaveType = new String(data, 2, data.length - 2, UTF_16LE);
-                    }
-
-                    if (null == enclaveType) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_enclaveTypeNotReturned"), null);
                     }
 
                     if (!EnclaveType.isValidEnclaveType(enclaveType)) {
@@ -4658,6 +4712,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             final boolean doExecute() throws SQLServerException {
                 TDSWriter tdsWriter = startRequest(TDS.PKT_DTC);
+                tdsWriter.sendEnclavePackage(null, null);
 
                 tdsWriter.writeShort((short) requestType);
                 if (null == payload) {
@@ -5719,7 +5774,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private List<ISQLServerStatement> openStatements;
     private boolean originalUseFmtOnly;
 
-    int aeVersion = 0;
+    int aeVersion = TDS.COLUMNENCRYPTION_NOT_SUPPORTED;
 
     protected void beginRequestInternal() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "beginRequest", this);
@@ -6171,7 +6226,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             try {
                 // Execute the batched set.
-                try (Statement stmt = this.createStatement()) {
+                try (SQLServerStatement stmt = (SQLServerStatement) this.createStatement()) {
+                    stmt.isInternalEncryptionQuery = true;
                     stmt.execute(sql.toString());
                 }
 
@@ -6412,22 +6468,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     boolean isAEv2() {
-        return aeVersion == 2;
+        return (aeVersion >= TDS.COLUMNENCRYPTION_VERSION2);
     }
 
     ISQLServerEnclaveProvider enclaveProvider = new SQLServerVSMEnclaveProvider();
 
-    byte[] getAttestationParameters() throws SQLServerException {
-        try {
-            return enclaveProvider.getAttestationParamters(false, this.enclaveAttestationUrl).getBytes();
-        } catch (NoSuchAlgorithmException e) {
-            SQLServerException.makeFromDriverError(this, enclaveProvider, e.getLocalizedMessage(), "0", false);
+    ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
+            ArrayList<String> parameterNames) throws SQLServerException {
+        if (!this.enclaveEstablished()) {
+            enclaveProvider.getAttestationParameters(false, this.enclaveAttestationUrl);
         }
-        return null;
+        return enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
     }
 
-    public void validateAttestationResponse(byte[] b) throws SQLServerException {
-        enclaveProvider.createEnclaveSession(b);
+    boolean enclaveEstablished() {
+        return (null != enclaveProvider.getEnclaveSession());
+    }
+
+    byte[] generateEncalvePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
+        return (enclaveCEKs.size() > 0) ? enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs) : null;
     }
 }
 

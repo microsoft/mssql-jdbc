@@ -875,9 +875,33 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setUseFmtOnly(boolean useFmtOnly);
 
     /**
-     * Returns the enclave attestional url used with enclave based Always Encrypted.
+     * Returns the enclave attestation URL used in Always Encrypted with Secure Enclaves.
      * 
-     * @return a String that contains the enclave attestation url.
+     * @return enclave attestation URL.
      */
     String getEnclaveAttestationUrl();
+
+    /**
+     * Sets the enclave attestation URL used in Always Encrypted with Secure Enclaves.
+     * 
+     * @param url
+     *        Enclave attestation URL.
+     */
+    void setEnclaveAttestationUrl(String url);
+
+    /**
+     * Returns the enclave attestation protocol used in Always Encrypted with Secure Enclaves.
+     * 
+     * @return Enclave attestation protocol.
+     */
+    String getEnclaveAttestationProtocol();
+
+    /**
+     * Sets the enclave attestation protocol to be used in Always Encrypted with Secure Enclaves.
+     * 
+     * @param protocol
+     *        Enclave attestation protocol.
+     */
+    void setEnclaveAttestationProtocol(String protocol);
+
 }

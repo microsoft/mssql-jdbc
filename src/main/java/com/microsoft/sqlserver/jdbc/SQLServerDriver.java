@@ -151,6 +151,46 @@ enum EnclaveType {
     }
 }
 
+enum AttestationProtocol {
+    HGS("HGS"); // only protocol supported currently
+
+    private final String protocol;
+
+    AttestationProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    static boolean isValidAttestationProtocol(String protocol) {
+        for (AttestationProtocol p : AttestationProtocol.values()) {
+            if (protocol.equalsIgnoreCase(p.toString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+
+enum EnclaveType {
+    VBS("VBS"); // only VBS type supported
+
+    private final String type;
+
+    EnclaveType(String type) {
+        this.type = type;
+    }
+
+    static boolean isValidEnclaveType(String type) {
+        for (EnclaveType t : EnclaveType.values()) {
+            if (type.equalsIgnoreCase(t.toString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+
 enum SSLProtocol {
     TLS("TLS"),
     TLS_V10("TLSv1"),
@@ -275,6 +315,7 @@ enum ApplicationIntent {
 
 enum SQLServerDriverObjectProperty {
     GSS_CREDENTIAL("gsscredential", null);
+
     private final String name;
     private final String defaultValue;
 

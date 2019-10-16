@@ -68,7 +68,7 @@ public abstract class SQLServerColumnEncryptionKeyStoreProvider {
      * @param masterKeyPath
      *        column master key path
      * @param allowEnclaveComputations
-     *        indicates if whether the column master key supports enclave computations
+     *        indicates whether the column master key supports enclave computations
      * @param signature
      *        signature of the column master key metadata
      * @return
