@@ -23,6 +23,6 @@ public interface ISQLServerResultSetMetaData extends ResultSetMetaData, Serializ
      * @throws SQLServerException
      *         when an error occurs
      */
-    public boolean isSparseColumnSet(int column) throws SQLServerException;
+    boolean isSparseColumnSet(int column) throws SQLServerException;
 
 }

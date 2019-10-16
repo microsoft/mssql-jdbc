@@ -3,8 +3,8 @@
  ****************************************************************
  * Instruction for Building JDBC Driver:
  * For building particular version of the driver, use commands:
- * jre12 - - PS> gradle build
-			 PS> gradle build -PbuildProfile=jre12
+ * jre13 - - PS> gradle build
+			 PS> gradle build -PbuildProfile=jre13
  * jre11 - - PS> gradle build -PbuildProfile=jre11
  * jre8  - - PS> gradle build -PbuildProfile=jre8
  *
@@ -14,7 +14,7 @@
 
 apply plugin: 'java'
 
-version = '7.4.1'
+version = '8.1.0'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -31,21 +31,21 @@ allprojects {
 
 test {
     useJUnitPlatform {
-        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM')
+        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM')
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre12")){
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre13")){
 	
-	jreVersion = "jre12"
+	jreVersion = "jre13"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 12
-	targetCompatibility = 12
+	sourceCompatibility = 13
+	targetCompatibility = 13
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre11"){
@@ -70,12 +70,12 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	targetCompatibility = 1.8
 	test {
 		useJUnitPlatform {
-			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','xJDBC42')
+			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','xJDBC42')
 		}
 	}
 }
 
-jar.archiveName = "${archivesBaseName}-${version}.${jreVersion}.jar"
+jar.archiveName = "${archivesBaseName}-${version}.${jreVersion}-preview.jar"
 jar {
 	manifest {
         attributes 'Title': "Microsoft JDBC Driver ${version} for SQL Server",

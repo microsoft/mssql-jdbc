@@ -10,7 +10,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.net.URI;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -21,6 +26,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -102,6 +108,15 @@ public final class TestUtils {
     public static boolean isAzureMI(Connection con) {
         isAzure(con);
         return isAzureMI;
+    }
+
+    /**
+     * Checks if connection is established to server that supports AEv2.
+     * 
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAEv2()
+     */
+    public static boolean isAEv2(Connection con) {
+        return ((SQLServerConnection) con).isAEv2();
     }
 
     /**
@@ -826,5 +841,54 @@ public final class TestUtils {
      */
     public static String addOrOverrideProperty(String connectionString, String property, String value) {
         return connectionString + ";" + property + "=" + value + ";";
+    }
+
+    /**
+     * Creates a truststore and returns the path of it.
+     * 
+     * @param certificates
+     *        String list of certificates
+     * @param tsName
+     *        name of truststore to create
+     * @param tsPwd
+     *        password of truststore to set
+     * @param ksType
+     *        type of Keystore e.g PKCS12 or JKS
+     * @return Path of truststore that was created
+     * @throws Exception
+     */
+    public static String createTrustStore(List<String> certificates, String tsName, String tsPwd,
+            String ksType) throws Exception {
+        return (new TrustStore(certificates, tsName, tsPwd, ksType)).getFileName();
+    }
+
+    private static class TrustStore {
+        private File trustStoreFile;
+
+        TrustStore(List<String> certificateNames, String tsName, String tsPwd, String ksType) throws Exception {
+            trustStoreFile = File.createTempFile(tsName, null, new File("."));
+            trustStoreFile.deleteOnExit();
+            KeyStore ks = KeyStore.getInstance(ksType);
+            ks.load(null, null);
+
+            for (String certificateName : certificateNames) {
+                ks.setCertificateEntry(certificateName, getCertificate(certificateName));
+            }
+
+            FileOutputStream os = new FileOutputStream(trustStoreFile);
+            ks.store(os, tsPwd.toCharArray());
+            os.flush();
+            os.close();
+        }
+
+        final String getFileName() throws Exception {
+            return trustStoreFile.getCanonicalPath();
+        }
+
+        private static java.security.cert.Certificate getCertificate(String certname) throws Exception {
+            FileInputStream is = new FileInputStream(certname);
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            return cf.generateCertificate(is);
+        }
     }
 }

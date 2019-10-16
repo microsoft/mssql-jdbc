@@ -40,6 +40,7 @@ import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
@@ -113,7 +114,9 @@ final class TDS {
     // AE constants
     // 0x03 is for x_eFeatureExtensionId_Rcs
     static final byte TDS_FEATURE_EXT_AE = 0x04;
-    static final byte MAX_SUPPORTED_TCE_VERSION = 0x01; // max version
+    static final byte COLUMNENCRYPTION_NOT_SUPPORTED = 0x00; // column encryption not supported
+    static final byte COLUMNENCRYPTION_VERSION1 = 0x01; // column encryption without enclave
+    static final byte COLUMNENCRYPTION_VERSION2 = 0x02; // column encryption with enclave
     static final int CUSTOM_CIPHER_ALGORITHM_ID = 0; // max version
     // 0x06 is for x_eFeatureExtensionId_LoginToken
     // 0x07 is for x_eFeatureExtensionId_ClientSideTelemetry
@@ -3701,8 +3704,9 @@ final class TDSWriter {
         int bytesWritten = 0;
         int bytesToWrite;
 
-        if (logger.isLoggable(Level.FINEST))
+        if (logger.isLoggable(Level.FINEST)) {
             logger.finest(toString() + " Writing " + length + " bytes");
+        }
 
         while ((bytesToWrite = length - bytesWritten) > 0) {
             if (0 == stagingBuffer.remaining())
@@ -6189,6 +6193,22 @@ final class TDSWriter {
         // Write the data
         writeReader(re, reLength, usePLP);
     }
+
+    void sendEnclavePackage(String sql, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
+        if (null != con && con.isAEv2()) {
+            if (null != sql && "" != sql && null != enclaveCEKs && 0 < enclaveCEKs.size() && con.enclaveEstablished()) {
+                byte[] b = con.generateEncalvePackage(sql, enclaveCEKs);
+                if (null != b && 0 != b.length) {
+                    this.writeShort((short) b.length);
+                    this.writeBytes(b);
+                } else {
+                    this.writeShort((short) 0);
+                }
+            } else {
+                this.writeShort((short) 0);
+            }
+        }
+    }
 }
 
 
@@ -6284,6 +6304,7 @@ final class TDSReader implements Serializable {
     private boolean useColumnEncryption = false;
     private boolean serverSupportsColumnEncryption = false;
     private boolean serverSupportsDataClassification = false;
+    private ColumnEncryptionVersion columnEncryptionVersion;
 
     private final byte valueBytes[] = new byte[256];
 
@@ -6308,6 +6329,7 @@ final class TDSReader implements Serializable {
             useColumnEncryption = true;
         }
         serverSupportsColumnEncryption = con.getServerSupportsColumnEncryption();
+        columnEncryptionVersion = con.getServerColumnEncryptionVersion();
         serverSupportsDataClassification = con.getServerSupportsDataClassification();
     }
 
@@ -7161,6 +7183,8 @@ abstract class TDSCommand implements Serializable {
     final boolean readingResponse() {
         return readingResponse;
     }
+
+    protected ArrayList<byte[]> enclaveCEKs;
 
     /**
      * Creates this command with an optional timeout.

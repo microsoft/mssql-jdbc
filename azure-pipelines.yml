@@ -1,6 +1,6 @@
-# Microsoft JDBC Driver for SQL Server CI Build triggers tests against below SQL Servers:
+# Microsoft JDBC Driver for SQL Server CI build triggers tests against below SQL Servers:
 #   - SQL Server 2019
-#   - SQL Server 2008 R2
+#   - SQL Server 2012
 jobs:
 - job: "CI_Build"
   pool:
@@ -11,8 +11,8 @@ jobs:
       SQL-2019:
         Target_SQL: 'SQL-2k19-01'
         Ex_Groups: 'xSQLv15'
-      SQL-2008R2:
-        Target_SQL: 'SQL-2k8R2-SP3-1'
+      SQL-2012:
+        Target_SQL: 'SQL-2K12-SP3-1'
         Ex_Groups: 'xSQLv12'
     maxParallel: 2
   steps:
@@ -29,30 +29,35 @@ jobs:
       Get-Content .\JavaKeyStoreBase.txt | Set-Content -Encoding utf8 JavaKeyStore.txt
       Remove-Item –path .\JavaKeyStoreBase.txt
     displayName: 'PowerShell Script'
+  - task: DownloadSecureFile@1
+    name: pkcs12_truststore
+    displayName: 'Download PKCS12 truststore file'
+    inputs:
+      secureFile: 'pkcs12_truststore'
   - task: Maven@3
-    displayName: 'Maven build jre12'
+    displayName: 'Maven build jre13'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre12 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups)'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre13 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath)'
       testResultsFiles: '**/TEST-*.xml'
-      testRunTitle: 'Maven build jre12'
+      testRunTitle: 'Maven build jre13'
       javaHomeOption: Path
-      jdkDirectory: $(JDK12)
+      jdkDirectory: $(JDK13)
   - task: Maven@3
     displayName: 'Maven build jre11'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre11 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups)'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre11 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath)'
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build jre11'
       javaHomeOption: Path
-      jdkDirectory: $(JDK12)
+      jdkDirectory: $(JDK13)
   - task: Maven@3
     displayName: 'Maven build jre8'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre8 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups)'
+      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre8 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath)'
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build jre8'
       javaHomeOption: Path
-      jdkDirectory: $(JDK12)
+      jdkDirectory: $(JDK13)

@@ -81,4 +81,15 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
                 "decryptColumnEncryptionKey", "Finished decrypting Column Encryption Key.");
         return plainCek;
     }
+
+    @Override
+    public boolean verifyColumnMasterKeyMetadata(String masterKeyPath, boolean allowEnclaveComputations,
+            byte[] signature) throws SQLServerException {
+        try {
+            return AuthenticationJNI.VerifyColumnMasterKeyMetadata(masterKeyPath, allowEnclaveComputations, signature);
+        } catch (DLLException e) {
+            DLLException.buildException(e.GetErrCode(), e.GetParam1(), e.GetParam2(), e.GetParam3());
+            return false;
+        }
+    }
 }

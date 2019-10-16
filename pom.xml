@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.4.1</version>
+	<version>8.1.0</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -49,10 +49,11 @@
 			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
-			NTLM - - - - - - For tests using NTLM Authentication mode (excluded by default) 
+			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
+			reqExternalSetup  - For tests requiring external setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv14) -->
-		<excludedGroups>xSQLv15, NTLM</excludedGroups>
+		<excludedGroups>xSQLv15, NTLM, reqExternalSetup</excludedGroups>
 
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.1</azure.keyvault.version>
@@ -196,7 +197,7 @@
 		<profile>
 			<id>jre8</id>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre8</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -242,7 +243,7 @@
 		<profile>
 			<id>jre11</id>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre11</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre11-preview</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -273,12 +274,12 @@
 			</build>
 		</profile>
 		<profile>
-			<id>jre12</id>
+			<id>jre13</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre12</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre13-preview</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -288,8 +289,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>12</source>
-							<target>12</target>
+							<source>13</source>
+							<target>13</target>
 						</configuration>
 					</plugin>
 					<plugin>
