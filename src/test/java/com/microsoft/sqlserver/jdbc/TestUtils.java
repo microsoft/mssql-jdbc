@@ -111,6 +111,15 @@ public final class TestUtils {
     }
 
     /**
+     * Checks if connection is established to server that supports AEv2.
+     * 
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAEv2()
+     */
+    public static boolean isAEv2(Connection con) {
+        return ((SQLServerConnection) con).isAEv2();
+    }
+
+    /**
      * Read variable from property files if found null try to read from env.
      * 
      * @param key

@@ -911,14 +911,37 @@ public class SQLServerDataSource
     }
 
     @Override
+    public String getDomain() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(),
+                SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
+    }
+
+    @Override
     public void setDomain(String domain) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(), domain);
     }
 
     @Override
-    public String getDomain() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(),
-                SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
+    public String getEnclaveAttestationUrl() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString(),
+                SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.getDefaultValue());
+    }
+
+    @Override
+    public void setEnclaveAttestationUrl(String url) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString(), url);
+    }
+
+    @Override
+    public String getEnclaveAttestationProtocol() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString(),
+                SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.getDefaultValue());
+    }
+
+    @Override
+    public void setEnclaveAttestationProtocol(String protocol) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString(),
+                protocol);
     }
 
     /**

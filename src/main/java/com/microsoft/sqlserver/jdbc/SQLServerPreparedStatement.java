@@ -52,9 +52,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private static final long serialVersionUID = -6292257029445685221L;
 
-    /** Flag to indicate that it is an internal query to retrieve encryption metadata. */
-    boolean isInternalEncryptionQuery = false;
-
     /** delimiter for multiple statements in a single batch */
     @SuppressWarnings("unused")
     private static final int BATCH_STATEMENT_DELIMITER_TDS_71 = 0x80;
@@ -292,6 +289,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 executedSqlDirectly ? TDS.PROCID_SP_UNPREPARE : TDS.PROCID_SP_CURSORUNPREPARE);
                         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
                         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+                        tdsWriter.sendEnclavePackage(null, null);
                         tdsWriter.writeRPCInt(null, handleToClose, false);
                         TDSParser.parse(startResponse(), getLogContext());
                         return true;
@@ -556,6 +554,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
 
+        if (connection.isAEv2() && !isInternalEncryptionQuery) {
+            this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, inOutParam,
+                    parameterNames);
+            encryptionMetadataIsRetrieved = true;
+            setMaxRowsAndMaxFieldSize();
+            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
+        }
+
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
                 && !isInternalEncryptionQuery) {
 
@@ -564,7 +570,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getParameterEncryptionMetadata(inOutParam);
                 encryptionMetadataIsRetrieved = true;
 
-                // maxRows is set to 0 when retreving encryption metadata,
+                // maxRows is set to 0 when retrieving encryption metadata,
                 // need to set it back
                 setMaxRowsAndMaxFieldSize();
             }
@@ -704,6 +710,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_CURSORPREPEXEC);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
@@ -747,6 +754,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_PREPEXEC);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
@@ -774,6 +782,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTESQL);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // No handle used.
         resetPrepStmtHandle(false);
@@ -800,6 +809,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOREXECUTE);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // <handle> IN
         assert hasPreparedStatementHandle();
@@ -832,6 +842,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTE);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // <handle> IN
         assert hasPreparedStatementHandle();
@@ -1025,6 +1036,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
         return false;
     }
+
+    private ArrayList<byte[]> enclaveCEKs;
 
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions) throws SQLServerException {
@@ -2709,17 +2722,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Create the parameter array that we'll use for all the items in this batch.
         Parameter[] batchParam = new Parameter[inOutParam.length];
 
-        /*
-         * TDSWriter tdsWriter = null; while (numBatchesExecuted < numBatches) { // Fill in the parameter values for
-         * this batch Parameter paramValues[] = batchParamValues.get(numBatchesPrepared); assert paramValues.length ==
-         * batchParam.length; System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length); boolean
-         * hasExistingTypeDefinitions = preparedTypeDefinitions != null; boolean hasNewTypeDefinitions =
-         * buildPreparedStrings(batchParam, false); // Get the encryption metadata for the first batch only. if ((0 ==
-         * numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 <
-         * batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
-         * getParameterEncryptionMetadata(batchParam);
-         */
-
         TDSWriter tdsWriter = null;
         while (numBatchesExecuted < numBatches) {
             // Fill in the parameter values for this batch
@@ -2730,12 +2732,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
 
+            if (!isInternalEncryptionQuery && connection.isAEv2()) {
+                this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
+                        parameterNames);
+                encryptionMetadataIsRetrieved = true;
+
+                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
+                // on on
+                // Connection
+                buildPreparedStrings(batchParam, true);
+
+                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                // batches.
+                for (Parameter aBatchParam : batchParam) {
+                    cryptoMetaBatch.add(aBatchParam.cryptoMeta);
+                }
+            }
+
             // Get the encryption metadata for the first batch only.
             if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection))
                     && (0 < batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(batchParam);
 
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
+                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
+                // on on
                 // Connection
                 buildPreparedStrings(batchParam, true);
 

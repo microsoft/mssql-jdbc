@@ -4726,6 +4726,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOR);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        tdsWriter.sendEnclavePackage(null, null);
         tdsWriter.writeRPCInt(null, serverCursorId, false);
         tdsWriter.writeRPCInt(null, (int) TDS.SP_CURSOR_OP_INSERT, false);
         tdsWriter.writeRPCInt(null, fetchBufferGetRow(), false);
@@ -4806,6 +4807,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOR);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        tdsWriter.sendEnclavePackage(null, null);
         tdsWriter.writeRPCInt(null, serverCursorId, false);
         tdsWriter.writeRPCInt(null, TDS.SP_CURSOR_OP_UPDATE | TDS.SP_CURSOR_OP_SETPOSITION, false);
         tdsWriter.writeRPCInt(null, fetchBufferGetRow(), false);
@@ -4884,6 +4886,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOR);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        tdsWriter.sendEnclavePackage(null, null);
         tdsWriter.writeRPCInt(null, serverCursorId, false);
         tdsWriter.writeRPCInt(null, TDS.SP_CURSOR_OP_DELETE | TDS.SP_CURSOR_OP_SETPOSITION, false);
         tdsWriter.writeRPCInt(null, fetchBufferGetRow(), false);
@@ -5456,6 +5459,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             tdsWriter.writeShort(TDS.PROCID_SP_CURSORFETCH);
             tdsWriter.writeByte(TDS.RPC_OPTION_NO_METADATA);
             tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+            tdsWriter.sendEnclavePackage(null, null);
             tdsWriter.writeRPCInt(null, serverCursorId, false);
             tdsWriter.writeRPCInt(null, fetchType, false);
             tdsWriter.writeRPCInt(null, startRow, false);
@@ -5631,6 +5635,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     tdsWriter.writeShort(TDS.PROCID_SP_CURSORCLOSE);
                     tdsWriter.writeByte((byte) 0); // RPC procedure option 1
                     tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+                    tdsWriter.sendEnclavePackage(null, null);
                     tdsWriter.writeRPCInt(null, serverCursorId, false);
                     TDSParser.parse(startResponse(), getLogContext());
                     return true;
