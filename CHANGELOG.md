@@ -3,6 +3,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [8.1.0] Preview Release
+### Added
+- Added ISQLServerBulkData to remove implementation details from ISQLServerBulkRecord [#1099](https://github.com/microsoft/mssql-jdbc/pull/1099)
+- Added support for Azure national clouds when using Azure Key Vault [#1130](https://github.com/microsoft/mssql-jdbc/pull/1130)
+- Implemented hashCode() and equals() APIs for SQLServerDataTable and SQLServerDataColumn [#1146](https://github.com/Microsoft/mssql-jdbc/pull/1146)
+- Added support for JAVA 13 [#1151](https://github.com/Microsoft/mssql-jdbc/pull/1151)
+- Added support for Always Encrypted with Secure Enclaves [#1155](https://github.com/Microsoft/mssql-jdbc/pull/1155)
+
+### Fixed Issues
+- Fixed Geography.STAsBinary() returning null for a single point [#1074](https://github.com/microsoft/mssql-jdbc/pull/1074)
+- Fixed DatabaseMetaData.getImportedKeys() returning duplicate rows [#1092](https://github.com/microsoft/mssql-jdbc/pull/1092)
+- Fixed issue with truststore password being removed too early for XA connections [#1133](https://github.com/microsoft/mssql-jdbc/pull/1133)
+- Fixed issue with SQLServerDatabaseMetada.getColumns() not escaping wildcard characters [#1138](https://github.com/microsoft/mssql-jdbc/pull/1138)
+- Removed extra spaces in SQLServerDatabaseMetaData.getNumericFunctions() and SQLServerDatabaseMetaData.getStringFunctions() return values [#1117](https://github.com/microsoft/mssql-jdbc/pull/1117)
+
+### Changed
+- Improved performance of column name lookups [#1066](https://github.com/microsoft/mssql-jdbc/pull/1066)
+- Test improvements [#1100](https://github.com/microsoft/mssql-jdbc/pull/1100)
+- Updated issue templates [#1148](https://github.com/microsoft/mssql-jdbc/pull/1148)
+- Improved performance of CallableStatement and ParameterMetaData when using procedure names that contain wildcard characters [#1149](https://github.com/microsoft/mssql-jdbc/pull/1149)
+- Updated CI to use SQL Server 2012 instead of 2008R2 [#1153](https://github.com/microsoft/mssql-jdbc/pull/1153)
+
 ## [7.4.1] HotFix & Stable Release
 ### Fixed Issues
 - Reverted [#1025](https://github.com/Microsoft/mssql-jdbc/pull/1025) as it contains breaking changes. This removes `hashCode()` and `equals()` APIs from `SQLServerDataTable` and `SQLServerDataColumn`.
