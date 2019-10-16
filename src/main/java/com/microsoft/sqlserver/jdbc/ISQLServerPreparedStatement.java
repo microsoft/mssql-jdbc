@@ -26,7 +26,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *         if parameterIndex does not correspond to a parameter marker in the SQL statement; if a database access
      *         error occurs or this method is called on a closed <code>PreparedStatement</code>
      */
-    public void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x) throws SQLServerException;
+    void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x) throws SQLServerException;
 
     /**
      * Sets the value of the designated parameter with the given object.
@@ -51,7 +51,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *         if parameterIndex does not correspond to a parameter marker in the SQL statement; if a database access
      *         error occurs or this method is called on a closed {@code PreparedStatement}
      */
-    public void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision,
+    void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision,
             Integer scale) throws SQLServerException;
 
     /**
@@ -81,7 +81,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *         if parameterIndex does not correspond to a parameter marker in the SQL statement; if a database access
      *         error occurs or this method is called on a closed {@code PreparedStatement}
      */
-    public void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale,
+    void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -91,7 +91,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public int getPreparedStatementHandle() throws SQLServerException;
+    int getPreparedStatementHandle() throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to
@@ -108,7 +108,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setBigDecimal(int parameterIndex, BigDecimal x, int precision, int scale) throws SQLServerException;
+    void setBigDecimal(int parameterIndex, BigDecimal x, int precision, int scale) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to
@@ -129,7 +129,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setBigDecimal(int parameterIndex, BigDecimal x, int precision, int scale,
+    void setBigDecimal(int parameterIndex, BigDecimal x, int precision, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -143,7 +143,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setMoney(int parameterIndex, BigDecimal x) throws SQLServerException;
+    void setMoney(int parameterIndex, BigDecimal x) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to
@@ -160,7 +160,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setMoney(int parameterIndex, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
+    void setMoney(int parameterIndex, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to
@@ -173,7 +173,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setSmallMoney(int parameterIndex, BigDecimal x) throws SQLServerException;
+    void setSmallMoney(int parameterIndex, BigDecimal x) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to
@@ -190,7 +190,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setSmallMoney(int parameterIndex, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
+    void setSmallMoney(int parameterIndex, BigDecimal x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>boolean</code> value. The driver converts this to an SQL
@@ -207,7 +207,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setBoolean(int parameterIndex, boolean x, boolean forceEncrypt) throws SQLServerException;
+    void setBoolean(int parameterIndex, boolean x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>byte</code> value. The driver converts this to an SQL
@@ -224,7 +224,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setByte(int parameterIndex, byte x, boolean forceEncrypt) throws SQLServerException;
+    void setByte(int parameterIndex, byte x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java array of bytes. The driver converts this to an SQL
@@ -242,7 +242,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setBytes(int parameterIndex, byte x[], boolean forceEncrypt) throws SQLServerException;
+    void setBytes(int parameterIndex, byte x[], boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given String. The driver converts this to an SQL <code>GUID</code>
@@ -254,7 +254,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setUniqueIdentifier(int parameterIndex, String guid) throws SQLServerException;
+    void setUniqueIdentifier(int parameterIndex, String guid) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given String. The driver converts this to an SQL <code>GUID</code>
@@ -270,7 +270,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setUniqueIdentifier(int parameterIndex, String guid, boolean forceEncrypt) throws SQLServerException;
+    void setUniqueIdentifier(int parameterIndex, String guid, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>double</code> value. The driver converts this to an SQL
@@ -287,7 +287,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setDouble(int parameterIndex, double x, boolean forceEncrypt) throws SQLServerException;
+    void setDouble(int parameterIndex, double x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>float</code> value. The driver converts this to an SQL
@@ -304,7 +304,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setFloat(int parameterIndex, float x, boolean forceEncrypt) throws SQLServerException;
+    void setFloat(int parameterIndex, float x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>microsoft.sql.Geometry</code> Class object. The driver converts
@@ -317,7 +317,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setGeometry(int parameterIndex, Geometry x) throws SQLServerException;
+    void setGeometry(int parameterIndex, Geometry x) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>microsoft.sql.Geography</code> Class object. The driver converts
@@ -330,7 +330,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setGeography(int parameterIndex, Geography x) throws SQLServerException;
+    void setGeography(int parameterIndex, Geography x) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>int</code> value. The driver converts this to an SQL
@@ -347,7 +347,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setInt(int parameterIndex, int value, boolean forceEncrypt) throws SQLServerException;
+    void setInt(int parameterIndex, int value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>long</code> value. The driver converts this to an SQL
@@ -364,7 +364,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setLong(int parameterIndex, long x, boolean forceEncrypt) throws SQLServerException;
+    void setLong(int parameterIndex, long x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the value of the designated parameter with the given object.
@@ -395,7 +395,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision,
+    void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision,
             int scale) throws SQLServerException;
 
     /**
@@ -431,7 +431,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision, int scale,
+    void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -449,7 +449,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setShort(int parameterIndex, short x, boolean forceEncrypt) throws SQLServerException;
+    void setShort(int parameterIndex, short x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>String</code> value. The driver converts this to an SQL
@@ -467,7 +467,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setString(int parameterIndex, String str, boolean forceEncrypt) throws SQLServerException;
+    void setString(int parameterIndex, String str, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>String</code> object. The driver converts this to a SQL
@@ -485,7 +485,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setNString(int parameterIndex, String value, boolean forceEncrypt) throws SQLServerException;
+    void setNString(int parameterIndex, String value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Time</code> value.
@@ -499,7 +499,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setTime(int parameterIndex, java.sql.Time x, int scale) throws SQLServerException;
+    void setTime(int parameterIndex, java.sql.Time x, int scale) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Time</code> value.
@@ -517,7 +517,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setTime(int parameterIndex, java.sql.Time x, int scale, boolean forceEncrypt) throws SQLServerException;
+    void setTime(int parameterIndex, java.sql.Time x, int scale, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value.
@@ -531,7 +531,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setTimestamp(int parameterIndex, java.sql.Timestamp x, int scale) throws SQLServerException;
+    void setTimestamp(int parameterIndex, java.sql.Timestamp x, int scale) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value.
@@ -549,7 +549,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setTimestamp(int parameterIndex, java.sql.Timestamp x, int scale,
+    void setTimestamp(int parameterIndex, java.sql.Timestamp x, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -564,8 +564,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x,
-            int scale) throws SQLServerException;
+    void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>microsoft.sql.DatetimeOffset</code> value.
@@ -583,7 +582,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x, int scale,
+    void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -596,7 +595,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setDateTime(int parameterIndex, java.sql.Timestamp x) throws SQLServerException;
+    void setDateTime(int parameterIndex, java.sql.Timestamp x) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value.
@@ -612,7 +611,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setDateTime(int parameterIndex, java.sql.Timestamp x, boolean forceEncrypt) throws SQLServerException;
+    void setDateTime(int parameterIndex, java.sql.Timestamp x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value.
@@ -624,7 +623,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setSmallDateTime(int parameterIndex, java.sql.Timestamp x) throws SQLServerException;
+    void setSmallDateTime(int parameterIndex, java.sql.Timestamp x) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value.
@@ -640,8 +639,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setSmallDateTime(int parameterIndex, java.sql.Timestamp x,
-            boolean forceEncrypt) throws SQLServerException;
+    void setSmallDateTime(int parameterIndex, java.sql.Timestamp x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the data table to populates a table valued parameter.
@@ -655,8 +653,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setStructured(int parameterIndex, String tvpName,
-            SQLServerDataTable tvpDataTable) throws SQLServerException;
+    void setStructured(int parameterIndex, String tvpName, SQLServerDataTable tvpDataTable) throws SQLServerException;
 
     /**
      * Sets the result set to populate a table-valued parameter.
@@ -670,7 +667,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setStructured(int parameterIndex, String tvpName, ResultSet tvpResultSet) throws SQLServerException;
+    void setStructured(int parameterIndex, String tvpName, ResultSet tvpResultSet) throws SQLServerException;
 
     /**
      * Sets the server bulk record to populate a table valued parameter.
@@ -684,7 +681,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setStructured(int parameterIndex, String tvpName,
+    void setStructured(int parameterIndex, String tvpName,
             ISQLServerDataRecord tvpBulkRecord) throws SQLServerException;
 
     /**
@@ -707,7 +704,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setDate(int parameterIndex, java.sql.Date x, java.util.Calendar cal,
+    void setDate(int parameterIndex, java.sql.Date x, java.util.Calendar cal,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -727,7 +724,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setTime(int parameterIndex, java.sql.Time x, java.util.Calendar cal,
+    void setTime(int parameterIndex, java.sql.Time x, java.util.Calendar cal,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -747,7 +744,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public void setTimestamp(int parameterIndex, java.sql.Timestamp x, java.util.Calendar cal,
+    void setTimestamp(int parameterIndex, java.sql.Timestamp x, java.util.Calendar cal,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -759,7 +756,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    public ParameterMetaData getParameterMetaData(boolean forceRefresh) throws SQLServerException;
+    ParameterMetaData getParameterMetaData(boolean forceRefresh) throws SQLServerException;
 
     /**
      * Returns the current flag value for useFmtOnly.

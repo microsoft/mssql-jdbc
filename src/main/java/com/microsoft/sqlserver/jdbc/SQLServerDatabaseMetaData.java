@@ -638,10 +638,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
             pstmt.closeOnCompletion();
             try {
-                pstmt.setString(1, (null != table && !table.isEmpty()) ? table : "%");
-                pstmt.setString(2, (null != schema && !schema.isEmpty()) ? schema : "%");
+                pstmt.setString(1, (null != table && !table.isEmpty()) ? EscapeIDName(table) : "%");
+                pstmt.setString(2, (null != schema && !schema.isEmpty()) ? EscapeIDName(schema) : "%");
                 pstmt.setString(3, (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
-                pstmt.setString(4, (null != col && !col.isEmpty()) ? col : "%");
+                pstmt.setString(4, (null != col && !col.isEmpty()) ? EscapeIDName(col) : "%");
                 pstmt.setInt(5, 2);// show sparse columns
                 pstmt.setInt(6, 3);// odbc version
 
@@ -677,11 +677,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
              */
             try (PreparedStatement storedProcPstmt = this.connection
                     .prepareStatement("EXEC sp_columns_100 ?,?,?,?,?,?;")) {
-                storedProcPstmt.setString(1, (null != table && !table.isEmpty()) ? table : "%");
-                storedProcPstmt.setString(2, (null != schema && !schema.isEmpty()) ? schema : "%");
+                storedProcPstmt.setString(1, (null != table && !table.isEmpty()) ? EscapeIDName(table) : "%");
+                storedProcPstmt.setString(2, (null != schema && !schema.isEmpty()) ? EscapeIDName(schema) : "%");
                 storedProcPstmt.setString(3,
                         (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
-                storedProcPstmt.setString(4, (null != col && !col.isEmpty()) ? col : "%");
+                storedProcPstmt.setString(4, (null != col && !col.isEmpty()) ? EscapeIDName(col) : "%");
                 storedProcPstmt.setInt(5, 2);// show sparse columns
                 storedProcPstmt.setInt(6, 3);// odbc version
 
@@ -1011,7 +1011,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 "END as UPDATE_RULE, " + "CASE s.delete_referential_action " + "WHEN 1 THEN 0 " + "WHEN 0 THEN 3 "
                 + "WHEN 2 THEN 2 " + "WHEN 3 THEN 4 " + "END as DELETE_RULE, " + "t.FK_NAME, " + "t.PK_NAME, "
                 + "t.DEFERRABILITY " + "FROM " + tempTableName + " t "
-                + "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name collate database_default;";
+                + "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name COLLATE database_default AND schema_id(t.FKTABLE_OWNER) = s.schema_id";
         SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(sql);
         cstmt.closeOnCompletion();
         for (int i = 0; i < 6; i++) {
@@ -1212,7 +1212,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public String getNumericFunctions() throws SQLServerException {
         checkClosed();
-        return "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,COT,DEGREES,EXP, FLOOR,LOG,LOG10,MOD,PI,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
+        return "ABS,ACOS,ASIN,ATAN,ATAN2,CEILING,COS,COT,DEGREES,EXP,FLOOR,LOG,LOG10,MOD,PI,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
     }
 
     private static final String[] getPrimaryKeysColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
@@ -1470,7 +1470,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public String getStringFunctions() throws SQLServerException {
         checkClosed();
-        return "ASCII,CHAR,CONCAT, DIFFERENCE,INSERT,LCASE,LEFT,LENGTH,LOCATE,LTRIM,REPEAT,REPLACE,RIGHT,RTRIM,SOUNDEX,SPACE,SUBSTRING,UCASE";
+        return "ASCII,CHAR,CONCAT,DIFFERENCE,INSERT,LCASE,LEFT,LENGTH,LOCATE,LTRIM,REPEAT,REPLACE,RIGHT,RTRIM,SOUNDEX,SPACE,SUBSTRING,UCASE";
     }
 
     @Override

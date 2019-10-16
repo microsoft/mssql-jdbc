@@ -7,7 +7,9 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.text.MessageFormat;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -188,5 +190,29 @@ class SQLServerSecurityUtility {
         }
 
         return plainText;
+    }
+
+    /*
+     * Verify the signature for the CMK
+     */
+    static void verifyColumnMasterKeyMetadata(SQLServerConnection connection, String keyStoreName, String keyPath,
+            String serverName, boolean isEnclaveEnabled, byte[] CMKSignature) throws SQLServerException {
+
+        // check trusted key paths
+        Boolean[] hasEntry = new Boolean[1];
+        List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
+                hasEntry);
+        if (hasEntry[0]) {
+            if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size()) || (!trustedKeyPaths.contains(keyPath))) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
+                Object[] msgArgs = {keyPath, serverName};
+                throw new SQLServerException(form.format(msgArgs), null);
+            }
+        }
+
+        if (!connection.getColumnEncryptionKeyStoreProvider(keyStoreName).verifyColumnMasterKeyMetadata(keyPath,
+                isEnclaveEnabled, CMKSignature)) {
+            throw new SQLServerException(SQLServerException.getErrString("R_VerifySignature"), null);
+        }
     }
 }

@@ -16,6 +16,7 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Signature;
@@ -303,7 +304,6 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_EncryptionFailed"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-
         }
         return signedHash;
 
@@ -314,7 +314,52 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
         byte[] byteValue = byteBuffer.putShort(value).array();
         return byteValue;
+    }
 
+    /*
+     * Verify signature against certificate
+     */
+    private boolean rsaVerifySignature(byte[] dataToVerify, byte[] signature,
+            CertificateDetails certificateDetails) throws SQLServerException {
+        try {
+            Signature sig = Signature.getInstance("SHA256withRSA");
+            sig.initSign((PrivateKey) certificateDetails.privateKey);
+            sig.update(dataToVerify);
+            byte[] signedHash = sig.sign();
+
+            sig.initVerify(certificateDetails.certificate.getPublicKey());
+            sig.update(dataToVerify);
+
+            return sig.verify(signedHash);
+
+        } catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_VerifySignatureFailed"));
+            Object[] msgArgs = {e.getMessage()};
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        }
+    }
+
+    @Override
+    public boolean verifyColumnMasterKeyMetadata(String masterKeyPath, boolean allowEnclaveComputations,
+            byte[] signature) throws SQLServerException {
+
+        if (!allowEnclaveComputations)
+            return false;
+
+        KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
+        CertificateDetails certificateDetails = getCertificateDetails(masterKeyPath);
+
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(name.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+            md.update(masterKeyPath.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+            // value of allowEnclaveComputations is always true here
+            md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+            return rsaVerifySignature(md.digest(), signature, certificateDetails);
+
+        } catch (NoSuchAlgorithmException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
+        }
     }
 
 }

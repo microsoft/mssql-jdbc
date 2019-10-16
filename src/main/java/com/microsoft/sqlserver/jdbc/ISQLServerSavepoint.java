@@ -19,20 +19,20 @@ public interface ISQLServerSavepoint extends Savepoint, Serializable {
      * 
      * @return the name of savepoint
      */
-    public String getSavepointName() throws SQLServerException;
+    String getSavepointName() throws SQLServerException;
 
     /**
      * Returns the savepoint label
      * 
      * @return the label for Savepoint
      */
-    public String getLabel();
+    String getLabel();
 
     /**
      * Returns if the savepoint label is null
      * 
      * @return true is the savepoint is named. Otherwise, false.
      */
-    public boolean isNamed();
+    boolean isNamed();
 
 }

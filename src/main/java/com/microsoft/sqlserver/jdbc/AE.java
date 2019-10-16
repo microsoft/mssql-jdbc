@@ -242,7 +242,9 @@ enum DescribeParameterEncryptionResultSet1 {
     EncryptedKey,
     ProviderName,
     KeyPath,
-    KeyEncryptionAlgorithm;
+    KeyEncryptionAlgorithm,
+    IsRequestedByEnclave,
+    EnclaveCMKSignature;
 
     int value() {
         // Column indexing starts from 1;
@@ -266,5 +268,15 @@ enum DescribeParameterEncryptionResultSet2 {
         // Column indexing starts from 1;
         return ordinal() + 1;
     }
+}
 
+enum ColumnEncryptionVersion {
+    AE_NotSupported,
+    AE_v1,
+    AE_v2;
+
+    int value() {
+        // Column indexing starts from 1;
+        return ordinal() + 1;
+    }
 }
