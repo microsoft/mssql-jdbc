@@ -843,14 +843,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Client Key of Azure Key Vault (AKV) Provider to be used for column encryption.
      */
     void setKeyVaultProviderClientKey(String keyVaultProviderClientKey);
-
-    /**
-     * Returns the value for the connection property 'domain'.
-     * 
-     * @return 'domain' property value
-     */
-    String getDomain();
-
+    
     /**
      * Sets the 'domain' connection property used for NTLM Authentication.
      *
@@ -860,48 +853,24 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setDomain(String domain);
 
     /**
+     * Returns the value for the connection property 'domain'.
+     * 
+     * @return 'domain' property value
+     */
+    String getDomain();
+
+    /**
      * Returns the current flag value for useFmtOnly.
-     *
+     * 
      * @return 'useFmtOnly' property value.
      */
-    boolean getUseFmtOnly();
+    public boolean getUseFmtOnly();
 
     /**
      * Specifies the flag to use FMTONLY for parameter metadata queries.
-     *
+     * 
      * @param useFmtOnly
      *        boolean value for 'useFmtOnly'.
      */
-    void setUseFmtOnly(boolean useFmtOnly);
-
-    /**
-     * Returns the enclave attestation URL used in Always Encrypted with Secure Enclaves.
-     * 
-     * @return enclave attestation URL.
-     */
-    String getEnclaveAttestationUrl();
-
-    /**
-     * Sets the enclave attestation URL used in Always Encrypted with Secure Enclaves.
-     * 
-     * @param url
-     *        Enclave attestation URL.
-     */
-    void setEnclaveAttestationUrl(String url);
-
-    /**
-     * Returns the enclave attestation protocol used in Always Encrypted with Secure Enclaves.
-     * 
-     * @return Enclave attestation protocol.
-     */
-    String getEnclaveAttestationProtocol();
-
-    /**
-     * Sets the enclave attestation protocol to be used in Always Encrypted with Secure Enclaves.
-     * 
-     * @param protocol
-     *        Enclave attestation protocol.
-     */
-    void setEnclaveAttestationProtocol(String protocol);
-
+    public void setUseFmtOnly(boolean useFmtOnly);
 }

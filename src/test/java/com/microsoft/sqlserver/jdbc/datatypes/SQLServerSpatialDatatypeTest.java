@@ -5,7 +5,6 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
 import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -958,8 +957,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         byte[] geomWKB2 = geomWKT2.STAsBinary();
         byte[] geogWKB2 = geogWKT2.STAsBinary();
 
-        assertArrayEquals(geomWKB, geomWKB2);
-        assertArrayEquals(geogWKB, geogWKB2);
+        assertEquals(geomWKB, geomWKB2);
+        assertEquals(geogWKB, geogWKB2);
     }
 
     @Test

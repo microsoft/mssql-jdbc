@@ -74,8 +74,7 @@ public abstract class AbstractTest {
     /**
      * This will take care of all initialization before running the Test Suite.
      * 
-     * @throws Exception
-     *         when an error occurs
+     * @throws Exception when an error occurs
      */
     @BeforeAll
     public static void setup() throws Exception {
@@ -243,8 +242,7 @@ public abstract class AbstractTest {
     /**
      * This will take care of all clean ups after running the Test Suite.
      * 
-     * @throws Exception
-     *         when an error occurs
+     * @throws Exception when an error occurs
      */
     @AfterAll
     public static void teardown() throws Exception {

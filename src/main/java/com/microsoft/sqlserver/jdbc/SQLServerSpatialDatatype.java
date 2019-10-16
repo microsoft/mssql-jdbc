@@ -94,31 +94,19 @@ abstract class SQLServerSpatialDatatype {
     /**
      * Serializes the Geogemetry/Geography instance to WKB.
      * 
-     * @param excludeZMFromWKB
-     *        flag to indicate if Z and M coordinates should be excluded from the WKB representation
+     * @param noZM
+     *        flag to indicate if Z and M coordinates should be included
      * @param type
      *        Type of Spatial Datatype (Geometry/Geography)
      */
-    protected void serializeToWkb(boolean excludeZMFromWKB, SQLServerSpatialDatatype type) {
-        ByteBuffer buf = ByteBuffer.allocate(determineWkbCapacity(excludeZMFromWKB));
+    protected void serializeToWkb(boolean noZM, SQLServerSpatialDatatype type) {
+        ByteBuffer buf = ByteBuffer.allocate(determineWkbCapacity());
         createSerializationProperties();
 
         buf.order(ByteOrder.LITTLE_ENDIAN);
         buf.putInt(srid);
         buf.put(version);
-        if (excludeZMFromWKB) {
-            byte serializationPropertiesNoZM = serializationProperties;
-            if (hasZvalues) {
-                serializationPropertiesNoZM -= hasZvaluesMask;
-            }
-
-            if (hasMvalues) {
-                serializationPropertiesNoZM -= hasMvaluesMask;
-            }
-            buf.put(serializationPropertiesNoZM);
-        } else {
-            buf.put(serializationProperties);
-        }
+        buf.put(serializationProperties);
 
         if (!isSinglePoint && !isSingleLineSegment) {
             buf.putInt(numberOfPoints);
@@ -136,7 +124,7 @@ abstract class SQLServerSpatialDatatype {
             }
         }
 
-        if (!excludeZMFromWKB) {
+        if (!noZM) {
             if (hasZvalues) {
                 for (int i = 0; i < numberOfPoints; i++) {
                     buf.putDouble(zValues[i]);
@@ -151,11 +139,7 @@ abstract class SQLServerSpatialDatatype {
         }
 
         if (isSinglePoint || isSingleLineSegment) {
-            if (excludeZMFromWKB) {
-                wkbNoZM = buf.array();
-            } else {
-                wkb = buf.array();
-            }
+            wkb = buf.array();
             return;
         }
 
@@ -179,7 +163,7 @@ abstract class SQLServerSpatialDatatype {
             }
         }
 
-        if (excludeZMFromWKB) {
+        if (noZM) {
             wkbNoZM = buf.array();
         } else {
             wkb = buf.array();
@@ -1298,7 +1282,7 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected int determineWkbCapacity(boolean excludeZMFromWKB) {
+    protected int determineWkbCapacity() {
         int totalSize = 0;
 
         totalSize += 6; // SRID + version + SerializationPropertiesByte
@@ -1306,28 +1290,24 @@ abstract class SQLServerSpatialDatatype {
         if (isSinglePoint || isSingleLineSegment) {
             totalSize += 16 * numberOfPoints;
 
-            if (!excludeZMFromWKB) {
-                if (hasZvalues) {
-                    totalSize += 8 * numberOfPoints;
-                }
+            if (hasZvalues) {
+                totalSize += 8 * numberOfPoints;
+            }
 
-                if (hasMvalues) {
-                    totalSize += 8 * numberOfPoints;
-                }
+            if (hasMvalues) {
+                totalSize += 8 * numberOfPoints;
             }
 
             return totalSize;
         }
 
         int pointSize = 16;
-        if (!excludeZMFromWKB) {
-            if (hasZvalues) {
-                pointSize += 8;
-            }
+        if (hasZvalues) {
+            pointSize += 8;
+        }
 
-            if (hasMvalues) {
-                pointSize += 8;
-            }
+        if (hasMvalues) {
+            pointSize += 8;
         }
 
         totalSize += 12; // 4 bytes for 3 ints, each representing the number of points, shapes and figures

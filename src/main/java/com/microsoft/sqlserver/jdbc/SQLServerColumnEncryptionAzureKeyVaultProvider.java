@@ -50,14 +50,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     private final String baseUrl = "https://{vaultBaseUrl}";
 
-    /**
-     * List of Azure trusted endpoints https://docs.microsoft.com/en-us/azure/key-vault/key-vault-secure-your-key-vault
-     */
-    private final String azureTrustedEndpoints[] = {"vault.azure.net", // default
-            "vault.azure.cn", // Azure China
-            "vault.usgovcloudapi.net", // US Government
-            "vault.microsoftazure.de" // Azure Germany
-    };
+    private final String azureKeyVaultDomainName = "vault.azure.net";
 
     private final String rsaEncryptionAlgorithmWithOAEPForAKV = "RSA-OAEP";
 
@@ -448,27 +441,20 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             URI parsedUri = null;
             try {
                 parsedUri = new URI(masterKeyPath);
-
-                // A valid URI.
-                // Check if it is pointing to a trusted endpoint.
-                String host = parsedUri.getHost();
-                if (null != host) {
-                    host = host.toLowerCase(Locale.ENGLISH);
-                }
-                for (final String endpoint : azureTrustedEndpoints) {
-                    if (null != host && host.endsWith(endpoint)) {
-                        return;
-                    }
-                }
             } catch (URISyntaxException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVURLInvalid"));
                 Object[] msgArgs = {masterKeyPath};
                 throw new SQLServerException(form.format(msgArgs), null, 0, e);
             }
 
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVMasterKeyPathInvalid"));
-            Object[] msgArgs = {masterKeyPath};
-            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+            // A valid URI.
+            // Check if it is pointing to AKV.
+            if (!parsedUri.getHost().toLowerCase(Locale.ENGLISH).endsWith(azureKeyVaultDomainName)) {
+                // Return an error indicating that the AKV url is invalid.
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVMasterKeyPathInvalid"));
+                Object[] msgArgs = {masterKeyPath};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+            }
         }
     }
 
@@ -594,38 +580,5 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
 
         return retrievedKey.key().n().length;
-    }
-
-    @Override
-    public boolean verifyColumnMasterKeyMetadata(String masterKeyPath, boolean allowEnclaveComputations,
-            byte[] signature) throws SQLServerException {
-        if (!allowEnclaveComputations)
-            return false;
-
-        KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
-
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            md.update(name.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-            md.update(masterKeyPath.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-            // value of allowEnclaveComputations is always true here
-            md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-
-            byte[] dataToVerify = md.digest();
-            if (null == dataToVerify) {
-                throw new SQLServerException(SQLServerException.getErrString("R_HashNull"), null);
-            }
-
-            // Sign the hash
-            byte[] signedHash = AzureKeyVaultSignHashedData(dataToVerify, masterKeyPath);
-            if (null == signedHash) {
-                throw new SQLServerException(SQLServerException.getErrString("R_SignedHashLengthError"), null);
-            }
-
-            // Validate the signature
-            return AzureKeyVaultVerifySignature(dataToVerify, signature, masterKeyPath);
-        } catch (NoSuchAlgorithmException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
-        }
     }
 }

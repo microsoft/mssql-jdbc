@@ -43,7 +43,7 @@ public interface ISQLServerConnection43 extends ISQLServerConnection {
      * @see #endRequest()
      */
     @Override
-    void beginRequest() throws SQLException;
+    public void beginRequest() throws SQLException;
 
     /**
      * Hints to the driver that a request, an independent unit of work, has completed. It rolls back the open
@@ -59,5 +59,5 @@ public interface ISQLServerConnection43 extends ISQLServerConnection {
      * @see #beginRequest()
      */
     @Override
-    void endRequest() throws SQLException;
+    public void endRequest() throws SQLException;
 }
