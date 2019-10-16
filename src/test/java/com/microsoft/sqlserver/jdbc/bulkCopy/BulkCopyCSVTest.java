@@ -166,7 +166,7 @@ public class BulkCopyCSVTest extends AbstractTest {
                             (-1 == precision) ? 0 : precision, (-1 == scale) ? 0 : scale);
                 }
                 stmt.createTable(destTable);
-                bulkCopy.writeToServer(fileRecord);
+                bulkCopy.writeToServer((ISQLServerBulkRecord) fileRecord);
             }
             if (firstLineIsColumnNames)
                 validateValuesFromCSV(destTable, inputFile);

@@ -103,46 +103,56 @@ public class ComparisonUtil {
         } else
             switch (dataType) {
                 case java.sql.Types.BIGINT:
-                    assertEquals((Long) expectedValue, (Long) actualValue, "Unexpected bigint value.");
+                    assertTrue((((Long) expectedValue).longValue() == ((Long) actualValue).longValue()),
+                            "Unexpected bigint value. Expected:" + ((Long) expectedValue).longValue() + " Actual:"
+                                    + ((Long) actualValue).longValue());
                     break;
 
                 case java.sql.Types.INTEGER:
-                    assertEquals((Integer) expectedValue, (Integer) actualValue, "Unexpected int value.");
+                    assertTrue((((Integer) expectedValue).intValue() == ((Integer) actualValue).intValue()),
+                            "Unexpected int value. Expected:" + ((Integer) expectedValue).intValue() + " Actual:"
+                                    + ((Integer) actualValue).intValue());
                     break;
 
                 case java.sql.Types.SMALLINT:
                 case java.sql.Types.TINYINT:
-                    assertEquals((Short) expectedValue, (Short) actualValue, "Unexpected smallint/tinyint value.");
+                    assertTrue((((Short) expectedValue).shortValue() == ((Short) actualValue).shortValue()),
+                            "Unexpected smallint/tinyint value. Expected:" + ((Short) expectedValue).shortValue()
+                                    + " Actual:" + ((Short) actualValue).shortValue());
                     break;
 
                 case java.sql.Types.BIT:
-                    assertEquals((Boolean) expectedValue, (Boolean) actualValue, "Unexpected bit value");
+                    assertTrue((((Boolean) expectedValue).booleanValue() == ((Boolean) actualValue).booleanValue()),
+                            "Unexpected bit value");
                     break;
 
                 case java.sql.Types.DECIMAL:
                 case java.sql.Types.NUMERIC:
-                    assertTrue(((BigDecimal) expectedValue).compareTo((BigDecimal) actualValue) == 0,
-                            "Unexpected decimal/numeric/money/smallmoney value. Expected:" + expectedValue + " Actual:"
-                                    + actualValue);
+                    assertTrue(0 == (((BigDecimal) expectedValue).compareTo((BigDecimal) actualValue)),
+                            "Unexpected decimal/numeric/money/smallmoney value");
                     break;
 
                 case java.sql.Types.DOUBLE:
-                    assertEquals((Double) expectedValue, (Double) actualValue, "Unexpected double value.");
+                    assertTrue((((Double) expectedValue).doubleValue() == ((Double) actualValue).doubleValue()),
+                            "Unexpected double value. Expected:" + ((Double) expectedValue).doubleValue() + " Actual:"
+                                    + ((Double) actualValue).doubleValue());
                     break;
 
                 case java.sql.Types.REAL:
-                    assertEquals((Float) expectedValue, (Float) actualValue, "Unexpected real/float value.");
+                    assertTrue((((Float) expectedValue).floatValue() == ((Float) actualValue).floatValue()),
+                            "Unexpected real/float value. Expected:" + ((Float) expectedValue).floatValue() + " Actual:"
+                                    + ((Float) actualValue).floatValue());
                     break;
 
                 case java.sql.Types.VARCHAR:
                 case java.sql.Types.NVARCHAR:
-                    assertEquals(((String) expectedValue).trim(), ((String) actualValue).trim(),
+                    assertTrue(((((String) expectedValue).trim()).equals(((String) actualValue).trim())),
                             "Unexpected varchar/nvarchar value ");
                     break;
 
                 case java.sql.Types.CHAR:
                 case java.sql.Types.NCHAR:
-                    assertEquals(((String) expectedValue).trim(), ((String) actualValue).trim(),
+                    assertTrue(((((String) expectedValue).trim()).equals(((String) actualValue).trim())),
                             "Unexpected char/nchar value ");
                     break;
 
@@ -153,7 +163,7 @@ public class ComparisonUtil {
                     break;
 
                 case java.sql.Types.TIMESTAMP:
-                    assertEquals((Timestamp) expectedValue, (Timestamp) actualValue,
+                    assertTrue((((Timestamp) expectedValue).getTime() == (((Timestamp) actualValue).getTime())),
                             "Unexpected datetime/smalldatetime/datetime2 value");
                     break;
 
@@ -162,19 +172,18 @@ public class ComparisonUtil {
                     expC.setTime((Date) expectedValue);
                     Calendar actC = Calendar.getInstance();
                     actC.setTime((Date) actualValue);
-                    assertEquals(expC.get(Calendar.DAY_OF_MONTH), actC.get(Calendar.DAY_OF_MONTH),
-                            "Unexpected date value. Expected:" + expectedValue + " Actual:" + actualValue);
+                    assertTrue(expC.get(Calendar.DAY_OF_MONTH) == actC.get(Calendar.DAY_OF_MONTH),
+                            "Unexpected datetime value");
                     break;
 
                 case java.sql.Types.TIME:
-                    assertEquals((Time) expectedValue, (Time) actualValue, "Unexpected time value ");
+                    assertTrue(((Time) expectedValue).getTime() == ((Time) actualValue).getTime(),
+                            "Unexpected time value ");
                     break;
 
                 case microsoft.sql.Types.DATETIMEOFFSET:
-                    assertTrue(
-                            0 == ((microsoft.sql.DateTimeOffset) expectedValue)
-                                    .compareTo((microsoft.sql.DateTimeOffset) actualValue),
-                            "Unexpected datetimeoffset value. Expected:" + expectedValue + " Actual:" + actualValue);
+                    assertTrue(0 == ((microsoft.sql.DateTimeOffset) expectedValue)
+                            .compareTo((microsoft.sql.DateTimeOffset) actualValue), "Unexpected time value ");
                     break;
 
                 default:

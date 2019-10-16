@@ -113,46 +113,6 @@ enum ColumnEncryptionSetting {
 }
 
 
-enum AttestationProtocol {
-    HGS("HGS"); // only protocol supported currently
-
-    private final String protocol;
-
-    AttestationProtocol(String protocol) {
-        this.protocol = protocol;
-    }
-
-    static boolean isValidAttestationProtocol(String protocol) {
-        for (AttestationProtocol p : AttestationProtocol.values()) {
-            if (protocol.equalsIgnoreCase(p.toString())) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
-
-enum EnclaveType {
-    VBS("VBS"); // only VBS type supported
-
-    private final String type;
-
-    EnclaveType(String type) {
-        this.type = type;
-    }
-
-    static boolean isValidEnclaveType(String type) {
-        for (EnclaveType t : EnclaveType.values()) {
-            if (type.equalsIgnoreCase(t.toString())) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
-
 enum SSLProtocol {
     TLS("TLS"),
     TLS_V10("TLSv1"),
@@ -277,7 +237,6 @@ enum ApplicationIntent {
 
 enum SQLServerDriverObjectProperty {
     GSS_CREDENTIAL("gsscredential", null);
-
     private final String name;
     private final String defaultValue;
 
@@ -327,8 +286,6 @@ enum SQLServerDriverStringProperty {
     AUTHENTICATION("authentication", SqlAuthentication.NotSpecified.toString()),
     ACCESS_TOKEN("accessToken", ""),
     COLUMN_ENCRYPTION("columnEncryptionSetting", ColumnEncryptionSetting.Disabled.toString()),
-    ENCLAVE_ATTESTATION_URL("enclaveAttestationUrl", ""),
-    ENCLAVE_ATTESTATION_PROTOCOL("enclaveAttestationProtocol", ""),
     KEY_STORE_AUTHENTICATION("keyStoreAuthentication", ""),
     KEY_STORE_SECRET("keyStoreSecret", ""),
     KEY_STORE_LOCATION("keyStoreLocation", ""),
@@ -443,10 +400,6 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue(), false,
                     new String[] {ColumnEncryptionSetting.Disabled.toString(),
                             ColumnEncryptionSetting.Enabled.toString()}),
-            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString(),
-                    SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.getDefaultValue(), false, null),
-            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString(),
-                    SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DATABASE_NAME.toString(),
                     SQLServerDriverStringProperty.DATABASE_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(),

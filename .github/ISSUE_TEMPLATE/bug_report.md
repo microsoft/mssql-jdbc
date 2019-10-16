@@ -1,8 +1,8 @@
 ---
-name: Incident report
-about: Report an incident
-title: ''
-labels: ''
+name: Bug report
+about: Report a bug to help us improve
+title: "[BUG]"
+labels: bug
 assignees: ''
 
 ---

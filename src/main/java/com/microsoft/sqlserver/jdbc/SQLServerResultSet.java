@@ -24,8 +24,6 @@ import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.text.MessageFormat;
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -154,9 +152,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     /** Flag set to true if the current row was updated through this ResultSet object */
     private boolean updatedCurrentRow = false;
-
-    // Column name hash map for caching.
-    private final Map<String, Integer> columnNames = new HashMap<>();
 
     final boolean getUpdatedCurrentRow() {
         return updatedCurrentRow;
@@ -637,21 +632,16 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /**
      * Finds a column index given a column name.
      * 
-     * @param userProvidedColumnName
+     * @param columnName
      *        the name of the column
      * @throws SQLServerException
      *         If any errors occur.
      * @return the column index
      */
     @Override
-    public int findColumn(String userProvidedColumnName) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "findColumn", userProvidedColumnName);
+    public int findColumn(String columnName) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "findColumn", columnName);
         checkClosed();
-
-        Integer value = columnNames.get(userProvidedColumnName);
-        if (null != value) {
-            return value;
-        }
 
         // In order to be as accurate as possible when locating column name
         // indexes, as well as be deterministic when running on various client
@@ -673,9 +663,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
         // Search using case-sensitive, non-locale specific (binary) compare.
         // If the user supplies a true match for the column name, we will find it here.
-        for (int i = 0; i < columns.length; i++) {
-            if (columns[i].getColumnName().equals(userProvidedColumnName)) {
-                columnNames.put(userProvidedColumnName, i + 1);
+        int i;
+        for (i = 0; i < columns.length; i++) {
+            if (columns[i].getColumnName().equals(columnName)) {
                 loggerExternal.exiting(getClassNameLogging(), "findColumn", i + 1);
                 return i + 1;
             }
@@ -685,15 +675,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // Per JDBC spec, 27.3 "The driver will do a case-insensitive search for
         // columnName in it's attempt to map it to the column's index".
         // Use VM supplied String.equalsIgnoreCase to do the "case-insensitive search".
-        for (int i = 0; i < columns.length; i++) {
-            if (columns[i].getColumnName().equalsIgnoreCase(userProvidedColumnName)) {
-                columnNames.put(userProvidedColumnName, i + 1);
+        for (i = 0; i < columns.length; i++) {
+            if (columns[i].getColumnName().equalsIgnoreCase(columnName)) {
                 loggerExternal.exiting(getClassNameLogging(), "findColumn", i + 1);
                 return i + 1;
             }
         }
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidColumnName"));
-        Object[] msgArgs = {userProvidedColumnName};
+        Object[] msgArgs = {columnName};
         SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), "07009", false);
 
         return 0;
@@ -4726,7 +4715,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOR);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-        tdsWriter.sendEnclavePackage(null, null);
         tdsWriter.writeRPCInt(null, serverCursorId, false);
         tdsWriter.writeRPCInt(null, (int) TDS.SP_CURSOR_OP_INSERT, false);
         tdsWriter.writeRPCInt(null, fetchBufferGetRow(), false);
@@ -4807,7 +4795,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOR);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-        tdsWriter.sendEnclavePackage(null, null);
         tdsWriter.writeRPCInt(null, serverCursorId, false);
         tdsWriter.writeRPCInt(null, TDS.SP_CURSOR_OP_UPDATE | TDS.SP_CURSOR_OP_SETPOSITION, false);
         tdsWriter.writeRPCInt(null, fetchBufferGetRow(), false);
@@ -4886,7 +4873,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOR);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-        tdsWriter.sendEnclavePackage(null, null);
         tdsWriter.writeRPCInt(null, serverCursorId, false);
         tdsWriter.writeRPCInt(null, TDS.SP_CURSOR_OP_DELETE | TDS.SP_CURSOR_OP_SETPOSITION, false);
         tdsWriter.writeRPCInt(null, fetchBufferGetRow(), false);
@@ -5459,7 +5445,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             tdsWriter.writeShort(TDS.PROCID_SP_CURSORFETCH);
             tdsWriter.writeByte(TDS.RPC_OPTION_NO_METADATA);
             tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-            tdsWriter.sendEnclavePackage(null, null);
             tdsWriter.writeRPCInt(null, serverCursorId, false);
             tdsWriter.writeRPCInt(null, fetchType, false);
             tdsWriter.writeRPCInt(null, startRow, false);
@@ -5635,7 +5620,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     tdsWriter.writeShort(TDS.PROCID_SP_CURSORCLOSE);
                     tdsWriter.writeByte((byte) 0); // RPC procedure option 1
                     tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-                    tdsWriter.sendEnclavePackage(null, null);
                     tdsWriter.writeRPCInt(null, serverCursorId, false);
                     TDSParser.parse(startResponse(), getLogContext());
                     return true;

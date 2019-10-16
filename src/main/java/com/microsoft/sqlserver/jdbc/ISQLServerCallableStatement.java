@@ -17,7 +17,7 @@ import java.util.Calendar;
 public interface ISQLServerCallableStatement extends java.sql.CallableStatement, ISQLServerPreparedStatement {
 
     @Deprecated
-    BigDecimal getBigDecimal(String parameterName, int scale) throws SQLServerException;
+    public BigDecimal getBigDecimal(String parameterName, int scale) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -29,7 +29,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    Timestamp getDateTime(int index) throws SQLServerException;
+    public Timestamp getDateTime(int index) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -42,7 +42,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    Timestamp getDateTime(String parameterName) throws SQLServerException;
+    public Timestamp getDateTime(String parameterName) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -57,7 +57,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    Timestamp getDateTime(int index, Calendar cal) throws SQLServerException;
+    public Timestamp getDateTime(int index, Calendar cal) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -72,7 +72,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    Timestamp getDateTime(String name, Calendar cal) throws SQLServerException;
+    public Timestamp getDateTime(String name, Calendar cal) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -84,7 +84,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    Timestamp getSmallDateTime(int index) throws SQLServerException;
+    public Timestamp getSmallDateTime(int index) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -96,7 +96,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    Timestamp getSmallDateTime(String parameterName) throws SQLServerException;
+    public Timestamp getSmallDateTime(String parameterName) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -110,7 +110,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    Timestamp getSmallDateTime(int index, Calendar cal) throws SQLServerException;
+    public Timestamp getSmallDateTime(int index, Calendar cal) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this ResultSet object as a java.sql.Timestamp
@@ -124,7 +124,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    Timestamp getSmallDateTime(String name, Calendar cal) throws SQLServerException;
+    public Timestamp getSmallDateTime(String name, Calendar cal) throws SQLServerException;
 
     /**
      * Returns the DateTimeOffset value of parameter with index parameterIndex.
@@ -136,7 +136,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterIndex is out of range; if a database access error occurs or this method is called on a closed
      *         <code>CallableStatement</code>
      */
-    microsoft.sql.DateTimeOffset getDateTimeOffset(int parameterIndex) throws SQLServerException;
+    public microsoft.sql.DateTimeOffset getDateTimeOffset(int parameterIndex) throws SQLServerException;
 
     /**
      * Returns the DateTimeOffset value of parameter with name parameterName.
@@ -148,7 +148,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException;
+    public microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
@@ -169,7 +169,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if the columnIndex is not valid; if a database access error occurs or this method is called on a closed
      *         result set
      */
-    java.io.InputStream getAsciiStream(int parameterIndex) throws SQLServerException;
+    public java.io.InputStream getAsciiStream(int parameterIndex) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
@@ -190,7 +190,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if the columnLabel is not valid; if a database access error occurs or this method is called on a closed
      *         result set
      */
-    java.io.InputStream getAsciiStream(String parameterName) throws SQLServerException;
+    public java.io.InputStream getAsciiStream(String parameterName) throws SQLServerException;
 
     /**
      * Returns the value of the column specified as a java.math.BigDecimal object.
@@ -201,7 +201,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    BigDecimal getMoney(int parameterIndex) throws SQLServerException;
+    public BigDecimal getMoney(int parameterIndex) throws SQLServerException;
 
     /**
      * Returns the value of the column specified as a java.math.BigDecimal object.
@@ -212,7 +212,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    BigDecimal getMoney(String parameterName) throws SQLServerException;
+    public BigDecimal getMoney(String parameterName) throws SQLServerException;
 
     /**
      * Returns the value of the column specified as a java.math.BigDecimal object.
@@ -223,7 +223,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    BigDecimal getSmallMoney(int parameterIndex) throws SQLServerException;
+    public BigDecimal getSmallMoney(int parameterIndex) throws SQLServerException;
 
     /**
      * Returns the value of the column specified as a java.math.BigDecimal object.
@@ -234,7 +234,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    BigDecimal getSmallMoney(String parameterName) throws SQLServerException;
+    public BigDecimal getSmallMoney(String parameterName) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
@@ -254,7 +254,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if the columnIndex is not valid; if a database access error occurs or this method is called on a closed
      *         result set
      */
-    java.io.InputStream getBinaryStream(int parameterIndex) throws SQLServerException;
+    public java.io.InputStream getBinaryStream(int parameterIndex) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
@@ -274,7 +274,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if the columnLabel is not valid; if a database access error occurs or this method is called on a closed
      *         result set
      */
-    java.io.InputStream getBinaryStream(String parameterName) throws SQLServerException;
+    public java.io.InputStream getBinaryStream(String parameterName) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value. The driver converts this to an
@@ -295,7 +295,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         method is called on a closed <code>CallableStatement</code>
      * @see #getTimestamp
      */
-    void setTimestamp(String parameterName, java.sql.Timestamp value, Calendar calendar,
+    public void setTimestamp(String parameterName, java.sql.Timestamp value, Calendar calendar,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -320,7 +320,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         method is called on a closed <code>CallableStatement</code>
      * @see #getTime
      */
-    void setTime(String parameterName, java.sql.Time value, Calendar calendar,
+    public void setTime(String parameterName, java.sql.Time value, Calendar calendar,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -345,7 +345,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         method is called on a closed <code>CallableStatement</code>
      * @see #getDate
      */
-    void setDate(String parameterName, java.sql.Date value, Calendar calendar,
+    public void setDate(String parameterName, java.sql.Date value, Calendar calendar,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -365,7 +365,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         character sets; if the driver can detect that a data conversion error could occur; if a database access
      *         error occurs or this method is called on a closed <code>CallableStatement</code>
      */
-    void setNString(String parameterName, String value, boolean forceEncrypt) throws SQLServerException;
+    public void setNString(String parameterName, String value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the value of the designated parameter with the given object.
@@ -401,7 +401,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @see java.sql.Types
      * @see #getObject
      */
-    void setObject(String parameterName, Object value, int sqlType, int decimals,
+    public void setObject(String parameterName, Object value, int sqlType, int decimals,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -435,7 +435,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @see java.sql.Types
      * @see #getObject
      */
-    void setObject(String parameterName, Object value, int targetSqlType, Integer precision,
+    public void setObject(String parameterName, Object value, int targetSqlType, Integer precision,
             int scale) throws SQLServerException;
 
     /**
@@ -453,7 +453,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         method is called on a closed <code>CallableStatement</code>
      * @see #getTimestamp
      */
-    void setTimestamp(String parameterName, java.sql.Timestamp value, int scale) throws SQLServerException;
+    public void setTimestamp(String parameterName, java.sql.Timestamp value, int scale) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value. The driver converts this to an
@@ -474,7 +474,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         method is called on a closed <code>CallableStatement</code>
      * @see #getTimestamp
      */
-    void setTimestamp(String parameterName, java.sql.Timestamp value, int scale,
+    public void setTimestamp(String parameterName, java.sql.Timestamp value, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -487,7 +487,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         if an error occurs
      */
-    void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value) throws SQLServerException;
+    public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value) throws SQLServerException;
 
     /**
      * Sets parameter parameterName to DateTimeOffset value.
@@ -501,7 +501,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         if an error occurs
      */
-    void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value,
+    public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value,
             int scale) throws SQLServerException;
 
     /**
@@ -520,7 +520,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         if an error occurs
      */
-    void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value, int scale,
+    public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -538,7 +538,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         method is called on a closed <code>CallableStatement</code>
      * @see #getTime
      */
-    void setTime(String parameterName, java.sql.Time value, int scale) throws SQLServerException;
+    public void setTime(String parameterName, java.sql.Time value, int scale) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Time</code> value. The driver converts this to an SQL
@@ -559,7 +559,8 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         method is called on a closed <code>CallableStatement</code>
      * @see #getTime
      */
-    void setTime(String parameterName, java.sql.Time value, int scale, boolean forceEncrypt) throws SQLServerException;
+    public void setTime(String parameterName, java.sql.Time value, int scale,
+            boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value. The driver converts this to an
@@ -573,7 +574,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setDateTime(String parameterName, java.sql.Timestamp value) throws SQLServerException;
+    public void setDateTime(String parameterName, java.sql.Timestamp value) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value. The driver converts this to an
@@ -591,7 +592,8 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setDateTime(String parameterName, java.sql.Timestamp value, boolean forceEncrypt) throws SQLServerException;
+    public void setDateTime(String parameterName, java.sql.Timestamp value,
+            boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value. The driver converts this to an
@@ -605,7 +607,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setSmallDateTime(String parameterName, java.sql.Timestamp value) throws SQLServerException;
+    public void setSmallDateTime(String parameterName, java.sql.Timestamp value) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.sql.Timestamp</code> value. The driver converts this to an
@@ -623,7 +625,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setSmallDateTime(String parameterName, java.sql.Timestamp value,
+    public void setSmallDateTime(String parameterName, java.sql.Timestamp value,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -638,7 +640,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setUniqueIdentifier(String parameterName, String guid) throws SQLServerException;
+    public void setUniqueIdentifier(String parameterName, String guid) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>String</code> value. The driver converts this to an SQL
@@ -656,7 +658,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setUniqueIdentifier(String parameterName, String guid, boolean forceEncrypt) throws SQLServerException;
+    public void setUniqueIdentifier(String parameterName, String guid, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java array of bytes. The driver converts this to an SQL
@@ -675,7 +677,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setBytes(String parameterName, byte[] value, boolean forceEncrypt) throws SQLServerException;
+    public void setBytes(String parameterName, byte[] value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>byte</code> value. The driver converts this to an SQL
@@ -693,7 +695,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setByte(String parameterName, byte value, boolean forceEncrypt) throws SQLServerException;
+    public void setByte(String parameterName, byte value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>String</code> value. The driver converts this to an SQL
@@ -712,7 +714,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setString(String parameterName, String value, boolean forceEncrypt) throws SQLServerException;
+    public void setString(String parameterName, String value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>java.math.BigDecimal</code> value. The driver converts this
@@ -726,7 +728,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setMoney(String parameterName, BigDecimal value) throws SQLServerException;
+    public void setMoney(String parameterName, BigDecimal value) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>java.math.BigDecimal</code> value. The driver converts this
@@ -744,7 +746,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setMoney(String parameterName, BigDecimal value, boolean forceEncrypt) throws SQLServerException;
+    public void setMoney(String parameterName, BigDecimal value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>java.math.BigDecimal</code> value. The driver converts this
@@ -758,7 +760,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setSmallMoney(String parameterName, BigDecimal value) throws SQLServerException;
+    public void setSmallMoney(String parameterName, BigDecimal value) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>java.math.BigDecimal</code> value. The driver converts this
@@ -776,7 +778,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setSmallMoney(String parameterName, BigDecimal value, boolean forceEncrypt) throws SQLServerException;
+    public void setSmallMoney(String parameterName, BigDecimal value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to
@@ -794,7 +796,8 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setBigDecimal(String parameterName, BigDecimal value, int precision, int scale) throws SQLServerException;
+    public void setBigDecimal(String parameterName, BigDecimal value, int precision,
+            int scale) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to
@@ -816,7 +819,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setBigDecimal(String parameterName, BigDecimal value, int precision, int scale,
+    public void setBigDecimal(String parameterName, BigDecimal value, int precision, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -835,7 +838,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setDouble(String parameterName, double value, boolean forceEncrypt) throws SQLServerException;
+    public void setDouble(String parameterName, double value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>float</code> value. The driver converts this to an SQL
@@ -853,7 +856,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setFloat(String parameterName, float value, boolean forceEncrypt) throws SQLServerException;
+    public void setFloat(String parameterName, float value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>int</code> value. The driver converts this to an SQL
@@ -871,7 +874,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setInt(String parameterName, int value, boolean forceEncrypt) throws SQLServerException;
+    public void setInt(String parameterName, int value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>long</code> value. The driver converts this to an SQL
@@ -889,7 +892,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setLong(String parameterName, long value, boolean forceEncrypt) throws SQLServerException;
+    public void setLong(String parameterName, long value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>short</code> value. The driver converts this to an SQL
@@ -907,7 +910,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setShort(String parameterName, short value, boolean forceEncrypt) throws SQLServerException;
+    public void setShort(String parameterName, short value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given Java <code>boolean</code> value. The driver converts this to an SQL
@@ -925,7 +928,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
      */
-    void setBoolean(String parameterName, boolean value, boolean forceEncrypt) throws SQLServerException;
+    public void setBoolean(String parameterName, boolean value, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Populates a table valued parameter passed to a stored procedure with a data table.
@@ -939,7 +942,8 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    void setStructured(String parameterName, String tvpName, SQLServerDataTable tvpDataTable) throws SQLServerException;
+    public void setStructured(String parameterName, String tvpName,
+            SQLServerDataTable tvpDataTable) throws SQLServerException;
 
     /**
      * Populates a table valued parameter passed to a stored procedure with a ResultSet retrieved from another table
@@ -953,7 +957,8 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    void setStructured(String parameterName, String tvpName, java.sql.ResultSet tvpResultSet) throws SQLServerException;
+    public void setStructured(String parameterName, String tvpName,
+            java.sql.ResultSet tvpResultSet) throws SQLServerException;
 
     /**
      * Populates a table valued parameter passed to a stored procedure with an ISQLServerDataRecord object.
@@ -968,7 +973,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    void setStructured(String parameterName, String tvpName,
+    public void setStructured(String parameterName, String tvpName,
             ISQLServerDataRecord tvpDataRecord) throws SQLServerException;
 
     /**
@@ -990,7 +995,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         If any errors occur.
      */
-    void registerOutParameter(String parameterName, SQLType sqlType, int precision,
+    public void registerOutParameter(String parameterName, SQLType sqlType, int precision,
             int scale) throws SQLServerException;
 
     /**
@@ -1012,7 +1017,8 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         If any errors occur.
      */
-    void registerOutParameter(int parameterIndex, SQLType sqlType, int precision, int scale) throws SQLServerException;
+    public void registerOutParameter(int parameterIndex, SQLType sqlType, int precision,
+            int scale) throws SQLServerException;
 
     /**
      * Registers the parameter in ordinal position index to be of JDBC type sqlType. All OUT parameters must be
@@ -1033,7 +1039,8 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         If any errors occur.
      */
-    void registerOutParameter(int parameterIndex, int sqlType, int precision, int scale) throws SQLServerException;
+    public void registerOutParameter(int parameterIndex, int sqlType, int precision,
+            int scale) throws SQLServerException;
 
     /**
      * Registers the parameter in ordinal position index to be of JDBC type sqlType. All OUT parameters must be
@@ -1054,7 +1061,8 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         If any errors occur.
      */
-    void registerOutParameter(String parameterName, int sqlType, int precision, int scale) throws SQLServerException;
+    public void registerOutParameter(String parameterName, int sqlType, int precision,
+            int scale) throws SQLServerException;
 
     /**
      * Sets the value of the designated parameter with the given object.
@@ -1089,6 +1097,6 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @see java.sql.Types
      * @see #getObject
      */
-    void setObject(String parameterName, Object value, SQLType jdbcType, int scale,
+    public void setObject(String parameterName, Object value, SQLType jdbcType, int scale,
             boolean forceEncrypt) throws SQLServerException;
 }

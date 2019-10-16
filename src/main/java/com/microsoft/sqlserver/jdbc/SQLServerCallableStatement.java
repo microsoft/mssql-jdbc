@@ -24,9 +24,8 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.TreeMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,8 +49,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     private static final long serialVersionUID = 5044984771674532350L;
 
     /** the call param names */
-    private HashMap<String, Integer> parameterNames;
-    private TreeMap<String, Integer> insensitiveParameterNames;
+    private ArrayList<String> parameterNames;
 
     /** Number of registered OUT parameters */
     int nOutParams = 0;
@@ -704,7 +702,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         loggerExternal.entering(getClassNameLogging(), "getObject", index);
         checkClosed();
         Object value = getValue(index,
-                null != getterGetParam(index).getJdbcTypeSetByUser() ? getterGetParam(index).getJdbcTypeSetByUser()
+                getterGetParam(index).getJdbcTypeSetByUser() != null ? getterGetParam(index).getJdbcTypeSetByUser()
                                                                      : getterGetParam(index).getJdbcType());
         loggerExternal.exiting(getClassNameLogging(), "getObject", value);
         return value;
@@ -745,7 +743,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         } else if (type == UUID.class) {
             // read binary, avoid string allocation and parsing
             byte[] guid = getBytes(index);
-            returnValue = null != guid ? Util.readGUIDtoUUID(guid) : null;
+            returnValue = guid != null ? Util.readGUIDtoUUID(guid) : null;
         } else if (type == SQLXML.class) {
             returnValue = getSQLXML(index);
         } else if (type == Blob.class) {
@@ -780,7 +778,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         checkClosed();
         int parameterIndex = findColumn(parameterName);
         Object value = getValue(parameterIndex,
-                null != getterGetParam(parameterIndex).getJdbcTypeSetByUser() ? getterGetParam(parameterIndex)
+                getterGetParam(parameterIndex).getJdbcTypeSetByUser() != null ? getterGetParam(parameterIndex)
                         .getJdbcTypeSetByUser() : getterGetParam(parameterIndex).getJdbcType());
         loggerExternal.exiting(getClassNameLogging(), "getObject", value);
         return value;
@@ -1255,7 +1253,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      * @return the index
      */
     private int findColumn(String columnName) throws SQLServerException {
-        if (null == parameterNames) {
+        if (parameterNames == null) {
             try (SQLServerStatement s = (SQLServerStatement) connection.createStatement()) {
                 // Note we are concatenating the information from the passed in sql, not any arguments provided by the
                 // user
@@ -1279,7 +1277,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     // we should always have a procedure name part
                     metaQuery.append("@procedure_name=");
                     metaQuery.append(threePartName.getProcedurePart());
-                    metaQuery.append(" , @ODBCVer=3, @fUsePattern=0");
+                    metaQuery.append(" , @ODBCVer=3");
                 } else {
                     // This should rarely happen, this will only happen if we can't find the stored procedure name
                     // invalidly formatted call syntax.
@@ -1289,15 +1287,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "07009", false);
                 }
 
-                try (ResultSet rs = s.executeQueryInternal(metaQuery.toString())) {
-                    parameterNames = new HashMap<>();
-                    insensitiveParameterNames = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-                    int columnIndex = 0;
-                    while (rs.next()) {
-                        String p = rs.getString(4).trim();
-                        parameterNames.put(p, columnIndex);
-                        insensitiveParameterNames.put(p, columnIndex++);
-                    }
+                ResultSet rs = s.executeQueryInternal(metaQuery.toString());
+                parameterNames = new ArrayList<>();
+                while (rs.next()) {
+                    String parameterName = rs.getString(4);
+                    parameterNames.add(parameterName.trim());
                 }
             } catch (SQLException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.toString(), null, false);
@@ -1316,7 +1310,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // handle `@name` as well as `name`, since `@name` is what's returned
         // by DatabaseMetaData#getProcedureColumns
-        String columnNameWithSign = columnName.startsWith("@") ? columnName : "@" + columnName;
+        String columnNameWithoutAtSign = null;
+        if (columnName.startsWith("@")) {
+            columnNameWithoutAtSign = columnName.substring(1, columnName.length());
+        } else {
+            columnNameWithoutAtSign = columnName;
+        }
 
         // In order to be as accurate as possible when locating parameter name
         // indexes, as well as be deterministic when running on various client
@@ -1324,11 +1323,34 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // 1. Search using case-sensitive non-locale specific (binary) compare first.
         // 2. Search using case-insensitive, non-locale specific (binary) compare last.
-        Integer matchPos = parameterNames.get(columnNameWithSign);
-        if (null == matchPos) {
-            matchPos = insensitiveParameterNames.get(columnNameWithSign);
+
+        int i;
+        int matchPos = -1;
+        // Search using case-sensitive, non-locale specific (binary) compare.
+        // If the user supplies a true match for the parameter name, we will find it here.
+        for (i = 0; i < l; i++) {
+            String sParam = parameterNames.get(i);
+            sParam = sParam.substring(1, sParam.length());
+            if (sParam.equals(columnNameWithoutAtSign)) {
+                matchPos = i;
+                break;
+            }
         }
-        if (null == matchPos) {
+
+        if (-1 == matchPos) {
+            // Check for case-insensitive match using a non-locale aware method.
+            // Use VM supplied String.equalsIgnoreCase to do the "case-insensitive search".
+            for (i = 0; i < l; i++) {
+                String sParam = parameterNames.get(i);
+                sParam = sParam.substring(1, sParam.length());
+                if (sParam.equalsIgnoreCase(columnNameWithoutAtSign)) {
+                    matchPos = i;
+                    break;
+                }
+            }
+        }
+
+        if (-1 == matchPos) {
             MessageFormat form = new MessageFormat(
                     SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
             Object[] msgArgs = {columnName, procedureName};
