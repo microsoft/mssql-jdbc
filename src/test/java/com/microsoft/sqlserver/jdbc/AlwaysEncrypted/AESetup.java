@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.sql.Connection;
 import java.sql.Date;
 import java.sql.JDBCType;
 import java.sql.SQLException;
@@ -25,6 +24,7 @@ import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
@@ -35,10 +35,10 @@ import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvid
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -55,33 +55,28 @@ import microsoft.sql.DateTimeOffset;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.reqExternalSetup)
 public class AESetup extends AbstractTest {
 
-    static String filePath = null;
-    static String thumbprint = null;
-    static String javaKeyPath = null;
-    static String javaKeyAliases = null;
-    static String windowsKeyPath = null;
-    static String applicationClientID = null;
-    static String applicationKey = null;
-    static String[] keyIDs = null;
-    static String cmkJks = null;
-    static String cmkWin = null;
-    static String cmkAkv = null;
-    static String cekJks = null;
-    static String cekWin = null;
-    static String cekAkv = null;
+    static String cmkJks = Constants.CMK_NAME + "_JKS";
+    static String cmkWin = Constants.CMK_NAME + "_WIN";
+    static String cmkAkv = Constants.CMK_NAME + "_AKV";
+    static String cekJks = Constants.CEK_NAME + "_JKS";
+    static String cekWin = Constants.CEK_NAME + "_WIN";
+    static String cekAkv = Constants.CEK_NAME + "_AKV";
 
-    static boolean kspRegistered = false;
+    static String javaKeyAliases = null;
+    static String[] keyIDs = null;
     static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
     static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
     static String AETestConnectionString;
     static Properties AEInfo;
-    static boolean isAEv2Supported = false;
+    static Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+
+    static boolean isKspRegistered = false;
 
     public static final String tableName = RandomUtil.getIdentifier("AETest_");
-
     public static final String CHAR_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedChar");
     public static final String BINARY_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedBinary");
     public static final String DATE_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedDate");
@@ -133,57 +128,22 @@ public class AESetup extends AbstractTest {
     /*
      * List of all the randomized columns in the tests
      */
-    static String[] randomizedColumns = {
-            "PlainBinary binary(20)",
-            "PlainVarbinary varbinary(50)",
-            "PlainVarbinaryMax varbinary(max)",
-            "PlainBinary512 binary(512)",
-            "PlainBinary8000 varbinary(8000)",
-            "PlainChar char(20)",
-            "PlainVarchar varchar(50)",
-            "PlainVarcharMax varchar(max)",
-            "PlainNchar nchar(30)",
-            "PlainNvarchar nvarchar(60)",
-            "PlainNvarcharMax nvarchar(max)",
-            "PlainUniqueidentifier uniqueidentifier",
-            "PlainVarchar8000 varchar(8000)",
-            "PlainNvarchar4000 nvarchar(4000)",
-            "PlainDate date",
-            "PlainDatetime2Default datetime2",
-            "PlainDatetimeoffsetDefault datetimeoffset",
-            "PlainTimeDefault time",
-            "PlainDatetime datetime",
-            "PlainSmalldatetime smalldatetime",
-            "PlainDatetime2 datetime2(0)",
-            "PlainDatetime2Default datetime2",
-            "PlainDatetimeoffsetDefault datetimeoffset",
-            "PlainTimeDefault time",
-            "PlainTime time(0)",
-            "PlainDatetimeoffset datetimeoffset(0)",
-            "PlainDatetime2 datetime2(2)",
-            "PlainTime time(2)",
-            "PlainDatetimeoffset datetimeoffset(2)",
-            "PlainBit bit",
-            "PlainTinyint tinyint",
-            "PlainSmallint smallint",
-            "PlainInt int",
-            "PlainBigint bigint",
-            "PlainFloatDefault float",
-            "PlainFloat float(30)",
-            "PlainReal real",
-            "PlainDecimalDefault decimal",
-            "PlainDecimal decimal(10,5)",
-            "PlainNumericDefault numeric",
-            "PlainNumeric numeric(8,2)",
-            "PlainSmallMoney smallmoney",
-            "PlainMoney money",
-            "PlainDecimal2 decimal(28,4)",
-            "PlainNumeric2 numeric(28,4)",
-            "PlainFloat float(30)",
-            "PlainDecimal decimal(30)",
-            "PlainNumeric numeric(30)"
-            };
-    
+    static String[] randomizedColumns = {"PlainBinary binary(20)", "PlainVarbinary varbinary(50)",
+            "PlainVarbinaryMax varbinary(max)", "PlainBinary512 binary(512)", "PlainBinary8000 varbinary(8000)",
+            "PlainChar char(20)", "PlainVarchar varchar(50)", "PlainVarcharMax varchar(max)", "PlainNchar nchar(30)",
+            "PlainNvarchar nvarchar(60)", "PlainNvarcharMax nvarchar(max)", "PlainUniqueidentifier uniqueidentifier",
+            "PlainVarchar8000 varchar(8000)", "PlainNvarchar4000 nvarchar(4000)", "PlainDate date",
+            "PlainDatetime2Default datetime2", "PlainDatetimeoffsetDefault datetimeoffset", "PlainTimeDefault time",
+            "PlainDatetime datetime", "PlainSmalldatetime smalldatetime", "PlainDatetime2 datetime2(0)",
+            "PlainDatetime2Default datetime2", "PlainDatetimeoffsetDefault datetimeoffset", "PlainTimeDefault time",
+            "PlainTime time(0)", "PlainDatetimeoffset datetimeoffset(0)", "PlainDatetime2 datetime2(2)",
+            "PlainTime time(2)", "PlainDatetimeoffset datetimeoffset(2)", "PlainBit bit", "PlainTinyint tinyint",
+            "PlainSmallint smallint", "PlainInt int", "PlainBigint bigint", "PlainFloatDefault float",
+            "PlainFloat float(30)", "PlainReal real", "PlainDecimalDefault decimal", "PlainDecimal decimal(10,5)",
+            "PlainNumericDefault numeric", "PlainNumeric numeric(8,2)", "PlainSmallMoney smallmoney",
+            "PlainMoney money", "PlainDecimal2 decimal(28,4)", "PlainNumeric2 numeric(28,4)", "PlainFloat float(30)",
+            "PlainDecimal decimal(30)", "PlainNumeric numeric(30)"};
+
     /**
      * Create connection, statement and generate path of resource file
      * 
@@ -193,84 +153,49 @@ public class AESetup extends AbstractTest {
     @BeforeAll
     public static void setUpConnection() throws TestAbortedException, Exception {
         AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
-        String tmpConnectionString = AETestConnectionString;
-        String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
-        if (null != enclaveAttestationUrl) {
-            tmpConnectionString = TestUtils.addOrOverrideProperty(tmpConnectionString, "enclaveAttestationUrl",
-                    enclaveAttestationUrl);
-        }
-        String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
-        if (null != enclaveAttestationProtocol) {
-            tmpConnectionString = TestUtils.addOrOverrideProperty(tmpConnectionString, "enclaveAttestationProtocol",
-                    enclaveAttestationProtocol);
-        }
+        String applicationClientID = TestUtils.getConfiguredProperty("applicationClientID");
+        String applicationKey = TestUtils.getConfiguredProperty("applicationKey");
+        String keyID = TestUtils.getConfiguredProperty("keyID");
+        String windowsKeyPath = TestUtils.getConfiguredProperty("windowsKeyPath");
+        String javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
 
-        // add enclave properties if AEv2 supported
-        try (Connection con = PrepUtil.getConnection(tmpConnectionString)) {
-            if (TestUtils.isAEv2(con)) {
-                isAEv2Supported = true;
-                AETestConnectionString = tmpConnectionString;
-            }
-        } catch (SQLServerException e) {
-            if (!e.getMessage().matches(TestUtils.formatErrorMsg("R_enclaveNotSupported"))) {
-                // ignore AEv2 not supported errors
-                fail(e.getMessage());
-            }
+        if (null == applicationClientID || null == applicationKey || null == keyID || null == windowsKeyPath) {
+            fail(TestResource.getResource("R_reqExternalSetup"));
         }
-
-        cmkJks = Constants.CMK_NAME + "_JKS";
-        cekJks = Constants.CEK_NAME + "_JKS";
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
 
-        javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
-        applicationClientID = TestUtils.getConfiguredProperty("applicationClientID");
-        applicationKey = TestUtils.getConfiguredProperty("applicationKey");
-        String keyID = TestUtils.getConfiguredProperty("keyID");
-        if (null != keyID) {
-            keyIDs = keyID.split(";");
-        }
+        keyIDs = keyID.split(";");
 
-        Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
             jksProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath,
                     Constants.JKS_SECRET.toCharArray());
             map.put("My_KEYSTORE", jksProvider);
         }
 
-        if (null == akvProvider && null != applicationClientID && null != applicationKey) {
+        if (null == akvProvider) {
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
             map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         }
 
-        if (!kspRegistered && (null != jksProvider || null != akvProvider)) {
+        if (!isKspRegistered) {
             SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
-            kspRegistered = true;
+            isKspRegistered = true;
         }
 
         dropAll();
 
-        // always test JKS
         createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
         createCEK(cmkJks, cekJks, jksProvider);
 
-        if (null != akvProvider) {
-            cmkAkv = Constants.CMK_NAME + "_AKV";
-            cekAkv = Constants.CEK_NAME + "_AKV";
+        createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
+        createCEK(cmkAkv, cekAkv, akvProvider);
 
-            createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
-            createCEK(cmkAkv, cekAkv, akvProvider);
-        }
+        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "windowsKeyPath",
+                windowsKeyPath);
 
-        windowsKeyPath = TestUtils.getConfiguredProperty("windowsKeyPath");
-        if (null != windowsKeyPath) {
-            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "windowsKeyPath",
-                    windowsKeyPath);
-            cmkWin = Constants.CMK_NAME + "_WIN";
-            cekWin = Constants.CEK_NAME + "_WIN";
-            createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
-            createCEK(cmkWin, cekWin, null);
-        }
+        createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
+        createCEK(cmkWin, cekWin, null);
 
         stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;
 
@@ -316,7 +241,7 @@ public class AESetup extends AbstractTest {
      * @throws IOException
      */
     private static void readFromFile(String inputFile, String lookupValue) throws IOException {
-        filePath = TestUtils.getCurrentClassPath();
+        String filePath = TestUtils.getCurrentClassPath();
         try {
             File f = new File(filePath + inputFile);
             try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
@@ -547,7 +472,9 @@ public class AESetup extends AbstractTest {
             String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
                     + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
                     + keyStoreName + "', KEY_PATH = '" + keyPath + "'"
-                    + (TestUtils.isAEv2(con) ? ",ENCLAVE_COMPUTATIONS (SIGNATURE = " + signature + ")) end" : ") end");
+                    // + (TestUtils.isAEv2(con) ? ",ENCLAVE_COMPUTATIONS (SIGNATURE = " + signature + ")) end" : ")
+                    // end");
+                    + ",ENCLAVE_COMPUTATIONS (SIGNATURE = " + signature + ")) end";
             stmt.execute(sql);
         }
     }
