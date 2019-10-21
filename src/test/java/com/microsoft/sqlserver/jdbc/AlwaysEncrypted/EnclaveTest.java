@@ -165,11 +165,11 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     public void testBinarySpecificSetter() throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createbinaryValues(false);
+            LinkedList<byte[]> values = createBinaryValues(false);
 
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL);
-            testBinaries(stmt, cekWin, binaryTable, values, TestCase.NORMAL);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL, true);
+            testBinaries(stmt, cekWin, binaryTable, values, TestCase.NORMAL, true);
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL, true);
         }
     }
 
@@ -182,11 +182,11 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     public void testBinarySetobject() throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createbinaryValues(false);
+            LinkedList<byte[]> values = createBinaryValues(false);
 
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT);
-            testBinaries(stmt, cekWin, binaryTable, values, TestCase.SETOBJECT);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT, true);
+            testBinaries(stmt, cekWin, binaryTable, values, TestCase.SETOBJECT, true);
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT, true);
         }
     }
 
@@ -199,12 +199,11 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     public void testBinarySetNull() throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createbinaryValues(true);
+            LinkedList<byte[]> values = createBinaryValues(true);
 
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NULL);
-            testBinaries(stmt, cekWin, binaryTable, values, TestCase.NULL);
-
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NULL);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NULL, true);
+            testBinaries(stmt, cekWin, binaryTable, values, TestCase.NULL, true);
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NULL, true);
         }
     }
 
@@ -217,11 +216,11 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     public void testBinarySpecificSetterNull() throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createbinaryValues(true);
+            LinkedList<byte[]> values = createBinaryValues(true);
 
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL);
-            testBinaries(stmt, cekWin, binaryTable, values, TestCase.NORMAL);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL, true);
+            testBinaries(stmt, cekWin, binaryTable, values, TestCase.NORMAL, true);
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL, true);
         }
     }
 
@@ -234,11 +233,11 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     public void testBinarysetObjectNull() throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createbinaryValues(true);
+            LinkedList<byte[]> values = createBinaryValues(true);
 
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_NULL);
-            testBinaries(stmt, cekWin, binaryTable, values, TestCase.SETOBJECT_NULL);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_NULL);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_NULL, true);
+            testBinaries(stmt, cekWin, binaryTable, values, TestCase.SETOBJECT_NULL, true);
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_NULL, true);
         }
     }
 
@@ -252,11 +251,11 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createbinaryValues(false);
+            LinkedList<byte[]> values = createBinaryValues(false);
 
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
-            testBinaries(stmt, cekWin, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
+            testBinaries(stmt, cekWin, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
         }
     }
 
@@ -271,9 +270,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL);
-            testDates(stmt, cekWin, dateTable, values, TestCase.NORMAL);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL);
+            testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL, true);
+            testDates(stmt, cekWin, dateTable, values, TestCase.NORMAL, true);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL, true);
         }
     }
 
@@ -288,9 +287,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT);
-            testDates(stmt, cekWin, dateTable, values, TestCase.SETOBJECT);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT);
+            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT, true);
+            testDates(stmt, cekWin, dateTable, values, TestCase.SETOBJECT, true);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT, true);
         }
     }
 
@@ -305,9 +304,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES);
-            testDates(stmt, cekWin, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES);
+            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES, true);
+            testDates(stmt, cekWin, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES, true);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES, true);
         }
     }
 
@@ -322,9 +321,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
-            testDates(stmt, cekWin, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
+            testDates(stmt, cekWin, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
         }
     }
 
@@ -340,9 +339,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
             RandomData.returnMinMax = true;
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL);
-            testDates(stmt, cekWin, dateTable, values, TestCase.NORMAL);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL);
+            testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL, true);
+            testDates(stmt, cekWin, dateTable, values, TestCase.NORMAL, true);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL, true);
         }
     }
 
@@ -359,9 +358,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
             nullable = true;
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.NULL);
-            testDates(stmt, cekWin, dateTable, values, TestCase.NULL);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.NULL);
+            testDates(stmt, cekJks, dateTable, values, TestCase.NULL, true);
+            testDates(stmt, cekWin, dateTable, values, TestCase.NULL, true);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.NULL, true);
         }
 
         nullable = false;
@@ -382,9 +381,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_NULL);
-            testDates(stmt, cekWin, dateTable, values, TestCase.SETOBJECT_NULL);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_NULL);
+            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_NULL, true);
+            testDates(stmt, cekWin, dateTable, values, TestCase.SETOBJECT_NULL, true);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_NULL, true);
         }
 
         nullable = false;
@@ -405,9 +404,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL);
-            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, true);
+            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL, true);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, true);
         }
     }
 
@@ -424,9 +423,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT);
-            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.SETOBJECT);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT, true);
+            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.SETOBJECT, true);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT, true);
         }
     }
 
@@ -444,9 +443,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES);
-            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
+            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
         }
     }
 
@@ -469,9 +468,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
                     "567812.78", "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
                     "999999999999999999999999.9999"};
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL);
-            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, true);
+            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL, true);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, true);
         }
     }
 
@@ -493,9 +492,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
                     "567812.78", "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
                     "999999999999999999999999.9999"};
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL);
-            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, true);
+            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL, true);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, true);
         }
     }
 
@@ -514,9 +513,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL);
-            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NULL);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL, true);
+            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NULL, true);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL, true);
         }
 
         nullable = false;
@@ -538,9 +537,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL);
-            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NULL);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL, true);
+            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NULL, true);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL, true);
         }
 
         nullable = false;
@@ -563,9 +562,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
                     "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
                     "999999999999999999999999.9999", "999999999999999999999999.9999"};
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL);
-            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, true);
+            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL, true);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, true);
         }
     }
 

@@ -92,8 +92,9 @@ public class AESetup extends AbstractTest {
     /*
      * tables used in the tests {columnName, columnType}
      */
-    static String binaryTable[][] = {{"Binary", "binary(20)"}, {"Varbinary", "varbinary(50)"},
-            {"VarbinaryMax", "varbinary(max)"}, {"Binary512", "binary(512)"}, {"Binary8000", "varbinary(8000)"},};
+    static String binaryTable[][] = {{"Binary", "binary(20)", "BINARY"}, {"Varbinary", "varbinary(50)", "BINARY"},
+            {"VarbinaryMax", "varbinary(max)", "BINARY"}, {"Binary512", "binary(512)", "BINARY"},
+            {"Binary8000", "varbinary(8000)", "BINARY"}};
 
     static String charTable[][] = {{"Char", "char(20) COLLATE Latin1_General_BIN2", "CHAR"},
             {"Varchar", "varchar(50) COLLATE Latin1_General_BIN2", "CHAR"},
@@ -105,18 +106,20 @@ public class AESetup extends AbstractTest {
             {"Varchar8000", "varchar(8000) COLLATE Latin1_General_BIN2", "CHAR"},
             {"Nvarchar4000", "nvarchar(4000) COLLATE Latin1_General_BIN2", "NCHAR"},};
 
-    static String dateTable[][] = {{"Date", "date"}, {"Datetime2Default", "datetime2"},
-            {"DatetimeoffsetDefault", "datetimeoffset"}, {"TimeDefault", "time"}, {"Datetime", "datetime"},
-            {"Smalldatetime", "smalldatetime"},};
+    static String dateTable[][] = {{"Date", "date", "DATE"}, {"Datetime2Default", "datetime2", "TIMESTAMP"},
+            {"DatetimeoffsetDefault", "datetimeoffset", "DATETIMEOFFSET"}, {"TimeDefault", "time", "TIME"},
+            {"Datetime", "datetime", "DATETIME"}, {"Smalldatetime", "smalldatetime", "SMALLDATETIME"}};
 
-    static String dateScaleTable[][] = {{"Datetime2", "datetime2(2)"}, {"Time", "time(2)"},
-            {"Datetimeoffset", "datetimeoffset(2)"},};
+    static String dateScaleTable[][] = {{"Datetime2", "datetime2(2)", "DATE"}, {"Time", "time(2)", "DATE"},
+            {"Datetimeoffset", "datetimeoffset(2)", "DATE"}};
 
-    static String numericTable[][] = {{"Bit", "bit"}, {"Tinyint", "tinyint"}, {"Smallint", "smallint"}, {"Int", "int"},
-            {"Bigint", "bigint"}, {"FloatDefault", "float"}, {"Float", "float(30)"}, {"Real", "real"},
-            {"DecimalDefault", "decimal"}, {"Decimal", "decimal(10,5)"}, {"NumericDefault", "numeric"},
-            {"Numeric", "numeric(8,2)"}, {"SmallMoney", "smallmoney"}, {"Money", "money"},
-            {"Decimal2", "decimal(28,4)"}, {"Numeric2", "numeric(28,4)"},};
+    static String numericTable[][] = {{"Bit", "bit", "BIT"}, {"Tinyint", "tinyint", "TINYINT"},
+            {"Smallint", "smallint", "SMALLINT"}, {"Int", "int", "INTEGER"}, {"Bigint", "bigint", "BIGINT"},
+            {"FloatDefault", "float", "DOUBLE"}, {"Float", "float(30)", "DOUBLE"}, {"Real", "real", "FLOAT"},
+            {"DecimalDefault", "decimal", "DECIMAL"}, {"Decimal", "decimal(10,5)", "DECIMAL"},
+            {"NumericDefault", "numeric", "DECIMAL"}, {"Numeric", "numeric(8,2)", "DECIMAL"},
+            {"SmallMoney", "smallmoney", "SMALLMONEY"}, {"Money", "money", "MONEY"},
+            {"Decimal2", "decimal(28,4)", "DECIMAL"}, {"Numeric2", "numeric(28,4)", "DECIMAL"},};
 
     // CREATE TABLE tableName (columns) NULL"
     static String createSql = "CREATE TABLE %s (%s)";
@@ -356,7 +359,7 @@ public class AESetup extends AbstractTest {
      * 
      * @param nullable
      */
-    protected static LinkedList<byte[]> createbinaryValues(boolean nullable) {
+    protected static LinkedList<byte[]> createBinaryValues(boolean nullable) {
 
         boolean encrypted = true;
         RandomData.returnNull = nullable;
