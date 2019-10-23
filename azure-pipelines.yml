@@ -33,7 +33,9 @@ jobs:
       keytool -list -v -keystore clientcert.jks -storepass $(certPass) > JavaKeyStoreBase.txt
       Get-Content .\JavaKeyStoreBase.txt | Set-Content -Encoding utf8 JavaKeyStore.txt
       Remove-Item –path .\JavaKeyStoreBase.txt
+      dir  $(sqljdbc_auth.secureFilePath)
       Copy-Item -Path $(sqljdbc_auth.secureFilePath) -Destination "C:\Windows\System32"
+      dir C:\Windows\System32\sqljdbc_auth.dll
     displayName: 'PowerShell Script'
   - task: DownloadSecureFile@1
     name: pkcs12_truststore
