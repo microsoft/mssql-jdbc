@@ -166,6 +166,9 @@ public class AESetup extends AbstractTest {
             fail(TestResource.getResource("R_reqExternalSetup"));
         }
 
+        // add to debug
+        System.out.println("java.library.path="+System.getProperty("java.library.path"));
+        
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
 
         keyIDs = keyID.split(";");

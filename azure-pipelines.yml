@@ -43,13 +43,14 @@ jobs:
     displayName: 'Copy sqljdbc_auth file to classpath'
     inputs:
       SourceFolder: '$(Agent.TempDirectory)'
+      Contents: sqljdbc_auth.dll
       TargetFolder: c:\windows\system32
   - task: Maven@3
     displayName: 'Maven build jre13'
     inputs:
       mavenPomFile: 'pom.xml'
       goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre13 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath) 
--DapplicationClientID=$(applicationClientID) -DapplicationKey=$(applicationKey) -DkeyID=$(keyID) -DwindowsKeyPath=$(windowsKeyPath) -DenclaveAttestationUrl=$(enclaveAttestationUrl) -DenclaveAttestationProtocol=$(enclaveAttestationUrl)'
+-DapplicationClientID=$(applicationClientID) -DapplicationKey=$(applicationKey) -DkeyID=$(keyID) -DwindowsKeyPath=$(windowsKeyPath) -DenclaveAttestationUrl=$(enclaveAttestationUrl) -DenclaveAttestationProtocol=$(enclaveAttestationProtocol)'
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build jre13'
       javaHomeOption: Path
