@@ -9,7 +9,7 @@ jobs:
   strategy:
     matrix:
       SQL-2019:
-        Target_SQL: 'SQL-2k19-01'
+        Target_SQL: 'HGS-2k19-01'
         Ex_Groups: 'xSQLv15'
       SQL-2012:
         Target_SQL: 'SQL-2K12-SP3-1'
@@ -33,9 +33,7 @@ jobs:
       keytool -list -v -keystore clientcert.jks -storepass $(certPass) > JavaKeyStoreBase.txt
       Get-Content .\JavaKeyStoreBase.txt | Set-Content -Encoding utf8 JavaKeyStore.txt
       Remove-Item –path .\JavaKeyStoreBase.txt
-      dir  $(sqljdbc_auth.secureFilePath)
       Copy-Item -Path $(sqljdbc_auth.secureFilePath) -Destination "C:\Windows\System32"
-      dir C:\Windows\System32\sqljdbc_auth.dll
     displayName: 'PowerShell Script'
   - task: DownloadSecureFile@1
     name: pkcs12_truststore
