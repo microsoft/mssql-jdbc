@@ -38,7 +38,7 @@ jobs:
     name: sqljdbc_auth
     displayName: 'Download sqljdbc_auth.dll'
     inputs:
-      secureFile: 'sqljdbc_auth'
+      secureFile: 'sqljdbc_auth.dll'
   - task: CopyFiles@2
     displayName: 'Copy sqljdbc_auth file to classpath'
     inputs:
