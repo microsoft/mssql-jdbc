@@ -46,7 +46,6 @@ import microsoft.sql.DateTimeOffset;
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
-@Tag(Constants.reqExternalSetup)
 public class JDBCEncryptionDecryptionTest extends AESetup {
 
     private boolean nullable = false;
