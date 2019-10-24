@@ -73,6 +73,8 @@ public class AESetup extends AbstractTest {
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
 
     static boolean isKspRegistered = false;
+    
+    // test that only run on Windows will be skipped
     static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
 
     public static final String tableName = RandomUtil.getIdentifier("AETest_");
