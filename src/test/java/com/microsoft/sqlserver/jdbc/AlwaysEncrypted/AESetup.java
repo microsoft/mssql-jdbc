@@ -186,6 +186,19 @@ public class AESetup extends AbstractTest {
             isKspRegistered = true;
         }
 
+        String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
+        if (null != enclaveAttestationUrl) {
+            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "enclaveAttestationUrl",
+                    enclaveAttestationUrl);
+        }
+        String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
+        if (null != enclaveAttestationProtocol) {
+            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
+                    "enclaveAttestationProtocol", enclaveAttestationProtocol);
+        }
+        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "windowsKeyPath",
+                windowsKeyPath);
+
         dropAll();
 
         createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
@@ -194,8 +207,6 @@ public class AESetup extends AbstractTest {
         createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
         createCEK(cmkAkv, cekAkv, akvProvider);
 
-        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "windowsKeyPath",
-                windowsKeyPath);
 
         createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
         createCEK(cmkWin, cekWin, null);
@@ -475,9 +486,7 @@ public class AESetup extends AbstractTest {
             String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
                     + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
                     + keyStoreName + "', KEY_PATH = '" + keyPath + "'"
-                    // + (TestUtils.isAEv2(con) ? ",ENCLAVE_COMPUTATIONS (SIGNATURE = " + signature + ")) end" : ")
-                    // end");
-                    + ",ENCLAVE_COMPUTATIONS (SIGNATURE = " + signature + ")) end";
+                    + (TestUtils.isAEv2(con) ? ",ENCLAVE_COMPUTATIONS (SIGNATURE = " + signature + ")) end" : ") end");
             stmt.execute(sql);
         }
     }
