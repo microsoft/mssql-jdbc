@@ -73,6 +73,7 @@ public class AESetup extends AbstractTest {
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
 
     static boolean isKspRegistered = false;
+    static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
 
     public static final String tableName = RandomUtil.getIdentifier("AETest_");
     public static final String CHAR_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedChar");
@@ -160,7 +161,8 @@ public class AESetup extends AbstractTest {
         String windowsKeyPath = TestUtils.getConfiguredProperty("windowsKeyPath");
         String javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
 
-        if (null == applicationClientID || null == applicationKey || null == keyID || null == windowsKeyPath) {
+        if (null == applicationClientID || null == applicationKey || null == keyID
+                || (isWindows && null == windowsKeyPath)) {
             fail(TestResource.getResource("R_reqExternalSetup"));
         }
 

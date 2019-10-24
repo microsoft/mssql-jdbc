@@ -82,7 +82,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testCharSpecificSetterWindows() throws SQLException {
-        org.junit.Assume.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
+        org.junit.Assume.assumeTrue(isWindows);
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -195,7 +195,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testBinarySpecificSetterWindows() throws SQLException {
-        org.junit.Assume.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
+        org.junit.Assume.assumeTrue(isWindows);
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -309,7 +309,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testDateSpecificSetterWindows() throws SQLException {
-        org.junit.Assume.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
+        org.junit.Assume.assumeTrue(isWindows);
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -453,7 +453,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @Test
     public void testNumericSpecificSetterWindows() throws TestAbortedException, Exception {
-        org.junit.Assume.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
+        org.junit.Assume.assumeTrue(isWindows);
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
