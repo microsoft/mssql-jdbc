@@ -24,7 +24,6 @@ import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
@@ -49,13 +48,12 @@ import microsoft.sql.DateTimeOffset;
 
 
 /**
- * Setup for Always Encrypted test This test will work on Appveyor and Travis-ci as java key store gets created from the
- * .yml scripts. Users on their local machine should create the keystore manually and save the alias name in
- * JavaKeyStore.txt file. For local test purposes, put this in the target/test-classes directory
+ * Setup for Always Encrypted test This test will work on Azure DevOps as java key store gets created from the .yml
+ * scripts. Users on their local machine should create the keystore manually and save the alias name in JavaKeyStore.txt
+ * file. For local test purposes, put this in the target/test-classes directory
  *
  */
 @RunWith(JUnitPlatform.class)
-@Tag(Constants.reqExternalSetup)
 public class AESetup extends AbstractTest {
 
     static String cmkJks = Constants.CMK_NAME + "_JKS";
@@ -206,7 +204,6 @@ public class AESetup extends AbstractTest {
 
         createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
         createCEK(cmkAkv, cekAkv, akvProvider);
-
 
         createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
         createCEK(cmkWin, cekWin, null);
