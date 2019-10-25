@@ -3,7 +3,7 @@
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package com.microsoft.sqlserver.jdbc;
+package microsoft.sql;
 
 /**
  * Represents the internal makings of a Shape.
@@ -14,7 +14,7 @@ public class Shape {
     private int figureOffset;
     private byte openGISType;
 
-    Shape(int parentOffset, int figureOffset, byte openGISType) {
+    public Shape(int parentOffset, int figureOffset, byte openGISType) {
         this.parentOffset = parentOffset;
         this.figureOffset = figureOffset;
         this.openGISType = openGISType;

@@ -3,7 +3,7 @@
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package com.microsoft.sqlserver.jdbc;
+package microsoft.sql;
 
 /**
  * Represents the internal makings of a Point.
@@ -15,7 +15,7 @@ public class Point {
     private final double z;
     private final double m;
 
-    Point(double x, double y, double z, double m) {
+    public Point(double x, double y, double z, double m) {
         this.x = x;
         this.y = y;
         this.z = z;

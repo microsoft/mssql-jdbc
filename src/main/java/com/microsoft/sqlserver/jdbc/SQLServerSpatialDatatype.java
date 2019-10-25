@@ -13,6 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import microsoft.sql.Figure;
+import microsoft.sql.Point;
+import microsoft.sql.Segment;
+import microsoft.sql.Shape;
+
 
 /**
  * Abstract parent class for Spatial Datatypes that contains common functionalities.

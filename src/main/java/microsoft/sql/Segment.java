@@ -3,7 +3,7 @@
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package com.microsoft.sqlserver.jdbc;
+package microsoft.sql;
 
 /**
  * Represents the internal makings of a Segment.
@@ -12,7 +12,7 @@ package com.microsoft.sqlserver.jdbc;
 public class Segment {
     private byte segmentType;
 
-    Segment(byte segmentType) {
+    public Segment(byte segmentType) {
         this.segmentType = segmentType;
     }
 

@@ -3,7 +3,7 @@
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package com.microsoft.sqlserver.jdbc;
+package microsoft.sql;
 
 /**
  * Represents the internal makings of a Figure.
@@ -13,7 +13,7 @@ public class Figure {
     private byte figuresAttribute;
     private int pointOffset;
 
-    Figure(byte figuresAttribute, int pointOffset) {
+    public Figure(byte figuresAttribute, int pointOffset) {
         this.figuresAttribute = figuresAttribute;
         this.pointOffset = pointOffset;
     }
