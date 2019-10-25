@@ -3,7 +3,7 @@
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package microsoft.sql;
+package com.microsoft.sqlserver.jdbc.spatialdatatypes;
 
 /**
  * Represents the internal makings of a Shape.
