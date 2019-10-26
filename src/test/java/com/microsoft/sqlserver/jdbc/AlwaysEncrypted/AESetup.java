@@ -73,7 +73,7 @@ public class AESetup extends AbstractTest {
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
 
     static boolean isKspRegistered = false;
-    
+
     // test that only run on Windows will be skipped
     static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
 
@@ -156,13 +156,25 @@ public class AESetup extends AbstractTest {
      */
     @BeforeAll
     public static void setUpConnection() throws TestAbortedException, Exception {
-        AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
+        AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled";
         String applicationClientID = TestUtils.getConfiguredProperty("applicationClientID");
         String applicationKey = TestUtils.getConfiguredProperty("applicationKey");
         String keyID = TestUtils.getConfiguredProperty("keyID");
         String windowsKeyPath = TestUtils.getConfiguredProperty("windowsKeyPath");
         String javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
 
+        /*
+        String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
+        if (null != enclaveAttestationUrl) {
+            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "enclaveAttestationUrl",
+                    enclaveAttestationUrl);
+        }
+        String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
+        if (null != enclaveAttestationProtocol) {
+            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
+                    "enclaveAttestationProtocol", enclaveAttestationProtocol);
+        }
+*/
         if (null == applicationClientID || null == applicationKey || null == keyID
                 || (isWindows && null == windowsKeyPath)) {
             fail(TestResource.getResource("R_reqExternalSetup"));

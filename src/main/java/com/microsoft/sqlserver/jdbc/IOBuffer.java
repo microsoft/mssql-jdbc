@@ -6197,7 +6197,7 @@ final class TDSWriter {
     void sendEnclavePackage(String sql, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         if (null != con && con.isAEv2()) {
             if (null != sql && "" != sql && null != enclaveCEKs && 0 < enclaveCEKs.size() && con.enclaveEstablished()) {
-                byte[] b = con.generateEncalvePackage(sql, enclaveCEKs);
+                byte[] b = con.generateEnclavePackage(sql, enclaveCEKs);
                 if (null != b && 0 != b.length) {
                     this.writeShort((short) b.length);
                     this.writeBytes(b);

@@ -362,7 +362,7 @@ class VSMAttestationParameters extends BaseAttestationRequest {
     }
 
     byte[] createSessionSecret(byte[] serverResponse) throws GeneralSecurityException, SQLServerException {
-        if (serverResponse.length != ENCLAVE_LENGTH) {
+        if (null == serverResponse || serverResponse.length != ENCLAVE_LENGTH) {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_MalformedECDHPublicKey"), "0", false);
         }

@@ -1473,10 +1473,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (null != sPropValue) {
                 enclaveAttestationProtocol = sPropValue;
                 if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(toString() + " "
-                                + SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"));
-                    }
                     throw new SQLServerException(SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"),
                             null);
                 }
@@ -1487,11 +1483,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty()))
                     || (null != enclaveAttestationProtocol && !enclaveAttestationProtocol.isEmpty()
                             && (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()))) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(
-                            toString() + " " + SQLServerException.getErrString("R_enclaveNoAttestationProtocol"));
-                }
-                throw new SQLServerException(SQLServerException.getErrString("R_enclaveNoAttestationProtocol"), null);
+                throw new SQLServerException(SQLServerException.getErrString("R_enclavePropertiesError"), null);
+            }
+
+            // enclave requires columnEncryption
+            if ((null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                    && (null != enclaveAttestationProtocol || !enclaveAttestationProtocol.isEmpty())
+                    && (null == columnEncryptionSetting || !isColumnEncryptionSettingEnabled()))) {
+                throw new SQLServerException(SQLServerException.getErrString("R_enclaveAEdisabled"), null);
             }
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();
@@ -6485,7 +6484,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (null != enclaveProvider.getEnclaveSession());
     }
 
-    byte[] generateEncalvePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
+    byte[] generateEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         return (enclaveCEKs.size() > 0) ? enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs) : null;
     }
 }

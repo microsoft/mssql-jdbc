@@ -204,6 +204,12 @@ public abstract class AbstractTest {
                         case Constants.HOST_NAME_IN_CERTIFICATE:
                             ds.setHostNameInCertificate(value);
                             break;
+                        case Constants.ENCLAVE_ATTESTATIONURL:
+                            ds.setEnclaveAttestationUrl(value);
+                            break;
+                        case Constants.ENCLAVE_ATTESTATIONPROTOCOL:
+                            ds.setEnclaveAttestationProtocol(value);
+                            break;
                         default:
                             break;
                     }

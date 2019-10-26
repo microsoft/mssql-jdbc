@@ -181,5 +181,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_OperandTypeClash", "Operand type clash"},
             {"R_NoPrivilege", "The EXECUTE permission was denied on the object {0}"},
             {"R_resultSetEmpty", "Result set is empty."}, {"R_AlterAEv2Error", "Alter Column Encryption failed."},
-            {"R_RichQueryError", "Rich query failed."}, {"R_reqExternalSetup", "External setup for test required."},};
+            {"R_RichQueryError", "Rich query failed."}, {"R_reqExternalSetup", "External setup for test required."},
+            {"R_invalidEnclaveSessionFailed", "invalidate enclave session failed."}};
 }

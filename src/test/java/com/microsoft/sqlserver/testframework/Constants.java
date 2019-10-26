@@ -135,7 +135,8 @@ public final class Constants {
     public static final String TRUST_STORE_SECRET_PROPERTY = "TRUSTSTOREPASSWORD";
     public static final String TRUST_STORE = "TRUSTSTORE";
 
-    public static final String ENCLAVE_ATTESTATIONURL = "enclaveAttestationUrl";
+    public static final String ENCLAVE_ATTESTATIONURL = "ENCLAVEATTESTATIONURL";
+    public static final String ENCLAVE_ATTESTATIONPROTOCOL = "ENCLAVEATTESTATIONPROTOCOL";
 
     public enum LOB {
         CLOB,

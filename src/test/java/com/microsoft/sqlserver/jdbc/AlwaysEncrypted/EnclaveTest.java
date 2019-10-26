@@ -48,7 +48,6 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
         boolean isAEv2 = false;
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             isAEv2 = TestUtils.isAEv2(con);
-
         } catch (SQLException e) {
             isAEv2 = false;
         } catch (Exception e) {
