@@ -28,6 +28,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
+@Tag(Constants.reqExternalSetup)
 public class AETest extends AbstractTest {
 
     private static SQLServerDataSource dsLocal = null;
@@ -54,6 +55,16 @@ public class AETest extends AbstractTest {
         String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
         connectionStringAE = TestUtils.addOrOverrideProperty(connectionStringAE, "enclaveAttestationProtocol",
                 (null != enclaveAttestationProtocol) ? enclaveAttestationProtocol : AttestationProtocol.HGS.toString());
+
+        boolean isAEv2 = false;
+        try (SQLServerConnection con = PrepUtil.getConnection(connectionStringAE)) {
+            isAEv2 = TestUtils.isAEv2(con);
+        } catch (SQLException e) {
+            isAEv2 = false;
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
+        org.junit.Assume.assumeTrue(isAEv2);
 
         // reset logging to avoid severe logs due to negative testing
         LogManager.getLogManager().reset();
