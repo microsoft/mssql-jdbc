@@ -369,10 +369,12 @@ class VSMAttestationParameters extends BaseAttestationRequest {
         ByteBuffer sr = ByteBuffer.wrap(serverResponse);
         byte[] magic = new byte[8];
         sr.get(magic);
+
         if (!Arrays.equals(magic, ECDH_MAGIC)) {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_MalformedECDHHeader"),
                     "0", false);
         }
+
         byte[] x = new byte[48];
         byte[] y = new byte[48];
         sr.get(x);

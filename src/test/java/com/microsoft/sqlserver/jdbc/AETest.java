@@ -159,7 +159,7 @@ public class AETest extends AbstractTest {
      * Test VSM createSessionSecret with bad server response
      */
     @Test
-    public void testCreateSessionSecret() throws SQLServerException {
+    public void testNullSessionSecret() throws SQLServerException {
         VSMAttestationParameters param = new VSMAttestationParameters();
 
         try {
@@ -169,6 +169,11 @@ public class AETest extends AbstractTest {
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
+    }
+
+    @Test
+    public void testBadSessionSecret() throws SQLServerException {
+        VSMAttestationParameters param = new VSMAttestationParameters();
 
         try {
             byte[] serverResponse = new byte[104]; // ENCLAVE_LENGTH is private

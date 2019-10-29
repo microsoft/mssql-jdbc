@@ -1524,7 +1524,12 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testChar(stmt, values);
         testChar(null, values);
 
-        if (isTestEnclave && null != getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)) {
+        if (isTestEnclave) {
+            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
+                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+                fail(TestResource.getResource("R_reqExternalSetup"));
+            }
+
             testAlterColumnEncryption(stmt, CHAR_TABLE_AE, table, cekName);
             testRichQuery(stmt, CHAR_TABLE_AE, table, values);
         }
@@ -1558,7 +1563,12 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testBinary(stmt, values);
         testBinary(null, values);
 
-        if (isTestEnclave && null != getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)) {
+        if (isTestEnclave) {
+            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
+                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+                fail(TestResource.getResource("R_reqExternalSetup"));
+            }
+
             testAlterColumnEncryption(stmt, BINARY_TABLE_AE, table, cekName);
             testRichQuery(stmt, BINARY_TABLE_AE, table, values);
         }
@@ -1596,7 +1606,12 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testDate(stmt, values);
         testDate(null, values);
 
-        if (isTestEnclave && null != getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)) {
+        if (isTestEnclave) {
+            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
+                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+                fail(TestResource.getResource("R_reqExternalSetup"));
+            }
+
             testAlterColumnEncryption(stmt, DATE_TABLE_AE, table, cekName);
             testRichQueryDate(stmt, DATE_TABLE_AE, table, values);
         }
@@ -1630,7 +1645,12 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testNumeric(stmt, values1, isNull);
         testNumeric(null, values2, isNull);
 
-        if (isTestEnclave && null != getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)) {
+        if (isTestEnclave) {
+            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
+                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+                fail(TestResource.getResource("R_reqExternalSetup"));
+            }
+
             testAlterColumnEncryption(stmt, NUMERIC_TABLE_AE, table, cekName);
             testRichQuery(stmt, NUMERIC_TABLE_AE, table, values1);
             testRichQuery(stmt, NUMERIC_TABLE_AE, table, values2);
