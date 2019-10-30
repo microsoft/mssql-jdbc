@@ -251,7 +251,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                     // cekEntry will be null if none of the parameters are encrypted.
                     if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
                         MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_InvalidEncryptionKeyOridnal"));
+                                SQLServerException.getErrString("R_InvalidEncryptionKeyOrdinal"));
                         Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                     }

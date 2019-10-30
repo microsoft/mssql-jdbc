@@ -298,7 +298,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_unsupportedEncoding", "The encoding {0} is not supported."},
             {"R_UnexpectedDescribeParamFormat",
                     "Internal error. The format of the resultset returned by sp_describe_parameter_encryption is invalid. One of the resultsets is missing."},
-            {"R_InvalidEncryptionKeyOridnal",
+            {"R_InvalidEncryptionKeyOrdinal",
                     "Internal error. The referenced column encryption key ordinal \"{0}\" is missing in the encryption metadata returned by sp_describe_parameter_encryption. Max ordinal is \"{1}\"."},
             {"R_MissingParamEncryptionMetadata",
                     "Internal error. Metadata for some parameters in statement or procedure \"{0}\" is missing in the resultset returned by sp_describe_parameter_encryption."},

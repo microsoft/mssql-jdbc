@@ -163,18 +163,6 @@ public class AESetup extends AbstractTest {
         String windowsKeyPath = TestUtils.getConfiguredProperty("windowsKeyPath");
         String javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
 
-        /*
-        String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
-        if (null != enclaveAttestationUrl) {
-            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "enclaveAttestationUrl",
-                    enclaveAttestationUrl);
-        }
-        String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
-        if (null != enclaveAttestationProtocol) {
-            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
-                    "enclaveAttestationProtocol", enclaveAttestationProtocol);
-        }
-*/
         if (null == applicationClientID || null == applicationKey || null == keyID
                 || (isWindows && null == windowsKeyPath)) {
             fail(TestResource.getResource("R_reqExternalSetup"));
