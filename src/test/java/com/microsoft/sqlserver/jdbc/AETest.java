@@ -10,6 +10,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -278,10 +281,10 @@ public class AETest extends AbstractTest {
      * Test calling verifyColumnMasterKeyMetadata for non enclave computation
      */
     @Test
-    public void testVerifyColumnMasterKeyMetadata() {
+    public void testVerifyCMKNoEnclave() {
         try {
-            SQLServerColumnEncryptionJavaKeyStoreProvider jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider("keystore",
-                    null);
+            SQLServerColumnEncryptionJavaKeyStoreProvider jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(
+                    "keystore", null);
             assertFalse(jksp.verifyColumnMasterKeyMetadata(null, false, null));
         } catch (SQLServerException e) {
             fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
@@ -293,6 +296,30 @@ public class AETest extends AbstractTest {
             assertFalse(aksp.verifyColumnMasterKeyMetadata(null, false, null));
         } catch (SQLServerException e) {
             fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+    }
+
+    /*
+     * Test calling verifyColumnMasterKeyMetadata with untrusted key path
+     */
+    @Test
+    public void testVerifyCMKUntrusted() {
+        try {
+            Map<String, List<String>> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths();
+            List<String> paths = new ArrayList<String>();
+            paths.add(javaKeyPath);
+            String serverName = connection.activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString()).toUpperCase();
+
+            trustedKeyPaths.put(serverName, paths);
+            SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(trustedKeyPaths);
+
+            SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, "My_KEYSTORE", "UnTrustedKeyPath",
+                    serverName, true, null);
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_UntrustedKeyPath")));
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedException"));
         }
     }
 
@@ -309,7 +336,6 @@ public class AETest extends AbstractTest {
         } catch (SQLServerException e) {
             fail(TestResource.getResource("R_unexpectedException"));
         }
-
     }
 
     /*

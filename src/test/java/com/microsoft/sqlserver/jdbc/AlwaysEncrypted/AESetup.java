@@ -63,16 +63,13 @@ public class AESetup extends AbstractTest {
     static String cekWin = Constants.CEK_NAME + "_WIN";
     static String cekAkv = Constants.CEK_NAME + "_AKV";
 
-    static String javaKeyAliases = null;
-    static String[] keyIDs = null;
-    static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
-    static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
+    // static String javaKeyAliases = null;
+    // static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
+    // static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
     static String AETestConnectionString;
     static Properties AEInfo;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-
-    static boolean isKspRegistered = false;
 
     // test that only run on Windows will be skipped
     static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
@@ -157,36 +154,14 @@ public class AESetup extends AbstractTest {
     @BeforeAll
     public static void setUpConnection() throws TestAbortedException, Exception {
         AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled";
-        String applicationClientID = TestUtils.getConfiguredProperty("applicationClientID");
-        String applicationKey = TestUtils.getConfiguredProperty("applicationKey");
-        String keyID = TestUtils.getConfiguredProperty("keyID");
-        String windowsKeyPath = TestUtils.getConfiguredProperty("windowsKeyPath");
-        String javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
 
-        if (null == applicationClientID || null == applicationKey || null == keyID
+        if (null == applicationClientID || null == applicationKey || null == keyIDs
                 || (isWindows && null == windowsKeyPath)) {
             fail(TestResource.getResource("R_reqExternalSetup"));
+
         }
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
-
-        keyIDs = keyID.split(";");
-
-        if (null == jksProvider) {
-            jksProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath,
-                    Constants.JKS_SECRET.toCharArray());
-            map.put("My_KEYSTORE", jksProvider);
-        }
-
-        if (null == akvProvider) {
-            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
-            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
-        }
-
-        if (!isKspRegistered) {
-            SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
-            isKspRegistered = true;
-        }
 
         String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
         if (null != enclaveAttestationUrl) {

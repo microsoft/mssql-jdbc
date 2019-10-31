@@ -118,7 +118,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                         SQLServerEncryptionType.Randomized, (byte) 0x1);
                 enclavePackage.writeBytes(algo.encryptData(keys.toByteArray()));
                 return enclavePackage.toByteArray();
-            } catch (GeneralSecurityException | SQLServerException e) {
+            } catch (GeneralSecurityException e) {
                 SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
             }
         }
@@ -495,7 +495,7 @@ class AttestationResponse {
                 SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
             }
         }
-        
+
         SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidHealthCert"), "0",
                 false);
     }
