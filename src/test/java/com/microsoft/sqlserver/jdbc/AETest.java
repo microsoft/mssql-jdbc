@@ -1,5 +1,6 @@
 package com.microsoft.sqlserver.jdbc;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -37,6 +38,7 @@ public class AETest extends AbstractTest {
     private static SQLServerDataSource dsPool = null;
 
     private static String connectionStringAE;
+    private static boolean isAEv2 = false;
 
     private byte[] healthReportCertificate = {61, 11, 0, 0, 27, 2, 0, 0, -66, 3, 0, 0, 88, 5, 0, 0, 82, 83, 65, 49, 0,
             16, 0, 0, 3, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, -57, 59, -80, 116, -86, -109, -4, -96,
@@ -199,7 +201,6 @@ public class AETest extends AbstractTest {
         connectionStringAE = TestUtils.addOrOverrideProperty(connectionStringAE, "enclaveAttestationProtocol",
                 (null != enclaveAttestationProtocol) ? enclaveAttestationProtocol : AttestationProtocol.HGS.toString());
 
-        boolean isAEv2 = false;
         try (SQLServerConnection con = PrepUtil.getConnection(connectionStringAE)) {
             isAEv2 = TestUtils.isAEv2(con);
         } catch (SQLException e) {
@@ -207,7 +208,6 @@ public class AETest extends AbstractTest {
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
-        org.junit.Assume.assumeTrue(isAEv2);
 
         // reset logging to avoid severe logs due to negative testing
         LogManager.getLogManager().reset();
@@ -220,7 +220,6 @@ public class AETest extends AbstractTest {
 
         dsPool = new SQLServerConnectionPoolDataSource();
         AbstractTest.updateDataSource(connectionStringAE, dsPool);
-
     }
 
     /**
@@ -231,6 +230,8 @@ public class AETest extends AbstractTest {
      */
     @Test
     public void testBasicConnection() throws SQLException {
+        org.junit.Assume.assumeTrue(isAEv2);
+
         try (Connection con1 = dsLocal.getConnection(); Connection con2 = dsXA.getConnection();
                 Connection con3 = dsPool.getConnection();
                 Connection con4 = PrepUtil.getConnection(connectionStringAE)) {
@@ -254,6 +255,8 @@ public class AETest extends AbstractTest {
      */
     @Test
     public void testInvalidProperties() {
+        org.junit.Assume.assumeTrue(isAEv2);
+
         // enclaveAttestationUrl and enclaveAttestationProtocol without "columnEncryptionSetting"
         testInvalidProperties(TestUtils.addOrOverrideProperty(connectionStringAE, "columnEncryptionSetting",
                 ColumnEncryptionSetting.Disabled.toString()), "R_enclaveAEdisabled");
@@ -269,7 +272,28 @@ public class AETest extends AbstractTest {
         // bad enclaveAttestationProtocol
         testInvalidProperties(TestUtils.addOrOverrideProperty(connectionStringAE, "enclaveAttestationProtocol", ""),
                 "R_enclaveInvalidAttestationProtocol");
+    }
 
+    /*
+     * Test calling verifyColumnMasterKeyMetadata for non enclave computation
+     */
+    @Test
+    public void testVerifyColumnMasterKeyMetadata() {
+        try {
+            SQLServerColumnEncryptionJavaKeyStoreProvider jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider("keystore",
+                    null);
+            assertFalse(jksp.verifyColumnMasterKeyMetadata(null, false, null));
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+
+        try {
+            SQLServerColumnEncryptionAzureKeyVaultProvider aksp = new SQLServerColumnEncryptionAzureKeyVaultProvider("",
+                    "");
+            assertFalse(aksp.verifyColumnMasterKeyMetadata(null, false, null));
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
     }
 
     /*
@@ -277,6 +301,8 @@ public class AETest extends AbstractTest {
      */
     @Test
     public void testGetEnclavePackage() {
+        org.junit.Assume.assumeTrue(isAEv2);
+
         SQLServerVSMEnclaveProvider provider = new SQLServerVSMEnclaveProvider();
         try {
             provider.getEnclavePackage(null, null);
@@ -291,6 +317,8 @@ public class AETest extends AbstractTest {
      */
     @Test
     public void testInvalidEnclaveSession() {
+        org.junit.Assume.assumeTrue(isAEv2);
+
         SQLServerVSMEnclaveProvider provider = new SQLServerVSMEnclaveProvider();
         provider.invalidateEnclaveSession();
         if (null != provider.getEnclaveSession()) {
@@ -303,6 +331,8 @@ public class AETest extends AbstractTest {
      */
     @Test
     public void testNullSessionSecret() throws SQLServerException {
+        org.junit.Assume.assumeTrue(isAEv2);
+
         VSMAttestationParameters param = new VSMAttestationParameters();
 
         try {
@@ -314,8 +344,13 @@ public class AETest extends AbstractTest {
         }
     }
 
+    /*
+     * Test bad session secret
+     */
     @Test
     public void testBadSessionSecret() throws SQLServerException {
+        org.junit.Assume.assumeTrue(isAEv2);
+
         VSMAttestationParameters param = new VSMAttestationParameters();
 
         try {
@@ -328,8 +363,13 @@ public class AETest extends AbstractTest {
         }
     }
 
+    /*
+     * Test null Attestation response
+     */
     @Test
     public void testNullAttestationResponse() throws SQLServerException {
+        org.junit.Assume.assumeTrue(isAEv2);
+
         try {
             AttestationResponse resp = new AttestationResponse(null);
         } catch (SQLServerException e) {
@@ -339,8 +379,13 @@ public class AETest extends AbstractTest {
         }
     }
 
+    /*
+     * Test bad Attestation response
+     */
     @Test
     public void testBadAttestationResponse() throws SQLServerException {
+        org.junit.Assume.assumeTrue(isAEv2);
+
         try {
             byte[] responseBytes = new byte[36];
             AttestationResponse resp = new AttestationResponse(responseBytes);
@@ -351,8 +396,13 @@ public class AETest extends AbstractTest {
         }
     }
 
+    /*
+     * Test bad certificate signature
+     */
     @Test
     public void testBadCertSignature() throws SQLServerException, CertificateException {
+        org.junit.Assume.assumeTrue(isAEv2);
+
         try {
             AttestationResponse resp = new AttestationResponse(healthReportCertificate);
             resp.validateCert(null);
@@ -361,7 +411,23 @@ public class AETest extends AbstractTest {
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
+    }
 
+    /*
+     * Negative Test - AEv2 not supported
+     */
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testAEv2NotSupported() {
+        org.junit.Assume.assumeFalse(isAEv2);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(connectionStringAE)) {
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_enclaveNotSupported")));
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
     }
 
     /*
@@ -385,5 +451,17 @@ public class AETest extends AbstractTest {
                 assertEquals("1", rs.getString(2));
             }
         }
+    }
+
+    private void checkAEv2() {
+        boolean isAEv2 = false;
+        try (SQLServerConnection con = PrepUtil.getConnection(connectionStringAE)) {
+            isAEv2 = TestUtils.isAEv2(con);
+        } catch (SQLException e) {
+            isAEv2 = false;
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
+        org.junit.Assume.assumeTrue(isAEv2);
     }
 }
