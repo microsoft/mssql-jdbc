@@ -227,7 +227,6 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    @AfterAll
     public static void dropAll() throws Exception {
         try (Statement stmt = connection.createStatement()) {
             dropTables(stmt);
@@ -244,6 +243,20 @@ public class AESetup extends AbstractTest {
                 dropCEK(cekAkv, stmt);
                 dropCMK(cmkAkv, stmt);
             }
+        }
+    }
+
+    /**
+     * Dropping all CMKs and CEKs and any open resources. Technically, dropAll depends on the state of the class so it
+     * shouldn't be static, but the AfterAll annotation requires it to be static.
+     * 
+     * @throws SQLException
+     */
+    @AfterAll
+    public static void cleanUp() throws Exception {
+        dropAll();
+        if (null != connection) {
+            connection.close();
         }
     }
 

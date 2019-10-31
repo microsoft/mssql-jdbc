@@ -613,6 +613,8 @@ public final class SQLServerResource extends ListResourceBundle {
                     "More bytes from the server were received than expected when parsing Enclave PK."},
             {"R_MalformedECDHPublicKey", "The ECDH public key from the server must be 104 bits in length."},
             {"R_MalformedECDHHeader", "Unexpected values for ECDH public key header from the server."},
+            {"R_HealthCertError",
+                    " Enclave Attestation failed, could not retrieve health report certificate provided in the enclave: {0}."},
             {"R_InvalidHealthCert",
                     " Enclave Attestation failed, the health report certificate provided in the enclave was not signed by the HGS."},
             {"R_InvalidSignedStatement",
