@@ -304,8 +304,9 @@ public class AETest extends AbstractTest {
      */
     @Test
     public void testVerifyCMKUntrusted() {
+        Map<String, List<String>> trustedKeyPaths = null;
         try {
-            Map<String, List<String>> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths();
+            trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths();
             List<String> paths = new ArrayList<String>();
             paths.add(javaKeyPath);
             String serverName = connection.activeConnectionProperties
@@ -320,6 +321,11 @@ public class AETest extends AbstractTest {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_UntrustedKeyPath")));
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedException"));
+        } finally {
+            if (null != trustedKeyPaths) {
+                trustedKeyPaths.clear();
+                SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(trustedKeyPaths);
+            }
         }
     }
 
