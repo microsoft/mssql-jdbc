@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -14,6 +15,9 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.text.ParseException;
+import java.util.Calendar;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -598,5 +602,32 @@ public class SQLServerConnectionTest extends AbstractTest {
         executor.shutdownNow();
 
         assertTrue(isInterrupted, TestResource.getResource("R_threadInterruptNotSet"));
+    }
+
+    @Test
+    public void testCanParseAMPMDateExpInMSIToken() throws SQLServerException, ParseException {
+        final String windowsMachineResponse = "{\"access_token\":\"random-token-content\",\"expires_on\":\"11/1/2019 4:40:21 PM +00:00\"," +
+                "\"resource\":\"https://database.windows.net\",\"token_type\":\"Bearer\"}";
+        Calendar cal = new Calendar.Builder().setTimeZone(TimeZone.getTimeZone("UTC"))
+                .setDate(2019, 10, 1)
+                .setTimeOfDay(16, 40, 21, 0)
+                .build();
+        SQLServerConnection connection = new SQLServerConnection("someConnectionProperty");
+        SqlFedAuthToken token = connection.parseSqlFedAuthTokenResponse(true, windowsMachineResponse);
+        assertNotNull(token);
+        assertEquals(token.expiresOn.compareTo(cal.getTime()), 0);
+    }
+
+    @Test
+    public void testCanParse24hDateExpInMSIToken() throws SQLServerException, ParseException {
+        final String linuxMachineResponse = "{\"access_token\":\"mock-token-content\", \"expires_on\":\"10/31/2019 16:10:13 +00:00\", \"resource\":\"https://database.windows.net\", \"token_type\":\"Bearer\"}";
+        Calendar cal = new Calendar.Builder().setTimeZone(TimeZone.getTimeZone("UTC"))
+                .setDate(2019, 9, 31)
+                .setTimeOfDay(16, 10, 13, 0)
+                .build();
+        SQLServerConnection connection = new SQLServerConnection("someConnectionProperty");
+        SqlFedAuthToken token = connection.parseSqlFedAuthTokenResponse(true, linuxMachineResponse);
+        assertNotNull(token);
+        assertEquals(token.expiresOn.compareTo(cal.getTime()), 0);
     }
 }

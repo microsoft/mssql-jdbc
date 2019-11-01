@@ -34,6 +34,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.MessageFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -422,7 +423,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         static final String ACCESS_TOKEN_IDENTIFIER = "\"access_token\":\"";
         static final String ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER = "\"expires_in\":\"";
         static final String ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER = "\"expires_on\":\"";
-        static final String ACCESS_TOKEN_EXPIRES_ON_DATE_FORMAT = "M/d/yyyy h:mm:ss a X";
+        static final String ACCESS_TOKEN_EXPIRES_ON_AMPM_DATE_FORMAT = "M/d/yyyy h:mm:ss a X";
+        static final String ACCESS_TOKEN_EXPIRES_ON_24H_DATE_FORMAT = "M/d/yyyy H:mm:ss X";
         static final int GET_ACCESS_TOKEN_SUCCESS = 0;
         static final int GET_ACCESS_TOKEN_INVALID_GRANT = 1;
         static final int GET_ACCESS_TOKEN_TANSISENT_ERROR = 2;
@@ -4428,40 +4430,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 try (InputStream stream = connection.getInputStream()) {
 
                     BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8), 100);
-                    String result = reader.readLine();
-
-                    int startIndex_AT = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER)
-                            + ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER.length();
-
-                    String accessToken = result.substring(startIndex_AT, result.indexOf("\"", startIndex_AT + 1));
-
-                    Calendar cal = new Calendar.Builder().setInstant(new Date()).build();
-
-                    if (isAzureFunction) {
-                        // Fetch expires_on
-                        int startIndex_ATX = result
-                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER)
-                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER.length();
-                        String accessTokenExpiry = result.substring(startIndex_ATX,
-                                result.indexOf("\"", startIndex_ATX + 1));
-                        if (connectionlogger.isLoggable(Level.FINER)) {
-                            connectionlogger.finer(toString() + " MSI auth token expires on: " + accessTokenExpiry);
-                        }
-
-                        DateFormat df = new SimpleDateFormat(
-                                ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_DATE_FORMAT);
-                        cal = new Calendar.Builder().setInstant(df.parse(accessTokenExpiry)).build();
-                    } else {
-                        // Fetch expires_in
-                        int startIndex_ATX = result
-                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER)
-                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
-                        String accessTokenExpiry = result.substring(startIndex_ATX,
-                                result.indexOf("\"", startIndex_ATX + 1));
-                        cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
-                    }
-
-                    return new SqlFedAuthToken(accessToken, cal.getTime());
+                    String responseStr = reader.readLine();
+                    return parseSqlFedAuthTokenResponse(isAzureFunction, responseStr);
                 }
             } catch (Exception e) {
                 retry++;
@@ -4546,6 +4516,48 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         federatedAuthenticationRequested = true;
 
         TDSParser.parse(tdsReader, tdsTokenHandler);
+    }
+
+    final SqlFedAuthToken parseSqlFedAuthTokenResponse(boolean isAzureFunction, String responseStr) throws ParseException {
+        int startIndex_AT = responseStr.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER)
+                + ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER.length();
+
+        String accessToken = responseStr.substring(startIndex_AT, responseStr.indexOf("\"", startIndex_AT + 1));
+
+        Calendar cal = new Calendar.Builder().setInstant(new Date()).build();
+
+        if (isAzureFunction) {
+            // Fetch expires_on
+            int startIndex_ATX = responseStr
+                    .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER)
+                    + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER.length();
+            String accessTokenExpiry = responseStr.substring(startIndex_ATX,
+                    responseStr.indexOf("\"", startIndex_ATX + 1));
+            if (connectionlogger.isLoggable(Level.FINER)) {
+                connectionlogger.finer(toString() + " MSI auth token expires on: " + accessTokenExpiry);
+            }
+
+            DateFormat df;
+            try {
+                df = new SimpleDateFormat(
+                        ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_AMPM_DATE_FORMAT);
+                cal = new Calendar.Builder().setInstant(df.parse(accessTokenExpiry)).build();
+            } catch (ParseException ignore) {
+                df = new SimpleDateFormat(
+                        ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_24H_DATE_FORMAT);
+                cal = new Calendar.Builder().setInstant(df.parse(accessTokenExpiry)).build();
+            }
+        } else {
+            // Fetch expires_in
+            int startIndex_ATX = responseStr
+                    .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER)
+                    + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
+            String accessTokenExpiry = responseStr.substring(startIndex_ATX,
+                    responseStr.indexOf("\"", startIndex_ATX + 1));
+            cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
+        }
+
+        return new SqlFedAuthToken(accessToken, cal.getTime());
     }
 
     final void processFeatureExtAck(TDSReader tdsReader) throws SQLServerException {
