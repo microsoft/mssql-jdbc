@@ -4270,7 +4270,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
 
-                // If operating system is windows and sqljdbc_auth is loaded then choose the DLL authentication.
+                // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
                 if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")
                         && AuthenticationJNI.isDllLoaded()) {
                     try {
@@ -4289,7 +4289,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         break;
                     } catch (DLLException adalException) {
 
-                        // the sqljdbc_auth.dll return -1 for errorCategory, if unable to load the adalsql.dll
+                        // the mssql-jdbc_auth.dll return -1 for errorCategory, if unable to load the adalsql.dll
                         int errorCategory = adalException.GetCategory();
                         if (-1 == errorCategory) {
                             MessageFormat form = new MessageFormat(
@@ -6496,7 +6496,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
  * 
  */
 final class SQLServerConnectionSecurityManager {
-    static final String dllName = "sqljdbc_auth.dll";
+    static final String dllName = SQLServerDriver.AUTH_DLL_NAME + ".dll";
     String serverName;
     int portNumber;
 
