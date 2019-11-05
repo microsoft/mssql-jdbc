@@ -11,6 +11,7 @@ import java.nio.ByteOrder;
 
 /**
  * Geometry datatype represents data in a Euclidean (flat) coordinate system.
+ * This class will stay in this current package for backwards compatibility.
  */
 
 public class Geometry extends SQLServerSpatialDatatype {
