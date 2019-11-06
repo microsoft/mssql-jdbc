@@ -4289,7 +4289,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         break;
                     } catch (DLLException adalException) {
 
-                        // the mssql-jdbc_auth.dll return -1 for errorCategory, if unable to load the adalsql.dll
+                        // the mssql-jdbc_auth DLL return -1 for errorCategory, if unable to load the adalsql DLL
                         int errorCategory = adalException.GetCategory();
                         if (-1 == errorCategory) {
                             MessageFormat form = new MessageFormat(
