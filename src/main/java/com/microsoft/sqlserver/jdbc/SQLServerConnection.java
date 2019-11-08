@@ -1478,19 +1478,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
             }
 
-            // both enclaveAttestationUrl must be enclaveAttestationProtocol specified
+            // enclave requires columnEncryption=enabled, enclaveAttestationUrl and enclaveAttestationProtocol
             if ((null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
                     && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty()))
                     || (null != enclaveAttestationProtocol && !enclaveAttestationProtocol.isEmpty()
-                            && (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()))) {
+                            && (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()))
+                    || (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                            && (null != enclaveAttestationProtocol || !enclaveAttestationProtocol.isEmpty())
+                            && (null == columnEncryptionSetting || !isColumnEncryptionSettingEnabled()))) {
                 throw new SQLServerException(SQLServerException.getErrString("R_enclavePropertiesError"), null);
-            }
-
-            // enclave requires columnEncryption
-            if ((null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
-                    && (null != enclaveAttestationProtocol || !enclaveAttestationProtocol.isEmpty())
-                    && (null == columnEncryptionSetting || !isColumnEncryptionSettingEnabled()))) {
-                throw new SQLServerException(SQLServerException.getErrString("R_enclaveAEdisabled"), null);
             }
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();

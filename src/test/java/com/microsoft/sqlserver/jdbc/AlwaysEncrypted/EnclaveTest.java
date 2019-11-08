@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.security.cert.CertificateException;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -20,8 +21,10 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.sqlserver.jdbc.EnclavePackageTest;
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -31,21 +34,22 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
- * Tests Enclave Decryption and encryption of values
+ * Tests Enclave decryption and encryption of values
  *
  */
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xSQLv12)
+@Tag(Constants.xSQLv14)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.reqExternalSetup)
 public class EnclaveTest extends JDBCEncryptionDecryptionTest {
 
     private boolean nullable = false;
+    private static boolean isAEv2 = false;
 
     @BeforeAll
     public static void setupEnclave() throws TestAbortedException, Exception {
-        boolean isAEv2 = false;
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             isAEv2 = TestUtils.isAEv2(con);
         } catch (SQLException e) {
@@ -55,10 +59,139 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
         }
 
         org.junit.Assume.assumeTrue(isAEv2);
+
+        EnclavePackageTest.setupEnclave();
     }
 
     /**
-     * Junit test case for char set string for string values
+     * Tests basic connection.
+     * 
+     * @throws SQLException
+     *         when an error occurs
+     */
+    @Test
+    public void testBasicConnection() throws SQLException {
+        org.junit.Assume.assumeTrue(isAEv2);
+
+        EnclavePackageTest.testBasicConnection();
+    }
+
+    /**
+     * Tests invalid connection property combinations.
+     */
+    @Test
+    public void testInvalidProperties() {
+        org.junit.Assume.assumeTrue(isAEv2);
+
+        EnclavePackageTest.testInvalidProperties();
+    }
+
+    /*
+     * Test calling verifyColumnMasterKeyMetadata for non enclave computation
+     */
+    @Test
+    public void testVerifyCMKNoEnclave() {
+        EnclavePackageTest.testVerifyCMKNoEnclave();
+    }
+
+    /*
+     * Test calling verifyColumnMasterKeyMetadata with untrusted key path
+     */
+    @Test
+    public void testVerifyCMKUntrusted() {
+        EnclavePackageTest.testVerifyCMKUntrusted();
+    }
+
+    /*
+     * Test getEnclavePackage with null enclaveSession
+     */
+    @Test
+    public void testGetEnclavePackage() {
+        EnclavePackageTest.testGetEnclavePackage();
+    }
+
+    /*
+     * Test invalidEnclaveSession
+     */
+    @Test
+    public void testInvalidEnclaveSession() {
+        EnclavePackageTest.testInvalidEnclaveSession();
+    }
+
+    /*
+     * Test VSM createSessionSecret with bad server response
+     */
+    @Test
+    public void testNullSessionSecret() throws SQLServerException {
+        EnclavePackageTest.testNullSessionSecret();
+    }
+
+    /*
+     * Test bad session secret
+     */
+    @Test
+    public void testBadSessionSecret() throws SQLServerException {
+        EnclavePackageTest.testBadSessionSecret();
+    }
+
+    /*
+     * Test null Attestation response
+     */
+    @Test
+    public void testNullAttestationResponse() throws SQLServerException {
+        EnclavePackageTest.testNullAttestationResponse();
+    }
+
+    /*
+     * Test bad Attestation response
+     */
+    @Test
+    public void testBadAttestationResponse() throws SQLServerException {
+        EnclavePackageTest.testBadAttestationResponse();
+    }
+
+    /*
+     * Test bad certificate signature
+     */
+    @Test
+    public void testBadCertSignature() throws SQLServerException, CertificateException {
+        EnclavePackageTest.testBadCertSignature();
+    }
+
+    /*
+     * Negative Test - AEv2 not supported
+     */
+    @Test
+    public void testAEv2NotSupported() {
+        org.junit.Assume.assumeFalse(isAEv2);
+
+        EnclavePackageTest.testAEv2NotSupported();
+    }
+
+    /*
+     * Negative Test = AEv2 not enabled
+     */
+    @Test
+    public void testAEv2Disabled() throws SQLException {
+        org.junit.Assume.assumeTrue(isAEv2);
+
+        // connection string w/o AEv2
+        String testConnectionString = TestUtils.removeProperty(AETestConnectionString, "enclaveAttestationUrl");
+        testConnectionString = TestUtils.removeProperty(testConnectionString, "enclaveAttestationProtocol");
+
+        try (SQLServerConnection con = PrepUtil.getConnection(testConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values = createCharValues(nullable);
+            testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, true);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (Throwable e) {
+            // testChars called fail()
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_AlterAEv2Error")));
+        }
+    }
+
+    /**
+     * Test case for char set string for string values
      * 
      * @throws SQLException
      */
@@ -72,9 +205,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
             testChars(stmt, cekAkv, charTable, values, TestCase.NORMAL, true);
         }
     }
-    
+
     /**
-     * Junit test case for char set string for string values using windows certificate store
+     * Test case for char set string for string values using windows certificate store
      * 
      * @throws SQLException
      */
@@ -91,7 +224,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for char set object for string values
+     * Test case for char set object for string values
      * 
      * @throws SQLException
      */
@@ -107,7 +240,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for char set object for jdbc string values
+     * Test case for char set object for jdbc string values
      * 
      * @throws SQLException
      */
@@ -123,10 +256,11 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for char set string for null values
+     * Test case for char set string for null values
      * 
      * @throws SQLException
      */
+    @Test
     public void testCharSpecificSetterNull() throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -138,7 +272,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for char set object for null values
+     * Test case for char set object for null values
      * 
      * @throws SQLException
      */
@@ -154,7 +288,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for char set null for null values
+     * Test case for char set null for null values
      * 
      * @throws SQLException
      */
@@ -170,7 +304,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for binary set binary for binary values
+     * Test case for binary set binary for binary values
      * 
      * @throws SQLException
      */
@@ -186,7 +320,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for binary set binary for binary values using windows certificate store
+     * Test case for binary set binary for binary values using windows certificate store
      * 
      * @throws SQLException
      */
@@ -203,7 +337,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for binary set object for binary values
+     * Test case for binary set object for binary values
      * 
      * @throws SQLException
      */
@@ -219,7 +353,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for binary set null for binary values
+     * Test case for binary set null for binary values
      * 
      * @throws SQLException
      */
@@ -235,7 +369,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for binary set binary for null values
+     * Test case for binary set binary for null values
      * 
      * @throws SQLException
      */
@@ -251,7 +385,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for binary set object for null values
+     * Test case for binary set object for null values
      * 
      * @throws SQLException
      */
@@ -267,7 +401,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for binary set object for jdbc type binary values
+     * Test case for binary set object for jdbc type binary values
      * 
      * @throws SQLException
      */
@@ -283,7 +417,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for date set date for date values
+     * Test case for date set date for date values
      * 
      * @throws SQLException
      */
@@ -299,7 +433,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for date set date for date values using windows certificate store
+     * Test case for date set date for date values using windows certificate store
      * 
      * @throws SQLException
      */
@@ -314,9 +448,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
             testDates(stmt, cekWin, dateTable, values, TestCase.NORMAL, true);
         }
     }
-    
+
     /**
-     * Junit test case for date set object for date values
+     * Test case for date set object for date values
      * 
      * @throws SQLException
      */
@@ -332,7 +466,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for date set object for java date values
+     * Test case for date set object for java date values
      * 
      * @throws SQLException
      */
@@ -348,7 +482,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for date set object for jdbc date values
+     * Test case for date set object for jdbc date values
      * 
      * @throws SQLException
      */
@@ -364,7 +498,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for date set date for min/max date values
+     * Test case for date set date for min/max date values
      * 
      * @throws SQLException
      */
@@ -381,7 +515,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for date set date for null values
+     * Test case for date set date for null values
      * 
      * @throws SQLException
      */
@@ -402,7 +536,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for date set object for null values
+     * Test case for date set object for null values
      * 
      * @throws SQLException
      */
@@ -424,7 +558,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for numeric set numeric for numeric values
+     * Test case for numeric set numeric for numeric values
      * 
      * @throws SQLException
      */
@@ -443,7 +577,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for numeric set numeric for numeric values using windows certificate store
+     * Test case for numeric set numeric for numeric values using windows certificate store
      * 
      * @throws SQLException
      */
@@ -461,9 +595,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
             testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL, true);
         }
     }
-    
+
     /**
-     * Junit test case for numeric set object for numeric values
+     * Test case for numeric set object for numeric values
      * 
      * @throws SQLException
      */
@@ -481,7 +615,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for numeric set object for jdbc type numeric values
+     * Test case for numeric set object for jdbc type numeric values
      * 
      * @throws SQLException
      */
@@ -499,7 +633,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for numeric set numeric for max numeric values
+     * Test case for numeric set numeric for max numeric values
      * 
      * @throws SQLException
      */
@@ -523,7 +657,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for numeric set numeric for min numeric values
+     * Test case for numeric set numeric for min numeric values
      * 
      * @throws SQLException
      */
@@ -546,7 +680,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for numeric set numeric for null values
+     * Test case for numeric set numeric for null values
      * 
      * @throws SQLException
      */
@@ -569,7 +703,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for numeric set object for null values
+     * Test case for numeric set object for null values
      * 
      * @throws SQLException
      */
@@ -592,7 +726,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Junit test case for numeric set numeric for null normalization values
+     * Test case for numeric set numeric for null normalization values
      * 
      * @throws SQLException
      */
@@ -612,6 +746,11 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
         }
     }
 
+    /**
+     * Test FMTOnly with Always Encrypted
+     * 
+     * @throws SQLException
+     */
     @Test
     public void testAEFMTOnly() throws SQLException {
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";useFmtOnly=true", AEInfo);

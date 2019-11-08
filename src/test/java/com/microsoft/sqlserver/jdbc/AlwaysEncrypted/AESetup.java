@@ -173,8 +173,6 @@ public class AESetup extends AbstractTest {
             AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
                     "enclaveAttestationProtocol", enclaveAttestationProtocol);
         }
-        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "windowsKeyPath",
-                windowsKeyPath);
 
         dropAll();
 
