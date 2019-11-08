@@ -40,7 +40,7 @@ final class Util {
         return SYSTEM_JRE.startsWith("IBM");
     }
 
-    static String getJVMArch() {
+    static String getJVMArchOnWindows() {
         return System.getProperty("os.arch").contains("64") ? "x64" : "x86";
     }
 
