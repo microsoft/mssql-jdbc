@@ -571,7 +571,7 @@ public final class SQLServerResource extends ListResourceBundle {
                     "The client key used to access the Key Vault where the column encryption master key is stored."},
             {"R_ADALMissing", "Failed to load ADAL4J Java library for performing {0} authentication."},
             {"R_DLLandADALMissing",
-                    "Failed to load both sqljdbc_auth.dll and ADAL4J Java library for performing {0} authentication. Please install one of them to proceed."},
+                    "Failed to load both {0} and ADAL4J Java library for performing {1} authentication. Please install one of them to proceed."},
             {"R_MSITokenFailureImds", "MSI Token failure: Failed to acquire access token from IMDS"},
             {"R_MSITokenFailureImdsClientId",
                     "MSI Token failure: Failed to acquire access token from IMDS, verify your clientId."},
