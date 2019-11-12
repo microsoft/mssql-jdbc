@@ -123,6 +123,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final long NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED = 0x00002000;
     private static final long NTLMSSP_NEGOTIATE_TARGET_INFO = 0x00800000;
     private static final long NTLMSSP_NEGOTIATE_ALWAYS_SIGN = 0x00008000;
+    private static final long NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY = 0x00080000;
 
     /**
      * Section 2.2.2.1 AV_PAIR
@@ -858,7 +859,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // NTLM negotiate flags - only NTLMV2 supported
         context.negotiateFlags = NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
                 | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_TARGET_INFO | NTLMSSP_NEGOTIATE_UNICODE
-                | NTLMSSP_NEGOTIATE_ALWAYS_SIGN;
+                | NTLMSSP_NEGOTIATE_ALWAYS_SIGN | NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY;
         token.putInt((int) context.negotiateFlags);
 
         int offset = NTLM_NEGOTIATE_PAYLOAD_OFFSET;
