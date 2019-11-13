@@ -16,11 +16,6 @@ jobs:
         Ex_Groups: 'xSQLv12'
     maxParallel: 2
   steps:
-  - task: DownloadSecureFile@1
-    name: sqljdbc_auth
-    displayName: 'Download sqljdbc_auth.dll'
-    inputs:
-      secureFile: 'sqljdbc_auth.dll'
   - powershell: |
       mkdir AE_Certificates
       cd AE_Certificates
@@ -33,7 +28,6 @@ jobs:
       keytool -list -v -keystore clientcert.jks -storepass $(certPass) > JavaKeyStoreBase.txt
       Get-Content .\JavaKeyStoreBase.txt | Set-Content -Encoding utf8 JavaKeyStore.txt
       Remove-Item –path .\JavaKeyStoreBase.txt
-      Copy-Item -Path $(sqljdbc_auth.secureFilePath) -Destination "C:\Windows\System32"
     displayName: 'PowerShell Script'
   - task: DownloadSecureFile@1
     name: pkcs12_truststore
