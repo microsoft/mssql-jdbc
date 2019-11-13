@@ -924,10 +924,12 @@ final class DDC {
 
         if (null != timeZoneCalendar && SSType.DATETIMEOFFSET != ssType && null != ldt) {
             long dateMillis = java.sql.Date.valueOf(ldt.toLocalDate()).getTime();
-            int calOffset = timeZoneCalendar.getTimeZone().getOffset(java.sql.Date.valueOf(ldt.toLocalDate()).getTime());
-            int defaultOffset = TimeZone.getDefault().getOffset(java.sql.Date.valueOf(ldt.toLocalDate()).getTime());
+            int calOffset = timeZoneCalendar.getTimeZone().getOffset(dateMillis);
+            int defaultOffset = TimeZone.getDefault().getOffset(dateMillis);
+            int calDSTSavings = timeZoneCalendar.getTimeZone().getDSTSavings();
+            int defaultDSTSavings = TimeZone.getDefault().getDSTSavings();
             if (calOffset != defaultOffset) {
-                ldt = ldt.plusMinutes((defaultOffset - calOffset) / (60 * 1000));
+                ldt = ldt.plusMinutes((defaultOffset - calOffset + defaultDSTSavings - calDSTSavings) / (60 * 1000));
             }
         }
 
