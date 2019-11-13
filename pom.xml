@@ -52,7 +52,7 @@
 			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
 			reqExternalSetup  - For tests requiring external setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-			Default testing enabled with SQL Server 2019 (SQLv14) -->
+			Default testing enabled with SQL Server 2019 (SQLv15) -->
 		<excludedGroups>xSQLv15, NTLM, reqExternalSetup</excludedGroups>
 
 		<!-- Use -preview for preview release, leave empty for official release.-->
@@ -491,7 +491,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.3</version>
+				<version>0.8.5</version>
 				<executions>
 					<execution>
 						<id>pre-test</id>

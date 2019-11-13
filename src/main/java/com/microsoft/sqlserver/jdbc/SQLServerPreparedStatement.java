@@ -938,7 +938,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // cekEntry will be null if none of the parameters are encrypted.
                 if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
                     MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_InvalidEncryptionKeyOridnal"));
+                            SQLServerException.getErrString("R_InvalidEncryptionKeyOrdinal"));
                     Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
                     throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                 }
@@ -2732,7 +2732,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
 
-            if (!isInternalEncryptionQuery && connection.isAEv2()) {
+            if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()) {
                 this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
                         parameterNames);
                 encryptionMetadataIsRetrieved = true;
