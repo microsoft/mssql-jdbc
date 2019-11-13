@@ -106,12 +106,13 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *
      * <pre>
      * NTLM negotiate flags
-     * NTLMSSP_NEGOTIATE_UNICODE                  A bit requests unicode character set encoding
-     * NTLMSSP_REQUEST_TARGET                     C bit TargetName field of the CHALLENGE_MESSAGE
-     * NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED      K bit indicates whether the domain name is provided
-     * NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED L bit indicates whether the Workstation field is present
-     * NTLMSSP_NEGOTIATE_TARGET_INFO              S bit indicates whether the TargetInfo fields are populated
+     * NTLMSSP_NEGOTIATE_UNICODE                  A bit requests unicode character set encoding.
+     * NTLMSSP_REQUEST_TARGET                     C bit TargetName field of the CHALLENGE_MESSAGE.
+     * NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED      K bit indicates whether the domain name is provided.
+     * NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED L bit indicates whether the Workstation field is present.
+     * NTLMSSP_NEGOTIATE_TARGET_INFO              S bit indicates whether the TargetInfo fields are populated.
      * NTLMSSP_NEGOTIATE_ALWAYS_SIGN              M bit requests the presence of a signature block on all messages.
+     * NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY P bit requests usage of the NTLM v2 session security.
      *
      * Note - This is not specified in spec but NTLMSSP_NEGOTIATE_ALWAYS_SIGN is required for server to verify MIC!!
      *        If not set, server ignores MIC field even tho MSVAVFLAGS is set!!
