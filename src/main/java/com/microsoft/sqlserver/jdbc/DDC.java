@@ -922,12 +922,12 @@ final class DDC {
                 throw new AssertionError("Unexpected SSType: " + ssType);
         }
 
-        if (null != timeZoneCalendar && SSType.DATETIMEOFFSET != ssType) {
-            // null check ldt later
+        if (null != timeZoneCalendar && SSType.DATETIMEOFFSET != ssType && null != ldt) {
             long dateMillis = java.sql.Date.valueOf(ldt.toLocalDate()).getTime();
-            if (timeZoneCalendar.getTimeZone().getOffset(java.sql.Date.valueOf(ldt.toLocalDate()).getTime()) != TimeZone
-                    .getDefault().getOffset(java.sql.Date.valueOf(ldt.toLocalDate()).getTime())) {
-                ldt = ldt.plusMinutes(timeZoneCalendar.getTimeZone().getOffset(dateMillis) / (60 * 1000));
+            int calOffset = timeZoneCalendar.getTimeZone().getOffset(java.sql.Date.valueOf(ldt.toLocalDate()).getTime());
+            int defaultOffset = TimeZone.getDefault().getOffset(java.sql.Date.valueOf(ldt.toLocalDate()).getTime());
+            if (calOffset != defaultOffset) {
+                ldt = ldt.plusMinutes((defaultOffset - calOffset) / (60 * 1000));
             }
         }
 
