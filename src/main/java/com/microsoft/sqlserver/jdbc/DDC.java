@@ -772,6 +772,8 @@ final class DDC {
         // over the entire supported range of values. Create and initialize such a calendar to
         // use to interpret the date and time parts in their associated time zone.
         GregorianCalendar cal = null;
+        
+        int localMillisOffset = 0;
 
         // Set the calendar value according to the specified local time zone and constituent
         // date (days since base date) and time (ticks since midnight) parts.
@@ -866,7 +868,31 @@ final class DDC {
                     cal.set(year, month, date, hour, minute, second);
                     cal.set(Calendar.MILLISECOND, millis);
                 }
+                
+                // For DATETIMEOFFSET values, recompute the calendar's UTC milliseconds value according 
+                // to the specified local time zone (the time zone associated with the offset part      
+                // of the DATETIMEOFFSET value).        
+                //      
+                // Optimization: Skip this step if there is no time zone difference     
+                // (i.e. the time zone of the DATETIMEOFFSET value is UTC).     
+                if (SSType.DATETIMEOFFSET == ssType && !componentTimeZone.hasSameRules(localTimeZone)) {        
+                    GregorianCalendar localCalendar = new GregorianCalendar(localTimeZone, Locale.US);  
+                    localCalendar.clear();      
+                    localCalendar.setTimeInMillis(cal.getTimeInMillis());       
+                    cal = localCalendar;        
+                }
+                
                 subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
+                
+                if (null == timeZoneCalendar) {
+                    TimeZone tz = TimeZone.getDefault();
+                    GregorianCalendar _cal = new GregorianCalendar(componentTimeZone, Locale.US);
+                    _cal.setLenient(true);
+                    _cal.clear();
+                    localMillisOffset = tz.getOffset(_cal.getTimeInMillis());
+                } else {
+                    localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
+                }
                 break;
             }
 
@@ -894,17 +920,6 @@ final class DDC {
 
             default:
                 throw new AssertionError("Unexpected SSType: " + ssType);
-        }
-
-        int localMillisOffset;
-        if (null == timeZoneCalendar) {
-            TimeZone tz = TimeZone.getDefault();
-            GregorianCalendar _cal = new GregorianCalendar(componentTimeZone, Locale.US);
-            _cal.setLenient(true);
-            _cal.clear();
-            localMillisOffset = tz.getOffset(_cal.getTimeInMillis());
-        } else {
-            localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
         }
 
         if (null != timeZoneCalendar && SSType.DATETIMEOFFSET != ssType) {
@@ -1038,6 +1053,10 @@ final class DDC {
             }
 
             case TIMESTAMP: {
+                if (jdbcType == JDBCType.LOCALDATETIME) {
+                    return ldt;
+                }
+                
                 if (SSType.DATETIMEOFFSET == ssType) {
                     java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
                     ts.setNanos(subSecondNanos);
@@ -1070,7 +1089,7 @@ final class DDC {
                 switch (ssType) {
                     case DATE: {
                         return String.format(Locale.US, "%1$tF", // yyyy-mm-dd
-                                ldt);
+                                java.sql.Timestamp.valueOf(ldt));
                     }
 
                     case TIME: {
@@ -1080,7 +1099,7 @@ final class DDC {
 
                     case DATETIME2: {
                         return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
-                                ldt, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                                java.sql.Timestamp.valueOf(ldt), fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
                     }
 
                     case DATETIMEOFFSET: {
