@@ -11,6 +11,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
@@ -21,8 +23,6 @@ import java.security.MessageDigest;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
-import java.security.SignatureException;
-import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPrivateKey;
@@ -30,8 +30,6 @@ import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
-import java.security.spec.MGF1ParameterSpec;
-import java.security.spec.PSSParameterSpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -39,11 +37,17 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.crypto.KeyAgreement;
+
+import org.apache.commons.codec.binary.Base64;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 
 /**
@@ -52,18 +56,23 @@ import javax.crypto.KeyAgreement;
  * implementation details of the enclave attestation protocol.
  *
  */
-public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
+public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
 
-    private VSMAttestationParameters vsmParams = null;
-    private VSMAttestationResponse hgsResponse = null;
+    private AASAttestationParameters aasParams = null;
+    private AASAttestationResponse hgsResponse = null;
     private String attestationURL = null;
     private EnclaveSession enclaveSession = null;
 
     @Override
     public void getAttestationParameters(boolean createNewParameters, String url) throws SQLServerException {
-        if (null == vsmParams || createNewParameters) {
+        if (null == aasParams || createNewParameters) {
             attestationURL = url;
-            vsmParams = new VSMAttestationParameters();
+            try {
+                aasParams = new AASAttestationParameters(attestationURL);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }
     }
 
@@ -76,7 +85,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         if (null != hgsResponse && !connection.enclaveEstablished()) {
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
-                        vsmParams.createSessionSecret(hgsResponse.getDHpublicKey()));
+                        aasParams.createSessionSecret(hgsResponse.getDHpublicKey()));
             } catch (GeneralSecurityException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
             }
@@ -87,7 +96,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     @Override
     public void invalidateEnclaveSession() {
         enclaveSession = null;
-        vsmParams = null;
+        aasParams = null;
         attestationURL = null;
     }
 
@@ -125,29 +134,14 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         return null;
     }
 
-    private VSMAttestationResponse validateAttestationResponse(VSMAttestationResponse ar) throws SQLServerException {
+    private AASAttestationResponse validateAttestationResponse(AASAttestationResponse ar) throws SQLServerException {
         try {
-            byte[] attestationCerts = getAttestationCertificates();
-            ar.validateCert(attestationCerts);
-            ar.validateStatementSignature();
-            ar.validateDHPublicKey();
-        } catch (IOException | GeneralSecurityException e) {
+            ar.validateToken(attestationURL);
+            ar.validateDHPublicKey(aasParams.getNonce());
+        } catch (GeneralSecurityException e) {
             SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
         }
         return ar;
-    }
-
-    private byte[] getAttestationCertificates() throws IOException {
-        java.net.URL url = new java.net.URL(attestationURL + "/attestationservice.svc/v2.0/signingCertificates/");
-        java.net.URLConnection con = url.openConnection();
-        String s = new String(con.getInputStream().readAllBytes());
-        // omit the square brackets that come with the JSON
-        String[] bytesString = s.substring(1, s.length() - 1).split(",");
-        byte[] certData = new byte[bytesString.length];
-        for (int i = 0; i < certData.length; i++) {
-            certData[i] = (byte) (Integer.parseInt(bytesString[i]));
-        }
-        return certData;
     }
 
     private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, String userSql,
@@ -163,7 +157,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             } else {
                 stmt.setNString(2, "");
             }
-            stmt.setBytes(3, vsmParams.getBytes());
+            stmt.setBytes(3, aasParams.getBytes());
             rs = ((SQLServerPreparedStatement) stmt).executeQueryInternal();
 
             if (null == rs) {
@@ -287,7 +281,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             if (connection.isAEv2() && stmt.getMoreResults()) {
                 rs = (SQLServerResultSet) stmt.getResultSet();
                 while (rs.next()) {
-                    hgsResponse = new VSMAttestationResponse(rs.getBytes(1));
+                    hgsResponse = new AASAttestationResponse(rs.getBytes(1));
                     // This validates and establishes the enclave session if valid
                     if (!connection.enclaveEstablished()) {
                         hgsResponse = validateAttestationResponse(hgsResponse);
@@ -310,12 +304,25 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
 }
 
 
-class VSMAttestationParameters extends BaseAttestationRequest {
-    // Type 3 is VSM, sent as Little Endian 0x30000000
-    private static byte ENCLAVE_TYPE[] = new byte[] {0x3, 0x0, 0x0, 0x0};
+class AASAttestationParameters extends BaseAttestationRequest {
 
-    VSMAttestationParameters() throws SQLServerException {
-        enclaveChallenge = new byte[] {0x0, 0x0, 0x0, 0x0};
+    // Type 1 is AAS, sent as Little Endian 0x10000000
+    private static byte ENCLAVE_TYPE[] = new byte[] {0x1, 0x0, 0x0, 0x0};
+    // Nonce length is always 256
+    private static byte NONCE_LENGTH[] = new byte[] {0x0, 0x1, 0x0, 0x0};
+    private byte[] nonce = new byte[256];
+
+    AASAttestationParameters(String attestationUrl) throws SQLServerException, IOException {
+        byte[] attestationUrlBytes = (attestationUrl + '\0').getBytes(UTF_16LE);
+
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        os.writeBytes(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(attestationUrlBytes.length).array());
+        os.writeBytes(attestationUrlBytes);
+        os.writeBytes(NONCE_LENGTH);
+        new SecureRandom().nextBytes(nonce);
+        os.writeBytes(nonce);
+        enclaveChallenge = os.toByteArray();
+
         initBcryptECDH();
     }
 
@@ -323,6 +330,7 @@ class VSMAttestationParameters extends BaseAttestationRequest {
     byte[] getBytes() {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         os.writeBytes(ENCLAVE_TYPE);
+        os.writeBytes(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(enclaveChallenge.length).array());
         os.writeBytes(enclaveChallenge);
         os.writeBytes(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(ENCLAVE_LENGTH).array());
         os.writeBytes(ECDH_MAGIC);
@@ -330,46 +338,46 @@ class VSMAttestationParameters extends BaseAttestationRequest {
         os.writeBytes(y);
         return os.toByteArray();
     }
+
+    byte[] getNonce() {
+        return nonce;
+    }
 }
 
 
 @SuppressWarnings("unused")
-class VSMAttestationResponse extends BaseAttestationResponse {
-    private byte[] healthReportCertificate;
-    private byte[] enclaveReportPackage;
-    private X509Certificate healthCert;
+class AASAttestationResponse extends BaseAttestationResponse {
 
-    VSMAttestationResponse(byte[] b) throws SQLServerException {
+    private byte[] attestationToken;
+    private static Map<String, JsonArray> certificateCache = new HashMap<>();
+
+    AASAttestationResponse(byte[] b) throws SQLServerException {
         /*-
-         * Parse the attestation response.
-         * 
-         * Total Size of the response - 4B
-         * Size of the Identity - 4B 
-         * Size of the HealthCert - 4B
-         * Size of the EnclaveReport - 4B
-         * Enclave PK - identitySize bytes
-         * Health Certificate - healthReportSize bytes
-         * Enclave Report Package - enclaveReportSize bytes
-         * Session Info Size - 4B
-         * Session ID - 8B
-         * DH Public Key Size - 4B
-         * DH Public Key Signature Size - 4B
-         * DH Public Key - DHPKsize bytes
-         * DH Public Key Signature - DHPKSsize bytes
-         */
+         * A model class representing the deserialization of the byte payload the client
+         * receives from SQL Server while setting up a session.
+         * Protocol format:
+         * 1. Total Size of the attestation blob as UINT
+         * 2. Size of Enclave RSA public key as UINT
+         * 3. Size of Attestation token as UINT
+         * 4. Enclave Type as UINT
+         * 5. Enclave RSA public key (raw key, of length #2)
+         * 6. Attestation token (of length #3)
+         * 7. Size of Session Id was UINT
+         * 8. Session id value
+         * 9. Size of enclave ECDH public key
+         * 10. Enclave ECDH public key (of length #9)
+        */
         ByteBuffer response = ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN);
         this.totalSize = response.getInt();
         this.identitySize = response.getInt();
-        int healthReportSize = response.getInt();
-        int enclaveReportSize = response.getInt();
+        this.attestationTokenSize = response.getInt();
+        this.enclaveType = response.getInt(); // 1 for VBS, 2 for SGX
 
         enclavePK = new byte[identitySize];
-        healthReportCertificate = new byte[healthReportSize];
-        enclaveReportPackage = new byte[enclaveReportSize];
+        attestationToken = new byte[attestationTokenSize];
 
         response.get(enclavePK, 0, identitySize);
-        response.get(healthReportCertificate, 0, healthReportSize);
-        response.get(enclaveReportPackage, 0, enclaveReportSize);
+        response.get(attestationToken, 0, attestationTokenSize);
 
         this.sessionInfoSize = response.getInt();
         response.get(sessionID, 0, 8);
@@ -386,80 +394,78 @@ class VSMAttestationResponse extends BaseAttestationResponse {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_EnclaveResponseLengthError"), "0", false);
         }
-        // Create a X.509 certificate from the bytes
-        try {
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            healthCert = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(healthReportCertificate));
-        } catch (CertificateException ce) {
-            SQLServerException.makeFromDriverError(null, this, ce.getLocalizedMessage(), "0", false);
-        }
     }
 
-    @SuppressWarnings("unchecked")
-    void validateCert(byte[] b) throws SQLServerException {
+    void validateToken(String attestationUrl) throws SQLServerException {
+        /*
+         * 3 parts of our JWT token: Header, Body, and Signature. Broken up via '.'
+         */
+        String jwtToken = (new String(attestationToken)).trim();
+        if (jwtToken.startsWith("\"") && jwtToken.endsWith("\"")) {
+            jwtToken = jwtToken.substring(1, jwtToken.length() - 1);
+        }
+        String[] splitString = jwtToken.split("\\.");
+        String Header = new String(Base64.decodeBase64(splitString[0]));
+        String Body = new String(Base64.decodeBase64(splitString[1]));
+        byte[] stmtSig = Base64.decodeBase64(splitString[2]);
+
         try {
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            Collection<X509Certificate> certs = (Collection<X509Certificate>) cf
-                    .generateCertificates(new ByteArrayInputStream(b));
-            for (X509Certificate cert : certs) {
-                try {
-                    healthCert.verify(cert.getPublicKey());
-                    return;
-                } catch (SignatureException e) {
-                    // Doesn't match, but continue looping through the rest of the certificates
+            JsonArray keys = certificateCache.get(attestationUrl);
+            if (null == keys) {
+                // Use the attestation URL to find where our keys are
+                String authorityUrl = new URL(attestationUrl).getAuthority();
+                URL wellKnownUrl = new URL("https://" + authorityUrl + "/.well-known/openid-configuration");
+                URLConnection con = wellKnownUrl.openConnection();
+                String wellKnownUrlJson = new String(con.getInputStream().readAllBytes());
+                JsonObject attestationJson = new JsonParser().parse(wellKnownUrlJson).getAsJsonObject();
+                // Get our Keys
+                URL jwksUrl = new URL(attestationJson.get("jwks_uri").getAsString());
+                URLConnection jwksCon = jwksUrl.openConnection();
+                String jwksUrlJson = new String(jwksCon.getInputStream().readAllBytes());
+                JsonObject jwksJson = new JsonParser().parse(jwksUrlJson).getAsJsonObject();
+                keys = jwksJson.get("keys").getAsJsonArray();
+                certificateCache.put(attestationUrl, keys);
+            }
+            // Find the specific keyID we need from our header
+            JsonObject headerJsonObject = new JsonParser().parse(Header).getAsJsonObject();
+            String keyID = headerJsonObject.get("kid").getAsString();
+            // Iterate through our list of keys and find the one with the same keyID
+            for (JsonElement key : keys) {
+                JsonObject keyObj = key.getAsJsonObject();
+                String kId = keyObj.get("kid").getAsString();
+                if (kId.equals(keyID)) {
+                    JsonArray certsFromServer = keyObj.get("x5c").getAsJsonArray();
+                    /*
+                     * To create the signature part you have to take the encoded header, the encoded payload, a secret,
+                     * the algorithm specified in the header, and sign that.
+                     */
+                    byte[] signatureBytes = (splitString[0] + "." + splitString[1]).getBytes();
+                    for (JsonElement jsonCert : certsFromServer) {
+                        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+                        X509Certificate cert = (X509Certificate) cf.generateCertificate(
+                                new ByteArrayInputStream(java.util.Base64.getDecoder().decode(jsonCert.getAsString())));
+                        Signature sig = Signature.getInstance("SHA256withRSA");
+                        sig.initVerify(cert.getPublicKey());
+                        sig.update(signatureBytes);
+                        if (sig.verify(stmtSig)) {
+                            return;
+                        }
+                    }
                 }
             }
-        } catch (GeneralSecurityException e) {
-            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("TODO: ADD MESSAGE"), "0",
+                    false);
+        } catch (IOException | GeneralSecurityException e) {
+            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false);
         }
-        SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidHealthCert"), "0",
-                false);
     }
 
-    void validateStatementSignature() throws SQLServerException, GeneralSecurityException {
-        /*-
-         * Parse the Enclave Report Package fields.
-         * 
-         * Package Size - 4B
-         * Version - 4B
-         * Signature Scheme - 4B
-         * Signed Statement Bytes Size - 4B 
-         * Signature Size - 4B
-         * Reserved - 4B
-         * Signed Statement - signedStatementSize bytes contains:
-         *      Report Size - 4B
-         *      Report Version - 4B
-         *      Enclave Data - 64B
-         *      Enclave Identity - 152B
-         *      ??? - 720B
-         * Signature Blob - signatureSize bytes
-         */
-        ByteBuffer enclaveReportPackageBuffer = ByteBuffer.wrap(enclaveReportPackage).order(ByteOrder.LITTLE_ENDIAN);
-        int packageSize = enclaveReportPackageBuffer.getInt();
-        int version = enclaveReportPackageBuffer.getInt();
-        int signatureScheme = enclaveReportPackageBuffer.getInt();
-        int signedStatementSize = enclaveReportPackageBuffer.getInt();
-        int signatureSize = enclaveReportPackageBuffer.getInt();
-        int reserved = enclaveReportPackageBuffer.getInt();
-
-        byte[] signedStatement = new byte[signedStatementSize];
-        enclaveReportPackageBuffer.get(signedStatement, 0, signedStatementSize);
-        byte[] signatureBlob = new byte[signatureSize];
-        enclaveReportPackageBuffer.get(signatureBlob, 0, signatureSize);
-
-        if (enclaveReportPackageBuffer.remaining() != 0) {
-            SQLServerException.makeFromDriverError(null, this,
-                    SQLServerResource.getResource("R_EnclavePackageLengthError"), "0", false);
+    void validateDHPublicKey(byte[] nonce) throws SQLServerException, GeneralSecurityException {
+        if (this.enclaveType == 2) {
+            for (int i = 0; i < enclavePK.length; i++) {
+                enclavePK[i] = (byte) (enclavePK[i] ^ nonce[i % nonce.length]);
+            }
         }
-
-        Signature sig = Signature.getInstance("RSASSA-PSS");
-        PSSParameterSpec pss = new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1);
-        sig.setParameter(pss);
-        sig.initVerify(healthCert);
-        sig.update(signedStatement);
-        if (!sig.verify(signatureBlob)) {
-            SQLServerException.makeFromDriverError(null, this,
-                    SQLServerResource.getResource("R_InvalidSignedStatement"), "0", false);
-        }
+        validateDHPublicKey();
     }
 }

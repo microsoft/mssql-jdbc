@@ -5,9 +5,29 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECPoint;
+import java.security.spec.ECPublicKeySpec;
+import java.security.spec.RSAPublicKeySpec;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.crypto.KeyAgreement;
+
 
 /**
  * 
@@ -19,6 +39,7 @@ public interface ISQLServerEnclaveProvider {
 
     /**
      * Returns the attestation parameters
+     * 
      * @param createNewParameters
      *        indicates whether to create new parameters
      * @param url
@@ -41,8 +62,7 @@ public interface ISQLServerEnclaveProvider {
      *        params
      * @param parameterNames
      *        parameterNames
-     * @return
-     *        list of enclave requested CEKs
+     * @return list of enclave requested CEKs
      * @throws SQLServerException
      *         when an error occurs.
      */
@@ -57,8 +77,8 @@ public interface ISQLServerEnclaveProvider {
 
     /**
      * Returns the enclave session
-     * @return
-     *         the enclave session
+     * 
+     * @return the enclave session
      */
     EnclaveSession getEnclaveSession();
 }
@@ -66,10 +86,142 @@ public interface ISQLServerEnclaveProvider {
 
 abstract class BaseAttestationRequest {
     protected PrivateKey privateKey;
+    // Static byte[] for VSM ECDH
+    protected static byte ECDH_MAGIC[] = {0x45, 0x43, 0x4b, 0x33, 0x30, 0x00, 0x00, 0x00};
+    // VSM doesn't have a challenge
+    protected byte enclaveChallenge[];
+    protected static int ENCLAVE_LENGTH = 104;
+    protected byte[] x;
+    protected byte[] y;
 
     byte[] getBytes() {
         return null;
     };
+    
+    byte[] createSessionSecret(byte[] serverResponse) throws GeneralSecurityException, SQLServerException {
+        if (serverResponse.length != ENCLAVE_LENGTH) {
+            SQLServerException.makeFromDriverError(null, this,
+                    SQLServerResource.getResource("R_MalformedECDHPublicKey"), "0", false);
+        }
+        ByteBuffer sr = ByteBuffer.wrap(serverResponse);
+        byte[] magic = new byte[8];
+        sr.get(magic);
+        if (!Arrays.equals(magic, ECDH_MAGIC)) {
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_MalformedECDHHeader"),
+                    "0", false);
+        }
+        byte[] x = new byte[48];
+        byte[] y = new byte[48];
+        sr.get(x);
+        sr.get(y);
+        /*
+         * Server returns X and Y coordinates, create a key using the point of the server and our key parameters.
+         * Public/Private key parameters are the same.
+         */
+        ECPublicKeySpec keySpec = new ECPublicKeySpec(new ECPoint(new BigInteger(1, x), new BigInteger(1, y)),
+                ((ECPrivateKey) privateKey).getParams());
+        KeyAgreement ka = KeyAgreement.getInstance("ECDH");
+        ka.init(privateKey);
+        // Generate a PublicKey from the above key specifications and do an agreement with our PrivateKey
+        ka.doPhase(KeyFactory.getInstance("EC").generatePublic(keySpec), true);
+        // Generate a Secret from the agreement and hash with SHA-256 to create Session Secret
+        return MessageDigest.getInstance("SHA-256").digest(ka.generateSecret());
+    }
+    
+    void initBcryptECDH() throws SQLServerException {
+        /*
+         * Create our BCRYPT_ECCKEY_BLOB
+         */
+        KeyPairGenerator kpg = null;
+        try {
+            kpg = KeyPairGenerator.getInstance("EC");
+            kpg.initialize(new ECGenParameterSpec("secp384r1"));
+        } catch (GeneralSecurityException e) {
+            SQLServerException.makeFromDriverError(null, kpg, e.getLocalizedMessage(), "0", false);
+        }
+        KeyPair kp = kpg.generateKeyPair();
+        ECPublicKey publicKey = (ECPublicKey) kp.getPublic();
+        privateKey = kp.getPrivate();
+        ECPoint w = publicKey.getW();
+        x = w.getAffineX().toByteArray();
+        y = w.getAffineY().toByteArray();
+
+        /*
+         * For some reason toByteArray doesn't have an Signum option like the constructor. Manually remove leading 00
+         * byte if it exists.
+         */
+        if (x[0] == 0 && x.length != 48) {
+            x = Arrays.copyOfRange(x, 1, x.length);
+        }
+        if (y[0] == 0 && y.length != 48) {
+            y = Arrays.copyOfRange(y, 1, y.length);
+        }
+    }
+}
+
+abstract class BaseAttestationResponse {
+    protected int totalSize;
+    protected int identitySize;
+    protected int attestationTokenSize;
+    protected int enclaveType;
+
+    protected byte[] enclavePK;
+    protected int sessionInfoSize;
+    protected byte[] sessionID = new byte[8];
+    protected int DHPKsize;
+    protected int DHPKSsize;
+    protected byte[] DHpublicKey;
+    protected byte[] publicKeySig;
+    
+    void validateDHPublicKey() throws SQLServerException, GeneralSecurityException {
+        /*-
+         * Java doesn't directly support PKCS1 padding for RSA keys. Parse the key bytes and create a RSAPublicKeySpec
+         * with the exponent and modulus.
+         * 
+         * Static string "RSA1" - 4B (Unused)
+         * Bit count - 4B (Unused)
+         * Public Exponent Length - 4B
+         * Public Modulus Length - 4B
+         * Prime 1 - 4B (Unused)
+         * Prime 2 - 4B (Unused)
+         * Exponent - publicExponentLength bytes
+         * Modulus - publicModulusLength bytes
+         */
+        ByteBuffer enclavePKBuffer = ByteBuffer.wrap(enclavePK).order(ByteOrder.LITTLE_ENDIAN);
+        byte[] rsa1 = new byte[4];
+        enclavePKBuffer.get(rsa1);
+        int bitCount = enclavePKBuffer.getInt();
+        int publicExponentLength = enclavePKBuffer.getInt();
+        int publicModulusLength = enclavePKBuffer.getInt();
+        int prime1 = enclavePKBuffer.getInt();
+        int prime2 = enclavePKBuffer.getInt();
+        byte[] exponent = new byte[publicExponentLength];
+        enclavePKBuffer.get(exponent);
+        byte[] modulus = new byte[publicModulusLength];
+        enclavePKBuffer.get(modulus);
+        if (enclavePKBuffer.remaining() != 0) {
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_EnclavePKLengthError"),
+                    "0", false);
+        }
+        RSAPublicKeySpec spec = new RSAPublicKeySpec(new BigInteger(1, modulus), new BigInteger(1, exponent));
+        KeyFactory factory = KeyFactory.getInstance("RSA");
+        PublicKey pub = factory.generatePublic(spec);
+        Signature sig = Signature.getInstance("SHA256withRSA");
+        sig.initVerify(pub);
+        sig.update(DHpublicKey);
+        if (!sig.verify(publicKeySig)) {
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidDHKeySignature"),
+                    "0", false);
+        }
+    }
+
+    byte[] getDHpublicKey() {
+        return DHpublicKey;
+    }
+
+    byte[] getSessionID() {
+        return sessionID;
+    }
 }
 
 

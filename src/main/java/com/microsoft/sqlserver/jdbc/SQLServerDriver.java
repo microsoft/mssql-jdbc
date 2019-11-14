@@ -114,8 +114,9 @@ enum ColumnEncryptionSetting {
 
 
 enum AttestationProtocol {
-    HGS("HGS"); // only protocol supported currently
-
+    HGS("HGS"),
+    AAS("AAS");
+    
     private final String protocol;
 
     AttestationProtocol(String protocol) {
@@ -134,7 +135,8 @@ enum AttestationProtocol {
 
 
 enum EnclaveType {
-    VBS("VBS"); // only VBS type supported
+    VBS("VBS"),
+    SGX("SGX");
 
     private final String type;
 

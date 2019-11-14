@@ -1472,7 +1472,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
                 enclaveAttestationProtocol = sPropValue;
-                if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
+                if (enclaveAttestationProtocol.equalsIgnoreCase("HGS")) {
+                    this.enclaveProvider = new SQLServerVSMEnclaveProvider();
+                } else if (enclaveAttestationProtocol.equalsIgnoreCase("AAS")) {
+                    this.enclaveProvider = new SQLServerAASEnclaveProvider();
+                } else {
                     if (connectionlogger.isLoggable(Level.SEVERE)) {
                         connectionlogger.severe(toString() + " "
                                 + SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"));
@@ -6471,7 +6475,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (aeVersion >= TDS.COLUMNENCRYPTION_VERSION2);
     }
 
-    ISQLServerEnclaveProvider enclaveProvider = new SQLServerVSMEnclaveProvider();
+    ISQLServerEnclaveProvider enclaveProvider;
 
     ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
