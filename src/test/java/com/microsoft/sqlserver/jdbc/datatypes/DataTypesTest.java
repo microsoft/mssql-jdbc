@@ -711,7 +711,7 @@ public class DataTypesTest extends AbstractTest {
         }
 
         void verifyRSGetters(ResultSet rs) throws Exception {
-//            assertEquals(expectedDate(), rs.getDate(1, Calendar.getInstance(tz)));
+            assertEquals(expectedDate(), rs.getDate(1, Calendar.getInstance(tz)));
             assertEquals(expectedTime(), rs.getTime(1, Calendar.getInstance(tz)));
             assertEquals(expectedTimestamp(), rs.getTimestamp(1, Calendar.getInstance(tz)));
             assertEquals(stringValue, rs.getString(1));
