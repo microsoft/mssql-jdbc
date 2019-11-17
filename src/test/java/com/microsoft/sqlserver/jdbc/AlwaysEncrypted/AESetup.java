@@ -163,17 +163,6 @@ public class AESetup extends AbstractTest {
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
 
-        String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
-        if (null != enclaveAttestationUrl) {
-            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "enclaveAttestationUrl",
-                    enclaveAttestationUrl);
-        }
-        String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
-        if (null != enclaveAttestationProtocol) {
-            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
-                    "enclaveAttestationProtocol", enclaveAttestationProtocol);
-        }
-
         dropAll();
 
         createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);

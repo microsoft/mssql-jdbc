@@ -261,6 +261,34 @@ public class EnclavePackageTest extends AbstractTest {
     }
 
     /*
+     * Test bad Java Key Store
+     */
+    @SuppressWarnings("unused")
+    public static void testBadJks() {
+        try {
+            SQLServerColumnEncryptionJavaKeyStoreProvider jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(null,
+                    null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidConnectionSetting")));
+        }
+    }
+
+    /*
+     * Test bad Azure Key Vault
+     */
+    @SuppressWarnings("unused")
+    public static void testBadAkv() {
+        try {
+            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                    null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
+        }
+    }
+
+    /*
      * Test calling verifyColumnMasterKeyMetadata for non enclave computation
      */
     public static void testVerifyCMKNoEnclave() {

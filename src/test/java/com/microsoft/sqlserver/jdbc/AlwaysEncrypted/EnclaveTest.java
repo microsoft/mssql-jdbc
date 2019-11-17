@@ -50,6 +50,17 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
 
     @BeforeAll
     public static void setupEnclave() throws TestAbortedException, Exception {
+        String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
+        if (null != enclaveAttestationUrl) {
+            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "enclaveAttestationUrl",
+                    enclaveAttestationUrl);
+        }
+        String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
+        if (null != enclaveAttestationProtocol) {
+            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
+                    "enclaveAttestationProtocol", enclaveAttestationProtocol);
+        }
+
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             isAEv2 = TestUtils.isAEv2(con);
         } catch (SQLException e) {
