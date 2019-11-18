@@ -52,8 +52,11 @@
 			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
 			reqExternalSetup  - For tests requiring external setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-			Default testing enabled with SQL Server 2019 (SQLv14) -->
+			Default testing enabled with SQL Server 2019 (SQLv15) -->
 		<excludedGroups>xSQLv15, NTLM, reqExternalSetup</excludedGroups>
+
+		<!-- Use -preview for preview release, leave empty for official release.-->
+		<releaseExt>-preview</releaseExt>
 
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.1</azure.keyvault.version>
@@ -197,7 +200,7 @@
 		<profile>
 			<id>jre8</id>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre8${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -243,7 +246,7 @@
 		<profile>
 			<id>jre11</id>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre11-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre11${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -279,7 +282,7 @@
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre13-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre13${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -488,7 +491,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.3</version>
+				<version>0.8.5</version>
 				<executions>
 					<execution>
 						<id>pre-test</id>

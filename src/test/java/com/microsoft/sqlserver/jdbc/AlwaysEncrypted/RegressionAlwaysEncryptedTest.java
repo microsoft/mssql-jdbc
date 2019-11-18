@@ -42,7 +42,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     @Test
     public void alwaysEncrypted1() throws SQLException {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
+                AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 
@@ -70,7 +70,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     @Test
     public void alwaysEncrypted2() throws SQLException {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
+                AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 

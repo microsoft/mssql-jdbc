@@ -11,6 +11,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -24,6 +26,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
+import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
+import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
@@ -44,13 +49,17 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
  */
 public abstract class AbstractTest {
 
-    static String applicationClientID = null;
-    static String applicationKey = null;
-    static String[] keyIDs = null;
+    protected static String applicationClientID = null;
+    protected static String applicationKey = null;
+    protected static String[] keyIDs = null;
 
-    static String[] jksPaths = null;
-    static String[] javaKeyAliases = null;
-    static String windowsKeyPath = null;
+    protected static String javaKeyPath = null;
+    protected static String javaKeyAliases = null;
+    protected static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
+    protected static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
+    static boolean isKspRegistered = false;
+
+    protected static String windowsKeyPath = null;
 
     protected static SQLServerConnection connection = null;
     protected static ISQLServerDataSource ds = null;
@@ -82,11 +91,31 @@ public abstract class AbstractTest {
         // Invoke fine logging...
         invokeLogging();
 
-        applicationClientID = getConfiguredProperty("applicationClientID");
-        applicationKey = getConfiguredProperty("applicationKey");
-        keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
         connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
         connectionStringNTLM = connectionString;
+
+        applicationClientID = getConfiguredProperty("applicationClientID");
+        applicationKey = getConfiguredProperty("applicationKey");
+        javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
+        keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
+        windowsKeyPath = getConfiguredProperty("windowsKeyPath");
+
+        Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+        if (null == jksProvider) {
+            jksProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath,
+                    Constants.JKS_SECRET.toCharArray());
+            map.put("My_KEYSTORE", jksProvider);
+        }
+
+        if (null == akvProvider) {
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+        }
+
+        if (!isKspRegistered) {
+            SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
+            isKspRegistered = true;
+        }
 
         // if these properties are defined then NTLM is desired, modify connection string accordingly
         String domain = System.getProperty("domainNTLM");
@@ -203,6 +232,12 @@ public abstract class AbstractTest {
                             break;
                         case Constants.HOST_NAME_IN_CERTIFICATE:
                             ds.setHostNameInCertificate(value);
+                            break;
+                        case Constants.ENCLAVE_ATTESTATIONURL:
+                            ds.setEnclaveAttestationUrl(value);
+                            break;
+                        case Constants.ENCLAVE_ATTESTATIONPROTOCOL:
+                            ds.setEnclaveAttestationProtocol(value);
                             break;
                         default:
                             break;

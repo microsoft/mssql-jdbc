@@ -106,12 +106,13 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *
      * <pre>
      * NTLM negotiate flags
-     * NTLMSSP_NEGOTIATE_UNICODE                  A bit requests unicode character set encoding
-     * NTLMSSP_REQUEST_TARGET                     C bit TargetName field of the CHALLENGE_MESSAGE
-     * NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED      K bit indicates whether the domain name is provided
-     * NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED L bit indicates whether the Workstation field is present
-     * NTLMSSP_NEGOTIATE_TARGET_INFO              S bit indicates whether the TargetInfo fields are populated
+     * NTLMSSP_NEGOTIATE_UNICODE                  A bit requests unicode character set encoding.
+     * NTLMSSP_REQUEST_TARGET                     C bit TargetName field of the CHALLENGE_MESSAGE.
+     * NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED      K bit indicates whether the domain name is provided.
+     * NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED L bit indicates whether the Workstation field is present.
+     * NTLMSSP_NEGOTIATE_TARGET_INFO              S bit indicates whether the TargetInfo fields are populated.
      * NTLMSSP_NEGOTIATE_ALWAYS_SIGN              M bit requests the presence of a signature block on all messages.
+     * NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY P bit requests usage of the NTLM v2 session security.
      *
      * Note - This is not specified in spec but NTLMSSP_NEGOTIATE_ALWAYS_SIGN is required for server to verify MIC!!
      *        If not set, server ignores MIC field even tho MSVAVFLAGS is set!!
@@ -123,6 +124,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final long NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED = 0x00002000;
     private static final long NTLMSSP_NEGOTIATE_TARGET_INFO = 0x00800000;
     private static final long NTLMSSP_NEGOTIATE_ALWAYS_SIGN = 0x00008000;
+    private static final long NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY = 0x00080000;
 
     /**
      * Section 2.2.2.1 AV_PAIR
@@ -858,7 +860,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         // NTLM negotiate flags - only NTLMV2 supported
         context.negotiateFlags = NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED | NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED
                 | NTLMSSP_REQUEST_TARGET | NTLMSSP_NEGOTIATE_TARGET_INFO | NTLMSSP_NEGOTIATE_UNICODE
-                | NTLMSSP_NEGOTIATE_ALWAYS_SIGN;
+                | NTLMSSP_NEGOTIATE_ALWAYS_SIGN | NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY;
         token.putInt((int) context.negotiateFlags);
 
         int offset = NTLM_NEGOTIATE_PAYLOAD_OFFSET;

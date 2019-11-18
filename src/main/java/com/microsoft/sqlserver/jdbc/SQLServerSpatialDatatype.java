@@ -13,6 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import com.microsoft.sqlserver.jdbc.spatialdatatypes.Figure;
+import com.microsoft.sqlserver.jdbc.spatialdatatypes.Point;
+import com.microsoft.sqlserver.jdbc.spatialdatatypes.Segment;
+import com.microsoft.sqlserver.jdbc.spatialdatatypes.Shape;
+
 
 /**
  * Abstract parent class for Spatial Datatypes that contains common functionalities.
@@ -1844,179 +1849,21 @@ abstract class SQLServerSpatialDatatype {
         checkBuffer(8);
         return buffer.getDouble();
     }
-}
 
-
-/**
- * Represents the internal makings of a Figure.
- *
- */
-class Figure {
-    private byte figuresAttribute;
-    private int pointOffset;
-
-    Figure(byte figuresAttribute, int pointOffset) {
-        this.figuresAttribute = figuresAttribute;
-        this.pointOffset = pointOffset;
+    // Allow retrieval of internal structures
+    public List<Point> getPointList() {
+        return pointList;
     }
 
-    /**
-     * Returns the figuresAttribute value.
-     * 
-     * @return byte figuresAttribute value.
-     */
-    public byte getFiguresAttribute() {
-        return figuresAttribute;
+    public List<Figure> getFigureList() {
+        return figureList;
     }
 
-    /**
-     * Returns the pointOffset value.
-     * 
-     * @return int pointOffset value.
-     */
-    public int getPointOffset() {
-        return pointOffset;
+    public List<Shape> getShapeList() {
+        return shapeList;
     }
 
-    /**
-     * Sets the figuresAttribute value.
-     * 
-     * @param fa
-     *        figuresAttribute value.
-     */
-    public void setFiguresAttribute(byte fa) {
-        figuresAttribute = fa;
-    }
-}
-
-
-/**
- * Represents the internal makings of a Shape.
- *
- */
-class Shape {
-    private int parentOffset;
-    private int figureOffset;
-    private byte openGISType;
-
-    Shape(int parentOffset, int figureOffset, byte openGISType) {
-        this.parentOffset = parentOffset;
-        this.figureOffset = figureOffset;
-        this.openGISType = openGISType;
-    }
-
-    /**
-     * Returns the parentOffset value.
-     * 
-     * @return int parentOffset value.
-     */
-    public int getParentOffset() {
-        return parentOffset;
-    }
-
-    /**
-     * Returns the figureOffset value.
-     * 
-     * @return int figureOffset value.
-     */
-    public int getFigureOffset() {
-        return figureOffset;
-    }
-
-    /**
-     * Returns the openGISType value.
-     * 
-     * @return byte openGISType value.
-     */
-    public byte getOpenGISType() {
-        return openGISType;
-    }
-
-    /**
-     * Sets the figureOffset value.
-     * 
-     * @param fo
-     *        figureOffset value.
-     */
-    public void setFigureOffset(int fo) {
-        figureOffset = fo;
-    }
-
-}
-
-
-/**
- * Represents the internal makings of a Segment.
- *
- */
-class Segment {
-    private byte segmentType;
-
-    Segment(byte segmentType) {
-        this.segmentType = segmentType;
-    }
-
-    /**
-     * Returns the segmentType value.
-     * 
-     * @return byte segmentType value.
-     */
-    public byte getSegmentType() {
-        return segmentType;
-    }
-}
-
-
-/**
- * Represents the internal makings of a Point.
- *
- */
-class Point {
-    private final double x;
-    private final double y;
-    private final double z;
-    private final double m;
-
-    Point(double x, double y, double z, double m) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.m = m;
-    }
-
-    /**
-     * Returns the x coordinate value.
-     * 
-     * @return double x coordinate value.
-     */
-    public double getX() {
-        return x;
-    }
-
-    /**
-     * Returns the y coordinate value.
-     * 
-     * @return double y coordinate value.
-     */
-    public double getY() {
-        return y;
-    }
-
-    /**
-     * Returns the z (elevation) value.
-     * 
-     * @return double z value.
-     */
-    public double getZ() {
-        return z;
-    }
-
-    /**
-     * Returns the m (measure) value.
-     * 
-     * @return double m value.
-     */
-    public double getM() {
-        return m;
+    public List<Segment> getSegmentList() {
+        return segmentList;
     }
 }

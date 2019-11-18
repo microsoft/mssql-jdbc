@@ -428,6 +428,8 @@ enum SQLServerDriverBooleanProperty {
 public final class SQLServerDriver implements java.sql.Driver {
     static final String PRODUCT_NAME = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor
             + " for SQL Server";
+    static final String AUTH_DLL_NAME = "mssql-jdbc_auth-" + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor + "."
+            + SQLJdbcVersion.patch + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.releaseExt;
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
 
     private static final String[] TRUE_FALSE = {"true", "false"};

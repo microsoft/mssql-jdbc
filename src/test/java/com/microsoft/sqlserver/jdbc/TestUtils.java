@@ -844,6 +844,21 @@ public final class TestUtils {
     }
 
     /**
+     * Remove the given connection property in the connection string
+     * 
+     * @param connectionString
+     *        original connection string
+     * @param property
+     *        name of the property
+     * @return The updated connection string
+     */
+    public static String removeProperty(String connectionString, String property) {
+        int start = connectionString.indexOf(property);
+        String propertyStr = connectionString.substring(start, connectionString.indexOf(";", start) + 1);
+        return connectionString.replace(propertyStr, "");
+    }
+
+    /**
      * Creates a truststore and returns the path of it.
      * 
      * @param certificates

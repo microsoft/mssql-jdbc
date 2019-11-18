@@ -106,7 +106,7 @@ public class CallableStatementTest extends AESetup {
         dropTables();
 
         numericValues = createNumericValues(nullable);
-        byteValues = createbinaryValues(nullable);
+        byteValues = createBinaryValues(nullable);
         dateValues = createTemporalTypesCallableStatement(nullable);
         charValues = createCharValues(nullable);
 
