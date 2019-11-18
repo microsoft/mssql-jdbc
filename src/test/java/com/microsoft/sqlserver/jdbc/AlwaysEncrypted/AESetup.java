@@ -165,15 +165,21 @@ public class AESetup extends AbstractTest {
 
         String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
         if (null != enclaveAttestationUrl) {
+            System.out.println("adding enclaveAttestationUrl="+enclaveAttestationUrl);
             AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "enclaveAttestationUrl",
                     enclaveAttestationUrl);
         }
         String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
         if (null != enclaveAttestationProtocol) {
+            System.out.println("adding enclaveAttestationProtocol="+enclaveAttestationProtocol);
             AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
                     "enclaveAttestationProtocol", enclaveAttestationProtocol);
         }
 
+        System.out.println("AETestConnectionString="+AETestConnectionString);
+
+        System.out.println("AETestConnectionString="+AETestConnectionString);
+        
         dropAll();
 
         createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
