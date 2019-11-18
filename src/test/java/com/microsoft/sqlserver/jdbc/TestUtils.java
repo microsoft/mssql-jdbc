@@ -128,10 +128,6 @@ public final class TestUtils {
     public static String getConfiguredProperty(String key) {
         String value = System.getProperty(key);
 
-        if (value == null) {
-            value = System.getenv(key);
-        }
-
         return value;
     }
 
