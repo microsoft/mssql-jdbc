@@ -91,14 +91,14 @@ public abstract class AbstractTest {
         // Invoke fine logging...
         invokeLogging();
 
-        connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
+        connectionString = TestUtils.getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
         connectionStringNTLM = connectionString;
 
-        applicationClientID = getConfiguredProperty("applicationClientID");
-        applicationKey = getConfiguredProperty("applicationKey");
+        applicationClientID = System.getProperty("applicationClientID");
+        applicationKey = System.getProperty("applicationKey");
         javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
-        keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
-        windowsKeyPath = getConfiguredProperty("windowsKeyPath");
+        keyIDs = System.getProperty("keyID", "").split(Constants.SEMI_COLON);
+        windowsKeyPath = System.getProperty("windowsKeyPath");
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
@@ -303,44 +303,20 @@ public abstract class AbstractTest {
     }
 
     /**
-     * Read variable from property files if found null try to read from env.
-     * 
-     * @param key
-     *        Key
-     * @return Value
-     */
-    public static String getConfiguredProperty(String key) {
-        return TestUtils.getConfiguredProperty(key);
-    }
-
-    /**
-     * Convenient method for {@link #getConfiguredProperty(String)}
-     * 
-     * @param key
-     *        Key
-     * @param defaultValue
-     *        Default Value
-     * @return Value
-     */
-    public static String getConfiguredProperty(String key, String defaultValue) {
-        return TestUtils.getConfiguredProperty(key, defaultValue);
-    }
-
-    /**
      * Invoke logging.
      */
     public static void invokeLogging() {
         Handler handler = null;
 
         // enable logging to stream by default for tests
-        String enableLogging = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING, Boolean.TRUE.toString());
+        String enableLogging = TestUtils.getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING, Boolean.TRUE.toString());
 
         // If logging is not enable then return.
         if (!Boolean.TRUE.toString().equalsIgnoreCase(enableLogging)) {
             return;
         }
 
-        String loggingHandler = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING_HANDLER,
+        String loggingHandler = TestUtils.getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING_HANDLER,
                 Constants.LOGGING_HANDLER_STREAM);
 
         try {

@@ -192,11 +192,11 @@ public class EnclavePackageTest extends AbstractTest {
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionString, "columnEncryptionSetting",
                 ColumnEncryptionSetting.Enabled.toString());
 
-        String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
+        String enclaveAttestationUrl = System.getProperty("enclaveAttestationUrl");
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationUrl",
                 (null != enclaveAttestationUrl) ? enclaveAttestationUrl : "http://blah");
 
-        String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
+        String enclaveAttestationProtocol = System.getProperty("enclaveAttestationProtocol");
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol",
                 (null != enclaveAttestationProtocol) ? enclaveAttestationProtocol : AttestationProtocol.HGS.toString());
 

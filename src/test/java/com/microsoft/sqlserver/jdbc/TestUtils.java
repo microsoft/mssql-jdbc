@@ -119,6 +119,7 @@ public final class TestUtils {
         return ((SQLServerConnection) con).isAEv2();
     }
 
+    
     /**
      * Read variable from property files if found null try to read from env.
      * 
@@ -126,7 +127,13 @@ public final class TestUtils {
      * @return Value
      */
     public static String getConfiguredProperty(String key) {
-        return System.getProperty(key);
+        String value = System.getProperty(key);
+
+        if (value == null) {
+            value = System.getenv(key);
+        }
+
+        return value;
     }
 
     /**

@@ -1776,8 +1776,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testChar(null, values);
 
         if (isTestEnclave) {
-            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
-                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+            if (null == System.getProperty(Constants.ENCLAVE_ATTESTATIONURL)
+                    || null == System.getProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
                 fail(TestResource.getResource("R_reqExternalSetup"));
             }
 
@@ -1815,8 +1815,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testBinary(null, values);
 
         if (isTestEnclave) {
-            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
-                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+            if (null == System.getProperty(Constants.ENCLAVE_ATTESTATIONURL)
+                    || null == System.getProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
                 fail(TestResource.getResource("R_reqExternalSetup"));
             }
 
@@ -1858,8 +1858,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testDate(null, values);
 
         if (isTestEnclave) {
-            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
-                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+            if (null == System.getProperty(Constants.ENCLAVE_ATTESTATIONURL)
+                    || null == System.getProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
                 fail(TestResource.getResource("R_reqExternalSetup"));
             }
 
@@ -1897,8 +1897,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testNumeric(null, values2, isNull);
 
         if (isTestEnclave) {
-            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
-                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+            if (null == System.getProperty(Constants.ENCLAVE_ATTESTATIONURL)
+                    || null == System.getProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
                 fail(TestResource.getResource("R_reqExternalSetup"));
             }
 
