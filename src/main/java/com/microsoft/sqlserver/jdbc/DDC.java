@@ -773,12 +773,9 @@ final class DDC {
         // use to interpret the date and time parts in their associated time zone.
         Calendar cal = null;
 
-        if (SSType.DATETIMEOFFSET == ssType) {
-            cal = new GregorianCalendar(componentTimeZone, Locale.US);
-            cal.setLenient(true);
-            cal.clear();
-        } else if (null != timeZoneCalendar) {
+        if (null != timeZoneCalendar) {
             cal = timeZoneCalendar;
+            cal.setLenient(true);
             cal.clear();
         }
 
