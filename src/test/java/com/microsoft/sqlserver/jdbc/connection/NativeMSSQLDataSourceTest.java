@@ -46,10 +46,12 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
                 ObjectOutput objectOutput = new ObjectOutputStream(outputStream)) {
             SQLServerDataSource ds = new SQLServerDataSource();
-            ds.setLogWriter(new PrintWriter(new ByteArrayOutputStream()));
-
+            PrintWriter out = new PrintWriter(new ByteArrayOutputStream());
+            ds.setLogWriter(out);
             objectOutput.writeObject(ds);
             objectOutput.flush();
+
+            assertTrue(out == ds.getLogWriter());
         }
     }
 
@@ -107,6 +109,13 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
         ISQLServerDataSource ids3 = (ISQLServerDataSource) (xaDS
                 .unwrap(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".ISQLServerDataSource")));
         ids3.setApplicationName("AppName");
+    }
+
+    @Test
+    public void testDSReference() {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        assertTrue(ds.getReference().getClassName()
+                .equals("com.microsoft.sqlserver.jdbc.SQLServerDataSource"));
     }
 
     private SQLServerDataSource testSerial(SQLServerDataSource ds) throws IOException, ClassNotFoundException {

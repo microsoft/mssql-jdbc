@@ -239,7 +239,17 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         ds.setKeyVaultProviderClientKey(stringPropValue);
         // there is no corresponding getKeyVaultProviderClientKey
+    }
 
+    @Test
+    public void testDSConnection() {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        updateDataSource(connectionString, ds);
+
+        // getPassword can only be accessed within package
+        try (Connection con = ds.getConnection(ds.getUser(), ds.getPassword())) {} catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
     }
 
     @Test
