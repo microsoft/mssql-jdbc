@@ -890,11 +890,7 @@ final class DDC {
                 }
 
                 if (null == timeZoneCalendar) {
-                    TimeZone tz = TimeZone.getDefault();
-                    GregorianCalendar _cal = new GregorianCalendar(componentTimeZone, Locale.US);
-                    _cal.setLenient(true);
-                    _cal.clear();
-                    localMillisOffset = tz.getOffset(_cal.getTimeInMillis());
+                    localMillisOffset = TimeZone.getDefault().getOffset(0);
                 } else {
                     localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
                 }
