@@ -768,18 +768,17 @@ final class DDC {
         int subSecondNanos;
         LocalDateTime ldt = null;
 
-        // The date and time parts assume a Gregorian calendar with Gregorian leap year behavior
-        // over the entire supported range of values. Create and initialize such a calendar to
-        // use to interpret the date and time parts in their associated time zone.
-        Calendar cal = null;
-
         if (null != timeZoneCalendar) {
-            cal = timeZoneCalendar;
-            cal.setLenient(true);
-            cal.clear();
+            timeZoneCalendar.setLenient(true);
+            timeZoneCalendar.clear();
         }
 
         int localMillisOffset = 0;
+        
+        // when casting LocalDateTime to java.sql.Time, the date part gets set to 1970-01-01.
+        // However, this value might need to be adjusted based on the combination of the time value
+        // plus or minus the offset value from UTC when the source data type is DateTimeOffset.
+        int dtoToTimeDateCorrection = 0;
 
         // Set the calendar value according to the specified local time zone and constituent
         // date (days since base date) and time (ticks since midnight) parts.
@@ -795,14 +794,12 @@ final class DDC {
                 // faster to conditionalize the date on the target data type to avoid resetting it.
                 //
                 // Ticks are in nanoseconds.
-                if (null != cal) {
-                    cal.set(TDS.BASE_YEAR_1900, Calendar.JANUARY, 1, 0, 0, 0);
-                    cal.set(Calendar.MILLISECOND, (int) (ticksSinceMidnight / Nanos.PER_MILLISECOND));
+                if (null != timeZoneCalendar) {
+                    timeZoneCalendar.set(TDS.BASE_YEAR_1900, Calendar.JANUARY, 1, 0, 0, 0);
+                    timeZoneCalendar.set(Calendar.MILLISECOND, (int) (ticksSinceMidnight / Nanos.PER_MILLISECOND));
                 } else {
                     ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0).plusNanos(ticksSinceMidnight);
                 }
-                // cal.set(TDS.BASE_YEAR_1900, Calendar.JANUARY, 1, 0, 0, 0);
-                // cal.set(Calendar.MILLISECOND, (int) (ticksSinceMidnight / Nanos.PER_MILLISECOND));
 
                 subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 break;
@@ -811,8 +808,8 @@ final class DDC {
             case DATE:
             case DATETIME2:
             case DATETIMEOFFSET: {
-                if (null != cal || SSType.DATETIMEOFFSET == ssType) {
-                    cal = new GregorianCalendar(componentTimeZone, Locale.US);
+                if (null != timeZoneCalendar) {
+                    timeZoneCalendar = new GregorianCalendar(componentTimeZone, Locale.US);
 
                     // For dates after the standard Julian-Gregorian calendar change date,
                     // the calendar value can be accurately set using a straightforward
@@ -826,9 +823,9 @@ final class DDC {
                         //
                         // Ticks are in nanoseconds.
 
-                        cal.set(1, Calendar.JANUARY, 1 + daysSinceBaseDate + GregorianChange.EXTRA_DAYS_TO_BE_ADDED, 0,
+                        timeZoneCalendar.set(1, Calendar.JANUARY, 1 + daysSinceBaseDate + GregorianChange.EXTRA_DAYS_TO_BE_ADDED, 0,
                                 0, 0);
-                        cal.set(Calendar.MILLISECOND, (int) (ticksSinceMidnight / Nanos.PER_MILLISECOND));
+                        timeZoneCalendar.set(Calendar.MILLISECOND, (int) (ticksSinceMidnight / Nanos.PER_MILLISECOND));
                     }
 
                     // For dates before the standard change date, it is necessary to rationalize
@@ -841,31 +838,32 @@ final class DDC {
                     // This code path is functionally correct, but less performant, than the
                     // optimized path above for dates after the standard Gregorian change date.
                     else {
-                        ((GregorianCalendar) cal).setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
+                        ((GregorianCalendar) timeZoneCalendar).setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
 
                         // Set the calendar to the specified value. Lenient calendar behavior will update
                         // individual fields according to pure Gregorian calendar rules.
                         //
                         // Ticks are in nanoseconds.
-                        cal.set(1, Calendar.JANUARY, 1 + daysSinceBaseDate, 0, 0, 0);
-                        cal.set(Calendar.MILLISECOND, (int) (ticksSinceMidnight / Nanos.PER_MILLISECOND));
+                        timeZoneCalendar.set(1, Calendar.JANUARY, 1 + daysSinceBaseDate, 0, 0, 0);
+                        timeZoneCalendar.set(Calendar.MILLISECOND, (int) (ticksSinceMidnight / Nanos.PER_MILLISECOND));
 
                         // Recompute the calendar's internal UTC milliseconds value according to the historically
                         // standard Gregorian cutover date, which is needed for constructing java.sql.Time,
                         // java.sql.Date, and java.sql.Timestamp values from UTC milliseconds.
-                        int year = cal.get(Calendar.YEAR);
-                        int month = cal.get(Calendar.MONTH);
-                        int date = cal.get(Calendar.DATE);
-                        int hour = cal.get(Calendar.HOUR_OF_DAY);
-                        int minute = cal.get(Calendar.MINUTE);
-                        int second = cal.get(Calendar.SECOND);
-                        int millis = cal.get(Calendar.MILLISECOND);
+                        int year = timeZoneCalendar.get(Calendar.YEAR);
+                        int month = timeZoneCalendar.get(Calendar.MONTH);
+                        int date = timeZoneCalendar.get(Calendar.DATE);
+                        int hour = timeZoneCalendar.get(Calendar.HOUR_OF_DAY);
+                        int minute = timeZoneCalendar.get(Calendar.MINUTE);
+                        int second = timeZoneCalendar.get(Calendar.SECOND);
+                        int millis = timeZoneCalendar.get(Calendar.MILLISECOND);
 
-                        ((GregorianCalendar) cal).setGregorianChange(GregorianChange.STANDARD_CHANGE_DATE);
-                        cal.set(year, month, date, hour, minute, second);
-                        cal.set(Calendar.MILLISECOND, millis);
+                        ((GregorianCalendar) timeZoneCalendar).setGregorianChange(GregorianChange.STANDARD_CHANGE_DATE);
+                        timeZoneCalendar.set(year, month, date, hour, minute, second);
+                        timeZoneCalendar.set(Calendar.MILLISECOND, millis);
                     }
-
+                    
+                    
                     // For DATETIMEOFFSET values, recompute the calendar's UTC milliseconds value according
                     // to the specified local time zone (the time zone associated with the offset part
                     // of the DATETIMEOFFSET value).
@@ -875,8 +873,8 @@ final class DDC {
                     if (SSType.DATETIMEOFFSET == ssType && !componentTimeZone.hasSameRules(localTimeZone)) {
                         GregorianCalendar localCalendar = new GregorianCalendar(localTimeZone, Locale.US);
                         localCalendar.clear();
-                        localCalendar.setTimeInMillis(cal.getTimeInMillis());
-                        cal = localCalendar;
+                        localCalendar.setTimeInMillis(timeZoneCalendar.getTimeInMillis());
+                        timeZoneCalendar = localCalendar;
                     }
                 } else {
                     ldt = LocalDateTime.of(1, 1, 1, 0, 0, 0);
@@ -884,12 +882,46 @@ final class DDC {
                     if (jdbcType.category != JDBCType.Category.DATE && ssType != SSType.DATE) {
                         ldt = ldt.plusNanos(ticksSinceMidnight);
                     }
-                }
-
-                if (null == timeZoneCalendar) {
-                    localMillisOffset = TimeZone.getDefault().getOffset(0);
-                } else {
-                    localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
+                    
+                    // For DATETIMEOFFSET values, recompute the calendar's UTC milliseconds value according
+                    // to the specified local time zone (the time zone associated with the offset part
+                    // of the DATETIMEOFFSET value).
+                    //
+                    // Optimization: Skip this step if there is no time zone difference
+                    // (i.e. the time zone of the DATETIMEOFFSET value is UTC).
+//                    if (SSType.DATETIMEOFFSET == ssType && !componentTimeZone.hasSameRules(localTimeZone)) {
+//                        GregorianCalendar localCalendar = new GregorianCalendar(localTimeZone, Locale.US);
+//                        localCalendar.clear();
+//                        localCalendar.setTimeInMillis(timeZoneCalendar.getTimeInMillis());
+//                        timeZoneCalendar = localCalendar;
+//                    }
+//                    if (SSType.DATETIMEOFFSET == ssType && jdbcType.category != JDBCType.Category.CHARACTER) {
+//                        if (jdbcType.category == JDBCType.Category.TIME) {
+//                            long offsetMins = java.sql.Timestamp.valueOf(ldt).getTimezoneOffset();
+//                            long totalDTOOffsetNanos = ticksSinceMidnight - (offsetMins * 60 * Nanos.PER_SECOND);
+//                            long nanosInADay = 86400000000000L;
+//                            if (totalDTOOffsetNanos > nanosInADay) {
+//                                dtoToTimeDateCorrection = 86400000; // plus 1 day in milliseconds
+//                            } else if (0 > totalDTOOffsetNanos) {
+//                                dtoToTimeDateCorrection = -86400000; // minus 1 day in milliseconds
+//                            }
+//                            ldt = ldt.minusMinutes(new java.sql.Timestamp(System.currentTimeMillis()).getTimezoneOffset());
+//                        } else {
+//                            ldt = ldt.minusMinutes(java.sql.Timestamp.valueOf(ldt).getTimezoneOffset());
+//                        }
+//                    }
+                    
+//                    if (SSType.DATETIMEOFFSET == ssType && !componentTimeZone.hasSameRules(localTimeZone)) {
+//                        GregorianCalendar localCalendar = new GregorianCalendar(localTimeZone, Locale.US);
+//                        localCalendar.clear();
+//                        localCalendar.setTimeInMillis(cal.getTimeInMillis());
+//                        cal = localCalendar;
+//                    }
+                    
+//                    if (SSType.DATETIMEOFFSET == ssType && !componentTimeZone.hasSameRules(localTimeZone)) {
+////                        ldt = ldt.minusMinutes(java.sql.Timestamp.valueOf(ldt).getTimezoneOffset());
+//                        ldt = ldt.minusMinutes(localTimeZone.getOffset(java.sql.Date.valueOf(ldt.toLocalDate()).getTime()) / (60 * 1000));
+//                    }
                 }
                 subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 break;
@@ -906,9 +938,9 @@ final class DDC {
                 // for all values in the supported DATETIME range.
                 //
                 // Ticks are in milliseconds.
-                if (null != cal) {
-                    cal.set(TDS.BASE_YEAR_1900, Calendar.JANUARY, 1 + daysSinceBaseDate, 0, 0, 0);
-                    cal.set(Calendar.MILLISECOND, (int) ticksSinceMidnight);
+                if (null != timeZoneCalendar) {
+                    timeZoneCalendar.set(TDS.BASE_YEAR_1900, Calendar.JANUARY, 1 + daysSinceBaseDate, 0, 0, 0);
+                    timeZoneCalendar.set(Calendar.MILLISECOND, (int) ticksSinceMidnight);
                 } else {
                     ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0);
                     ldt = ldt.plusDays(daysSinceBaseDate);
@@ -924,25 +956,12 @@ final class DDC {
             default:
                 throw new AssertionError("Unexpected SSType: " + ssType);
         }
-
-        // if (null != timeZoneCalendar && SSType.DATETIMEOFFSET != ssType && null != ldt) {
-        // long dateMillis = java.sql.Date.valueOf(ldt.toLocalDate()).getTime();
-        // int calOffset = timeZoneCalendar.getTimeZone().getOffset(dateMillis);
-        // int defaultOffset = TimeZone.getDefault().getOffset(dateMillis);
-        // int offsetDifference;
-        // if (TimeZone.getDefault().inDaylightTime(new java.util.Date()) != TimeZone.getDefault()
-        // .inDaylightTime(new java.util.Date(java.sql.Timestamp.valueOf(ldt).getTime()))) {
-        // int calDSTSavings = timeZoneCalendar.getTimeZone().getDSTSavings();
-        // int defaultDSTSavings = TimeZone.getDefault().getDSTSavings();
-        // offsetDifference = defaultOffset - calOffset + defaultDSTSavings - calDSTSavings;
-        // } else {
-        // offsetDifference = defaultOffset - calOffset;
-        // }
-        //
-        // if (offsetDifference != 0) {
-        // ldt = ldt.plusMinutes(offsetDifference / (60 * 1000));
-        // }
-        // }
+        
+        if (null == timeZoneCalendar) {
+            localMillisOffset = TimeZone.getDefault().getOffset(0);
+        } else {
+            localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
+        }
 
         // Convert the calendar value (in local time) to the desired Java object type.
         switch (jdbcType.category) {
@@ -952,14 +971,14 @@ final class DDC {
                     case DATE: {
                         // Per JDBC spec, the time part of java.sql.Date values is initialized to midnight
                         // in the specified local time zone.
-                        if (null != cal || SSType.DATETIMEOFFSET == ssType) {
-                            cal.set(Calendar.HOUR_OF_DAY, 0);
-                            cal.set(Calendar.MINUTE, 0);
-                            cal.set(Calendar.SECOND, 0);
-                            cal.set(Calendar.MILLISECOND, 0);
-                            return new java.sql.Date(cal.getTimeInMillis());
+                        if (null != timeZoneCalendar) {
+                            timeZoneCalendar.set(Calendar.HOUR_OF_DAY, 0);
+                            timeZoneCalendar.set(Calendar.MINUTE, 0);
+                            timeZoneCalendar.set(Calendar.SECOND, 0);
+                            timeZoneCalendar.set(Calendar.MILLISECOND, 0);
+                            return new java.sql.Date(timeZoneCalendar.getTimeInMillis());
                         } else {
-                            ldt = LocalDateTime.of(ldt.getYear(), ldt.getMonth(), ldt.getDayOfMonth(), 0, 0, 0, 0);
+//                            ldt = LocalDateTime.of(ldt.getYear(), ldt.getMonth(), ldt.getDayOfMonth(), 0, 0, 0, 0);
                             // return java.sql.Date.valueOf(ldt.toLocalDate());
                             return new java.sql.Date(java.sql.Timestamp.valueOf(ldt).getTime());
                         }
@@ -967,8 +986,8 @@ final class DDC {
 
                     case DATETIME:
                     case DATETIME2: {
-                        if (null != cal || SSType.DATETIMEOFFSET == ssType) {
-                            java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
+                        if (null != timeZoneCalendar) {
+                            java.sql.Timestamp ts = new java.sql.Timestamp(timeZoneCalendar.getTimeInMillis());
                             ts.setNanos(subSecondNanos);
                             return ts;
                         } else {
@@ -990,33 +1009,33 @@ final class DDC {
                         // milliseconds precision results in no loss of precision.
                         assert 0 == localMillisOffset % (60 * 1000);
 
-                        java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
+                        java.sql.Timestamp ts = new java.sql.Timestamp(timeZoneCalendar.getTimeInMillis());
                         ts.setNanos(subSecondNanos);
                         return microsoft.sql.DateTimeOffset.valueOf(ts, localMillisOffset / (60 * 1000));
                     }
 
                     case TIME: {
-                        if (null != cal || SSType.DATETIMEOFFSET == ssType) {
+                        if (null != timeZoneCalendar) {
                             // Per driver spec, values of sql server data types types (including TIME) which have
                             // greater
                             // than millisecond precision are rounded, not truncated, to the nearest millisecond when
                             // converting to java.sql.Time. Since the milliseconds value in the calendar is truncated,
                             // round it now.
                             if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2)
-                                cal.add(Calendar.MILLISECOND, 1);
+                                timeZoneCalendar.add(Calendar.MILLISECOND, 1);
 
                             // Per JDBC spec, the date part of java.sql.Time values is initialized to 1/1/1970
                             // in the specified local time zone. This must be done after rounding (above) to
                             // prevent rounding values within nanoseconds of the next day from ending up normalized
                             // to 1/2/1970 instead...
-                            cal.set(TDS.BASE_YEAR_1970, Calendar.JANUARY, 1);
+                            timeZoneCalendar.set(TDS.BASE_YEAR_1970, Calendar.JANUARY, 1);
 
-                            return new java.sql.Time(cal.getTimeInMillis());
+                            return new java.sql.Time(timeZoneCalendar.getTimeInMillis());
                         } else {
                             if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2)
                                 ldt = ldt.plusNanos(1000000);
                             java.sql.Time t = java.sql.Time.valueOf(ldt.plusYears(70).toLocalTime());
-                            t.setTime(t.getTime() + (ldt.getNano() / Nanos.PER_MILLISECOND));
+                            t.setTime(t.getTime() + dtoToTimeDateCorrection + (ldt.getNano() / Nanos.PER_MILLISECOND));
                             return t;
                         }
                     }
@@ -1029,40 +1048,41 @@ final class DDC {
             case DATE: {
                 // Per JDBC spec, the time part of java.sql.Date values is initialized to midnight
                 // in the specified local time zone.
-                if (null != cal || SSType.DATETIMEOFFSET == ssType) {
-                    cal.set(Calendar.HOUR_OF_DAY, 0);
-                    cal.set(Calendar.MINUTE, 0);
-                    cal.set(Calendar.SECOND, 0);
-                    cal.set(Calendar.MILLISECOND, 0);
-                    return new java.sql.Date(cal.getTimeInMillis());
+                if (null != timeZoneCalendar) {
+                    timeZoneCalendar.set(Calendar.HOUR_OF_DAY, 0);
+                    timeZoneCalendar.set(Calendar.MINUTE, 0);
+                    timeZoneCalendar.set(Calendar.SECOND, 0);
+                    timeZoneCalendar.set(Calendar.MILLISECOND, 0);
+                    return new java.sql.Date(timeZoneCalendar.getTimeInMillis());
                 } else {
-                    ldt = LocalDateTime.of(ldt.getYear(), ldt.getMonth(), ldt.getDayOfMonth(), 0, 0, 0, 0);
+//                    if (SSType.DATETIMEOFFSET == ssType) {
+//                        ldt = ldt.minusMinutes(localMillisOffset / (60 * 1000));
+//                    }
                     return new java.sql.Date(java.sql.Timestamp.valueOf(ldt).getTime());
-                    // return java.sql.Date.valueOf(ldt.);
                 }
             }
 
             case TIME: {
-                if (null != cal || SSType.DATETIMEOFFSET == ssType) {
+                if (null != timeZoneCalendar) {
                     // Per driver spec, values of sql server data types types (including TIME) which have greater
                     // than millisecond precision are rounded, not truncated, to the nearest millisecond when
                     // converting to java.sql.Time. Since the milliseconds value in the calendar is truncated,
                     // round it now.
                     if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2)
-                        cal.add(Calendar.MILLISECOND, 1);
+                        timeZoneCalendar.add(Calendar.MILLISECOND, 1);
 
                     // Per JDBC spec, the date part of java.sql.Time values is initialized to 1/1/1970
                     // in the specified local time zone. This must be done after rounding (above) to
                     // prevent rounding values within nanoseconds of the next day from ending up normalized
                     // to 1/2/1970 instead...
-                    cal.set(TDS.BASE_YEAR_1970, Calendar.JANUARY, 1);
+                    timeZoneCalendar.set(TDS.BASE_YEAR_1970, Calendar.JANUARY, 1);
 
-                    return new java.sql.Time(cal.getTimeInMillis());
+                    return new java.sql.Time(timeZoneCalendar.getTimeInMillis());
                 } else {
                     if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2)
                         ldt = ldt.plusNanos(1000000);
                     java.sql.Time t = java.sql.Time.valueOf(ldt.plusYears(70).toLocalTime());
-                    t.setTime(t.getTime() + (ldt.getNano() / Nanos.PER_MILLISECOND));
+                    t.setTime(t.getTime() + dtoToTimeDateCorrection + (ldt.getNano() / Nanos.PER_MILLISECOND));
                     return t;
                 }
             }
@@ -1072,8 +1092,8 @@ final class DDC {
                     return ldt;
                 }
 
-                if (null != cal || SSType.DATETIMEOFFSET == ssType) {
-                    java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
+                if (null != timeZoneCalendar) {
+                    java.sql.Timestamp ts = new java.sql.Timestamp(timeZoneCalendar.getTimeInMillis());
                     ts.setNanos(subSecondNanos);
                     return ts;
                 } else {
@@ -1095,7 +1115,7 @@ final class DDC {
                 // milliseconds precision results in no loss of precision.
                 assert 0 == localMillisOffset % (60 * 1000);
 
-                java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
+                java.sql.Timestamp ts = new java.sql.Timestamp(timeZoneCalendar.getTimeInMillis());
                 ts.setNanos(subSecondNanos);
                 return microsoft.sql.DateTimeOffset.valueOf(ts, localMillisOffset / (60 * 1000));
             }
@@ -1103,9 +1123,9 @@ final class DDC {
             case CHARACTER: {
                 switch (ssType) {
                     case DATE: {
-                        if (null != cal) {
+                        if (null != timeZoneCalendar) {
                             return String.format(Locale.US, "%1$tF", // yyyy-mm-dd
-                                    cal);
+                                    timeZoneCalendar);
                         } else {
                             return String.format(Locale.US, "%1$tF", // yyyy-mm-dd
                                     java.sql.Timestamp.valueOf(ldt));
@@ -1113,9 +1133,9 @@ final class DDC {
                     }
 
                     case TIME: {
-                        if (null != cal) {
+                        if (null != timeZoneCalendar) {
                             return String.format(Locale.US, "%1$tT%2$s", // hh:mm:ss[.nnnnnnn]
-                                    cal, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                                    timeZoneCalendar, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
                         } else {
                             return String.format(Locale.US, "%1$tT%2$s", // hh:mm:ss[.nnnnnnn]
                                     ldt, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
@@ -1123,9 +1143,9 @@ final class DDC {
                     }
 
                     case DATETIME2: {
-                        if (null != cal) {
+                        if (null != timeZoneCalendar) {
                             return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
-                                    cal, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                                    timeZoneCalendar, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
                         } else {
                             return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
                                     java.sql.Timestamp.valueOf(ldt),
@@ -1142,15 +1162,15 @@ final class DDC {
                         return String.format(Locale.US, "%1$tF %1$tT%2$s %3$c%4$02d:%5$02d", // yyyy-mm-dd
                                                                                              // hh:mm:ss[.nnnnnnn]
                                                                                              // [+|-]hh:mm
-                                cal, fractionalSecondsString(subSecondNanos, fractionalSecondsScale),
+                                timeZoneCalendar, fractionalSecondsString(subSecondNanos, fractionalSecondsScale),
                                 (localMillisOffset >= 0) ? '+' : '-', unsignedMinutesOffset / 60,
                                 unsignedMinutesOffset % 60);
                     }
 
                     case DATETIME: // and SMALLDATETIME
                     {
-                        if (null != cal) {
-                            return (new java.sql.Timestamp(cal.getTimeInMillis())).toString();
+                        if (null != timeZoneCalendar) {
+                            return (new java.sql.Timestamp(timeZoneCalendar.getTimeInMillis())).toString();
                         } else {
                             return (java.sql.Timestamp.valueOf(ldt)).toString();
                         }
