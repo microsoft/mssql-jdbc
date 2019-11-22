@@ -22,8 +22,10 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
 import java.security.spec.RSAPublicKeySpec;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.crypto.KeyAgreement;
@@ -47,7 +49,7 @@ public interface ISQLServerEnclaveProvider {
      * @throws SQLServerException
      *         when an error occurs.
      */
-    void getAttestationParameters(boolean createNewParameters, String url) throws SQLServerException;
+    void getAttestationParameters(String url) throws SQLServerException;
 
     /**
      * Creates the enclave session
@@ -81,6 +83,8 @@ public interface ISQLServerEnclaveProvider {
      * @return the enclave session
      */
     EnclaveSession getEnclaveSession();
+
+    void setEnclaveSession(EnclaveCacheEntry entry);
 }
 
 
@@ -97,7 +101,7 @@ abstract class BaseAttestationRequest {
     byte[] getBytes() {
         return null;
     };
-    
+
     byte[] createSessionSecret(byte[] serverResponse) throws GeneralSecurityException, SQLServerException {
         if (serverResponse.length != ENCLAVE_LENGTH) {
             SQLServerException.makeFromDriverError(null, this,
@@ -127,7 +131,7 @@ abstract class BaseAttestationRequest {
         // Generate a Secret from the agreement and hash with SHA-256 to create Session Secret
         return MessageDigest.getInstance("SHA-256").digest(ka.generateSecret());
     }
-    
+
     void initBcryptECDH() throws SQLServerException {
         /*
          * Create our BCRYPT_ECCKEY_BLOB
@@ -159,6 +163,7 @@ abstract class BaseAttestationRequest {
     }
 }
 
+
 abstract class BaseAttestationResponse {
     protected int totalSize;
     protected int identitySize;
@@ -172,7 +177,7 @@ abstract class BaseAttestationResponse {
     protected int DHPKSsize;
     protected byte[] DHpublicKey;
     protected byte[] publicKeySig;
-    
+
     void validateDHPublicKey() throws SQLServerException, GeneralSecurityException {
         /*-
          * Java doesn't directly support PKCS1 padding for RSA keys. Parse the key bytes and create a RSAPublicKeySpec
@@ -246,5 +251,54 @@ class EnclaveSession {
 
     long getCounter() {
         return counter.getAndIncrement();
+    }
+}
+
+
+final class EnclaveSessionCache {
+    HashMap<String, EnclaveCacheEntry> sessionCache;
+
+    EnclaveSessionCache() {
+        sessionCache = new HashMap<>(0);
+    }
+
+    void addEntry(String key, BaseAttestationRequest b, EnclaveSession e) {
+        sessionCache.put(key, new EnclaveCacheEntry(b, e));
+    }
+
+    EnclaveCacheEntry getSession(String key) {
+        EnclaveCacheEntry e = sessionCache.get(key);
+        if (null != e && e.expired()) {
+            sessionCache.remove(key);
+            return null;
+        }
+        return e;
+    }
+}
+
+
+class EnclaveCacheEntry {
+    private static final long EIGHT_HOUR_IN_MILLIS = 28800000;
+
+    private BaseAttestationRequest bar;
+    private EnclaveSession es;
+    private long timeCreatedInMillis;
+
+    EnclaveCacheEntry(BaseAttestationRequest b, EnclaveSession e) {
+        bar = b;
+        es = e;
+        timeCreatedInMillis = Instant.now().getEpochSecond();
+    }
+
+    public boolean expired() {
+        return (Instant.now().getEpochSecond() - timeCreatedInMillis) > EIGHT_HOUR_IN_MILLIS;
+    }
+
+    BaseAttestationRequest getBaseAttestationRequest() {
+        return bar;
+    }
+
+    EnclaveSession getEnclaveSession() {
+        return es;
     }
 }

@@ -6493,11 +6493,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     ISQLServerEnclaveProvider enclaveProvider;
+    static EnclaveSessionCache enclaveCache = new EnclaveSessionCache();
 
     ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         if (!this.enclaveEstablished()) {
-            enclaveProvider.getAttestationParameters(false, this.enclaveAttestationUrl);
+            EnclaveCacheEntry entry = enclaveCache.getSession(this.getEnclaveCacheHash());
+            if (null == entry) {
+                enclaveProvider.getAttestationParameters(this.enclaveAttestationUrl);
+            } else {
+                enclaveProvider.setEnclaveSession(entry);
+            }
         }
         return enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
     }
@@ -6508,6 +6514,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     byte[] generateEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         return (enclaveCEKs.size() > 0) ? enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs) : null;
+    }
+
+    String getEnclaveCacheHash() {
+        return this.hostName + this.enclaveAttestationUrl;
     }
 }
 

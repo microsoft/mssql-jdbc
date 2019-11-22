@@ -46,8 +46,8 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     private EnclaveSession enclaveSession = null;
 
     @Override
-    public void getAttestationParameters(boolean createNewParameters, String url) throws SQLServerException {
-        if (null == vsmParams || createNewParameters) {
+    public void getAttestationParameters(String url) throws SQLServerException {
+        if (null == vsmParams) {
             attestationURL = url;
             vsmParams = new VSMAttestationParameters();
         }
@@ -63,6 +63,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
                         vsmParams.createSessionSecret(hgsResponse.getDHpublicKey()));
+                SQLServerConnection.enclaveCache.addEntry(connection.getEnclaveCacheHash(), vsmParams, enclaveSession);
             } catch (GeneralSecurityException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
             }
@@ -292,6 +293,12 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             }
         }
         return enclaveRequestedCEKs;
+    }
+
+    @Override
+    public void setEnclaveSession(EnclaveCacheEntry entry) {
+        this.enclaveSession = entry.getEnclaveSession();
+        this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
     }
 }
 

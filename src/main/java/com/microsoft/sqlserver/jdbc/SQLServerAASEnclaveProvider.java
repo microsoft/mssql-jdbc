@@ -10,37 +10,24 @@ import static java.nio.charset.StandardCharsets.UTF_16LE;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
-import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
-import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
-import java.security.spec.ECGenParameterSpec;
-import java.security.spec.ECPoint;
-import java.security.spec.ECPublicKeySpec;
-import java.security.spec.RSAPublicKeySpec;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.crypto.KeyAgreement;
 
 import org.apache.commons.codec.binary.Base64;
 
@@ -64,8 +51,8 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
     private EnclaveSession enclaveSession = null;
 
     @Override
-    public void getAttestationParameters(boolean createNewParameters, String url) throws SQLServerException {
-        if (null == aasParams || createNewParameters) {
+    public void getAttestationParameters(String url) throws SQLServerException {
+        if (null == aasParams) {
             attestationURL = url;
             try {
                 aasParams = new AASAttestationParameters(attestationURL);
@@ -86,6 +73,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
                         aasParams.createSessionSecret(hgsResponse.getDHpublicKey()));
+                SQLServerConnection.enclaveCache.addEntry(connection.getEnclaveCacheHash(), aasParams, enclaveSession);
             } catch (GeneralSecurityException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
             }
@@ -301,6 +289,12 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
         }
         return enclaveRequestedCEKs;
     }
+
+    @Override
+    public void setEnclaveSession(EnclaveCacheEntry entry) {
+        this.enclaveSession = entry.getEnclaveSession();
+        this.aasParams = (AASAttestationParameters) entry.getBaseAttestationRequest();
+    }
 }
 
 
@@ -345,11 +339,32 @@ class AASAttestationParameters extends BaseAttestationRequest {
 }
 
 
+class JWTCertificateEntry {
+    private static final long TWENTY_FOUR_HOUR_IN_MILLIS = 86400000;
+
+    private JsonArray certificates;
+    private long timeCreatedInMillis;
+
+    JWTCertificateEntry(JsonArray j) {
+        certificates = j;
+        timeCreatedInMillis = Instant.now().getEpochSecond();
+    }
+
+    boolean expired() {
+        return (Instant.now().getEpochSecond() - timeCreatedInMillis) > TWENTY_FOUR_HOUR_IN_MILLIS;
+    }
+
+    JsonArray getCertificates() {
+        return certificates;
+    }
+}
+
+
 @SuppressWarnings("unused")
 class AASAttestationResponse extends BaseAttestationResponse {
 
     private byte[] attestationToken;
-    private static Map<String, JsonArray> certificateCache = new HashMap<>();
+    private static Map<String, JWTCertificateEntry> certificateCache = new HashMap<>();
 
     AASAttestationResponse(byte[] b) throws SQLServerException {
         /*-
@@ -410,7 +425,14 @@ class AASAttestationResponse extends BaseAttestationResponse {
         byte[] stmtSig = Base64.decodeBase64(splitString[2]);
 
         try {
-            JsonArray keys = certificateCache.get(attestationUrl);
+            JsonArray keys = null;
+            JWTCertificateEntry cacheEntry = certificateCache.get(attestationUrl);
+            if (null != cacheEntry && !cacheEntry.expired()) {
+                keys = cacheEntry.getCertificates();
+            } else if (null != cacheEntry && cacheEntry.expired()) {
+                certificateCache.remove(attestationUrl);
+            }
+
             if (null == keys) {
                 // Use the attestation URL to find where our keys are
                 String authorityUrl = new URL(attestationUrl).getAuthority();
@@ -424,7 +446,7 @@ class AASAttestationResponse extends BaseAttestationResponse {
                 String jwksUrlJson = new String(jwksCon.getInputStream().readAllBytes());
                 JsonObject jwksJson = new JsonParser().parse(jwksUrlJson).getAsJsonObject();
                 keys = jwksJson.get("keys").getAsJsonArray();
-                certificateCache.put(attestationUrl, keys);
+                certificateCache.put(attestationUrl, new JWTCertificateEntry(keys));
             }
             // Find the specific keyID we need from our header
             JsonObject headerJsonObject = new JsonParser().parse(Header).getAsJsonObject();
