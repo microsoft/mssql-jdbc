@@ -15,7 +15,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
+import com.microsoft.sqlserver.jdbc.ISQLServerBulkData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -39,6 +38,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
+@SuppressWarnings("deprecation")
 @RunWith(JUnitPlatform.class)
 public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
 
@@ -253,8 +253,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
     }
 }
 
-
-class BulkData implements ISQLServerBulkRecord {
+class BulkData implements ISQLServerBulkData {
     private static final long serialVersionUID = 1L;
     boolean isStringData = false;
 
@@ -372,11 +371,6 @@ class BulkData implements ISQLServerBulkRecord {
     }
 
     @Override
-    public boolean isAutoIncrement(int column) {
-        return false;
-    }
-
-    @Override
     public Object[] getRowData() throws SQLServerException {
         Object[] dataRow = new Object[columnMetadata.size()];
         if (isStringData)
@@ -398,43 +392,4 @@ class BulkData implements ISQLServerBulkRecord {
         }
         return false;
     }
-
-    @Override
-    public void addColumnMetadata(int positionInFile, String name, int jdbcType, int precision, int scale,
-            DateTimeFormatter dateTimeFormatter) throws SQLServerException {
-        // TODO Not Implemented
-    }
-
-    @Override
-    public void addColumnMetadata(int positionInFile, String name, int jdbcType, int precision,
-            int scale) throws SQLServerException {
-        // TODO Not Implemented
-    }
-
-    @Override
-    public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
-        // TODO Not Implemented
-    }
-
-    @Override
-    public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        // TODO Not Implemented
-    }
-
-    @Override
-    public void setTimeWithTimezoneFormat(String timeFormat) {
-        // TODO Not Implemented
-    }
-
-    @Override
-    public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-        // TODO Not Implemented
-    }
-
-    @Override
-    public DateTimeFormatter getColumnDateTimeFormatter(int column) {
-        // TODO Not Implemented
-        return null;
-    }
-
 }
