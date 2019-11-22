@@ -372,7 +372,7 @@ public class EnclavePackageTest extends AbstractTest {
     @SuppressWarnings("unused")
     public static void testNullAttestationResponse() throws SQLServerException {
         try {
-            AttestationResponse resp = new AttestationResponse(null);
+            VSMAttestationResponse resp = new VSMAttestationResponse(null);
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EnclaveResponseLengthError")));
         } catch (Exception e) {
@@ -387,7 +387,7 @@ public class EnclavePackageTest extends AbstractTest {
     public static void testBadAttestationResponse() throws SQLServerException {
         try {
             byte[] responseBytes = new byte[36];
-            AttestationResponse resp = new AttestationResponse(responseBytes);
+            VSMAttestationResponse resp = new VSMAttestationResponse(responseBytes);
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_HealthCertError")));
         } catch (Exception e) {
@@ -400,7 +400,7 @@ public class EnclavePackageTest extends AbstractTest {
      */
     public static void testBadCertSignature() throws SQLServerException, CertificateException {
         try {
-            AttestationResponse resp = new AttestationResponse(healthReportCertificate);
+            VSMAttestationResponse resp = new VSMAttestationResponse(healthReportCertificate);
             resp.validateCert(null);
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidHealthCert")));
