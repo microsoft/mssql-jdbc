@@ -6515,7 +6515,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     byte[] generateEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         return (enclaveCEKs.size() > 0) ? enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs) : null;
     }
-    
+
     String getEnclaveCacheHash() {
         return this.hostName + this.enclaveAttestationUrl;
     }
