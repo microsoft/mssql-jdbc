@@ -944,11 +944,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     tdsWriter.writeByte(TDSType.GUID.byteValue());
                     tdsWriter.writeByte((byte) 0x10);
                 } else {
-                    // BIGCHARTYPE
-                    tdsWriter.writeByte(TDSType.BIGCHAR.byteValue());
-
-                    tdsWriter.writeShort((short) (srcPrecision));
-
+                    // For the case when source database stores unicode data in CHAR and destination column is NCHAR.
+                    if (SSType.NCHAR == destSSType) {
+                        tdsWriter.writeByte(TDSType.NCHAR.byteValue());
+                        tdsWriter.writeShort(isBaseType ? (short) (srcPrecision) : (short) (2 * srcPrecision));
+                    } else {
+                        tdsWriter.writeByte(TDSType.BIGCHAR.byteValue());
+                        tdsWriter.writeShort((short) (srcPrecision));
+                    }
                     collation.writeCollation(tdsWriter);
                 }
                 break;
@@ -961,12 +964,21 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case java.sql.Types.LONGVARCHAR:
             case java.sql.Types.VARCHAR: // 0xA7
-                // BIGVARCHARTYPE
-                tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
-                if (isStreaming) {
-                    tdsWriter.writeShort((short) 0xFFFF);
+                // For the case when source database stores unicode data in VARCHAR and destination column is NVARCHAR.
+                if (SSType.NVARCHAR == destSSType || SSType.NVARCHARMAX == destSSType) {
+                    tdsWriter.writeByte(TDSType.NVARCHAR.byteValue());
+                    if (isStreaming) {
+                        tdsWriter.writeShort((short) 0xFFFF);
+                    } else {
+                        tdsWriter.writeShort(isBaseType ? (short) (srcPrecision) : (short) (2 * srcPrecision));
+                    }
                 } else {
-                    tdsWriter.writeShort((short) (srcPrecision));
+                    tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
+                    if (isStreaming) {
+                        tdsWriter.writeShort((short) 0xFFFF);
+                    } else {
+                        tdsWriter.writeShort((short) (srcPrecision));
+                    }
                 }
                 collation.writeCollation(tdsWriter);
                 break;
@@ -1271,10 +1283,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 return "numeric(" + bulkPrecision + ", " + bulkScale + ")";
 
             case microsoft.sql.Types.GUID:
-            case java.sql.Types.CHAR:
                 // For char the value has to be between 0 to 8000.
                 return "char(" + bulkPrecision + ")";
-
+            case java.sql.Types.CHAR:
+                // For the case when source database stores unicode data in CHAR and destination column is NCHAR.
+                if (SSType.NCHAR == destSSType) {
+                    return "nchar(" + bulkPrecision + ")";
+                } else {
+                    return "char(" + bulkPrecision + ")";
+                }
             case java.sql.Types.NCHAR:
                 return "NCHAR(" + bulkPrecision + ")";
 
@@ -1282,10 +1299,19 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.VARCHAR:
                 // Here the actual size of the varchar is used from the source table.
                 // Doesn't need to match with the exact size of data or with the destination column size.
-                if (isStreaming) {
-                    return "varchar(max)";
+                // For the case when source database stores unicode data in VARCHAR and destination column is NVARCHAR.
+                if (SSType.NVARCHAR == destSSType || SSType.NVARCHARMAX == destSSType) {
+                    if (isStreaming) {
+                        return "nvarchar(max)";
+                    } else {
+                        return "nvarchar(" + bulkPrecision + ")";
+                    }
                 } else {
-                    return "varchar(" + bulkPrecision + ")";
+                    if (isStreaming) {
+                        return "varchar(max)";
+                    } else {
+                        return "varchar(" + bulkPrecision + ")";
+                    }
                 }
 
                 // For INSERT BULK operations, XMLTYPE is to be sent as NVARCHAR(N) or NVARCHAR(MAX) data type.
@@ -2147,19 +2173,25 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 } else {
                                     reader = new StringReader(colValue.toString());
                                 }
-
-                                if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)
-                                        || (SSType.VARBINARYMAX == destSSType) || (SSType.IMAGE == destSSType)) {
-                                    tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true,
-                                            null);
+                                // For the case when source database stores unicode data in CHAR/VARCHAR and destination column is NCHAR/NVARCHAR.
+                                if (SSType.NCHAR == destSSType || SSType.NVARCHAR == destSSType
+                                        || SSType.NVARCHARMAX == destSSType) {
+                                    // writeReader is unicode.
+                                    tdsWriter.writeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
                                 } else {
-                                    SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
-                                    if (null != destCollation) {
-                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, false,
-                                                destCollation.getCharset());
-                                    } else {
-                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, false,
+                                    if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)
+                                            || (SSType.VARBINARYMAX == destSSType) || (SSType.IMAGE == destSSType)) {
+                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true,
                                                 null);
+                                    } else {
+                                        SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
+                                        if (null != destCollation) {
+                                            tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH,
+                                                    false, destCollation.getCharset());
+                                        } else {
+                                            tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH,
+                                                    false, null);
+                                        }
                                     }
                                 }
                                 reader.close();
@@ -2168,33 +2200,43 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                         SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
                             }
                         }
-                    } else // Non-PLP
-                    {
+                    } else {
                         if (null == colValue) {
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
                             String colValueStr = colValue.toString();
-                            if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)) {
-                                byte[] bytes = null;
-                                try {
-                                    bytes = ParameterUtils.HexToBin(colValueStr);
-                                } catch (SQLServerException e) {
-                                    throw new SQLServerException(
-                                            SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
-                                }
-                                tdsWriter.writeShort((short) bytes.length);
-                                tdsWriter.writeBytes(bytes);
+                         // For the case when source database stores unicode data in CHAR/VARCHAR and destination column is NCHAR/NVARCHAR.
+                            if (SSType.NCHAR == destSSType || SSType.NVARCHAR == destSSType
+                                    || SSType.NVARCHARMAX == destSSType) {
+                                int stringLength = colValue.toString().length();
+                                byte[] typevarlen = new byte[2];
+                                typevarlen[0] = (byte) (2 * stringLength & 0xFF);
+                                typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
+                                tdsWriter.writeBytes(typevarlen);
+                                tdsWriter.writeString(colValue.toString());
                             } else {
-                                tdsWriter.writeShort((short) (colValueStr.length()));
-                                // converting string into destination collation using Charset
-
-                                SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
-                                if (null != destCollation) {
-                                    tdsWriter.writeBytes(colValueStr
-                                            .getBytes(destColumnMetadata.get(destColOrdinal).collation.getCharset()));
-
+                                if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)) {
+                                    byte[] bytes = null;
+                                    try {
+                                        bytes = ParameterUtils.HexToBin(colValueStr);
+                                    } catch (SQLServerException e) {
+                                        throw new SQLServerException(
+                                                SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
+                                    }
+                                    tdsWriter.writeShort((short) bytes.length);
+                                    tdsWriter.writeBytes(bytes);
                                 } else {
-                                    tdsWriter.writeBytes(colValueStr.getBytes());
+                                    tdsWriter.writeShort((short) (colValueStr.length()));
+                                    // converting string into destination collation using Charset
+
+                                    SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
+                                    if (null != destCollation) {
+                                        tdsWriter.writeBytes(colValueStr.getBytes(
+                                                destColumnMetadata.get(destColOrdinal).collation.getCharset()));
+
+                                    } else {
+                                        tdsWriter.writeBytes(colValueStr.getBytes());
+                                    }
                                 }
                             }
                         }
