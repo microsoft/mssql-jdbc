@@ -25,7 +25,7 @@ import java.security.spec.RSAPublicKeySpec;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.crypto.KeyAgreement;
@@ -256,10 +256,10 @@ class EnclaveSession {
 
 
 final class EnclaveSessionCache {
-    HashMap<String, EnclaveCacheEntry> sessionCache;
+    Hashtable<String, EnclaveCacheEntry> sessionCache;
 
     EnclaveSessionCache() {
-        sessionCache = new HashMap<>(0);
+        sessionCache = new Hashtable<>(0);
     }
 
     void addEntry(String key, BaseAttestationRequest b, EnclaveSession e) {
