@@ -46,7 +46,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.logging.Level;
 
 import javax.sql.RowSet;
-
 import microsoft.sql.DateTimeOffset;
 
 
@@ -945,17 +944,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     tdsWriter.writeByte((byte) 0x10);
                 } else {
                     // For the case when source database stores unicode data in CHAR and destination column is NCHAR.
-                    if (unicodeConversionRequired(srcJdbcType, destSSType)) {
+                    if (!isStreaming && unicodeConversionRequired(srcJdbcType, destSSType)) {
                         if (SSType.NCHAR == destSSType) {
                             tdsWriter.writeByte(TDSType.NCHAR.byteValue());
                         } else {
                             tdsWriter.writeByte(TDSType.NVARCHAR.byteValue());
                         }
-                        if (isStreaming) {
-                            tdsWriter.writeShort((short) 0xFFFF);
-                        } else {
-                            tdsWriter.writeShort(isBaseType ? (short) (srcPrecision) : (short) (2 * srcPrecision));
-                        }
+                        tdsWriter.writeShort(isBaseType ? (short) (srcPrecision) : (short) (2 * srcPrecision));
                     } else {
                         tdsWriter.writeByte(TDSType.BIGCHAR.byteValue());
                         tdsWriter.writeShort((short) (srcPrecision));
@@ -973,17 +968,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.LONGVARCHAR:
             case java.sql.Types.VARCHAR: // 0xA7
                 // For the case when source database stores unicode data in VARCHAR and destination column is NVARCHAR.
-                if (unicodeConversionRequired(srcJdbcType, destSSType)) {
+                if (!isStreaming && unicodeConversionRequired(srcJdbcType, destSSType)) {
                     if (SSType.NCHAR == destSSType) {
                         tdsWriter.writeByte(TDSType.NCHAR.byteValue());
                     } else {
                         tdsWriter.writeByte(TDSType.NVARCHAR.byteValue());
                     }
-                    if (isStreaming) {
-                        tdsWriter.writeShort((short) 0xFFFF);
-                    } else {
-                        tdsWriter.writeShort(isBaseType ? (short) (srcPrecision) : (short) (2 * srcPrecision));
-                    }
+                    tdsWriter.writeShort(isBaseType ? (short) (srcPrecision) : (short) (2 * srcPrecision));
                 } else {
                     tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
                     if (isStreaming) {
@@ -1300,7 +1291,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 return "char(" + bulkPrecision + ")";
             case java.sql.Types.CHAR:
                 // For the case when source database stores unicode data in CHAR and destination column is NCHAR.
-                if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
+                if (!isStreaming && unicodeConversionRequired(bulkJdbcType, destSSType)) {
                     if (SSType.NCHAR == destSSType) {
                         return "nchar(" + bulkPrecision + ")";
                     } else {
@@ -1317,15 +1308,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // Here the actual size of the varchar is used from the source table.
                 // Doesn't need to match with the exact size of data or with the destination column size.
                 // For the case when source database stores unicode data in VARCHAR and destination column is NVARCHAR.
-                if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
+                if (!isStreaming && unicodeConversionRequired(bulkJdbcType, destSSType)) {
                     if (SSType.NCHAR == destSSType) {
                         return "nchar(" + bulkPrecision + ")";
                     } else {
-                        if (isStreaming) {
-                            return "nvarchar(max)";
-                        } else {
-                            return "nvarchar(" + bulkPrecision + ")";
-                        }
+                        return "nvarchar(" + bulkPrecision + ")";
                     }
                 } else {
                     if (isStreaming) {
@@ -2195,7 +2182,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 }
                                 // For the case when source database stores unicode data in CHAR/VARCHAR and destination
                                 // column is NCHAR/NVARCHAR.
-                                if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
+                                if (!isStreaming && unicodeConversionRequired(bulkJdbcType, destSSType)) {
                                     // writeReader is unicode.
                                     tdsWriter.writeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
                                 } else {
@@ -2227,7 +2214,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             String colValueStr = colValue.toString();
                             // For the case when source database stores unicode data in CHAR/VARCHAR and destination
                             // column is NCHAR/NVARCHAR.
-                            if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
+                            if (!isStreaming && unicodeConversionRequired(bulkJdbcType, destSSType)) {
                                 int stringLength = colValue.toString().length();
                                 byte[] typevarlen = new byte[2];
                                 typevarlen[0] = (byte) (2 * stringLength & 0xFF);
