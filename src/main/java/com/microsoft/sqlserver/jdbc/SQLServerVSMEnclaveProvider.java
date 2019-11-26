@@ -63,7 +63,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
                         vsmParams.createSessionSecret(hgsResponse.getDHpublicKey()));
-                SQLServerConnection.enclaveCache.addEntry(connection.getEnclaveCacheHash(), vsmParams, enclaveSession);
+                SQLServerConnection.enclaveCache.addEntry(connection.getServerName(), connection.enclaveAttestationUrl, vsmParams, enclaveSession);
             } catch (GeneralSecurityException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
             }
@@ -299,6 +299,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     public void setEnclaveSession(EnclaveCacheEntry entry) {
         this.enclaveSession = entry.getEnclaveSession();
         this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
+        this.attestationURL = entry.getAttestationURL();
     }
 }
 
@@ -350,32 +351,34 @@ class VSMAttestationResponse extends BaseAttestationResponse {
          * DH Public Key - DHPKsize bytes
          * DH Public Key Signature - DHPKSsize bytes
          */
-        ByteBuffer response = ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN);
-        this.totalSize = response.getInt();
-        this.identitySize = response.getInt();
-        int healthReportSize = response.getInt();
-        int enclaveReportSize = response.getInt();
+        ByteBuffer response = (null != b) ? ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN) : null;
+        if (null != response) {
+            this.totalSize = response.getInt();
+            this.identitySize = response.getInt();
+            int healthReportSize = response.getInt();
+            int enclaveReportSize = response.getInt();
 
-        enclavePK = new byte[identitySize];
-        healthReportCertificate = new byte[healthReportSize];
-        enclaveReportPackage = new byte[enclaveReportSize];
+            enclavePK = new byte[identitySize];
+            healthReportCertificate = new byte[healthReportSize];
+            enclaveReportPackage = new byte[enclaveReportSize];
 
-        response.get(enclavePK, 0, identitySize);
-        response.get(healthReportCertificate, 0, healthReportSize);
-        response.get(enclaveReportPackage, 0, enclaveReportSize);
+            response.get(enclavePK, 0, identitySize);
+            response.get(healthReportCertificate, 0, healthReportSize);
+            response.get(enclaveReportPackage, 0, enclaveReportSize);
 
-        this.sessionInfoSize = response.getInt();
-        response.get(sessionID, 0, 8);
-        this.DHPKsize = response.getInt();
-        this.DHPKSsize = response.getInt();
+            this.sessionInfoSize = response.getInt();
+            response.get(sessionID, 0, 8);
+            this.DHPKsize = response.getInt();
+            this.DHPKSsize = response.getInt();
 
-        DHpublicKey = new byte[DHPKsize];
-        publicKeySig = new byte[DHPKSsize];
+            DHpublicKey = new byte[DHPKsize];
+            publicKeySig = new byte[DHPKSsize];
 
-        response.get(DHpublicKey, 0, DHPKsize);
-        response.get(publicKeySig, 0, DHPKSsize);
+            response.get(DHpublicKey, 0, DHPKsize);
+            response.get(publicKeySig, 0, DHPKSsize);
+        }
 
-        if (0 != response.remaining()) {
+        if (null == response || 0 != response.remaining()) {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_EnclaveResponseLengthError"), "0", false);
         }
@@ -384,26 +387,30 @@ class VSMAttestationResponse extends BaseAttestationResponse {
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             healthCert = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(healthReportCertificate));
         } catch (CertificateException ce) {
-            SQLServerException.makeFromDriverError(null, this, ce.getLocalizedMessage(), "0", false);
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_HealthCertError"));
+            Object[] msgArgs = {ce.getLocalizedMessage()};
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
         }
     }
 
     @SuppressWarnings("unchecked")
     void validateCert(byte[] b) throws SQLServerException {
-        try {
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            Collection<X509Certificate> certs = (Collection<X509Certificate>) cf
-                    .generateCertificates(new ByteArrayInputStream(b));
-            for (X509Certificate cert : certs) {
-                try {
-                    healthCert.verify(cert.getPublicKey());
-                    return;
-                } catch (SignatureException e) {
-                    // Doesn't match, but continue looping through the rest of the certificates
+        if (null != b) {
+            try {
+                CertificateFactory cf = CertificateFactory.getInstance("X.509");
+                Collection<X509Certificate> certs = (Collection<X509Certificate>) cf
+                        .generateCertificates(new ByteArrayInputStream(b));
+                for (X509Certificate cert : certs) {
+                    try {
+                        healthCert.verify(cert.getPublicKey());
+                        return;
+                    } catch (SignatureException e) {
+                        // Doesn't match, but continue looping through the rest of the certificates
+                    }
                 }
+            } catch (GeneralSecurityException e) {
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
             }
-        } catch (GeneralSecurityException e) {
-            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
         }
         SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidHealthCert"), "0",
                 false);

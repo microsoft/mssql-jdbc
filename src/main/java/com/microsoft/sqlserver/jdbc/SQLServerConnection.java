@@ -4651,12 +4651,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v2;
                         enclaveType = new String(data, 2, data.length - 2, UTF_16LE);
                     }
-
-                    if (!EnclaveType.isValidEnclaveType(enclaveType)) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_enclaveTypeInvalid"));
-                        Object[] msgArgs = {enclaveType};
-                        throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-                    }
                 }
                 break;
 
@@ -6484,11 +6478,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         if (!this.enclaveEstablished()) {
-            EnclaveCacheEntry entry = enclaveCache.getSession(this.getEnclaveCacheHash());
+            EnclaveCacheEntry entry = enclaveCache.getSession(this.getServerName() + enclaveAttestationUrl);
             if (null == entry) {
                 enclaveProvider.getAttestationParameters(this.enclaveAttestationUrl);
             } else {
                 enclaveProvider.setEnclaveSession(entry);
+                System.out.println("Cache hit, using session: " + entry.getEnclaveSession().getSessionID().toString());
             }
         }
         return enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
@@ -6502,8 +6497,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (enclaveCEKs.size() > 0) ? enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs) : null;
     }
 
-    String getEnclaveCacheHash() {
-        return this.hostName + this.enclaveAttestationUrl;
+    String getServerName() {
+        return this.trustedServerNameAE;
     }
 }
 

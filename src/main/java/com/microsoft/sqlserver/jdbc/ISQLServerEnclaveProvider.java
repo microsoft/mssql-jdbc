@@ -103,7 +103,7 @@ abstract class BaseAttestationRequest {
     };
 
     byte[] createSessionSecret(byte[] serverResponse) throws GeneralSecurityException, SQLServerException {
-        if (serverResponse.length != ENCLAVE_LENGTH) {
+        if (serverResponse == null || serverResponse.length != ENCLAVE_LENGTH) {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_MalformedECDHPublicKey"), "0", false);
         }
@@ -262,8 +262,9 @@ final class EnclaveSessionCache {
         sessionCache = new Hashtable<>(0);
     }
 
-    void addEntry(String key, BaseAttestationRequest b, EnclaveSession e) {
-        sessionCache.put(key, new EnclaveCacheEntry(b, e));
+    void addEntry(String servername, String attestationUrl, BaseAttestationRequest b, EnclaveSession e) {
+        System.out.println("Adding session " + e.getSessionID().toString() + " with key: " + servername + attestationUrl);
+        sessionCache.put(servername+attestationUrl, new EnclaveCacheEntry(b, e,attestationUrl));
     }
 
     EnclaveCacheEntry getSession(String key) {
@@ -282,11 +283,13 @@ class EnclaveCacheEntry {
 
     private BaseAttestationRequest bar;
     private EnclaveSession es;
+    private String attestationUrl;
     private long timeCreatedInMillis;
 
-    EnclaveCacheEntry(BaseAttestationRequest b, EnclaveSession e) {
+    EnclaveCacheEntry(BaseAttestationRequest b, EnclaveSession e, String url) {
         bar = b;
         es = e;
+        attestationUrl = url;
         timeCreatedInMillis = Instant.now().getEpochSecond();
     }
 
@@ -300,5 +303,9 @@ class EnclaveCacheEntry {
 
     EnclaveSession getEnclaveSession() {
         return es;
+    }
+
+    String getAttestationURL() {
+        return attestationUrl;
     }
 }

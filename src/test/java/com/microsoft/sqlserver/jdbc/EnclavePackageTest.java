@@ -198,7 +198,7 @@ public class EnclavePackageTest extends AbstractTest {
 
         String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol",
-                (null != enclaveAttestationProtocol) ? enclaveAttestationProtocol : AttestationProtocol.HGS.toString());
+                (null != enclaveAttestationProtocol) ? enclaveAttestationProtocol : "HGS");
 
         // reset logging to avoid severe logs due to negative testing
         LogManager.getLogManager().reset();
@@ -257,7 +257,7 @@ public class EnclavePackageTest extends AbstractTest {
         // bad enclaveAttestationProtocol
         testInvalidProperties(
                 TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol", ""),
-                "R_enclaveInvalidAttestationProtocol");
+                "R_enclavePropertiesError");
     }
 
     /*
