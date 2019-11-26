@@ -943,7 +943,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     tdsWriter.writeByte(TDSType.GUID.byteValue());
                     tdsWriter.writeByte((byte) 0x10);
                 } else {
-                    // For the case when source database stores unicode data in CHAR and destination column is NCHAR.
                     if (unicodeConversionRequired(srcJdbcType, destSSType)) {
                         tdsWriter.writeByte(TDSType.NCHAR.byteValue());
                         tdsWriter.writeShort(isBaseType ? (short) (srcPrecision) : (short) (2 * srcPrecision));
@@ -963,7 +962,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case java.sql.Types.LONGVARCHAR:
             case java.sql.Types.VARCHAR: // 0xA7
-                // For the case when source database stores unicode data in VARCHAR and destination column is NVARCHAR.
                 if (unicodeConversionRequired(srcJdbcType, destSSType)) {
                     tdsWriter.writeByte(TDSType.NVARCHAR.byteValue());
                     if (isStreaming) {
@@ -1286,7 +1284,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // For char the value has to be between 0 to 8000.
                 return "char(" + bulkPrecision + ")";
             case java.sql.Types.CHAR:
-                // For the case when source database stores unicode data in CHAR and destination column is NCHAR.
                 if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
                     return "nchar(" + bulkPrecision + ")";
                 } else {
@@ -1299,7 +1296,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.VARCHAR:
                 // Here the actual size of the varchar is used from the source table.
                 // Doesn't need to match with the exact size of data or with the destination column size.
-                // For the case when source database stores unicode data in VARCHAR and destination column is NVARCHAR.
                 if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
                     if (isStreaming) {
                         return "nvarchar(max)";
@@ -2172,8 +2168,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 } else {
                                     reader = new StringReader(colValue.toString());
                                 }
-                                // For the case when source database stores unicode data in CHAR/VARCHAR and destination
-                                // column is NCHAR/NVARCHAR.
                                 if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
                                     // writeReader is unicode.
                                     tdsWriter.writeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
@@ -2204,8 +2198,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
                             String colValueStr = colValue.toString();
-                            // For the case when source database stores unicode data in CHAR/VARCHAR and destination
-                            // column is NCHAR/NVARCHAR.
                             if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
                                 int stringLength = colValue.toString().length();
                                 byte[] typevarlen = new byte[2];
@@ -3570,6 +3562,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         destinationTableMetadata = rs;
     }
 
+    /**
+     * For the case when source database stores unicode data in CHAR/VARCHAR and destination column is NCHAR/NVARCHAR.
+     *
+     * @param jdbcType
+     * @param ssType
+     * @return whether conversion to unicode is required.
+     */
     private boolean unicodeConversionRequired(int jdbcType, SSType ssType) {
         return ((java.sql.Types.CHAR == jdbcType || java.sql.Types.VARCHAR == jdbcType
                 || java.sql.Types.LONGNVARCHAR == jdbcType) && (SSType.NCHAR == ssType || SSType.NVARCHAR == ssType));
