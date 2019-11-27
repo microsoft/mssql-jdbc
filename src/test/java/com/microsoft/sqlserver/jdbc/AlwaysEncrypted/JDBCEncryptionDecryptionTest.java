@@ -1776,8 +1776,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testChar(null, values);
 
         if (isTestEnclave) {
-            if (null == System.getProperty(Constants.ENCLAVE_ATTESTATIONURL)
-                    || null == System.getProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
+                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
                 fail(TestResource.getResource("R_reqExternalSetup"));
             }
 
@@ -1815,8 +1815,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testBinary(null, values);
 
         if (isTestEnclave) {
-            if (null == System.getProperty(Constants.ENCLAVE_ATTESTATIONURL)
-                    || null == System.getProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
+                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
                 fail(TestResource.getResource("R_reqExternalSetup"));
             }
 
@@ -1858,8 +1858,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testDate(null, values);
 
         if (isTestEnclave) {
-            if (null == System.getProperty(Constants.ENCLAVE_ATTESTATIONURL)
-                    || null == System.getProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
+                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
                 fail(TestResource.getResource("R_reqExternalSetup"));
             }
 
@@ -1897,8 +1897,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testNumeric(null, values2, isNull);
 
         if (isTestEnclave) {
-            if (null == System.getProperty(Constants.ENCLAVE_ATTESTATIONURL)
-                    || null == System.getProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
+                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
                 fail(TestResource.getResource("R_reqExternalSetup"));
             }
 
@@ -1920,14 +1920,10 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 ClientCredential cred = new ClientCredential(applicationClientID, applicationKey);
                 Future<AuthenticationResult> future = context.acquireToken(resource, cred, null);
                 result = future.get();
-                return result.getAccessToken();
             } catch (Exception e) {
-                e.printStackTrace();
-                return null;
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
             }
-
-            // return null;
+            return result.getAccessToken();
         }
     };
-
 }

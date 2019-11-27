@@ -163,12 +163,12 @@ public class AESetup extends AbstractTest {
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
 
-        String enclaveAttestationUrl = System.getProperty("enclaveAttestationUrl");
+        String enclaveAttestationUrl = getConfiguredProperty("enclaveAttestationUrl");
         if (null != enclaveAttestationUrl) {
             AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "enclaveAttestationUrl",
                     enclaveAttestationUrl);
         }
-        String enclaveAttestationProtocol = System.getProperty("enclaveAttestationProtocol");
+        String enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol");
         if (null != enclaveAttestationProtocol) {
             AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
                     "enclaveAttestationProtocol", enclaveAttestationProtocol);

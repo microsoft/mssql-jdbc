@@ -410,7 +410,7 @@ public abstract class AbstractTest {
      * @param key
      * @return property value
      */
-    private static String getConfiguredProperty(String key) {
+    protected static String getConfiguredProperty(String key) {
         String value = System.getProperty(key);
 
         if (null == value && null != configProperties) {
