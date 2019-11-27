@@ -1234,20 +1234,21 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String cekName) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             // alter deterministic to randomized
-            String sql = "ALTER TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ALTER COLUMN "
-                    + ColumnType.DETERMINISTIC.name() + table[1][0] + " " + table[1][1]
-                    + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ")";
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                    stmtColEncSetting)) {
-                stmt.execute(sql);
-                if (!TestUtils.isAEv2(con)) {
-                    fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-                }
-            } catch (SQLException e) {
-                if (!TestUtils.isAEv2(con)) {
-                    fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-                } else {
-                    fail(TestResource.getResource("R_AlterAEv2Error") + e.getMessage() + "Query: " + sql);
+            for (int i = 0; i < table.length; i++) {
+                String sql = "ALTER TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ALTER COLUMN "
+                        + ColumnType.DETERMINISTIC.name() + table[i][0] + " " + table[i][1]
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ")";
+                try {
+                    stmt.execute(sql);
+                    if (!TestUtils.isAEv2(con)) {
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    }
+                } catch (SQLException e) {
+                    if (!TestUtils.isAEv2(con)) {
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    } else {
+                        fail(TestResource.getResource("R_AlterAEv2Error") + e.getMessage() + "Query: " + sql);
+                    }
                 }
             }
         }

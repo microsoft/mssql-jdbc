@@ -108,9 +108,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 ByteArrayOutputStream enclavePackage = new ByteArrayOutputStream();
                 enclavePackage.writeBytes(enclaveSession.getSessionID());
                 ByteArrayOutputStream keys = new ByteArrayOutputStream();
-                byte[] randomGUID = new byte[16];
-                SecureRandom.getInstanceStrong().nextBytes(randomGUID);
-                keys.writeBytes(randomGUID);
+                keys.writeBytes(EnclaveProviderHelpers.generateUniqueID(this.enclaveSession));
                 keys.writeBytes(ByteBuffer.allocate(8).putLong(enclaveSession.getCounter()).array());
                 keys.writeBytes(MessageDigest.getInstance("SHA-256").digest((userSQL).getBytes(UTF_16LE)));
                 for (byte[] b : enclaveCEKs) {

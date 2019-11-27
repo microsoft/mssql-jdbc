@@ -13,8 +13,10 @@ import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
@@ -26,6 +28,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.crypto.KeyAgreement;
@@ -232,11 +235,13 @@ class EnclaveSession {
     private byte[] sessionID;
     private AtomicInteger counter;
     private byte[] sessionSecret;
+    private List<byte[]> uuids;
 
     EnclaveSession(byte[] cs, byte[] b) {
         sessionID = cs;
         sessionSecret = b;
         counter = new AtomicInteger(0);
+        uuids = new ArrayList<>();
     }
 
     byte[] getSessionID() {
@@ -247,8 +252,17 @@ class EnclaveSession {
         return sessionSecret;
     }
 
-    long getCounter() {
+    synchronized long getCounter() {
+        System.out.println("Current counter: " + counter);
         return counter.getAndIncrement();
+    }
+    
+    void addUuid(byte[] b) {
+        uuids.add(b);
+    }
+
+    List<byte[]> getUsedIds() {
+        return uuids;
     }
 }
 
@@ -261,7 +275,7 @@ final class EnclaveSessionCache {
     }
 
     void addEntry(String servername, String attestationUrl, BaseAttestationRequest b, EnclaveSession e) {
-        sessionCache.put(servername+attestationUrl, new EnclaveCacheEntry(b, e));
+        sessionCache.put(servername + attestationUrl, new EnclaveCacheEntry(b, e));
     }
 
     EnclaveCacheEntry getSession(String key) {
@@ -298,5 +312,24 @@ class EnclaveCacheEntry {
 
     EnclaveSession getEnclaveSession() {
         return es;
+    }
+}
+
+
+class EnclaveProviderHelpers {
+
+    private static boolean compareBytesInList(List<byte[]> l, byte[] bytes) {
+        return l.stream().anyMatch(i -> Arrays.equals(i, bytes));
+    }
+
+    static synchronized byte[] generateUniqueID(EnclaveSession e) throws NoSuchAlgorithmException {
+        byte[] randomGUID = null;
+        do {
+            randomGUID = new byte[16];
+            SecureRandom.getInstanceStrong().nextBytes(randomGUID);
+        } while (compareBytesInList(e.getUsedIds(), randomGUID));
+        e.addUuid(randomGUID);
+        System.out.println("UUID generated for session " + e.getSessionID() + ": " + randomGUID);
+        return randomGUID;
     }
 }

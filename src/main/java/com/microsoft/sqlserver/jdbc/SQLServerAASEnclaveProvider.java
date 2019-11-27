@@ -16,6 +16,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.cert.CertificateFactory;
@@ -27,6 +28,7 @@ import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
@@ -116,9 +118,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
                 ByteArrayOutputStream enclavePackage = new ByteArrayOutputStream();
                 enclavePackage.writeBytes(enclaveSession.getSessionID());
                 ByteArrayOutputStream keys = new ByteArrayOutputStream();
-                byte[] randomGUID = new byte[16];
-                SecureRandom.getInstanceStrong().nextBytes(randomGUID);
-                keys.writeBytes(randomGUID);
+                keys.writeBytes(EnclaveProviderHelpers.generateUniqueID(this.enclaveSession));
                 keys.writeBytes(ByteBuffer.allocate(8).putLong(enclaveSession.getCounter()).array());
                 keys.writeBytes(MessageDigest.getInstance("SHA-256").digest((userSQL).getBytes(UTF_16LE)));
                 for (byte[] b : enclaveCEKs) {
