@@ -45,6 +45,9 @@ import com.google.gson.JsonParser;
  */
 public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
 
+    private static EnclaveSessionCache enclaveCache = new EnclaveSessionCache();
+    private static ArrayList<byte[]> invalidatedSessions = new ArrayList<>();
+
     private AASAttestationParameters aasParams = null;
     private AASAttestationResponse hgsResponse = null;
     private String attestationURL = null;
@@ -57,8 +60,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             try {
                 aasParams = new AASAttestationParameters(attestationURL);
             } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
             }
         }
     }
@@ -70,10 +72,21 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
         ArrayList<byte[]> b = describeParameterEncryption(connection, userSql, preparedTypeDefinitions, params,
                 parameterNames);
         if (null != hgsResponse && !connection.enclaveEstablished()) {
+            // Check if the session exists in our cache
+            EnclaveCacheEntry entry = enclaveCache.getSession(connection.getServerName() + attestationURL);
+            if (null != entry) {
+                EnclaveSession es = entry.getEnclaveSession();
+                if (!invalidatedSessions.contains(es.getSessionID())) {
+                    this.enclaveSession = entry.getEnclaveSession();
+                    this.aasParams = (AASAttestationParameters) entry.getBaseAttestationRequest();
+                    return b;
+                }
+            }
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
                         aasParams.createSessionSecret(hgsResponse.getDHpublicKey()));
-//                SQLServerConnection.enclaveCache.addEntry(connection.getServerName(), aasParams, enclaveSession);
+                enclaveCache.addEntry(connection.getServerName(), connection.enclaveAttestationUrl, aasParams,
+                        enclaveSession);
             } catch (GeneralSecurityException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
             }
@@ -83,6 +96,9 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
 
     @Override
     public void invalidateEnclaveSession() {
+        if (null != enclaveSession) {
+            invalidatedSessions.add(enclaveSession.getSessionID());
+        }
         enclaveSession = null;
         aasParams = null;
         attestationURL = null;
