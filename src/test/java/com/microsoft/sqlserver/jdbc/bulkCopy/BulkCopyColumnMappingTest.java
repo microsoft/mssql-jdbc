@@ -367,7 +367,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
     }
 
     @Test
-    @DisplayName("BulkCopy:test unicode char to nchar")
+    @DisplayName("BulkCopy:test unicode char/varchar to nchar/nvarchar")
     public void testUnicodeCharToNchar() throws SQLException, ClassNotFoundException {
         validateMapping("CHAR(5)", "NCHAR(5)", "фщыab");
         validateMapping("CHAR(5)", "NVARCHAR(5)", "фщыab");
