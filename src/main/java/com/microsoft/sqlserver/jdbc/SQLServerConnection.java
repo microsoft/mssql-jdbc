@@ -6473,19 +6473,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     ISQLServerEnclaveProvider enclaveProvider;
-    static EnclaveSessionCache enclaveCache = new EnclaveSessionCache();
 
     ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         if (!this.enclaveEstablished()) {
-            EnclaveCacheEntry entry = enclaveCache.getSession(this.getServerName() + enclaveAttestationUrl);
-            if (null == entry) {
                 enclaveProvider.getAttestationParameters(this.enclaveAttestationUrl);
-            } else {
-                enclaveProvider.setEnclaveSession(entry);
-                System.out.println("Cache hit, using session: " + entry.getEnclaveSession().getSessionID().toString());
-            }
-        }
+        };
         return enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
     }
 

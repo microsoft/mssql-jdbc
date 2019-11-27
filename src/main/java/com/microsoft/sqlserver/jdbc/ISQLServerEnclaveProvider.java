@@ -83,8 +83,6 @@ public interface ISQLServerEnclaveProvider {
      * @return the enclave session
      */
     EnclaveSession getEnclaveSession();
-
-    void setEnclaveSession(EnclaveCacheEntry entry);
 }
 
 
@@ -263,8 +261,7 @@ final class EnclaveSessionCache {
     }
 
     void addEntry(String servername, String attestationUrl, BaseAttestationRequest b, EnclaveSession e) {
-        System.out.println("Adding session " + e.getSessionID().toString() + " with key: " + servername + attestationUrl);
-        sessionCache.put(servername+attestationUrl, new EnclaveCacheEntry(b, e,attestationUrl));
+        sessionCache.put(servername+attestationUrl, new EnclaveCacheEntry(b, e));
     }
 
     EnclaveCacheEntry getSession(String key) {
@@ -283,13 +280,11 @@ class EnclaveCacheEntry {
 
     private BaseAttestationRequest bar;
     private EnclaveSession es;
-    private String attestationUrl;
     private long timeCreatedInMillis;
 
-    EnclaveCacheEntry(BaseAttestationRequest b, EnclaveSession e, String url) {
+    EnclaveCacheEntry(BaseAttestationRequest b, EnclaveSession e) {
         bar = b;
         es = e;
-        attestationUrl = url;
         timeCreatedInMillis = Instant.now().getEpochSecond();
     }
 
@@ -303,9 +298,5 @@ class EnclaveCacheEntry {
 
     EnclaveSession getEnclaveSession() {
         return es;
-    }
-
-    String getAttestationURL() {
-        return attestationUrl;
     }
 }

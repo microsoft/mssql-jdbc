@@ -73,7 +73,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
                         aasParams.createSessionSecret(hgsResponse.getDHpublicKey()));
-                SQLServerConnection.enclaveCache.addEntry(connection.getEnclaveCacheHash(), aasParams, enclaveSession);
+//                SQLServerConnection.enclaveCache.addEntry(connection.getServerName(), aasParams, enclaveSession);
             } catch (GeneralSecurityException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
             }
@@ -288,12 +288,6 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             }
         }
         return enclaveRequestedCEKs;
-    }
-
-    @Override
-    public void setEnclaveSession(EnclaveCacheEntry entry) {
-        this.enclaveSession = entry.getEnclaveSession();
-        this.aasParams = (AASAttestationParameters) entry.getBaseAttestationRequest();
     }
 }
 

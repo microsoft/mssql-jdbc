@@ -40,6 +40,9 @@ import java.util.Map;
  */
 public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
 
+    private static EnclaveSessionCache enclaveCache = new EnclaveSessionCache();
+    private static ArrayList<byte[]> invalidatedSessions = new ArrayList<>();
+
     private VSMAttestationParameters vsmParams = null;
     private VSMAttestationResponse hgsResponse = null;
     private String attestationURL = null;
@@ -60,10 +63,22 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         ArrayList<byte[]> b = describeParameterEncryption(connection, userSql, preparedTypeDefinitions, params,
                 parameterNames);
         if (null != hgsResponse && !connection.enclaveEstablished()) {
+            // Check if the session exists in our cache
+            EnclaveCacheEntry entry = enclaveCache.getSession(connection.getServerName() + attestationURL);
+            if (null != entry) {
+                EnclaveSession es = entry.getEnclaveSession();
+                if (!invalidatedSessions.contains(es.getSessionID())) {
+                    this.enclaveSession = entry.getEnclaveSession();
+                    this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
+                    return b;
+                }
+            }
+            // If not, set it up
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
                         vsmParams.createSessionSecret(hgsResponse.getDHpublicKey()));
-                SQLServerConnection.enclaveCache.addEntry(connection.getServerName(), connection.enclaveAttestationUrl, vsmParams, enclaveSession);
+                enclaveCache.addEntry(connection.getServerName(), connection.enclaveAttestationUrl, vsmParams,
+                        enclaveSession);
             } catch (GeneralSecurityException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
             }
@@ -73,6 +88,9 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
 
     @Override
     public void invalidateEnclaveSession() {
+        if (null != enclaveSession) {
+            invalidatedSessions.add(enclaveSession.getSessionID());
+        }
         enclaveSession = null;
         vsmParams = null;
         attestationURL = null;
@@ -293,13 +311,6 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             }
         }
         return enclaveRequestedCEKs;
-    }
-
-    @Override
-    public void setEnclaveSession(EnclaveCacheEntry entry) {
-        this.enclaveSession = entry.getEnclaveSession();
-        this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
-        this.attestationURL = entry.getAttestationURL();
     }
 }
 
