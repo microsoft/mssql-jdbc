@@ -688,48 +688,57 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 SQLServerResultSet userRs = null;
                 PreparedStatement resultPstmt = null;
                 try (ResultSet rs = storedProcPstmt.executeQuery()) {
-                    rs.next();
-                    // Use LinkedHashMap to force retrieve elements in order they were inserted
-                    Map<Integer, String> columns = new LinkedHashMap<>();
-                    columns.put(1, "TABLE_CAT");
-                    columns.put(2, "TABLE_SCHEM");
-                    columns.put(3, "TABLE_NAME");
-                    columns.put(4, "COLUMN_NAME");
-                    columns.put(5, "DATA_TYPE");
-                    columns.put(6, "TYPE_NAME");
-                    columns.put(7, "COLUMN_SIZE");
-                    columns.put(8, "BUFFER_LENGTH");
-                    columns.put(9, "DECIMAL_DIGITS");
-                    columns.put(10, "NUM_PREC_RADIX");
-                    columns.put(11, "NULLABLE");
-                    columns.put(12, "REMARKS");
-                    columns.put(13, "COLUMN_DEF");
-                    columns.put(14, "SQL_DATA_TYPE");
-                    columns.put(15, "SQL_DATETIME_SUB");
-                    columns.put(16, "CHAR_OCTET_LENGTH");
-                    columns.put(17, "ORDINAL_POSITION");
-                    columns.put(18, "IS_NULLABLE");
-                    /*
-                     * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
-                     * be queried as 'NULL'
-                     */
-                    columns.put(-1, "SCOPE_CATALOG");
-                    columns.put(-2, "SCOPE_SCHEMA");
-                    columns.put(-3, "SCOPE_TABLE");
-                    columns.put(29, "SOURCE_DATA_TYPE");
-                    columns.put(22, "IS_AUTOINCREMENT");
-                    columns.put(21, "IS_GENERATEDCOLUMN");
-                    columns.put(19, "SS_IS_SPARSE");
-                    columns.put(20, "SS_IS_COLUMN_SET");
-                    columns.put(23, "SS_UDT_CATALOG_NAME");
-                    columns.put(24, "SS_UDT_SCHEMA_NAME");
-                    columns.put(25, "SS_UDT_ASSEMBLY_TYPE_NAME");
-                    columns.put(26, "SS_XML_SCHEMACOLLECTION_CATALOG_NAME");
-                    columns.put(27, "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME");
-                    columns.put(28, "SS_XML_SCHEMACOLLECTION_NAME");
+                    StringBuilder azureDwSelectBuilder = new StringBuilder();
+                    boolean isFirstRow = true; // less expensive than continuously checking isFirst()
+                    while (rs.next()) {
+                        if (!isFirstRow) {
+                            azureDwSelectBuilder.append(" UNION ALL ");
+                        }
+                        // Use LinkedHashMap to force retrieve elements in order they were inserted
+                        Map<Integer, String> columns = new LinkedHashMap<>();
+                        columns.put(1, "TABLE_CAT");
+                        columns.put(2, "TABLE_SCHEM");
+                        columns.put(3, "TABLE_NAME");
+                        columns.put(4, "COLUMN_NAME");
+                        columns.put(5, "DATA_TYPE");
+                        columns.put(6, "TYPE_NAME");
+                        columns.put(7, "COLUMN_SIZE");
+                        columns.put(8, "BUFFER_LENGTH");
+                        columns.put(9, "DECIMAL_DIGITS");
+                        columns.put(10, "NUM_PREC_RADIX");
+                        columns.put(11, "NULLABLE");
+                        columns.put(12, "REMARKS");
+                        columns.put(13, "COLUMN_DEF");
+                        columns.put(14, "SQL_DATA_TYPE");
+                        columns.put(15, "SQL_DATETIME_SUB");
+                        columns.put(16, "CHAR_OCTET_LENGTH");
+                        columns.put(17, "ORDINAL_POSITION");
+                        columns.put(18, "IS_NULLABLE");
+                        /*
+                         * Use negative value keys to indicate that this column doesn't exist in SQL Server and should
+                         * just be queried as 'NULL'
+                         */
+                        columns.put(-1, "SCOPE_CATALOG");
+                        columns.put(-2, "SCOPE_SCHEMA");
+                        columns.put(-3, "SCOPE_TABLE");
+                        columns.put(29, "SOURCE_DATA_TYPE");
+                        columns.put(22, "IS_AUTOINCREMENT");
+                        columns.put(21, "IS_GENERATEDCOLUMN");
+                        columns.put(19, "SS_IS_SPARSE");
+                        columns.put(20, "SS_IS_COLUMN_SET");
+                        columns.put(23, "SS_UDT_CATALOG_NAME");
+                        columns.put(24, "SS_UDT_SCHEMA_NAME");
+                        columns.put(25, "SS_UDT_ASSEMBLY_TYPE_NAME");
+                        columns.put(26, "SS_XML_SCHEMACOLLECTION_CATALOG_NAME");
+                        columns.put(27, "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME");
+                        columns.put(28, "SS_XML_SCHEMACOLLECTION_NAME");
+
+                        azureDwSelectBuilder.append(generateAzureDWSelect(rs,columns));
+                        isFirstRow = false;
+                    }
 
                     resultPstmt = (SQLServerPreparedStatement) this.connection
-                            .prepareStatement(generateAzureDWSelect(rs, columns));
+                            .prepareStatement(azureDwSelectBuilder.toString());
                     userRs = (SQLServerResultSet) resultPstmt.executeQuery();
                     resultPstmt.closeOnCompletion();
                     userRs.getColumn(5).setFilter(new DataTypeFilter());
