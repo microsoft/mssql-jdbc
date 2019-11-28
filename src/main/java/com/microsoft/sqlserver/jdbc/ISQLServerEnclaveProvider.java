@@ -284,20 +284,20 @@ final class EnclaveSessionCache {
 
 
 class EnclaveCacheEntry {
-    private static final long EIGHT_HOUR_IN_MILLIS = 28800000;
+    private static final long EIGHT_HOURS_IN_SECONDS = 28800;
 
     private BaseAttestationRequest bar;
     private EnclaveSession es;
-    private long timeCreatedInMillis;
+    private long timeCreatedInSeconds;
 
     EnclaveCacheEntry(BaseAttestationRequest b, EnclaveSession e) {
         bar = b;
         es = e;
-        timeCreatedInMillis = Instant.now().getEpochSecond();
+        timeCreatedInSeconds = Instant.now().getEpochSecond();
     }
 
-    public boolean expired() {
-        return (Instant.now().getEpochSecond() - timeCreatedInMillis) > EIGHT_HOUR_IN_MILLIS;
+    boolean expired() {
+        return (Instant.now().getEpochSecond() - timeCreatedInSeconds) > EIGHT_HOURS_IN_SECONDS;
     }
 
     BaseAttestationRequest getBaseAttestationRequest() {

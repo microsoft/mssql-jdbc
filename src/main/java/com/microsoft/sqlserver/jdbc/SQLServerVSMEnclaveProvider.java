@@ -268,7 +268,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                     // cekEntry will be null if none of the parameters are encrypted.
                     if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
                         MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_InvalidEncryptionKeyOridnal"));
+                                SQLServerException.getErrString("R_InvalidEncryptionKeyOrdinal"));
                         Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                     }
@@ -489,18 +489,18 @@ class VSMAttestationResponse extends BaseAttestationResponse {
 
 
 class X509CertificateEntry {
-    private static final long TWENTY_FOUR_HOUR_IN_MILLIS = 86400000;
+    private static final long EIGHT_HOUR_IN_SECONDS = 28800;
 
     private byte[] certificates;
-    private long timeCreatedInMillis;
+    private long timeCreatedInSeconds;
 
     X509CertificateEntry(byte[] b) {
         certificates = b;
-        timeCreatedInMillis = Instant.now().getEpochSecond();
+        timeCreatedInSeconds = Instant.now().getEpochSecond();
     }
 
     boolean expired() {
-        return (Instant.now().getEpochSecond() - timeCreatedInMillis) > TWENTY_FOUR_HOUR_IN_MILLIS;
+        return (Instant.now().getEpochSecond() - timeCreatedInSeconds) > EIGHT_HOUR_IN_SECONDS;
     }
 
     byte[] getCertificates() {

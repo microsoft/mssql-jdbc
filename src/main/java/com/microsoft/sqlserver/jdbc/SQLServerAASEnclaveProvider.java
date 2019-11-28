@@ -40,7 +40,7 @@ import com.google.gson.JsonParser;
 
 /**
  * 
- * Provides the implementation of the VSM Enclave Provider. The enclave provider encapsulates the client-side
+ * Provides the implementation of the AAS Enclave Provider. The enclave provider encapsulates the client-side
  * implementation details of the enclave attestation protocol.
  *
  */
@@ -194,9 +194,10 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
                             rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()), mdVer, keyPath,
                             keyStoreName, algo);
 
-                    // servers supporting enclave computations should always return a boolean indicating whether the key
-                    // is
-                    // required by enclave or not.
+                    /*
+                     * servers supporting enclave computations should always return a boolean indicating whether the key
+                     * is required by enclave or not.
+                     */
                     if (ColumnEncryptionVersion.AE_v2.value() <= connection.getServerColumnEncryptionVersion()
                             .value()) {
                         isRequestedByEnclave = rs
@@ -247,7 +248,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
                     // cekEntry will be null if none of the parameters are encrypted.
                     if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
                         MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_InvalidEncryptionKeyOridnal"));
+                                SQLServerException.getErrString("R_InvalidEncryptionKeyOrdinal"));
                         Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                     }
@@ -348,18 +349,18 @@ class AASAttestationParameters extends BaseAttestationRequest {
 
 
 class JWTCertificateEntry {
-    private static final long TWENTY_FOUR_HOUR_IN_MILLIS = 86400000;
+    private static final long TWENTY_FOUR_HOUR_IN_SECONDS = 86400;
 
     private JsonArray certificates;
-    private long timeCreatedInMillis;
+    private long timeCreatedInSeconds;
 
     JWTCertificateEntry(JsonArray j) {
         certificates = j;
-        timeCreatedInMillis = Instant.now().getEpochSecond();
+        timeCreatedInSeconds = Instant.now().getEpochSecond();
     }
 
     boolean expired() {
-        return (Instant.now().getEpochSecond() - timeCreatedInMillis) > TWENTY_FOUR_HOUR_IN_MILLIS;
+        return (Instant.now().getEpochSecond() - timeCreatedInSeconds) > TWENTY_FOUR_HOUR_IN_SECONDS;
     }
 
     JsonArray getCertificates() {

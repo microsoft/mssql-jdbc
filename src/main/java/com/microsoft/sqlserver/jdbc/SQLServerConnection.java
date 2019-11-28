@@ -6477,8 +6477,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         if (!this.enclaveEstablished()) {
-                enclaveProvider.getAttestationParameters(this.enclaveAttestationUrl);
-        };
+            enclaveProvider.getAttestationParameters(this.enclaveAttestationUrl);
+        }
         return enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
     }
 
