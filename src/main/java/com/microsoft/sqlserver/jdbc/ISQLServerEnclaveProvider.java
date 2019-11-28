@@ -45,8 +45,6 @@ public interface ISQLServerEnclaveProvider {
     /**
      * Returns the attestation parameters
      * 
-     * @param createNewParameters
-     *        indicates whether to create new parameters
      * @param url
      *        attestation url
      * @throws SQLServerException
