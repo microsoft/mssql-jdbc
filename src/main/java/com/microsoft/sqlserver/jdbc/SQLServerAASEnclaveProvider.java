@@ -16,7 +16,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.cert.CertificateFactory;
@@ -28,7 +27,7 @@ import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Hashtable;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
@@ -48,7 +47,6 @@ import com.google.gson.JsonParser;
 public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
 
     private static EnclaveSessionCache enclaveCache = new EnclaveSessionCache();
-    private static ArrayList<byte[]> invalidatedSessions = new ArrayList<>();
 
     private AASAttestationParameters aasParams = null;
     private AASAttestationResponse hgsResponse = null;
@@ -77,12 +75,9 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             // Check if the session exists in our cache
             EnclaveCacheEntry entry = enclaveCache.getSession(connection.getServerName() + attestationURL);
             if (null != entry) {
-                EnclaveSession es = entry.getEnclaveSession();
-                if (!invalidatedSessions.contains(es.getSessionID())) {
-                    this.enclaveSession = entry.getEnclaveSession();
-                    this.aasParams = (AASAttestationParameters) entry.getBaseAttestationRequest();
-                    return b;
-                }
+                this.enclaveSession = entry.getEnclaveSession();
+                this.aasParams = (AASAttestationParameters) entry.getBaseAttestationRequest();
+                return b;
             }
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
@@ -99,7 +94,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
     @Override
     public void invalidateEnclaveSession() {
         if (null != enclaveSession) {
-            invalidatedSessions.add(enclaveSession.getSessionID());
+            enclaveCache.removeEntry(enclaveSession);
         }
         enclaveSession = null;
         aasParams = null;
@@ -121,7 +116,8 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
                 byte[] randomGUID = new byte[16];
                 SecureRandom.getInstanceStrong().nextBytes(randomGUID);
                 keys.writeBytes(randomGUID);
-                keys.writeBytes(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(enclaveSession.getCounter()).array());
+                keys.writeBytes(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN)
+                        .putLong(enclaveSession.getCounter()).array());
                 keys.writeBytes(MessageDigest.getInstance("SHA-256").digest((userSQL).getBytes(UTF_16LE)));
                 for (byte[] b : enclaveCEKs) {
                     keys.writeBytes(b);
@@ -376,7 +372,7 @@ class JWTCertificateEntry {
 class AASAttestationResponse extends BaseAttestationResponse {
 
     private byte[] attestationToken;
-    private static Map<String, JWTCertificateEntry> certificateCache = new HashMap<>();
+    private static Hashtable<String, JWTCertificateEntry> certificateCache = new Hashtable<>();
 
     AASAttestationResponse(byte[] b) throws SQLServerException {
         /*-

@@ -13,10 +13,8 @@ import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
@@ -28,7 +26,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.crypto.KeyAgreement;
@@ -233,13 +231,11 @@ class EnclaveSession {
     private byte[] sessionID;
     private AtomicInteger counter;
     private byte[] sessionSecret;
-    private List<byte[]> uuids;
 
     EnclaveSession(byte[] cs, byte[] b) {
         sessionID = cs;
         sessionSecret = b;
         counter = new AtomicInteger(0);
-        uuids = new ArrayList<>();
     }
 
     byte[] getSessionID() {
@@ -253,14 +249,6 @@ class EnclaveSession {
     synchronized long getCounter() {
         return counter.getAndIncrement();
     }
-
-    void addUuid(byte[] b) {
-        uuids.add(b);
-    }
-
-    List<byte[]> getUsedIds() {
-        return uuids;
-    }
 }
 
 
@@ -273,6 +261,15 @@ final class EnclaveSessionCache {
 
     void addEntry(String servername, String attestationUrl, BaseAttestationRequest b, EnclaveSession e) {
         sessionCache.put(servername + attestationUrl, new EnclaveCacheEntry(b, e));
+    }
+
+    void removeEntry(EnclaveSession e) {
+        for (Entry<String, EnclaveCacheEntry> entry : sessionCache.entrySet()) {
+            EnclaveCacheEntry ece = entry.getValue();
+            if (Arrays.equals(ece.getEnclaveSession().getSessionID(), e.getSessionID())) {
+                sessionCache.remove(entry.getKey());
+            }
+        }
     }
 
     EnclaveCacheEntry getSession(String key) {

@@ -26,9 +26,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 
 
@@ -41,17 +43,16 @@ import java.util.Map;
 public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
 
     private static EnclaveSessionCache enclaveCache = new EnclaveSessionCache();
-    private static ArrayList<byte[]> invalidatedSessions = new ArrayList<>();
 
     private VSMAttestationParameters vsmParams = null;
     private VSMAttestationResponse hgsResponse = null;
-    private String attestationURL = null;
+    private String attestationUrl = null;
     private EnclaveSession enclaveSession = null;
 
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
         if (null == vsmParams) {
-            attestationURL = url;
+            attestationUrl = url;
             vsmParams = new VSMAttestationParameters();
         }
     }
@@ -64,14 +65,11 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 parameterNames);
         if (null != hgsResponse && !connection.enclaveEstablished()) {
             // Check if the session exists in our cache
-            EnclaveCacheEntry entry = enclaveCache.getSession(connection.getServerName() + attestationURL);
+            EnclaveCacheEntry entry = enclaveCache.getSession(connection.getServerName() + attestationUrl);
             if (null != entry) {
-                EnclaveSession es = entry.getEnclaveSession();
-                if (!invalidatedSessions.contains(es.getSessionID())) {
-                    this.enclaveSession = entry.getEnclaveSession();
-                    this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
-                    return b;
-                }
+                this.enclaveSession = entry.getEnclaveSession();
+                this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
+                return b;
             }
             // If not, set it up
             try {
@@ -89,11 +87,11 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     @Override
     public void invalidateEnclaveSession() {
         if (null != enclaveSession) {
-            invalidatedSessions.add(enclaveSession.getSessionID());
+            enclaveCache.removeEntry(enclaveSession);
         }
         enclaveSession = null;
         vsmParams = null;
-        attestationURL = null;
+        attestationUrl = null;
     }
 
     @Override
@@ -111,7 +109,8 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 byte[] randomGUID = new byte[16];
                 SecureRandom.getInstanceStrong().nextBytes(randomGUID);
                 keys.writeBytes(randomGUID);
-                keys.writeBytes(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(enclaveSession.getCounter()).array());
+                keys.writeBytes(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN)
+                        .putLong(enclaveSession.getCounter()).array());
                 keys.writeBytes(MessageDigest.getInstance("SHA-256").digest((userSQL).getBytes(UTF_16LE)));
                 for (byte[] b : enclaveCEKs) {
                     keys.writeBytes(b);
@@ -142,15 +141,28 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         return ar;
     }
 
+    private static Hashtable<String, X509CertificateEntry> certificateCache = new Hashtable<>();
+
     private byte[] getAttestationCertificates() throws IOException {
-        java.net.URL url = new java.net.URL(attestationURL + "/attestationservice.svc/v2.0/signingCertificates/");
-        java.net.URLConnection con = url.openConnection();
-        String s = new String(con.getInputStream().readAllBytes());
-        // omit the square brackets that come with the JSON
-        String[] bytesString = s.substring(1, s.length() - 1).split(",");
-        byte[] certData = new byte[bytesString.length];
-        for (int i = 0; i < certData.length; i++) {
-            certData[i] = (byte) (Integer.parseInt(bytesString[i]));
+        byte[] certData = null;
+        X509CertificateEntry cacheEntry = certificateCache.get(attestationUrl);
+        if (null != cacheEntry && !cacheEntry.expired()) {
+            certData = cacheEntry.getCertificates();
+        } else if (null != cacheEntry && cacheEntry.expired()) {
+            certificateCache.remove(attestationUrl);
+        }
+
+        if (null == certData) {
+            java.net.URL url = new java.net.URL(attestationUrl + "/attestationservice.svc/v2.0/signingCertificates/");
+            java.net.URLConnection con = url.openConnection();
+            String s = new String(con.getInputStream().readAllBytes());
+            // omit the square brackets that come with the JSON
+            String[] bytesString = s.substring(1, s.length() - 1).split(",");
+            certData = new byte[bytesString.length];
+            for (int i = 0; i < certData.length; i++) {
+                certData[i] = (byte) (Integer.parseInt(bytesString[i]));
+            }
+            certificateCache.put(attestationUrl, new X509CertificateEntry(certData));
         }
         return certData;
     }
@@ -472,5 +484,26 @@ class VSMAttestationResponse extends BaseAttestationResponse {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_InvalidSignedStatement"), "0", false);
         }
+    }
+}
+
+
+class X509CertificateEntry {
+    private static final long TWENTY_FOUR_HOUR_IN_MILLIS = 86400000;
+
+    private byte[] certificates;
+    private long timeCreatedInMillis;
+
+    X509CertificateEntry(byte[] b) {
+        certificates = b;
+        timeCreatedInMillis = Instant.now().getEpochSecond();
+    }
+
+    boolean expired() {
+        return (Instant.now().getEpochSecond() - timeCreatedInMillis) > TWENTY_FOUR_HOUR_IN_MILLIS;
+    }
+
+    byte[] getCertificates() {
+        return certificates;
     }
 }
