@@ -6,7 +6,6 @@ package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import java.sql.JDBCType;
 import java.sql.SQLException;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
+import com.microsoft.sqlserver.jdbc.ISQLServerBulkData;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -30,7 +29,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 
 /**
- * Test bulkcopy decimal sacle and precision
+ * Test bulk copy decimal scale and precision
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test ISQLServerBulkRecord")
@@ -59,7 +58,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         }
     }
 
-    class BulkData implements ISQLServerBulkRecord {
+    class BulkData implements ISQLServerBulkData {
 
         private static final long serialVersionUID = 1L;
 
@@ -146,11 +145,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         }
 
         @Override
-        public boolean isAutoIncrement(int column) {
-            return false;
-        }
-
-        @Override
         public Object[] getRowData() throws SQLServerException {
             return data.get(counter++);
         }
@@ -167,44 +161,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
          */
         public void reset() {
             counter = 0;
-        }
-
-        @Override
-        public void addColumnMetadata(int positionInFile, String name, int jdbcType, int precision, int scale,
-                DateTimeFormatter dateTimeFormatter) throws SQLServerException {
-            // TODO Not Implemented
-        }
-
-        @Override
-        public void addColumnMetadata(int positionInFile, String name, int jdbcType, int precision,
-                int scale) throws SQLServerException {
-            // TODO Not Implemented
-        }
-
-        @Override
-        public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
-            // TODO Not Implemented
-        }
-
-        @Override
-        public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-            // TODO Not Implemented
-        }
-
-        @Override
-        public void setTimeWithTimezoneFormat(String timeFormat) {
-            // TODO Not Implemented
-        }
-
-        @Override
-        public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
-            // TODO Not Implemented
-        }
-
-        @Override
-        public DateTimeFormatter getColumnDateTimeFormatter(int column) {
-            // TODO Not Implemented
-            return null;
         }
     }
 }
