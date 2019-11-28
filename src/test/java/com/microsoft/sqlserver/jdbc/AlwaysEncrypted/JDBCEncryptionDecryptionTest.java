@@ -1233,12 +1233,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     private void testAlterColumnEncryption(SQLServerStatement stmt, String tableName, String table[][],
             String cekName) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
-            // alter deterministic to randomized
             for (int i = 0; i < table.length; i++) {
+                // alter deterministic to randomized
                 String sql = "ALTER TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ALTER COLUMN "
                         + ColumnType.DETERMINISTIC.name() + table[i][0] + " " + table[i][1]
                         + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ")";
-                try {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
                     stmt.execute(sql);
                     if (!TestUtils.isAEv2(con)) {
                         fail(TestResource.getResource("R_expectedExceptionNotThrown"));

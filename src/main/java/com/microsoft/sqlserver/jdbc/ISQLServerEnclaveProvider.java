@@ -253,10 +253,9 @@ class EnclaveSession {
     }
 
     synchronized long getCounter() {
-        System.out.println("Current counter: " + counter);
         return counter.getAndIncrement();
     }
-    
+
     void addUuid(byte[] b) {
         uuids.add(b);
     }
@@ -312,24 +311,5 @@ class EnclaveCacheEntry {
 
     EnclaveSession getEnclaveSession() {
         return es;
-    }
-}
-
-
-class EnclaveProviderHelpers {
-
-    private static boolean compareBytesInList(List<byte[]> l, byte[] bytes) {
-        return l.stream().anyMatch(i -> Arrays.equals(i, bytes));
-    }
-
-    static synchronized byte[] generateUniqueID(EnclaveSession e) throws NoSuchAlgorithmException {
-        byte[] randomGUID = null;
-        do {
-            randomGUID = new byte[16];
-            SecureRandom.getInstanceStrong().nextBytes(randomGUID);
-        } while (compareBytesInList(e.getUsedIds(), randomGUID));
-        e.addUuid(randomGUID);
-        System.out.println("UUID generated for session " + e.getSessionID() + ": " + randomGUID);
-        return randomGUID;
     }
 }
