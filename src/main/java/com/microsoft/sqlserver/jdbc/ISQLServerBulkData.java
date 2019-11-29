@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.io.Serializable;
+import java.sql.SQLException;
 
 /**
  * Provides an interface used to create classes that read in data from any source (such as a file) and allows a
@@ -66,7 +67,7 @@ public interface ISQLServerBulkData extends Serializable {
      * @throws SQLServerException
      *         If there are any errors in obtaining the data.
      */
-    Object[] getRowData() throws SQLServerException;
+    Object[] getRowData() throws SQLException;
 
     /**
      * Advances to the next data row.
@@ -75,5 +76,5 @@ public interface ISQLServerBulkData extends Serializable {
      * @throws SQLServerException
      *         If there are any errors in advancing to the next row.
      */
-    boolean next() throws SQLServerException;
+    boolean next() throws SQLException;
 }
