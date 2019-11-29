@@ -840,8 +840,14 @@ final class DDC {
                     // This code path is functionally correct, but less performant, than the
                     // optimized path above for dates after the standard Gregorian change date.
                     else {
-                        ((GregorianCalendar) timeZoneCalendar).setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
-
+                        // Optimize for Calendar instances that can be cast to GregorianCalendar.
+                        // Otherwise, create a new GregorianCalendar.
+                        try {
+                            ((GregorianCalendar) timeZoneCalendar).setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
+                        } catch (ClassCastException e) {
+                            timeZoneCalendar = new GregorianCalendar(componentTimeZone, Locale.US);
+                            ((GregorianCalendar) timeZoneCalendar).setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
+                        }
                         // Set the calendar to the specified value. Lenient calendar behavior will update
                         // individual fields according to pure Gregorian calendar rules.
                         //
@@ -980,8 +986,9 @@ final class DDC {
                             // than millisecond precision are rounded, not truncated, to the nearest millisecond when
                             // converting to java.sql.Time. Since the milliseconds value in the calendar is truncated,
                             // round it now.
-                            if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2)
+                            if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2) {
                                 timeZoneCalendar.add(Calendar.MILLISECOND, 1);
+                            }
 
                             // Per JDBC spec, the date part of java.sql.Time values is initialized to 1/1/1970
                             // in the specified local time zone. This must be done after rounding (above) to
@@ -991,8 +998,9 @@ final class DDC {
 
                             return new java.sql.Time(timeZoneCalendar.getTimeInMillis());
                         } else {
-                            if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2)
+                            if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2) {
                                 ldt = ldt.plusNanos(1000000);
+                            }
                             java.sql.Time t = java.sql.Time.valueOf(ldt.plusYears(70).toLocalTime());
                             t.setTime(t.getTime() + (ldt.getNano() / Nanos.PER_MILLISECOND));
                             return t;
