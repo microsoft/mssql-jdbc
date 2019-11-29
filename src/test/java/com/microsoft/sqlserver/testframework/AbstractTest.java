@@ -6,6 +6,9 @@
 package com.microsoft.sqlserver.testframework;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -13,6 +16,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -79,6 +83,7 @@ public abstract class AbstractTest {
      */
     private static ByteArrayOutputStream logOutputStream = null;
     private static PrintStream logPrintStream = null;
+    private static Properties configProperties = null;
 
     /**
      * This will take care of all initialization before running the Test Suite.
@@ -91,7 +96,15 @@ public abstract class AbstractTest {
         // Invoke fine logging...
         invokeLogging();
 
-        connectionString = getConfiguredProperty(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
+        // get Properties from config file
+        try (InputStream input = new FileInputStream(Constants.CONFIG_PROPERTIES_FILE)) {
+            configProperties = new Properties();
+            configProperties.load(input);
+        } catch (FileNotFoundException | SecurityException e) {
+            // no config file used
+        }
+
+        connectionString = getConfiguredPropertyOrEnv(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
         connectionStringNTLM = connectionString;
 
         applicationClientID = getConfiguredProperty("applicationClientID");
@@ -118,9 +131,9 @@ public abstract class AbstractTest {
         }
 
         // if these properties are defined then NTLM is desired, modify connection string accordingly
-        String domain = System.getProperty("domainNTLM");
-        String user = System.getProperty("userNTLM");
-        String password = System.getProperty("passwordNTLM");
+        String domain = getConfiguredProperty("domainNTLM");
+        String user = getConfiguredProperty("userNTLM");
+        String password = getConfiguredProperty("passwordNTLM");
 
         if (null != domain) {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "domain", domain);
@@ -303,44 +316,20 @@ public abstract class AbstractTest {
     }
 
     /**
-     * Read variable from property files if found null try to read from env.
-     * 
-     * @param key
-     *        Key
-     * @return Value
-     */
-    public static String getConfiguredProperty(String key) {
-        return TestUtils.getConfiguredProperty(key);
-    }
-
-    /**
-     * Convenient method for {@link #getConfiguredProperty(String)}
-     * 
-     * @param key
-     *        Key
-     * @param defaultValue
-     *        Default Value
-     * @return Value
-     */
-    public static String getConfiguredProperty(String key, String defaultValue) {
-        return TestUtils.getConfiguredProperty(key, defaultValue);
-    }
-
-    /**
      * Invoke logging.
      */
     public static void invokeLogging() {
         Handler handler = null;
 
         // enable logging to stream by default for tests
-        String enableLogging = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING, Boolean.TRUE.toString());
+        String enableLogging = getConfiguredPropertyOrEnv(Constants.MSSQL_JDBC_LOGGING, Boolean.TRUE.toString());
 
         // If logging is not enable then return.
         if (!Boolean.TRUE.toString().equalsIgnoreCase(enableLogging)) {
             return;
         }
 
-        String loggingHandler = getConfiguredProperty(Constants.MSSQL_JDBC_LOGGING_HANDLER,
+        String loggingHandler = getConfiguredPropertyOrEnv(Constants.MSSQL_JDBC_LOGGING_HANDLER,
                 Constants.LOGGING_HANDLER_STREAM);
 
         try {
@@ -413,5 +402,73 @@ public abstract class AbstractTest {
             isSqlAzureDW = (engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
             determinedSqlAzureOrSqlServer = true;
         }
+    }
+
+    /**
+     * Read property from system or config properties file
+     * 
+     * @param key
+     * @return property value
+     */
+    protected static String getConfiguredProperty(String key) {
+        String value = System.getProperty(key);
+
+        if (null == value && null != configProperties) {
+            return configProperties.getProperty(key);
+        }
+
+        return value;
+    }
+
+    /**
+     * Read property from system or config properties file or read from env var
+     * 
+     * @param key
+     * @return property value
+     */
+    private static String getConfiguredPropertyOrEnv(String key) {
+        String value = getConfiguredProperty(key);
+
+        if (null == value) {
+            return System.getenv(key);
+        }
+
+        return value;
+    }
+
+    /**
+     * Read property from system or config properties file if not set return default value
+     * 
+     * @param key
+     * @return property value or default value
+     */
+    private static String getConfiguredProperty(String key, String defaultValue) {
+        String value = getConfiguredProperty(key);
+
+        if (null == value) {
+            return defaultValue;
+        }
+
+        return value;
+    }
+
+    /**
+     * Read property from system or config properties file or env var if not set return default value
+     * 
+     * @param key
+     * @return property value or default value
+     */
+    private static String getConfiguredPropertyOrEnv(String key, String defaultValue) {
+        String value = getConfiguredProperty(key);
+
+        if (null == value) {
+            value = System.getenv(key);
+        }
+
+        if (null == value) {
+            value = defaultValue;
+        }
+
+        return value;
     }
 }

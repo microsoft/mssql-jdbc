@@ -192,11 +192,11 @@ public class EnclavePackageTest extends AbstractTest {
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionString, "columnEncryptionSetting",
                 ColumnEncryptionSetting.Enabled.toString());
 
-        String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
+        String enclaveAttestationUrl = System.getProperty("enclaveAttestationUrl");
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationUrl",
                 (null != enclaveAttestationUrl) ? enclaveAttestationUrl : "http://blah");
 
-        String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
+        String enclaveAttestationProtocol = System.getProperty("enclaveAttestationProtocol");
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol",
                 (null != enclaveAttestationProtocol) ? enclaveAttestationProtocol : AttestationProtocol.HGS.toString());
 
@@ -258,6 +258,34 @@ public class EnclavePackageTest extends AbstractTest {
         testInvalidProperties(
                 TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol", ""),
                 "R_enclaveInvalidAttestationProtocol");
+    }
+
+    /*
+     * Test bad Java Key Store
+     */
+    @SuppressWarnings("unused")
+    public static void testBadJks() {
+        try {
+            SQLServerColumnEncryptionJavaKeyStoreProvider jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(null,
+                    null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidConnectionSetting")));
+        }
+    }
+
+    /*
+     * Test bad Azure Key Vault
+     */
+    @SuppressWarnings("unused")
+    public static void testBadAkv() {
+        try {
+            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                    null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
+        }
     }
 
     /*
