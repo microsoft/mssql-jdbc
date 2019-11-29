@@ -608,25 +608,45 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
-    private static final Map<Integer, String> getColumnsDWColumns = new LinkedHashMap<>(Map.ofEntries(createEntry(1, "TABLE_CAT"),
-            createEntry(2, "TABLE_SCHEM"), createEntry(3, "TABLE_NAME"), createEntry(4, "COLUMN_NAME"),
-            createEntry(5, "DATA_TYPE"), createEntry(6, "TYPE_NAME"), createEntry(7, "COLUMN_SIZE"),
-            createEntry(8, "BUFFER_LENGTH"), createEntry(9, "DECIMAL_DIGITS"), createEntry(10, "NUM_PREC_RADIX"),
-            createEntry(11, "NULLABLE"), createEntry(12, "REMARKS"), createEntry(13, "COLUMN_DEF"),
-            createEntry(14, "SQL_DATA_TYPE"), createEntry(15, "SQL_DATETIME_SUB"), createEntry(16, "CHAR_OCTET_LENGTH"),
-            createEntry(17, "ORDINAL_POSITION"), createEntry(18, "IS_NULLABLE"),
-            /*
-             * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just be
-             * queried as 'NULL'
-             */
-            createEntry(-1, "SCOPE_CATALOG"), createEntry(-2, "SCOPE_SCHEMA"), createEntry(-3, "SCOPE_TABLE"),
-            createEntry(29, "SOURCE_DATA_TYPE"), createEntry(22, "IS_AUTOINCREMENT"),
-            createEntry(21, "IS_GENERATEDCOLUMN"), createEntry(19, "SS_IS_SPARSE"), createEntry(20, "SS_IS_COLUMN_SET"),
-            createEntry(23, "SS_UDT_CATALOG_NAME"), createEntry(24, "SS_UDT_SCHEMA_NAME"),
-            createEntry(25, "SS_UDT_ASSEMBLY_TYPE_NAME"), createEntry(26, "SS_XML_SCHEMACOLLECTION_CATALOG_NAME"),
-            createEntry(27, "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME"), createEntry(28, "SS_XML_SCHEMACOLLECTION_NAME")
-
-    ));
+    private static final LinkedHashMap<Integer, String> getColumnsDWColumns = new LinkedHashMap<>();
+    static {
+        getColumnsDWColumns.put(1, "TABLE_CAT");
+        getColumnsDWColumns.put(2, "TABLE_SCHEM");
+        getColumnsDWColumns.put(3, "TABLE_NAME");
+        getColumnsDWColumns.put(4, "COLUMN_NAME");
+        getColumnsDWColumns.put(5, "DATA_TYPE");
+        getColumnsDWColumns.put(6, "TYPE_NAME");
+        getColumnsDWColumns.put(7, "COLUMN_SIZE");
+        getColumnsDWColumns.put(8, "BUFFER_LENGTH");
+        getColumnsDWColumns.put(9, "DECIMAL_DIGITS");
+        getColumnsDWColumns.put(10, "NUM_PREC_RADIX");
+        getColumnsDWColumns.put(11, "NULLABLE");
+        getColumnsDWColumns.put(12, "REMARKS");
+        getColumnsDWColumns.put(13, "COLUMN_DEF");
+        getColumnsDWColumns.put(14, "SQL_DATA_TYPE");
+        getColumnsDWColumns.put(15, "SQL_DATETIME_SUB");
+        getColumnsDWColumns.put(16, "CHAR_OCTET_LENGTH");
+        getColumnsDWColumns.put(17, "ORDINAL_POSITION");
+        getColumnsDWColumns.put(18, "IS_NULLABLE");
+        /*
+         * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
+         * be queried as 'NULL'
+         */
+        getColumnsDWColumns.put(-1, "SCOPE_CATALOG");
+        getColumnsDWColumns.put(-2, "SCOPE_SCHEMA");
+        getColumnsDWColumns.put(-3, "SCOPE_TABLE");
+        getColumnsDWColumns.put(29, "SOURCE_DATA_TYPE");
+        getColumnsDWColumns.put(22, "IS_AUTOINCREMENT");
+        getColumnsDWColumns.put(21, "IS_GENERATEDCOLUMN");
+        getColumnsDWColumns.put(19, "SS_IS_SPARSE");
+        getColumnsDWColumns.put(20, "SS_IS_COLUMN_SET");
+        getColumnsDWColumns.put(23, "SS_UDT_CATALOG_NAME");
+        getColumnsDWColumns.put(24, "SS_UDT_SCHEMA_NAME");
+        getColumnsDWColumns.put(25, "SS_UDT_ASSEMBLY_TYPE_NAME");
+        getColumnsDWColumns.put(26, "SS_XML_SCHEMACOLLECTION_CATALOG_NAME");
+        getColumnsDWColumns.put(27, "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME");
+        getColumnsDWColumns.put(28, "SS_XML_SCHEMACOLLECTION_NAME");
+    }
 
     @Override
     public java.sql.ResultSet getColumns(String catalog, String schema, String table, String col) throws SQLException {
