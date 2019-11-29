@@ -192,11 +192,11 @@ public class EnclavePackageTest extends AbstractTest {
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionString, "columnEncryptionSetting",
                 ColumnEncryptionSetting.Enabled.toString());
 
-        String enclaveAttestationUrl = System.getProperty("enclaveAttestationUrl");
+        String enclaveAttestationUrl = getConfiguredProperty("enclaveAttestationUrl");
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationUrl",
                 (null != enclaveAttestationUrl) ? enclaveAttestationUrl : "http://blah");
 
-        String enclaveAttestationProtocol = System.getProperty("enclaveAttestationProtocol");
+        String enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol");
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol",
                 (null != enclaveAttestationProtocol) ? enclaveAttestationProtocol : AttestationProtocol.HGS.toString());
 
@@ -467,8 +467,18 @@ public class EnclavePackageTest extends AbstractTest {
     private static void verifyEnclaveEnabled(Connection con) throws SQLException {
         try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery(
                 "SELECT [name], [value], [value_in_use] FROM sys.configurations WHERE [name] = 'column encryption enclave type';")) {
+            String enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol");
             while (rs.next()) {
-                assertEquals("1", rs.getString(2));
+                assertEquals(rs.getString(2),
+                        String.valueOf(AttestationProtocol.HGS) == enclaveAttestationProtocol ? "1" : String
+                                .valueOf(AttestationProtocol.AAS) == enclaveAttestationProtocol ? "2" : false);
+                if (String.valueOf(AttestationProtocol.HGS) == enclaveAttestationProtocol) {
+                    assertEquals("1", rs.getString(2));
+                } else if (String.valueOf(AttestationProtocol.AAS) == enclaveAttestationProtocol) {
+                    assertEquals("2", rs.getString(2));
+                } else {
+                    fail(TestResource.getResource("R_invalidEnclaveType"));
+                }
             }
         }
     }

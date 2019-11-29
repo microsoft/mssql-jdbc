@@ -114,7 +114,8 @@ enum ColumnEncryptionSetting {
 
 
 enum AttestationProtocol {
-    HGS("HGS"); // only protocol supported currently
+    HGS("HGS"),
+    AAS("AAS");
 
     private final String protocol;
 
