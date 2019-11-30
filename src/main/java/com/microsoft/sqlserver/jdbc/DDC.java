@@ -811,8 +811,8 @@ final class DDC {
             case DATETIME2:
             case DATETIMEOFFSET: {
                 if (null != timeZoneCalendar) {
-                    timeZoneCalendar = new GregorianCalendar(componentTimeZone, Locale.US);
-
+                    timeZoneCalendar.setTimeZone(componentTimeZone);
+                    
                     // For dates after the standard Julian-Gregorian calendar change date,
                     // the calendar value can be accurately set using a straightforward
                     // (and measurably better performing) assignment.
