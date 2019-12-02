@@ -120,38 +120,6 @@ public final class TestUtils {
     }
 
     /**
-     * Read variable from property files if found null try to read from env.
-     * 
-     * @param key
-     * @return Value
-     */
-    public static String getConfiguredProperty(String key) {
-        String value = System.getProperty(key);
-
-        if (value == null) {
-            value = System.getenv(key);
-        }
-
-        return value;
-    }
-
-    /**
-     * Convenient method for {@link #getConfiguredProperty(String)}
-     * 
-     * @param key
-     * @return Value
-     */
-    public static String getConfiguredProperty(String key, String defaultValue) {
-        String value = getConfiguredProperty(key);
-
-        if (value == null) {
-            value = defaultValue;
-        }
-
-        return value;
-    }
-
-    /**
      * 
      * @param javatype
      * @return

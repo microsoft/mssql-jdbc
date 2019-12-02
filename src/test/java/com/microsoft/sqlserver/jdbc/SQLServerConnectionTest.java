@@ -49,21 +49,207 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Test
     public void testDataSource() {
         SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setUser("User");
-        ds.setPassword("sUser");
-        ds.setApplicationName("User");
-        ds.setURL("jdbc:sqlserver://" + randomServer + ";packetSize=512");
+        String stringPropValue = "stringPropValue";
+        boolean booleanPropValue = true;
+        int intPropValue = 1;
 
-        String trustStore = "Store";
-        String trustStorePassword = "pwd";
+        ds.setInstanceName(stringPropValue);
+        assertEquals(stringPropValue, ds.getInstanceName(), TestResource.getResource("R_valuesAreDifferent"));
 
-        ds.setTrustStore(trustStore);
-        ds.setEncrypt(true);
-        ds.setTrustStorePassword(trustStorePassword);
-        ds.setTrustServerCertificate(true);
-        assertEquals(trustStore, ds.getTrustStore(), TestResource.getResource("R_valuesAreDifferent"));
-        assertEquals(true, ds.getEncrypt(), TestResource.getResource("R_valuesAreDifferent"));
-        assertEquals(true, ds.getTrustServerCertificate(), TestResource.getResource("R_valuesAreDifferent"));
+        ds.setUser(stringPropValue);
+        assertEquals(stringPropValue, ds.getUser(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setPassword(stringPropValue);
+        assertEquals(stringPropValue, ds.getPassword(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setApplicationName(stringPropValue);
+        assertEquals(stringPropValue, ds.getApplicationName(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setDatabaseName(stringPropValue);
+        assertEquals(stringPropValue, ds.getDatabaseName(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setPortNumber(intPropValue);
+        assertEquals(intPropValue, ds.getPortNumber(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setURL(stringPropValue);
+        assertEquals(stringPropValue, ds.getURL(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setDescription(stringPropValue);
+        assertEquals(stringPropValue, ds.getDescription(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setPacketSize(intPropValue);
+        assertEquals(intPropValue, ds.getPacketSize(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setQueryTimeout(intPropValue);
+        assertEquals(intPropValue, ds.getQueryTimeout(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setCancelQueryTimeout(intPropValue);
+        assertEquals(intPropValue, ds.getCancelQueryTimeout(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setEnablePrepareOnFirstPreparedStatementCall(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getEnablePrepareOnFirstPreparedStatementCall(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setEnablePrepareOnFirstPreparedStatementCall(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getEnablePrepareOnFirstPreparedStatementCall(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setServerPreparedStatementDiscardThreshold(intPropValue);
+        assertEquals(intPropValue, ds.getServerPreparedStatementDiscardThreshold(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setStatementPoolingCacheSize(intPropValue);
+        assertEquals(intPropValue, ds.getStatementPoolingCacheSize(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setDisableStatementPooling(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getDisableStatementPooling(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setSocketTimeout(intPropValue);
+        assertEquals(intPropValue, ds.getSocketTimeout(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setUseBulkCopyForBatchInsert(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getUseBulkCopyForBatchInsert(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setJASSConfigurationName(stringPropValue);
+        assertEquals(stringPropValue, ds.getJASSConfigurationName(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setMSIClientId(stringPropValue);
+        assertEquals(stringPropValue, ds.getMSIClientId(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setAuthenticationScheme(stringPropValue);
+        // there is no corresponding getAuthenticationScheme
+
+        ds.setAuthentication(stringPropValue);
+        assertEquals(stringPropValue, ds.getAuthentication(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setAccessToken(stringPropValue);
+        assertEquals(stringPropValue, ds.getAccessToken(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setLastUpdateCount(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getLastUpdateCount(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setTransparentNetworkIPResolution(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getTransparentNetworkIPResolution(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setTrustServerCertificate(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getTrustServerCertificate(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setTrustStoreType(stringPropValue);
+        assertEquals(stringPropValue, ds.getTrustStoreType(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setTrustStore(stringPropValue);
+        assertEquals(stringPropValue, ds.getTrustStore(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setTrustStorePassword(stringPropValue);
+        assertEquals(stringPropValue, ds.getTrustStorePassword(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setEncrypt(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getEncrypt(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setHostNameInCertificate(stringPropValue);
+        assertEquals(stringPropValue, ds.getHostNameInCertificate(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setLockTimeout(intPropValue);
+        assertEquals(intPropValue, ds.getLockTimeout(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setSelectMethod(stringPropValue);
+        assertEquals(stringPropValue, ds.getSelectMethod(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setResponseBuffering(stringPropValue);
+        assertEquals(stringPropValue, ds.getResponseBuffering(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setApplicationIntent(stringPropValue);
+        assertEquals(stringPropValue, ds.getApplicationIntent(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setSendTimeAsDatetime(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getSendTimeAsDatetime(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setUseFmtOnly(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getUseFmtOnly(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setSendStringParametersAsUnicode(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getSendStringParametersAsUnicode(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setServerNameAsACE(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getServerNameAsACE(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setServerName(stringPropValue);
+        assertEquals(stringPropValue, ds.getServerName(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setServerSpn(stringPropValue);
+        assertEquals(stringPropValue, ds.getServerSpn(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setFailoverPartner(stringPropValue);
+        assertEquals(stringPropValue, ds.getFailoverPartner(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setMultiSubnetFailover(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getMultiSubnetFailover(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setWorkstationID(stringPropValue);
+        assertEquals(stringPropValue, ds.getWorkstationID(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setXopenStates(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getXopenStates(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setFIPS(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getFIPS(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setSSLProtocol(stringPropValue);
+        assertEquals(stringPropValue, ds.getSSLProtocol(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setTrustManagerClass(stringPropValue);
+        assertEquals(stringPropValue, ds.getTrustManagerClass(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setTrustManagerConstructorArg(stringPropValue);
+        assertEquals(stringPropValue, ds.getTrustManagerConstructorArg(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setHostNameInCertificate(stringPropValue);
+        assertEquals(stringPropValue, ds.getHostNameInCertificate(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setDomain(stringPropValue);
+        assertEquals(stringPropValue, ds.getDomain(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setColumnEncryptionSetting(stringPropValue);
+        assertEquals(stringPropValue, ds.getColumnEncryptionSetting(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setKeyStoreAuthentication(stringPropValue);
+        assertEquals(stringPropValue, ds.getKeyStoreAuthentication(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setKeyStoreSecret(stringPropValue);
+        // there is no corresponding getKeyStoreSecret
+
+        ds.setKeyStoreLocation(stringPropValue);
+        assertEquals(stringPropValue, ds.getKeyStoreLocation(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setEnclaveAttestationUrl(stringPropValue);
+        assertTrue(ds.getEnclaveAttestationUrl().equals(stringPropValue));
+
+        ds.setEnclaveAttestationProtocol(stringPropValue);
+        assertTrue(ds.getEnclaveAttestationProtocol().equals(stringPropValue));
+
+        ds.setKeyVaultProviderClientId(stringPropValue);
+        assertTrue(ds.getKeyVaultProviderClientId().equals(stringPropValue));
+
+        ds.setKeyVaultProviderClientKey(stringPropValue);
+        // there is no corresponding getKeyVaultProviderClientKey
+    }
+
+    @Test
+    public void testDSConnection() {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        updateDataSource(connectionString, ds);
+
+        // getPassword can only be accessed within package
+        try (Connection con = ds.getConnection(ds.getUser(), ds.getPassword())) {} catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
     }
 
     @Test

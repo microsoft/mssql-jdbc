@@ -17,6 +17,9 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.LinkedList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -24,8 +27,15 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
+import com.microsoft.aad.adal4j.AuthenticationContext;
+import com.microsoft.aad.adal4j.AuthenticationResult;
+import com.microsoft.aad.adal4j.ClientCredential;
 import com.microsoft.sqlserver.jdbc.RandomData;
+import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
+import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.SQLServerKeyVaultAuthenticationCallback;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
@@ -57,6 +67,247 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         SETOBJECT_WITH_JAVATYPES,
         SETOBJECT_NULL,
         NULL
+    }
+
+    /*
+     * Test getting/setting JKS name
+     */
+    @Test
+    public void testJksName() {
+        try {
+            SQLServerColumnEncryptionJavaKeyStoreProvider jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(
+                    javaKeyPath, new char[1]);
+            String keystoreName = "keystoreName";
+            jksp.setName(keystoreName);
+            assertTrue(jksp.getName().equals(keystoreName));
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+    }
+
+    /*
+     * Test getting/setting AKV name
+     */
+    @Test
+    public void testAkvName() {
+        try {
+            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                    authenticationCallback);
+            String keystoreName = "keystoreName";
+            akv.setName(keystoreName);
+            assertTrue(akv.getName().equals(keystoreName));
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+    }
+
+    /*
+     * Test bad Java Key Store
+     */
+    @SuppressWarnings("unused")
+    @Test
+    public void testBadJks() {
+        try {
+            SQLServerColumnEncryptionJavaKeyStoreProvider jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(null,
+                    null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidConnectionSetting")));
+        }
+    }
+
+    /*
+     * Test bad Azure Key Vault
+     */
+    @SuppressWarnings("unused")
+    @Test
+    public void testBadAkv() {
+        try {
+            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                    null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
+        }
+    }
+
+    /*
+     * Test bad encryptColumnEncryptionKey for JKS
+     */
+    @Test
+    public void testJksBadEncryptColumnEncryptionKey() {
+        SQLServerColumnEncryptionJavaKeyStoreProvider jksp = null;
+        char[] secret = new char[1];
+        try {
+            jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath, secret);
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+
+        // null masterKeyPath
+        try {
+            jksp.encryptColumnEncryptionKey(null, null, null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidMasterKeyDetails")));
+        }
+
+        // empty cek
+        try {
+            byte[] emptyCek = new byte[0];
+            jksp.encryptColumnEncryptionKey(javaKeyPath, Constants.CEK_ALGORITHM, emptyCek);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyColumnEncryptionKey")));
+        }
+    }
+
+    /*
+     * Test bad encryptColumnEncryptionKey for AKV
+     */
+    @Test
+    public void testAkvBadEncryptColumnEncryptionKey() {
+        SQLServerColumnEncryptionAzureKeyVaultProvider akv = null;
+        try {
+            akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(authenticationCallback);
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+
+        // null encryptedColumnEncryptionKey
+        try {
+            akv.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullColumnEncryptionKey")));
+        }
+
+        // empty encryptedColumnEncryptionKey
+        try {
+            byte[] emptyCek = new byte[0];
+            akv.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, emptyCek);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyCEK")));
+        }
+    }
+
+    /*
+     * Test decryptColumnEncryptionKey for JKS
+     */
+    @Test
+    public void testJksDecryptColumnEncryptionKey() {
+        SQLServerColumnEncryptionJavaKeyStoreProvider jksp = null;
+        char[] secret = new char[1];
+        try {
+            jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider("badkeypath", secret);
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+
+        // null masterKeyPath
+        try {
+            jksp.decryptColumnEncryptionKey(null, null, null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidMasterKeyDetails")));
+        }
+
+        // bad keystore
+        try {
+            byte[] emptyCek = new byte[0];
+            jksp.decryptColumnEncryptionKey("keypath", "algorithm", emptyCek);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_KeyStoreNotFound")));
+        }
+
+        try {
+            jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath, secret);
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+
+        // bad cert
+        try {
+            byte[] badCek = new byte[1];
+            jksp.decryptColumnEncryptionKey(javaKeyAliases, "RSA_OAEP", badCek);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidKeyStoreFile")));
+        }
+    }
+
+    /*
+     * Test decryptColumnEncryptionKey for AKV
+     */
+    @Test
+    public void testAkvDecryptColumnEncryptionKey() {
+        SQLServerColumnEncryptionAzureKeyVaultProvider akv = null;
+        try {
+            akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(authenticationCallback);
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+
+        // null akvpath
+        try {
+            akv.decryptColumnEncryptionKey(null, "", null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVPathNull")));
+        }
+
+        // invalid akvpath
+        try {
+            akv.decryptColumnEncryptionKey("keypath", "", null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVMasterKeyPathInvalid")));
+        }
+
+        // invalid akvpath url
+        try {
+            akv.decryptColumnEncryptionKey("http:///^[!#$&-;=?-[]_a-", "", null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVURLInvalid")));
+        }
+
+        // null encryptedColumnEncryptionKey
+        try {
+            akv.decryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullEncryptedColumnEncryptionKey")));
+        }
+
+        // empty encryptedColumnEncryptionKey
+        try {
+            byte[] emptyCek = new byte[0];
+            akv.decryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, emptyCek);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyEncryptedColumnEncryptionKey")));
+        }
+
+        // invalid algorithm
+        try {
+            byte[] badCek = new byte[1];
+            akv.decryptColumnEncryptionKey(keyIDs[0], "invalidAlgo", badCek);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidKeyEncryptionAlgorithm")));
+        }
+
+        // bad encryptedColumnEncryptionKey
+        try {
+            byte[] badCek = new byte[1];
+            akv.decryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, badCek);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidEcryptionAlgorithmVersion")));
+        }
     }
 
     /**
@@ -1656,4 +1907,23 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             testRichQuery(stmt, NUMERIC_TABLE_AE, table, values2);
         }
     }
+
+    SQLServerKeyVaultAuthenticationCallback authenticationCallback = new SQLServerKeyVaultAuthenticationCallback() {
+        // @Override
+        ExecutorService service = Executors.newFixedThreadPool(2);
+
+        public String getAccessToken(String authority, String resource, String scope) {
+
+            AuthenticationResult result = null;
+            try {
+                AuthenticationContext context = new AuthenticationContext(authority, false, service);
+                ClientCredential cred = new ClientCredential(applicationClientID, applicationKey);
+                Future<AuthenticationResult> future = context.acquireToken(resource, cred, null);
+                result = future.get();
+            } catch (Exception e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+            return result.getAccessToken();
+        }
+    };
 }
