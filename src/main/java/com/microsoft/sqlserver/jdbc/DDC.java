@@ -995,6 +995,9 @@ final class DDC {
             case TIMESTAMP: {
                 java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
                 ts.setNanos(subSecondNanos);
+                if (jdbcType == JDBCType.LOCALDATETIME) {
+                    return ts.toLocalDateTime();
+                }
                 return ts;
             }
 
