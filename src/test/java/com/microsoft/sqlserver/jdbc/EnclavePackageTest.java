@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -469,15 +470,15 @@ public class EnclavePackageTest extends AbstractTest {
                 "SELECT [name], [value], [value_in_use] FROM sys.configurations WHERE [name] = 'column encryption enclave type';")) {
             String enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol");
             while (rs.next()) {
-                assertEquals(rs.getString(2),
-                        String.valueOf(AttestationProtocol.HGS) == enclaveAttestationProtocol ? "1" : String
-                                .valueOf(AttestationProtocol.AAS) == enclaveAttestationProtocol ? "2" : false);
+                String enclaveType = rs.getString(2);
                 if (String.valueOf(AttestationProtocol.HGS) == enclaveAttestationProtocol) {
-                    assertEquals("1", rs.getString(2));
+                    assertEquals(String.valueOf(EnclaveType.VBS), enclaveType);
                 } else if (String.valueOf(AttestationProtocol.AAS) == enclaveAttestationProtocol) {
-                    assertEquals("2", rs.getString(2));
+                    assertEquals(String.valueOf(EnclaveType.SGX), enclaveType);
                 } else {
-                    fail(TestResource.getResource("R_invalidEnclaveType"));
+                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_invalidEnclaveType"));
+                    Object[] msgArgs = {enclaveType};
+                    fail(form1.format(msgArgs));
                 }
             }
         }

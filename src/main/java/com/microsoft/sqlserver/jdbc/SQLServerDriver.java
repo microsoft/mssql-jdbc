@@ -135,7 +135,8 @@ enum AttestationProtocol {
 
 
 enum EnclaveType {
-    VBS("VBS"); // only VBS type supported
+    VBS("VBS"),
+    SGX("SGX");
 
     private final String type;
 
