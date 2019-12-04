@@ -1788,27 +1788,32 @@ public class DataTypesTest extends AbstractTest {
      */
     @Test
     public void testGetLocalDateTimePriorGregorian() throws Exception {
-        try (Connection conn = getConnection()) {
+        try (Connection conn = getConnection(); Statement st = conn.createStatement();) {
+            String ldtTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ldtTable"));
+            TestUtils.dropTableIfExists(ldtTable, st);
             // test data (The Battle of Hastings)
             LocalDateTime ldtExpected = LocalDateTime.of(1066, 10, 14, 0, 0);
-            Statement st = conn.createStatement();
-            st.execute("CREATE TABLE #tmp (id int PRIMARY KEY, dt datetime2)");
-            PreparedStatement ps = conn.prepareStatement("INSERT INTO #tmp (id, dt) VALUES (1, ?)");
+            st.execute("CREATE TABLE " + ldtTable + " (id int PRIMARY KEY, dt datetime2)");
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO " + ldtTable + " (id, dt) VALUES (1, ?)");
             ps.setObject(1, ldtExpected);
             ps.executeUpdate();
 
             // retrieve as string to verify that the date is stored correctly
-            ResultSet rs = st.executeQuery("SELECT CAST(dt AS VARCHAR) FROM #tmp WHERE id = 1");
-            rs.next();
-            String strActual = rs.getString(1);
-            String strExpected = "1066-10-14 00:00:00.0000000";
-            assertTrue(strActual.equals(strExpected));
+            try (ResultSet rs = st.executeQuery("SELECT CAST(dt AS VARCHAR) FROM " + ldtTable + " WHERE id = 1");) {
+                rs.next();
+                String strActual = rs.getString(1);
+                String strExpected = "1066-10-14 00:00:00.0000000";
+                assertTrue(strActual.equals(strExpected));
+            }
 
             // retrieve as LocalDateTime
-            rs = st.executeQuery("SELECT dt FROM #tmp WHERE id = 1");
-            rs.next();
-            LocalDateTime ldtActual = rs.getObject(1, LocalDateTime.class);
-            assertTrue(ldtActual.equals(ldtExpected));
+            try (ResultSet rs = st.executeQuery("SELECT dt FROM " + ldtTable + " WHERE id = 1");) {
+                rs.next();
+                LocalDateTime ldtActual = rs.getObject(1, LocalDateTime.class);
+                assertTrue(ldtActual.equals(ldtExpected));
+            } finally {
+                TestUtils.dropTableIfExists(ldtTable, st);
+            }
         }
     }
 }
