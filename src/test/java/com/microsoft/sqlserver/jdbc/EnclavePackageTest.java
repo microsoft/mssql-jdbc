@@ -468,7 +468,7 @@ public class EnclavePackageTest extends AbstractTest {
         try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery(
                 "SELECT [name], [value], [value_in_use] FROM sys.configurations WHERE [name] = 'column encryption enclave type';")) {
             while (rs.next()) {
-                assertEquals("1", rs.getString(2), "connection string: " + connectionStringEnclave);
+                assertEquals("1", rs.getString(2));
             }
         }
     }
