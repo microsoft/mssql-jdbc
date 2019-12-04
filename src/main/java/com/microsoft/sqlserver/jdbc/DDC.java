@@ -1129,7 +1129,7 @@ final class DDC {
                         if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2) {
                             ldt = ldt.plusNanos(1000000);
                         }
-                        java.sql.Time t = java.sql.Time.valueOf(ldt.plusYears(70).toLocalTime());
+                        java.sql.Time t = java.sql.Time.valueOf(ldt.toLocalTime());
                         t.setTime(t.getTime() + (ldt.getNano() / Nanos.PER_MILLISECOND));
                         return t;
                     }
@@ -1147,7 +1147,7 @@ final class DDC {
                 if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2) {
                     ldt = ldt.plusNanos(1000000);
                 }
-                java.sql.Time t = java.sql.Time.valueOf(ldt.plusYears(70).toLocalTime());
+                java.sql.Time t = java.sql.Time.valueOf(ldt.toLocalTime());
                 t.setTime(t.getTime() + (ldt.getNano() / Nanos.PER_MILLISECOND));
                 return t;
             }
@@ -1176,8 +1176,7 @@ final class DDC {
 
                     case DATETIME2: {
                         return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
-                                java.sql.Timestamp.valueOf(ldt),
-                                fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                                ldt, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
                     }
 
                     case DATETIME: // and SMALLDATETIME
