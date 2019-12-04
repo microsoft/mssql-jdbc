@@ -144,6 +144,11 @@ enum EnclaveType {
         this.type = type;
     }
 
+    public int getValue() {
+        System.out.println(" value: " + ordinal()+1);
+        return ordinal() + 1;
+    }
+
     static boolean isValidEnclaveType(String type) {
         for (EnclaveType t : EnclaveType.values()) {
             if (type.equalsIgnoreCase(t.toString())) {
