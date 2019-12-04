@@ -476,9 +476,9 @@ public class EnclavePackageTest extends AbstractTest {
                 } else if (String.valueOf(AttestationProtocol.AAS) == enclaveAttestationProtocol) {
                     assertEquals(String.valueOf(EnclaveType.SGX), enclaveType);
                 } else {
-                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_invalidEnclaveType"));
+                    MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidEnclaveType"));
                     Object[] msgArgs = {enclaveType};
-                    fail(form1.format(msgArgs));
+                    fail(form.format(msgArgs));
                 }
             }
         }
