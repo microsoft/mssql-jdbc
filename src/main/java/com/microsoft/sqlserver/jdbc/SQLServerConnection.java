@@ -896,7 +896,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return rolledBackTransaction;
     }
 
-    private State state = State.Initialized; // connection state
+    private volatile State state = State.Initialized; // connection state
 
     private void setState(State state) {
         this.state = state;
