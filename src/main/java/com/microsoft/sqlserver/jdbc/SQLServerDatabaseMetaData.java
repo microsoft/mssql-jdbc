@@ -1032,38 +1032,36 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             }
             return rs;
         } else {
-            try (PreparedStatement storedProcPstmt = this.connection.prepareStatement("EXEC sp_pkeys ?,?,?;")) {
+            try (PreparedStatement storedProcPstmt = this.connection.prepareStatement("EXEC sp_fkeys ?,?,?,?,?,?;")) {
                 // pktable
                 storedProcPstmt.setString(1, procParams[3]);
                 storedProcPstmt.setString(2, procParams[4]);
                 storedProcPstmt.setString(3, procParams[5]);
+
+                // fktable
+                storedProcPstmt.setString(4, procParams[0]);
+                storedProcPstmt.setString(5, procParams[1]);
+                storedProcPstmt.setString(6, procParams[2]);
 
                 SQLServerResultSet userRs = null;
                 PreparedStatement resultPstmt = null;
                 try (ResultSet rs = storedProcPstmt.executeQuery()) {
                     rs.next();
                     // Use LinkedHashMap to force retrieve elements in order they were inserted
-                    // Use LinkedHashMap to force retrieve elements in order they were inserted
                     Map<Integer, String> columns = new LinkedHashMap<>();
-                    columns.put(1, "PKTABLE_CAT");
-                    columns.put(2, "PKTABLE_SCHEM");
+                    columns.put(1, "PKTABLE_QUALIFIER");
+                    columns.put(2, "PKTABLE_OWNER");
                     columns.put(3, "PKTABLE_NAME");
                     columns.put(4, "PKCOLUMN_NAME");
-                    columns.put(5, "KEY_SEQ");
-                    columns.put(6, "PK_NAME");
-
-                    /*
-                     * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
-                     * be queried as 'NULL'
-                     */
-                    columns.put(-1, "FKTABLE_CAT");
-                    columns.put(-2, "FKTABLE_SCHEM");
-                    columns.put(-3, "FKTABLE_NAME");
-                    columns.put(-4, "FKCOLUMN_NAME");
-                    columns.put(-5, "UPDATE_RULE");
-                    columns.put(-6, "DELETE_RULE");
-                    columns.put(-7, "FK_NAME");
-                    columns.put(-8, "DEFERRABILITY");
+                    columns.put(5, "FKTABLE_QUALIFIER");
+                    columns.put(6, "FKTABLE_OWNER");
+                    columns.put(7, "FKTABLE_NAME");
+                    columns.put(8, "FKCOLUMN_NAME");
+                    columns.put(9, "KEY_SEQ");
+                    columns.put(10, "UPDATE_RULE");
+                    columns.put(11, "DELETE_RULE");
+                    columns.put(12, "FK_NAME");
+                    columns.put(13, "PK_NAME");
 
                     resultPstmt = (SQLServerPreparedStatement) this.connection
                             .prepareStatement(generateAzureDWSelect(rs, columns));
