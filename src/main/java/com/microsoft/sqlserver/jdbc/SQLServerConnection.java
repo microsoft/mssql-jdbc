@@ -4652,12 +4652,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v2;
                         enclaveType = new String(data, 2, data.length - 2, UTF_16LE);
                     }
-                }
 
-                if (!EnclaveType.isValidEnclaveType(enclaveType)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_enclaveTypeInvalid"));
-                    Object[] msgArgs = {enclaveType};
-                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                    if (!EnclaveType.isValidEnclaveType(enclaveType)) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_enclaveTypeInvalid"));
+                        Object[] msgArgs = {enclaveType};
+                        throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                    }
                 }
                 break;
 
