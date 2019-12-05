@@ -76,6 +76,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         SP_STORED_PROCEDURES("{call sp_stored_procedures(?, ?, ?) }", "{call sp_stored_procedures(?, ?, ?) }"),
         SP_TABLE_PRIVILEGES("{call sp_table_privileges(?,?,?) }", "{call sp_table_privileges(?,?,?) }"),
         SP_PKEYS("{ call sp_pkeys (?, ?, ?)}", "{ call sp_pkeys (?, ?, ?)}");
+
         // stored procs before Katmai ie SS10
         private final String preKatProc;
         // procs on or after katmai
@@ -993,41 +994,120 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     private ResultSet executeSPFkeys(String[] procParams) throws SQLException, SQLTimeoutException {
-        String tempTableName = "@jdbc_temp_fkeys_result";
-        String sql = "DECLARE " + tempTableName + " table (PKTABLE_QUALIFIER sysname, " + "PKTABLE_OWNER sysname, "
-                + "PKTABLE_NAME sysname, " + "PKCOLUMN_NAME sysname, " + "FKTABLE_QUALIFIER sysname, "
-                + "FKTABLE_OWNER sysname, " + "FKTABLE_NAME sysname, " + "FKCOLUMN_NAME sysname, "
-                + "KEY_SEQ smallint, " + "UPDATE_RULE smallint, " + "DELETE_RULE smallint, " + "FK_NAME sysname, "
-                + "PK_NAME sysname, " + "DEFERRABILITY smallint);" + "INSERT INTO " + tempTableName
-                + " EXEC sp_fkeys ?,?,?,?,?,?;" + "SELECT  t.PKTABLE_QUALIFIER AS PKTABLE_CAT, "
-                + "t.PKTABLE_OWNER AS PKTABLE_SCHEM, " + "t.PKTABLE_NAME, " + "t.PKCOLUMN_NAME, "
-                + "t.FKTABLE_QUALIFIER AS FKTABLE_CAT, " + "t.FKTABLE_OWNER AS FKTABLE_SCHEM, " + "t.FKTABLE_NAME, "
-                + "t.FKCOLUMN_NAME, " + "t.KEY_SEQ, " + "CASE s.update_referential_action " + "WHEN 1 THEN 0 " +
-                // cascade - note that sp_fkey and sys.foreign_keys have flipped values for
-                // cascade and no action
-                "WHEN 0 THEN 3 " + // no action
-                "WHEN 2 THEN 2 " + // set null
-                "WHEN 3 THEN 4 " + // set default
-                "END as UPDATE_RULE, " + "CASE s.delete_referential_action " + "WHEN 1 THEN 0 " + "WHEN 0 THEN 3 "
-                + "WHEN 2 THEN 2 " + "WHEN 3 THEN 4 " + "END as DELETE_RULE, " + "t.FK_NAME, " + "t.PK_NAME, "
-                + "t.DEFERRABILITY " + "FROM " + tempTableName + " t "
-                + "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name COLLATE database_default AND schema_id(t.FKTABLE_OWNER) = s.schema_id";
-        SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(sql);
-        cstmt.closeOnCompletion();
-        for (int i = 0; i < 6; i++) {
-            cstmt.setString(i + 1, procParams[i]);
+        if (!this.connection.isAzureDW()) {
+
+            String tempTableName = "@jdbc_temp_fkeys_result";
+            String sql = "DECLARE " + tempTableName + " table (PKTABLE_QUALIFIER sysname, " + "PKTABLE_OWNER sysname, "
+                    + "PKTABLE_NAME sysname, " + "PKCOLUMN_NAME sysname, " + "FKTABLE_QUALIFIER sysname, "
+                    + "FKTABLE_OWNER sysname, " + "FKTABLE_NAME sysname, " + "FKCOLUMN_NAME sysname, "
+                    + "KEY_SEQ smallint, " + "UPDATE_RULE smallint, " + "DELETE_RULE smallint, " + "FK_NAME sysname, "
+                    + "PK_NAME sysname, " + "DEFERRABILITY smallint);" + "INSERT INTO " + tempTableName
+                    + " EXEC sp_fkeys ?,?,?,?,?,?;" + "SELECT  t.PKTABLE_QUALIFIER AS PKTABLE_CAT, "
+                    + "t.PKTABLE_OWNER AS PKTABLE_SCHEM, " + "t.PKTABLE_NAME, " + "t.PKCOLUMN_NAME, "
+                    + "t.FKTABLE_QUALIFIER AS FKTABLE_CAT, " + "t.FKTABLE_OWNER AS FKTABLE_SCHEM, " + "t.FKTABLE_NAME, "
+                    + "t.FKCOLUMN_NAME, " + "t.KEY_SEQ, " + "CASE s.update_referential_action " + "WHEN 1 THEN 0 " +
+                    // cascade - note that sp_fkey and sys.foreign_keys have flipped values for
+                    // cascade and no action
+                    "WHEN 0 THEN 3 " + // no action
+                    "WHEN 2 THEN 2 " + // set null
+                    "WHEN 3 THEN 4 " + // set default
+                    "END as UPDATE_RULE, " + "CASE s.delete_referential_action " + "WHEN 1 THEN 0 " + "WHEN 0 THEN 3 "
+                    + "WHEN 2 THEN 2 " + "WHEN 3 THEN 4 " + "END as DELETE_RULE, " + "t.FK_NAME, " + "t.PK_NAME, "
+                    + "t.DEFERRABILITY " + "FROM " + tempTableName + " t "
+                    + "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name COLLATE database_default AND schema_id(t.FKTABLE_OWNER) = s.schema_id";
+            SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(sql);
+            cstmt.closeOnCompletion();
+            for (int i = 0; i < 6; i++) {
+                cstmt.setString(i + 1, procParams[i]);
+            }
+            String currentDB = null;
+            if (null != procParams[2] && procParams[2] != "") {// pktable_qualifier
+                currentDB = switchCatalogs(procParams[2]);
+            } else if (null != procParams[5] && procParams[5] != "") {// fktable_qualifier
+                currentDB = switchCatalogs(procParams[5]);
+            }
+            ResultSet rs = cstmt.executeQuery();
+            if (null != currentDB) {
+                switchCatalogs(currentDB);
+            }
+            return rs;
+        } else {
+            try (PreparedStatement storedProcPstmt = this.connection.prepareStatement("EXEC sp_pkeys ?,?,?;")) {
+                // pktable
+                storedProcPstmt.setString(1, procParams[3]);
+                storedProcPstmt.setString(2, procParams[4]);
+                storedProcPstmt.setString(3, procParams[5]);
+
+                SQLServerResultSet userRs = null;
+                PreparedStatement resultPstmt = null;
+                try (ResultSet rs = storedProcPstmt.executeQuery()) {
+                    rs.next();
+                    // Use LinkedHashMap to force retrieve elements in order they were inserted
+                    // Use LinkedHashMap to force retrieve elements in order they were inserted
+                    Map<Integer, String> columns = new LinkedHashMap<>();
+                    columns.put(1, "PKTABLE_CAT");
+                    columns.put(2, "PKTABLE_SCHEM");
+                    columns.put(3, "PKTABLE_NAME");
+                    columns.put(4, "PKCOLUMN_NAME");
+                    columns.put(5, "KEY_SEQ");
+                    columns.put(6, "PK_NAME");
+
+                    /*
+                     * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
+                     * be queried as 'NULL'
+                     */
+                    columns.put(-1, "FKTABLE_CAT");
+                    columns.put(-2, "FKTABLE_SCHEM");
+                    columns.put(-3, "FKTABLE_NAME");
+                    columns.put(-4, "FKCOLUMN_NAME");
+                    columns.put(-5, "UPDATE_RULE");
+                    columns.put(-6, "DELETE_RULE");
+                    columns.put(-7, "FK_NAME");
+                    columns.put(-8, "DEFERRABILITY");
+
+                    resultPstmt = (SQLServerPreparedStatement) this.connection
+                            .prepareStatement(generateAzureDWSelect(rs, columns));
+                    userRs = (SQLServerResultSet) resultPstmt.executeQuery();
+                    resultPstmt.closeOnCompletion();
+                } catch (SQLException e) {
+                    if (null != resultPstmt) {
+                        try {
+                            resultPstmt.close();
+                        } catch (SQLServerException ignore) {
+                            if (loggerExternal.isLoggable(Level.FINER)) {
+                                loggerExternal.finer(
+                                        "getColumns() threw an exception when attempting to close PreparedStatement");
+                            }
+                        }
+                    }
+                    throw e;
+                }
+                return userRs;
+            }
         }
-        String currentDB = null;
-        if (null != procParams[2] && procParams[2] != "") {// pktable_qualifier
-            currentDB = switchCatalogs(procParams[2]);
-        } else if (null != procParams[5] && procParams[5] != "") {// fktable_qualifier
-            currentDB = switchCatalogs(procParams[5]);
-        }
-        ResultSet rs = cstmt.executeQuery();
-        if (null != currentDB) {
-            switchCatalogs(currentDB);
-        }
-        return rs;
+    }
+
+    // Use LinkedHashMap to force retrieve elements in order they were inserted
+    private static final LinkedHashMap<Integer, String> getColumnsDWSPFKeys = new LinkedHashMap<>();
+    static {
+        getColumnsDWSPFKeys.put(1, "PKTABLE_CAT");
+        getColumnsDWSPFKeys.put(2, "PKTABLE_SCHEM");
+        getColumnsDWSPFKeys.put(3, "PKTABLE_NAME");
+        getColumnsDWSPFKeys.put(4, "PKCOLUMN_NAME");
+        getColumnsDWSPFKeys.put(5, "FKTABLE_CAT");
+        getColumnsDWSPFKeys.put(6, "FKTABLE_SCHEM");
+        getColumnsDWSPFKeys.put(7, "FKTABLE_NAME");
+        getColumnsDWSPFKeys.put(8, "FKCOLUMN_NAME");
+        getColumnsDWSPFKeys.put(9, "KEY_SEQ");
+        getColumnsDWSPFKeys.put(10, "UPDATE_RULE");
+        getColumnsDWSPFKeys.put(11, "DELETE_RULE");
+        getColumnsDWSPFKeys.put(12, "FK_NAME");
+        getColumnsDWSPFKeys.put(13, "PK_NAME");
+        /*
+         * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just be queried
+         * as 'NULL'
+         */
+        getColumnsDWSPFKeys.put(14, "DEFERRABILITY");
     }
 
     private static final String[] getIndexInfoColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
