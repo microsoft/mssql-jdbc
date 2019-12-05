@@ -1085,29 +1085,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
     }
 
-    // Use LinkedHashMap to force retrieve elements in order they were inserted
-    private static final LinkedHashMap<Integer, String> getColumnsDWSPFKeys = new LinkedHashMap<>();
-    static {
-        getColumnsDWSPFKeys.put(1, "PKTABLE_CAT");
-        getColumnsDWSPFKeys.put(2, "PKTABLE_SCHEM");
-        getColumnsDWSPFKeys.put(3, "PKTABLE_NAME");
-        getColumnsDWSPFKeys.put(4, "PKCOLUMN_NAME");
-        getColumnsDWSPFKeys.put(5, "FKTABLE_CAT");
-        getColumnsDWSPFKeys.put(6, "FKTABLE_SCHEM");
-        getColumnsDWSPFKeys.put(7, "FKTABLE_NAME");
-        getColumnsDWSPFKeys.put(8, "FKCOLUMN_NAME");
-        getColumnsDWSPFKeys.put(9, "KEY_SEQ");
-        getColumnsDWSPFKeys.put(10, "UPDATE_RULE");
-        getColumnsDWSPFKeys.put(11, "DELETE_RULE");
-        getColumnsDWSPFKeys.put(12, "FK_NAME");
-        getColumnsDWSPFKeys.put(13, "PK_NAME");
-        /*
-         * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just be queried
-         * as 'NULL'
-         */
-        getColumnsDWSPFKeys.put(14, "DEFERRABILITY");
-    }
-
     private static final String[] getIndexInfoColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
             /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE, /* 5 */ INDEX_QUALIFIER, /* 6 */ INDEX_NAME, /* 7 */ TYPE,
             /* 8 */ ORDINAL_POSITION, /* 9 */ COLUMN_NAME, /* 10 */ ASC_OR_DESC, /* 11 */ CARDINALITY, /* 12 */ PAGES,
