@@ -618,5 +618,6 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_InvalidSignedStatement",
                     " Enclave Attestation failed, the statement bytes were not signed by the health certificate."},
             {"R_InvalidDHKeySignature",
-                    "Enclave Attestation failed, the DH Public Key signature can't be verified with the enclave PK."},};
+                    "Enclave Attestation failed, the DH Public Key signature can't be verified with the enclave PK."},
+            {"R_AasJWTError", "An error occured when retrieving and validating the JSON Web Token."}};
 };

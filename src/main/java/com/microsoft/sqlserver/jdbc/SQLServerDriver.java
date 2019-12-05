@@ -112,6 +112,63 @@ enum ColumnEncryptionSetting {
     }
 }
 
+
+enum AttestationProtocol {
+    HGS("HGS"),
+    AAS("AAS");
+
+    private final String protocol;
+
+    AttestationProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    static boolean isValidAttestationProtocol(String protocol) {
+        for (AttestationProtocol p : AttestationProtocol.values()) {
+            if (protocol.equalsIgnoreCase(p.toString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return protocol;
+    }
+}
+
+
+enum EnclaveType {
+    VBS("VBS"),
+    SGX("SGX");
+
+    private final String type;
+
+    EnclaveType(String type) {
+        this.type = type;
+    }
+
+    public int getValue() {
+        return ordinal() + 1;
+    }
+
+    static boolean isValidEnclaveType(String type) {
+        for (EnclaveType t : EnclaveType.values()) {
+            if (type.equalsIgnoreCase(t.toString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return type;
+    }
+}
+
+
 enum SSLProtocol {
     TLS("TLS"),
     TLS_V10("TLSv1"),

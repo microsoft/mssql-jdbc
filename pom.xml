@@ -49,13 +49,13 @@
 			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
-			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
-			reqExternalSetup  - For tests requiring external setup (excluded by default)
-			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-			Default testing enabled with SQL Server 2019 (SQLv15) -->
+			NTLM - - - - - - - For tests using NTLM Authentication mode (excluded by 
+			default) reqExternalSetup - For tests requiring external setup (excluded 
+			by default) - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+			- - - - - - Default testing enabled with SQL Server 2019 (SQLv15) -->
 		<excludedGroups>xSQLv15, NTLM, reqExternalSetup</excludedGroups>
 
-		<!-- Use -preview for preview release, leave empty for official release.-->
+		<!-- Use -preview for preview release, leave empty for official release. -->
 		<releaseExt>-preview</releaseExt>
 
 		<!-- Driver Dependencies -->
@@ -65,6 +65,7 @@
 		<osgi.core.version>6.0.0</osgi.core.version>
 		<osgi.comp.version>5.0.0</osgi.comp.version>
 		<antlr.runtime.version>4.7.2</antlr.runtime.version>
+		<google.gson.version>2.8.6</google.gson.version>
 
 		<!-- JUnit Test Dependencies -->
 		<junit.platform.version>[1.3.2, 1.4.2]</junit.platform.version>
@@ -104,6 +105,14 @@
 			<groupId>org.antlr</groupId>
 			<artifactId>antlr4-runtime</artifactId>
 			<version>${antlr.runtime.version}</version>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- dependencies for AAS Enclave Provider -->
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>${google.gson.version}</version>
 			<optional>true</optional>
 		</dependency>
 

@@ -15,7 +15,6 @@ import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.cert.CertificateFactory;
@@ -26,11 +25,10 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
-
-import org.apache.commons.codec.binary.Base64;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -104,36 +102,6 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
     @Override
     public EnclaveSession getEnclaveSession() {
         return enclaveSession;
-    }
-
-    @Override
-    public byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
-        if (null != enclaveSession) {
-            try {
-                ByteArrayOutputStream enclavePackage = new ByteArrayOutputStream();
-                enclavePackage.writeBytes(enclaveSession.getSessionID());
-                ByteArrayOutputStream keys = new ByteArrayOutputStream();
-                byte[] randomGUID = new byte[16];
-                SecureRandom.getInstanceStrong().nextBytes(randomGUID);
-                keys.writeBytes(randomGUID);
-                keys.writeBytes(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN)
-                        .putLong(enclaveSession.getCounter()).array());
-                keys.writeBytes(MessageDigest.getInstance("SHA-256").digest((userSQL).getBytes(UTF_16LE)));
-                for (byte[] b : enclaveCEKs) {
-                    keys.writeBytes(b);
-                }
-                enclaveCEKs.clear();
-                SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
-                        enclaveSession.getSessionSecret(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
-                SQLServerAeadAes256CbcHmac256Algorithm algo = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey,
-                        SQLServerEncryptionType.Randomized, (byte) 0x1);
-                enclavePackage.writeBytes(algo.encryptData(keys.toByteArray()));
-                return enclavePackage.toByteArray();
-            } catch (GeneralSecurityException | SQLServerException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
-            }
-        }
-        return null;
     }
 
     private AASAttestationResponse validateAttestationResponse(AASAttestationResponse ar) throws SQLServerException {
@@ -310,9 +278,9 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
 class AASAttestationParameters extends BaseAttestationRequest {
 
     // Type 1 is AAS, sent as Little Endian 0x10000000
-    private static byte ENCLAVE_TYPE[] = new byte[] {0x1, 0x0, 0x0, 0x0};
+    private static final byte[] ENCLAVE_TYPE = new byte[] {0x1, 0x0, 0x0, 0x0};
     // Nonce length is always 256
-    private static byte NONCE_LENGTH[] = new byte[] {0x0, 0x1, 0x0, 0x0};
+    private static byte[] NONCE_LENGTH = new byte[] {0x0, 0x1, 0x0, 0x0};
     private byte[] nonce = new byte[256];
 
     AASAttestationParameters(String attestationUrl) throws SQLServerException, IOException {
@@ -421,19 +389,20 @@ class AASAttestationResponse extends BaseAttestationResponse {
     }
 
     void validateToken(String attestationUrl) throws SQLServerException {
-        /*
-         * 3 parts of our JWT token: Header, Body, and Signature. Broken up via '.'
-         */
-        String jwtToken = (new String(attestationToken)).trim();
-        if (jwtToken.startsWith("\"") && jwtToken.endsWith("\"")) {
-            jwtToken = jwtToken.substring(1, jwtToken.length() - 1);
-        }
-        String[] splitString = jwtToken.split("\\.");
-        String Header = new String(Base64.decodeBase64(splitString[0]));
-        String Body = new String(Base64.decodeBase64(splitString[1]));
-        byte[] stmtSig = Base64.decodeBase64(splitString[2]);
-
         try {
+            /*
+             * 3 parts of our JWT token: Header, Body, and Signature. Broken up via '.'
+             */
+            String jwtToken = (new String(attestationToken)).trim();
+            if (jwtToken.startsWith("\"") && jwtToken.endsWith("\"")) {
+                jwtToken = jwtToken.substring(1, jwtToken.length() - 1);
+            }
+            String[] splitString = jwtToken.split("\\.");
+            java.util.Base64.Decoder decoder = Base64.getUrlDecoder();
+            String Header = new String(decoder.decode(splitString[0]));
+            String Body = new String(decoder.decode(splitString[1]));
+            byte[] stmtSig = decoder.decode(splitString[2]);
+
             JsonArray keys = null;
             JWTCertificateEntry cacheEntry = certificateCache.get(attestationUrl);
             if (null != cacheEntry && !cacheEntry.expired()) {
@@ -484,7 +453,7 @@ class AASAttestationResponse extends BaseAttestationResponse {
                     }
                 }
             }
-            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("TODO: ADD MESSAGE"), "0",
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasJWTError"), "0",
                     false);
         } catch (IOException | GeneralSecurityException e) {
             SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false);

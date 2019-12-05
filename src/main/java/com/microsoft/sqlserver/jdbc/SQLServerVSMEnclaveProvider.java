@@ -5,16 +5,12 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import static java.nio.charset.StandardCharsets.UTF_16LE;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
@@ -97,36 +93,6 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     @Override
     public EnclaveSession getEnclaveSession() {
         return enclaveSession;
-    }
-
-    @Override
-    public byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
-        if (null != enclaveSession) {
-            try {
-                ByteArrayOutputStream enclavePackage = new ByteArrayOutputStream();
-                enclavePackage.writeBytes(enclaveSession.getSessionID());
-                ByteArrayOutputStream keys = new ByteArrayOutputStream();
-                byte[] randomGUID = new byte[16];
-                SecureRandom.getInstanceStrong().nextBytes(randomGUID);
-                keys.writeBytes(randomGUID);
-                keys.writeBytes(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN)
-                        .putLong(enclaveSession.getCounter()).array());
-                keys.writeBytes(MessageDigest.getInstance("SHA-256").digest((userSQL).getBytes(UTF_16LE)));
-                for (byte[] b : enclaveCEKs) {
-                    keys.writeBytes(b);
-                }
-                enclaveCEKs.clear();
-                SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
-                        enclaveSession.getSessionSecret(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
-                SQLServerAeadAes256CbcHmac256Algorithm algo = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey,
-                        SQLServerEncryptionType.Randomized, (byte) 0x1);
-                enclavePackage.writeBytes(algo.encryptData(keys.toByteArray()));
-                return enclavePackage.toByteArray();
-            } catch (GeneralSecurityException | SQLServerException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
-            }
-        }
-        return null;
     }
 
     private VSMAttestationResponse validateAttestationResponse(VSMAttestationResponse ar) throws SQLServerException {

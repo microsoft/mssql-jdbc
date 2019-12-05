@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -440,7 +441,17 @@ public class EnclavePackageTest extends AbstractTest {
         try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery(
                 "SELECT [name], [value], [value_in_use] FROM sys.configurations WHERE [name] = 'column encryption enclave type';")) {
             while (rs.next()) {
-                assertEquals("1", rs.getString(2));
+                String enclaveType = rs.getString(2);
+                String enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol");
+                if (String.valueOf(AttestationProtocol.HGS).equals(enclaveAttestationProtocol)) {
+                    assertEquals(EnclaveType.VBS.getValue(), Integer.parseInt(enclaveType));
+                } else if (String.valueOf(AttestationProtocol.AAS).equals(enclaveAttestationProtocol)) {
+                    assertEquals(EnclaveType.SGX.getValue(), Integer.parseInt(enclaveType));
+                } else {
+                    MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidEnclaveType"));
+                    Object[] msgArgs = {enclaveType};
+                    fail(form.format(msgArgs));
+                }
             }
         }
     }

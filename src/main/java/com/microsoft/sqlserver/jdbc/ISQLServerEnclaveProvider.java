@@ -5,6 +5,9 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import static java.nio.charset.StandardCharsets.UTF_16LE;
+
+import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -15,6 +18,7 @@ import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
@@ -38,7 +42,35 @@ import javax.crypto.KeyAgreement;
  *
  */
 public interface ISQLServerEnclaveProvider {
-    byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException;
+    default byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
+        EnclaveSession enclaveSession = getEnclaveSession();
+        if (null != enclaveSession) {
+            try {
+                ByteArrayOutputStream enclavePackage = new ByteArrayOutputStream();
+                enclavePackage.writeBytes(enclaveSession.getSessionID());
+                ByteArrayOutputStream keys = new ByteArrayOutputStream();
+                byte[] randomGUID = new byte[16];
+                SecureRandom.getInstanceStrong().nextBytes(randomGUID);
+                keys.writeBytes(randomGUID);
+                keys.writeBytes(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN)
+                        .putLong(enclaveSession.getCounter()).array());
+                keys.writeBytes(MessageDigest.getInstance("SHA-256").digest((userSQL).getBytes(UTF_16LE)));
+                for (byte[] b : enclaveCEKs) {
+                    keys.writeBytes(b);
+                }
+                enclaveCEKs.clear();
+                SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
+                        enclaveSession.getSessionSecret(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
+                SQLServerAeadAes256CbcHmac256Algorithm algo = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey,
+                        SQLServerEncryptionType.Randomized, (byte) 0x1);
+                enclavePackage.writeBytes(algo.encryptData(keys.toByteArray()));
+                return enclavePackage.toByteArray();
+            } catch (GeneralSecurityException | SQLServerException e) {
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+            }
+        }
+        return null;
+    }
 
     /**
      * Returns the attestation parameters
@@ -86,12 +118,11 @@ public interface ISQLServerEnclaveProvider {
 
 
 abstract class BaseAttestationRequest {
+    protected static final byte[] ECDH_MAGIC = {0x45, 0x43, 0x4b, 0x33, 0x30, 0x00, 0x00, 0x00};
+    protected static final int ENCLAVE_LENGTH = 104;
+
     protected PrivateKey privateKey;
-    // Static byte[] for VSM ECDH
-    protected static byte ECDH_MAGIC[] = {0x45, 0x43, 0x4b, 0x33, 0x30, 0x00, 0x00, 0x00};
-    // VSM doesn't have a challenge
-    protected byte enclaveChallenge[];
-    protected static int ENCLAVE_LENGTH = 104;
+    protected byte[] enclaveChallenge;
     protected byte[] x;
     protected byte[] y;
 
@@ -151,10 +182,10 @@ abstract class BaseAttestationRequest {
          * For some reason toByteArray doesn't have an Signum option like the constructor. Manually remove leading 00
          * byte if it exists.
          */
-        if (x[0] == 0 && x.length != 48) {
+        if (0 == x[0] && 48 != x.length) {
             x = Arrays.copyOfRange(x, 1, x.length);
         }
-        if (y[0] == 0 && y.length != 48) {
+        if (0 == y[0] && 48 != y.length) {
             y = Arrays.copyOfRange(y, 1, y.length);
         }
     }
@@ -175,6 +206,7 @@ abstract class BaseAttestationResponse {
     protected byte[] DHpublicKey;
     protected byte[] publicKeySig;
 
+    @SuppressWarnings("unused")
     void validateDHPublicKey() throws SQLServerException, GeneralSecurityException {
         /*-
          * Java doesn't directly support PKCS1 padding for RSA keys. Parse the key bytes and create a RSAPublicKeySpec
@@ -253,7 +285,7 @@ class EnclaveSession {
 
 
 final class EnclaveSessionCache {
-    Hashtable<String, EnclaveCacheEntry> sessionCache;
+    private Hashtable<String, EnclaveCacheEntry> sessionCache;
 
     EnclaveSessionCache() {
         sessionCache = new Hashtable<>(0);
