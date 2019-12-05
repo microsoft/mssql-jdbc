@@ -519,6 +519,8 @@ final class DDC {
             // Convert String to Temporal types.
             case TIMESTAMP:
                 return java.sql.Timestamp.valueOf(stringVal.trim());
+            case LOCALDATETIME:
+                return parseStringIntoLDT(stringVal.trim());
             case DATE:
                 return java.sql.Date.valueOf(getDatePart(stringVal.trim()));
             case TIME: {
@@ -558,6 +560,100 @@ final class DDC {
                         return stringVal;
                 }
         }
+    }
+
+    /**
+     * Taken from java.sql.Timestamp implementation
+     * 
+     * @param s
+     *        String to be parsed
+     * @return LocalDateTime
+     */
+    private static LocalDateTime parseStringIntoLDT(String s) {
+        final int YEAR_LENGTH = 4;
+        final int MONTH_LENGTH = 2;
+        final int DAY_LENGTH = 2;
+        final int MAX_MONTH = 12;
+        final int MAX_DAY = 31;
+        int year = 0;
+        int month = 0;
+        int day = 0;
+        int hour;
+        int minute;
+        int second;
+        int a_nanos = 0;
+        int firstDash;
+        int secondDash;
+        int dividingSpace;
+        int firstColon;
+        int secondColon;
+        int period;
+        String formatError = "Timestamp format must be yyyy-mm-dd hh:mm:ss[.fffffffff]";
+
+        if (s == null)
+            throw new java.lang.IllegalArgumentException("null string");
+
+        // Split the string into date and time components
+        s = s.trim();
+        dividingSpace = s.indexOf(' ');
+        if (dividingSpace < 0) {
+            throw new java.lang.IllegalArgumentException(formatError);
+        }
+
+        // Parse the date
+        firstDash = s.indexOf('-');
+        secondDash = s.indexOf('-', firstDash + 1);
+
+        // Parse the time
+        firstColon = s.indexOf(':', dividingSpace + 1);
+        secondColon = s.indexOf(':', firstColon + 1);
+        period = s.indexOf('.', secondColon + 1);
+
+        // Convert the date
+        boolean parsedDate = false;
+        if (firstDash > 0 && secondDash > 0 && secondDash < dividingSpace - 1) {
+            if (firstDash == YEAR_LENGTH && (secondDash - firstDash > 1 && secondDash - firstDash <= MONTH_LENGTH + 1)
+                    && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
+                year = Integer.parseInt(s, 0, firstDash, 10);
+                month = Integer.parseInt(s, firstDash + 1, secondDash, 10);
+                day = Integer.parseInt(s, secondDash + 1, dividingSpace, 10);
+
+                if ((month >= 1 && month <= MAX_MONTH) && (day >= 1 && day <= MAX_DAY)) {
+                    parsedDate = true;
+                }
+            }
+        }
+        if (!parsedDate) {
+            throw new java.lang.IllegalArgumentException(formatError);
+        }
+
+        // Convert the time; default missing nanos
+        int len = s.length();
+        if (firstColon > 0 && secondColon > 0 && secondColon < len - 1) {
+            hour = Integer.parseInt(s, dividingSpace + 1, firstColon, 10);
+            minute = Integer.parseInt(s, firstColon + 1, secondColon, 10);
+            if (period > 0 && period < len - 1) {
+                second = Integer.parseInt(s, secondColon + 1, period, 10);
+                int nanoPrecision = len - (period + 1);
+                if (nanoPrecision > 9)
+                    throw new java.lang.IllegalArgumentException(formatError);
+                if (!Character.isDigit(s.charAt(period + 1)))
+                    throw new java.lang.IllegalArgumentException(formatError);
+                int tmpNanos = Integer.parseInt(s, period + 1, len, 10);
+                while (nanoPrecision < 9) {
+                    tmpNanos *= 10;
+                    nanoPrecision++;
+                }
+                a_nanos = tmpNanos;
+            } else if (period > 0) {
+                throw new java.lang.IllegalArgumentException(formatError);
+            } else {
+                second = Integer.parseInt(s, secondColon + 1, len, 10);
+            }
+        } else {
+            throw new java.lang.IllegalArgumentException(formatError);
+        }
+        return LocalDateTime.of(year, month, day, hour, minute, second, a_nanos);
     }
 
     static final Object convertStreamToObject(BaseInputStream stream, TypeInfo typeInfo, JDBCType jdbcType,
@@ -1087,7 +1183,8 @@ final class DDC {
             case DATETIMEOFFSET: {
                 ldt = LocalDateTime.of(1, 1, 1, 0, 0, 0);
                 ldt = ldt.plusDays(daysSinceBaseDate);
-                if (jdbcType.category != JDBCType.Category.DATE && ssType != SSType.DATE) {
+                // If the target is java.sql.Date, don't add the time component since it needs to be at midnight.
+                if (jdbcType.category != JDBCType.Category.DATE) {
                     ldt = ldt.plusNanos(ticksSinceMidnight);
                 }
                 subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
@@ -1098,7 +1195,8 @@ final class DDC {
             {
                 ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0);
                 ldt = ldt.plusDays(daysSinceBaseDate);
-                if (jdbcType.category != JDBCType.Category.DATE && ssType != SSType.DATE) {
+                // If the target is java.sql.Date, don't add the time component since it needs to be at midnight.
+                if (jdbcType.category != JDBCType.Category.DATE) {
                     ldt = ldt.plusNanos(ticksSinceMidnight * Nanos.PER_MILLISECOND);
                 }
 

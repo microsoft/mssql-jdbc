@@ -17,8 +17,13 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DateFormatSymbols;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.time.zone.ZoneOffsetTransition;
+import java.time.zone.ZoneRules;
 import java.util.Calendar;
 import java.util.EnumSet;
 import java.util.Locale;
@@ -1815,5 +1820,50 @@ public class DataTypesTest extends AbstractTest {
                 TestUtils.dropTableIfExists(ldtTable, st);
             }
         }
+    }
+
+    /**
+     * Test example from https://github.com/microsoft/mssql-jdbc/issues/1143
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testGetLocalDateTimeUnstorable() throws Exception {
+        LocalDateTime unstorableValue = getUnstorableValue();
+        if (null != unstorableValue) {
+            try (Connection conn = getConnection();
+                    PreparedStatement selectStatement = conn.prepareStatement(
+                            "SELECT '" + unstorableValue.toLocalDate() + " " + unstorableValue.toLocalTime() + "'");
+                    ResultSet resultSet = selectStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    LocalDateTime actual = resultSet.getObject(1, LocalDateTime.class);
+                    assertEquals(unstorableValue, actual);
+                }
+            }
+        }
+    }
+
+    static LocalDateTime getUnstorableValue() throws Exception {
+        ZoneId systemTimezone = ZoneId.systemDefault();
+        Instant now = Instant.now();
+
+        ZoneRules rules = systemTimezone.getRules();
+        ZoneOffsetTransition transition = rules.nextTransition(now);
+        if (null == transition) {
+            // test has to be run in a time zone with DST
+            return null;
+        }
+        if (!transition.getDateTimeBefore().isBefore(transition.getDateTimeAfter())) {
+            transition = rules.nextTransition(transition.getInstant().plusSeconds(1L));
+            if (null == transition) {
+                // test has to be run in a time zone with DST
+                return null;
+            }
+        }
+
+        Duration gap = Duration.between(transition.getDateTimeBefore(), transition.getDateTimeAfter());
+        LocalDateTime unstorable = transition.getDateTimeBefore().plus(gap.dividedBy(2L));
+        // make sure none of the nano seconds are 0 so that we can detect truncation
+        return unstorable.withNano(123456789).truncatedTo(ChronoUnit.MICROS);
     }
 }
