@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -106,7 +107,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
 
     private AASAttestationResponse validateAttestationResponse(AASAttestationResponse ar) throws SQLServerException {
         try {
-            ar.validateToken(attestationURL);
+            ar.validateToken(attestationURL, aasParams.getNonce());
             ar.validateDHPublicKey(aasParams.getNonce());
         } catch (GeneralSecurityException e) {
             SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
@@ -388,7 +389,7 @@ class AASAttestationResponse extends BaseAttestationResponse {
         }
     }
 
-    void validateToken(String attestationUrl) throws SQLServerException {
+    void validateToken(String attestationUrl, byte[] nonce) throws SQLServerException {
         try {
             /*
              * 3 parts of our JWT token: Header, Body, and Signature. Broken up via '.'
@@ -399,8 +400,8 @@ class AASAttestationResponse extends BaseAttestationResponse {
             }
             String[] splitString = jwtToken.split("\\.");
             java.util.Base64.Decoder decoder = Base64.getUrlDecoder();
-            String Header = new String(decoder.decode(splitString[0]));
-            String Body = new String(decoder.decode(splitString[1]));
+            String header = new String(decoder.decode(splitString[0]));
+            String body = new String(decoder.decode(splitString[1]));
             byte[] stmtSig = decoder.decode(splitString[2]);
 
             JsonArray keys = null;
@@ -417,17 +418,18 @@ class AASAttestationResponse extends BaseAttestationResponse {
                 URL wellKnownUrl = new URL("https://" + authorityUrl + "/.well-known/openid-configuration");
                 URLConnection con = wellKnownUrl.openConnection();
                 String wellKnownUrlJson = new String(con.getInputStream().readAllBytes());
-                JsonObject attestationJson = new JsonParser().parse(wellKnownUrlJson).getAsJsonObject();
+                JsonObject attestationJson = JsonParser.parseString(wellKnownUrlJson).getAsJsonObject();
                 // Get our Keys
                 URL jwksUrl = new URL(attestationJson.get("jwks_uri").getAsString());
                 URLConnection jwksCon = jwksUrl.openConnection();
                 String jwksUrlJson = new String(jwksCon.getInputStream().readAllBytes());
-                JsonObject jwksJson = new JsonParser().parse(jwksUrlJson).getAsJsonObject();
+                JsonObject jwksJson = JsonParser.parseString(jwksUrlJson).getAsJsonObject();
                 keys = jwksJson.get("keys").getAsJsonArray();
                 certificateCache.put(attestationUrl, new JWTCertificateEntry(keys));
             }
             // Find the specific keyID we need from our header
-            JsonObject headerJsonObject = new JsonParser().parse(Header).getAsJsonObject();
+
+            JsonObject headerJsonObject = JsonParser.parseString(header).getAsJsonObject();
             String keyID = headerJsonObject.get("kid").getAsString();
             // Iterate through our list of keys and find the one with the same keyID
             for (JsonElement key : keys) {
@@ -448,6 +450,21 @@ class AASAttestationResponse extends BaseAttestationResponse {
                         sig.initVerify(cert.getPublicKey());
                         sig.update(signatureBytes);
                         if (sig.verify(stmtSig)) {
+                            // Token is verified, now check the aas-ehd
+                            JsonObject bodyJsonObject = JsonParser.parseString(body).getAsJsonObject();
+                            String aasEhd = bodyJsonObject.get("aas-ehd").getAsString();
+                            if (!Arrays.equals(Base64.getUrlDecoder().decode(aasEhd), enclavePK)) {
+                                SQLServerException.makeFromDriverError(null, this,
+                                        SQLServerResource.getResource("R_AasEhdError"), "0", false);
+                            }
+                            if (this.enclaveType == 1) {
+                                // Verify rp_data claim as well if VBS
+                                String rpData = bodyJsonObject.get("rp_data").getAsString();
+                                if (!Arrays.equals(Base64.getUrlDecoder().decode(rpData), nonce)) {
+                                    SQLServerException.makeFromDriverError(null, this,
+                                            SQLServerResource.getResource("R_VbsRpDataError"), "0", false);
+                                }
+                            }
                             return;
                         }
                     }
