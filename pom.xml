@@ -49,13 +49,13 @@
 			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
-			NTLM - - - - - - - For tests using NTLM Authentication mode (excluded by 
-			default) reqExternalSetup - For tests requiring external setup (excluded 
-			by default) - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-			- - - - - - Default testing enabled with SQL Server 2019 (SQLv15) -->
+			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
+			reqExternalSetup  - For tests requiring external setup (excluded by default)
+			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+			Default testing enabled with SQL Server 2019 (SQLv15) -->
 		<excludedGroups>xSQLv15, NTLM, reqExternalSetup</excludedGroups>
 
-		<!-- Use -preview for preview release, leave empty for official release. -->
+		<!-- Use -preview for preview release, leave empty for official release.-->
 		<releaseExt>-preview</releaseExt>
 
 		<!-- Driver Dependencies -->
