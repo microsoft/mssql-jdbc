@@ -774,13 +774,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
     }
 
-    /*
-     * Helper method to create static maps used by the functions.
-     */
-    private static final SimpleEntry<Integer, String> createEntry(Integer i, String s) {
-        return new AbstractMap.SimpleEntry<Integer, String>(i, s);
-    }
-
     private String generateAzureDWSelect(ResultSet rs, Map<Integer, String> columns) throws SQLException {
         StringBuilder sb = new StringBuilder("SELECT ");
         for (Entry<Integer, String> p : columns.entrySet()) {
