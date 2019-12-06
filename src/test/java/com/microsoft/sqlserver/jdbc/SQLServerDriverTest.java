@@ -41,7 +41,7 @@ public class SQLServerDriverTest extends AbstractTest {
     @Test
     public void testDriverDM() throws SQLException, ClassNotFoundException {
         Driver driver = DriverManager.getDriver(connectionString);
-        assertEquals(driver.getClass(), Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver"),
+        assertEquals(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver"), driver.getClass(),
                 TestResource.getResource("R_parrentLoggerNameWrong"));
     }
 
