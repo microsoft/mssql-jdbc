@@ -71,6 +71,8 @@ public interface ISQLServerEnclaveProvider {
         }
         return null;
     }
+    
+    public byte[] getParams();
 
     /**
      * Returns the attestation parameters

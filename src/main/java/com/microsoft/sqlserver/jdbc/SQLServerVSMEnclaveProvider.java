@@ -52,6 +52,11 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             vsmParams = new VSMAttestationParameters();
         }
     }
+    
+    @Override
+    public byte[] getParams() {
+        return vsmParams.getBytes();
+    }
 
     @Override
     public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql,

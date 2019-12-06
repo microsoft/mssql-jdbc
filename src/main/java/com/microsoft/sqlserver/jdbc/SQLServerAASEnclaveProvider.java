@@ -63,6 +63,12 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             }
         }
     }
+    
+    
+    @Override
+    public byte[] getParams() {
+        return aasParams.getBytes();
+    }
 
     @Override
     public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql,

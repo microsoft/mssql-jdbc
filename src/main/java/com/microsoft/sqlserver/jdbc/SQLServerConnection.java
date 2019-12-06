@@ -6479,7 +6479,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (aeVersion >= TDS.COLUMNENCRYPTION_VERSION2);
     }
 
-    ISQLServerEnclaveProvider enclaveProvider;
+    public ISQLServerEnclaveProvider enclaveProvider;
 
     ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
