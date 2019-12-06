@@ -258,7 +258,7 @@ public class EnclavePackageTest extends AbstractTest {
         // bad enclaveAttestationProtocol
         testInvalidProperties(
                 TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol", ""),
-                "R_enclavePropertiesError");
+                "R_enclaveInvalidAttestationProtocol");
     }
 
     /*
