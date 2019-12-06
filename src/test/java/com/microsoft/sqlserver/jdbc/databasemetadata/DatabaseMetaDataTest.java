@@ -651,11 +651,14 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
             try (ResultSet resultSet = databaseMetaData.getColumns(null, null, tableName, "%");) {
                 ResultSetMetaData rsmd = resultSet.getMetaData();
+                int rowCount = 0;
                 while (resultSet.next()) {
                     for (int i = 1; i < 33; i++) {
                         assertEquals(rsmd.getColumnName(i), getColumnsDWColumns.values().toArray()[i - 1]);
                     }
+                    rowCount++;
                 }
+                assertEquals(rowCount, 3);
             }
         }
     }
