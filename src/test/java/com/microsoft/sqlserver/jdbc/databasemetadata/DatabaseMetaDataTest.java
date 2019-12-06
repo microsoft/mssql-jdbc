@@ -658,7 +658,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     }
                     rowCount++;
                 }
-                assertEquals(rowCount, 3);
+                assertEquals(3, rowCount);
             }
         }
     }
