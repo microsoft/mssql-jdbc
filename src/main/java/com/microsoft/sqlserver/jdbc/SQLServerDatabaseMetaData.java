@@ -15,6 +15,8 @@ import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.text.MessageFormat;
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -606,6 +608,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return outID.toString();
     }
 
+    // Use LinkedHashMap to force retrieve elements in order they were inserted
+    private static LinkedHashMap<Integer, String> getColumnsDWColumns = null;
+
     @Override
     public java.sql.ResultSet getColumns(String catalog, String schema, String table, String col) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
@@ -676,6 +681,46 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
              * when user provides a different catalog than the one they're currently connected to. Will throw exception
              * when it's different and do nothing if it's the same/null.
              */
+            if (null == getColumnsDWColumns) {
+                getColumnsDWColumns = new LinkedHashMap<>();
+                getColumnsDWColumns.put(1, "TABLE_CAT");
+                getColumnsDWColumns.put(2, "TABLE_SCHEM");
+                getColumnsDWColumns.put(3, "TABLE_NAME");
+                getColumnsDWColumns.put(4, "COLUMN_NAME");
+                getColumnsDWColumns.put(5, "DATA_TYPE");
+                getColumnsDWColumns.put(6, "TYPE_NAME");
+                getColumnsDWColumns.put(7, "COLUMN_SIZE");
+                getColumnsDWColumns.put(8, "BUFFER_LENGTH");
+                getColumnsDWColumns.put(9, "DECIMAL_DIGITS");
+                getColumnsDWColumns.put(10, "NUM_PREC_RADIX");
+                getColumnsDWColumns.put(11, "NULLABLE");
+                getColumnsDWColumns.put(12, "REMARKS");
+                getColumnsDWColumns.put(13, "COLUMN_DEF");
+                getColumnsDWColumns.put(14, "SQL_DATA_TYPE");
+                getColumnsDWColumns.put(15, "SQL_DATETIME_SUB");
+                getColumnsDWColumns.put(16, "CHAR_OCTET_LENGTH");
+                getColumnsDWColumns.put(17, "ORDINAL_POSITION");
+                getColumnsDWColumns.put(18, "IS_NULLABLE");
+                /*
+                 * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just be
+                 * queried as 'NULL'
+                 */
+                getColumnsDWColumns.put(-1, "SCOPE_CATALOG");
+                getColumnsDWColumns.put(-2, "SCOPE_SCHEMA");
+                getColumnsDWColumns.put(-3, "SCOPE_TABLE");
+                getColumnsDWColumns.put(29, "SOURCE_DATA_TYPE");
+                getColumnsDWColumns.put(22, "IS_AUTOINCREMENT");
+                getColumnsDWColumns.put(21, "IS_GENERATEDCOLUMN");
+                getColumnsDWColumns.put(19, "SS_IS_SPARSE");
+                getColumnsDWColumns.put(20, "SS_IS_COLUMN_SET");
+                getColumnsDWColumns.put(23, "SS_UDT_CATALOG_NAME");
+                getColumnsDWColumns.put(24, "SS_UDT_SCHEMA_NAME");
+                getColumnsDWColumns.put(25, "SS_UDT_ASSEMBLY_TYPE_NAME");
+                getColumnsDWColumns.put(26, "SS_XML_SCHEMACOLLECTION_CATALOG_NAME");
+                getColumnsDWColumns.put(27, "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME");
+                getColumnsDWColumns.put(28, "SS_XML_SCHEMACOLLECTION_NAME");
+            }
+
             try (PreparedStatement storedProcPstmt = this.connection
                     .prepareStatement("EXEC sp_columns_100 ?,?,?,?,?,?;")) {
                 storedProcPstmt.setString(1, (null != table && !table.isEmpty()) ? EscapeIDName(table) : "%");
@@ -689,48 +734,21 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 SQLServerResultSet userRs = null;
                 PreparedStatement resultPstmt = null;
                 try (ResultSet rs = storedProcPstmt.executeQuery()) {
-                    rs.next();
-                    // Use LinkedHashMap to force retrieve elements in order they were inserted
-                    Map<Integer, String> columns = new LinkedHashMap<>();
-                    columns.put(1, "TABLE_CAT");
-                    columns.put(2, "TABLE_SCHEM");
-                    columns.put(3, "TABLE_NAME");
-                    columns.put(4, "COLUMN_NAME");
-                    columns.put(5, "DATA_TYPE");
-                    columns.put(6, "TYPE_NAME");
-                    columns.put(7, "COLUMN_SIZE");
-                    columns.put(8, "BUFFER_LENGTH");
-                    columns.put(9, "DECIMAL_DIGITS");
-                    columns.put(10, "NUM_PREC_RADIX");
-                    columns.put(11, "NULLABLE");
-                    columns.put(12, "REMARKS");
-                    columns.put(13, "COLUMN_DEF");
-                    columns.put(14, "SQL_DATA_TYPE");
-                    columns.put(15, "SQL_DATETIME_SUB");
-                    columns.put(16, "CHAR_OCTET_LENGTH");
-                    columns.put(17, "ORDINAL_POSITION");
-                    columns.put(18, "IS_NULLABLE");
-                    /*
-                     * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
-                     * be queried as 'NULL'
-                     */
-                    columns.put(-1, "SCOPE_CATALOG");
-                    columns.put(-2, "SCOPE_SCHEMA");
-                    columns.put(-3, "SCOPE_TABLE");
-                    columns.put(29, "SOURCE_DATA_TYPE");
-                    columns.put(22, "IS_AUTOINCREMENT");
-                    columns.put(21, "IS_GENERATEDCOLUMN");
-                    columns.put(19, "SS_IS_SPARSE");
-                    columns.put(20, "SS_IS_COLUMN_SET");
-                    columns.put(23, "SS_UDT_CATALOG_NAME");
-                    columns.put(24, "SS_UDT_SCHEMA_NAME");
-                    columns.put(25, "SS_UDT_ASSEMBLY_TYPE_NAME");
-                    columns.put(26, "SS_XML_SCHEMACOLLECTION_CATALOG_NAME");
-                    columns.put(27, "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME");
-                    columns.put(28, "SS_XML_SCHEMACOLLECTION_NAME");
+                    StringBuilder azureDwSelectBuilder = new StringBuilder();
+                    boolean isFirstRow = true; // less expensive than continuously checking isFirst()
+                    while (rs.next()) {
+                        if (!isFirstRow) {
+                            azureDwSelectBuilder.append(" UNION ALL ");
+                        }
+                        azureDwSelectBuilder.append(generateAzureDWSelect(rs, getColumnsDWColumns));
+                        isFirstRow = false;
+                    }
 
+                    if (0 == azureDwSelectBuilder.length()) {
+                        azureDwSelectBuilder.append(generateAzureDWEmptyRS(getColumnsDWColumns));
+                    }
                     resultPstmt = (SQLServerPreparedStatement) this.connection
-                            .prepareStatement(generateAzureDWSelect(rs, columns));
+                            .prepareStatement(azureDwSelectBuilder.toString());
                     userRs = (SQLServerResultSet) resultPstmt.executeQuery();
                     resultPstmt.closeOnCompletion();
                     userRs.getColumn(5).setFilter(new DataTypeFilter());
@@ -755,6 +773,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 return userRs;
             }
         }
+    }
+
+    /*
+     * Helper method to create static maps used by the functions.
+     */
+    private static final SimpleEntry<Integer, String> createEntry(Integer i, String s) {
+        return new AbstractMap.SimpleEntry<Integer, String>(i, s);
     }
 
     private String generateAzureDWSelect(ResultSet rs, Map<Integer, String> columns) throws SQLException {
