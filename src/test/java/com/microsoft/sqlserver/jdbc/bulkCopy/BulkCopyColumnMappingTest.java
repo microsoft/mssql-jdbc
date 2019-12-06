@@ -373,6 +373,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         validateMapping("CHAR(5)", "NVARCHAR(5)", "фщыab");
         validateMapping("VARCHAR(5)", "NCHAR(5)", "фщыab");
         validateMapping("VARCHAR(5)", "NVARCHAR(5)", "фщыab");
+        validateMapping("VARCHAR(5)", "NVARCHAR(max)", "фщыab");
     }
 
     /**
