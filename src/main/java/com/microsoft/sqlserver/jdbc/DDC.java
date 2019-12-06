@@ -853,7 +853,7 @@ final class DDC {
             int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) {
 
         // In cases where a Calendar object (and therefore Timezone) is not passed to the method,
-        // use the path below instead to optimize performance
+        // use the path below instead to optimize performance.
         if (null == timeZoneCalendar) {
             return convertTemporalToObject(jdbcType, ssType, daysSinceBaseDate, ticksSinceMidnight,
                     fractionalSecondsScale);
