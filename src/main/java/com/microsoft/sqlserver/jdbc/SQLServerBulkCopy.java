@@ -3571,6 +3571,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      */
     private boolean unicodeConversionRequired(int jdbcType, SSType ssType) {
         return ((java.sql.Types.CHAR == jdbcType || java.sql.Types.VARCHAR == jdbcType
-                || java.sql.Types.LONGNVARCHAR == jdbcType) && (SSType.NCHAR == ssType || SSType.NVARCHAR == ssType));
+                || java.sql.Types.LONGNVARCHAR == jdbcType)
+                && (SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType));
     }
 }
