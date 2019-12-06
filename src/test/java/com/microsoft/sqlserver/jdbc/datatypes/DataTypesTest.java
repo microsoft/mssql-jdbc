@@ -1793,13 +1793,13 @@ public class DataTypesTest extends AbstractTest {
      */
     @Test
     public void testGetLocalDateTimePriorGregorian() throws Exception {
-        try (Connection conn = getConnection(); Statement st = conn.createStatement();) {
-            String ldtTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ldtTable"));
+        String ldtTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ldtTable"));
+        try (Connection conn = getConnection(); Statement st = conn.createStatement();
+                PreparedStatement ps = conn.prepareStatement("INSERT INTO " + ldtTable + " (id, dt) VALUES (1, ?)");) {
             TestUtils.dropTableIfExists(ldtTable, st);
             // test data (The Battle of Hastings)
             LocalDateTime ldtExpected = LocalDateTime.of(1066, 10, 14, 0, 0);
             st.execute("CREATE TABLE " + ldtTable + " (id int PRIMARY KEY, dt datetime2)");
-            PreparedStatement ps = conn.prepareStatement("INSERT INTO " + ldtTable + " (id, dt) VALUES (1, ?)");
             ps.setObject(1, ldtExpected);
             ps.executeUpdate();
 
