@@ -778,6 +778,15 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return sb.toString();
     }
 
+    private String generateAzureDWEmptyRS(Map<Integer, String> columns) throws SQLException {
+        StringBuilder sb = new StringBuilder("SELECT TOP 0 ");
+        for (Entry<Integer, String> p : columns.entrySet()) {
+            sb.append("NULL AS ").append(p.getValue()).append(",");
+        }
+        sb.setLength(sb.length() - 1);
+        return sb.toString();
+    }
+
     private static final String[] getFunctionsColumnNames = { /* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
             /* 3 */ FUNCTION_NAME, /* 4 */ NUM_INPUT_PARAMS, /* 5 */ NUM_OUTPUT_PARAMS, /* 6 */ NUM_RESULT_SETS,
             /* 7 */ REMARKS, /* 8 */ FUNCTION_TYPE};
@@ -1032,56 +1041,47 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             }
             return rs;
         } else {
-            try (PreparedStatement storedProcPstmt = this.connection.prepareStatement("EXEC sp_fkeys ?,?,?,?,?,?;")) {
-                // pktable
-                storedProcPstmt.setString(1, procParams[3]);
-                storedProcPstmt.setString(2, procParams[4]);
-                storedProcPstmt.setString(3, procParams[5]);
+            // generate empty RS as Azure DW does not support foreign keys
+            // https://docs.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-fkeys-transact-sql?view=sql-server-ver15
+            StringBuilder azureDwSelectBuilder = new StringBuilder();
+            Map<Integer, String> columns = new LinkedHashMap<>();
+            columns.put(1, "PKTABLE_CAT");
+            columns.put(2, "PKTABLE_SCHEM");
+            columns.put(3, "PKTABLE_NAME");
+            columns.put(4, "PKCOLUMN_NAME");
+            columns.put(5, "FKTABLE_CAT");
+            columns.put(6, "FKTABLE_SCHEM");
+            columns.put(7, "FKTABLE_NAME");
+            columns.put(8, "FKCOLUMN_NAME");
+            columns.put(9, "KEY_SEQ");
+            columns.put(10, "UPDATE_RULE");
+            columns.put(11, "DELETE_RULE");
+            columns.put(12, "FK_NAME");
+            columns.put(13, "PK_NAME");
+            columns.put(14, "DEFERRABILITY");
 
-                // fktable
-                storedProcPstmt.setString(4, procParams[0]);
-                storedProcPstmt.setString(5, procParams[1]);
-                storedProcPstmt.setString(6, procParams[2]);
-
-                SQLServerResultSet userRs = null;
-                PreparedStatement resultPstmt = null;
-                try (ResultSet rs = storedProcPstmt.executeQuery()) {
-                    rs.next();
-                    // Use LinkedHashMap to force retrieve elements in order they were inserted
-                    Map<Integer, String> columns = new LinkedHashMap<>();
-                    columns.put(1, "PKTABLE_QUALIFIER");
-                    columns.put(2, "PKTABLE_OWNER");
-                    columns.put(3, "PKTABLE_NAME");
-                    columns.put(4, "PKCOLUMN_NAME");
-                    columns.put(5, "FKTABLE_QUALIFIER");
-                    columns.put(6, "FKTABLE_OWNER");
-                    columns.put(7, "FKTABLE_NAME");
-                    columns.put(8, "FKCOLUMN_NAME");
-                    columns.put(9, "KEY_SEQ");
-                    columns.put(10, "UPDATE_RULE");
-                    columns.put(11, "DELETE_RULE");
-                    columns.put(12, "FK_NAME");
-                    columns.put(13, "PK_NAME");
-
-                    resultPstmt = (SQLServerPreparedStatement) this.connection
-                            .prepareStatement(generateAzureDWSelect(rs, columns));
-                    userRs = (SQLServerResultSet) resultPstmt.executeQuery();
-                    resultPstmt.closeOnCompletion();
-                } catch (SQLException e) {
-                    if (null != resultPstmt) {
-                        try {
-                            resultPstmt.close();
-                        } catch (SQLServerException ignore) {
-                            if (loggerExternal.isLoggable(Level.FINER)) {
-                                loggerExternal.finer(
-                                        "getColumns() threw an exception when attempting to close PreparedStatement");
-                            }
+            SQLServerResultSet userRs = null;
+            PreparedStatement resultPstmt = null;
+            azureDwSelectBuilder.append(generateAzureDWEmptyRS(columns));
+            try {
+                resultPstmt = (SQLServerPreparedStatement) this.connection
+                        .prepareStatement(azureDwSelectBuilder.toString());
+                userRs = (SQLServerResultSet) resultPstmt.executeQuery();
+                resultPstmt.closeOnCompletion();
+            } catch (SQLException e) {
+                if (null != resultPstmt) {
+                    try {
+                        resultPstmt.close();
+                    } catch (SQLServerException ignore) {
+                        if (loggerExternal.isLoggable(Level.FINER)) {
+                            loggerExternal.finer(
+                                    "getColumns() threw an exception when attempting to close PreparedStatement");
                         }
                     }
-                    throw e;
                 }
-                return userRs;
-            }
+                throw e;
+            }            
+            return userRs;
         }
     }
 

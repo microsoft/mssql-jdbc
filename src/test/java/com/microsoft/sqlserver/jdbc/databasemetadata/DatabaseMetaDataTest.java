@@ -355,15 +355,15 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "%")) {
                         testGetDBColumnInternal(rs1, databaseMetaData);
                     }
-                    
+
                     try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "col\\_1")) {
                         testGetDBColumnInternal(rs1, databaseMetaData);
                     }
-                    
+
                     try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "col\\%2")) {
                         testGetDBColumnInternal(rs1, databaseMetaData);
                     }
-                    
+
                     try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "col\\[3")) {
                         testGetDBColumnInternal(rs1, databaseMetaData);
                     }
@@ -391,8 +391,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_SIZE")), form2.format(msgArgs2[6]));
                 assertTrue(!StringUtils.isEmpty(rs1.getString("NULLABLE")), form2.format(msgArgs2[7])); // 11
                 assertTrue(!StringUtils.isEmpty(rs1.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 18
-                assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")),
-                        form2.format(msgArgs2[9])); // 22
+                assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")), form2.format(msgArgs2[9])); // 22
             } while (rs1.next());
         }
     }
@@ -605,6 +604,20 @@ public class DatabaseMetaDataTest extends AbstractTest {
             assertEquals(maxConn, rs.getInt(1));
         } catch (SQLException e) {
             fail(e.getMessage());
+        }
+    }
+
+    @Test
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLMI)
+    public void testGetImportedKeysDW() throws SQLException {
+        DatabaseMetaData databaseMetaData = connection.getMetaData();
+        try (ResultSet rs = databaseMetaData.getImportedKeys(null, null, tableName)) {
+            // DW returns empty RS as it does not support foreign keys
+            assertFalse(rs.next());
         }
     }
 
