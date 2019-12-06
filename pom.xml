@@ -73,6 +73,7 @@
 		<dbcp2.version>2.6.0</dbcp2.version>
 		<slf4j.nop.version>1.7.26</slf4j.nop.version>
 		<gemini.mock.version>2.1.0.RELEASE</gemini.mock.version>
+		<h2.version>1.4.200</h2.version>
 
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -192,6 +193,12 @@
 			<groupId>org.eclipse.gemini.blueprint</groupId>
 			<artifactId>gemini-blueprint-mock</artifactId>
 			<version>${gemini.mock.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<version>${h2.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
