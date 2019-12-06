@@ -125,7 +125,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
                 return enclaveRequestedCEKs;
             }
             processAev1SPDE(userSql, preparedTypeDefinitions, params, parameterNames, connection, stmt, rs,
-                    enclaveRequestedCEKs, aasParams);
+                    enclaveRequestedCEKs);
             // Process the third resultset.
             if (connection.isAEv2() && stmt.getMoreResults()) {
                 rs = (SQLServerResultSet) stmt.getResultSet();

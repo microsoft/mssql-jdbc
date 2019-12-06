@@ -95,11 +95,7 @@ public interface ISQLServerEnclaveProvider {
 
     default void processAev1SPDE(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames, SQLServerConnection connection, PreparedStatement stmt, ResultSet rs,
-            ArrayList<byte[]> enclaveRequestedCEKs, BaseAttestationRequest attestationReq) throws SQLException {
-        if (null == rs) {
-            return;
-        }
-
+            ArrayList<byte[]> enclaveRequestedCEKs) throws SQLException {
         Map<Integer, CekTableEntry> cekList = new HashMap<>();
         CekTableEntry cekEntry = null;
         boolean isRequestedByEnclave = false;
