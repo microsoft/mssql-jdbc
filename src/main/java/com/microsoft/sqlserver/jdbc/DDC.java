@@ -1274,7 +1274,7 @@ final class DDC {
 
                     case DATETIME2: {
                         return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
-                                ldt, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                                java.sql.Timestamp.valueOf(ldt), fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
                     }
 
                     case DATETIME: // and SMALLDATETIME
