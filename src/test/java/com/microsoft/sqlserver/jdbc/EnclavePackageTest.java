@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -198,7 +199,7 @@ public class EnclavePackageTest extends AbstractTest {
 
         String enclaveAttestationProtocol = System.getProperty("enclaveAttestationProtocol");
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol",
-                (null != enclaveAttestationProtocol) ? enclaveAttestationProtocol : AttestationProtocol.HGS.toString());
+                (null != enclaveAttestationProtocol) ? enclaveAttestationProtocol : "HGS");
 
         // reset logging to avoid severe logs due to negative testing
         LogManager.getLogManager().reset();
@@ -400,7 +401,7 @@ public class EnclavePackageTest extends AbstractTest {
     @SuppressWarnings("unused")
     public static void testNullAttestationResponse() throws SQLServerException {
         try {
-            AttestationResponse resp = new AttestationResponse(null);
+            VSMAttestationResponse resp = new VSMAttestationResponse(null);
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EnclaveResponseLengthError")));
         } catch (Exception e) {
@@ -415,7 +416,7 @@ public class EnclavePackageTest extends AbstractTest {
     public static void testBadAttestationResponse() throws SQLServerException {
         try {
             byte[] responseBytes = new byte[36];
-            AttestationResponse resp = new AttestationResponse(responseBytes);
+            VSMAttestationResponse resp = new VSMAttestationResponse(responseBytes);
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_HealthCertError")));
         } catch (Exception e) {
@@ -428,7 +429,7 @@ public class EnclavePackageTest extends AbstractTest {
      */
     public static void testBadCertSignature() throws SQLServerException, CertificateException {
         try {
-            AttestationResponse resp = new AttestationResponse(healthReportCertificate);
+            VSMAttestationResponse resp = new VSMAttestationResponse(healthReportCertificate);
             resp.validateCert(null);
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidHealthCert")));
@@ -468,7 +469,17 @@ public class EnclavePackageTest extends AbstractTest {
         try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery(
                 "SELECT [name], [value], [value_in_use] FROM sys.configurations WHERE [name] = 'column encryption enclave type';")) {
             while (rs.next()) {
-                assertEquals("1", rs.getString(2));
+                String enclaveType = rs.getString(2);
+                String enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol");
+                if (String.valueOf(AttestationProtocol.HGS).equals(enclaveAttestationProtocol)) {
+                    assertEquals(EnclaveType.VBS.getValue(), Integer.parseInt(enclaveType));
+                } else if (String.valueOf(AttestationProtocol.AAS).equals(enclaveAttestationProtocol)) {
+                    assertEquals(EnclaveType.SGX.getValue(), Integer.parseInt(enclaveType));
+                } else {
+                    MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidEnclaveType"));
+                    Object[] msgArgs = {enclaveType};
+                    fail(form.format(msgArgs));
+                }
             }
         }
     }

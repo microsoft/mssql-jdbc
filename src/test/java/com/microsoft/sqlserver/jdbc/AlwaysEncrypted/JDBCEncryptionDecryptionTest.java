@@ -1499,6 +1499,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     if (!TestUtils.isAEv2(con)) {
                         fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                     } else {
+                        e.printStackTrace();
                         fail(TestResource.getResource("R_AlterAEv2Error") + e.getMessage() + "Query: " + sql);
                     }
                 }
