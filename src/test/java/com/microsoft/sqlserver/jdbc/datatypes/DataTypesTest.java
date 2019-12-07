@@ -17,7 +17,13 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DateFormatSymbols;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.time.zone.ZoneOffsetTransition;
+import java.time.zone.ZoneRules;
 import java.util.Calendar;
 import java.util.EnumSet;
 import java.util.Locale;
@@ -1778,5 +1784,86 @@ public class DataTypesTest extends AbstractTest {
                 TestUtils.dropTableIfExists(escapedTableName, stmt);
             }
         }
+    }
+
+    /**
+     * Test example from https://github.com/microsoft/mssql-jdbc/issues/1088
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testGetLocalDateTimePriorGregorian() throws Exception {
+        String ldtTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ldtTable"));
+        try (Connection conn = getConnection(); Statement st = conn.createStatement();
+                PreparedStatement ps = conn.prepareStatement("INSERT INTO " + ldtTable + " (id, dt) VALUES (1, ?)");) {
+            TestUtils.dropTableIfExists(ldtTable, st);
+            // test data (The Battle of Hastings)
+            LocalDateTime ldtExpected = LocalDateTime.of(1066, 10, 14, 0, 0);
+            st.execute("CREATE TABLE " + ldtTable + " (id int PRIMARY KEY, dt datetime2)");
+            ps.setObject(1, ldtExpected);
+            ps.executeUpdate();
+
+            // retrieve as string to verify that the date is stored correctly
+            try (ResultSet rs = st.executeQuery("SELECT CAST(dt AS VARCHAR) FROM " + ldtTable + " WHERE id = 1");) {
+                rs.next();
+                String strActual = rs.getString(1);
+                String strExpected = "1066-10-14 00:00:00.0000000";
+                assertTrue(strActual.equals(strExpected));
+            }
+
+            // retrieve as LocalDateTime
+            try (ResultSet rs = st.executeQuery("SELECT dt FROM " + ldtTable + " WHERE id = 1");) {
+                rs.next();
+                LocalDateTime ldtActual = rs.getObject(1, LocalDateTime.class);
+                assertTrue(ldtActual.equals(ldtExpected));
+            } finally {
+                TestUtils.dropTableIfExists(ldtTable, st);
+            }
+        }
+    }
+
+    /**
+     * Test example from https://github.com/microsoft/mssql-jdbc/issues/1143
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testGetLocalDateTimeUnstorable() throws Exception {
+        LocalDateTime unstorableValue = getUnstorableValue();
+        if (null != unstorableValue) {
+            try (Connection conn = getConnection();
+                    PreparedStatement selectStatement = conn.prepareStatement(
+                            "SELECT '" + unstorableValue.toLocalDate() + " " + unstorableValue.toLocalTime() + "'");
+                    ResultSet resultSet = selectStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    LocalDateTime actual = resultSet.getObject(1, LocalDateTime.class);
+                    assertEquals(unstorableValue, actual);
+                }
+            }
+        }
+    }
+
+    static LocalDateTime getUnstorableValue() throws Exception {
+        ZoneId systemTimezone = ZoneId.systemDefault();
+        Instant now = Instant.now();
+
+        ZoneRules rules = systemTimezone.getRules();
+        ZoneOffsetTransition transition = rules.nextTransition(now);
+        if (null == transition) {
+            // test has to be run in a time zone with DST
+            return null;
+        }
+        if (!transition.getDateTimeBefore().isBefore(transition.getDateTimeAfter())) {
+            transition = rules.nextTransition(transition.getInstant().plusSeconds(1L));
+            if (null == transition) {
+                // test has to be run in a time zone with DST
+                return null;
+            }
+        }
+
+        Duration gap = Duration.between(transition.getDateTimeBefore(), transition.getDateTimeAfter());
+        LocalDateTime unstorable = transition.getDateTimeBefore().plus(gap.dividedBy(2L));
+        // make sure none of the nano seconds are 0 so that we can detect truncation
+        return unstorable.withNano(123456789).truncatedTo(ChronoUnit.MICROS);
     }
 }
