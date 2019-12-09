@@ -679,7 +679,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
              * when user provides a different catalog than the one they're currently connected to. Will throw exception
              * when it's different and do nothing if it's the same/null.
              */
-            synchronized (this) {
+            synchronized (SQLServerDatabaseMetaData.class) {
                 if (null == getColumnsDWColumns) {
                     getColumnsDWColumns = new LinkedHashMap<>();
                     getColumnsDWColumns.put(1, "TABLE_CAT");
@@ -1062,7 +1062,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             ResultSet userRs = null;
             PreparedStatement pstmt = null;
             StringBuilder azureDwSelectBuilder = new StringBuilder();
-            synchronized (this) {
+            synchronized (SQLServerDatabaseMetaData.class) {
                 if (null == getImportedKeysDWColumns) {
                     getImportedKeysDWColumns = new LinkedHashMap<>();
                     getImportedKeysDWColumns.put(1, "PKTABLE_CAT");
