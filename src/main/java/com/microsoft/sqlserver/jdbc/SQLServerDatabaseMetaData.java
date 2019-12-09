@@ -264,6 +264,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String IS_AUTOINCREMENT = "IS_AUTOINCREMENT";
     private static final String SQL_KEYWORDS = createSqlKeyWords();
 
+    // Use LinkedHashMap to force retrieve elements in order they were inserted
+    private static LinkedHashMap<Integer, String> getColumnsDWColumns = null;
+    private static LinkedHashMap<Integer, String> getImportedKeysDWColumns = null;
+
     /**
      * Returns the result from a simple query. This is to be used only for internal queries without any user input.
      * 
@@ -605,9 +609,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return outID.toString();
     }
 
-    // Use LinkedHashMap to force retrieve elements in order they were inserted
-    private static LinkedHashMap<Integer, String> getColumnsDWColumns = null;
-
     @Override
     public java.sql.ResultSet getColumns(String catalog, String schema, String table, String col) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
@@ -701,8 +702,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     getColumnsDWColumns.put(18, "IS_NULLABLE");
                     /*
                      * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
-                     * be
-                     * queried as 'NULL'
+                     * be queried as 'NULL'
                      */
                     getColumnsDWColumns.put(-1, "SCOPE_CATALOG");
                     getColumnsDWColumns.put(-2, "SCOPE_SCHEMA");
@@ -1021,41 +1021,86 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     private ResultSet executeSPFkeys(String[] procParams) throws SQLException, SQLTimeoutException {
-        String tempTableName = "@jdbc_temp_fkeys_result";
-        String sql = "DECLARE " + tempTableName + " table (PKTABLE_QUALIFIER sysname, " + "PKTABLE_OWNER sysname, "
-                + "PKTABLE_NAME sysname, " + "PKCOLUMN_NAME sysname, " + "FKTABLE_QUALIFIER sysname, "
-                + "FKTABLE_OWNER sysname, " + "FKTABLE_NAME sysname, " + "FKCOLUMN_NAME sysname, "
-                + "KEY_SEQ smallint, " + "UPDATE_RULE smallint, " + "DELETE_RULE smallint, " + "FK_NAME sysname, "
-                + "PK_NAME sysname, " + "DEFERRABILITY smallint);" + "INSERT INTO " + tempTableName
-                + " EXEC sp_fkeys ?,?,?,?,?,?;" + "SELECT  t.PKTABLE_QUALIFIER AS PKTABLE_CAT, "
-                + "t.PKTABLE_OWNER AS PKTABLE_SCHEM, " + "t.PKTABLE_NAME, " + "t.PKCOLUMN_NAME, "
-                + "t.FKTABLE_QUALIFIER AS FKTABLE_CAT, " + "t.FKTABLE_OWNER AS FKTABLE_SCHEM, " + "t.FKTABLE_NAME, "
-                + "t.FKCOLUMN_NAME, " + "t.KEY_SEQ, " + "CASE s.update_referential_action " + "WHEN 1 THEN 0 " +
-                // cascade - note that sp_fkey and sys.foreign_keys have flipped values for
-                // cascade and no action
-                "WHEN 0 THEN 3 " + // no action
-                "WHEN 2 THEN 2 " + // set null
-                "WHEN 3 THEN 4 " + // set default
-                "END as UPDATE_RULE, " + "CASE s.delete_referential_action " + "WHEN 1 THEN 0 " + "WHEN 0 THEN 3 "
-                + "WHEN 2 THEN 2 " + "WHEN 3 THEN 4 " + "END as DELETE_RULE, " + "t.FK_NAME, " + "t.PK_NAME, "
-                + "t.DEFERRABILITY " + "FROM " + tempTableName + " t "
-                + "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name COLLATE database_default AND schema_id(t.FKTABLE_OWNER) = s.schema_id";
-        SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(sql);
-        cstmt.closeOnCompletion();
-        for (int i = 0; i < 6; i++) {
-            cstmt.setString(i + 1, procParams[i]);
+        if (!this.connection.isAzureDW()) {
+            String tempTableName = "@jdbc_temp_fkeys_result";
+            String sql = "DECLARE " + tempTableName + " table (PKTABLE_QUALIFIER sysname, " + "PKTABLE_OWNER sysname, "
+                    + "PKTABLE_NAME sysname, " + "PKCOLUMN_NAME sysname, " + "FKTABLE_QUALIFIER sysname, "
+                    + "FKTABLE_OWNER sysname, " + "FKTABLE_NAME sysname, " + "FKCOLUMN_NAME sysname, "
+                    + "KEY_SEQ smallint, " + "UPDATE_RULE smallint, " + "DELETE_RULE smallint, " + "FK_NAME sysname, "
+                    + "PK_NAME sysname, " + "DEFERRABILITY smallint);" + "INSERT INTO " + tempTableName
+                    + " EXEC sp_fkeys ?,?,?,?,?,?;" + "SELECT  t.PKTABLE_QUALIFIER AS PKTABLE_CAT, "
+                    + "t.PKTABLE_OWNER AS PKTABLE_SCHEM, " + "t.PKTABLE_NAME, " + "t.PKCOLUMN_NAME, "
+                    + "t.FKTABLE_QUALIFIER AS FKTABLE_CAT, " + "t.FKTABLE_OWNER AS FKTABLE_SCHEM, " + "t.FKTABLE_NAME, "
+                    + "t.FKCOLUMN_NAME, " + "t.KEY_SEQ, " + "CASE s.update_referential_action " + "WHEN 1 THEN 0 " +
+                    // cascade - note that sp_fkey and sys.foreign_keys have flipped values for
+                    // cascade and no action
+                    "WHEN 0 THEN 3 " + // no action
+                    "WHEN 2 THEN 2 " + // set null
+                    "WHEN 3 THEN 4 " + // set default
+                    "END as UPDATE_RULE, " + "CASE s.delete_referential_action " + "WHEN 1 THEN 0 " + "WHEN 0 THEN 3 "
+                    + "WHEN 2 THEN 2 " + "WHEN 3 THEN 4 " + "END as DELETE_RULE, " + "t.FK_NAME, " + "t.PK_NAME, "
+                    + "t.DEFERRABILITY " + "FROM " + tempTableName + " t "
+                    + "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name COLLATE database_default AND schema_id(t.FKTABLE_OWNER) = s.schema_id";
+            SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(sql);
+            cstmt.closeOnCompletion();
+            for (int i = 0; i < 6; i++) {
+                cstmt.setString(i + 1, procParams[i]);
+            }
+            String currentDB = null;
+            if (null != procParams[2] && procParams[2] != "") {// pktable_qualifier
+                currentDB = switchCatalogs(procParams[2]);
+            } else if (null != procParams[5] && procParams[5] != "") {// fktable_qualifier
+                currentDB = switchCatalogs(procParams[5]);
+            }
+            ResultSet rs = cstmt.executeQuery();
+            if (null != currentDB) {
+                switchCatalogs(currentDB);
+            }
+            return rs;
+        } else {
+            // Azure DW does not support foreign keys, return an empty result set with correct metadata.
+            ResultSet userRs = null;
+            PreparedStatement pstmt = null;
+            StringBuilder azureDwSelectBuilder = new StringBuilder();
+            synchronized (SQLServerDatabaseMetaData.class) {
+                if (null == getImportedKeysDWColumns) {
+                    getImportedKeysDWColumns = new LinkedHashMap<>();
+                    getImportedKeysDWColumns.put(1, "PKTABLE_CAT");
+                    getImportedKeysDWColumns.put(2, "PKTABLE_SCHEM");
+                    getImportedKeysDWColumns.put(3, "PKTABLE_NAME");
+                    getImportedKeysDWColumns.put(4, "PKCOLUMN_NAME");
+                    getImportedKeysDWColumns.put(5, "FKTABLE_CAT");
+                    getImportedKeysDWColumns.put(6, "FKTABLE_SCHEM");
+                    getImportedKeysDWColumns.put(7, "FKTABLE_NAME");
+                    getImportedKeysDWColumns.put(8, "FKCOLUMN_NAME");
+                    getImportedKeysDWColumns.put(9, "KEY_SEQ");
+                    getImportedKeysDWColumns.put(10, "UPDATE_RULE");
+                    getImportedKeysDWColumns.put(11, "DELETE_RULE");
+                    getImportedKeysDWColumns.put(12, "FK_NAME");
+                    getImportedKeysDWColumns.put(13, "PK_NAME");
+                    getImportedKeysDWColumns.put(14, "DEFERRABILITY");
+                }
+            }
+            azureDwSelectBuilder.append(generateAzureDWEmptyRS(getImportedKeysDWColumns));
+            try {
+                pstmt = this.connection.prepareStatement(azureDwSelectBuilder.toString());
+                userRs = pstmt.executeQuery();
+                pstmt.closeOnCompletion();
+                return userRs;
+            } catch (SQLException e) {
+                if (null != pstmt) {
+                    try {
+                        pstmt.close();
+                    } catch (SQLServerException ignore) {
+                        if (loggerExternal.isLoggable(Level.FINER)) {
+                            loggerExternal.finer(
+                                    "executeSPFkeys() threw an exception when attempting to close PreparedStatement");
+                        }
+                    }
+                }
+                throw e;
+            }
         }
-        String currentDB = null;
-        if (null != procParams[2] && procParams[2] != "") {// pktable_qualifier
-            currentDB = switchCatalogs(procParams[2]);
-        } else if (null != procParams[5] && procParams[5] != "") {// fktable_qualifier
-            currentDB = switchCatalogs(procParams[5]);
-        }
-        ResultSet rs = cstmt.executeQuery();
-        if (null != currentDB) {
-            switchCatalogs(currentDB);
-        }
-        return rs;
     }
 
     private static final String[] getIndexInfoColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,

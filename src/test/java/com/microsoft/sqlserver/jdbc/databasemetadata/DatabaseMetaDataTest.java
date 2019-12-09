@@ -38,6 +38,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -56,6 +57,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("DBMetadataTable");
     private static final String functionName = RandomUtil.getIdentifier("DBMetadataFunction");
     private static LinkedHashMap<Integer, String> getColumnsDWColumns = null;
+    private static LinkedHashMap<Integer, String> getImportedKeysDWColumns = null;
 
     /**
      * Verify DatabaseMetaData#isWrapperFor and DatabaseMetaData#unwrap.
@@ -653,12 +655,53 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 ResultSetMetaData rsmd = resultSet.getMetaData();
                 int rowCount = 0;
                 while (resultSet.next()) {
-                    for (int i = 1; i < 33; i++) {
+                    for (int i = 1; i < rsmd.getColumnCount(); i++) {
                         assertEquals(rsmd.getColumnName(i), getColumnsDWColumns.values().toArray()[i - 1]);
                     }
                     rowCount++;
                 }
                 assertEquals(3, rowCount);
+            }
+        }
+    }
+
+    @Test
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLMI)
+    public void testGetImportedKeysDW() throws SQLException {
+        // To get the actual DW database name.
+        SQLServerDataSource ds = new SQLServerDataSource();
+        updateDataSource(connectionString, ds);
+        try (Connection conn = getConnection();) {
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+
+            getImportedKeysDWColumns = new LinkedHashMap<>();
+            getImportedKeysDWColumns.put(1, "PKTABLE_CAT");
+            getImportedKeysDWColumns.put(2, "PKTABLE_SCHEM");
+            getImportedKeysDWColumns.put(3, "PKTABLE_NAME");
+            getImportedKeysDWColumns.put(4, "PKCOLUMN_NAME");
+            getImportedKeysDWColumns.put(5, "FKTABLE_CAT");
+            getImportedKeysDWColumns.put(6, "FKTABLE_SCHEM");
+            getImportedKeysDWColumns.put(7, "FKTABLE_NAME");
+            getImportedKeysDWColumns.put(8, "FKCOLUMN_NAME");
+            getImportedKeysDWColumns.put(9, "KEY_SEQ");
+            getImportedKeysDWColumns.put(10, "UPDATE_RULE");
+            getImportedKeysDWColumns.put(11, "DELETE_RULE");
+            getImportedKeysDWColumns.put(12, "FK_NAME");
+            getImportedKeysDWColumns.put(13, "PK_NAME");
+            getImportedKeysDWColumns.put(14, "DEFERRABILITY");
+
+            try (ResultSet resultSet = databaseMetaData.getImportedKeys(ds.getDatabaseName(), null, tableName);) {
+                assertFalse(resultSet.next());
+                ResultSetMetaData rsmd = resultSet.getMetaData();
+                // Verify metadata
+                for (int i = 1; i < getImportedKeysDWColumns.size(); i++) {
+                    assertEquals(getImportedKeysDWColumns.get(i), rsmd.getColumnName(i));
+                }
+
             }
         }
     }
