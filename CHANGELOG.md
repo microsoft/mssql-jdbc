@@ -10,9 +10,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Fixed issues
 - Fixed a potential NullPointerException in SQLServerDataColumn.equals() [#1168](https://github.com/microsoft/mssql-jdbc/pull/1168)
-- Fixed the issue with BulkCopy when source is unicode char/varchar and destination is nchar/nvarchar [#1193](https://github.com/microsoft/mssql-jdbc/pull/1193)
-- Fixed the issue with SQLServerDatabaseMetaData.getColumns() only returning the first column against Azure SQL Data Warehouse [#1197](https://github.com/microsoft/mssql-jdbc/pull/1197)
-- Fixed the issue with SQLServerDatabaseMetaData.getImportedKeys() failing against Azure SQL Data Warehouse [#1205](https://github.com/microsoft/mssql-jdbc/pull/1205)
+- Fixed an issue with BulkCopy when source is unicode char/varchar and destination is nchar/nvarchar [#1193](https://github.com/microsoft/mssql-jdbc/pull/1193)
+- Fixed an issue with SQLServerDatabaseMetaData.getColumns() only returning the first column against Azure SQL Data Warehouse [#1197](https://github.com/microsoft/mssql-jdbc/pull/1197)
+- Fixed an issue with SQLServerDatabaseMetaData.getImportedKeys() failing against Azure SQL Data Warehouse [#1205](https://github.com/microsoft/mssql-jdbc/pull/1205)
 
 ### Changed
 - Made internal model public for SQLServerSpatialDatatype class [#1169](https://github.com/microsoft/mssql-jdbc/pull/1169)
