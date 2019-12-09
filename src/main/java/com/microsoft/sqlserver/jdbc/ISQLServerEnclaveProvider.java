@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -233,6 +234,7 @@ public interface ISQLServerEnclaveProvider {
 abstract class BaseAttestationRequest {
     protected static final byte[] ECDH_MAGIC = {0x45, 0x43, 0x4b, 0x33, 0x30, 0x00, 0x00, 0x00};
     protected static final int ENCLAVE_LENGTH = 104;
+    protected static final int BIG_INTEGER_SIZE = 48;
 
     protected PrivateKey privateKey;
     protected byte[] enclaveChallenge;
@@ -255,8 +257,8 @@ abstract class BaseAttestationRequest {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_MalformedECDHHeader"),
                     "0", false);
         }
-        byte[] x = new byte[48];
-        byte[] y = new byte[48];
+        byte[] x = new byte[BIG_INTEGER_SIZE];
+        byte[] y = new byte[BIG_INTEGER_SIZE];
         sr.get(x);
         sr.get(y);
         /*
@@ -288,19 +290,31 @@ abstract class BaseAttestationRequest {
         ECPublicKey publicKey = (ECPublicKey) kp.getPublic();
         privateKey = kp.getPrivate();
         ECPoint w = publicKey.getW();
-        x = w.getAffineX().toByteArray();
-        y = w.getAffineY().toByteArray();
+        try {
+            x = adjustBigInt(w.getAffineX().toByteArray());
+            y = adjustBigInt(w.getAffineY().toByteArray());
+        } catch (IOException e) {
+            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+        }
+    }
 
-        /*
-         * For some reason toByteArray doesn't have an Signum option like the constructor. Manually remove leading 00
-         * byte if it exists.
-         */
-        if (0 == x[0] && 48 != x.length) {
-            x = Arrays.copyOfRange(x, 1, x.length);
+    /*
+     * We need our BigInts to be 48 bytes
+     */
+    private byte[] adjustBigInt(byte[] b) throws IOException {
+        if (0 == b[0] && BIG_INTEGER_SIZE < b.length) {
+            b = Arrays.copyOfRange(b, 1, b.length);
         }
-        if (0 == y[0] && 48 != y.length) {
-            y = Arrays.copyOfRange(y, 1, y.length);
+
+        if (b.length < BIG_INTEGER_SIZE) {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            for (int i = 0; i < BIG_INTEGER_SIZE - b.length; i++) {
+                output.write(new byte[] {0});
+            }
+            output.write(b);
+            b = output.toByteArray();
         }
+        return b;
     }
 }
 

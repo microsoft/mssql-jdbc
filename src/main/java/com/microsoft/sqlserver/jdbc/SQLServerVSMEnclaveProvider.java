@@ -146,30 +146,17 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             processAev1SPDE(userSql, preparedTypeDefinitions, params, parameterNames, connection, stmt, rs,
                     enclaveRequestedCEKs);
             // Process the third resultset.
-            try {
-                if (connection.isAEv2() && stmt.getMoreResults()) {
-                    rs = (SQLServerResultSet) stmt.getResultSet();
-                    while (rs.next()) {
-                        hgsResponse = new VSMAttestationResponse(rs.getBytes(1));
-                        // This validates and establishes the enclave session if valid
-                        if (!connection.enclaveEstablished()) {
-                            hgsResponse = validateAttestationResponse(hgsResponse);
-                        }
+            if (connection.isAEv2() && stmt.getMoreResults()) {
+                rs = (SQLServerResultSet) stmt.getResultSet();
+                while (rs.next()) {
+                    hgsResponse = new VSMAttestationResponse(rs.getBytes(1));
+                    // This validates and establishes the enclave session if valid
+                    if (!connection.enclaveEstablished()) {
+                        hgsResponse = validateAttestationResponse(hgsResponse);
                     }
                 }
-                // Null check for rs is done already.
-            } catch (SQLException e) {
-                byte[] bytes = vsmParams.getBytes();
-                final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
-                char[] hexChars = new char[bytes.length * 2];
-                for (int j = 0; j < bytes.length; j++) {
-                    int v = bytes[j] & 0xFF;
-                    hexChars[j * 2] = HEX_ARRAY[v >>> 4];
-                    hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
-                }
-                System.out.println(new String(hexChars));
-                throw e;
             }
+            // Null check for rs is done already.
             rs.close();
         } catch (SQLException e) {
             if (e instanceof SQLServerException) {
