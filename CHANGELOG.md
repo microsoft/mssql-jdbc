@@ -3,6 +3,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [8.1.1] Preview Release
+### Added
+- Added more tests to improve code coverage for Always Encrypted with secure enclaves feature [#1186](https://github.com/microsoft/mssql-jdbc/pull/1186)
+- Added certificate and enclave session caching for Always Encrypted with secure enclaves feature [#1189](https://github.com/microsoft/mssql-jdbc/pull/1189)
+
+### Fixed issues
+- Fixed a potential NullPointerException in SQLServerDataColumn.equals() [#1168](https://github.com/microsoft/mssql-jdbc/pull/1168)
+- Fixed an issue with BulkCopy when source is unicode char/varchar and destination is nchar/nvarchar [#1193](https://github.com/microsoft/mssql-jdbc/pull/1193)
+- Fixed an issue with SQLServerDatabaseMetaData.getColumns() only returning the first column against Azure SQL Data Warehouse [#1197](https://github.com/microsoft/mssql-jdbc/pull/1197)
+- Fixed an issue with SQLServerDatabaseMetaData.getImportedKeys() failing against Azure SQL Data Warehouse [#1205](https://github.com/microsoft/mssql-jdbc/pull/1205)
+
+### Changed
+- Made internal model public for SQLServerSpatialDatatype class [#1169](https://github.com/microsoft/mssql-jdbc/pull/1169)
+- Updated ISQLServerBulkData APIs to throw SQLException instead of SQLServerException [#1187](https://github.com/microsoft/mssql-jdbc/pull/1187)
+- Changed SQLServerConnection.state to volatile [#1194](https://github.com/microsoft/mssql-jdbc/pull/1194)
+- Optimized temporal datatype getter methods by replacing Calendar with LocalDatetime [#1200](https://github.com/microsoft/mssql-jdbc/pull/1200)
+- Updated driver and test dependencies [#1203](https://github.com/microsoft/mssql-jdbc/pull/1203)
+
 ## [8.1.0] Preview Release
 ### Added
 - Added ISQLServerBulkData to remove implementation details from ISQLServerBulkRecord [#1099](https://github.com/microsoft/mssql-jdbc/pull/1099)
