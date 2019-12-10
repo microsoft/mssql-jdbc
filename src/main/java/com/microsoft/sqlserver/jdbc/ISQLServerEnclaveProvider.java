@@ -49,7 +49,8 @@ import javax.crypto.KeyAgreement;
  *
  */
 public interface ISQLServerEnclaveProvider {
-    static final String proc = "EXEC sp_describe_parameter_encryption ?,?,?";
+    static final String proc1 = "EXEC sp_describe_parameter_encryption ?,?";
+    static final String proc2 = "EXEC sp_describe_parameter_encryption ?,?,?";
 
     default byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         EnclaveSession enclaveSession = getEnclaveSession();
@@ -91,6 +92,17 @@ public interface ISQLServerEnclaveProvider {
             stmt.setNString(2, "");
         }
         stmt.setBytes(3, req.getBytes());
+        return ((SQLServerPreparedStatement) stmt).executeQueryInternal();
+    }
+    
+    default ResultSet executeProcv1(PreparedStatement stmt, String userSql, String preparedTypeDefinitions) throws SQLException {
+        ((SQLServerPreparedStatement) stmt).isInternalEncryptionQuery = true;
+        stmt.setNString(1, userSql);
+        if (preparedTypeDefinitions != null && preparedTypeDefinitions.length() != 0) {
+            stmt.setNString(2, preparedTypeDefinitions);
+        } else {
+            stmt.setNString(2, "");
+        }
         return ((SQLServerPreparedStatement) stmt).executeQueryInternal();
     }
 
