@@ -670,7 +670,8 @@ enum JDBCType {
     GUID(Category.CHARACTER, microsoft.sql.Types.GUID, String.class.getName()),
     SQL_VARIANT(Category.SQL_VARIANT, microsoft.sql.Types.SQL_VARIANT, Object.class.getName()),
     GEOMETRY(Category.GEOMETRY, microsoft.sql.Types.GEOMETRY, Object.class.getName()),
-    GEOGRAPHY(Category.GEOGRAPHY, microsoft.sql.Types.GEOGRAPHY, Object.class.getName());
+    GEOGRAPHY(Category.GEOGRAPHY, microsoft.sql.Types.GEOGRAPHY, Object.class.getName()),
+    LOCALDATETIME(Category.TIMESTAMP, java.sql.Types.TIMESTAMP, LocalDateTime.class.getName());
 
     final Category category;
     private final int intValue;

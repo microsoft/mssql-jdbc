@@ -21,9 +21,11 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.util.LinkedHashMap;
 import java.util.UUID;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -36,6 +38,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -53,6 +56,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
     private static final String tableName = RandomUtil.getIdentifier("DBMetadataTable");
     private static final String functionName = RandomUtil.getIdentifier("DBMetadataFunction");
+    private static LinkedHashMap<Integer, String> getColumnsDWColumns = null;
+    private static LinkedHashMap<Integer, String> getImportedKeysDWColumns = null;
 
     /**
      * Verify DatabaseMetaData#isWrapperFor and DatabaseMetaData#unwrap.
@@ -355,15 +360,15 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "%")) {
                         testGetDBColumnInternal(rs1, databaseMetaData);
                     }
-                    
+
                     try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "col\\_1")) {
                         testGetDBColumnInternal(rs1, databaseMetaData);
                     }
-                    
+
                     try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "col\\%2")) {
                         testGetDBColumnInternal(rs1, databaseMetaData);
                     }
-                    
+
                     try (ResultSet rs1 = databaseMetaData.getColumns(null, null, tableName, "col\\[3")) {
                         testGetDBColumnInternal(rs1, databaseMetaData);
                     }
@@ -391,8 +396,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 assertTrue(!StringUtils.isEmpty(rs1.getString("COLUMN_SIZE")), form2.format(msgArgs2[6]));
                 assertTrue(!StringUtils.isEmpty(rs1.getString("NULLABLE")), form2.format(msgArgs2[7])); // 11
                 assertTrue(!StringUtils.isEmpty(rs1.getString("IS_NULLABLE")), form2.format(msgArgs2[8])); // 18
-                assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")),
-                        form2.format(msgArgs2[9])); // 22
+                assertTrue(!StringUtils.isEmpty(rs1.getString("IS_AUTOINCREMENT")), form2.format(msgArgs2[9])); // 22
             } while (rs1.next());
         }
     }
@@ -605,6 +609,100 @@ public class DatabaseMetaDataTest extends AbstractTest {
             assertEquals(maxConn, rs.getInt(1));
         } catch (SQLException e) {
             fail(e.getMessage());
+        }
+    }
+
+    @Test
+    public void testGetColumn() throws SQLException {
+        try (Connection conn = getConnection();) {
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+
+            getColumnsDWColumns = new LinkedHashMap<>();
+            getColumnsDWColumns.put(1, "TABLE_CAT");
+            getColumnsDWColumns.put(2, "TABLE_SCHEM");
+            getColumnsDWColumns.put(3, "TABLE_NAME");
+            getColumnsDWColumns.put(4, "COLUMN_NAME");
+            getColumnsDWColumns.put(5, "DATA_TYPE");
+            getColumnsDWColumns.put(6, "TYPE_NAME");
+            getColumnsDWColumns.put(7, "COLUMN_SIZE");
+            getColumnsDWColumns.put(8, "BUFFER_LENGTH");
+            getColumnsDWColumns.put(9, "DECIMAL_DIGITS");
+            getColumnsDWColumns.put(10, "NUM_PREC_RADIX");
+            getColumnsDWColumns.put(11, "NULLABLE");
+            getColumnsDWColumns.put(12, "REMARKS");
+            getColumnsDWColumns.put(13, "COLUMN_DEF");
+            getColumnsDWColumns.put(14, "SQL_DATA_TYPE");
+            getColumnsDWColumns.put(15, "SQL_DATETIME_SUB");
+            getColumnsDWColumns.put(16, "CHAR_OCTET_LENGTH");
+            getColumnsDWColumns.put(17, "ORDINAL_POSITION");
+            getColumnsDWColumns.put(18, "IS_NULLABLE");
+            getColumnsDWColumns.put(-1, "SCOPE_CATALOG");
+            getColumnsDWColumns.put(-2, "SCOPE_SCHEMA");
+            getColumnsDWColumns.put(-3, "SCOPE_TABLE");
+            getColumnsDWColumns.put(29, "SOURCE_DATA_TYPE");
+            getColumnsDWColumns.put(22, "IS_AUTOINCREMENT");
+            getColumnsDWColumns.put(21, "IS_GENERATEDCOLUMN");
+            getColumnsDWColumns.put(19, "SS_IS_SPARSE");
+            getColumnsDWColumns.put(20, "SS_IS_COLUMN_SET");
+            getColumnsDWColumns.put(23, "SS_UDT_CATALOG_NAME");
+            getColumnsDWColumns.put(24, "SS_UDT_SCHEMA_NAME");
+            getColumnsDWColumns.put(25, "SS_UDT_ASSEMBLY_TYPE_NAME");
+            getColumnsDWColumns.put(26, "SS_XML_SCHEMACOLLECTION_CATALOG_NAME");
+            getColumnsDWColumns.put(27, "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME");
+            getColumnsDWColumns.put(28, "SS_XML_SCHEMACOLLECTION_NAME");
+
+            try (ResultSet resultSet = databaseMetaData.getColumns(null, null, tableName, "%");) {
+                ResultSetMetaData rsmd = resultSet.getMetaData();
+                int rowCount = 0;
+                while (resultSet.next()) {
+                    for (int i = 1; i < rsmd.getColumnCount(); i++) {
+                        assertEquals(rsmd.getColumnName(i), getColumnsDWColumns.values().toArray()[i - 1]);
+                    }
+                    rowCount++;
+                }
+                assertEquals(3, rowCount);
+            }
+        }
+    }
+
+    @Test
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLMI)
+    public void testGetImportedKeysDW() throws SQLException {
+        // To get the actual DW database name.
+        SQLServerDataSource ds = new SQLServerDataSource();
+        updateDataSource(connectionString, ds);
+        try (Connection conn = getConnection();) {
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+
+            getImportedKeysDWColumns = new LinkedHashMap<>();
+            getImportedKeysDWColumns.put(1, "PKTABLE_CAT");
+            getImportedKeysDWColumns.put(2, "PKTABLE_SCHEM");
+            getImportedKeysDWColumns.put(3, "PKTABLE_NAME");
+            getImportedKeysDWColumns.put(4, "PKCOLUMN_NAME");
+            getImportedKeysDWColumns.put(5, "FKTABLE_CAT");
+            getImportedKeysDWColumns.put(6, "FKTABLE_SCHEM");
+            getImportedKeysDWColumns.put(7, "FKTABLE_NAME");
+            getImportedKeysDWColumns.put(8, "FKCOLUMN_NAME");
+            getImportedKeysDWColumns.put(9, "KEY_SEQ");
+            getImportedKeysDWColumns.put(10, "UPDATE_RULE");
+            getImportedKeysDWColumns.put(11, "DELETE_RULE");
+            getImportedKeysDWColumns.put(12, "FK_NAME");
+            getImportedKeysDWColumns.put(13, "PK_NAME");
+            getImportedKeysDWColumns.put(14, "DEFERRABILITY");
+
+            try (ResultSet resultSet = databaseMetaData.getImportedKeys(ds.getDatabaseName(), null, tableName);) {
+                assertFalse(resultSet.next());
+                ResultSetMetaData rsmd = resultSet.getMetaData();
+                // Verify metadata
+                for (int i = 1; i < getImportedKeysDWColumns.size(); i++) {
+                    assertEquals(getImportedKeysDWColumns.get(i), rsmd.getColumnName(i));
+                }
+
+            }
         }
     }
 

@@ -1476,6 +1476,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"),
                             null);
                 }
+
+                if (enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.HGS.toString())) {
+                    this.enclaveProvider = new SQLServerVSMEnclaveProvider();
+                } else {
+                    // If it's a valid Provider & not HGS, then it has to be AAS
+                    this.enclaveProvider = new SQLServerAASEnclaveProvider();
+                }
             }
 
             // enclave requires columnEncryption=enabled, enclaveAttestationUrl and enclaveAttestationProtocol
@@ -6472,12 +6479,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (aeVersion >= TDS.COLUMNENCRYPTION_VERSION2);
     }
 
-    ISQLServerEnclaveProvider enclaveProvider = new SQLServerVSMEnclaveProvider();
+    private ISQLServerEnclaveProvider enclaveProvider;
 
     ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         if (!this.enclaveEstablished()) {
-            enclaveProvider.getAttestationParameters(false, this.enclaveAttestationUrl);
+            enclaveProvider.getAttestationParameters(this.enclaveAttestationUrl);
         }
         return enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
     }
@@ -6488,6 +6495,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     byte[] generateEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         return (enclaveCEKs.size() > 0) ? enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs) : null;
+    }
+
+    String getServerName() {
+        return this.trustedServerNameAE;
     }
 }
 

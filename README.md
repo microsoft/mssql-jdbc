@@ -92,7 +92,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.0.jre13-preview</version>
+	<version>8.1.1.jre13-preview</version>
 </dependency>
 ```
 
@@ -127,7 +127,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.0.jre13-preview</version>
+	<version>8.1.1.jre13-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -140,7 +140,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.rest</groupId>
 	<artifactId>client-runtime</artifactId>
-	<version>1.6.8</version>
+	<version>1.6.15</version>
 </dependency>
 ```
 
@@ -150,7 +150,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.0.jre13-preview</version>
+	<version>8.1.1.jre13-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -163,13 +163,13 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.rest</groupId>
 	<artifactId>client-runtime</artifactId>
-	<version>1.6.8</version>
+	<version>1.6.15</version>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>azure-keyvault</artifactId>
-	<version>1.2.1</version>
+	<version>1.2.2</version>
 </dependency>
 ```
 
@@ -183,7 +183,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.0.jre13-preview</version>
+	<version>8.1.1.jre13-preview</version>
 </dependency>
 
 <dependency>
