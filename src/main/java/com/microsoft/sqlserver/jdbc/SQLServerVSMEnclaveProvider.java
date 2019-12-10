@@ -136,18 +136,18 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         ResultSet rs = null;
-        try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? proc1 : proc2)) {
+        try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
             if (connection.enclaveEstablished()) {
-                rs = executeProcv1(stmt, userSql, preparedTypeDefinitions);
+                rs = Util.executeSDPEv1(stmt, userSql, preparedTypeDefinitions);
             } else {
-                rs = executeProc(stmt, userSql, preparedTypeDefinitions, vsmParams);
+                rs = Util.executeSDPEv2(stmt, userSql, preparedTypeDefinitions, vsmParams);
             }
             if (null == rs) {
                 // No results. Meaning no parameter.
                 // Should never happen.
                 return enclaveRequestedCEKs;
             }
-            processAev1SPDE(userSql, preparedTypeDefinitions, params, parameterNames, connection, stmt, rs,
+            Util.processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, stmt, rs,
                     enclaveRequestedCEKs);
             // Process the third resultset.
             if (connection.isAEv2() && stmt.getMoreResults()) {
