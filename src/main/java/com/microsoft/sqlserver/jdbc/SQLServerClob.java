@@ -328,7 +328,10 @@ abstract class SQLServerClobBase extends SQLServerLob {
     public long length() throws SQLException {
         checkClosed();
         if (null == value && activeStreams.get(0) instanceof BaseInputStream) {
-            return (long) ((BaseInputStream) activeStreams.get(0)).payloadLength;
+            int payloadLength = ((BaseInputStream) activeStreams.get(0)).payloadLength;
+            String columnTypeName = this.typeInfo.getSSTypeName();
+            return (columnTypeName.equalsIgnoreCase("nvarchar")
+                    || columnTypeName.equalsIgnoreCase("ntext")) ? payloadLength / 2 : payloadLength;
         } else if (null == value) {
             return 0;
         }
