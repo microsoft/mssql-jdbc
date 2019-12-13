@@ -23,6 +23,7 @@ import java.sql.SQLType;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.text.MessageFormat;
+import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
@@ -2392,20 +2393,13 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             returnValue = getTimestamp(columnIndex);
         } else if (type == java.time.LocalDateTime.class || type == java.time.LocalDate.class
                 || type == java.time.LocalTime.class) {
-            java.sql.Timestamp ts = getTimestamp(columnIndex,
-                    Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")));
-            if (ts == null) {
-                returnValue = null;
+            java.time.LocalDateTime ldt = getLocalDateTime(columnIndex);
+            if (type == java.time.LocalDateTime.class) {
+                returnValue = ldt;
+            } else if (type == java.time.LocalDate.class) {
+                returnValue = ldt.toLocalDate();
             } else {
-                java.time.LocalDateTime ldt = java.time.LocalDateTime.ofInstant(ts.toInstant(),
-                        java.time.ZoneId.of("UTC"));
-                if (type == java.time.LocalDateTime.class) {
-                    returnValue = ldt;
-                } else if (type == java.time.LocalDate.class) {
-                    returnValue = ldt.toLocalDate();
-                } else {
-                    returnValue = ldt.toLocalTime();
-                }
+                returnValue = ldt.toLocalTime();
             }
         } else if (type == java.time.OffsetDateTime.class) {
             microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(columnIndex);
@@ -2628,6 +2622,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(findColumn(colName), JDBCType.TIMESTAMP, cal);
         loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
+        return value;
+    }
+    
+    LocalDateTime getLocalDateTime(int columnIndex) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getLocalDateTime", columnIndex);
+        checkClosed();
+        LocalDateTime value = (LocalDateTime) getValue(columnIndex, JDBCType.LOCALDATETIME);
+        loggerExternal.exiting(getClassNameLogging(), "getLocalDateTime", value);
         return value;
     }
 

@@ -114,7 +114,8 @@ enum ColumnEncryptionSetting {
 
 
 enum AttestationProtocol {
-    HGS("HGS"); // only protocol supported currently
+    HGS("HGS"),
+    AAS("AAS");
 
     private final String protocol;
 
@@ -130,16 +131,26 @@ enum AttestationProtocol {
         }
         return false;
     }
+
+    @Override
+    public String toString() {
+        return protocol;
+    }
 }
 
 
 enum EnclaveType {
-    VBS("VBS"); // only VBS type supported
+    VBS("VBS"),
+    SGX("SGX");
 
     private final String type;
 
     EnclaveType(String type) {
         this.type = type;
+    }
+
+    public int getValue() {
+        return ordinal() + 1;
     }
 
     static boolean isValidEnclaveType(String type) {
@@ -149,6 +160,11 @@ enum EnclaveType {
             }
         }
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return type;
     }
 }
 
@@ -428,6 +444,8 @@ enum SQLServerDriverBooleanProperty {
 public final class SQLServerDriver implements java.sql.Driver {
     static final String PRODUCT_NAME = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor
             + " for SQL Server";
+    static final String AUTH_DLL_NAME = "mssql-jdbc_auth-" + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor + "."
+            + SQLJdbcVersion.patch + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.releaseExt;
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
 
     private static final String[] TRUE_FALSE = {"true", "false"};

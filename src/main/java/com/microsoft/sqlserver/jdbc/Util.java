@@ -40,6 +40,10 @@ final class Util {
         return SYSTEM_JRE.startsWith("IBM");
     }
 
+    static String getJVMArchOnWindows() {
+        return System.getProperty("os.arch").contains("64") ? "x64" : "x86";
+    }
+
     static final boolean isCharType(int jdbcType) {
         switch (jdbcType) {
             case java.sql.Types.CHAR:

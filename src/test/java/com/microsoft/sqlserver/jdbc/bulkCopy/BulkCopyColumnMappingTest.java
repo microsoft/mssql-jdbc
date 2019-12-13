@@ -4,14 +4,18 @@
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.util.Random;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -20,8 +24,11 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
@@ -359,8 +366,18 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         }
     }
 
+    @Test
+    @DisplayName("BulkCopy:test unicode char/varchar to nchar/nvarchar")
+    public void testUnicodeCharToNchar() throws SQLException, ClassNotFoundException {
+        validateMapping("CHAR(5)", "NCHAR(5)", "фщыab");
+        validateMapping("CHAR(5)", "NVARCHAR(5)", "фщыab");
+        validateMapping("VARCHAR(5)", "NCHAR(5)", "фщыab");
+        validateMapping("VARCHAR(5)", "NVARCHAR(5)", "фщыab");
+        validateMapping("VARCHAR(5)", "NVARCHAR(max)", "фщыab");
+    }
+
     /**
-     * validate if same values are in both source and destination table taking into account 1 extra column in
+     * Validate if same values are in both source and destination table taking into account 1 extra column in
      * destination which should be a copy of first column of source.
      * 
      * @param con
@@ -403,6 +420,38 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             assertTrue(((ResultSet) dstResultSet.product()).getMetaData().getColumnCount() == totalColumns + 1);
             assertTrue(sourceTable.getTotalRows() == numRows);
             assertTrue(destinationTable.getTotalRows() == numRows);
+        }
+    }
+
+    private void validateMapping(String sourceType, String destType,
+            String data) throws SQLException, ClassNotFoundException {
+        Class.forName("org.h2.Driver");
+        Random rand = new Random();
+        String sourceTable = "sourceTable" + rand.nextInt(Integer.MAX_VALUE);
+        String destTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("destTable")));
+        try (Connection sourceCon = DriverManager.getConnection("jdbc:h2:~/test", "sa", "");
+                Connection destCon = DriverManager.getConnection(connectionString);
+                Statement sourceStmt = sourceCon.createStatement(); Statement destStmt = destCon.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(destCon)) {
+            try {
+                bulkCopy.setDestinationTableName(destTable);
+
+                sourceStmt.executeUpdate("CREATE TABLE " + sourceTable + " (col " + sourceType + ");");
+                sourceStmt.executeUpdate("INSERT INTO " + sourceTable + " VALUES('" + data + "');");
+
+                destStmt.executeUpdate("CREATE TABLE " + destTable + " (col NCHAR(5));");
+                ResultSet sourceRs = sourceStmt.executeQuery("SELECT * FROM " + sourceTable);
+                bulkCopy.writeToServer(sourceRs);
+
+                ResultSet destRs = destStmt.executeQuery("SELECT * FROM " + destTable);
+                destRs.next();
+                String receivedUnicodeData = destRs.getString(1);
+                assertEquals(data, receivedUnicodeData);
+            } finally {
+                sourceStmt.executeUpdate("DROP TABLE " + sourceTable);
+                TestUtils.dropTableIfExists(destTable, destStmt);
+            }
         }
     }
 }

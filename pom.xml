@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.0</version>
+	<version>8.1.1</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -52,24 +52,29 @@
 			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
 			reqExternalSetup  - For tests requiring external setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-			Default testing enabled with SQL Server 2019 (SQLv14) -->
+			Default testing enabled with SQL Server 2019 (SQLv15) -->
 		<excludedGroups>xSQLv15, NTLM, reqExternalSetup</excludedGroups>
 
+		<!-- Use -preview for preview release, leave empty for official release.-->
+		<releaseExt>-preview</releaseExt>
+
 		<!-- Driver Dependencies -->
-		<azure.keyvault.version>1.2.1</azure.keyvault.version>
+		<azure.keyvault.version>1.2.2</azure.keyvault.version>
 		<azure.adal4j.version>1.6.4</azure.adal4j.version>
-		<rest.client.version>1.6.10</rest.client.version>
+		<rest.client.version>1.6.15</rest.client.version>
 		<osgi.core.version>6.0.0</osgi.core.version>
 		<osgi.comp.version>5.0.0</osgi.comp.version>
 		<antlr.runtime.version>4.7.2</antlr.runtime.version>
+		<google.gson.version>2.8.6</google.gson.version>
 
 		<!-- JUnit Test Dependencies -->
-		<junit.platform.version>[1.3.2, 1.4.2]</junit.platform.version>
-		<junit.jupiter.version>5.4.2</junit.jupiter.version>
-		<hikaricp.version>3.3.1</hikaricp.version>
-		<dbcp2.version>2.6.0</dbcp2.version>
-		<slf4j.nop.version>1.7.26</slf4j.nop.version>
+		<junit.platform.version>[1.3.2, 1.5.2]</junit.platform.version>
+		<junit.jupiter.version>5.5.2</junit.jupiter.version>
+		<hikaricp.version>3.4.1</hikaricp.version>
+		<dbcp2.version>2.7.0</dbcp2.version>
+		<slf4j.nop.version>1.7.29</slf4j.nop.version>
 		<gemini.mock.version>2.1.0.RELEASE</gemini.mock.version>
+		<h2.version>1.4.200</h2.version>
 
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -101,6 +106,14 @@
 			<groupId>org.antlr</groupId>
 			<artifactId>antlr4-runtime</artifactId>
 			<version>${antlr.runtime.version}</version>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- dependencies for AAS Enclave Provider -->
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>${google.gson.version}</version>
 			<optional>true</optional>
 		</dependency>
 
@@ -191,13 +204,19 @@
 			<version>${gemini.mock.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<version>${h2.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<profiles>
 		<profile>
 			<id>jre8</id>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre8${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -243,7 +262,7 @@
 		<profile>
 			<id>jre11</id>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre11-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre11${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -279,7 +298,7 @@
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre13-preview</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre13${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -488,7 +507,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.3</version>
+				<version>0.8.5</version>
 				<executions>
 					<execution>
 						<id>pre-test</id>

@@ -896,7 +896,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return rolledBackTransaction;
     }
 
-    private State state = State.Initialized; // connection state
+    private volatile State state = State.Initialized; // connection state
 
     private void setState(State state) {
         this.state = state;
@@ -1473,25 +1473,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (null != sPropValue) {
                 enclaveAttestationProtocol = sPropValue;
                 if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(toString() + " "
-                                + SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"));
-                    }
                     throw new SQLServerException(SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"),
                             null);
                 }
+
+                if (enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.HGS.toString())) {
+                    this.enclaveProvider = new SQLServerVSMEnclaveProvider();
+                } else {
+                    // If it's a valid Provider & not HGS, then it has to be AAS
+                    this.enclaveProvider = new SQLServerAASEnclaveProvider();
+                }
             }
 
-            // both enclaveAttestationUrl must be enclaveAttestationProtocol specified
+            // enclave requires columnEncryption=enabled, enclaveAttestationUrl and enclaveAttestationProtocol
             if ((null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
                     && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty()))
                     || (null != enclaveAttestationProtocol && !enclaveAttestationProtocol.isEmpty()
-                            && (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()))) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(
-                            toString() + " " + SQLServerException.getErrString("R_enclaveNoAttestationProtocol"));
-                }
-                throw new SQLServerException(SQLServerException.getErrString("R_enclaveNoAttestationProtocol"), null);
+                            && (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()))
+                    || (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                            && (null != enclaveAttestationProtocol || !enclaveAttestationProtocol.isEmpty())
+                            && (null == columnEncryptionSetting || !isColumnEncryptionSettingEnabled()))) {
+                throw new SQLServerException(SQLServerException.getErrString("R_enclavePropertiesError"), null);
             }
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();
@@ -4255,7 +4257,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         while (true) {
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
-                validateAdalLibrary("R_ADALMissing");
+                if (!adalContextExists()) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALMissing"));
+                    throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
+                }
                 fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                         authenticationString);
@@ -4270,7 +4275,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
 
-                // If operating system is windows and sqljdbc_auth is loaded then choose the DLL authentication.
+                // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
                 if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")
                         && AuthenticationJNI.isDllLoaded()) {
                     try {
@@ -4289,7 +4294,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         break;
                     } catch (DLLException adalException) {
 
-                        // the sqljdbc_auth.dll return -1 for errorCategory, if unable to load the adalsql.dll
+                        // the mssql-jdbc_auth DLL return -1 for errorCategory, if unable to load the adalsql DLL
                         int errorCategory = adalException.GetCategory();
                         if (-1 == errorCategory) {
                             MessageFormat form = new MessageFormat(
@@ -4343,7 +4348,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // OS version here.
                 else {
                     // Check if ADAL4J library is available
-                    validateAdalLibrary("R_DLLandADALMissing");
+                    if (!adalContextExists()) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DLLandADALMissing"));
+                        Object[] msgArgs = {SQLServerDriver.AUTH_DLL_NAME, authenticationString};
+                        throw new SQLServerException(form.format(msgArgs), null, 0, null);
+                    }
                     fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
                 }
                 // Break out of the retry loop in successful case.
@@ -4354,14 +4363,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return fedAuthToken;
     }
 
-    private void validateAdalLibrary(String errorMessage) throws SQLServerException {
+    private boolean adalContextExists() {
         try {
             Class.forName("com.microsoft.aad.adal4j.AuthenticationContext");
         } catch (ClassNotFoundException e) {
-            // throw Exception for missing libraries
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString(errorMessage));
-            throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
+            return false;
         }
+        return true;
     }
 
     private SqlFedAuthToken getMSIAuthToken(String resource, String msiClientId) throws SQLServerException {
@@ -6471,12 +6479,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (aeVersion >= TDS.COLUMNENCRYPTION_VERSION2);
     }
 
-    ISQLServerEnclaveProvider enclaveProvider = new SQLServerVSMEnclaveProvider();
+    private ISQLServerEnclaveProvider enclaveProvider;
 
     ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         if (!this.enclaveEstablished()) {
-            enclaveProvider.getAttestationParameters(false, this.enclaveAttestationUrl);
+            enclaveProvider.getAttestationParameters(this.enclaveAttestationUrl);
         }
         return enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
     }
@@ -6485,8 +6493,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (null != enclaveProvider.getEnclaveSession());
     }
 
-    byte[] generateEncalvePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
+    byte[] generateEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         return (enclaveCEKs.size() > 0) ? enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs) : null;
+    }
+
+    String getServerName() {
+        return this.trustedServerNameAE;
     }
 }
 
@@ -6496,7 +6508,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
  * 
  */
 final class SQLServerConnectionSecurityManager {
-    static final String dllName = "sqljdbc_auth.dll";
+    static final String dllName = SQLServerDriver.AUTH_DLL_NAME + ".dll";
     String serverName;
     int portNumber;
 

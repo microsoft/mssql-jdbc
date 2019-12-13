@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.sql.Connection;
 import java.sql.Date;
 import java.sql.JDBCType;
 import java.sql.SQLException;
@@ -35,10 +34,10 @@ import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvid
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -49,39 +48,33 @@ import microsoft.sql.DateTimeOffset;
 
 
 /**
- * Setup for Always Encrypted test This test will work on Appveyor and Travis-ci as java key store gets created from the
- * .yml scripts. Users on their local machine should create the keystore manually and save the alias name in
- * JavaKeyStore.txt file. For local test purposes, put this in the target/test-classes directory
+ * Setup for Always Encrypted test This test will work on Azure DevOps as java key store gets created from the .yml
+ * scripts. Users on their local machine should create the keystore manually and save the alias name in JavaKeyStore.txt
+ * file. For local test purposes, put this in the target/test-classes directory
  *
  */
 @RunWith(JUnitPlatform.class)
 public class AESetup extends AbstractTest {
 
-    static String filePath = null;
-    static String thumbprint = null;
-    static String javaKeyPath = null;
-    static String javaKeyAliases = null;
-    static String windowsKeyPath = null;
-    static String applicationClientID = null;
-    static String applicationKey = null;
-    static String[] keyIDs = null;
-    static String cmkJks = null;
-    static String cmkWin = null;
-    static String cmkAkv = null;
-    static String cekJks = null;
-    static String cekWin = null;
-    static String cekAkv = null;
+    static String cmkJks = Constants.CMK_NAME + "_JKS";
+    static String cmkWin = Constants.CMK_NAME + "_WIN";
+    static String cmkAkv = Constants.CMK_NAME + "_AKV";
+    static String cekJks = Constants.CEK_NAME + "_JKS";
+    static String cekWin = Constants.CEK_NAME + "_WIN";
+    static String cekAkv = Constants.CEK_NAME + "_AKV";
 
-    static boolean kspRegistered = false;
-    static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
-    static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
+    // static String javaKeyAliases = null;
+    // static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
+    // static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
     static String AETestConnectionString;
     static Properties AEInfo;
-    static boolean isAEv2Supported = false;
+    static Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+
+    // test that only run on Windows will be skipped
+    static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
 
     public static final String tableName = RandomUtil.getIdentifier("AETest_");
-
     public static final String CHAR_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedChar");
     public static final String BINARY_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedBinary");
     public static final String DATE_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedDate");
@@ -97,8 +90,9 @@ public class AESetup extends AbstractTest {
     /*
      * tables used in the tests {columnName, columnType}
      */
-    static String binaryTable[][] = {{"Binary", "binary(20)"}, {"Varbinary", "varbinary(50)"},
-            {"VarbinaryMax", "varbinary(max)"}, {"Binary512", "binary(512)"}, {"Binary8000", "varbinary(8000)"},};
+    static String binaryTable[][] = {{"Binary", "binary(20)", "BINARY"}, {"Varbinary", "varbinary(50)", "BINARY"},
+            {"VarbinaryMax", "varbinary(max)", "BINARY"}, {"Binary512", "binary(512)", "BINARY"},
+            {"Binary8000", "varbinary(8000)", "BINARY"}};
 
     static String charTable[][] = {{"Char", "char(20) COLLATE Latin1_General_BIN2", "CHAR"},
             {"Varchar", "varchar(50) COLLATE Latin1_General_BIN2", "CHAR"},
@@ -110,18 +104,20 @@ public class AESetup extends AbstractTest {
             {"Varchar8000", "varchar(8000) COLLATE Latin1_General_BIN2", "CHAR"},
             {"Nvarchar4000", "nvarchar(4000) COLLATE Latin1_General_BIN2", "NCHAR"},};
 
-    static String dateTable[][] = {{"Date", "date"}, {"Datetime2Default", "datetime2"},
-            {"DatetimeoffsetDefault", "datetimeoffset"}, {"TimeDefault", "time"}, {"Datetime", "datetime"},
-            {"Smalldatetime", "smalldatetime"},};
+    static String dateTable[][] = {{"Date", "date", "DATE"}, {"Datetime2Default", "datetime2", "TIMESTAMP"},
+            {"DatetimeoffsetDefault", "datetimeoffset", "DATETIMEOFFSET"}, {"TimeDefault", "time", "TIME"},
+            {"Datetime", "datetime", "DATETIME"}, {"Smalldatetime", "smalldatetime", "SMALLDATETIME"}};
 
-    static String dateScaleTable[][] = {{"Datetime2", "datetime2(2)"}, {"Time", "time(2)"},
-            {"Datetimeoffset", "datetimeoffset(2)"},};
+    static String dateScaleTable[][] = {{"Datetime2", "datetime2(2)", "DATE"}, {"Time", "time(2)", "DATE"},
+            {"Datetimeoffset", "datetimeoffset(2)", "DATE"}};
 
-    static String numericTable[][] = {{"Bit", "bit"}, {"Tinyint", "tinyint"}, {"Smallint", "smallint"}, {"Int", "int"},
-            {"Bigint", "bigint"}, {"FloatDefault", "float"}, {"Float", "float(30)"}, {"Real", "real"},
-            {"DecimalDefault", "decimal"}, {"Decimal", "decimal(10,5)"}, {"NumericDefault", "numeric"},
-            {"Numeric", "numeric(8,2)"}, {"SmallMoney", "smallmoney"}, {"Money", "money"},
-            {"Decimal2", "decimal(28,4)"}, {"Numeric2", "numeric(28,4)"},};
+    static String numericTable[][] = {{"Bit", "bit", "BIT"}, {"Tinyint", "tinyint", "TINYINT"},
+            {"Smallint", "smallint", "SMALLINT"}, {"Int", "int", "INTEGER"}, {"Bigint", "bigint", "BIGINT"},
+            {"FloatDefault", "float", "DOUBLE"}, {"Float", "float(30)", "DOUBLE"}, {"Real", "real", "FLOAT"},
+            {"DecimalDefault", "decimal", "DECIMAL"}, {"Decimal", "decimal(10,5)", "DECIMAL"},
+            {"NumericDefault", "numeric", "DECIMAL"}, {"Numeric", "numeric(8,2)", "DECIMAL"},
+            {"SmallMoney", "smallmoney", "SMALLMONEY"}, {"Money", "money", "MONEY"},
+            {"Decimal2", "decimal(28,4)", "DECIMAL"}, {"Numeric2", "numeric(28,4)", "DECIMAL"},};
 
     // CREATE TABLE tableName (columns) NULL"
     static String createSql = "CREATE TABLE %s (%s)";
@@ -129,6 +125,25 @@ public class AESetup extends AbstractTest {
     // ENCRYPTED WITH (ENCRYPTION_TYPE = encryptionType, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256',
     // COLUMN_ENCRYPTION_KEY = cekName
     static String encryptSql = " ENCRYPTED WITH (ENCRYPTION_TYPE = %s, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = %s";
+
+    /*
+     * List of all the randomized columns in the tests
+     */
+    static String[] randomizedColumns = {"PlainBinary binary(20)", "PlainVarbinary varbinary(50)",
+            "PlainVarbinaryMax varbinary(max)", "PlainBinary512 binary(512)", "PlainBinary8000 varbinary(8000)",
+            "PlainChar char(20)", "PlainVarchar varchar(50)", "PlainVarcharMax varchar(max)", "PlainNchar nchar(30)",
+            "PlainNvarchar nvarchar(60)", "PlainNvarcharMax nvarchar(max)", "PlainUniqueidentifier uniqueidentifier",
+            "PlainVarchar8000 varchar(8000)", "PlainNvarchar4000 nvarchar(4000)", "PlainDate date",
+            "PlainDatetime2Default datetime2", "PlainDatetimeoffsetDefault datetimeoffset", "PlainTimeDefault time",
+            "PlainDatetime datetime", "PlainSmalldatetime smalldatetime", "PlainDatetime2 datetime2(0)",
+            "PlainDatetime2Default datetime2", "PlainDatetimeoffsetDefault datetimeoffset", "PlainTimeDefault time",
+            "PlainTime time(0)", "PlainDatetimeoffset datetimeoffset(0)", "PlainDatetime2 datetime2(2)",
+            "PlainTime time(2)", "PlainDatetimeoffset datetimeoffset(2)", "PlainBit bit", "PlainTinyint tinyint",
+            "PlainSmallint smallint", "PlainInt int", "PlainBigint bigint", "PlainFloatDefault float",
+            "PlainFloat float(30)", "PlainReal real", "PlainDecimalDefault decimal", "PlainDecimal decimal(10,5)",
+            "PlainNumericDefault numeric", "PlainNumeric numeric(8,2)", "PlainSmallMoney smallmoney",
+            "PlainMoney money", "PlainDecimal2 decimal(28,4)", "PlainNumeric2 numeric(28,4)", "PlainFloat float(30)",
+            "PlainDecimal decimal(30)", "PlainNumeric numeric(30)"};
 
     /**
      * Create connection, statement and generate path of resource file
@@ -138,85 +153,37 @@ public class AESetup extends AbstractTest {
      */
     @BeforeAll
     public static void setUpConnection() throws TestAbortedException, Exception {
-        AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
-        String tmpConnectionString = AETestConnectionString;
-        String enclaveAttestationUrl = TestUtils.getConfiguredProperty("enclaveAttestationUrl");
-        if (null != enclaveAttestationUrl) {
-            tmpConnectionString = TestUtils.addOrOverrideProperty(tmpConnectionString, "enclaveAttestationUrl",
-                    enclaveAttestationUrl);
-        }
-        String enclaveAttestationProtocol = TestUtils.getConfiguredProperty("enclaveAttestationProtocol");
-        if (null != enclaveAttestationProtocol) {
-            tmpConnectionString = TestUtils.addOrOverrideProperty(tmpConnectionString, "enclaveAttestationProtocol",
-                    enclaveAttestationProtocol);
-        }
+        AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled";
 
-        // add enclave properties if AEv2 supported
-        try (Connection con = PrepUtil.getConnection(tmpConnectionString)) {
-            if (TestUtils.isAEv2(con)) {
-                isAEv2Supported = true;
-                AETestConnectionString = tmpConnectionString;
-            }
-        } catch (SQLServerException e) {
-            if (!e.getMessage().matches(TestUtils.formatErrorMsg("R_enclaveNotSupported"))) {
-                // ignore AEv2 not supported errors
-                fail(e.getMessage());
-            }
-        }
+        if (null == applicationClientID || null == applicationKey || null == keyIDs
+                || (isWindows && null == windowsKeyPath)) {
+            fail(TestResource.getResource("R_reqExternalSetup"));
 
-        cmkJks = Constants.CMK_NAME + "_JKS";
-        cekJks = Constants.CEK_NAME + "_JKS";
+        }
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
 
-        javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
-        applicationClientID = TestUtils.getConfiguredProperty("applicationClientID");
-        applicationKey = TestUtils.getConfiguredProperty("applicationKey");
-        String keyID = TestUtils.getConfiguredProperty("keyID");
-        if (null != keyID) {
-            keyIDs = keyID.split(";");
+        String enclaveAttestationUrl = getConfiguredProperty("enclaveAttestationUrl");
+        if (null != enclaveAttestationUrl) {
+            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "enclaveAttestationUrl",
+                    enclaveAttestationUrl);
         }
-
-        Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        if (null == jksProvider) {
-            jksProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath,
-                    Constants.JKS_SECRET.toCharArray());
-            map.put("My_KEYSTORE", jksProvider);
-        }
-
-        if (null == akvProvider && null != applicationClientID && null != applicationKey) {
-            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
-            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
-        }
-
-        if (!kspRegistered && (null != jksProvider || null != akvProvider)) {
-            SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
-            kspRegistered = true;
+        String enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol");
+        if (null != enclaveAttestationProtocol) {
+            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
+                    "enclaveAttestationProtocol", enclaveAttestationProtocol);
         }
 
         dropAll();
 
-        // always test JKS
         createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
         createCEK(cmkJks, cekJks, jksProvider);
 
-        if (null != akvProvider) {
-            cmkAkv = Constants.CMK_NAME + "_AKV";
-            cekAkv = Constants.CEK_NAME + "_AKV";
+        createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
+        createCEK(cmkAkv, cekAkv, akvProvider);
 
-            createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
-            createCEK(cmkAkv, cekAkv, akvProvider);
-        }
-
-        windowsKeyPath = TestUtils.getConfiguredProperty("windowsKeyPath");
-        if (null != windowsKeyPath) {
-            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "windowsKeyPath",
-                    windowsKeyPath);
-            cmkWin = Constants.CMK_NAME + "_WIN";
-            cekWin = Constants.CEK_NAME + "_WIN";
-            createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
-            createCEK(cmkWin, cekWin, null);
-        }
+        createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
+        createCEK(cmkWin, cekWin, null);
 
         stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;
 
@@ -233,7 +200,6 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    @AfterAll
     public static void dropAll() throws Exception {
         try (Statement stmt = connection.createStatement()) {
             dropTables(stmt);
@@ -254,6 +220,20 @@ public class AESetup extends AbstractTest {
     }
 
     /**
+     * Dropping all CMKs and CEKs and any open resources. Technically, dropAll depends on the state of the class so it
+     * shouldn't be static, but the AfterAll annotation requires it to be static.
+     * 
+     * @throws SQLException
+     */
+    @AfterAll
+    public static void cleanUp() throws Exception {
+        dropAll();
+        if (null != connection) {
+            connection.close();
+        }
+    }
+
+    /**
      * Read the alias from file which is created during creating jks If the jks and alias name in JavaKeyStore.txt does
      * not exists, will not run!
      * 
@@ -262,7 +242,7 @@ public class AESetup extends AbstractTest {
      * @throws IOException
      */
     private static void readFromFile(String inputFile, String lookupValue) throws IOException {
-        filePath = TestUtils.getCurrentClassPath();
+        String filePath = TestUtils.getCurrentClassPath();
         try {
             File f = new File(filePath + inputFile);
             try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
@@ -377,7 +357,7 @@ public class AESetup extends AbstractTest {
      * 
      * @param nullable
      */
-    protected static LinkedList<byte[]> createbinaryValues(boolean nullable) {
+    protected static LinkedList<byte[]> createBinaryValues(boolean nullable) {
 
         boolean encrypted = true;
         RandomData.returnNull = nullable;

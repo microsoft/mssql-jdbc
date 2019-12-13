@@ -48,8 +48,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
         UnsatisfiedLinkError temp = null;
         // Load the DLL
         try {
-            String libName = "sqljdbc_auth";
-            System.loadLibrary(libName);
+            System.loadLibrary(SQLServerDriver.AUTH_DLL_NAME);
             int[] pkg = new int[1];
             pkg[0] = 0;
             if (0 == SNISecInitPackage(pkg, authLogger)) {

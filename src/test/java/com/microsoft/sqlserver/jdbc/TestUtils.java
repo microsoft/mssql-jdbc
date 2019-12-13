@@ -120,38 +120,6 @@ public final class TestUtils {
     }
 
     /**
-     * Read variable from property files if found null try to read from env.
-     * 
-     * @param key
-     * @return Value
-     */
-    public static String getConfiguredProperty(String key) {
-        String value = System.getProperty(key);
-
-        if (value == null) {
-            value = System.getenv(key);
-        }
-
-        return value;
-    }
-
-    /**
-     * Convenient method for {@link #getConfiguredProperty(String)}
-     * 
-     * @param key
-     * @return Value
-     */
-    public static String getConfiguredProperty(String key, String defaultValue) {
-        String value = getConfiguredProperty(key);
-
-        if (value == null) {
-            value = defaultValue;
-        }
-
-        return value;
-    }
-
-    /**
      * 
      * @param javatype
      * @return
@@ -841,6 +809,21 @@ public final class TestUtils {
      */
     public static String addOrOverrideProperty(String connectionString, String property, String value) {
         return connectionString + ";" + property + "=" + value + ";";
+    }
+
+    /**
+     * Remove the given connection property in the connection string
+     * 
+     * @param connectionString
+     *        original connection string
+     * @param property
+     *        name of the property
+     * @return The updated connection string
+     */
+    public static String removeProperty(String connectionString, String property) {
+        int start = connectionString.indexOf(property);
+        String propertyStr = connectionString.substring(start, connectionString.indexOf(";", start) + 1);
+        return connectionString.replace(propertyStr, "");
     }
 
     /**
