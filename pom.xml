@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.1</version>
+	<version>8.2.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -56,7 +56,7 @@
 		<excludedGroups>xSQLv15, NTLM, reqExternalSetup</excludedGroups>
 
 		<!-- Use -preview for preview release, leave empty for official release.-->
-		<releaseExt>-preview</releaseExt>
+		<releaseExt></releaseExt>
 
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.2</azure.keyvault.version>
