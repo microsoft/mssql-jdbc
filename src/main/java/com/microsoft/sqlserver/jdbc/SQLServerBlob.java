@@ -213,8 +213,8 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
     @Override
     public long length() throws SQLException {
         checkClosed();
-        if (value == null && activeStreams.get(0) instanceof PLPInputStream) {
-            return (long) ((PLPInputStream) activeStreams.get(0)).payloadLength;
+        if (value == null && activeStreams.get(0) instanceof BaseInputStream) {
+            return (long) ((BaseInputStream) activeStreams.get(0)).payloadLength;
         }
         getBytesFromStream();
         return value.length;

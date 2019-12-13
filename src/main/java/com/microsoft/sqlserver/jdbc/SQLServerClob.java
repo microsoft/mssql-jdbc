@@ -68,6 +68,17 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
     final JDBCType getJdbcType() {
         return JDBCType.CLOB;
     }
+
+    @Override
+    public long length() throws SQLException {
+        long length = super.length();
+        if (null != typeInfo) {
+            String columnTypeName = typeInfo.getSSTypeName();
+            return ("nvarchar".equalsIgnoreCase(columnTypeName) || "ntext".equalsIgnoreCase(columnTypeName)) ? length
+                    / 2 : length;
+        }
+        return length;
+    }
 }
 
 
@@ -85,7 +96,7 @@ abstract class SQLServerClobBase extends SQLServerLob {
 
     private boolean isClosed = false;
 
-    private final TypeInfo typeInfo;
+    protected final TypeInfo typeInfo;
 
     /**
      * Active streams which must be closed when the Clob/NClob is closed. Initial size of the array is based on an
@@ -328,10 +339,7 @@ abstract class SQLServerClobBase extends SQLServerLob {
     public long length() throws SQLException {
         checkClosed();
         if (null == value && activeStreams.get(0) instanceof BaseInputStream) {
-            int payloadLength = ((BaseInputStream) activeStreams.get(0)).payloadLength;
-            String columnTypeName = this.typeInfo.getSSTypeName();
-            return (columnTypeName.equalsIgnoreCase("nvarchar")
-                    || columnTypeName.equalsIgnoreCase("ntext")) ? payloadLength / 2 : payloadLength;
+            return (long) ((BaseInputStream) activeStreams.get(0)).payloadLength;
         } else if (null == value) {
             return 0;
         }
