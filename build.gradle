@@ -14,7 +14,7 @@
 
 apply plugin: 'java'
 
-version = '8.1.1'
+version = '8.2.0-SNAPSHOT'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -75,7 +75,7 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	}
 }
 
-jar.archiveName = "${archivesBaseName}-${version}.${jreVersion}-preview.jar"
+jar.archiveName = "${archivesBaseName}-${version}.${jreVersion}.jar"
 jar {
 	manifest {
         attributes 'Title': "Microsoft JDBC Driver ${version} for SQL Server",
