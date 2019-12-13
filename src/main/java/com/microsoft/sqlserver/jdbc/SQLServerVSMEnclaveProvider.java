@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
@@ -326,20 +327,22 @@ class VSMAttestationResponse extends BaseAttestationResponse {
                     SQLServerResource.getResource("R_EnclavePackageLengthError"), "0", false);
         }
 
+        Signature sig = null;
         try {
-            Signature sig = Signature.getInstance("RSASSA-PSS");
-            PSSParameterSpec pss = new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1);
-            sig.setParameter(pss);
-            sig.initVerify(healthCert);
-            sig.update(signedStatement);
-            if (!sig.verify(signatureBlob)) {
-                SQLServerException.makeFromDriverError(null, this,
-                        SQLServerResource.getResource("R_InvalidSignedStatement"), "0", false);
-            }
+            sig = Signature.getInstance("RSASSA-PSS");
         } catch (NoSuchAlgorithmException e) {
-            return;
+            // RSASSA-PSS was added in JDK 11, the user might be using an older version of Java. Use BC as backup.
+            Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+            sig = Signature.getInstance("RSASSA-PSS");
         }
-
+        PSSParameterSpec pss = new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1);
+        sig.setParameter(pss);
+        sig.initVerify(healthCert);
+        sig.update(signedStatement);
+        if (!sig.verify(signatureBlob)) {
+            SQLServerException.makeFromDriverError(null, this,
+                    SQLServerResource.getResource("R_InvalidSignedStatement"), "0", false);
+        }
     }
 }
 

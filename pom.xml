@@ -116,6 +116,13 @@
 			<version>${google.gson.version}</version>
 			<optional>true</optional>
 		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk15on</artifactId>
+			<version>1.64</version>
+			<optional>true</optional>
+		</dependency>
+
 
 		<!-- dependencies provided by an OSGi-Framework -->
 		<dependency>

@@ -297,12 +297,12 @@ class AASAttestationResponse extends BaseAttestationResponse {
                 String authorityUrl = new URL(attestationUrl).getAuthority();
                 URL wellKnownUrl = new URL("https://" + authorityUrl + "/.well-known/openid-configuration");
                 URLConnection con = wellKnownUrl.openConnection();
-                String wellKnownUrlJson = new String(con.getInputStream().readAllBytes());
+                String wellKnownUrlJson = new String(Util.convertInputStreamToString(con.getInputStream()));
                 JsonObject attestationJson = JsonParser.parseString(wellKnownUrlJson).getAsJsonObject();
                 // Get our Keys
                 URL jwksUrl = new URL(attestationJson.get("jwks_uri").getAsString());
                 URLConnection jwksCon = jwksUrl.openConnection();
-                String jwksUrlJson = new String(jwksCon.getInputStream().readAllBytes());
+                String jwksUrlJson = new String(Util.convertInputStreamToString(jwksCon.getInputStream()));
                 JsonObject jwksJson = JsonParser.parseString(jwksUrlJson).getAsJsonObject();
                 keys = jwksJson.get("keys").getAsJsonArray();
                 certificateCache.put(attestationUrl, new JWTCertificateEntry(keys));
