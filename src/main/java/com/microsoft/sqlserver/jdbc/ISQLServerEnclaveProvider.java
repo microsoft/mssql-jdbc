@@ -57,33 +57,33 @@ public interface ISQLServerEnclaveProvider {
         if (null != enclaveSession) {
             try {
                 ByteArrayOutputStream enclavePackage = new ByteArrayOutputStream();
-                enclavePackage.writeBytes(enclaveSession.getSessionID());
+                enclavePackage.write(enclaveSession.getSessionID());
                 ByteArrayOutputStream keys = new ByteArrayOutputStream();
                 byte[] randomGUID = new byte[16];
                 SecureRandom.getInstanceStrong().nextBytes(randomGUID);
-                keys.writeBytes(randomGUID);
-                keys.writeBytes(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN)
-                        .putLong(enclaveSession.getCounter()).array());
-                keys.writeBytes(MessageDigest.getInstance("SHA-256").digest((userSQL).getBytes(UTF_16LE)));
+                keys.write(randomGUID);
+                keys.write(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(enclaveSession.getCounter())
+                        .array());
+                keys.write(MessageDigest.getInstance("SHA-256").digest((userSQL).getBytes(UTF_16LE)));
                 for (byte[] b : enclaveCEKs) {
-                    keys.writeBytes(b);
+                    keys.write(b);
                 }
                 enclaveCEKs.clear();
                 SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
                         enclaveSession.getSessionSecret(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
                 SQLServerAeadAes256CbcHmac256Algorithm algo = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey,
                         SQLServerEncryptionType.Randomized, (byte) 0x1);
-                enclavePackage.writeBytes(algo.encryptData(keys.toByteArray()));
+                enclavePackage.write(algo.encryptData(keys.toByteArray()));
                 return enclavePackage.toByteArray();
-            } catch (GeneralSecurityException | SQLServerException e) {
+            } catch (GeneralSecurityException | SQLServerException | IOException e) {
                 SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
             }
         }
         return null;
     }
 
-    static ResultSet executeSDPEv2(PreparedStatement stmt, String userSql, String preparedTypeDefinitions,
-            BaseAttestationRequest req) throws SQLException {
+    default ResultSet executeSDPEv2(PreparedStatement stmt, String userSql, String preparedTypeDefinitions,
+            BaseAttestationRequest req) throws SQLException, IOException {
         ((SQLServerPreparedStatement) stmt).isInternalEncryptionQuery = true;
         stmt.setNString(1, userSql);
         if (preparedTypeDefinitions != null && preparedTypeDefinitions.length() != 0) {
@@ -95,7 +95,7 @@ public interface ISQLServerEnclaveProvider {
         return ((SQLServerPreparedStatement) stmt).executeQueryInternal();
     }
 
-    static ResultSet executeSDPEv1(PreparedStatement stmt, String userSql,
+    default ResultSet executeSDPEv1(PreparedStatement stmt, String userSql,
             String preparedTypeDefinitions) throws SQLException {
         ((SQLServerPreparedStatement) stmt).isInternalEncryptionQuery = true;
         stmt.setNString(1, userSql);
@@ -107,7 +107,7 @@ public interface ISQLServerEnclaveProvider {
         return ((SQLServerPreparedStatement) stmt).executeQueryInternal();
     }
 
-    static void processSDPEv1(String userSql, String preparedTypeDefinitions, Parameter[] params,
+    default void processSDPEv1(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames, SQLServerConnection connection, PreparedStatement stmt, ResultSet rs,
             ArrayList<byte[]> enclaveRequestedCEKs) throws SQLException {
         Map<Integer, CekTableEntry> cekList = new HashMap<>();
@@ -254,7 +254,7 @@ abstract class BaseAttestationRequest {
     protected byte[] x;
     protected byte[] y;
 
-    byte[] getBytes() {
+    byte[] getBytes() throws IOException {
         return null;
     };
 
