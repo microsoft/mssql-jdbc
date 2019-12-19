@@ -68,17 +68,6 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
     final JDBCType getJdbcType() {
         return JDBCType.CLOB;
     }
-
-    @Override
-    public long length() throws SQLException {
-        long length = super.length();
-        if (null != typeInfo) {
-            String columnTypeName = typeInfo.getSSTypeName();
-            return ("nvarchar".equalsIgnoreCase(columnTypeName) || "ntext".equalsIgnoreCase(columnTypeName)) ? length
-                    / 2 : length;
-        }
-        return length;
-    }
 }
 
 
@@ -339,7 +328,13 @@ abstract class SQLServerClobBase extends SQLServerLob {
     public long length() throws SQLException {
         checkClosed();
         if (null == value && activeStreams.get(0) instanceof BaseInputStream) {
-            return (long) ((BaseInputStream) activeStreams.get(0)).payloadLength;
+            int length = ((BaseInputStream) activeStreams.get(0)).payloadLength;
+            if (null != typeInfo) {
+                String columnTypeName = typeInfo.getSSTypeName();
+                return ("nvarchar".equalsIgnoreCase(columnTypeName)
+                        || "ntext".equalsIgnoreCase(columnTypeName)) ? length / 2 : length;
+            }
+            return (long) length;
         } else if (null == value) {
             return 0;
         }
