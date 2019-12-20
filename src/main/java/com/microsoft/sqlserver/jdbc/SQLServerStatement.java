@@ -716,7 +716,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         loggerExternal.exiting(getClassNameLogging(), "executeUpdate", updateCount);
 
-        return (int) updateCount;
+        return (updateCount < 0) ? 0 : (int) updateCount;
     }
 
     @Override
@@ -730,7 +730,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         executeStatement(new StmtExecCmd(this, sql, EXECUTE_UPDATE, NO_GENERATED_KEYS));
 
         loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", updateCount);
-        return updateCount;
+        return (updateCount < 0) ? 0 : (int) updateCount;
     }
 
     @Override
