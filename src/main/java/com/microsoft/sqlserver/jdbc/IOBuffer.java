@@ -62,6 +62,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
@@ -2586,6 +2587,29 @@ final class SocketFinder {
         }
     }
 
+    private SocketFactory socketFactory = null;
+
+    private SocketFactory getSocketFactory() throws IOException {
+        if (socketFactory == null) {
+            String socketFactoryClass = conn.getSocketFactoryClass();
+            if (socketFactoryClass == null) {
+                socketFactory = SocketFactory.getDefault();
+            } else {
+                String socketFactoryConstructorArg = conn.getSocketFactoryConstructorArg();
+                try {
+                    socketFactory = Util.newInstance(SocketFactory.class, socketFactoryClass,
+                            socketFactoryConstructorArg,
+                            "The class specified by the socketFactorClass property must be assignable to javax.net.SocketFactory");
+                } catch (RuntimeException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new IOException(e);
+                }
+            }
+        }
+        return socketFactory;
+    }
+
     // This method contains the old logic of connecting to
     // a socket of one of the IPs corresponding to a given host name.
     // In the old code below, the logic around 0 timeout has been removed as
@@ -2612,7 +2636,7 @@ final class SocketFinder {
         assert timeoutInMilliSeconds != 0 : "timeout cannot be zero";
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();
-        selectedSocket = new Socket();
+        selectedSocket = getSocketFactory().createSocket();
         selectedSocket.connect(addr, timeoutInMilliSeconds);
         return selectedSocket;
     }
@@ -2631,7 +2655,7 @@ final class SocketFinder {
             // create a socket, inetSocketAddress and a corresponding socketConnector per inetAddress
             noOfSpawnedThreads = inetAddrs.length;
             for (InetAddress inetAddress : inetAddrs) {
-                Socket s = new Socket();
+                Socket s = getSocketFactory().createSocket();
                 sockets.add(s);
 
                 InetSocketAddress inetSocketAddress = new InetSocketAddress(inetAddress, portNumber);
