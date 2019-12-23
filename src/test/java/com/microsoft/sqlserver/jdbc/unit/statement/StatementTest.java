@@ -2231,6 +2231,27 @@ public class StatementTest extends AbstractTest {
             }
         }
 
+        @Test
+        public void testNonNegativeUpdate() throws Exception {
+            String sql = "IF (1 = 0) UPDATE " + AbstractSQLGenerator.escapeIdentifier(table2Name)
+                    + " SET NAME = 'FISH'";
+            String errMsg = "Wrong update count";
+            try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount=true");
+                    Statement s = con.createStatement(); PreparedStatement ps = con.prepareStatement(sql)) {
+                int expectedUpdateCount = 0;
+                // First the statement APIs
+                assertEquals(0, s.executeUpdate(sql), errMsg);
+                assertEquals(0, s.executeUpdate(sql, 1), errMsg);
+                s.execute(sql);
+                assertEquals(0, s.getUpdateCount(), errMsg);
+
+                int updateCount = ps.executeUpdate();
+                // updateCount should be from the UPDATE,
+                // which should have affected all 3 rows in table2Name.
+                assertEquals(updateCount, 0, "Wrong update count");
+            }
+        }
+
         @AfterEach
         public void terminate() throws SQLException {
             try (Statement stmt = connection.createStatement();) {
