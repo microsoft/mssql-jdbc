@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -980,6 +981,20 @@ final class Util {
     // otherwise return SQLServerConnection
     static boolean use43Wrapper() {
         return use43Wrapper;
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T> T newInstance(Class<?> returnType, String className, String constructorArg,
+            String nonAssignableMessage) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException {
+        Class<?> clazz = Class.forName(className);
+        if (!returnType.isAssignableFrom(clazz)) {
+            throw new IllegalArgumentException(nonAssignableMessage);
+        }
+        if (constructorArg == null) {
+            return (T) clazz.getDeclaredConstructor().newInstance();
+        } else {
+            return (T) clazz.getDeclaredConstructor(String.class).newInstance(constructorArg);
+        }
     }
 
     /**

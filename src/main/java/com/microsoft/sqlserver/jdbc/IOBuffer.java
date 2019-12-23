@@ -1661,18 +1661,9 @@ final class TDSChannel implements Serializable {
             // Otherwise, we'll check if a specific TrustManager implemenation has been requested and
             // if so instantiate it, optionally specifying a constructor argument to customize it.
             else if (con.getTrustManagerClass() != null) {
-                Class<?> tmClass = Class.forName(con.getTrustManagerClass());
-                if (!TrustManager.class.isAssignableFrom(tmClass)) {
-                    throw new IllegalArgumentException(
-                            "The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager");
-                }
-                String constructorArg = con.getTrustManagerConstructorArg();
-                if (constructorArg == null) {
-                    tm = new TrustManager[] {(TrustManager) tmClass.getDeclaredConstructor().newInstance()};
-                } else {
-                    tm = new TrustManager[] {
-                            (TrustManager) tmClass.getDeclaredConstructor(String.class).newInstance(constructorArg)};
-                }
+                tm = new TrustManager[] {Util.newInstance(TrustManager.class, con.getTrustManagerClass(),
+                        con.getTrustManagerConstructorArg(),
+                        "The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager")};
             }
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
