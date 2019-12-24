@@ -157,9 +157,9 @@ final class AuthenticationJNI extends SSPIAuthentication {
             String servicePrincipalName, String clientConnectionId, String clientId, long expirationFileTime,
             java.util.logging.Logger log);
 
-    static native byte[] DecryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
+    static synchronized native byte[] DecryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] encryptedColumnEncryptionKey) throws DLLException;
 
-    static native boolean VerifyColumnMasterKeyMetadata(String keyPath, boolean allowEnclaveComputations,
+    static synchronized native boolean VerifyColumnMasterKeyMetadata(String keyPath, boolean allowEnclaveComputations,
             byte[] signature) throws DLLException;
 }
