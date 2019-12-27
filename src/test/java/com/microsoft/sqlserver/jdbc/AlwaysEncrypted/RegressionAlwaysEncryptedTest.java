@@ -41,54 +41,58 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
     @Test
     public void alwaysEncrypted1() throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(
-                AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
-                Statement stmt = connection.createStatement()) {
-            dropTables(stmt);
+        for (int i = 0; i < AETestConnectionString.length; i++) {
+            try (Connection connection = PrepUtil.getConnection(
+                    AETestConnectionString[i] + ";trustservercertificate=true;columnEncryptionSetting=enabled;",
+                    AEInfo); Statement stmt = connection.createStatement()) {
+                dropTables(stmt);
 
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
+                createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
 
-            populateNumericTable(connection);
-            verifyNumericTable(connection, false);
+                populateNumericTable(connection);
+                verifyNumericTable(connection, false);
 
-            dropTables(stmt);
-            createTable(DATE_TABLE_AE, cekJks, dateTable);
+                dropTables(stmt);
+                createTable(DATE_TABLE_AE, cekJks, dateTable);
 
-            populateDateTable(connection);
-            verifyDateTable(connection);
+                populateDateTable(connection);
+                verifyDateTable(connection);
 
-            dropTables(stmt);
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
+                dropTables(stmt);
+                createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
 
-            populateNumericTableWithNull(connection);
-            verifyNumericTable(connection, true);
+                populateNumericTableWithNull(connection);
+                verifyNumericTable(connection, true);
 
-            dropTables(stmt);
+                dropTables(stmt);
+            }
         }
     }
 
     @Test
     public void alwaysEncrypted2() throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(
-                AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
-                Statement stmt = connection.createStatement()) {
-            dropTables(stmt);
+        for (int i = 0; i < AETestConnectionString.length; i++) {
+            try (Connection connection = PrepUtil.getConnection(
+                    AETestConnectionString[i] + ";trustservercertificate=true;columnEncryptionSetting=enabled;",
+                    AEInfo); Statement stmt = connection.createStatement()) {
+                dropTables(stmt);
 
-            createTable(CHAR_TABLE_AE, cekJks, charTable);
-            populateCharTable(connection);
-            verifyCharTable(connection);
+                createTable(CHAR_TABLE_AE, cekJks, charTable);
+                populateCharTable(connection);
+                verifyCharTable(connection);
 
-            dropTables(stmt);
-            createTable(DATE_TABLE_AE, cekJks, dateTable);
-            populateDateTable(connection);
-            verifyDateTable(connection);
+                dropTables(stmt);
+                createTable(DATE_TABLE_AE, cekJks, dateTable);
+                populateDateTable(connection);
+                verifyDateTable(connection);
 
-            dropTables(stmt);
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
-            populateNumericTableSpecificSetter(connection);
-            verifyNumericTable(connection, false);
+                dropTables(stmt);
+                createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
+                populateNumericTableSpecificSetter(connection);
+                verifyNumericTable(connection, false);
 
-            dropTables(stmt);
+                dropTables(stmt);
+            }
         }
     }
 

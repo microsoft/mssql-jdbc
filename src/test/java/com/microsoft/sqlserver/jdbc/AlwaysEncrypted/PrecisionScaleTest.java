@@ -76,152 +76,168 @@ public class PrecisionScaleTest extends AESetup {
 
     @Test
     public void testNumericPrecision8Scale2() throws Exception {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            dropTables(stmt);
+        for (int i = 0; i < AETestConnectionString.length; i++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[i], AEInfo);
+                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+                dropTables(stmt);
 
-            String[] numeric = {"1.12345", "12345.12", "567.70"};
+                String[] numeric = {"1.12345", "12345.12", "567.70"};
 
-            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 2);
+                createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 2);
 
-            populateNumeric(numeric, 8, 2);
+                populateNumeric(numeric, 8, 2);
 
-            testNumeric(numeric);
+                testNumeric(numeric);
+            }
         }
     }
 
     @Test
     public void testDateScale2() throws Exception {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            dropTables(stmt);
+        for (int i = 0; i < AETestConnectionString.length; i++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[i], AEInfo);
+                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+                dropTables(stmt);
 
-            String[] dateNormalCase = {GMTDate + ".18", GMTDate + ".1770000",
-                    dateTimeOffsetExpectedValue + ".18 +00:01", dateTimeOffsetExpectedValue + ".1770000 +00:01",
-                    GMTDateWithoutDate + ".18", GMTDateWithoutDate + ".1770000",};
-            String[] dateSetObject = {GMTDate + ".18", GMTDate + ".177", dateTimeOffsetExpectedValue + ".18 +00:01",
-                    dateTimeOffsetExpectedValue + ".177 +00:01", GMTDateWithoutDate, GMTDateWithoutDate,};
+                String[] dateNormalCase = {GMTDate + ".18", GMTDate + ".1770000",
+                        dateTimeOffsetExpectedValue + ".18 +00:01", dateTimeOffsetExpectedValue + ".1770000 +00:01",
+                        GMTDateWithoutDate + ".18", GMTDateWithoutDate + ".1770000",};
+                String[] dateSetObject = {GMTDate + ".18", GMTDate + ".177", dateTimeOffsetExpectedValue + ".18 +00:01",
+                        dateTimeOffsetExpectedValue + ".177 +00:01", GMTDateWithoutDate, GMTDateWithoutDate,};
 
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 2);
-            populateDate(2);
+                createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 2);
+                populateDate(2);
 
-            testDate(dateNormalCase, dateSetObject);
+                testDate(dateNormalCase, dateSetObject);
+            }
         }
     }
 
     @Test
     public void testNumericPrecision8Scale0() throws Exception {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            dropTables(stmt);
+        for (int i = 0; i < AETestConnectionString.length; i++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[i], AEInfo);
+                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+                dropTables(stmt);
 
-            String[] numeric2 = {"1.12345", "12345", "567"};
+                String[] numeric2 = {"1.12345", "12345", "567"};
 
-            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 0);
+                createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 0);
 
-            populateNumeric(numeric2, 8, 0);
+                populateNumeric(numeric2, 8, 0);
 
-            testNumeric(numeric2);
+                testNumeric(numeric2);
+            }
         }
     }
 
     @Test
     public void testDateScale0() throws Exception {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            dropTables(stmt);
+        for (int i = 0; i < AETestConnectionString.length; i++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[i], AEInfo);
+                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+                dropTables(stmt);
 
-            String[] dateNormalCase2 = {GMTDate, GMTDate + ".1770000", dateTimeOffsetExpectedValue + " +00:01",
-                    dateTimeOffsetExpectedValue + ".1770000 +00:01", GMTDateWithoutDate,
-                    GMTDateWithoutDate + ".1770000",};
-            String[] dateSetObject2 = {GMTDate + ".0", GMTDate + ".177", dateTimeOffsetExpectedValue + " +00:01",
-                    dateTimeOffsetExpectedValue + ".177 +00:01", GMTDateWithoutDate, GMTDateWithoutDate,};
+                String[] dateNormalCase2 = {GMTDate, GMTDate + ".1770000", dateTimeOffsetExpectedValue + " +00:01",
+                        dateTimeOffsetExpectedValue + ".1770000 +00:01", GMTDateWithoutDate,
+                        GMTDateWithoutDate + ".1770000",};
+                String[] dateSetObject2 = {GMTDate + ".0", GMTDate + ".177", dateTimeOffsetExpectedValue + " +00:01",
+                        dateTimeOffsetExpectedValue + ".177 +00:01", GMTDateWithoutDate, GMTDateWithoutDate,};
 
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 0);
+                createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 0);
 
-            populateDate(0);
+                populateDate(0);
 
-            testDate(dateNormalCase2, dateSetObject2);
+                testDate(dateNormalCase2, dateSetObject2);
+            }
         }
     }
 
     @Test
     public void testNumericPrecision8Scale2Null() throws Exception {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            dropTables(stmt);
+        for (int i = 0; i < AETestConnectionString.length; i++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[i], AEInfo);
+                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+                dropTables(stmt);
 
-            String[] numericNull = {"null", "null", "null"};
+                String[] numericNull = {"null", "null", "null"};
 
-            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 2);
+                createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 2);
 
-            populateNumericSetObjectNull(8, 2);
+                populateNumericSetObjectNull(8, 2);
 
-            testNumeric(numericNull);
+                testNumeric(numericNull);
+            }
         }
     }
 
     @Test
     public void testDateScale2Null() throws Exception {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            dropTables(stmt);
+        for (int i = 0; i < AETestConnectionString.length; i++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[i], AEInfo);
+                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+                dropTables(stmt);
 
-            String[] dateSetObjectNull = {"null", "null", "null", "null", "null", "null"};
+                String[] dateSetObjectNull = {"null", "null", "null", "null", "null", "null"};
 
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 2);
+                createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 2);
 
-            populateDateSetObjectNull(2);
+                populateDateSetObjectNull(2);
 
-            testDate(dateSetObjectNull, dateSetObjectNull);
+                testDate(dateSetObjectNull, dateSetObjectNull);
+            }
         }
     }
 
     @Test
     public void testDateScale5Null() throws Exception {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            dropTables(stmt);
+        for (int i = 0; i < AETestConnectionString.length; i++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[i], AEInfo);
+                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+                dropTables(stmt);
 
-            String[] dateSetObjectNull = {"null", "null", "null", "null", "null", "null"};
+                String[] dateSetObjectNull = {"null", "null", "null", "null", "null", "null"};
 
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 5);
+                createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 5);
 
-            populateDateNormalCaseNull(5);
-            testDate(dateSetObjectNull, dateSetObjectNull);
+                populateDateNormalCaseNull(5);
+                testDate(dateSetObjectNull, dateSetObjectNull);
+            }
         }
     }
 
     private void testNumeric(String[] numeric) throws SQLException {
+        for (int i = 0; i < AETestConnectionString.length; i++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[i], AEInfo);
+                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement(); ResultSet rs = stmt
+                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE))) {
+                int numberOfColumns = rs.getMetaData().getColumnCount();
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement(); ResultSet rs = stmt
-                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE))) {
-            int numberOfColumns = rs.getMetaData().getColumnCount();
+                ArrayList<Integer> skipMax = new ArrayList<>();
 
-            ArrayList<Integer> skipMax = new ArrayList<>();
-
-            while (rs.next()) {
-                testGetString(rs, numberOfColumns, skipMax, numeric);
-                testGetBigDecimal(rs, numberOfColumns, numeric);
-                testGetObject(rs, numberOfColumns, skipMax, numeric);
+                while (rs.next()) {
+                    testGetString(rs, numberOfColumns, skipMax, numeric);
+                    testGetBigDecimal(rs, numberOfColumns, numeric);
+                    testGetObject(rs, numberOfColumns, skipMax, numeric);
+                }
             }
         }
     }
 
     private void testDate(String[] dateNormalCase, String[] dateSetObject) throws Exception {
+        for (int i = 0; i < AETestConnectionString.length; i++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[i], AEInfo);
+                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement(); ResultSet rs = stmt
+                            .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE))) {
+                int numberOfColumns = rs.getMetaData().getColumnCount();
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement(); ResultSet rs = stmt
-                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE))) {
-            int numberOfColumns = rs.getMetaData().getColumnCount();
+                ArrayList<Integer> skipMax = new ArrayList<>();
 
-            ArrayList<Integer> skipMax = new ArrayList<>();
-
-            while (rs.next()) {
-                testGetString(rs, numberOfColumns, skipMax, dateNormalCase);
-                testGetObject(rs, numberOfColumns, skipMax, dateSetObject);
-                testGetDate(rs, numberOfColumns, dateSetObject);
+                while (rs.next()) {
+                    testGetString(rs, numberOfColumns, skipMax, dateNormalCase);
+                    testGetObject(rs, numberOfColumns, skipMax, dateSetObject);
+                    testGetDate(rs, numberOfColumns, dateSetObject);
+                }
             }
         }
     }
@@ -381,79 +397,81 @@ public class PrecisionScaleTest extends AESetup {
         String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                        stmtColEncSetting)) {
+        for (int j = 0; j < AETestConnectionString.length; j++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[j], AEInfo);
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                            stmtColEncSetting)) {
 
-            // add a normal row
-            // datetime2 scale
-            for (int i = 1; i <= 3; i++) {
-                pstmt.setTimestamp(i, new Timestamp(date.getTime()), scale);
+                // add a normal row
+                // datetime2 scale
+                for (int i = 1; i <= 3; i++) {
+                    pstmt.setTimestamp(i, new Timestamp(date.getTime()), scale);
+                }
+
+                // datetime2 default
+                for (int i = 4; i <= 6; i++) {
+                    pstmt.setTimestamp(i, new Timestamp(date.getTime()));
+                }
+
+                // datetimeoffset scale
+                for (int i = 7; i <= 9; i++) {
+                    pstmt.setDateTimeOffset(i, microsoft.sql.DateTimeOffset.valueOf(new Timestamp(date.getTime()), 1),
+                            scale);
+                }
+
+                // datetimeoffset default
+                for (int i = 10; i <= 12; i++) {
+                    pstmt.setDateTimeOffset(i, microsoft.sql.DateTimeOffset.valueOf(new Timestamp(date.getTime()), 1));
+                }
+
+                // time scale
+                for (int i = 13; i <= 15; i++) {
+                    pstmt.setTime(i, new Time(date.getTime()), scale);
+                }
+
+                // time default
+                for (int i = 16; i <= 18; i++) {
+                    pstmt.setTime(i, new Time(date.getTime()));
+                }
+
+                pstmt.addBatch();
+
+                // add a row using setObjecdt
+                // datetime2 scale
+                for (int i = 1; i <= 3; i++) {
+                    pstmt.setObject(i, new Timestamp(date.getTime()), java.sql.Types.TIMESTAMP, scale);
+                }
+
+                // datetime2 default
+                for (int i = 4; i <= 6; i++) {
+                    pstmt.setObject(i, new Timestamp(date.getTime()), java.sql.Types.TIMESTAMP);
+                }
+
+                // datetimeoffset scale
+                for (int i = 7; i <= 9; i++) {
+                    pstmt.setObject(i, microsoft.sql.DateTimeOffset.valueOf(new Timestamp(date.getTime()), 1),
+                            microsoft.sql.Types.DATETIMEOFFSET, scale);
+                }
+
+                // datetimeoffset default
+                for (int i = 10; i <= 12; i++) {
+                    pstmt.setObject(i, microsoft.sql.DateTimeOffset.valueOf(new Timestamp(date.getTime()), 1),
+                            microsoft.sql.Types.DATETIMEOFFSET);
+                }
+
+                // time scale
+                for (int i = 13; i <= 15; i++) {
+                    pstmt.setObject(i, new Time(date.getTime()), java.sql.Types.TIME, scale);
+                }
+
+                // time default
+                for (int i = 16; i <= 18; i++) {
+                    pstmt.setObject(i, new Time(date.getTime()), java.sql.Types.TIME);
+                }
+
+                pstmt.addBatch();
+                pstmt.executeBatch();
             }
-
-            // datetime2 default
-            for (int i = 4; i <= 6; i++) {
-                pstmt.setTimestamp(i, new Timestamp(date.getTime()));
-            }
-
-            // datetimeoffset scale
-            for (int i = 7; i <= 9; i++) {
-                pstmt.setDateTimeOffset(i, microsoft.sql.DateTimeOffset.valueOf(new Timestamp(date.getTime()), 1),
-                        scale);
-            }
-
-            // datetimeoffset default
-            for (int i = 10; i <= 12; i++) {
-                pstmt.setDateTimeOffset(i, microsoft.sql.DateTimeOffset.valueOf(new Timestamp(date.getTime()), 1));
-            }
-
-            // time scale
-            for (int i = 13; i <= 15; i++) {
-                pstmt.setTime(i, new Time(date.getTime()), scale);
-            }
-
-            // time default
-            for (int i = 16; i <= 18; i++) {
-                pstmt.setTime(i, new Time(date.getTime()));
-            }
-
-            pstmt.addBatch();
-            
-            // add a row using setObjecdt
-            // datetime2 scale
-            for (int i = 1; i <= 3; i++) {
-                pstmt.setObject(i, new Timestamp(date.getTime()), java.sql.Types.TIMESTAMP, scale);
-            }
-
-            // datetime2 default
-            for (int i = 4; i <= 6; i++) {
-                pstmt.setObject(i, new Timestamp(date.getTime()), java.sql.Types.TIMESTAMP);
-            }
-
-            // datetimeoffset scale
-            for (int i = 7; i <= 9; i++) {
-                pstmt.setObject(i, microsoft.sql.DateTimeOffset.valueOf(new Timestamp(date.getTime()), 1),
-                        microsoft.sql.Types.DATETIMEOFFSET, scale);
-            }
-
-            // datetimeoffset default
-            for (int i = 10; i <= 12; i++) {
-                pstmt.setObject(i, microsoft.sql.DateTimeOffset.valueOf(new Timestamp(date.getTime()), 1),
-                        microsoft.sql.Types.DATETIMEOFFSET);
-            }
-
-            // time scale
-            for (int i = 13; i <= 15; i++) {
-                pstmt.setObject(i, new Time(date.getTime()), java.sql.Types.TIME, scale);
-            }
-
-            // time default
-            for (int i = 16; i <= 18; i++) {
-                pstmt.setObject(i, new Time(date.getTime()), java.sql.Types.TIME);
-            }
-
-            pstmt.addBatch();
-            pstmt.executeBatch();
         }
     }
 
@@ -461,100 +479,105 @@ public class PrecisionScaleTest extends AESetup {
         String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                        stmtColEncSetting)) {
+        for (int j = 0; j < AETestConnectionString.length; j++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[j], AEInfo);
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                            stmtColEncSetting)) {
 
-            // datetime2 scale
-            for (int i = 1; i <= 3; i++) {
-                pstmt.setTimestamp(i, null, scale);
+                // datetime2 scale
+                for (int i = 1; i <= 3; i++) {
+                    pstmt.setTimestamp(i, null, scale);
+                }
+
+                // datetime2 default
+                for (int i = 4; i <= 6; i++) {
+                    pstmt.setTimestamp(i, null);
+                }
+
+                // datetimeoffset scale
+                for (int i = 7; i <= 9; i++) {
+                    pstmt.setDateTimeOffset(i, null, scale);
+                }
+
+                // datetimeoffset default
+                for (int i = 10; i <= 12; i++) {
+                    pstmt.setDateTimeOffset(i, null);
+                }
+
+                // time scale
+                for (int i = 13; i <= 15; i++) {
+                    pstmt.setTime(i, null, scale);
+                }
+
+                // time default
+                for (int i = 16; i <= 18; i++) {
+                    pstmt.setTime(i, null);
+                }
+
+                pstmt.addBatch();
+                pstmt.executeBatch();
             }
-
-            // datetime2 default
-            for (int i = 4; i <= 6; i++) {
-                pstmt.setTimestamp(i, null);
-            }
-
-            // datetimeoffset scale
-            for (int i = 7; i <= 9; i++) {
-                pstmt.setDateTimeOffset(i, null, scale);
-            }
-
-            // datetimeoffset default
-            for (int i = 10; i <= 12; i++) {
-                pstmt.setDateTimeOffset(i, null);
-            }
-
-            // time scale
-            for (int i = 13; i <= 15; i++) {
-                pstmt.setTime(i, null, scale);
-            }
-
-            // time default
-            for (int i = 16; i <= 18; i++) {
-                pstmt.setTime(i, null);
-            }
-
-            pstmt.addBatch();
-            pstmt.executeBatch();
         }
     }
 
     private void populateNumeric(String[] numeric, int precision, int scale) throws SQLException {
         String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                        stmtColEncSetting)) {
 
-            // add a normal row
-            // float(30)
-            for (int i = 1; i <= 3; i++) {
-                pstmt.setDouble(i, Double.valueOf(numeric[0]));
-            }
+        for (int j = 0; j < AETestConnectionString.length; j++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[j], AEInfo);
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                            stmtColEncSetting)) {
 
-            // decimal(10,5)
-            for (int i = 4; i <= 6; i++) {
-                pstmt.setBigDecimal(i, new BigDecimal(numeric[1]), precision, scale);
-            }
+                // add a normal row
+                // float(30)
+                for (int i = 1; i <= 3; i++) {
+                    pstmt.setDouble(i, Double.valueOf(numeric[0]));
+                }
 
-            // numeric(8,2)
-            for (int i = 7; i <= 9; i++) {
-                pstmt.setBigDecimal(i, new BigDecimal(numeric[2]), precision, scale);
-            }
-            pstmt.addBatch();
-            for (int i = 1; i <= 3; i++) {
-                pstmt.setDouble(i, Double.valueOf(numeric[0]));
-            }
+                // decimal(10,5)
+                for (int i = 4; i <= 6; i++) {
+                    pstmt.setBigDecimal(i, new BigDecimal(numeric[1]), precision, scale);
+                }
 
-            // decimal(10,5)
-            for (int i = 4; i <= 6; i++) {
-                pstmt.setBigDecimal(i, new BigDecimal(numeric[1]), precision, scale);
-            }
+                // numeric(8,2)
+                for (int i = 7; i <= 9; i++) {
+                    pstmt.setBigDecimal(i, new BigDecimal(numeric[2]), precision, scale);
+                }
+                pstmt.addBatch();
+                for (int i = 1; i <= 3; i++) {
+                    pstmt.setDouble(i, Double.valueOf(numeric[0]));
+                }
 
-            // numeric(8,2)
-            for (int i = 7; i <= 9; i++) {
-                pstmt.setBigDecimal(i, new BigDecimal(numeric[2]), precision, scale);
-            }
-            pstmt.addBatch();
+                // decimal(10,5)
+                for (int i = 4; i <= 6; i++) {
+                    pstmt.setBigDecimal(i, new BigDecimal(numeric[1]), precision, scale);
+                }
 
-            // add row using setObject
-            // float(30)
-            for (int i = 1; i <= 3; i++) {
-                pstmt.setObject(i, Double.valueOf(numeric[0]));
-            }
+                // numeric(8,2)
+                for (int i = 7; i <= 9; i++) {
+                    pstmt.setBigDecimal(i, new BigDecimal(numeric[2]), precision, scale);
+                }
+                pstmt.addBatch();
 
-            // decimal(10,5)
-            for (int i = 4; i <= 6; i++) {
-                pstmt.setObject(i, new BigDecimal(numeric[1]), java.sql.Types.DECIMAL, precision, scale);
-            }
+                // add row using setObject
+                // float(30)
+                for (int i = 1; i <= 3; i++) {
+                    pstmt.setObject(i, Double.valueOf(numeric[0]));
+                }
 
-            // numeric(8,2)
-            for (int i = 7; i <= 9; i++) {
-                pstmt.setObject(i, new BigDecimal(numeric[2]), java.sql.Types.NUMERIC, precision, scale);
+                // decimal(10,5)
+                for (int i = 4; i <= 6; i++) {
+                    pstmt.setObject(i, new BigDecimal(numeric[1]), java.sql.Types.DECIMAL, precision, scale);
+                }
+
+                // numeric(8,2)
+                for (int i = 7; i <= 9; i++) {
+                    pstmt.setObject(i, new BigDecimal(numeric[2]), java.sql.Types.NUMERIC, precision, scale);
+                }
+                pstmt.addBatch();
+                pstmt.executeBatch();
             }
-            pstmt.addBatch();
-            pstmt.executeBatch();
         }
     }
 
@@ -562,27 +585,29 @@ public class PrecisionScaleTest extends AESetup {
         String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                        stmtColEncSetting)) {
+        for (int j = 0; j < AETestConnectionString.length; j++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[j], AEInfo);
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                            stmtColEncSetting)) {
 
-            // float(30)
-            for (int i = 1; i <= 3; i++) {
-                pstmt.setObject(i, null, java.sql.Types.DOUBLE);
+                // float(30)
+                for (int i = 1; i <= 3; i++) {
+                    pstmt.setObject(i, null, java.sql.Types.DOUBLE);
+                }
+
+                // decimal(10,5)
+                for (int i = 4; i <= 6; i++) {
+                    pstmt.setObject(i, null, java.sql.Types.DECIMAL, precision, scale);
+                }
+
+                // numeric(8,2)
+                for (int i = 7; i <= 9; i++) {
+                    pstmt.setObject(i, null, java.sql.Types.NUMERIC, precision, scale);
+                }
+
+                pstmt.addBatch();
+                pstmt.executeBatch();
             }
-
-            // decimal(10,5)
-            for (int i = 4; i <= 6; i++) {
-                pstmt.setObject(i, null, java.sql.Types.DECIMAL, precision, scale);
-            }
-
-            // numeric(8,2)
-            for (int i = 7; i <= 9; i++) {
-                pstmt.setObject(i, null, java.sql.Types.NUMERIC, precision, scale);
-            }
-
-            pstmt.addBatch();
-            pstmt.executeBatch();
         }
     }
 
@@ -590,42 +615,44 @@ public class PrecisionScaleTest extends AESetup {
         String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                        stmtColEncSetting)) {
+        for (int j = 0; j < AETestConnectionString.length; j++) {
+            try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString[j], AEInfo);
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                            stmtColEncSetting)) {
 
-            // datetime2 set
-            for (int i = 1; i <= 3; i++) {
-                pstmt.setObject(i, null, java.sql.Types.TIMESTAMP, scale);
+                // datetime2 set
+                for (int i = 1; i <= 3; i++) {
+                    pstmt.setObject(i, null, java.sql.Types.TIMESTAMP, scale);
+                }
+
+                // datetime2 default
+                for (int i = 4; i <= 6; i++) {
+                    pstmt.setObject(i, null, java.sql.Types.TIMESTAMP);
+                }
+
+                // datetimeoffset scale
+                for (int i = 7; i <= 9; i++) {
+                    pstmt.setObject(i, null, microsoft.sql.Types.DATETIMEOFFSET, scale);
+                }
+
+                // datetimeoffset default
+                for (int i = 10; i <= 12; i++) {
+                    pstmt.setObject(i, null, microsoft.sql.Types.DATETIMEOFFSET);
+                }
+
+                // time scale
+                for (int i = 13; i <= 15; i++) {
+                    pstmt.setObject(i, null, java.sql.Types.TIME, scale);
+                }
+
+                // time default
+                for (int i = 16; i <= 18; i++) {
+                    pstmt.setObject(i, null, java.sql.Types.TIME);
+                }
+
+                pstmt.addBatch();
+                pstmt.executeBatch();
             }
-
-            // datetime2 default
-            for (int i = 4; i <= 6; i++) {
-                pstmt.setObject(i, null, java.sql.Types.TIMESTAMP);
-            }
-
-            // datetimeoffset scale
-            for (int i = 7; i <= 9; i++) {
-                pstmt.setObject(i, null, microsoft.sql.Types.DATETIMEOFFSET, scale);
-            }
-
-            // datetimeoffset default
-            for (int i = 10; i <= 12; i++) {
-                pstmt.setObject(i, null, microsoft.sql.Types.DATETIMEOFFSET);
-            }
-
-            // time scale
-            for (int i = 13; i <= 15; i++) {
-                pstmt.setObject(i, null, java.sql.Types.TIME, scale);
-            }
-
-            // time default
-            for (int i = 16; i <= 18; i++) {
-                pstmt.setObject(i, null, java.sql.Types.TIME);
-            }
-
-            pstmt.addBatch();
-            pstmt.executeBatch();
         }
     }
 }
