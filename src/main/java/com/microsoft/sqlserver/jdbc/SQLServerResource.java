@@ -600,7 +600,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_enclaveNotSupported", "The SQL Server instance does not support enclave based computations."},
             {"R_enclavePropertiesError",
                     "The \"columnEncryptionSetting\" connection property must be enabled, along with valid \"enclaveAttestationUrl\" and \"enclaveAttestationProtocol\" connection properties when enabling Always Encrypted with secrure enclaves ."},
-            {"R_enclaveInvalidAttestationProtocol", "The \"enclaveAttestationProtocol\" is invalid."},
+            {"R_enclaveInvalidAttestationProtocol", "The \"enclaveAttestationProtocol\" {0} is invalid."},
             {"R_enclaveTypeInvalid", "The enclave type {0} is invalid or not supported by the driver."},
             {"R_attestationUrlInvalid", "Unable to attest enclave specified by {0}."},
             {"R_EnclaveResponseLengthError",

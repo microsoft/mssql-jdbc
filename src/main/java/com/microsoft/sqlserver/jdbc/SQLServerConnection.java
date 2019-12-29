@@ -1473,8 +1473,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (null != sPropValue) {
                 enclaveAttestationProtocol = sPropValue;
                 if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"),
-                            null);
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"));
+                    Object[] msgArgs = {enclaveAttestationProtocol};
+                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);                    
                 }
 
                 if (enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.HGS.toString())) {
