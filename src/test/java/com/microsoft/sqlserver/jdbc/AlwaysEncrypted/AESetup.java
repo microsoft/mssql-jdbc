@@ -175,6 +175,7 @@ public class AESetup extends AbstractTest {
             }
         }
 
+ 
         dropAll();
 
         createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
@@ -475,6 +476,8 @@ public class AESetup extends AbstractTest {
     private static void createCMK(String cmkName, String keyStoreName, String keyPath,
             String signature) throws SQLException {
         for (int i = 0; i < AETestConnectionString.length; i++) {
+            System.out.println("createCMK: AETestConnectionString="+AETestConnectionString[i]);
+
             try (SQLServerConnection con = (SQLServerConnection) PrepUtil
                     .getConnection(AETestConnectionString[i] + ";sendTimeAsDateTime=false", AEInfo);
                     SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
