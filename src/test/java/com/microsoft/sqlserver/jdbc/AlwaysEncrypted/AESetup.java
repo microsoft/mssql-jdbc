@@ -160,7 +160,14 @@ public class AESetup extends AbstractTest {
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
 
-        AETestConnectionString = new String[enclaveServer.length];
+        // CI unix tests with localhost only
+        String[] identifiers = connectionString.substring(Constants.JDBC_PREFIX.length()).split(Constants.SEMI_COLON);
+        if (!identifiers[0].equals("localhost")) {
+            AETestConnectionString = new String[enclaveServer.length];
+        } else {
+            AETestConnectionString = new String[0];
+        }
+        
         for (int i = 0; i < enclaveServer.length; i++) {
             AETestConnectionString[i] = connectionString + ";sendTimeAsDateTime=false"
                     + ";columnEncryptionSetting=enabled" + ";serverName=" + enclaveServer[i];
@@ -169,13 +176,13 @@ public class AESetup extends AbstractTest {
                 AETestConnectionString[i] = TestUtils.addOrOverrideProperty(AETestConnectionString[i],
                         "enclaveAttestationUrl", enclaveAttestationUrl[i]);
             }
+            
             if (null != enclaveAttestationProtocol) {
                 AETestConnectionString[i] = TestUtils.addOrOverrideProperty(AETestConnectionString[i],
                         "enclaveAttestationProtocol", enclaveAttestationProtocol[i]);
             }
         }
 
- 
         dropAll();
 
         createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
