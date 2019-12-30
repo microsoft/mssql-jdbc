@@ -183,16 +183,6 @@ public class AESetup extends AbstractTest {
             AETestConnectionString = new String[1];
             AETestConnectionString[0] = connectionString + ";sendTimeAsDateTime=false"
                     + ";columnEncryptionSetting=enabled";
-
-            if (null != enclaveAttestationUrl) {
-                AETestConnectionString[0] = TestUtils.addOrOverrideProperty(AETestConnectionString[0],
-                        "enclaveAttestationUrl", enclaveAttestationUrl[0]);
-            }
-
-            if (null != enclaveAttestationProtocol) {
-                AETestConnectionString[0] = TestUtils.addOrOverrideProperty(AETestConnectionString[0],
-                        "enclaveAttestationProtocol", enclaveAttestationProtocol[0]);
-            }
         }
 
         dropAll();
