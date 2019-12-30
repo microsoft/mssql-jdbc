@@ -164,22 +164,31 @@ public class AESetup extends AbstractTest {
         String[] identifiers = connectionString.substring(Constants.JDBC_PREFIX.length()).split(Constants.SEMI_COLON);
         if (!identifiers[0].contains("localhost")) {
             AETestConnectionString = new String[enclaveServer.length];
-        } else {
-            AETestConnectionString = new String[0];
-        }
-        
-        for (int i = 0; i < enclaveServer.length; i++) {
-            AETestConnectionString[i] = connectionString + ";sendTimeAsDateTime=false"
-                    + ";columnEncryptionSetting=enabled" + ";serverName=" + enclaveServer[i];
 
-            if (null != enclaveAttestationUrl) {
-                AETestConnectionString[i] = TestUtils.addOrOverrideProperty(AETestConnectionString[i],
-                        "enclaveAttestationUrl", enclaveAttestationUrl[i]);
+            for (int i = 0; i < enclaveServer.length; i++) {
+                AETestConnectionString[i] = connectionString + ";sendTimeAsDateTime=false"
+                        + ";columnEncryptionSetting=enabled" + ";serverName=" + enclaveServer[i];
+
+                if (null != enclaveAttestationUrl) {
+                    AETestConnectionString[i] = TestUtils.addOrOverrideProperty(AETestConnectionString[i],
+                            "enclaveAttestationUrl", enclaveAttestationUrl[i]);
+                }
+
+                if (null != enclaveAttestationProtocol) {
+                    AETestConnectionString[i] = TestUtils.addOrOverrideProperty(AETestConnectionString[i],
+                            "enclaveAttestationProtocol", enclaveAttestationProtocol[i]);
+                }
             }
-            
+        } else {
+            AETestConnectionString = new String[1];
+            if (null != enclaveAttestationUrl) {
+                AETestConnectionString[0] = TestUtils.addOrOverrideProperty(AETestConnectionString[0],
+                        "enclaveAttestationUrl", enclaveAttestationUrl[0]);
+            }
+
             if (null != enclaveAttestationProtocol) {
-                AETestConnectionString[i] = TestUtils.addOrOverrideProperty(AETestConnectionString[i],
-                        "enclaveAttestationProtocol", enclaveAttestationProtocol[i]);
+                AETestConnectionString[0] = TestUtils.addOrOverrideProperty(AETestConnectionString[0],
+                        "enclaveAttestationProtocol", enclaveAttestationProtocol[0]);
             }
         }
 
