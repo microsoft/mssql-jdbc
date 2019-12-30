@@ -488,7 +488,7 @@ public class AESetup extends AbstractTest {
             try (SQLServerConnection con = (SQLServerConnection) PrepUtil
                     .getConnection(AETestConnectionString[i] + ";sendTimeAsDateTime=false", AEInfo);
                     SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-                String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
+                String sql = "if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
                         + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
                         + keyStoreName + "', KEY_PATH = '" + keyPath + "'"
                         + (TestUtils.isAEv2(con) ? ",ENCLAVE_COMPUTATIONS (SIGNATURE = " + signature + ")) end"
@@ -526,10 +526,11 @@ public class AESetup extends AbstractTest {
                     encryptedValue = Constants.CEK_ENCRYPTED_VALUE;
                 }
 
-                String cekSql = "CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES " + "(COLUMN_MASTER_KEY = "
-                        + cmkName + ", ALGORITHM = '" + Constants.CEK_ALGORITHM + "', ENCRYPTED_VALUE = "
-                        + encryptedValue + ");";
-                stmt.execute(cekSql);
+                String sql = "if not exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
+                        + " begin" + " CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES "
+                        + "(COLUMN_MASTER_KEY = " + cmkName + ", ALGORITHM = '" + Constants.CEK_ALGORITHM
+                        + "', ENCRYPTED_VALUE = " + encryptedValue + ") end;";
+                stmt.execute(sql);
             }
         }
     }
@@ -556,57 +557,59 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(BINARY_TABLE_AE) + " values( " + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil
-                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                        stmtColEncSetting)) {
+        for (int j = 0; j < AETestConnectionString.length; j++) {
+            try (SQLServerConnection con = (SQLServerConnection) PrepUtil
+                    .getConnection(AETestConnectionString[j] + ";sendTimeAsDateTime=false", AEInfo);
+                    SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                            stmtColEncSetting)) {
 
-            // binary20
-            for (int i = 1; i <= 3; i++) {
-                if (null == byteValues) {
-                    pstmt.setBytes(i, null);
-                } else {
-                    pstmt.setBytes(i, byteValues.get(0));
+                // binary20
+                for (int i = 1; i <= 3; i++) {
+                    if (null == byteValues) {
+                        pstmt.setBytes(i, null);
+                    } else {
+                        pstmt.setBytes(i, byteValues.get(0));
+                    }
                 }
-            }
 
-            // varbinary50
-            for (int i = 4; i <= 6; i++) {
-                if (null == byteValues) {
-                    pstmt.setBytes(i, null);
-                } else {
-                    pstmt.setBytes(i, byteValues.get(1));
+                // varbinary50
+                for (int i = 4; i <= 6; i++) {
+                    if (null == byteValues) {
+                        pstmt.setBytes(i, null);
+                    } else {
+                        pstmt.setBytes(i, byteValues.get(1));
+                    }
                 }
-            }
 
-            // varbinary(max)
-            for (int i = 7; i <= 9; i++) {
-                if (null == byteValues) {
-                    pstmt.setBytes(i, null);
-                } else {
-                    pstmt.setBytes(i, byteValues.get(2));
+                // varbinary(max)
+                for (int i = 7; i <= 9; i++) {
+                    if (null == byteValues) {
+                        pstmt.setBytes(i, null);
+                    } else {
+                        pstmt.setBytes(i, byteValues.get(2));
+                    }
                 }
-            }
 
-            // binary(512)
-            for (int i = 10; i <= 12; i++) {
-                if (null == byteValues) {
-                    pstmt.setBytes(i, null);
-                } else {
-                    pstmt.setBytes(i, byteValues.get(3));
+                // binary(512)
+                for (int i = 10; i <= 12; i++) {
+                    if (null == byteValues) {
+                        pstmt.setBytes(i, null);
+                    } else {
+                        pstmt.setBytes(i, byteValues.get(3));
+                    }
                 }
-            }
 
-            // varbinary(8000)
-            for (int i = 13; i <= 15; i++) {
-                if (null == byteValues) {
-                    pstmt.setBytes(i, null);
-                } else {
-                    pstmt.setBytes(i, byteValues.get(4));
+                // varbinary(8000)
+                for (int i = 13; i <= 15; i++) {
+                    if (null == byteValues) {
+                        pstmt.setBytes(i, null);
+                    } else {
+                        pstmt.setBytes(i, byteValues.get(4));
+                    }
                 }
-            }
 
-            pstmt.execute();
+                pstmt.execute();
+            }
         }
     }
 

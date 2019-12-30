@@ -472,7 +472,8 @@ public class EnclavePackageTest extends AbstractTest {
                 if (String.valueOf(AttestationProtocol.HGS).equals(enclaveAttestationProtocol)) {
                     assertEquals(EnclaveType.VBS.getValue(), Integer.parseInt(enclaveType));
                 } else if (String.valueOf(AttestationProtocol.AAS).equals(enclaveAttestationProtocol)) {
-                    assertEquals(EnclaveType.SGX.getValue(), Integer.parseInt(enclaveType));
+                    assertTrue(Integer.parseInt(enclaveType) == EnclaveType.VBS.getValue()
+                            || Integer.parseInt(enclaveType) == EnclaveType.SGX.getValue());
                 } else {
                     MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidEnclaveType"));
                     Object[] msgArgs = {enclaveType};

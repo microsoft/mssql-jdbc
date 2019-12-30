@@ -117,8 +117,8 @@ public class CallableStatementTest extends AESetup {
         createTable(CHAR_TABLE_AE, cekJks, charTable);
         createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
         createTable(BINARY_TABLE_AE, cekJks, binaryTable);
-
         createDateTableCallableStatement(cekJks);
+        
         populateCharNormalCase(charValues);
         populateNumericSetObject(numericValues);
         populateBinaryNormalCase(byteValues);
