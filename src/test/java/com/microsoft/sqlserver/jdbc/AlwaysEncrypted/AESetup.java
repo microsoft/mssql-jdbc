@@ -162,7 +162,7 @@ public class AESetup extends AbstractTest {
 
         // CI unix tests with localhost only
         String[] identifiers = connectionString.substring(Constants.JDBC_PREFIX.length()).split(Constants.SEMI_COLON);
-        if (!identifiers[0].equals("localhost")) {
+        if (!identifiers[0].contains("localhost")) {
             AETestConnectionString = new String[enclaveServer.length];
         } else {
             AETestConnectionString = new String[0];
