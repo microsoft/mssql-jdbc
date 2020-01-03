@@ -740,14 +740,16 @@ final class DTV {
                 switch (typeInfo.getSSType()) {
                     case DATETIME:
                     case DATETIME2:
-                        /* Default and max fractional precision is 7 digits (100ns)
-                         * Send DateTime2 to DateTime columns to let the server handle nanosecond rounding. Also
-                         * adjust scale accordingly to avoid rounding on driver's end.
+                        /*
+                         * Default and max fractional precision is 7 digits (100ns) Send DateTime2 to DateTime columns
+                         * to let the server handle nanosecond rounding. Also adjust scale accordingly to avoid rounding
+                         * on driver's end.
                          */
-                        int scale = (typeInfo.getSSType() == SSType.DATETIME) ? typeInfo.getScale() + 4 : typeInfo.getScale();
+                        int scale = (typeInfo.getSSType() == SSType.DATETIME) ? typeInfo.getScale() + 4
+                                                                              : typeInfo.getScale();
                         tdsWriter.writeRPCDateTime2(name,
-                                timestampNormalizedCalendar(calendar, javaType, conn.baseYear()), subSecondNanos,
-                                scale, isOutParam);
+                                timestampNormalizedCalendar(calendar, javaType, conn.baseYear()), subSecondNanos, scale,
+                                isOutParam);
 
                         break;
 
@@ -1699,11 +1701,11 @@ final class DTV {
                 case DATETIMEOFFSET:
                     op.execute(this, (microsoft.sql.DateTimeOffset) value);
                     break;
-                    
+
                 case GEOMETRY:
                     op.execute(this, ((Geometry) value).serialize());
                     break;
-                    
+
                 case GEOGRAPHY:
                     op.execute(this, ((Geography) value).serialize());
                     break;
@@ -2160,7 +2162,7 @@ final class AppDTVImpl extends DTVImpl {
                     }
                 } else
                     dtvScale = dtv.getScale();
-                if (dtvScale != null && dtvScale != biScale)
+                if (null != dtvScale && 0 != Integer.compare(dtvScale, biScale))
                     bigDecimalValue = bigDecimalValue.setScale(dtvScale, RoundingMode.DOWN);
             }
             dtv.setValue(bigDecimalValue, JavaType.BIGDECIMAL);
@@ -3609,7 +3611,9 @@ final class ServerDTVImpl extends DTVImpl {
             }
 
             case DATETIME: {
-                if (8 != decryptedValue.length) {
+                int ticksSinceMidnight = (Util.readInt(decryptedValue, 4) * 10 + 1) / 3;
+
+                if (8 != decryptedValue.length || Integer.MAX_VALUE < ticksSinceMidnight) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NormalizationErrorAE"));
                     throw new SQLServerException(form.format(new Object[] {baseSSType}), null, 0, null);
                 }
@@ -3618,7 +3622,7 @@ final class ServerDTVImpl extends DTVImpl {
                 // (January 1, 1900 00:00:00 GMT) and 4 bytes for
                 // the number of three hundredths (1/300) of a second since midnight.
                 return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal, Util.readInt(decryptedValue, 0),
-                        (Util.readInt(decryptedValue, 4) * 10 + 1) / 3, 0);
+                        ticksSinceMidnight, 0);
             }
 
             case DATETIMEOFFSET: {

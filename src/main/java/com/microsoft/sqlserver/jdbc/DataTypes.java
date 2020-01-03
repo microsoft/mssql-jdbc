@@ -790,9 +790,9 @@ enum JDBCType {
         SQLXML(JDBCType.Category.SQLXML, EnumSet.of(JDBCType.Category.SQLXML)),
 
         TVP(JDBCType.Category.TVP, EnumSet.of(JDBCType.Category.TVP)),
-        
+
         GEOMETRY(JDBCType.Category.GEOMETRY, EnumSet.of(JDBCType.Category.GEOMETRY)),
-        
+
         GEOGRAPHY(JDBCType.Category.GEOGRAPHY, EnumSet.of(JDBCType.Category.GEOGRAPHY));
 
         private final JDBCType.Category from;
@@ -975,10 +975,8 @@ enum JDBCType {
     }
 
     /**
-     * Returns if datat types are supported by JDBC.
+     * Returns if data types are supported by JDBC.
      * 
-     * @param jdbcType
-     *        the JDBC type to check
      * @return true if the type is unsupported
      */
     boolean isUnsupported() {
