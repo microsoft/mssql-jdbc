@@ -3764,28 +3764,29 @@ final class TDSWriter {
     }
 
     void writeString(String value) throws SQLServerException {
-        try {
-            int charsCopied = 0;
-            int length = value.length();
-            while (charsCopied < length) {
-                int bytesToCopy = 2 * (length - charsCopied);
+        int charsCopied = 0;
+        int length = value.length();
+        while (charsCopied < length) {
+            int bytesToCopy = 2 * (length - charsCopied);
 
-                if (bytesToCopy > valueBytes.length)
-                    bytesToCopy = valueBytes.length;
+            if (bytesToCopy > valueBytes.length)
+                bytesToCopy = valueBytes.length;
 
-                int bytesCopied = 0;
-                while (bytesCopied < bytesToCopy) {
-                    char ch = value.charAt(charsCopied++);
-                    valueBytes[bytesCopied++] = (byte) ((ch >> 0) & 0xFF);
-                    valueBytes[bytesCopied++] = (byte) ((ch >> 8) & 0xFF);
+            int bytesCopied = 0;
+            while (bytesCopied < bytesToCopy) {
+                char ch = value.charAt(charsCopied++);
+                valueBytes[bytesCopied++] = (byte) ((ch >> 0) & 0xFF);
+
+                if (bytesCopied > bytesToCopy) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
+                    Object[] msgArgs = {bytesCopied};
+                    error(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET);
                 }
-
-                writeBytes(valueBytes, 0, bytesCopied);
+                valueBytes[bytesCopied] = (byte) ((ch >> 8) & 0xFF);
+                bytesCopied++;
             }
-        } catch (Exception e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
-            Object[] msgArgs = {e.toString()};
-            error(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET);
+
+            writeBytes(valueBytes, 0, bytesCopied);
         }
     }
 

@@ -845,26 +845,27 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 power = power * 256;
             }
             offset += 4;
-            try {
-                int gid_len = (r.bData[offset++] & 0x00FF);
-                int bid_len = (r.bData[offset++] & 0x00FF);
-                byte gid[] = new byte[gid_len];
-                byte bid[] = new byte[bid_len];
-                System.arraycopy(r.bData, offset, gid, 0, gid_len);
-                offset += gid_len;
-                System.arraycopy(r.bData, offset, bid, 0, bid_len);
-                offset += bid_len;
-                XidImpl xid = new XidImpl(formatId, gid, bid);
-                al.add(xid);
-            } catch (Exception e) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToReadRecoveryXIDs"));
-                Object[] msgArgs = {e.getMessage()};
+            int gid_len = (r.bData[offset] & 0x00FF);
+            if (offset++ > r.bData.length) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
+                Object[] msgArgs = {offset};
                 XAException xex = new XAException(form.format(msgArgs));
                 xex.errorCode = XAException.XAER_RMERR;
                 if (xaLogger.isLoggable(Level.FINER))
                     xaLogger.finer(toString() + " exception:" + xex);
                 throw xex;
             }
+            int bid_len = (r.bData[offset] & 0x00FF);
+            offset++;
+
+            byte gid[] = new byte[gid_len];
+            byte bid[] = new byte[bid_len];
+            System.arraycopy(r.bData, offset, gid, 0, gid_len);
+            offset += gid_len;
+            System.arraycopy(r.bData, offset, bid, 0, bid_len);
+            offset += bid_len;
+            XidImpl xid = new XidImpl(formatId, gid, bid);
+            al.add(xid);
         }
         XidImpl xids[] = new XidImpl[al.size()];
         for (int i = 0; i < al.size(); i++) {
