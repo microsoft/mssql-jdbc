@@ -2234,21 +2234,22 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testNonNegativeUpdate() throws Exception {
             String sql = "IF (1 = 0) UPDATE " + AbstractSQLGenerator.escapeIdentifier(table2Name)
-                    + " SET NAME = 'FISH'";
+                    + " SET NAME = 'FOO'";
             String errMsg = "Wrong update count";
             try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount=true");
                     Statement s = con.createStatement(); PreparedStatement ps = con.prepareStatement(sql)) {
                 int expectedUpdateCount = 0;
                 // First the statement APIs
-                assertEquals(0, s.executeUpdate(sql), errMsg);
-                assertEquals(0, s.executeUpdate(sql, 1), errMsg);
+                assertEquals(expectedUpdateCount, s.executeUpdate(sql), errMsg);
+                assertEquals(expectedUpdateCount, s.executeLargeUpdate(sql), errMsg);
+                assertEquals(expectedUpdateCount, s.executeUpdate(sql, 1), errMsg);
+                assertEquals(expectedUpdateCount, s.executeLargeUpdate(sql, 1), errMsg);
                 s.execute(sql);
-                assertEquals(0, s.getUpdateCount(), errMsg);
-
-                int updateCount = ps.executeUpdate();
-                // updateCount should be from the UPDATE,
-                // which should have affected all 3 rows in table2Name.
-                assertEquals(updateCount, 0, "Wrong update count");
+                assertEquals(expectedUpdateCount, s.getUpdateCount(), errMsg);
+                assertEquals(expectedUpdateCount, s.getLargeUpdateCount(), errMsg);
+                // PreparedStatement
+                assertEquals(expectedUpdateCount, ps.executeUpdate(), errMsg);
+                assertEquals(expectedUpdateCount, ps.executeLargeUpdate(), errMsg);
             }
         }
 
@@ -2351,7 +2352,7 @@ public class StatementTest extends AbstractTest {
 
                 result = pstmt.getMoreResults();
                 assertEquals(result, true, "Third result: wrong result type; ResultSet expected");
-                assertEquals(pstmt.getUpdateCount(), -1, "Third result: wrong update count");
+                assertEquals(pstmt.getUpdateCount(), 0, "Third result: wrong update count");
                 try (ResultSet rs = pstmt.getResultSet()) {
                     int rowCount = 0;
                     while (rs.next())
@@ -2443,7 +2444,7 @@ public class StatementTest extends AbstractTest {
                 try (ResultSet rs = pstmt.getResultSet()) {
                     assertEquals(rs, null, "First result: Unexpected update count");
 
-                    assertEquals(pstmt.getUpdateCount(), -1, "First result: Unexpected update count");
+                    assertEquals(pstmt.getUpdateCount(), 0, "First result: Unexpected update count");
 
                     boolean result = pstmt.getMoreResults();
                     assertEquals(result, false, "Second result: wrong result type; update count expected");
@@ -2528,7 +2529,7 @@ public class StatementTest extends AbstractTest {
                 assertEquals(false, moreResults, "next result is a ResultSet?");
 
                 int updateCount = stmt.getUpdateCount();
-                assertEquals(-1, updateCount, "only one result was expected...");
+                assertEquals(0, updateCount, "only one result was expected...");
             }
         }
 

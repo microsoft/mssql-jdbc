@@ -565,7 +565,7 @@ public class ResultSetTest extends AbstractTest {
                 }
                 results = stmt.getMoreResults();
             }
-            assert (!stmt.getMoreResults() && -1 == stmt.getUpdateCount());
+            assert (!stmt.getMoreResults() && 0 == stmt.getUpdateCount());
             assert (rsCount == 5);
             assert (warningCount == 26);
 
@@ -580,7 +580,7 @@ public class ResultSetTest extends AbstractTest {
             try (ResultSet rs = stmt
                     .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 // Calling getMoreResults() consumes and closes the current ResultSet
-                assert (!stmt.getMoreResults() && -1 == stmt.getUpdateCount());
+                assert (!stmt.getMoreResults() && 0 == stmt.getUpdateCount());
                 assert (rs.isClosed());
             }
         } finally {
