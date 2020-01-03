@@ -477,7 +477,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         loggerExternal.exiting(getClassNameLogging(), "executeUpdate", updateCount);
 
-        return (int) ((updateCount < 0) ? 0 : updateCount);
+        return (int) ((updateCount == -1) ? 0 : updateCount);
     }
 
     @Override
@@ -490,7 +490,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_UPDATE));
         loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", updateCount);
-        return (updateCount < 0) ? 0 : updateCount;
+        return (updateCount == -1) ? 0 : updateCount;
     }
 
     @Override
