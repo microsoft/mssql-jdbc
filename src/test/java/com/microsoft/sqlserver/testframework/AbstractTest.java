@@ -117,7 +117,8 @@ public abstract class AbstractTest {
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
         windowsKeyPath = getConfiguredProperty("windowsKeyPath");
 
-        enclaveServer = getConfiguredProperty("enclaveServer", "").split(Constants.SEMI_COLON);
+        String enclaveServers = getConfiguredProperty("enclaveServer", null);
+        enclaveServer = null != enclaveServers ? enclaveServers.split(Constants.SEMI_COLON) : null;
         enclaveAttestationUrl = getConfiguredProperty("enclaveAttestationUrl", "").split(Constants.SEMI_COLON);
         enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol", "")
                 .split(Constants.SEMI_COLON);
