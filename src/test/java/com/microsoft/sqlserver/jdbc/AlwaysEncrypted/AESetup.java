@@ -119,11 +119,12 @@ public class AESetup extends AbstractTest {
             {"SmallMoney", "smallmoney", "SMALLMONEY"}, {"Money", "money", "MONEY"},
             {"Decimal2", "decimal(28,4)", "DECIMAL"}, {"Numeric2", "numeric(28,4)", "DECIMAL"},};
 
-    // CREATE TABLE tableName (columns) NULL"
     static String createSql = "CREATE TABLE %s (%s)";
 
-    // ENCRYPTED WITH (ENCRYPTION_TYPE = encryptionType, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256',
-    // COLUMN_ENCRYPTION_KEY = cekName
+    /*
+     * ENCRYPTED WITH (ENCRYPTION_TYPE = encryptionType, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256',
+     * COLUMN_ENCRYPTION_KEY = cekName
+     */
     static String encryptSql = " ENCRYPTED WITH (ENCRYPTION_TYPE = %s, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = %s";
 
     /*
@@ -294,6 +295,7 @@ public class AESetup extends AbstractTest {
                     sql += ColumnType.RANDOMIZED.name() + table[i][0] + " " + table[i][1]
                             + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ") NULL,";
                 }
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 sql = String.format(createSql, AbstractSQLGenerator.escapeIdentifier(tableName), sql);
                 stmt.execute(sql);
                 stmt.execute("DBCC FREEPROCCACHE");
