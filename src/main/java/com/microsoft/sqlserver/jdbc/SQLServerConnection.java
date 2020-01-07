@@ -5902,10 +5902,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
 
-        while (dstBegin < sqlDst.length)
-            sqlDst[dstBegin++] = ' ';
-
-        return new String(sqlDst);
+        return new String(sqlDst, 0, dstBegin);
     }
 
     /**
