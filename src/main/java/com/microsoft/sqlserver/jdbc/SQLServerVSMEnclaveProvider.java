@@ -331,7 +331,10 @@ class VSMAttestationResponse extends BaseAttestationResponse {
         try {
             sig = Signature.getInstance("RSASSA-PSS");
         } catch (NoSuchAlgorithmException e) {
-            // RSASSA-PSS was added in JDK 11, the user might be using an older version of Java. Use BC as backup.
+            /*
+             * RSASSA-PSS was added in JDK 11, the user might be using an older version of Java. Use BC as backup.
+             * Remove this logic if JDK 8 stops being supported or backports RSASSA-PSS
+             */
             Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
             sig = Signature.getInstance("RSASSA-PSS");
         }
