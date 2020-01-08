@@ -3773,20 +3773,19 @@ final class TDSWriter {
                 bytesToCopy = valueBytes.length;
 
             int bytesCopied = 0;
-            while (bytesCopied < bytesToCopy) {
-                char ch = value.charAt(charsCopied++);
-                valueBytes[bytesCopied++] = (byte) ((ch >> 0) & 0xFF);
-
-                if (bytesCopied > bytesToCopy) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
-                    Object[] msgArgs = {bytesCopied};
-                    error(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET);
+            try {
+                while (bytesCopied < bytesToCopy) {
+                    char ch = value.charAt(charsCopied++);
+                    valueBytes[bytesCopied++] = (byte) ((ch >> 0) & 0xFF);
+                    valueBytes[bytesCopied++] = (byte) ((ch >> 8) & 0xFF);
                 }
-                valueBytes[bytesCopied] = (byte) ((ch >> 8) & 0xFF);
-                bytesCopied++;
-            }
 
-            writeBytes(valueBytes, 0, bytesCopied);
+                writeBytes(valueBytes, 0, bytesCopied);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
+                Object[] msgArgs = {bytesCopied};
+                error(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET);
+            }
         }
     }
 

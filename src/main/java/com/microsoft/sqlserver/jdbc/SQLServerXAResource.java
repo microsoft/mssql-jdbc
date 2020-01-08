@@ -844,9 +844,20 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 formatId += x;
                 power = power * 256;
             }
-            offset += 4;
-            int gid_len = (r.bData[offset] & 0x00FF);
-            if (offset++ > r.bData.length) {
+
+            try {
+                offset += 4;
+                int gid_len = (r.bData[offset++] & 0x00FF);
+                int bid_len = (r.bData[offset++] & 0x00FF);
+                byte gid[] = new byte[gid_len];
+                byte bid[] = new byte[bid_len];
+                System.arraycopy(r.bData, offset, gid, 0, gid_len);
+                offset += gid_len;
+                System.arraycopy(r.bData, offset, bid, 0, bid_len);
+                offset += bid_len;
+                XidImpl xid = new XidImpl(formatId, gid, bid);
+                al.add(xid);
+            } catch (ArrayIndexOutOfBoundsException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
                 Object[] msgArgs = {offset};
                 XAException xex = new XAException(form.format(msgArgs));
@@ -855,18 +866,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     xaLogger.finer(toString() + " exception:" + xex);
                 throw xex;
             }
-            int bid_len = (r.bData[offset] & 0x00FF);
-            offset++;
-
-            byte gid[] = new byte[gid_len];
-            byte bid[] = new byte[bid_len];
-            System.arraycopy(r.bData, offset, gid, 0, gid_len);
-            offset += gid_len;
-            System.arraycopy(r.bData, offset, bid, 0, bid_len);
-            offset += bid_len;
-            XidImpl xid = new XidImpl(formatId, gid, bid);
-            al.add(xid);
         }
+
         XidImpl xids[] = new XidImpl[al.size()];
         for (int i = 0; i < al.size(); i++) {
             xids[i] = al.get(i);
