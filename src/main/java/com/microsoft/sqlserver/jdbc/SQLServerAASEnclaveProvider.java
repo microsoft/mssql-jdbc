@@ -117,14 +117,18 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         ResultSet rs = null;
-        try (PreparedStatement stmt = connection.prepareStatement(proc)) {
-            rs = executeProc(stmt, userSql, preparedTypeDefinitions, aasParams);
+        try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
+            if (connection.enclaveEstablished()) {
+                rs = executeSDPEv1(stmt, userSql, preparedTypeDefinitions);
+            } else {
+                rs = executeSDPEv2(stmt, userSql, preparedTypeDefinitions, aasParams);
+            }
             if (null == rs) {
                 // No results. Meaning no parameter.
                 // Should never happen.
                 return enclaveRequestedCEKs;
             }
-            processAev1SPDE(userSql, preparedTypeDefinitions, params, parameterNames, connection, stmt, rs,
+            processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, stmt, rs,
                     enclaveRequestedCEKs);
             // Process the third resultset.
             if (connection.isAEv2() && stmt.getMoreResults()) {
@@ -139,7 +143,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             }
             // Null check for rs is done already.
             rs.close();
-        } catch (SQLException e) {
+        } catch (SQLException | IOException e) {
             if (e instanceof SQLServerException) {
                 throw (SQLServerException) e;
             } else {
@@ -164,26 +168,26 @@ class AASAttestationParameters extends BaseAttestationRequest {
         byte[] attestationUrlBytes = (attestationUrl + '\0').getBytes(UTF_16LE);
 
         ByteArrayOutputStream os = new ByteArrayOutputStream();
-        os.writeBytes(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(attestationUrlBytes.length).array());
-        os.writeBytes(attestationUrlBytes);
-        os.writeBytes(NONCE_LENGTH);
+        os.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(attestationUrlBytes.length).array());
+        os.write(attestationUrlBytes);
+        os.write(NONCE_LENGTH);
         new SecureRandom().nextBytes(nonce);
-        os.writeBytes(nonce);
+        os.write(nonce);
         enclaveChallenge = os.toByteArray();
 
         initBcryptECDH();
     }
 
     @Override
-    byte[] getBytes() {
+    byte[] getBytes() throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
-        os.writeBytes(ENCLAVE_TYPE);
-        os.writeBytes(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(enclaveChallenge.length).array());
-        os.writeBytes(enclaveChallenge);
-        os.writeBytes(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(ENCLAVE_LENGTH).array());
-        os.writeBytes(ECDH_MAGIC);
-        os.writeBytes(x);
-        os.writeBytes(y);
+        os.write(ENCLAVE_TYPE);
+        os.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(enclaveChallenge.length).array());
+        os.write(enclaveChallenge);
+        os.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(ENCLAVE_LENGTH).array());
+        os.write(ECDH_MAGIC);
+        os.write(x);
+        os.write(y);
         return os.toByteArray();
     }
 
@@ -293,12 +297,12 @@ class AASAttestationResponse extends BaseAttestationResponse {
                 String authorityUrl = new URL(attestationUrl).getAuthority();
                 URL wellKnownUrl = new URL("https://" + authorityUrl + "/.well-known/openid-configuration");
                 URLConnection con = wellKnownUrl.openConnection();
-                String wellKnownUrlJson = new String(con.getInputStream().readAllBytes());
+                String wellKnownUrlJson = new String(Util.convertInputStreamToString(con.getInputStream()));
                 JsonObject attestationJson = JsonParser.parseString(wellKnownUrlJson).getAsJsonObject();
                 // Get our Keys
                 URL jwksUrl = new URL(attestationJson.get("jwks_uri").getAsString());
                 URLConnection jwksCon = jwksUrl.openConnection();
-                String jwksUrlJson = new String(jwksCon.getInputStream().readAllBytes());
+                String jwksUrlJson = new String(Util.convertInputStreamToString(jwksCon.getInputStream()));
                 JsonObject jwksJson = JsonParser.parseString(jwksUrlJson).getAsJsonObject();
                 keys = jwksJson.get("keys").getAsJsonArray();
                 certificateCache.put(attestationUrl, new JWTCertificateEntry(keys));
