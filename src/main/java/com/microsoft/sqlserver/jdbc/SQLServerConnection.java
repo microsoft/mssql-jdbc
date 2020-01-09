@@ -2518,14 +2518,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param timeOutsliceInMillisForFullTimeout
      * @throws SQLServerException
      */
-    private void connectHelper(ServerPortPlaceHolder serverInfo, int timeOutsliceInMillis, int timeOutFullInSeconds,
+    private void connectHelper(ServerPortPlaceHolder serverInfo, int timeOutSliceInMillis, int timeOutFullInSeconds,
             boolean useParallel, boolean useTnir, boolean isTnirFirstAttempt,
             int timeOutsliceInMillisForFullTimeout) throws SQLServerException {
         // Make the initial tcp-ip connection.
 
         if (connectionlogger.isLoggable(Level.FINE)) {
             connectionlogger.fine(toString() + " Connecting with server: " + serverInfo.getServerName() + " port: "
-                    + serverInfo.getPortNumber() + " Timeout slice: " + timeOutsliceInMillis + " Timeout Full: "
+                    + serverInfo.getPortNumber() + " Timeout slice: " + timeOutSliceInMillis + " Timeout Full: "
                     + timeOutFullInSeconds);
         }
 
@@ -2543,7 +2543,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), 0, useParallel, useTnir,
                     isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
         else
-            tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), timeOutsliceInMillis, useParallel,
+            tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), timeOutSliceInMillis, useParallel,
                     useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
 
         setState(State.Connected);
@@ -4816,8 +4816,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /**
      * Send a TDS 7.x logon packet.
      * 
-     * @param secsTimeout
-     *        (optional) if non-zero, seconds to wait for logon to be sent.
+     * @param logonCommand
+     *        the logon command
+     * @param authentication
+     *        SSPI authentication
+     * @param fedAuthFeatureExtensionData
+     *        fedauth feature extension data
      * @throws SQLServerException
      */
     private void sendLogon(LogonCommand logonCommand, SSPIAuthentication authentication,
@@ -6297,8 +6301,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Prepares the cache handle.
-     * 
-     * @param value
      */
     private void prepareCache() {
         preparedStatementHandleCache = new Builder<CityHash128Key, PreparedStatementHandle>()

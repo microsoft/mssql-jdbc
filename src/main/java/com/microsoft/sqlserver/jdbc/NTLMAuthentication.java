@@ -277,8 +277,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
          *        domain name to authentication in using NTLM
          * @param userName
          *        user name
-         * @param password
-         *        password
+         * @param passwordHash
+         *        password hash
          * @param workstation
          *        hostname of the workstation
          * @throws SQLServerException
@@ -326,8 +326,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *        domain name used for NTLM authentication
      * @param userName
      *        domain user
-     * @param password
-     *        domain password
+     * @param passwordHash
+     *        password hash
      * @param workstation
      *        hostname of the workstation
      * @throws SQLServerException

@@ -24,7 +24,7 @@ import javax.transaction.xa.Xid;
 
 
 /**
- * Impelments Transaction id used to recover transactions.
+ * Implements Transaction id used to recover transactions.
  */
 final class XidImpl implements Xid {
     private final int formatId;
@@ -844,18 +844,30 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 formatId += x;
                 power = power * 256;
             }
-            offset += 4;
-            int gid_len = (r.bData[offset++] & 0x00FF);
-            int bid_len = (r.bData[offset++] & 0x00FF);
-            byte gid[] = new byte[gid_len];
-            byte bid[] = new byte[bid_len];
-            System.arraycopy(r.bData, offset, gid, 0, gid_len);
-            offset += gid_len;
-            System.arraycopy(r.bData, offset, bid, 0, bid_len);
-            offset += bid_len;
-            XidImpl xid = new XidImpl(formatId, gid, bid);
-            al.add(xid);
+
+            try {
+                offset += 4;
+                int gid_len = (r.bData[offset++] & 0x00FF);
+                int bid_len = (r.bData[offset++] & 0x00FF);
+                byte gid[] = new byte[gid_len];
+                byte bid[] = new byte[bid_len];
+                System.arraycopy(r.bData, offset, gid, 0, gid_len);
+                offset += gid_len;
+                System.arraycopy(r.bData, offset, bid, 0, bid_len);
+                offset += bid_len;
+                XidImpl xid = new XidImpl(formatId, gid, bid);
+                al.add(xid);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
+                Object[] msgArgs = {offset};
+                XAException xex = new XAException(form.format(msgArgs));
+                xex.errorCode = XAException.XAER_RMERR;
+                if (xaLogger.isLoggable(Level.FINER))
+                    xaLogger.finer(toString() + " exception:" + xex);
+                throw xex;
+            }
         }
+
         XidImpl xids[] = new XidImpl[al.size()];
         for (int i = 0; i < al.size(); i++) {
             xids[i] = al.get(i);
