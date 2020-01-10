@@ -107,4 +107,25 @@ public class CustomSocketFactoryTest extends AbstractTest {
         Assert.assertEquals("The custom socket factory should have been used once", 1, dummyLog.size());
         Assert.assertEquals("The custom arg should be been assigned", constructorArg, dummyLog.get(0));        
     }
+
+    /**
+     * This class does not implement SocketFactory and the connection must fail when it is specified by the
+     * socketFactoryClass property.
+     */
+    public static class InvalidSocketFactory {
+    }
+
+    /**
+     * Test with a custom socket factory class that does not implement SocketFactory.
+     */
+    @Test
+    public void testInvalidSocketFactory() throws Exception {
+        String url = connectionString + ";socketFactoryClass=" + InvalidSocketFactory.class.getName();
+        try (Connection con = PrepUtil.getConnection(url)) {
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(
+                    "The class specified by the socketFactoryClass property must be assignable to javax.net.SocketFactory"));
+        }
+    }
 }
