@@ -2599,7 +2599,7 @@ final class SocketFinder {
                 try {
                     socketFactory = Util.newInstance(SocketFactory.class, socketFactoryClass,
                             socketFactoryConstructorArg,
-                            "The class specified by the socketFactorClass property must be assignable to javax.net.SocketFactory");
+                            "The class specified by the socketFactoryClass property must be assignable to javax.net.SocketFactory");
                 } catch (RuntimeException e) {
                     throw e;
                 } catch (Exception e) {
