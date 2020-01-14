@@ -750,7 +750,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     /**
      * Returns parameter metadata for the prepared statement.
      * 
-     * @param forceRefresh:
+     * @param forceRefresh
      *        If true the cache will not be used to retrieve the metadata.
      * @return Per the description.
      * @throws SQLServerException

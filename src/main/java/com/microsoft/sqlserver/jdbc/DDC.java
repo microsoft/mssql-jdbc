@@ -37,7 +37,7 @@ final class DDC {
     /**
      * Convert an Integer object to desired target user type.
      * 
-     * @param intvalue
+     * @param intValue
      *        the value to convert.
      * @param valueLength
      *        the value to convert.

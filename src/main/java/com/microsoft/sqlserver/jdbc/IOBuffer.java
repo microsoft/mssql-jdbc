@@ -3773,13 +3773,19 @@ final class TDSWriter {
                 bytesToCopy = valueBytes.length;
 
             int bytesCopied = 0;
-            while (bytesCopied < bytesToCopy) {
-                char ch = value.charAt(charsCopied++);
-                valueBytes[bytesCopied++] = (byte) ((ch >> 0) & 0xFF);
-                valueBytes[bytesCopied++] = (byte) ((ch >> 8) & 0xFF);
-            }
+            try {
+                while (bytesCopied < bytesToCopy) {
+                    char ch = value.charAt(charsCopied++);
+                    valueBytes[bytesCopied++] = (byte) ((ch >> 0) & 0xFF);
+                    valueBytes[bytesCopied++] = (byte) ((ch >> 8) & 0xFF);
+                }
 
-            writeBytes(valueBytes, 0, bytesCopied);
+                writeBytes(valueBytes, 0, bytesCopied);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
+                Object[] msgArgs = {bytesCopied};
+                error(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET);
+            }
         }
     }
 
@@ -4209,7 +4215,7 @@ final class TDSWriter {
      * 
      * @param sName
      *        the optional parameter name
-     * @param shortValue
+     * @param byteValue
      *        the data value
      * @param bOut
      *        boolean true if the data value is being registered as an output parameter
@@ -7191,9 +7197,10 @@ abstract class TDSCommand implements Serializable {
      *
      * @param logContext
      *        the string describing the context for this command.
-     * @param timeoutSeconds
-     *        (optional) the time before which the command must complete before it is interrupted. A value of 0 means no
-     *        timeout.
+     * @param queryTimeoutSeconds
+     *        the time before which the command must complete before it is interrupted. A value of 0 means no timeout.
+     * @param cancelQueryTimeoutSeconds
+     *        the time to cancel the query timeout A value of 0 means no timeout.
      */
     TDSCommand(String logContext, int queryTimeoutSeconds, int cancelQueryTimeoutSeconds) {
         this.logContext = logContext;
