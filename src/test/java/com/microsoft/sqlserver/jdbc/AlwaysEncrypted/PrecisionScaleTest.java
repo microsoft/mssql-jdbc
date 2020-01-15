@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -44,7 +43,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xAzureSQLDB)
 public class PrecisionScaleTest extends AESetup {
 
-    public PrecisionScaleTest(String serverName, String url, String protocol) throws TestAbortedException, Exception {
+    public PrecisionScaleTest(String serverName, String url, String protocol) throws Exception {
         super(serverName, url, protocol);
     }
 

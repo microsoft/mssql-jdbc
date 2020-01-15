@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -31,8 +30,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xAzureSQLDB)
 public class RegressionAlwaysEncryptedTest extends AESetup {
 
-    public RegressionAlwaysEncryptedTest(String serverName, String url,
-            String protocol) throws TestAbortedException, Exception {
+    public RegressionAlwaysEncryptedTest(String serverName, String url, String protocol) throws Exception {
         super(serverName, url, protocol);
     }
 

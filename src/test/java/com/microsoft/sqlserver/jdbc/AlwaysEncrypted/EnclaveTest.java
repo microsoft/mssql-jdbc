@@ -18,7 +18,6 @@ import org.junit.Test;
 import org.junit.jupiter.api.Tag;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.EnclavePackageTest;
 import com.microsoft.sqlserver.jdbc.RandomData;
@@ -44,7 +43,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.reqExternalSetup)
 public class EnclaveTest extends JDBCEncryptionDecryptionTest {
 
-    public EnclaveTest(String serverName, String url, String protocol) throws TestAbortedException, Exception {
+    public EnclaveTest(String serverName, String url, String protocol) throws Exception {
         super(serverName, url, protocol);
         setupEnclave();
     }
@@ -52,7 +51,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     private boolean nullable = false;
     private static boolean isAEv2 = false;
 
-    public void setupEnclave() throws TestAbortedException, Exception {
+    public void setupEnclave() throws Exception {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             isAEv2 = TestUtils.isAEv2(con);
         } catch (SQLException e) {
@@ -567,7 +566,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
      * @throws SQLException
      */
     @Test
-    public void testNumericSpecificSetter() throws TestAbortedException, Exception {
+    public void testNumericSpecificSetter() throws Exception {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
 
@@ -586,7 +585,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
      * @throws SQLException
      */
     @Test
-    public void testNumericSpecificSetterWindows() throws TestAbortedException, Exception {
+    public void testNumericSpecificSetterWindows() throws Exception {
         org.junit.Assume.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
@@ -601,8 +600,8 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Test case for numeric set object for numeric values
-     * F
+     * Test case for numeric set object for numeric values F
+     * 
      * @throws SQLException
      */
     @Test

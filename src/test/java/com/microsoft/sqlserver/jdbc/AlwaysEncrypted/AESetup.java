@@ -27,7 +27,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameters;
-import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
@@ -71,7 +70,7 @@ public class AESetup extends AbstractTest {
         return param;
     }
 
-    public AESetup(String serverName, String url, String protocol) throws TestAbortedException, Exception {
+    public AESetup(String serverName, String url, String protocol) throws Exception {
         enclaveServer = serverName;
         enclaveAttestationUrl = url;
         enclaveAttestationProtocol = protocol;
@@ -173,13 +172,20 @@ public class AESetup extends AbstractTest {
      * Create connection, statement and generate path of resource file
      * 
      * @throws Exception
-     * @throws TestAbortedException
      */
     @BeforeAll
-    public static void setupAE() throws TestAbortedException, Exception {
-        AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
-                + ";serverName=" + enclaveServer + ";" + Constants.ENCLAVE_ATTESTATIONURL + "=" + enclaveAttestationUrl
-                + ";" + Constants.ENCLAVE_ATTESTATIONPROTOCOL + "=" + enclaveAttestationProtocol;
+    public static void setupAE() throws Exception {
+        // skip CI unix tests with localhost servers
+        if (!connectionString.substring(Constants.JDBC_PREFIX.length()).split(Constants.SEMI_COLON)[0]
+                .contains("localhost") && null != enclaveServer) {
+            AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
+                    + ";serverName=" + enclaveServer + ";" + Constants.ENCLAVE_ATTESTATIONURL + "="
+                    + enclaveAttestationUrl + ";" + Constants.ENCLAVE_ATTESTATIONPROTOCOL + "="
+                    + enclaveAttestationProtocol;
+        } else {
+            AETestConnectionString = connectionString + ";sendTimeAsDateTime=false"
+                    + ";columnEncryptionSetting=enabled";
+        }
 
         if (null == applicationClientID || null == applicationKey || null == keyIDs
                 || (isWindows && null == windowsKeyPath)) {

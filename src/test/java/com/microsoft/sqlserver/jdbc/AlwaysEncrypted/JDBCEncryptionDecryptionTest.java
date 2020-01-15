@@ -25,7 +25,6 @@ import org.junit.Test;
 import org.junit.jupiter.api.Tag;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.opentest4j.TestAbortedException;
 
 import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationResult;
@@ -58,8 +57,7 @@ import microsoft.sql.DateTimeOffset;
 @Tag(Constants.xAzureSQLDB)
 public class JDBCEncryptionDecryptionTest extends AESetup {
 
-    public JDBCEncryptionDecryptionTest(String serverName, String url,
-            String protocol) throws TestAbortedException, Exception {
+    public JDBCEncryptionDecryptionTest(String serverName, String url, String protocol) throws Exception {
         super(serverName, url, protocol);
     }
 
@@ -689,7 +687,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      * @throws SQLException
      */
     @Test
-    public void testNumericSpecificSetter() throws TestAbortedException, Exception {
+    public void testNumericSpecificSetter() throws Exception {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
 
@@ -708,7 +706,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      * @throws SQLException
      */
     @Test
-    public void testNumericSpecificSetterWindows() throws TestAbortedException, Exception {
+    public void testNumericSpecificSetterWindows() throws Exception {
         org.junit.Assume.assumeTrue(isWindows);
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
