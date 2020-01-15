@@ -23,8 +23,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
@@ -45,11 +46,16 @@ import microsoft.sql.DateTimeOffset;
  * Test cases related to SQLServerCallableStatement.
  *
  */
-@RunWith(JUnitPlatform.class)
+@RunWith(Parameterized.class)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 public class CallableStatementTest extends AESetup {
+
+    public CallableStatementTest(String connectionString) throws TestAbortedException, Exception {
+        super(connectionString, connectionString, connectionString);
+        // TODO Auto-generated constructor stub
+    }
 
     private static String multiStatementsProcedure = RandomUtil.getIdentifier("multiStatementsProcedure");
     private static String inputProcedure = RandomUtil.getIdentifier("inputProcedure");

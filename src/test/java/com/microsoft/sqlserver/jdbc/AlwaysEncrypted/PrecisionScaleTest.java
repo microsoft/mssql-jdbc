@@ -19,8 +19,9 @@ import java.util.TimeZone;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -37,11 +38,15 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * Tests datatypes that have precision and/or scale.
  *
  */
-@RunWith(JUnitPlatform.class)
+@RunWith(Parameterized.class)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 public class PrecisionScaleTest extends AESetup {
+
+    public PrecisionScaleTest(String serverName, String url, String protocol) throws TestAbortedException, Exception {
+        super(serverName, url, protocol);
+    }
 
     private static java.util.Date date = null;
     private static int offsetFromGMT = 0;
@@ -418,7 +423,7 @@ public class PrecisionScaleTest extends AESetup {
             }
 
             pstmt.addBatch();
-            
+
             // add a row using setObjecdt
             // datetime2 scale
             for (int i = 1; i <= 3; i++) {
