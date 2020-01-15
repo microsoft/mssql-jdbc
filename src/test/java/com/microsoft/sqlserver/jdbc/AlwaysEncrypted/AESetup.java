@@ -60,9 +60,9 @@ public class AESetup extends AbstractTest {
     public static String[][] enclaveParams() throws Exception {
         setup();
 
-        String[][] param = new String[enclaveServer.length][3];
+        String[][] param = new String[AbstractTest.enclaveServer.length][3];
 
-        for (int i = 0; i < enclaveServer.length; i++) {
+        for (int i = 0; i < AbstractTest.enclaveServer.length; i++) {
             param[i][0] = AbstractTest.enclaveServer[i];
             param[i][1] = AbstractTest.enclaveAttestationUrl[i];
             param[i][2] = AbstractTest.enclaveAttestationProtocol[i];
@@ -72,11 +72,9 @@ public class AESetup extends AbstractTest {
     }
 
     public AESetup(String serverName, String url, String protocol) throws TestAbortedException, Exception {
+        enclaveServer = serverName;
         enclaveAttestationUrl = url;
         enclaveAttestationProtocol = protocol;
-        AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
-                + ";serverName=" + serverName + ";" + Constants.ENCLAVE_ATTESTATIONURL + "=" + url + ";"
-                + Constants.ENCLAVE_ATTESTATIONPROTOCOL + "=" + protocol;
         setupAE();
     }
 
@@ -92,6 +90,7 @@ public class AESetup extends AbstractTest {
     public static String AETestConnectionString;
     protected static String enclaveAttestationUrl = null;
     protected static String enclaveAttestationProtocol = null;
+    protected static String enclaveServer = null;
 
     static Properties AEInfo;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
@@ -178,7 +177,9 @@ public class AESetup extends AbstractTest {
      */
     @BeforeAll
     public static void setupAE() throws TestAbortedException, Exception {
-        // AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled";
+        AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
+                + ";serverName=" + enclaveServer + ";" + Constants.ENCLAVE_ATTESTATIONURL + "=" + enclaveAttestationUrl
+                + ";" + Constants.ENCLAVE_ATTESTATIONPROTOCOL + "=" + enclaveAttestationProtocol;
 
         if (null == applicationClientID || null == applicationKey || null == keyIDs
                 || (isWindows && null == windowsKeyPath)) {
