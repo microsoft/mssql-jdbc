@@ -17,8 +17,9 @@ import java.util.Map;
 import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.Tag;
-import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -28,7 +29,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 /**
  * A class for testing basic NTLMv2 functionality.
  */
-@RunWith(JUnitPlatform.class)
+@RunWith(Parameterized.class)
 @Tag(Constants.xSQLv14)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
@@ -40,6 +41,8 @@ public class EnclavePackageTest extends AbstractTest {
     private static SQLServerDataSource dsPool = null;
 
     private static String connectionStringEnclave;
+    protected static String enclaveAttestationUrl = null;
+    protected static String enclaveAttestationProtocol = null;
 
     private static byte[] healthReportCertificate = {61, 11, 0, 0, 27, 2, 0, 0, -66, 3, 0, 0, 88, 5, 0, 0, 82, 83, 65,
             49, 0, 16, 0, 0, 3, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, -57, 59, -80, 116, -86, -109, -4,
@@ -183,21 +186,38 @@ public class EnclavePackageTest extends AbstractTest {
             -90, -67, 111, -82, -94, 96, -68, -79, -3, -51, -108, 41, 112, -89, 22, -92, 88, 37, 66, 20, 93, 111, 102,
             -69, -20, -47, -43, -24, 82, -41, 12, -58, 53, 68, -76, -94, -116, 75, 14, 24, -43, 73, -78, -87, 21};
 
+    @Parameters
+    public static String[][] enclaveParams() throws Exception {
+        setup();
+
+        return new String[][] {
+                {AbstractTest.enclaveServer[0], AbstractTest.enclaveAttestationUrl[0],
+                        AbstractTest.enclaveAttestationProtocol[0]},
+                {AbstractTest.enclaveServer[1], AbstractTest.enclaveAttestationUrl[1],
+                        AbstractTest.enclaveAttestationProtocol[1]}};
+    }
+
+    public EnclavePackageTest(String serverName, String url, String protocol) {
+        enclaveAttestationUrl = url;
+        enclaveAttestationProtocol = protocol;
+    }
+
     /**
      * Setup environment for test.
      * 
      * @throws Exception
      *         when an error occurs
      */
-    public static void setupEnclave() throws Exception {
+    public static void setupEnclave(String url, String protocol) throws Exception {
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionString, "columnEncryptionSetting",
                 ColumnEncryptionSetting.Enabled.toString());
 
-        String enclaveAttestationUrl = System.getProperty("enclaveAttestationUrl");
+        enclaveAttestationUrl = url;
+        enclaveAttestationProtocol = protocol;
+
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationUrl",
                 (null != enclaveAttestationUrl) ? enclaveAttestationUrl : "http://blah");
 
-        String enclaveAttestationProtocol = System.getProperty("enclaveAttestationProtocol");
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol",
                 (null != enclaveAttestationProtocol) ? enclaveAttestationProtocol : "HGS");
 
@@ -470,11 +490,11 @@ public class EnclavePackageTest extends AbstractTest {
                 "SELECT [name], [value], [value_in_use] FROM sys.configurations WHERE [name] = 'column encryption enclave type';")) {
             while (rs.next()) {
                 String enclaveType = rs.getString(2);
-                String enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol");
                 if (String.valueOf(AttestationProtocol.HGS).equals(enclaveAttestationProtocol)) {
                     assertEquals(EnclaveType.VBS.getValue(), Integer.parseInt(enclaveType));
                 } else if (String.valueOf(AttestationProtocol.AAS).equals(enclaveAttestationProtocol)) {
-                    assertEquals(EnclaveType.SGX.getValue(), Integer.parseInt(enclaveType));
+                    assertTrue(Integer.parseInt(enclaveType) == EnclaveType.VBS.getValue()
+                            || Integer.parseInt(enclaveType) == EnclaveType.SGX.getValue());
                 } else {
                     MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidEnclaveType"));
                     Object[] msgArgs = {enclaveType};

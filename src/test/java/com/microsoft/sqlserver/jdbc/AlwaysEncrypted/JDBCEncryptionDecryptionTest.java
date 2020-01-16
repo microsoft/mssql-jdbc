@@ -21,11 +21,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.junit.Test;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
-import org.opentest4j.TestAbortedException;
+import org.junit.runners.Parameterized;
 
 import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationResult;
@@ -52,11 +51,15 @@ import microsoft.sql.DateTimeOffset;
  * Tests Decryption and encryption of values
  *
  */
-@RunWith(JUnitPlatform.class)
+@RunWith(Parameterized.class)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 public class JDBCEncryptionDecryptionTest extends AESetup {
+
+    public JDBCEncryptionDecryptionTest(String serverName, String url, String protocol) throws Exception {
+        super(serverName, url, protocol);
+    }
 
     private boolean nullable = false;
 
@@ -684,7 +687,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      * @throws SQLException
      */
     @Test
-    public void testNumericSpecificSetter() throws TestAbortedException, Exception {
+    public void testNumericSpecificSetter() throws Exception {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
 
@@ -703,7 +706,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      * @throws SQLException
      */
     @Test
-    public void testNumericSpecificSetterWindows() throws TestAbortedException, Exception {
+    public void testNumericSpecificSetterWindows() throws Exception {
         org.junit.Assume.assumeTrue(isWindows);
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
@@ -1776,8 +1779,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testChar(null, values);
 
         if (isTestEnclave) {
-            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
-                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+            if (null == enclaveAttestationUrl || null == enclaveAttestationProtocol) {
                 fail(TestResource.getResource("R_reqExternalSetup"));
             }
 
@@ -1815,8 +1817,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testBinary(null, values);
 
         if (isTestEnclave) {
-            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
-                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+            if (null == enclaveAttestationUrl || null == enclaveAttestationProtocol) {
                 fail(TestResource.getResource("R_reqExternalSetup"));
             }
 
@@ -1858,8 +1859,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testDate(null, values);
 
         if (isTestEnclave) {
-            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
-                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+            if (null == enclaveAttestationUrl || null == enclaveAttestationProtocol) {
                 fail(TestResource.getResource("R_reqExternalSetup"));
             }
 
@@ -1897,8 +1897,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         testNumeric(null, values2, isNull);
 
         if (isTestEnclave) {
-            if (null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONURL)
-                    || null == getConfiguredProperty(Constants.ENCLAVE_ATTESTATIONPROTOCOL)) {
+            if (null == enclaveAttestationUrl || null == enclaveAttestationProtocol) {
                 fail(TestResource.getResource("R_reqExternalSetup"));
             }
 
