@@ -3,6 +3,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 
+## [8.2.0] Stable Release
+### Added
+- Added backwards compatibility for calling SQLServerClob.length() on nvarchar columns [#1214](https://github.com/microsoft/mssql-jdbc/pull/1214)
+
+### Fixed issues
+- Fixed an issue with potentially creating more enclave sessions than needed [#1208](https://github.com/microsoft/mssql-jdbc/pull/1208)
+- Fixed an issue with InputStream closing when calling SQLServerBlob.leangth() on an `image` column [#1214](https://github.com/microsoft/mssql-jdbc/pull/1214)
+- Fixed a potential performance issue created from trailing spaces in PreparedStatement queries [#1215](https://github.com/microsoft/mssql-jdbc/pull/1215)
+- Fixed an issue with native Always Encrypted calls not being synchronized [#1220](https://github.com/microsoft/mssql-jdbc/pull/1220)
+- Fixed errors identified by Semmle [#1226](https://github.com/microsoft/mssql-jdbc/pull/1226)
+
+### Changed
+- Refactored Always Encrypted tests to add new enclave tests for testing AEv2 [#1166](https://github.com/microsoft/mssql-jdbc/pull/1166)
+
 ## [8.1.1] Preview Release
 ### Added
 - Added more tests to improve code coverage for Always Encrypted with secure enclaves feature [#1186](https://github.com/microsoft/mssql-jdbc/pull/1186)
