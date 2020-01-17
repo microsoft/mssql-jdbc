@@ -48,6 +48,11 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * Delimiter to parse lines with.
      */
     private final String delimiter;
+    
+    /*
+     * Regex to match delimiters followed by 0 or even number of quotes
+     */
+    private final String delimiterPattern = "(?=([^\"]*\"[^\"]*\")*[^\"]*$)";
 
     /*
      * Class names for logging.
@@ -82,7 +87,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             throwInvalidArgument("delimiter");
         }
 
-        this.delimiter = delimiter;
+        this.delimiter = delimiter + delimiterPattern;
         try {
             // Create the file reader
             fis = new FileInputStream(fileToParse);
@@ -131,7 +136,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             throwInvalidArgument("delimiter");
         }
 
-        this.delimiter = delimiter;
+        this.delimiter = delimiter + delimiterPattern;
         try {
             if (null == encoding || 0 == encoding.length()) {
                 sr = new InputStreamReader(fileToParse);
@@ -183,7 +188,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         this(fileToParse, null, ",", firstLineIsColumnNames);
     }
 
-    private void initFileReader(InputStreamReader sr, String encoding, String demlimeter,
+    private void initFileReader(InputStreamReader sr, String encoding, String delimeter,
             boolean firstLineIsColumnNames) throws SQLServerException, IOException {
         fileReader = new BufferedReader(sr);
         if (firstLineIsColumnNames) {
@@ -193,11 +198,11 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             }
         }
     }
-    
+
     private void initLoggerResources() {
         super.loggerPackageName = "com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord";
     }
-    
+
     /**
      * Releases any resources associated with the file reader.
      * 

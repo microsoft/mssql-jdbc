@@ -107,8 +107,9 @@ public class BulkCopyCSVTest extends AbstractTest {
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord with passing file from url")
     public void testCSVFromURL() throws SQLException {
+        // change back to https://raw.githubusercontent.com/microsoft/mssql-jdbc/dev/src/test/resources/BulkCopyCSVTestInput.csv after merge
         try (InputStream csvFileInputStream = new URL(
-                "https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/src/test/resources/BulkCopyCSVTestInput.csv")
+                "https://raw.githubusercontent.com/lilgreenbird/mssql-jdbc/csv/src/test/resources/BulkCopyCSVTestInput.csv")
                         .openStream();
                 SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileInputStream, encoding,
                         delimiter, true)) {
@@ -197,7 +198,7 @@ public class BulkCopyCSVTest extends AbstractTest {
                 ResultSetMetaData destMeta = ((ResultSet) dstResultSet.product()).getMetaData();
                 int totalColumns = destMeta.getColumnCount();
                 while (dstResultSet.next()) {
-                    String[] srcValues = br.readLine().split(delimiter);
+                    String[] srcValues = br.readLine().split(delimiter + "(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
                     if ((0 == srcValues.length) && (srcValues.length != totalColumns)) {
                         srcValues = new String[totalColumns];
                         Arrays.fill(srcValues, null);
