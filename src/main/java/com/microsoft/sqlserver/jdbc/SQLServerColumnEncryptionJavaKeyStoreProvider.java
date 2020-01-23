@@ -348,6 +348,9 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
 
         KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
         CertificateDetails certificateDetails = getCertificateDetails(masterKeyPath);
+        if (null == certificateDetails) {
+            return false;
+        }
 
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -356,7 +359,6 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             // value of allowEnclaveComputations is always true here
             md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
             return rsaVerifySignature(md.digest(), signature, certificateDetails);
-
         } catch (NoSuchAlgorithmException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
         }
