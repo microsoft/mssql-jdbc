@@ -134,6 +134,9 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
                             hgsResponse = new AASAttestationResponse(hgsRs.getBytes(1));
                             // This validates and establishes the enclave session if valid
                             validateAttestationResponse();
+                        } else {
+                            SQLServerException.makeFromDriverError(null, this,
+                                    SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), "0", false);
                         }
                     }
                 }

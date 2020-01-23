@@ -157,6 +157,9 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                             hgsResponse = new VSMAttestationResponse(hgsRs.getBytes(1));
                             // This validates and establishes the enclave session if valid
                             validateAttestationResponse();
+                        } else {
+                            SQLServerException.makeFromDriverError(null, this,
+                                    SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), "0", false);
                         }
                     }
                 }
