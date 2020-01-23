@@ -19,10 +19,10 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.LinkedList;
 
-import org.junit.Test;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -50,10 +50,6 @@ import microsoft.sql.DateTimeOffset;
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 public class CallableStatementTest extends AESetup {
-
-    public CallableStatementTest(String serverName, String url, String protocol) throws Exception {
-        super(serverName, url, protocol);
-    }
 
     private static String multiStatementsProcedure = RandomUtil.getIdentifier("multiStatementsProcedure");
     private static String inputProcedure = RandomUtil.getIdentifier("inputProcedure");
@@ -105,10 +101,9 @@ public class CallableStatementTest extends AESetup {
      * 
      * @throws SQLException
      */
-    @BeforeAll
-    public static void initCallableStatementTest() throws Exception {
-        dropTables();
-
+    public void initCallableStatementTest() throws Exception {
+        dropAll();
+        
         numericValues = createNumericValues(nullable);
         byteValues = createBinaryValues(nullable);
         dateValues = createTemporalTypesCallableStatement(nullable);
@@ -138,28 +133,44 @@ public class CallableStatementTest extends AESetup {
         dropProcedures();
     }
 
-    @Test
-    public void testMultiInsertionSelection() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testMultiInsertionSelection(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createMultiInsertionSelection();
         MultiInsertionSelection();
     }
 
-    @Test
-    public void testInputProcedureNumeric() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testInputProcedureNumeric(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createInputProcedure();
         testInputProcedure(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(inputProcedure) + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",
                 numericValues);
     }
 
-    @Test
-    public void testInputProcedureChar() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testInputProcedureChar(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createInputProcedure2();
         testInputProcedure2("{call " + AbstractSQLGenerator.escapeIdentifier(inputProcedure2) + "(?,?,?,?,?,?,?,?)}");
     }
 
-    @Test
-    public void testEncryptedOutputNumericParams() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testEncryptedOutputNumericParams(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedure();
         testOutputProcedureRandomOrder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure) + "(?,?,?,?,?,?,?)}", numericValues);
@@ -171,8 +182,13 @@ public class CallableStatementTest extends AESetup {
                 "exec " + AbstractSQLGenerator.escapeIdentifier(outputProcedure) + " ?,?,?,?,?,?,?", numericValues);
     }
 
-    @Test
-    public void testUnencryptedAndEncryptedNumericOutputParams() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testUnencryptedAndEncryptedNumericOutputParams(String serverName, String url,
+            String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedure2();
         testOutputProcedure2RandomOrder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure2) + "(?,?,?,?,?,?,?,?,?,?)}",
@@ -185,29 +201,46 @@ public class CallableStatementTest extends AESetup {
                 numericValues);
     }
 
-    @Test
-    public void testEncryptedOutputParamsFromDifferentTables() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testEncryptedOutputParamsFromDifferentTables(String serverName, String url,
+            String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedure3();
         testOutputProcedure3RandomOrder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3) + "(?,?)}");
         testOutputProcedure3Inorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3) + "(?,?)}");
         testOutputProcedure3ReverseOrder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3) + "(?,?)}");
     }
 
-    @Test
-    public void testInOutProcedure() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testInOutProcedure(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createInOutProcedure();
         testInOutProcedure("{call " + AbstractSQLGenerator.escapeIdentifier(inoutProcedure) + "(?)}");
         testInOutProcedure("exec " + AbstractSQLGenerator.escapeIdentifier(inoutProcedure) + " ?");
     }
 
-    @Test
-    public void testMixedProcedure() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testMixedProcedure(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createMixedProcedure();
         testMixedProcedure("{ ? = call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure) + "(?,?,?)}");
     }
 
-    @Test
-    public void testUnencryptedAndEncryptedIOParams() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testUnencryptedAndEncryptedIOParams(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         // unencrypted input and output parameter
         // encrypted input and output parameter
         createMixedProcedure2();
@@ -216,8 +249,12 @@ public class CallableStatementTest extends AESetup {
         testMixedProcedure2Inorder("{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure2) + "(?,?,?,?)}");
     }
 
-    @Test
-    public void testUnencryptedIOParams() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testUnencryptedIOParams(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createMixedProcedure3();
         testMixedProcedure3RandomOrder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure3) + "(?,?,?,?)}");
@@ -226,8 +263,12 @@ public class CallableStatementTest extends AESetup {
                 "{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure3) + "(?,?,?,?)}");
     }
 
-    @Test
-    public void testVariousIOParams() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testVariousIOParams(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createMixedProcedureNumericPrcisionScale();
         testMixedProcedureNumericPrcisionScaleInorder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale) + "(?,?,?,?)}");
@@ -235,8 +276,12 @@ public class CallableStatementTest extends AESetup {
                 "{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale) + "(?,?,?,?)}");
     }
 
-    @Test
-    public void testOutputProcedureChar() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testOutputProcedureChar(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedureChar();
         testOutputProcedureCharInorder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureChar) + "(?,?,?,?,?,?,?,?,?)}");
@@ -244,8 +289,12 @@ public class CallableStatementTest extends AESetup {
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureChar) + "(?,?,?,?,?,?,?,?,?)}");
     }
 
-    @Test
-    public void testOutputProcedureNumeric() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testOutputProcedureNumeric(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedureNumeric();
         testOutputProcedureNumericInorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNumeric)
                 + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
@@ -253,8 +302,12 @@ public class CallableStatementTest extends AESetup {
                 + AbstractSQLGenerator.escapeIdentifier(outputProcedureNumeric) + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
     }
 
-    @Test
-    public void testOutputProcedureBinary() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testOutputProcedureBinary(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedureBinary();
         testOutputProcedureBinaryInorder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary) + "(?,?,?,?,?)}");
@@ -264,8 +317,12 @@ public class CallableStatementTest extends AESetup {
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary) + "(?,?,?,?,?)}");
     }
 
-    @Test
-    public void testOutputProcedureDate() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testOutputProcedureDate(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedureDate();
         testOutputProcedureDateInorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDate)
                 + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
@@ -273,8 +330,12 @@ public class CallableStatementTest extends AESetup {
                 + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
     }
 
-    @Test
-    public void testMixedProcedureDateScale() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testMixedProcedureDateScale(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createMixedProcedureDateScale();
         testMixedProcedureDateScaleInorder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDateScale) + "(?,?,?,?,?,?)}");
@@ -282,15 +343,23 @@ public class CallableStatementTest extends AESetup {
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDateScale) + "(?,?,?,?,?,?)}");
     }
 
-    @Test
-    public void testOutputProcedureBatch() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testOutputProcedureBatch(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedureBatch();
         testOutputProcedureBatchInorder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBatch) + "(?,?,?,?)}");
     }
 
-    @Test
-    public void testOutputProcedure4() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testOutputProcedure4(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedure4();
     }
 
@@ -365,6 +434,8 @@ public class CallableStatementTest extends AESetup {
 
         try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement stmt = con.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table5), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table6), stmt);
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -750,6 +821,7 @@ public class CallableStatementTest extends AESetup {
             int intValue2 = callableStatement.getInt(2);
             assertEquals("" + intValue2, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
+
             fail(e.getMessage());
         }
     }
@@ -1285,7 +1357,6 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void testMixedProcedure3RandomOrder(String sql) throws SQLException {
-
         try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
@@ -2176,6 +2247,7 @@ public class CallableStatementTest extends AESetup {
 
         try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE), stmt);
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
