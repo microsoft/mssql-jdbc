@@ -117,11 +117,23 @@ public abstract class AbstractTest {
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
         windowsKeyPath = getConfiguredProperty("windowsKeyPath");
 
-        String enclaveServers = getConfiguredProperty("enclaveServer", null);
-        enclaveServer = null != enclaveServers ? enclaveServers.split(Constants.SEMI_COLON) : null;
-        enclaveAttestationUrl = getConfiguredProperty("enclaveAttestationUrl", "").split(Constants.SEMI_COLON);
-        enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol", "")
-                .split(Constants.SEMI_COLON);
+        String prop;
+        prop = getConfiguredProperty("enclaveServer", null);
+        if (null == prop) {
+            // default to server in connection string
+            String serverName = connectionString.substring(Constants.JDBC_PREFIX.length())
+                    .split(Constants.SEMI_COLON)[0];
+            enclaveServer = new String[1];
+            enclaveServer[0] = new String(serverName);
+        } else {
+            enclaveServer = prop.split(Constants.SEMI_COLON);
+        }
+
+        prop = getConfiguredProperty("enclaveAttestationUrl", null);
+        enclaveAttestationUrl = null != prop ? prop.split(Constants.SEMI_COLON) : null;
+
+        prop = getConfiguredProperty("enclaveAttestationProtocol", null);
+        enclaveAttestationProtocol = null != prop ? prop.split(Constants.SEMI_COLON) : null;
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {

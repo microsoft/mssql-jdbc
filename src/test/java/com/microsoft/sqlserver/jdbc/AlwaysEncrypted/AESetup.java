@@ -157,10 +157,10 @@ public class AESetup extends AbstractTest {
 
         String[][] param = new String[AbstractTest.enclaveServer.length][3];
 
-        for (int i = 0; i < AbstractTest.enclaveServer.length; i++) {
-            param[i][0] = AbstractTest.enclaveServer[i];
-            param[i][1] = AbstractTest.enclaveAttestationUrl[i];
-            param[i][2] = AbstractTest.enclaveAttestationProtocol[i];
+        for (int i = 0; i < enclaveServer.length; i++) {
+            param[i][0] = enclaveServer[i];
+            param[i][1] = null != enclaveAttestationUrl ? enclaveAttestationUrl[i] : null;
+            param[i][2] = null != enclaveAttestationProtocol ? enclaveAttestationProtocol[i] : null;
         }
 
         return param;
