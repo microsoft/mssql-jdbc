@@ -43,7 +43,7 @@ public class TimeoutTest extends AbstractTest {
 
         long timerStart = System.currentTimeMillis();
         // Try a non existing server and see if the default timeout is 15 seconds
-        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;")) {
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
@@ -61,7 +61,7 @@ public class TimeoutTest extends AbstractTest {
         long timerStart = System.currentTimeMillis();
 
         try (Connection con = PrepUtil
-                .getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;logintimeout=" + timeout)) {
+                .getConnection("jdbc:sqlserver://" + randomServer + ";logintimeout=" + timeout)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
@@ -79,7 +79,7 @@ public class TimeoutTest extends AbstractTest {
         DriverManager.setLoginTimeout(timeout);
         long timerStart = System.currentTimeMillis();
 
-        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd")) {
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
@@ -98,7 +98,7 @@ public class TimeoutTest extends AbstractTest {
             long timerStart = System.currentTimeMillis();
 
             try (Connection con = PrepUtil.getConnection(
-                    "jdbc:sqlserver://" + randomServer + ";user=sa;password=pwd;loginTimeout=" + timeout)) {
+                    "jdbc:sqlserver://" + randomServer + ";loginTimeout=" + timeout)) {
                 fail(TestResource.getResource("R_shouldNotConnect"));
             } catch (Exception e) {
                 assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
