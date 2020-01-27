@@ -83,7 +83,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             jksp.setName(keystoreName);
             assertTrue(jksp.getName().equals(keystoreName));
         } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
     }
 
@@ -102,7 +102,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.setName(keystoreName);
             assertTrue(akv.getName().equals(keystoreName));
         } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
     }
 
@@ -118,7 +118,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             SQLServerColumnEncryptionJavaKeyStoreProvider jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(null,
                     null);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidConnectionSetting")));
         }
@@ -136,7 +136,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
                     null);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
         }
@@ -155,13 +155,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath, secret);
         } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
 
         // null masterKeyPath
         try {
             jksp.encryptColumnEncryptionKey(null, null, null);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidMasterKeyDetails")));
         }
@@ -170,7 +170,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             byte[] emptyCek = new byte[0];
             jksp.encryptColumnEncryptionKey(javaKeyPath, Constants.CEK_ALGORITHM, emptyCek);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyColumnEncryptionKey")));
         }
@@ -188,13 +188,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(authenticationCallback);
         } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
 
         // null encryptedColumnEncryptionKey
         try {
             akv.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, null);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullColumnEncryptionKey")));
         }
@@ -203,7 +203,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             byte[] emptyCek = new byte[0];
             akv.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, emptyCek);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyCEK")));
         }
@@ -222,13 +222,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider("badkeypath", secret);
         } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
 
         // null masterKeyPath
         try {
             jksp.decryptColumnEncryptionKey(null, null, null);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidMasterKeyDetails")));
         }
@@ -237,7 +237,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             byte[] emptyCek = new byte[0];
             jksp.decryptColumnEncryptionKey("keypath", "algorithm", emptyCek);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_KeyStoreNotFound")));
         }
@@ -245,14 +245,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath, secret);
         } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
 
         // bad cert
         try {
             byte[] badCek = new byte[1];
             jksp.decryptColumnEncryptionKey(javaKeyAliases, "RSA_OAEP", badCek);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidKeyStoreFile")));
         }
@@ -270,13 +270,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(authenticationCallback);
         } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
 
         // null akvpath
         try {
             akv.decryptColumnEncryptionKey(null, "", null);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVPathNull")));
         }
@@ -284,7 +284,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         // invalid akvpath
         try {
             akv.decryptColumnEncryptionKey("keypath", "", null);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVMasterKeyPathInvalid")));
         }
@@ -292,7 +292,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         // invalid akvpath url
         try {
             akv.decryptColumnEncryptionKey("http:///^[!#$&-;=?-[]_a-", "", null);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVURLInvalid")));
         }
@@ -300,7 +300,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         // null encryptedColumnEncryptionKey
         try {
             akv.decryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, null);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullEncryptedColumnEncryptionKey")));
         }
@@ -309,7 +309,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             byte[] emptyCek = new byte[0];
             akv.decryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, emptyCek);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyEncryptedColumnEncryptionKey")));
         }
@@ -318,7 +318,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             byte[] badCek = new byte[1];
             akv.decryptColumnEncryptionKey(keyIDs[0], "invalidAlgo", badCek);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidKeyEncryptionAlgorithm")));
         }
@@ -327,7 +327,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             byte[] badCek = new byte[1];
             akv.decryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, badCek);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidEcryptionAlgorithmVersion")));
         }
@@ -1396,7 +1396,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                         break;
 
                     default:
-                        fail(TestResource.getResource("R_switchFailed"));
+                        fail(AETestConnectionString + "\n " + TestResource.getResource("R_switchFailed"));
                 }
 
                 assertTrue(
@@ -1408,7 +1408,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             }
 
             else {
-                fail(TestResource.getResource("R_resultsetNotInstance"));
+                fail(AETestConnectionString + "\n " + TestResource.getResource("R_resultsetNotInstance"));
             }
         }
     }
@@ -1609,13 +1609,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                         stmtColEncSetting)) {
                     stmt.execute(sql);
                     if (!TestUtils.isAEv2(con)) {
-                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                        fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
                     }
                 } catch (SQLException e) {
                     if (!TestUtils.isAEv2(con)) {
-                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                        fail(AETestConnectionString + "\n " + TestResource.getResource("R_expectedExceptionNotThrown"));
                     } else {
-                        fail(TestResource.getResource("R_AlterAEv2Error") + e.getMessage() + "Query: " + sql);
+                        fail(AETestConnectionString + "\n " + TestResource.getResource("R_AlterAEv2Error")
+                                + e.getMessage() + "Query: " + sql);
                     }
                 }
             }
@@ -1715,12 +1716,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                             }
                             break;
                         default:
-                            fail(TestResource.getResource("R_invalidObjectName") + ": " + table[i][2]);
+                            fail(AETestConnectionString + "\n " + TestResource.getResource("R_invalidObjectName") + ": "
+                                    + table[i][2]);
                     }
 
                     try (ResultSet rs = (pstmt.executeQuery())) {
                         if (!TestUtils.isAEv2(con)) {
-                            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                            fail(AETestConnectionString + ": "
+                                    + TestResource.getResource("R_expectedExceptionNotThrown"));
                         }
 
                         int numberOfColumns = rs.getMetaData().getColumnCount();
@@ -1730,13 +1733,16 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                         }
                     } catch (SQLException e) {
                         if (!TestUtils.isAEv2(con)) {
-                            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                            fail(AETestConnectionString + ": "
+                                    + TestResource.getResource("R_expectedExceptionNotThrown"));
                         } else {
-                            fail(TestResource.getResource("R_RichQueryError") + e.getMessage() + "Query: " + sql);
+                            fail(AETestConnectionString + "\n " + TestResource.getResource("R_RichQueryError")
+                                    + e.getMessage() + "Query: " + sql);
                         }
                     }
                 } catch (Exception e) {
-                    fail(TestResource.getResource("R_RichQueryError") + e.getMessage() + "Query: " + sql);
+                    fail(AETestConnectionString + "\n " + TestResource.getResource("R_RichQueryError") + e.getMessage()
+                            + "Query: " + sql);
                 }
 
             }
@@ -1771,12 +1777,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                             pstmt.setSmallDateTime(1, (Timestamp) values.get(i + 1 / 3));
                             break;
                         default:
-                            fail(TestResource.getResource("R_invalidObjectName") + ": " + table[i][2]);
+                            fail(AETestConnectionString + "\n " + TestResource.getResource("R_invalidObjectName") + ": "
+                                    + table[i][2]);
                     }
 
                     try (ResultSet rs = (pstmt.executeQuery())) {
                         if (!TestUtils.isAEv2(con)) {
-                            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                            fail(AETestConnectionString + ": "
+                                    + TestResource.getResource("R_expectedExceptionNotThrown"));
                         }
 
                         int numberOfColumns = rs.getMetaData().getColumnCount();
@@ -1786,13 +1794,16 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                         }
                     } catch (SQLException e) {
                         if (!TestUtils.isAEv2(con)) {
-                            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                            fail(AETestConnectionString + ": "
+                                    + TestResource.getResource("R_expectedExceptionNotThrown"));
                         } else {
-                            fail(TestResource.getResource("R_RichQueryError") + e.getMessage() + "Query: " + sql);
+                            fail(AETestConnectionString + "\n " + TestResource.getResource("R_RichQueryError")
+                                    + e.getMessage() + "Query: " + sql);
                         }
                     }
                 } catch (Exception e) {
-                    fail(TestResource.getResource("R_RichQueryError") + e.getMessage() + "Query: " + sql);
+                    fail(AETestConnectionString + "\n " + TestResource.getResource("R_RichQueryError") + e.getMessage()
+                            + "Query: " + sql);
                 }
             }
         }
@@ -1811,12 +1822,14 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                             pstmt.setBytes(1, (byte[]) values.get(i + 1 / 3));
                             break;
                         default:
-                            fail(TestResource.getResource("R_invalidObjectName") + ": " + table[i][2]);
+                            fail(AETestConnectionString + "\n " + TestResource.getResource("R_invalidObjectName") + ": "
+                                    + table[i][2]);
                     }
 
                     try (ResultSet rs = (pstmt.executeQuery())) {
                         if (!TestUtils.isAEv2(con)) {
-                            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                            fail(AETestConnectionString + ": "
+                                    + TestResource.getResource("R_expectedExceptionNotThrown"));
                         }
 
                         int numberOfColumns = rs.getMetaData().getColumnCount();
@@ -1827,13 +1840,16 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                         }
                     } catch (SQLException e) {
                         if (!TestUtils.isAEv2(con)) {
-                            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                            fail(AETestConnectionString + ": "
+                                    + TestResource.getResource("R_expectedExceptionNotThrown"));
                         } else {
-                            fail(TestResource.getResource("R_RichQueryError") + e.getMessage() + "Query: " + sql);
+                            fail(AETestConnectionString + "\n " + TestResource.getResource("R_RichQueryError")
+                                    + e.getMessage() + "Query: " + sql);
                         }
                     }
                 } catch (Exception e) {
-                    fail(TestResource.getResource("R_RichQueryError") + e.getMessage() + "Query: " + sql);
+                    fail(AETestConnectionString + "\n " + TestResource.getResource("R_RichQueryError") + e.getMessage()
+                            + "Query: " + sql);
                 }
             }
         }
@@ -1884,7 +1900,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 populateCharNullCase();
                 break;
             default:
-                fail(TestResource.getResource("R_switchFailed"));
+                fail(AETestConnectionString + "\n " + TestResource.getResource("R_switchFailed"));
                 break;
         }
 
@@ -1893,7 +1909,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
         if (isTestEnclave) {
             if (null == enclaveAttestationUrl || null == enclaveAttestationProtocol) {
-                fail(TestResource.getResource("R_reqExternalSetup"));
+                fail(AETestConnectionString + "\n " + TestResource.getResource("R_reqExternalSetup"));
             }
 
             testAlterColumnEncryption(stmt, CHAR_TABLE_AE, table, cekName);
@@ -1922,7 +1938,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 populateBinaryNullCase();
                 break;
             default:
-                fail(TestResource.getResource("R_switchFailed"));
+                fail(AETestConnectionString + "\n " + TestResource.getResource("R_switchFailed"));
                 break;
         }
 
@@ -1931,7 +1947,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
         if (isTestEnclave) {
             if (null == enclaveAttestationUrl || null == enclaveAttestationProtocol) {
-                fail(TestResource.getResource("R_reqExternalSetup"));
+                fail(AETestConnectionString + "\n " + TestResource.getResource("R_reqExternalSetup"));
             }
 
             testAlterColumnEncryption(stmt, BINARY_TABLE_AE, table, cekName);
@@ -1964,7 +1980,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 populateDateNullCase();
                 break;
             default:
-                fail(TestResource.getResource("R_switchFailed"));
+                fail(AETestConnectionString + "\n " + TestResource.getResource("R_switchFailed"));
                 break;
         }
 
@@ -1973,7 +1989,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
         if (isTestEnclave) {
             if (null == enclaveAttestationUrl || null == enclaveAttestationProtocol) {
-                fail(TestResource.getResource("R_reqExternalSetup"));
+                fail(AETestConnectionString + "\n " + TestResource.getResource("R_reqExternalSetup"));
             }
 
             testAlterColumnEncryption(stmt, DATE_TABLE_AE, table, cekName);
@@ -2002,7 +2018,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 isNull = true;
                 break;
             default:
-                fail(TestResource.getResource("R_switchFailed"));
+                fail(AETestConnectionString + "\n " + TestResource.getResource("R_switchFailed"));
                 break;
         }
 
@@ -2011,7 +2027,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
         if (isTestEnclave) {
             if (null == enclaveAttestationUrl || null == enclaveAttestationProtocol) {
-                fail(TestResource.getResource("R_reqExternalSetup"));
+                fail(AETestConnectionString + "\n " + TestResource.getResource("R_reqExternalSetup"));
             }
 
             testAlterColumnEncryption(stmt, NUMERIC_TABLE_AE, table, cekName);
@@ -2033,7 +2049,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 Future<AuthenticationResult> future = context.acquireToken(resource, cred, null);
                 result = future.get();
             } catch (Exception e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+                fail(AETestConnectionString + "\n " + TestResource.getResource("R_unexpectedException")
+                        + e.getMessage());
             }
             return result.getAccessToken();
         }

@@ -390,7 +390,7 @@ public class PrecisionScaleTest extends AESetup {
             }
 
             else {
-                fail(TestResource.getResource("R_resultsetNotInstance"));
+                fail(AETestConnectionString + "\n" + TestResource.getResource("R_resultsetNotInstance"));
             }
         }
     }
