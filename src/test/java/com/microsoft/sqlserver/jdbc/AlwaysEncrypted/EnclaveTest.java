@@ -14,12 +14,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedList;
 
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.Test;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
-import org.opentest4j.TestAbortedException;
+import org.junit.runners.Parameterized;
 
 import com.microsoft.sqlserver.jdbc.EnclavePackageTest;
 import com.microsoft.sqlserver.jdbc.RandomData;
@@ -37,7 +35,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * Tests Enclave decryption and encryption of values
  *
  */
-@RunWith(JUnitPlatform.class)
+@RunWith(Parameterized.class)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xSQLv14)
 @Tag(Constants.xAzureSQLDW)
@@ -45,11 +43,15 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.reqExternalSetup)
 public class EnclaveTest extends JDBCEncryptionDecryptionTest {
 
+    public EnclaveTest(String serverName, String url, String protocol) throws Exception {
+        super(serverName, url, protocol);
+        setupEnclave();
+    }
+
     private boolean nullable = false;
     private static boolean isAEv2 = false;
 
-    @BeforeAll
-    public static void setupEnclave() throws TestAbortedException, Exception {
+    public void setupEnclave() throws Exception {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             isAEv2 = TestUtils.isAEv2(con);
         } catch (SQLException e) {
@@ -60,7 +62,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
 
         org.junit.Assume.assumeTrue(isAEv2);
 
-        EnclavePackageTest.setupEnclave();
+        EnclavePackageTest.setupEnclave(enclaveAttestationUrl, enclaveAttestationProtocol);
     }
 
     /**
@@ -176,8 +178,9 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
         org.junit.Assume.assumeTrue(isAEv2);
 
         // connection string w/o AEv2
-        String testConnectionString = TestUtils.removeProperty(AETestConnectionString, "enclaveAttestationUrl");
-        testConnectionString = TestUtils.removeProperty(testConnectionString, "enclaveAttestationProtocol");
+        String testConnectionString = TestUtils.removeProperty(AETestConnectionString,
+                Constants.ENCLAVE_ATTESTATIONURL);
+        testConnectionString = TestUtils.removeProperty(testConnectionString, Constants.ENCLAVE_ATTESTATIONPROTOCOL);
 
         try (SQLServerConnection con = PrepUtil.getConnection(testConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -563,7 +566,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
      * @throws SQLException
      */
     @Test
-    public void testNumericSpecificSetter() throws TestAbortedException, Exception {
+    public void testNumericSpecificSetter() throws Exception {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
 
@@ -582,7 +585,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
      * @throws SQLException
      */
     @Test
-    public void testNumericSpecificSetterWindows() throws TestAbortedException, Exception {
+    public void testNumericSpecificSetterWindows() throws Exception {
         org.junit.Assume.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
@@ -597,7 +600,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     }
 
     /**
-     * Test case for numeric set object for numeric values
+     * Test case for numeric set object for numeric values F
      * 
      * @throws SQLException
      */

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
-import org.opentest4j.TestAbortedException;
+import org.junit.runners.Parameterized.Parameters;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
@@ -55,6 +55,27 @@ import microsoft.sql.DateTimeOffset;
  */
 @RunWith(JUnitPlatform.class)
 public class AESetup extends AbstractTest {
+    @Parameters
+    public static String[][] enclaveParams() throws Exception {
+        setup();
+
+        String[][] param = new String[AbstractTest.enclaveServer.length][3];
+
+        for (int i = 0; i < AbstractTest.enclaveServer.length; i++) {
+            param[i][0] = AbstractTest.enclaveServer[i];
+            param[i][1] = AbstractTest.enclaveAttestationUrl[i];
+            param[i][2] = AbstractTest.enclaveAttestationProtocol[i];
+        }
+
+        return param;
+    }
+
+    public AESetup(String serverName, String url, String protocol) throws Exception {
+        enclaveServer = serverName;
+        enclaveAttestationUrl = url;
+        enclaveAttestationProtocol = protocol;
+        setupAE();
+    }
 
     static String cmkJks = Constants.CMK_NAME + "_JKS";
     static String cmkWin = Constants.CMK_NAME + "_WIN";
@@ -63,11 +84,13 @@ public class AESetup extends AbstractTest {
     static String cekWin = Constants.CEK_NAME + "_WIN";
     static String cekAkv = Constants.CEK_NAME + "_AKV";
 
-    // static String javaKeyAliases = null;
-    // static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
-    // static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
-    static String AETestConnectionString;
+
+    public static String AETestConnectionString;
+    protected static String enclaveAttestationUrl = null;
+    protected static String enclaveAttestationProtocol = null;
+    protected static String enclaveServer = null;
+
     static Properties AEInfo;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
 
@@ -149,11 +172,20 @@ public class AESetup extends AbstractTest {
      * Create connection, statement and generate path of resource file
      * 
      * @throws Exception
-     * @throws TestAbortedException
      */
     @BeforeAll
-    public static void setUpConnection() throws TestAbortedException, Exception {
-        AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled";
+    public static void setupAE() throws Exception {
+        // skip CI unix tests with localhost servers
+        if (!connectionString.substring(Constants.JDBC_PREFIX.length()).split(Constants.SEMI_COLON)[0]
+                .contains("localhost") && null != enclaveServer) {
+            AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
+                    + ";serverName=" + enclaveServer + ";" + Constants.ENCLAVE_ATTESTATIONURL + "="
+                    + enclaveAttestationUrl + ";" + Constants.ENCLAVE_ATTESTATIONPROTOCOL + "="
+                    + enclaveAttestationProtocol;
+        } else {
+            AETestConnectionString = connectionString + ";sendTimeAsDateTime=false"
+                    + ";columnEncryptionSetting=enabled";
+        }
 
         if (null == applicationClientID || null == applicationKey || null == keyIDs
                 || (isWindows && null == windowsKeyPath)) {
@@ -162,17 +194,6 @@ public class AESetup extends AbstractTest {
         }
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
-
-        String enclaveAttestationUrl = getConfiguredProperty("enclaveAttestationUrl");
-        if (null != enclaveAttestationUrl) {
-            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "enclaveAttestationUrl",
-                    enclaveAttestationUrl);
-        }
-        String enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol");
-        if (null != enclaveAttestationProtocol) {
-            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
-                    "enclaveAttestationProtocol", enclaveAttestationProtocol);
-        }
 
         dropAll();
 
@@ -282,6 +303,7 @@ public class AESetup extends AbstractTest {
                 sql += ColumnType.RANDOMIZED.name() + table[i][0] + " " + table[i][1]
                         + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ") NULL,";
             }
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             sql = String.format(createSql, AbstractSQLGenerator.escapeIdentifier(tableName), sql);
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
@@ -505,10 +527,11 @@ public class AESetup extends AbstractTest {
                 encryptedValue = Constants.CEK_ENCRYPTED_VALUE;
             }
 
-            String cekSql = "CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES " + "(COLUMN_MASTER_KEY = "
+            String sql = "if not exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
+                    + " begin" + " CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES " + "(COLUMN_MASTER_KEY = "
                     + cmkName + ", ALGORITHM = '" + Constants.CEK_ALGORITHM + "', ENCRYPTED_VALUE = " + encryptedValue
-                    + ");";
-            stmt.execute(cekSql);
+                    + ") end;";
+            stmt.execute(sql);
         }
     }
 
@@ -535,7 +558,7 @@ public class AESetup extends AbstractTest {
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil
-                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
+                .getConnection(AETestConnectionString + ";sendTimeAsDateTime=false", AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 

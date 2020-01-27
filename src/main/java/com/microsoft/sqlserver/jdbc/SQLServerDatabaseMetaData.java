@@ -1047,9 +1047,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 cstmt.setString(i + 1, procParams[i]);
             }
             String currentDB = null;
-            if (null != procParams[2] && procParams[2] != "") {// pktable_qualifier
+            if (null != procParams[2] && !procParams[2].isEmpty()) {// pktable_qualifier
                 currentDB = switchCatalogs(procParams[2]);
-            } else if (null != procParams[5] && procParams[5] != "") {// fktable_qualifier
+            } else if (null != procParams[5] && !procParams[5].isEmpty()) {// fktable_qualifier
                 currentDB = switchCatalogs(procParams[5]);
             }
             ResultSet rs = cstmt.executeQuery();

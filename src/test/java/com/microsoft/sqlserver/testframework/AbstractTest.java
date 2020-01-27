@@ -57,6 +57,10 @@ public abstract class AbstractTest {
     protected static String applicationKey = null;
     protected static String[] keyIDs = null;
 
+    protected static String[] enclaveServer = null;
+    protected static String[] enclaveAttestationUrl = null;
+    protected static String[] enclaveAttestationProtocol = null;
+
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
     protected static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
@@ -112,6 +116,12 @@ public abstract class AbstractTest {
         javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
         windowsKeyPath = getConfiguredProperty("windowsKeyPath");
+
+        String enclaveServers = getConfiguredProperty("enclaveServer", null);
+        enclaveServer = null != enclaveServers ? enclaveServers.split(Constants.SEMI_COLON) : null;
+        enclaveAttestationUrl = getConfiguredProperty("enclaveAttestationUrl", "").split(Constants.SEMI_COLON);
+        enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol", "")
+                .split(Constants.SEMI_COLON);
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
