@@ -7,15 +7,18 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import javax.sql.XAConnection;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.reqExternalSetup)
 public class XADataSourceTest extends AbstractTest {
     private static String connectionUrlSSL = connectionString + ";encrypt=true;trustServerCertificate=false;";
 
