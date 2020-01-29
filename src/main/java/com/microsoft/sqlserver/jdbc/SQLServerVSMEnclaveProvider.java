@@ -333,7 +333,7 @@ class VSMAttestationResponse extends BaseAttestationResponse {
              * RSASSA-PSS was added in JDK 11, the user might be using an older version of Java. Use BC as backup.
              * Remove this logic if JDK 8 stops being supported or backports RSASSA-PSS
              */
-            Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+            SQLServerBouncyCastleLoader.loadBouncyCastle();
             sig = Signature.getInstance("RSASSA-PSS");
         }
         PSSParameterSpec pss = new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1);
