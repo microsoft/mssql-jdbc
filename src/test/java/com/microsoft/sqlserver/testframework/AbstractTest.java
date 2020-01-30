@@ -440,7 +440,7 @@ public abstract class AbstractTest {
     }
 
     /**
-     * Determines the server's OS
+     * Determines the server's OSF
      *
      * @param con
      * @throws SQLException
@@ -450,10 +450,9 @@ public abstract class AbstractTest {
             return;
         }
 
-        try (Statement stmt = con.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT HOST_PLATFORM from SYS.DM_OS_HOST_INFO")) {
+        try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT @@VERSION")) {
             rs.next();
-            isSqlLinux = rs.getString(1).compareTo("Linux") == 0;
+            isSqlLinux = rs.getString(1).contains("Linux");
             determinedSqlOS = true;
         }
     }
