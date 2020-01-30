@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
-## [8.1.1] Stable Release
+## [8.2.0] Stable Release
 ### Added
 - Added new tests for Always Encrypted for secure enclaves feature [#1166](https://github.com/microsoft/mssql-jdbc/pull/1166)
 - Added backwards compatibility for calling SQLServerClob.length() on nvarchar columns [#1214](https://github.com/microsoft/mssql-jdbc/pull/1214)
