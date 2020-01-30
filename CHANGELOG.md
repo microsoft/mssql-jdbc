@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Fixed issues
 - Fixed an issue with potentially creating more enclave sessions than needed [#1208](https://github.com/microsoft/mssql-jdbc/pull/1208)
-- Fixed an issue with InputStream closing when calling SQLServerBlob.leagth() on an `image` column [#1214](https://github.com/microsoft/mssql-jdbc/pull/1214)
+- Fixed an issue with InputStream closing when calling SQLServerBlob.length() on an `image` column [#1214](https://github.com/microsoft/mssql-jdbc/pull/1214)
 - Fixed a potential performance issue created from trailing spaces in PreparedStatement queries [#1215](https://github.com/microsoft/mssql-jdbc/pull/1215)
 - Fixed an issue with native Always Encrypted calls not being synchronized [#1220](https://github.com/microsoft/mssql-jdbc/pull/1220)
 - Fixed issues identified by SonarQube [#1226](https://github.com/microsoft/mssql-jdbc/pull/1226), Semmle [#1234](https://github.com/microsoft/mssql-jdbc/pull/1234), and CredScanner [#1237](https://github.com/microsoft/mssql-jdbc/pull/1237)
