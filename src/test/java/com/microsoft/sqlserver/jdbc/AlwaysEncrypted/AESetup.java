@@ -81,6 +81,7 @@ public class AESetup extends AbstractTest {
     public static final String DATE_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedDate");
     public static final String NUMERIC_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedNumeric");
     public static final String SCALE_DATE_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedScaleDate");
+    private static final boolean isSqlLinux = false;
 
     enum ColumnType {
         PLAIN,
@@ -175,14 +176,12 @@ public class AESetup extends AbstractTest {
      * @param protocol
      */
     void setAEConnectionString(String serverName, String url, String protocol) {
-        // skip CI unix tests with localhost servers
-        if (!connectionString.substring(Constants.JDBC_PREFIX.length()).split(Constants.SEMI_COLON)[0]
-                .contains("localhost") && null != serverName) {
+        // AEv2 is not supported on Linux servers
+        if (!isSqlLinux() && null != serverName) {
             enclaveProperties = "serverName=" + serverName + ";" + Constants.ENCLAVE_ATTESTATIONURL + "=" + url + ";"
                     + Constants.ENCLAVE_ATTESTATIONPROTOCOL + "=" + protocol;
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
                     + ";" + enclaveProperties;
-
         } else {
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false"
                     + ";columnEncryptionSetting=enabled";
