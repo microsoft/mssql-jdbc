@@ -1799,7 +1799,7 @@ public class DataTypesTest extends AbstractTest {
             TestUtils.dropTableIfExists(ldtTable, st);
             // test data (The Battle of Hastings)
             LocalDateTime ldtExpected = LocalDateTime.of(1066, 10, 14, 0, 0);
-            st.execute("CREATE TABLE " + ldtTable + " (id int PRIMARY KEY, dt datetime2)");
+            st.execute("CREATE TABLE " + ldtTable + " (id int, dt datetime2)");
             ps.setObject(1, ldtExpected);
             ps.executeUpdate();
 
