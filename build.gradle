@@ -112,9 +112,11 @@ dependencies {
 			'org.osgi:org.osgi.compendium:5.0.0'
 	compileOnly 'com.microsoft.azure:azure-keyvault:1.2.2',
 			'com.microsoft.azure:azure-keyvault-webkey:1.2.1',
-			'com.microsoft.rest:client-runtime:1.6.15',
+			'com.microsoft.rest:client-runtime:1.7.0',
 			'com.microsoft.azure:adal4j:1.6.4',
-			'org.antlr:antlr4-runtime:4.7.2'
+			'org.antlr:antlr4-runtime:4.7.2',
+			'com.google.code.gson:gson:2.8.6',
+			'org.bouncycastle:bcprov-jdk15:1.46'
 	testCompile 'org.junit.platform:junit-platform-console:1.5.2',
 			'org.junit.platform:junit-platform-commons:1.5.2',
 			'org.junit.platform:junit-platform-engine:1.5.2',
@@ -127,5 +129,7 @@ dependencies {
 			'org.apache.commons:commons-dbcp2:2.6.0',
 			'org.slf4j:slf4j-nop:1.7.29',
 			'org.antlr:antlr4-runtime:4.7.2',
-			'org.eclipse.gemini.blueprint:gemini-blueprint-mock:2.1.0.RELEASE'
+			'org.eclipse.gemini.blueprint:gemini-blueprint-mock:2.1.0.RELEASE',
+			'com.google.code.gson:gson:2.8.6',
+			'org.bouncycastle:bcprov-jdk15:1.46'
 }
