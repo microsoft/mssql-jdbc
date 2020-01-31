@@ -21,12 +21,12 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized.Parameters;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
@@ -55,28 +55,6 @@ import microsoft.sql.DateTimeOffset;
  */
 @RunWith(JUnitPlatform.class)
 public class AESetup extends AbstractTest {
-    @Parameters
-    public static String[][] enclaveParams() throws Exception {
-        setup();
-
-        String[][] param = new String[AbstractTest.enclaveServer.length][3];
-
-        for (int i = 0; i < AbstractTest.enclaveServer.length; i++) {
-            param[i][0] = AbstractTest.enclaveServer[i];
-            param[i][1] = AbstractTest.enclaveAttestationUrl[i];
-            param[i][2] = AbstractTest.enclaveAttestationProtocol[i];
-        }
-
-        return param;
-    }
-
-    public AESetup(String serverName, String url, String protocol) throws Exception {
-        enclaveServer = serverName;
-        enclaveAttestationUrl = url;
-        enclaveAttestationProtocol = protocol;
-        setupAE();
-    }
-
     static String cmkJks = Constants.CMK_NAME + "_JKS";
     static String cmkWin = Constants.CMK_NAME + "_WIN";
     static String cmkAkv = Constants.CMK_NAME + "_AKV";
@@ -86,10 +64,8 @@ public class AESetup extends AbstractTest {
 
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
 
-    public static String AETestConnectionString;
-    protected static String enclaveAttestationUrl = null;
-    protected static String enclaveAttestationProtocol = null;
-    protected static String enclaveServer = null;
+    static String AETestConnectionString;
+    static String enclaveProperties = "";
 
     static Properties AEInfo;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
@@ -97,12 +73,15 @@ public class AESetup extends AbstractTest {
     // test that only run on Windows will be skipped
     static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
 
+    protected static boolean isAEv2 = false;
+
     public static final String tableName = RandomUtil.getIdentifier("AETest_");
     public static final String CHAR_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedChar");
     public static final String BINARY_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedBinary");
     public static final String DATE_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedDate");
     public static final String NUMERIC_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedNumeric");
     public static final String SCALE_DATE_TABLE_AE = RandomUtil.getIdentifier("JDBCEncryptedScaleDate");
+    private static final boolean isSqlLinux = false;
 
     enum ColumnType {
         PLAIN,
@@ -169,33 +148,74 @@ public class AESetup extends AbstractTest {
             "PlainDecimal decimal(30)", "PlainNumeric numeric(30)"};
 
     /**
-     * Create connection, statement and generate path of resource file
+     * This provides the arguments (serverName, enclaveAttestationUrl, enclaveAttestationProtocol) for the parameterized
+     * tests using MethodSource parameters
      * 
+     * @return parameters for the tests
      * @throws Exception
      */
-    @BeforeAll
-    public static void setupAE() throws Exception {
-        // skip CI unix tests with localhost servers
-        if (!connectionString.substring(Constants.JDBC_PREFIX.length()).split(Constants.SEMI_COLON)[0]
-                .contains("localhost") && null != enclaveServer) {
+    public static String[][] enclaveParams() throws Exception {
+        setup();
+
+        String[][] param = new String[AbstractTest.enclaveServer.length][3];
+
+        for (int i = 0; i < enclaveServer.length; i++) {
+            param[i][0] = enclaveServer[i];
+            param[i][1] = null != enclaveAttestationUrl ? enclaveAttestationUrl[i] : null;
+            param[i][2] = null != enclaveAttestationProtocol ? enclaveAttestationProtocol[i] : null;
+        }
+
+        return param;
+    }
+
+    /**
+     * Get the AE connection string
+     * 
+     * @param serverName
+     * @param url
+     * @param protocol
+     */
+    void setAEConnectionString(String serverName, String url, String protocol) {
+        // AEv2 is not supported on Linux servers
+        if (!isSqlLinux() && null != serverName) {
+            enclaveProperties = "serverName=" + serverName + ";" + Constants.ENCLAVE_ATTESTATIONURL + "=" + url + ";"
+                    + Constants.ENCLAVE_ATTESTATIONPROTOCOL + "=" + protocol;
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
-                    + ";serverName=" + enclaveServer + ";" + Constants.ENCLAVE_ATTESTATIONURL + "="
-                    + enclaveAttestationUrl + ";" + Constants.ENCLAVE_ATTESTATIONPROTOCOL + "="
-                    + enclaveAttestationProtocol;
+                    + ";" + enclaveProperties;
+
+            // show progress if testing multiple servers
+            if (enclaveServer.length > 1) {
+                System.out.println("Testing enclave: " + enclaveProperties);
+            }
         } else {
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false"
                     + ";columnEncryptionSetting=enabled";
         }
+    }
 
-        if (null == applicationClientID || null == applicationKey || null == keyIDs
-                || (isWindows && null == windowsKeyPath)) {
-            fail(TestResource.getResource("R_reqExternalSetup"));
+    /**
+     * Check if AEv2
+     * 
+     * @param serverName
+     * @param url
+     * @param protocol
+     * @throws SQLException
+     */
+    void checkAEv2(String serverName, String url, String protocol) throws SQLException {
+        setAEConnectionString(serverName, url, protocol);
 
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+            isAEv2 = TestUtils.isAEv2(con);
+        } catch (SQLException e) {
+            isAEv2 = false;
+        } catch (Exception e) {
+            fail("enclaveProperties: " + enclaveProperties + "\n" + TestResource.getResource("R_unexpectedErrorMessage")
+                    + e.getMessage());
         }
+    }
 
-        readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
-
-        dropAll();
+    void checkAESetup(String serverName, String url, String protocol) throws Exception {
+        checkAEv2(serverName, url, protocol);
 
         createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
         createCEK(cmkJks, cekJks, jksProvider);
@@ -205,6 +225,16 @@ public class AESetup extends AbstractTest {
 
         createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
         createCEK(cmkWin, cekWin, null);
+    }
+
+    @BeforeAll
+    public static void getProperties() throws Exception {
+        if (null == applicationClientID || null == applicationKey || null == keyIDs
+                || (isWindows && null == windowsKeyPath)) {
+            fail("enclaveProperties: " + enclaveProperties + "\n" + TestResource.getResource("R_reqExternalSetup"));
+        }
+
+        readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
 
         stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;
 
@@ -213,6 +243,9 @@ public class AESetup extends AbstractTest {
         AEInfo.setProperty("keyStoreAuthentication", Constants.JAVA_KEY_STORE_SECRET);
         AEInfo.setProperty("keyStoreLocation", javaKeyPath);
         AEInfo.setProperty("keyStoreSecret", Constants.JKS_SECRET);
+
+        // reset logging to avoid severe logs due to negative testing
+        LogManager.getLogManager().reset();
     }
 
     /**
@@ -279,7 +312,7 @@ public class AESetup extends AbstractTest {
                 }
             }
         } catch (IOException e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -308,7 +341,7 @@ public class AESetup extends AbstractTest {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -342,7 +375,7 @@ public class AESetup extends AbstractTest {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -370,7 +403,7 @@ public class AESetup extends AbstractTest {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 

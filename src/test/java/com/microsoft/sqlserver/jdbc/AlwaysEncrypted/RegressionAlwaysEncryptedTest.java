@@ -13,8 +13,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.Test;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -29,11 +30,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 public class RegressionAlwaysEncryptedTest extends AESetup {
-
-    public RegressionAlwaysEncryptedTest(String serverName, String url, String protocol) throws Exception {
-        super(serverName, url, protocol);
-    }
-
     static String numericTable[][] = {{"Bit", "bit"}, {"Tinyint", "tinyint"}, {"Smallint", "smallint"},};
 
     static String dateTable[][] = {{"Date", "date"},
@@ -43,8 +39,11 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     static String charTable[][] = {{"Char", "char(20) COLLATE Latin1_General_BIN2"},
             {"Varchar", "varchar(50) COLLATE Latin1_General_BIN2"},};
 
-    @Test
-    public void alwaysEncrypted1() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void alwaysEncrypted1(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
         try (Connection connection = PrepUtil.getConnection(
                 AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
@@ -71,8 +70,11 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
         }
     }
 
-    @Test
-    public void alwaysEncrypted2() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void alwaysEncrypted2(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
         try (Connection connection = PrepUtil.getConnection(
                 AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
