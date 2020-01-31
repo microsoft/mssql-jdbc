@@ -177,7 +177,7 @@ public class AESetup extends AbstractTest {
      */
     void setAEConnectionString(String serverName, String url, String protocol) {
         // AEv2 is not supported on Linux servers
-        if (!isSqlLinux() && null != serverName) {
+        if (!isSqlLinux() && null != serverName && null != url && null != protocol) {
             enclaveProperties = "serverName=" + serverName + ";" + Constants.ENCLAVE_ATTESTATIONURL + "=" + url + ";"
                     + Constants.ENCLAVE_ATTESTATIONPROTOCOL + "=" + protocol;
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
@@ -220,7 +220,7 @@ public class AESetup extends AbstractTest {
         createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
         createCEK(cmkJks, cekJks, jksProvider);
 
-        if (null != keyIDs) {
+        if (null != keyIDs && !keyIDs[0].isEmpty()) {
             createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
             createCEK(cmkAkv, cekAkv, akvProvider);
         }
