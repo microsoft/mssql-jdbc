@@ -19,10 +19,10 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.LinkedList;
 
-import org.junit.Test;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -50,10 +50,6 @@ import microsoft.sql.DateTimeOffset;
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 public class CallableStatementTest extends AESetup {
-
-    public CallableStatementTest(String serverName, String url, String protocol) throws Exception {
-        super(serverName, url, protocol);
-    }
 
     private static String multiStatementsProcedure = RandomUtil.getIdentifier("multiStatementsProcedure");
     private static String inputProcedure = RandomUtil.getIdentifier("inputProcedure");
@@ -105,9 +101,8 @@ public class CallableStatementTest extends AESetup {
      * 
      * @throws SQLException
      */
-    @BeforeAll
-    public static void initCallableStatementTest() throws Exception {
-        dropTables();
+    public void initCallableStatementTest() throws Exception {
+        dropAll();
 
         numericValues = createNumericValues(nullable);
         byteValues = createBinaryValues(nullable);
@@ -138,28 +133,44 @@ public class CallableStatementTest extends AESetup {
         dropProcedures();
     }
 
-    @Test
-    public void testMultiInsertionSelection() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testMultiInsertionSelection(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createMultiInsertionSelection();
         MultiInsertionSelection();
     }
 
-    @Test
-    public void testInputProcedureNumeric() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testInputProcedureNumeric(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createInputProcedure();
         testInputProcedure(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(inputProcedure) + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",
                 numericValues);
     }
 
-    @Test
-    public void testInputProcedureChar() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testInputProcedureChar(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createInputProcedure2();
         testInputProcedure2("{call " + AbstractSQLGenerator.escapeIdentifier(inputProcedure2) + "(?,?,?,?,?,?,?,?)}");
     }
 
-    @Test
-    public void testEncryptedOutputNumericParams() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testEncryptedOutputNumericParams(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedure();
         testOutputProcedureRandomOrder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure) + "(?,?,?,?,?,?,?)}", numericValues);
@@ -171,8 +182,13 @@ public class CallableStatementTest extends AESetup {
                 "exec " + AbstractSQLGenerator.escapeIdentifier(outputProcedure) + " ?,?,?,?,?,?,?", numericValues);
     }
 
-    @Test
-    public void testUnencryptedAndEncryptedNumericOutputParams() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testUnencryptedAndEncryptedNumericOutputParams(String serverName, String url,
+            String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedure2();
         testOutputProcedure2RandomOrder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure2) + "(?,?,?,?,?,?,?,?,?,?)}",
@@ -185,29 +201,46 @@ public class CallableStatementTest extends AESetup {
                 numericValues);
     }
 
-    @Test
-    public void testEncryptedOutputParamsFromDifferentTables() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testEncryptedOutputParamsFromDifferentTables(String serverName, String url,
+            String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedure3();
         testOutputProcedure3RandomOrder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3) + "(?,?)}");
         testOutputProcedure3Inorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3) + "(?,?)}");
         testOutputProcedure3ReverseOrder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedure3) + "(?,?)}");
     }
 
-    @Test
-    public void testInOutProcedure() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testInOutProcedure(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createInOutProcedure();
         testInOutProcedure("{call " + AbstractSQLGenerator.escapeIdentifier(inoutProcedure) + "(?)}");
         testInOutProcedure("exec " + AbstractSQLGenerator.escapeIdentifier(inoutProcedure) + " ?");
     }
 
-    @Test
-    public void testMixedProcedure() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testMixedProcedure(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createMixedProcedure();
         testMixedProcedure("{ ? = call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure) + "(?,?,?)}");
     }
 
-    @Test
-    public void testUnencryptedAndEncryptedIOParams() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testUnencryptedAndEncryptedIOParams(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         // unencrypted input and output parameter
         // encrypted input and output parameter
         createMixedProcedure2();
@@ -216,8 +249,12 @@ public class CallableStatementTest extends AESetup {
         testMixedProcedure2Inorder("{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure2) + "(?,?,?,?)}");
     }
 
-    @Test
-    public void testUnencryptedIOParams() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testUnencryptedIOParams(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createMixedProcedure3();
         testMixedProcedure3RandomOrder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure3) + "(?,?,?,?)}");
@@ -226,8 +263,12 @@ public class CallableStatementTest extends AESetup {
                 "{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedure3) + "(?,?,?,?)}");
     }
 
-    @Test
-    public void testVariousIOParams() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testVariousIOParams(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createMixedProcedureNumericPrcisionScale();
         testMixedProcedureNumericPrcisionScaleInorder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale) + "(?,?,?,?)}");
@@ -235,8 +276,12 @@ public class CallableStatementTest extends AESetup {
                 "{call " + AbstractSQLGenerator.escapeIdentifier(mixedProcedureNumericPrcisionScale) + "(?,?,?,?)}");
     }
 
-    @Test
-    public void testOutputProcedureChar() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testOutputProcedureChar(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedureChar();
         testOutputProcedureCharInorder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureChar) + "(?,?,?,?,?,?,?,?,?)}");
@@ -244,8 +289,12 @@ public class CallableStatementTest extends AESetup {
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureChar) + "(?,?,?,?,?,?,?,?,?)}");
     }
 
-    @Test
-    public void testOutputProcedureNumeric() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testOutputProcedureNumeric(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedureNumeric();
         testOutputProcedureNumericInorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNumeric)
                 + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
@@ -253,8 +302,12 @@ public class CallableStatementTest extends AESetup {
                 + AbstractSQLGenerator.escapeIdentifier(outputProcedureNumeric) + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
     }
 
-    @Test
-    public void testOutputProcedureBinary() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testOutputProcedureBinary(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedureBinary();
         testOutputProcedureBinaryInorder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary) + "(?,?,?,?,?)}");
@@ -264,8 +317,12 @@ public class CallableStatementTest extends AESetup {
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBinary) + "(?,?,?,?,?)}");
     }
 
-    @Test
-    public void testOutputProcedureDate() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testOutputProcedureDate(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedureDate();
         testOutputProcedureDateInorder("{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDate)
                 + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
@@ -273,8 +330,12 @@ public class CallableStatementTest extends AESetup {
                 + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
     }
 
-    @Test
-    public void testMixedProcedureDateScale() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testMixedProcedureDateScale(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createMixedProcedureDateScale();
         testMixedProcedureDateScaleInorder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDateScale) + "(?,?,?,?,?,?)}");
@@ -282,15 +343,23 @@ public class CallableStatementTest extends AESetup {
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureDateScale) + "(?,?,?,?,?,?)}");
     }
 
-    @Test
-    public void testOutputProcedureBatch() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testOutputProcedureBatch(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedureBatch();
         testOutputProcedureBatchInorder(
                 "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureBatch) + "(?,?,?,?)}");
     }
 
-    @Test
-    public void testOutputProcedure4() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testOutputProcedure4(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createOutputProcedure4();
     }
 
@@ -352,7 +421,7 @@ public class CallableStatementTest extends AESetup {
                 Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
 
         sql = "create table " + AbstractSQLGenerator.escapeIdentifier(table6) + " ("
@@ -365,9 +434,11 @@ public class CallableStatementTest extends AESetup {
 
         try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement stmt = con.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table5), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table6), stmt);
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -549,7 +620,7 @@ public class CallableStatementTest extends AESetup {
                 results = callableStatement.getMoreResults();
             }
         } catch (SQLException e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -628,7 +699,7 @@ public class CallableStatementTest extends AESetup {
                 assertEquals(rs.getString(1), values[3], "" + TestResource.getResource("R_inputParamFailed"));
             }
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -681,7 +752,7 @@ public class CallableStatementTest extends AESetup {
                 assertEquals(rs.getString(8).trim(), charValues[8], TestResource.getResource("R_inputParamFailed"));
             }
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -729,7 +800,7 @@ public class CallableStatementTest extends AESetup {
             int intValue5 = callableStatement.getInt(1);
             assertEquals("" + intValue5, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -750,7 +821,8 @@ public class CallableStatementTest extends AESetup {
             int intValue2 = callableStatement.getInt(2);
             assertEquals("" + intValue2, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.getMessage());
+
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -771,7 +843,7 @@ public class CallableStatementTest extends AESetup {
             int intValue = callableStatement.getInt(1);
             assertEquals("" + intValue, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -844,7 +916,7 @@ public class CallableStatementTest extends AESetup {
             int encryptedInt = callableStatement.getInt(2);
             assertEquals("" + encryptedInt, values[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -897,7 +969,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + encryptedMoney, values[13], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -951,7 +1023,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + intValue, values[3], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1020,7 +1092,7 @@ public class CallableStatementTest extends AESetup {
             BigDecimal money1 = callableStatement.getMoney(7);
             assertEquals("" + money1, "" + values[13], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1062,7 +1134,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + money1, values[13], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1103,7 +1175,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + intValue2, values[3], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1138,7 +1210,7 @@ public class CallableStatementTest extends AESetup {
 
             assertEquals("" + intValue, numericValues[3], "Test for Inout parameter fails.\n");
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1186,7 +1258,7 @@ public class CallableStatementTest extends AESetup {
             int returnedValue = callableStatement.getInt(1);
             assertEquals("" + returnedValue, "" + 123, "Test for Inout parameter fails.\n");
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1240,7 +1312,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + floatValue3, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1262,7 +1334,7 @@ public class CallableStatementTest extends AESetup {
             double floatValue = callableStatement.getDouble(2);
             assertEquals("" + floatValue, numericValues[5], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1285,7 +1357,6 @@ public class CallableStatementTest extends AESetup {
     }
 
     private void testMixedProcedure3RandomOrder(String sql) throws SQLException {
-
         try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
@@ -1315,7 +1386,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + bigintValue3, numericValues[4], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1337,7 +1408,7 @@ public class CallableStatementTest extends AESetup {
             double floatValue = callableStatement.getDouble(2);
             assertEquals("" + floatValue, numericValues[5], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1359,7 +1430,7 @@ public class CallableStatementTest extends AESetup {
             long bigintValue = callableStatement.getLong(1);
             assertEquals("" + bigintValue, numericValues[4], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1411,7 +1482,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals(value4, new BigDecimal(numericValues[11]), "Test for input output parameter fails.\n");
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1442,7 +1513,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals(value4, new BigDecimal(numericValues[11]), "Test for input output parameter fails.\n");
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1513,7 +1584,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals(nvarcharValue4000, charValues[8], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1566,7 +1637,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals(nvarcharValue4000, charValues[8], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1680,7 +1751,7 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1900,7 +1971,7 @@ public class CallableStatementTest extends AESetup {
             }
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -1961,7 +2032,7 @@ public class CallableStatementTest extends AESetup {
             return callableStatement.getDateTimeOffset(ordinal);
         } else {
             // Otherwise
-            fail("Unhandled type: " + coercion);
+            fail("enclaveProperties: " + enclaveProperties + "\n" + "Unhandled type: " + coercion);
         }
 
         return null;
@@ -2031,7 +2102,7 @@ public class CallableStatementTest extends AESetup {
                 assertEquals(received5[i], expected[i], TestResource.getResource("R_outputParamFailed"));
             }
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -2066,13 +2137,13 @@ public class CallableStatementTest extends AESetup {
                         }
                     }
                 } catch (Exception e) {
-                    fail(e.getMessage());
+                    fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
                 } finally {
                     index++;
                 }
             }
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -2108,7 +2179,7 @@ public class CallableStatementTest extends AESetup {
                     assertEquals(stringValue1.startsWith(expectedStr), true, "\nDecryption failed with getString(): "
                             + stringValue1 + ".\nExpected Value: " + expectedStr);
                 } catch (Exception e) {
-                    fail(e.getMessage());
+                    fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
                 } finally {
                     index++;
                 }
@@ -2176,10 +2247,11 @@ public class CallableStatementTest extends AESetup {
 
         try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE), stmt);
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -2338,7 +2410,7 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -2389,7 +2461,7 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -2440,7 +2512,7 @@ public class CallableStatementTest extends AESetup {
             BigDecimal smallmoneyValue = callableStatement.getSmallMoney(4);
             assertEquals("" + smallmoneyValue, numericValues[12], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -2516,7 +2588,7 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 
@@ -2547,7 +2619,7 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail(e.getMessage());
+            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
         }
     }
 }
