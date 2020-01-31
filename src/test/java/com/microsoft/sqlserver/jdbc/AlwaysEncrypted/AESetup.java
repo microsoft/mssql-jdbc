@@ -174,7 +174,7 @@ public class AESetup extends AbstractTest {
      * @throws Exception
      */
     @BeforeAll
-    public static void setupAE() throws Exception {
+    public void setupAE() throws Exception {
         // skip CI unix tests with localhost servers
         if (!connectionString.substring(Constants.JDBC_PREFIX.length()).split(Constants.SEMI_COLON)[0]
                 .contains("localhost") && null != enclaveServer) {
@@ -221,7 +221,7 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    public static void dropAll() throws Exception {
+    public void dropAll() throws Exception {
         try (Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 
@@ -247,7 +247,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     @AfterAll
-    public static void cleanUp() throws Exception {
+    public void cleanUp() throws Exception {
         dropAll();
         if (null != connection) {
             connection.close();
