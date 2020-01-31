@@ -366,6 +366,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         }
     }
 
+    @Tag(Constants.xAzureSQLDW)
     @Test
     @DisplayName("BulkCopy:test unicode char/varchar to nchar/nvarchar")
     public void testUnicodeCharToNchar() throws SQLException, ClassNotFoundException {
