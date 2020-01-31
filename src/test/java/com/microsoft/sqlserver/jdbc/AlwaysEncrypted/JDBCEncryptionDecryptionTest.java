@@ -382,6 +382,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
     public void testCharSpecificSetterWindows(String serverName, String url, String protocol) throws Exception {
         checkAESetup(serverName, url, protocol);
 
@@ -392,6 +393,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values = createCharValues(nullable);
 
             testChars(stmt, cekWin, charTable, values, TestCase.NORMAL, false);
+        }
+    }
+
+    /**
+     * Junit test case for char set object for string values using AKV
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testCharSetObjectAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values = createCharValues(nullable);
+
+            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT, false);
         }
     }
 
@@ -410,7 +430,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values = createCharValues(nullable);
 
             testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT, false);
-            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT, false);
+        }
+    }
+
+    /**
+     * Junit test case for char set object for jdbc string values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testCharSetObjectWithJDBCTypesAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values = createCharValues(nullable);
+
+            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
         }
     }
 
@@ -429,7 +467,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values = createCharValues(nullable);
 
             testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
-            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
+        }
+    }
+
+    /**
+     * Junit test case for char set string for null values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testCharSpecificSetterNullAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values = {null, null, null, null, null, null, null, null, null};
+
+            testChars(stmt, cekAkv, charTable, values, TestCase.NORMAL, false);
         }
     }
 
@@ -448,7 +504,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
             testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, false);
-            testChars(stmt, cekAkv, charTable, values, TestCase.NORMAL, false);
+        }
+    }
+
+    /**
+     * Junit test case for char set object for null values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testCharSetObjectNullAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values = {null, null, null, null, null, null, null, null, null};
+
+            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT, false);
         }
     }
 
@@ -467,7 +541,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
             testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT, false);
-            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT, false);
+        }
+    }
+
+    /**
+     * Junit test case for char set null for null values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testCharSetNullAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values = {null, null, null, null, null, null, null, null, null};
+
+            testChars(stmt, cekAkv, charTable, values, TestCase.NULL, false);
         }
     }
 
@@ -486,7 +578,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
             testChars(stmt, cekJks, charTable, values, TestCase.NULL, false);
-            testChars(stmt, cekAkv, charTable, values, TestCase.NULL, false);
+        }
+    }
+
+    /**
+     * Junit test case for binary set binary for binary values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testBinarySpecificSetterAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            LinkedList<byte[]> values = createBinaryValues(false);
+
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL, false);
         }
     }
 
@@ -505,7 +615,6 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<byte[]> values = createBinaryValues(false);
 
             testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL, false);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL, false);
         }
     }
 
@@ -516,6 +625,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
     public void testBinarySpecificSetterWindows(String serverName, String url, String protocol) throws Exception {
         org.junit.Assume.assumeTrue(isWindows);
 
@@ -536,6 +646,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testBinarySetobjectAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            LinkedList<byte[]> values = createBinaryValues(false);
+
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT, false);
+        }
+    }
+
+    /**
+     * Junit test case for binary set object for binary values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
     public void testBinarySetobject(String serverName, String url, String protocol) throws Exception {
         checkAESetup(serverName, url, protocol);
 
@@ -544,7 +673,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<byte[]> values = createBinaryValues(false);
 
             testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT, false);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT, false);
+        }
+    }
+
+    /**
+     * Junit test case for binary set null for binary values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testBinarySetNullAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            LinkedList<byte[]> values = createBinaryValues(true);
+
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NULL, false);
         }
     }
 
@@ -563,7 +710,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<byte[]> values = createBinaryValues(true);
 
             testBinaries(stmt, cekJks, binaryTable, values, TestCase.NULL, false);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NULL, false);
+        }
+    }
+
+    /**
+     * Junit test case for binary set binary for null values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testBinarySpecificSetterNullAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            LinkedList<byte[]> values = createBinaryValues(true);
+
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL, false);
         }
     }
 
@@ -582,7 +747,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<byte[]> values = createBinaryValues(true);
 
             testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL, false);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL, false);
+        }
+    }
+
+    /**
+     * Junit test case for binary set object for null values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testBinarysetObjectNullAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            LinkedList<byte[]> values = createBinaryValues(true);
+
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_NULL, false);
         }
     }
 
@@ -601,7 +784,24 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<byte[]> values = createBinaryValues(true);
 
             testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_NULL, false);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_NULL, false);
+        }
+    }
+
+    /**
+     * Junit test case for binary set object for jdbc type binary values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testBinarySetObjectWithJDBCTypesAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            LinkedList<byte[]> values = createBinaryValues(false);
+
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
         }
     }
 
@@ -619,7 +819,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<byte[]> values = createBinaryValues(false);
 
             testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
+        }
+    }
+
+    /**
+     * Junit test case for date set date for date values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testDateSpecificSetterAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            LinkedList<Object> values = createTemporalTypes(nullable);
+
+            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL, false);
         }
     }
 
@@ -638,7 +856,6 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
             testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL, false);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL, false);
         }
     }
 
@@ -649,6 +866,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
     public void testDateSpecificSetterWindows(String serverName, String url, String protocol) throws Exception {
         org.junit.Assume.assumeTrue(isWindows);
 
@@ -669,6 +887,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testDateSetObjectAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            LinkedList<Object> values = createTemporalTypes(nullable);
+
+            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT, false);
+        }
+    }
+
+    /**
+     * Junit test case for date set object for date values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
     public void testDateSetObject(String serverName, String url, String protocol) throws Exception {
         checkAESetup(serverName, url, protocol);
 
@@ -677,7 +914,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
             testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT, false);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT, false);
+        }
+    }
+
+    /**
+     * Junit test case for date set object for java date values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testDateSetObjectWithJavaTypeAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            LinkedList<Object> values = createTemporalTypes(nullable);
+
+            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES, false);
         }
     }
 
@@ -696,7 +951,25 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
             testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES, false);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES, false);
+        }
+    }
+
+    /**
+     * Junit test case for date set object for jdbc date values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testDateSetObjectWithJDBCTypeAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            LinkedList<Object> values = createTemporalTypes(nullable);
+
+            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
         }
     }
 
@@ -715,7 +988,26 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
             testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
+        }
+    }
+
+    /**
+     * Junit test case for date set date for min/max date values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testDateSpecificSetterMinMaxValueAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            RandomData.returnMinMax = true;
+            LinkedList<Object> values = createTemporalTypes(nullable);
+
+            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL, false);
         }
     }
 
@@ -735,8 +1027,31 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
             testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL, false);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL, false);
         }
+    }
+
+    /**
+     * Junit test case for date set date for null values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testDateSetNullAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            RandomData.returnNull = true;
+            nullable = true;
+            LinkedList<Object> values = createTemporalTypes(nullable);
+
+            testDates(stmt, cekAkv, dateTable, values, TestCase.NULL, false);
+        }
+
+        nullable = false;
+        RandomData.returnNull = false;
     }
 
     /**
@@ -756,7 +1071,31 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
             testDates(stmt, cekJks, dateTable, values, TestCase.NULL, false);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.NULL, false);
+        }
+
+        nullable = false;
+        RandomData.returnNull = false;
+    }
+
+    /**
+     * Junit test case for date set object for null values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testDateSetObjectNullAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        RandomData.returnNull = true;
+        nullable = true;
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            LinkedList<Object> values = createTemporalTypes(nullable);
+
+            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_NULL, false);
         }
 
         nullable = false;
@@ -781,11 +1120,32 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
             testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_NULL, false);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_NULL, false);
         }
 
         nullable = false;
         RandomData.returnNull = false;
+    }
+
+    /**
+     * Junit test case for numeric set numeric for numeric values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testNumericSpecificSetterAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+
+            String[] values1 = createNumericValues(nullable);
+            String[] values2 = new String[values1.length];
+            System.arraycopy(values1, 0, values2, 0, values1.length);
+
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, false);
+        }
     }
 
     /**
@@ -806,7 +1166,6 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
             testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, false);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, false);
         }
     }
 
@@ -817,6 +1176,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
     public void testNumericSpecificSetterWindows(String serverName, String url, String protocol) throws Exception {
         org.junit.Assume.assumeTrue(isWindows);
 
@@ -840,6 +1200,27 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testNumericSetObjectAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values1 = createNumericValues(nullable);
+            String[] values2 = new String[values1.length];
+            System.arraycopy(values1, 0, values2, 0, values1.length);
+
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT, false);
+        }
+    }
+
+    /**
+     * Junit test case for numeric set object for numeric values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
     public void testNumericSetObject(String serverName, String url, String protocol) throws Exception {
         checkAESetup(serverName, url, protocol);
 
@@ -850,7 +1231,27 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
             testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT, false);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT, false);
+        }
+    }
+
+    /**
+     * Junit test case for numeric set object for jdbc type numeric values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testNumericSetObjectWithJDBCTypesAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values1 = createNumericValues(nullable);
+            String[] values2 = new String[values1.length];
+            System.arraycopy(values1, 0, values2, 0, values1.length);
+
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
         }
     }
 
@@ -871,7 +1272,33 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
             testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
+        }
+    }
+
+    /**
+     * Junit test case for numeric set numeric for max numeric values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testNumericSpecificSetterMaxValueAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+
+            String[] values1 = {Boolean.TRUE.toString(), "255", "32767", "2147483647", "9223372036854775807",
+                    "1.79E308", "1.123", "3.4E38", "999999999999999999", "12345.12345", "999999999999999999",
+                    "567812.78", "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
+                    "999999999999999999999999.9999"};
+            String[] values2 = {Boolean.TRUE.toString(), "255", "32767", "2147483647", "9223372036854775807",
+                    "1.79E308", "1.123", "3.4E38", "999999999999999999", "12345.12345", "999999999999999999",
+                    "567812.78", "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
+                    "999999999999999999999999.9999"};
+
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, false);
         }
     }
 
@@ -898,6 +1325,31 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "999999999999999999999999.9999"};
 
             testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, false);
+        }
+    }
+
+    /**
+     * Junit test case for numeric set numeric for min numeric values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testNumericSpecificSetterMinValueAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values1 = {Boolean.FALSE.toString(), "0", "-32768", "-2147483648", "-9223372036854775808",
+                    "-1.79E308", "1.123", "-3.4E38", "999999999999999999", "12345.12345", "999999999999999999",
+                    "567812.78", "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
+                    "999999999999999999999999.9999"};
+            String[] values2 = {Boolean.FALSE.toString(), "0", "-32768", "-2147483648", "-9223372036854775808",
+                    "-1.79E308", "1.123", "-3.4E38", "999999999999999999", "12345.12345", "999999999999999999",
+                    "567812.78", "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
+                    "999999999999999999999999.9999"};
+
             testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, false);
         }
     }
@@ -924,8 +1376,33 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "999999999999999999999999.9999"};
 
             testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, false);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, false);
         }
+    }
+
+    /**
+     * Junit test case for numeric set numeric for null values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testNumericSpecificSetterNullAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            nullable = true;
+            RandomData.returnNull = true;
+            String[] values1 = createNumericValues(nullable);
+            String[] values2 = new String[values1.length];
+            System.arraycopy(values1, 0, values2, 0, values1.length);
+
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL, false);
+        }
+
+        nullable = false;
+        RandomData.returnNull = false;
     }
 
     /**
@@ -947,6 +1424,31 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
             testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL, false);
+        }
+
+        nullable = false;
+        RandomData.returnNull = false;
+    }
+
+    /**
+     * Junit test case for numeric set object for null values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testNumericSpecificSetterSetObjectNullAkv(String serverName, String url,
+            String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            nullable = true;
+            RandomData.returnNull = true;
+            String[] values1 = createNumericValues(nullable);
+            String[] values2 = new String[values1.length];
+            System.arraycopy(values1, 0, values2, 0, values1.length);
+
             testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL, false);
         }
 
@@ -973,11 +1475,34 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
             testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL, false);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL, false);
         }
 
         nullable = false;
         RandomData.returnNull = false;
+    }
+
+    /**
+     * Junit test case for numeric set numeric for null normalization values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testNumericNormalizationAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values1 = {Boolean.TRUE.toString(), "1", "127", "100", "100", "1.123", "1.123", "1.123",
+                    "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
+                    "999999999999999999999999.9999", "999999999999999999999999.9999"};
+            String[] values2 = {Boolean.TRUE.toString(), "1", "127", "100", "100", "1.123", "1.123", "1.123",
+                    "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
+                    "999999999999999999999999.9999", "999999999999999999999999.9999"};
+
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, false);
+        }
     }
 
     /**
@@ -1000,10 +1525,17 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "999999999999999999999999.9999", "999999999999999999999999.9999"};
 
             testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, false);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, false);
         }
     }
 
+    /**
+     * Junit test case for testing FMTOnly
+     * 
+     * @param serverName
+     * @param url
+     * @param protocol
+     * @throws Exception
+     */
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testAEFMTOnly(String serverName, String url, String protocol) throws Exception {
