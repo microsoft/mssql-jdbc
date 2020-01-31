@@ -106,7 +106,7 @@ public class CallableStatementTest extends AESetup {
      * @throws SQLException
      */
     @BeforeAll
-    public void initCallableStatementTest() throws Exception {
+    public static void initCallableStatementTest() throws Exception {
         dropTables();
 
         numericValues = createNumericValues(nullable);
@@ -133,7 +133,7 @@ public class CallableStatementTest extends AESetup {
     }
 
     @AfterAll
-    public void dropAll() throws Exception {
+    public static void dropAll() throws Exception {
         dropTables();
         dropProcedures();
     }
