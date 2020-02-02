@@ -147,6 +147,9 @@ public class AESetup extends AbstractTest {
             "PlainMoney money", "PlainDecimal2 decimal(28,4)", "PlainNumeric2 numeric(28,4)", "PlainFloat float(30)",
             "PlainDecimal decimal(30)", "PlainNumeric numeric(30)"};
 
+    // junit test parameters: serverName, enclaveAttestationUrl, enclaveAttestationProtocol
+    static String[][] param = new String[AbstractTest.enclaveServer.length][3];
+
     /**
      * This provides the arguments (serverName, enclaveAttestationUrl, enclaveAttestationProtocol) for the parameterized
      * tests using MethodSource parameters
@@ -154,17 +157,7 @@ public class AESetup extends AbstractTest {
      * @return parameters for the tests
      * @throws Exception
      */
-    public static String[][] enclaveParams() throws Exception {
-        setup();
-
-        String[][] param = new String[AbstractTest.enclaveServer.length][3];
-
-        for (int i = 0; i < enclaveServer.length; i++) {
-            param[i][0] = enclaveServer[i];
-            param[i][1] = null != enclaveAttestationUrl ? enclaveAttestationUrl[i] : null;
-            param[i][2] = null != enclaveAttestationProtocol ? enclaveAttestationProtocol[i] : null;
-        }
-
+    static String[][] enclaveParams() throws Exception {
         return param;
     }
 
@@ -175,7 +168,7 @@ public class AESetup extends AbstractTest {
      * @param url
      * @param protocol
      */
-    void setAEConnectionString(String serverName, String url, String protocol) {
+    static void setAEConnectionString(String serverName, String url, String protocol) {
         // AEv2 is not supported on Linux servers
         if (!isSqlLinux() && null != serverName && null != url && null != protocol) {
             enclaveProperties = "serverName=" + serverName + ";" + Constants.ENCLAVE_ATTESTATIONURL + "=" + url + ";"
@@ -194,14 +187,14 @@ public class AESetup extends AbstractTest {
     }
 
     /**
-     * Check if AEv2
+     * Setup AE connection string and check setup
      * 
      * @param serverName
      * @param url
      * @param protocol
      * @throws SQLException
      */
-    void checkAEv2(String serverName, String url, String protocol) throws SQLException {
+    void checkAESetup(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
@@ -214,26 +207,8 @@ public class AESetup extends AbstractTest {
         }
     }
 
-    void checkAESetup(String serverName, String url, String protocol) throws Exception {
-        checkAEv2(serverName, url, protocol);
-
-        createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
-        createCEK(cmkJks, cekJks, jksProvider);
-
-        if (null != keyIDs && !keyIDs[0].isEmpty()) {
-            createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
-            createCEK(cmkAkv, cekAkv, akvProvider);
-        }
-
-        if (null != windowsKeyPath) {
-            createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
-            createCEK(cmkWin, cekWin, null);
-        }
-    }
-
     @BeforeAll
-    public static void getProperties() throws Exception {
-
+    public static void setupAETest() throws Exception {
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
 
         stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;
@@ -246,6 +221,32 @@ public class AESetup extends AbstractTest {
 
         // reset logging to avoid severe logs due to negative testing
         LogManager.getLogManager().reset();
+
+        // setup test params and encryption keys on each server
+        for (int i = 0; i < enclaveServer.length; i++) {
+            String serverName = enclaveServer[i];
+            String url = null != enclaveAttestationUrl ? enclaveAttestationUrl[i] : null;
+            String protocol = null != enclaveAttestationProtocol ? enclaveAttestationProtocol[i] : null;
+
+            param[i][0] = serverName;
+            param[i][1] = url;
+            param[i][2] = protocol;
+
+            setAEConnectionString(serverName, url, protocol);
+
+            createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
+            createCEK(cmkJks, cekJks, jksProvider);
+
+            if (null != keyIDs && !keyIDs[0].isEmpty()) {
+                createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
+                createCEK(cmkAkv, cekAkv, akvProvider);
+            }
+
+            if (null != windowsKeyPath) {
+                createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
+                createCEK(cmkWin, cekWin, null);
+            }
+        }
     }
 
     /**
