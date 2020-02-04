@@ -849,7 +849,6 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
         checkAESetup(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";useFmtOnly=true", AEInfo);
                 Statement s = c.createStatement()) {
-            dropTables(s);
             createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
             String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                     + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
