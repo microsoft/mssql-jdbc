@@ -533,16 +533,6 @@ final class Util {
         return p;
     }
 
-    private static char nextNonWhitespaceCharacter(String tmpUrl, int i) {
-        while (i < tmpUrl.length()) {
-            if (!Character.isWhitespace(tmpUrl.charAt(i))) {
-                return tmpUrl.charAt(i);
-            }
-            i++;
-        }
-        return ' ';
-    }
-
     /**
      * Accepts a SQL identifier (such as a column name or table name) and escapes the identifier using SQL Server
      * bracket escaping rules. Assumes that the incoming identifier is unescaped.
