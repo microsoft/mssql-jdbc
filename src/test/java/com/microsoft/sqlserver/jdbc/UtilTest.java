@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 import static org.junit.Assert.assertEquals;
 
 import java.sql.SQLException;
+import java.util.Properties;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,18 @@ public class UtilTest {
         writeAndReadLong(1);
         writeAndReadLong(Long.MAX_VALUE / 2);
         writeAndReadLong(Long.MAX_VALUE);
+    }
+    
+    @Test
+    public void testparseUrl() throws SQLException {
+        java.util.logging.Logger drLogger = java.util.logging.Logger
+                .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost;password={pasS}};word={qq};user=username;portName=1433;databaseName=database;";
+        Properties prt = Util.parseUrl(constr, drLogger);
+        assertEquals(prt.getProperty("password"), "pasS};word={qq");
+        assertEquals(prt.getProperty("serverName"), "localhost");
+        assertEquals(prt.getProperty("user"), "username");
+        assertEquals(prt.getProperty("databaseName"), "database");
     }
 
     private void writeAndReadLong(long valueToTest) {
