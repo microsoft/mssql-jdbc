@@ -123,8 +123,8 @@ public abstract class AbstractTest {
         prop = getConfiguredProperty("enclaveServer", null);
         if (null == prop) {
             // default to server in connection string
-            String serverName = connectionString.substring(Constants.JDBC_PREFIX.length())
-                    .split(Constants.SEMI_COLON)[0];
+            String serverName = (connectionString.substring(Constants.JDBC_PREFIX.length())
+                    .split(Constants.SEMI_COLON)[0]).split(":")[0];
             enclaveServer = new String[1];
             enclaveServer[0] = new String(serverName);
         } else {
