@@ -208,8 +208,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
             testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, true);
-            fail("enclaveProperties: " + enclaveProperties + "\n"
-                    + TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Throwable e) {
             // testChars called fail()
             assertTrue(e.getMessage().contains(TestResource.getResource("R_AlterAEv2Error")));

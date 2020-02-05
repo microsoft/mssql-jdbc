@@ -422,7 +422,7 @@ public class CallableStatementTest extends AESetup {
                 Statement stmt = con.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
 
         sql = "create table " + table6 + " ("
@@ -439,7 +439,7 @@ public class CallableStatementTest extends AESetup {
             TestUtils.dropTableIfExists(table6, stmt);
             stmt.execute(sql);
         } catch (SQLException e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -617,7 +617,7 @@ public class CallableStatementTest extends AESetup {
                 results = callableStatement.getMoreResults();
             }
         } catch (SQLException e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -694,7 +694,7 @@ public class CallableStatementTest extends AESetup {
                 assertEquals(rs.getString(1), values[3], "" + TestResource.getResource("R_inputParamFailed"));
             }
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -746,7 +746,7 @@ public class CallableStatementTest extends AESetup {
                 assertEquals(rs.getString(8).trim(), charValues[8], TestResource.getResource("R_inputParamFailed"));
             }
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -793,7 +793,7 @@ public class CallableStatementTest extends AESetup {
             int intValue5 = callableStatement.getInt(1);
             assertEquals("" + intValue5, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -815,7 +815,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + intValue2, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
 
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -836,7 +836,7 @@ public class CallableStatementTest extends AESetup {
             int intValue = callableStatement.getInt(1);
             assertEquals("" + intValue, numericValues[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -909,7 +909,7 @@ public class CallableStatementTest extends AESetup {
             int encryptedInt = callableStatement.getInt(2);
             assertEquals("" + encryptedInt, values[3], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -962,7 +962,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + encryptedMoney, values[13], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1016,7 +1016,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + intValue, values[3], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1084,7 +1084,7 @@ public class CallableStatementTest extends AESetup {
             BigDecimal money1 = callableStatement.getMoney(7);
             assertEquals("" + money1, "" + values[13], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1126,7 +1126,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + money1, values[13], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1167,7 +1167,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + intValue2, values[3], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1201,7 +1201,7 @@ public class CallableStatementTest extends AESetup {
 
             assertEquals("" + intValue, numericValues[3], "Test for Inout parameter fails.\n");
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1247,7 +1247,7 @@ public class CallableStatementTest extends AESetup {
             int returnedValue = callableStatement.getInt(1);
             assertEquals("" + returnedValue, "" + 123, "Test for Inout parameter fails.\n");
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1299,7 +1299,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + floatValue3, numericValues[5], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1321,7 +1321,7 @@ public class CallableStatementTest extends AESetup {
             double floatValue = callableStatement.getDouble(2);
             assertEquals("" + floatValue, numericValues[5], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1373,7 +1373,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals("" + bigintValue3, numericValues[4], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1395,7 +1395,7 @@ public class CallableStatementTest extends AESetup {
             double floatValue = callableStatement.getDouble(2);
             assertEquals("" + floatValue, numericValues[5], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1417,7 +1417,7 @@ public class CallableStatementTest extends AESetup {
             long bigintValue = callableStatement.getLong(1);
             assertEquals("" + bigintValue, numericValues[4], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1468,7 +1468,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals(value4, new BigDecimal(numericValues[11]), "Test for input output parameter fails.\n");
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1499,7 +1499,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals(value4, new BigDecimal(numericValues[11]), "Test for input output parameter fails.\n");
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1570,7 +1570,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals(nvarcharValue4000, charValues[8], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1623,7 +1623,7 @@ public class CallableStatementTest extends AESetup {
             assertEquals(nvarcharValue4000, charValues[8], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1735,7 +1735,7 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1955,7 +1955,7 @@ public class CallableStatementTest extends AESetup {
             }
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -2016,7 +2016,7 @@ public class CallableStatementTest extends AESetup {
             return callableStatement.getDateTimeOffset(ordinal);
         } else {
             // Otherwise
-            fail("enclaveProperties: " + enclaveProperties + "\n" + "Unhandled type: " + coercion);
+            fail("Unhandled type: " + coercion);
         }
 
         return null;
@@ -2085,7 +2085,7 @@ public class CallableStatementTest extends AESetup {
                 assertEquals(received5[i], expected[i], TestResource.getResource("R_outputParamFailed"));
             }
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -2120,13 +2120,13 @@ public class CallableStatementTest extends AESetup {
                         }
                     }
                 } catch (Exception e) {
-                    fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+                    fail(e.getMessage());
                 } finally {
                     index++;
                 }
             }
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -2162,7 +2162,7 @@ public class CallableStatementTest extends AESetup {
                     assertEquals(stringValue1.startsWith(expectedStr), true, "\nDecryption failed with getString(): "
                             + stringValue1 + ".\nExpected Value: " + expectedStr);
                 } catch (Exception e) {
-                    fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+                    fail(e.getMessage());
                 } finally {
                     index++;
                 }
@@ -2233,7 +2233,7 @@ public class CallableStatementTest extends AESetup {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -2391,7 +2391,7 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -2442,7 +2442,7 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -2492,7 +2492,7 @@ public class CallableStatementTest extends AESetup {
             BigDecimal smallmoneyValue = callableStatement.getSmallMoney(4);
             assertEquals("" + smallmoneyValue, numericValues[12], TestResource.getResource("R_outputParamFailed"));
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -2563,7 +2563,7 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -2594,7 +2594,7 @@ public class CallableStatementTest extends AESetup {
                     TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 }
