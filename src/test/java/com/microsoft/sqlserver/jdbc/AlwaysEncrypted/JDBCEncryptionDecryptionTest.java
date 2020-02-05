@@ -187,6 +187,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
     public void testAkvBadEncryptColumnEncryptionKey(String serverName, String url, String protocol) throws Exception {
         checkAESetup(serverName, url, protocol);
 
@@ -277,6 +278,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
     public void testAkvDecryptColumnEncryptionKey(String serverName, String url, String protocol) throws Exception {
         checkAESetup(serverName, url, protocol);
 
@@ -370,6 +372,24 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values = createCharValues(nullable);
 
             testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, false);
+        }
+    }
+
+    /**
+     * Junit test case for char set string for string values
+     * 
+     * @throws SQLException
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testCharSpecificSetterAkv(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values = createCharValues(nullable);
+
             testChars(stmt, cekAkv, charTable, values, TestCase.NORMAL, false);
         }
     }
