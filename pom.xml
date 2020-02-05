@@ -4,7 +4,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.microsoft.sqlserver</groupId>
+	<groupId>com.credify</groupId>
 	<artifactId>mssql-jdbc</artifactId>
 	<version>7.3.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
@@ -60,7 +60,7 @@
 		<osgi.core.version>6.0.0</osgi.core.version>
 		<osgi.comp.version>5.0.0</osgi.comp.version>
 		<!-- JUnit Test Dependencies -->
-		<junit.platform.version>[1.3.2, 1.4.2]</junit.platform.version>
+		<junit.platform.version>1.3.2</junit.platform.version>
 		<junit.jupiter.version>5.4.2</junit.jupiter.version>
 		<hikaricp.version>3.3.1</hikaricp.version>
 		<dbcp2.version>2.6.0</dbcp2.version>
@@ -104,6 +104,12 @@
 			<artifactId>org.osgi.compendium</artifactId>
 			<version>${osgi.comp.version}</version>
 			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.xml.bind</groupId>
+			<artifactId>jaxb-api</artifactId>
+			<version>2.2.11</version>
 		</dependency>
 
 		<!-- dependencies for running tests -->
@@ -184,6 +190,9 @@
 	<profiles>
 		<profile>
 			<id>jre8</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
 				<plugins>
@@ -201,13 +210,6 @@
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-javadoc-plugin</artifactId>
-						<configuration>
-							<source>8</source>
-						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.1.1</version>
 						<configuration>
@@ -221,8 +223,7 @@
 						<artifactId>maven-surefire-plugin</artifactId>
 						<version>3.0.0-M1</version>
 						<configuration>
-							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
-							<excludedGroups>${excludedGroups}, xJDBC42</excludedGroups>
+							<skipTests>true</skipTests>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -263,9 +264,6 @@
 		</profile>
 		<profile>
 			<id>jre12</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre12-preview</finalName>
 				<plugins>
@@ -404,23 +402,6 @@
 						<phase>process-classes</phase>
 						<goals>
 							<goal>manifest</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.0.0</version>
-				<configuration>
-					<failOnError>true</failOnError>
-					<excludePackageNames>mssql.googlecode.*</excludePackageNames>
-				</configuration>
-				<executions>
-					<execution>
-						<id>attach-javadocs</id>
-						<goals>
-							<goal>jar</goal>
 						</goals>
 					</execution>
 				</executions>

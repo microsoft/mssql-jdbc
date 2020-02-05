@@ -1212,17 +1212,26 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             String keyStoreLocation) throws SQLServerException {
         if (null == keyStoreAuth) {
             // secret and location must be null too.
-            if ((null != keyStoreSecret)) {
-                MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_keyStoreAuthenticationNotSet"));
-                Object[] msgArgs = {"keyStoreSecret"};
-                throw new SQLServerException(form.format(msgArgs), null);
-            }
-            if (null != keyStoreLocation) {
-                MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_keyStoreAuthenticationNotSet"));
-                Object[] msgArgs = {"keyStoreLocation"};
-                throw new SQLServerException(form.format(msgArgs), null);
+            // EXCEPT if we are trying to decrypt from a non windows machine. We will allow it
+            if (null != keyStoreSecret && null != keyStoreLocation) {
+                SQLServerColumnEncryptionCertificateStoreProvider provider =
+                        new SQLServerColumnEncryptionCertificateStoreProvider();
+                provider.setKeyStorePath(keyStoreLocation);
+                provider.setKeyStorePwd(keyStoreSecret);
+                systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+            } else {
+                if ((null != keyStoreSecret)) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_keyStoreAuthenticationNotSet"));
+                    Object[] msgArgs = {"keyStoreSecret"};
+                    throw new SQLServerException(form.format(msgArgs), null);
+                }
+                if (null != keyStoreLocation) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_keyStoreAuthenticationNotSet"));
+                    Object[] msgArgs = {"keyStoreLocation"};
+                    throw new SQLServerException(form.format(msgArgs), null);
+                }
             }
         } else {
             KeyStoreAuthentication keyStoreAuthentication = KeyStoreAuthentication.valueOfString(keyStoreAuth);
