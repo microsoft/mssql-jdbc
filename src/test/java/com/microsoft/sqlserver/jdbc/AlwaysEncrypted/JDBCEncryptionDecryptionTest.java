@@ -41,7 +41,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
-import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
@@ -1543,11 +1542,10 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";useFmtOnly=true", AEInfo);
                 Statement s = c.createStatement()) {
-            dropTables(s);
             createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
-            String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE) + " values( "
+            String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                     + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                    + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+                    + "?,?,?," + "?,?,?," + "?,?,?" + ")";
             try (PreparedStatement p = c.prepareStatement(sql)) {
                 ParameterMetaData pmd = p.getParameterMetaData();
                 assertTrue(pmd.getParameterCount() == 48);
@@ -1556,7 +1554,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     void testChar(SQLServerStatement stmt, String[] values) throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(CHAR_TABLE_AE);
+        String sql = "select * from " + CHAR_TABLE_AE;
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1573,7 +1571,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     void testBinary(SQLServerStatement stmt, LinkedList<byte[]> values) throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(BINARY_TABLE_AE.toString());
+        String sql = "select * from " + BINARY_TABLE_AE;
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1590,7 +1588,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     void testDate(SQLServerStatement stmt, LinkedList<Object> values1) throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE);
+        String sql = "select * from " + DATE_TABLE_AE;
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1971,7 +1969,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     void testNumeric(Statement stmt, String[] numericValues, boolean isNull) throws SQLException {
-        String sql = "select * from " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE);
+        String sql = "select * from " + NUMERIC_TABLE_AE;
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -2159,8 +2157,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             for (int i = 0; i < table.length; i++) {
                 // alter deterministic to randomized
-                String sql = "ALTER TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ALTER COLUMN "
-                        + ColumnType.DETERMINISTIC.name() + table[i][0] + " " + table[i][1]
+                String sql = "ALTER TABLE " + tableName + " ALTER COLUMN " + ColumnType.DETERMINISTIC.name()
+                        + table[i][0] + " " + table[i][1]
                         + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ")";
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
@@ -2186,8 +2184,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             for (int i = 0; i < table.length; i++) {
-                String sql = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE "
-                        + ColumnType.PLAIN.name() + table[i][0] + "= ?";
+                String sql = "SELECT * FROM " + tableName + " WHERE " + ColumnType.PLAIN.name() + table[i][0] + "= ?";
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
                     switch (table[i][2]) {
@@ -2312,8 +2309,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<Object> values) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             for (int i = 0; i < table.length; i++) {
-                String sql = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE "
-                        + ColumnType.PLAIN.name() + table[i][0] + "= ?";
+                String sql = "SELECT * FROM " + tableName + " WHERE " + ColumnType.PLAIN.name() + table[i][0] + "= ?";
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
                     switch (table[i][2]) {
@@ -2372,8 +2368,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             LinkedList<byte[]> values) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             for (int i = 0; i < table.length; i++) {
-                String sql = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE "
-                        + ColumnType.PLAIN.name() + table[i][0] + "= ?";
+                String sql = "SELECT * FROM " + tableName + " WHERE " + ColumnType.PLAIN.name() + table[i][0] + "= ?";
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
                     switch (table[i][2]) {
@@ -2439,7 +2434,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
     void testChars(SQLServerStatement stmt, String cekName, String[][] table, String[] values, TestCase testCase,
             boolean isTestEnclave) throws SQLException {
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(CHAR_TABLE_AE), stmt);
+        TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
         createTable(CHAR_TABLE_AE, cekName, table);
 
         switch (testCase) {
@@ -2479,7 +2474,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
     void testBinaries(SQLServerStatement stmt, String cekName, String[][] table, LinkedList<byte[]> values,
             TestCase testCase, boolean isTestEnclave) throws SQLException {
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(BINARY_TABLE_AE), stmt);
+        TestUtils.dropTableIfExists(BINARY_TABLE_AE, stmt);
         createTable(BINARY_TABLE_AE, cekName, table);
 
         switch (testCase) {
@@ -2518,7 +2513,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
     void testDates(SQLServerStatement stmt, String cekName, String[][] table, LinkedList<Object> values,
             TestCase testCase, boolean isTestEnclave) throws SQLException {
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE), stmt);
+        TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
         createTable(DATE_TABLE_AE, cekName, table);
 
         switch (testCase) {
@@ -2561,7 +2556,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
     void testNumerics(SQLServerStatement stmt, String cekName, String[][] table, String[] values1, String[] values2,
             TestCase testCase, boolean isTestEnclave) throws SQLException {
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE), stmt);
+        TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
         createTable(NUMERIC_TABLE_AE, cekName, table);
 
         boolean isNull = false;

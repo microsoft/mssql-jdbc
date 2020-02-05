@@ -25,7 +25,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
-import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
@@ -850,11 +849,10 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
         checkAESetup(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";useFmtOnly=true", AEInfo);
                 Statement s = c.createStatement()) {
-            dropTables(s);
             createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
-            String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE) + " values( "
+            String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                     + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                    + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+                    + "?,?,?," + "?,?,?," + "?,?,?" + ")";
             try (PreparedStatement p = c.prepareStatement(sql)) {
                 ParameterMetaData pmd = p.getParameterMetaData();
                 assertTrue(pmd.getParameterCount() == 48);
