@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -36,6 +38,9 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLDB)
 public class PrecisionScaleTest extends AESetup {
 
     private static java.util.Date date = null;
@@ -359,7 +364,7 @@ public class PrecisionScaleTest extends AESetup {
             }
 
             else {
-                throw new Exception(TestResource.getResource("R_resultsetNotInstance"));
+                fail(TestResource.getResource("R_resultsetNotInstance"));
             }
         }
     }

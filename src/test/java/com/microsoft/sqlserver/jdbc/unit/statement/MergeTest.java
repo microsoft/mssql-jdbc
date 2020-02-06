@@ -5,14 +5,13 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -31,6 +30,7 @@ import com.microsoft.sqlserver.testframework.DBStatement;
  * Testing merge queries
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class MergeTest extends AbstractTest {
     static String cricketTeams = RandomUtil.getIdentifier("CricketTeams");
     static String cricketTeamsUpdated = RandomUtil.getIdentifier("cricketTeamsUpdated");
@@ -68,7 +68,6 @@ public class MergeTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    @DisplayName("Merge Test")
     public void runTest() throws Exception {
         try (DBConnection conn = new DBConnection(connectionString)) {
             if (conn.getServerVersion() >= 10) {
@@ -90,15 +89,10 @@ public class MergeTest extends AbstractTest {
      * @throws Exception
      */
     @AfterAll
-    public static void afterAll() throws Exception {
-
-        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-            try {
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(cricketTeams), stmt);
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated), stmt);
-            } catch (Exception ex) {
-                fail(ex.toString());
-            }
+    public static void afterAll() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(cricketTeams), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(cricketTeamsUpdated), stmt);
         }
     }
 }

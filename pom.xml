@@ -4,15 +4,17 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.microsoft.sqlserver</groupId>
+	<groupId>com.credify</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.3.0</version>
+	<version>7.3.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
+
 	<description>
 		Microsoft JDBC Driver for SQL Server.
 	</description>
+
 	<url>https://github.com/Microsoft/mssql-jdbc</url>
 
 	<licenses>
@@ -38,32 +40,42 @@
 	</scm>
 
 	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<testGroup></testGroup>
+		<!-- Allowed values for excluded Groups here - - - - - - - - - - - - - 
+			xJDBC42 - - - - - - For tests not compatible with JDBC 42 Specifications 
+			xGradle - - - - - - For tests not compatible with Gradle Script - - - - - 
+			xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014 
+			xSQLv14 - - - - - - For tests not compatible with SQL Server 2016 - 2017 
+			xSQLv15 - - - - - - For tests not compatible with SQL Server 2019 - - - - 
+			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
+			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
+			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
+			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+			Default testing enabled with SQL Server 2019 (SQLv14) -->
+		<excludedGroups>xSQLv15</excludedGroups>
+
 		<!-- Driver Dependencies -->
-		<azure.keyvault.version>1.2.0</azure.keyvault.version>
-		<azure.adal4j.version>1.6.3</azure.adal4j.version>
+		<azure.keyvault.version>1.2.1</azure.keyvault.version>
+		<azure.adal4j.version>1.6.4</azure.adal4j.version>
 		<rest.client.version>1.6.5</rest.client.version>
-		<osgi.version>4.3.1</osgi.version>
+		<osgi.core.version>6.0.0</osgi.core.version>
+		<osgi.comp.version>5.0.0</osgi.comp.version>
 		<!-- JUnit Test Dependencies -->
-		<junit.platform.version>[1.3.2,1.4.0]</junit.platform.version>
-		<junit.jupiter.version>5.4.0</junit.jupiter.version>
+		<junit.platform.version>1.3.2</junit.platform.version>
+		<junit.jupiter.version>5.4.2</junit.jupiter.version>
 		<hikaricp.version>3.3.1</hikaricp.version>
 		<dbcp2.version>2.6.0</dbcp2.version>
 		<slf4j.nop.version>1.7.26</slf4j.nop.version>
 		<gemini.mock.version>2.1.0.RELEASE</gemini.mock.version>
+
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
+		<enforcer.skip>false</enforcer.skip>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>azure-keyvault</artifactId>
-			<version>${azure.keyvault.version}</version>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>azure-keyvault-webkey</artifactId>
 			<version>${azure.keyvault.version}</version>
 			<optional>true</optional>
 		</dependency>
@@ -84,14 +96,20 @@
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.core</artifactId>
-			<version>${osgi.version}</version>
+			<version>${osgi.core.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.compendium</artifactId>
-			<version>${osgi.version}</version>
+			<version>${osgi.comp.version}</version>
 			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.xml.bind</groupId>
+			<artifactId>jaxb-api</artifactId>
+			<version>2.2.11</version>
 		</dependency>
 
 		<!-- dependencies for running tests -->
@@ -171,7 +189,10 @@
 
 	<profiles>
 		<profile>
-			<id>build42</id>
+			<id>jre8</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre8-preview</finalName>
 				<plugins>
@@ -189,15 +210,8 @@
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-javadoc-plugin</artifactId>
-						<configuration>
-							<source>8</source>
-						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-jar-plugin</artifactId>
-						<version>3.0.2</version>
+						<version>3.1.1</version>
 						<configuration>
 							<archive>
 								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
@@ -205,47 +219,18 @@
 						</configuration>
 					</plugin>
 					<plugin>
-						<groupId>org.jacoco</groupId>
-						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.8.2</version>
-						<executions>
-							<execution>
-								<id>pre-test</id>
-								<goals>
-									<goal>prepare-agent</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>report</id>
-								<phase>test</phase>
-								<goals>
-									<goal>report</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
-						<version>2.22.0</version>
+						<version>3.0.0-M1</version>
 						<configuration>
-							<argLine>
-								${argLine} --illegal-access=permit
-							</argLine>
-							<properties>
-								<excludeTags>${skipTestTag}</excludeTags>
-							</properties>
-							<groups>${testGroup}</groups>
+							<skipTests>true</skipTests>
 						</configuration>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
 		<profile>
-			<id>build43</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
+			<id>jre11</id>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre11-preview</finalName>
 				<plugins>
@@ -264,7 +249,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-jar-plugin</artifactId>
-						<version>3.0.2</version>
+						<version>3.1.1</version>
 						<configuration>
 							<archive>
 								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
@@ -274,38 +259,37 @@
 							</archive>
 						</configuration>
 					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>jre12</id>
+			<build>
+				<finalName>${project.artifactId}-${project.version}.jre12-preview</finalName>
+				<plugins>
 					<plugin>
-						<groupId>org.jacoco</groupId>
-						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.8.2</version>
-						<executions>
-							<execution>
-								<id>pre-test</id>
-								<goals>
-									<goal>prepare-agent</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>report</id>
-								<phase>test</phase>
-								<goals>
-									<goal>report</goal>
-								</goals>
-							</execution>
-						</executions>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.8.0</version>
+						<configuration>
+							<excludes>
+								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
+							</excludes>
+							<source>12</source>
+							<target>12</target>
+						</configuration>
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>2.22.0</version>
+						<artifactId>maven-jar-plugin</artifactId>
+						<version>3.1.1</version>
 						<configuration>
-							<argLine>
-								${argLine} --illegal-access=permit
-							</argLine>
-							<properties>
-								<excludeTags>${skipTestTag}</excludeTags>
-							</properties>
-							<groups>${testGroup}</groups>
+							<archive>
+								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+								<manifestEntries>
+									<Automatic-Module-Name>com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
+								</manifestEntries>
+							</archive>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -359,7 +343,7 @@
 										(http://maven.apache.org/plugins/maven-invoker-plugin/)!</message>
 								</bannedPlugins>
 								<requireMavenVersion>
-									<version>3.0.5</version>
+									<version>3.5.0</version>
 								</requireMavenVersion>
 								<requireJavaVersion>
 									<version>11</version>
@@ -368,6 +352,18 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.0.0-M1</version>
+				<configuration>
+					<argLine>
+						${argLine} --illegal-access=permit
+					</argLine>
+					<excludedGroups>
+						${excludedGroups}</excludedGroups>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -386,7 +382,7 @@
 			<plugin>
 				<groupId>org.apache.felix</groupId>
 				<artifactId>maven-bundle-plugin</artifactId>
-				<version>3.5.0</version>
+				<version>4.2.0</version>
 				<extensions>true</extensions>
 				<configuration>
 					<instructions>
@@ -411,23 +407,6 @@
 				</executions>
 			</plugin>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.0.0</version>
-				<configuration>
-					<failOnError>true</failOnError>
-					<excludePackageNames>mssql.googlecode.*</excludePackageNames>
-				</configuration>
-				<executions>
-					<execution>
-						<id>attach-javadocs</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>versions-maven-plugin</artifactId>
 				<version>2.5</version>
@@ -436,6 +415,68 @@
 					<outputFile>outdated-dependencies.txt</outputFile>
 					<rulesUri>file:///${session.executionRootDirectory}/maven-version-rules.xml</rulesUri>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.3</version>
+				<executions>
+					<execution>
+						<id>pre-test</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<fileSets>
+						<fileSet>
+							<directory>jacoco-execs/</directory>
+							<includes>
+								<include>*.exec</include>
+							</includes>
+						</fileSet>
+					</fileSets>
+					<!-- File containing the merged coverage data -->
+					<destFile>${project.build.directory}/jacoco.exec</destFile>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-clean-plugin</artifactId>
+				<version>3.1.0</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<version>2.8.2</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-install-plugin</artifactId>
+				<version>2.5.2</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>3.1.0</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-site-plugin</artifactId>
+				<version>3.7.1</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven</groupId>
+				<artifactId>maven-archiver</artifactId>
+				<version>3.4.0</version>
 			</plugin>
 		</plugins>
 	</build>

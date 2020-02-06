@@ -1,0 +1,5 @@
+buildMavenLibraryProject {
+    mvnCheckstyleStage = {
+        skip = true
+    }
+}

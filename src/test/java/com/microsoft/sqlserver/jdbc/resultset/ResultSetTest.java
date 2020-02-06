@@ -19,6 +19,7 @@ import java.sql.Connection;
 import java.sql.NClob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
 import java.time.LocalDate;
@@ -39,6 +40,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
@@ -53,6 +55,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testJdbc41ResultSetMethods() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ( " + "col1 int, "
@@ -246,7 +249,7 @@ public class ResultSetTest extends AbstractTest {
                     assertFalse(rs.next());
                 }
             } finally {
-                stmt.executeUpdate("drop table " + AbstractSQLGenerator.escapeIdentifier(tableName));
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
     }
@@ -257,7 +260,6 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testGetObjectAsLocalDateTime() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TimeZone prevTimeZone = TimeZone.getDefault();
@@ -301,6 +303,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testGetObjectAsOffsetDateTime() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             final String testValue = "2018-01-02T11:22:33.123456700+12:34";
@@ -335,7 +338,6 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testResultSetWrapper() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
@@ -361,7 +363,6 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag("AzureDWTest")
     public void testGetterOnNull() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("select null")) {
@@ -376,6 +377,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testGetSetHoldability() throws SQLException {
         int[] holdabilityOptions = {ResultSet.HOLD_CURSORS_OVER_COMMIT, ResultSet.CLOSE_CURSORS_AT_COMMIT};
 
@@ -401,6 +403,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testResultSetMethods() throws SQLException {
         try (Connection con = getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
@@ -506,6 +509,82 @@ public class ResultSetTest extends AbstractTest {
             } catch (Exception e) {
                 fail(e.getMessage());
             } finally {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testMultipleResultSets() throws SQLException {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+            stmt.execute(
+                    "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1 int IDENTITY, c2 int)");
+            String SQL = "exec sp_help 'dbo." + TestUtils.escapeSingleQuotes(tableName) + "'";
+
+            boolean results = stmt.execute(SQL);
+            int rsCount = 0;
+            int warningCount = 0;
+
+            // Loop through the available result sets.
+            while (results) {
+                try (ResultSet rs = stmt.getResultSet()) {
+                    rsCount++;
+                    int i = 1;
+                    String firstColumnValue = null;
+                    while (rs.next()) {
+                        switch (rsCount) {
+                            case 1:
+                                firstColumnValue = rs.getString("Name");
+                                assert (firstColumnValue.equals(tableName));
+                                break;
+                            case 2:
+                                firstColumnValue = rs.getString("Column_name");
+                                assert (firstColumnValue.equalsIgnoreCase("c" + i++));
+                                break;
+                            case 3:
+                                firstColumnValue = rs.getString("Identity");
+                                assert (firstColumnValue.equalsIgnoreCase("c1"));
+                                break;
+                            case 4:
+                                firstColumnValue = rs.getString("RowGuidCol");
+                                assert (firstColumnValue.equalsIgnoreCase("No rowguidcol column defined."));
+                                break;
+                            case 5:
+                                firstColumnValue = rs.getString("Data_located_on_filegroup");
+                                assert (firstColumnValue.equalsIgnoreCase("PRIMARY"));
+                                break;
+                        }
+                    }
+                }
+
+                SQLWarning warnings = stmt.getWarnings();
+                while (null != warnings) {
+                    warningCount++;
+                    warnings = warnings.getNextWarning();
+                }
+                results = stmt.getMoreResults();
+            }
+            assert (!stmt.getMoreResults() && -1 == stmt.getUpdateCount());
+            assert (rsCount == 5);
+            assert (warningCount == 26);
+
+            /*
+             * Testing Scenario: There are no more results when the following is true ............
+             * ((stmt.getMoreResults() == false) && (stmt.getUpdateCount() == -1))
+             */
+            stmt.execute("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (12345)");
+            assert (stmt.getUpdateCount() == 1);
+            assert (!stmt.getMoreResults());
+
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                // Calling getMoreResults() consumes and closes the current ResultSet
+                assert (!stmt.getMoreResults() && -1 == stmt.getUpdateCount());
+                assert (rs.isClosed());
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }

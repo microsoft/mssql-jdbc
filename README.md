@@ -79,7 +79,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.2.1.jre11</version>
+	<version>7.2.2.jre11</version>
 </dependency>
 ```
 The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287).
