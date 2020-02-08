@@ -19,7 +19,9 @@ import java.sql.Timestamp;
 import java.text.DateFormatSymbols;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.time.zone.ZoneOffsetTransition;
@@ -1816,6 +1818,28 @@ public class DataTypesTest extends AbstractTest {
                 rs.next();
                 LocalDateTime ldtActual = rs.getObject(1, LocalDateTime.class);
                 assertTrue(ldtActual.equals(ldtExpected));
+            } finally {
+                TestUtils.dropTableIfExists(ldtTable, st);
+            }
+        }
+    }
+    
+    @Test
+    public void testNullValuesWithGetObject() throws Exception {
+        String ldtTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ldtTable"));
+        try (Connection conn = getConnection(); Statement st = conn.createStatement();) {
+            TestUtils.dropTableIfExists(ldtTable, st);
+            st.execute("CREATE TABLE " + ldtTable + " (c1 datetime2)");
+            st.execute("INSERT INTO " + ldtTable + " VALUES (NULL)");
+
+            try (ResultSet rs = st.executeQuery("SELECT c1 FROM " + ldtTable);) {
+                rs.next();
+                LocalDateTime ldtActual = rs.getObject(1, LocalDateTime.class);
+                assertEquals(ldtActual, null);
+                LocalTime ltActual = rs.getObject(1, LocalTime.class);
+                assertEquals(ltActual, null);
+                LocalDate ldActual = rs.getObject(1, LocalDate.class);
+                assertEquals(ldActual, null);
             } finally {
                 TestUtils.dropTableIfExists(ldtTable, st);
             }
