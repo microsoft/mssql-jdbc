@@ -389,8 +389,7 @@ public class PrecisionScaleTest extends AESetup {
             }
 
             else {
-                fail("enclaveProperties: " + enclaveProperties + "\n"
-                        + TestResource.getResource("R_resultsetNotInstance"));
+                fail(TestResource.getResource("R_resultsetNotInstance"));
             }
         }
     }
