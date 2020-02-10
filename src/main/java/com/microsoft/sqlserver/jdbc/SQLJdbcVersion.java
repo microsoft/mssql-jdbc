@@ -8,7 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 final class SQLJdbcVersion {
     static final int major = 8;
     static final int minor = 2;
-    static final int patch = 0;
+    static final int patch = 1;
     static final int build = 0;
     /*
      * Used to load mssql-jdbc_auth DLL.

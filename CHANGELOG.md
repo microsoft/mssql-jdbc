@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [8.2.1] HotFix & Stable Release
+### Fixed issues
+- Fixed an issue with SQLServerResultSet.getObject() fails with java.time.LocalTime and java.time.LocalDate [#1250](https://github.com/microsoft/mssql-jdbc/pull/1250)
+
 ## [8.2.0] Stable Release
 ### Added
 - Added new tests for Always Encrypted with secure enclaves feature [#1166](https://github.com/microsoft/mssql-jdbc/pull/1166)
