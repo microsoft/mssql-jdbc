@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [8.2.1] HotFix & Stable Release
 ### Fixed issues
-- Fixed an issue with SQLServerResultSet.getObject() fails with java.time.LocalTime and java.time.LocalDate [#1250](https://github.com/microsoft/mssql-jdbc/pull/1250)
+- Fixed an issue with SQLServerResultSet.getObject() failing with java.time.LocalTime and java.time.LocalDate [#1250](https://github.com/microsoft/mssql-jdbc/pull/1250)
 
 ## [8.2.0] Stable Release
 ### Added
