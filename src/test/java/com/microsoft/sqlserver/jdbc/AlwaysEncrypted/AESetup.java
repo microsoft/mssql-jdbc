@@ -183,7 +183,7 @@ public class AESetup extends AbstractTest {
 
             // show progress if testing multiple servers
             if (enclaveServer.length > 1) {
-                System.out.println("Testing enclave: " + enclaveProperties);
+                System.out.println("Adding enclave configuration: " + enclaveProperties);
             }
         } else {
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false"
