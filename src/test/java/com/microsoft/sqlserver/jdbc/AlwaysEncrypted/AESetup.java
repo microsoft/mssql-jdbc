@@ -216,7 +216,10 @@ public class AESetup extends AbstractTest {
             param[i][1] = url;
             param[i][2] = protocol;
 
-            setAEConnectionString(serverName, url, protocol);
+            /*
+             * Note: This means all servers must either be non-AEv2 or AEv2. Mixing will cause bugs/errors
+             */
+            checkAESetup(serverName, url, protocol);
 
             createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
             createCEK(cmkJks, cekJks, jksProvider);
@@ -231,9 +234,28 @@ public class AESetup extends AbstractTest {
                 createCEK(cmkWin, cekWin, null);
             }
         }
-        
-        isAEv2 = enclaveServer.length > 0;
     }
+    
+    /**
+     * Setup AE connection string and check setup
+     * 
+     * @param serverName
+     * @param url
+     * @param protocol
+     * @throws SQLException
+     */
+    static void checkAESetup(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+            isAEv2 = TestUtils.isAEv2(con);
+        } catch (SQLException e) {
+            isAEv2 = false;
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
+    }
+
 
     /**
      * Dropping all CMKs and CEKs and any open resources. Technically, dropAll depends on the state of the class so it

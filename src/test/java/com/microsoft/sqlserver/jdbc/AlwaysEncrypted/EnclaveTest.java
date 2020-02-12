@@ -15,6 +15,7 @@ import org.junit.runners.Parameterized;
 
 import com.microsoft.sqlserver.jdbc.EnclavePackageTest;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -32,7 +33,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.reqExternalSetup)
-public class EnclaveTest extends JDBCEncryptionDecryptionTest {
+public class EnclaveTest extends AESetup {
     private boolean nullable = false;
 
     /**
@@ -153,7 +154,7 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testAEv2Disabled(String serverName, String url, String protocol) throws Exception {
-        setAEConnectionString(serverName, url, protocol);
+        setAEConnectionString(serverName, null, null);
         // connection string w/o AEv2
         String testConnectionString = TestUtils.removeProperty(AETestConnectionString,
                 Constants.ENCLAVE_ATTESTATIONURL);
@@ -162,11 +163,29 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
         try (SQLServerConnection con = PrepUtil.getConnection(testConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
-            testChars(stmt, cekJks, charTable, values, JDBCEncryptionDecryptionTest.TestCase.NORMAL, true);
+
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            createTable(CHAR_TABLE_AE, cekJks, charTable);
+            populateCharNormalCase(values);
+            for (int i = 0; i < charTable.length; i++) {
+                // alter deterministic to randomized
+                String sql = "ALTER TABLE " + CHAR_TABLE_AE + " ALTER COLUMN " + ColumnType.DETERMINISTIC.name()
+                        + charTable[i][0] + " " + charTable[i][1]
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekJks) + ")";
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
+                    pstmt.execute();
+                    fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                }
+            }
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Throwable e) {
-            // testChars called fail()
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_AlterAEv2Error")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_enclaveNotEnabled")));
+        } finally {
+            try (SQLServerConnection con = PrepUtil.getConnection(testConnectionString);
+                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+                TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            }
         }
     }
 }
