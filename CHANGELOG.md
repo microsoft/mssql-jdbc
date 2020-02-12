@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [8.2.1] HotFix & Stable Release
 ### Fixed issues
-- Fixed a potential NullPointerException issue when retrieving data as java.time.LocalTime or java.time.LocalDate type with SQLServerResultSet.getObject() [#1250](https://github.com/microsoft/mssql-jdbc/pull/1250)
+- Fixed a potential NullPointerException issue when retrieving data as java.time.LocalTime or java.time.LocalDate type with SQLServerResultSet.getObject() [#1250](https://github.com/microsoft/mssql-jdbc/pull/1250) 
 
 ## [8.2.0] Stable Release
 ### Added
