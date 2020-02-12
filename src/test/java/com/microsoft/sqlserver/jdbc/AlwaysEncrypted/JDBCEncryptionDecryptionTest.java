@@ -326,11 +326,12 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testCharSpecificSetter(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, false);
+            testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -343,11 +344,12 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @MethodSource("enclaveParams")
     @Tag(Constants.reqExternalSetup)
     public void testCharSpecificSetterAkv(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cekAkv, charTable, values, TestCase.NORMAL, false);
+            testChars(stmt, cekAkv, charTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -367,7 +369,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cekWin, charTable, values, TestCase.NORMAL, false);
+            testChars(stmt, cekWin, charTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -385,7 +387,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT, false);
+            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT, isAEv2);
         }
     }
 
@@ -402,7 +404,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT, false);
+            testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT, isAEv2);
         }
     }
 
@@ -420,7 +422,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
+            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isAEv2);
         }
     }
 
@@ -437,7 +439,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(nullable);
 
-            testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
+            testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isAEv2);
         }
     }
 
@@ -455,7 +457,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
-            testChars(stmt, cekAkv, charTable, values, TestCase.NORMAL, false);
+            testChars(stmt, cekAkv, charTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -472,7 +474,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
-            testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, false);
+            testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -490,7 +492,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
-            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT, false);
+            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT, isAEv2);
         }
     }
 
@@ -507,7 +509,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
-            testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT, false);
+            testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT, isAEv2);
         }
     }
 
@@ -525,7 +527,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
-            testChars(stmt, cekAkv, charTable, values, TestCase.NULL, false);
+            testChars(stmt, cekAkv, charTable, values, TestCase.NULL, isAEv2);
         }
     }
 
@@ -542,7 +544,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = {null, null, null, null, null, null, null, null, null};
 
-            testChars(stmt, cekJks, charTable, values, TestCase.NULL, false);
+            testChars(stmt, cekJks, charTable, values, TestCase.NULL, isAEv2);
         }
     }
 
@@ -560,7 +562,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(false);
 
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL, false);
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -577,7 +579,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(false);
 
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL, false);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -597,7 +599,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(false);
 
-            testBinaries(stmt, cekWin, binaryTable, values, TestCase.NORMAL, false);
+            testBinaries(stmt, cekWin, binaryTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -615,7 +617,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(false);
 
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT, false);
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT, isAEv2);
         }
     }
 
@@ -632,7 +634,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(false);
 
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT, false);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT, isAEv2);
         }
     }
 
@@ -650,7 +652,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(true);
 
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NULL, false);
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NULL, isAEv2);
         }
     }
 
@@ -667,7 +669,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(true);
 
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NULL, false);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NULL, isAEv2);
         }
     }
 
@@ -685,7 +687,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(true);
 
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL, false);
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -702,7 +704,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(true);
 
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL, false);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -720,7 +722,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(true);
 
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_NULL, false);
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_NULL, isAEv2);
         }
     }
 
@@ -737,7 +739,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(true);
 
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_NULL, false);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_NULL, isAEv2);
         }
     }
 
@@ -755,7 +757,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(false);
 
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
+            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isAEv2);
         }
     }
 
@@ -772,7 +774,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<byte[]> values = createBinaryValues(false);
 
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
+            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isAEv2);
         }
     }
 
@@ -790,7 +792,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL, false);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -807,7 +809,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL, false);
+            testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -828,7 +830,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekWin, dateTable, values, TestCase.NORMAL, false);
+            testDates(stmt, cekWin, dateTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -847,7 +849,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT, false);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT, isAEv2);
         }
     }
 
@@ -865,7 +867,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT, false);
+            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT, isAEv2);
         }
     }
 
@@ -884,7 +886,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES, false);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES, isAEv2);
         }
     }
 
@@ -902,7 +904,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES, false);
+            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES, isAEv2);
         }
     }
 
@@ -921,7 +923,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isAEv2);
         }
     }
 
@@ -939,7 +941,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
+            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, isAEv2);
         }
     }
 
@@ -959,7 +961,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             RandomData.returnMinMax = true;
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL, false);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -978,7 +980,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             RandomData.returnMinMax = true;
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL, false);
+            testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -999,7 +1001,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             nullable = true;
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekAkv, dateTable, values, TestCase.NULL, false);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.NULL, isAEv2);
         }
 
         nullable = false;
@@ -1022,7 +1024,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             nullable = true;
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.NULL, false);
+            testDates(stmt, cekJks, dateTable, values, TestCase.NULL, isAEv2);
         }
 
         nullable = false;
@@ -1047,7 +1049,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_NULL, false);
+            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_NULL, isAEv2);
         }
 
         nullable = false;
@@ -1071,7 +1073,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             LinkedList<Object> values = createTemporalTypes(nullable);
 
-            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_NULL, false);
+            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_NULL, isAEv2);
         }
 
         nullable = false;
@@ -1096,7 +1098,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, false);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -1117,7 +1119,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, false);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -1141,7 +1143,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL, false);
+            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -1162,7 +1164,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT, false);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT, isAEv2);
         }
     }
 
@@ -1182,7 +1184,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT, false);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT, isAEv2);
         }
     }
 
@@ -1203,7 +1205,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES, isAEv2);
         }
     }
 
@@ -1223,7 +1225,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES, false);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES, isAEv2);
         }
     }
 
@@ -1250,7 +1252,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "567812.78", "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
                     "999999999999999999999999.9999"};
 
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, false);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -1276,7 +1278,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "567812.78", "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
                     "999999999999999999999999.9999"};
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, false);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -1302,7 +1304,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "567812.78", "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
                     "999999999999999999999999.9999"};
 
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, false);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -1327,7 +1329,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "567812.78", "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
                     "999999999999999999999999.9999"};
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, false);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -1350,7 +1352,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL, false);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL, isAEv2);
         }
 
         nullable = false;
@@ -1375,7 +1377,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL, false);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL, isAEv2);
         }
 
         nullable = false;
@@ -1401,7 +1403,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL, false);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL, isAEv2);
         }
 
         nullable = false;
@@ -1426,7 +1428,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             String[] values2 = new String[values1.length];
             System.arraycopy(values1, 0, values2, 0, values1.length);
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL, false);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL, isAEv2);
         }
 
         nullable = false;
@@ -1453,7 +1455,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
                     "999999999999999999999999.9999", "999999999999999999999999.9999"};
 
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, false);
+            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, isAEv2);
         }
     }
 
@@ -1476,7 +1478,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
                     "999999999999999999999999.9999", "999999999999999999999999.9999"};
 
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, false);
+            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, isAEv2);
         }
     }
 
