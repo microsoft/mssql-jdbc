@@ -183,6 +183,5 @@ public final class TestResource extends ListResourceBundle {
             {"R_resultSetEmpty", "Result set is empty."}, {"R_AlterAEv2Error", "Alter Column Encryption failed."},
             {"R_RichQueryError", "Rich query failed."}, {"R_reqExternalSetup", "External setup for test required."},
             {"R_invalidEnclaveSessionFailed", "invalidate enclave session failed."},
-            {"R_invalidEnclaveType", "Invalid enclave type {0}."},
-            {"R_enclaveNotEnabled", "The statement triggers enclave computations, but a column encryption key, needed for the computations, has not been found inside the enclave."}};
+            {"R_invalidEnclaveType", "Invalid enclave type {0}."}};
 }

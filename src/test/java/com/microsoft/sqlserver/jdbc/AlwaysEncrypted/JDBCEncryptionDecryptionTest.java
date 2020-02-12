@@ -2115,7 +2115,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                         + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ")";
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
-                    pstmt.execute(sql);
+                    stmt.execute(sql);
                     if (!TestUtils.isAEv2(con)) {
                         fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                     }

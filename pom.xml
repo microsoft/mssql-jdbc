@@ -53,7 +53,7 @@
 			reqExternalSetup  - For tests requiring external setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
-		<excludedGroups>xSQLv12, xSQLv15, NTLM, reqExternalSetup</excludedGroups>
+		<excludedGroups>xSQLv12, xSQLv14, NTLM, reqExternalSetup</excludedGroups>
 
 		<!-- Use -preview for preview release, leave empty for official release.-->
 		<releaseExt></releaseExt>
@@ -68,8 +68,8 @@
 		<google.gson.version>2.8.6</google.gson.version>
 
 		<!-- JUnit Test Dependencies -->
-		<junit.platform.version>[1.3.2, 1.5.2]</junit.platform.version>
-		<junit.jupiter.version>5.5.2</junit.jupiter.version>
+		<junit.platform.version>1.6.0</junit.platform.version>
+		<junit.jupiter.version>5.6.0</junit.jupiter.version>
 		<hikaricp.version>3.4.1</hikaricp.version>
 		<dbcp2.version>2.7.0</dbcp2.version>
 		<slf4j.nop.version>1.7.29</slf4j.nop.version>
@@ -172,7 +172,7 @@
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-surefire-provider</artifactId>
-			<version>${junit.platform.version}</version>
+			<version>1.3.2</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -263,7 +263,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
-						<version>3.0.0-M1</version>
+						<version>3.0.0-M4</version>
 						<configuration>
 							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
 							<excludedGroups>${excludedGroups}, xJDBC42</excludedGroups>
@@ -402,7 +402,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.0.0-M1</version>
+				<version>3.0.0-M4</version>
 				<configuration>
 					<forkCount>3</forkCount>
 					<reuseForks>true</reuseForks>
