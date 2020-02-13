@@ -4,17 +4,6 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.ParameterMetaData;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -23,9 +12,7 @@ import org.junit.runners.Parameterized;
 
 import com.microsoft.sqlserver.jdbc.EnclavePackageTest;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
-import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
@@ -42,8 +29,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.reqExternalSetup)
 public class EnclaveTest extends AESetup {
-    private boolean nullable = false;
-
     /**
      * Tests basic connection.
      * 
