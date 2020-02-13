@@ -822,9 +822,13 @@ public final class TestUtils {
      */
     public static String removeProperty(String connectionString, String property) {
         int start = connectionString.indexOf(property);
-        int end = connectionString.indexOf(";", start);
-        String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
-        return connectionString.replace(propertyStr, "");
+        if (start > -1) {
+            int end = connectionString.indexOf(";", start);
+            String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
+            return connectionString.replace(propertyStr, "");
+        } else {
+            return connectionString;
+        }
     }
 
     /**
