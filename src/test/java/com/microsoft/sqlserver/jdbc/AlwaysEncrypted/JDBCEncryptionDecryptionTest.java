@@ -1503,46 +1503,6 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
     }
 
-    /*
-     * Negative Test - AEv2 not supported
-     */
-    @ParameterizedTest
-    @MethodSource("enclaveParams")
-    public void testAEv2NotSupported(String serverName, String url, String protocol) throws Exception {
-        org.junit.Assume.assumeTrue(null == url || null == protocol);
-        EnclavePackageTest.testAEv2NotSupported(serverName, url, protocol);
-    }
-
-    /*
-     * Negative Test = AEv2 not enabled
-     */
-    @ParameterizedTest
-    @MethodSource("enclaveParams")
-    public void testAEv2Disabled(String serverName, String url, String protocol) throws Exception {
-        setAEConnectionString(serverName, url, protocol);
-        // connection string w/o AEv2
-        String testConnectionString = TestUtils.removeProperty(AETestConnectionString,
-                Constants.ENCLAVE_ATTESTATIONURL);
-        testConnectionString = TestUtils.removeProperty(testConnectionString, Constants.ENCLAVE_ATTESTATIONPROTOCOL);
-
-        try (SQLServerConnection con = PrepUtil.getConnection(testConnectionString);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values = createCharValues(nullable);
-            TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
-            createTable(CHAR_TABLE_AE, cekJks, charTable);
-            populateCharNormalCase(values);
-            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekJks);
-        } catch (Throwable e) {
-            // testChars called fail()
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_AlterAEv2Error")));
-        } finally {
-            try (SQLServerConnection con = PrepUtil.getConnection(testConnectionString);
-                    SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-                TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
-            }
-        }
-    }
-
     void testChar(SQLServerStatement stmt, String[] values) throws SQLException {
         String sql = "select * from " + CHAR_TABLE_AE;
 

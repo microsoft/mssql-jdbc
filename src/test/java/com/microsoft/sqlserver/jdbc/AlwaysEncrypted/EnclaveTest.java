@@ -4,6 +4,9 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
+import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -13,6 +16,7 @@ import org.junit.runners.Parameterized;
 import com.microsoft.sqlserver.jdbc.EnclavePackageTest;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
@@ -130,6 +134,44 @@ public class EnclaveTest extends AESetup {
     @MethodSource("enclaveParams")
     public void testBadCertSignature(String serverName, String url, String protocol) throws Exception {
         EnclavePackageTest.testBadCertSignature();
+    }
+
+    /*
+     * Negative Test - AEv2 not supported
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testAEv2NotSupported(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        EnclavePackageTest.testAEv2NotSupported(serverName, url, protocol);
+    }
+
+    /*
+     * Negative Test = AEv2 not enabled
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testAEv2Disabled(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        // connection string w/o AEv2
+        String testConnectionString = TestUtils.removeProperty(AETestConnectionString,
+                Constants.ENCLAVE_ATTESTATIONURL);
+        testConnectionString = TestUtils.removeProperty(testConnectionString, Constants.ENCLAVE_ATTESTATIONPROTOCOL);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(testConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values = createCharValues(false);
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            createTable(CHAR_TABLE_AE, cekJks, charTable);
+            populateCharNormalCase(values);
+            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekJks);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (Throwable e) {
+            // testChars called fail()
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_AlterAEv2Error")));
+        }
     }
 
     /*
