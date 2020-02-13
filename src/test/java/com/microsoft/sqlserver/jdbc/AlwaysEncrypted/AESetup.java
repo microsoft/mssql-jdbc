@@ -183,11 +183,31 @@ public class AESetup extends AbstractTest {
 
             // show progress if testing multiple servers
             if (enclaveServer.length > 1) {
-                System.out.println("Running against: " + enclaveProperties);
+                System.out.println("Adding enclave configuration: " + enclaveProperties);
             }
         } else {
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false"
                     + ";columnEncryptionSetting=enabled";
+        }
+    }
+
+    /**
+     * Setup AE connection string and check setup
+     * 
+     * @param serverName
+     * @param url
+     * @param protocol
+     * @throws SQLException
+     */
+    void checkAESetup(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+            isAEv2 = TestUtils.isAEv2(con);
+        } catch (SQLException e) {
+            isAEv2 = false;
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
 
@@ -231,8 +251,6 @@ public class AESetup extends AbstractTest {
                 createCEK(cmkWin, cekWin, null);
             }
         }
-        
-        isAEv2 = enclaveServer.length > 0;
     }
 
     /**
