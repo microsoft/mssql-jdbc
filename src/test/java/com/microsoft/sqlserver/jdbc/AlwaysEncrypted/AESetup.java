@@ -39,6 +39,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.jdbc.AlwaysEncrypted.AESetup.ColumnType;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -1936,5 +1937,39 @@ public class AESetup extends AbstractTest {
         String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin"
                 + " drop column master key " + cmkName + " end";
         stmt.execute(cekSql);
+    }
+
+    /**
+     * Alter Column encryption on deterministic columns to randomized - this will trigger enclave to re-encrypt
+     * 
+     * @param stmt
+     * @param tableName
+     * @param table
+     * @param values
+     * @throws SQLException
+     */
+    protected void testAlterColumnEncryption(SQLServerStatement stmt, String tableName, String table[][],
+            String cekName) throws SQLException {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+            for (int i = 0; i < table.length; i++) {
+                // alter deterministic to randomized
+                String sql = "ALTER TABLE " + tableName + " ALTER COLUMN " + ColumnType.DETERMINISTIC.name()
+                        + table[i][0] + " " + table[i][1]
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ")";
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
+                    stmt.execute(sql);
+                    if (!TestUtils.isAEv2(con)) {
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    }
+                } catch (SQLException e) {
+                    if (!TestUtils.isAEv2(con)) {
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    } else {
+                        fail(TestResource.getResource("R_AlterAEv2Error") + e.getMessage() + "Query: " + sql);
+                    }
+                }
+            }
+        }
     }
 }

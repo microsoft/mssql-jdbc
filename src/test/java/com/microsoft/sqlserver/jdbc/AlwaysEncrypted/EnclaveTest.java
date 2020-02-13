@@ -159,6 +159,23 @@ public class EnclaveTest extends AESetup {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             createTable(CHAR_TABLE_AE, cekJks, charTable);
             populateCharNormalCase(createCharValues(false));
+            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekJks);
+        }
+    }
+
+    /*
+     * Test char
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testCharAkv(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            createTable(CHAR_TABLE_AE, cekAkv, charTable);
+            populateCharNormalCase(createCharValues(false));
+            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
         }
     }
 }
