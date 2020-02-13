@@ -73,8 +73,6 @@ public class AESetup extends AbstractTest {
     // test that only run on Windows will be skipped
     static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
 
-    protected static boolean isAEv2 = false;
-
     public static final String tableName = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("AETest_")));
     public static final String CHAR_TABLE_AE = TestUtils
@@ -188,26 +186,6 @@ public class AESetup extends AbstractTest {
         } else {
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false"
                     + ";columnEncryptionSetting=enabled";
-        }
-    }
-
-    /**
-     * Setup AE connection string and check setup
-     * 
-     * @param serverName
-     * @param url
-     * @param protocol
-     * @throws SQLException
-     */
-    void checkAESetup(String serverName, String url, String protocol) throws Exception {
-        setAEConnectionString(serverName, url, protocol);
-
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
-            isAEv2 = TestUtils.isAEv2(con);
-        } catch (SQLException e) {
-            isAEv2 = false;
-        } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
 
