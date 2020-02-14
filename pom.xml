@@ -53,7 +53,7 @@
 			reqExternalSetup  - For tests requiring external setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with no extra dependencies -->
-		<excludedGroups>xSQL12, xSQL14, xSQLv15, NTLM, reqExternalSetup</excludedGroups>
+		<excludedGroups>xSQLv12, xSQLv14, xSQLv15, NTLM, reqExternalSetup</excludedGroups>
 
 		<!-- Use -preview for preview release, leave empty for official release.-->
 		<releaseExt></releaseExt>
