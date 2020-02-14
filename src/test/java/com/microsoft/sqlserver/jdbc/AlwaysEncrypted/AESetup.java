@@ -207,8 +207,7 @@ public class AESetup extends AbstractTest {
         } catch (SQLException e) {
             isAEv2 = false;
         } catch (Exception e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + TestResource.getResource("R_unexpectedErrorMessage")
-                    + e.getMessage());
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
 
@@ -318,7 +317,7 @@ public class AESetup extends AbstractTest {
                 }
             }
         } catch (IOException e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -347,7 +346,7 @@ public class AESetup extends AbstractTest {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -381,7 +380,7 @@ public class AESetup extends AbstractTest {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -409,7 +408,7 @@ public class AESetup extends AbstractTest {
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
-            fail("enclaveProperties: " + enclaveProperties + "\n" + e.getMessage());
+            fail(e.getMessage());
         }
     }
 
