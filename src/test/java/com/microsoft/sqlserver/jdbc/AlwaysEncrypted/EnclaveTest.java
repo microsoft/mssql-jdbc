@@ -137,17 +137,6 @@ public class EnclaveTest extends AESetup {
     }
 
     /*
-     * Negative Test - AEv2 not supported
-     */
-    @ParameterizedTest
-    @MethodSource("enclaveParams")
-    public void testAEv2NotSupported(String serverName, String url, String protocol) throws Exception {
-        setAEConnectionString(serverName, url, protocol);
-
-        EnclavePackageTest.testAEv2NotSupported(serverName, url, protocol);
-    }
-
-    /*
      * Negative Test = AEv2 not enabled
      */
     @ParameterizedTest
