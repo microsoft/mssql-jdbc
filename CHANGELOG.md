@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [8.2.1] HotFix & Stable Release
 ### Added
-- Added new Azure endpoints to the list of trusted endpoints [#1264](https://github.com/microsoft/mssql-jdbc/pull/1264) 
+- Added new Azure Key Vault endpoints to the list of trusted endpoints [#1264](https://github.com/microsoft/mssql-jdbc/pull/1264) 
 ### Fixed issues
 - Fixed a potential NullPointerException issue when retrieving data as java.time.LocalTime or java.time.LocalDate type with SQLServerResultSet.getObject() [#1250](https://github.com/microsoft/mssql-jdbc/pull/1250) 
 
