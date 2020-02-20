@@ -2394,12 +2394,16 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         } else if (type == java.time.LocalDateTime.class || type == java.time.LocalDate.class
                 || type == java.time.LocalTime.class) {
             java.time.LocalDateTime ldt = getLocalDateTime(columnIndex);
-            if (type == java.time.LocalDateTime.class) {
-                returnValue = ldt;
-            } else if (type == java.time.LocalDate.class) {
-                returnValue = ldt.toLocalDate();
+            if (null == ldt) {
+                returnValue = null;
             } else {
-                returnValue = ldt.toLocalTime();
+                if (type == java.time.LocalDateTime.class) {
+                    returnValue = ldt;
+                } else if (type == java.time.LocalDate.class) {
+                    returnValue = ldt.toLocalDate();
+                } else {
+                    returnValue = ldt.toLocalTime();
+                }
             }
         } else if (type == java.time.OffsetDateTime.class) {
             microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(columnIndex);
