@@ -21,6 +21,7 @@ import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
 
 /**
@@ -48,11 +49,16 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * Delimiter to parse lines with.
      */
     private final String delimiter;
-    
+
+    /*
+     * Comiled delimiter pattern
+     */
+    private final Pattern delimiterPattern;
+
     /*
      * Regex to match delimiters followed by 0 or even number of quotes
      */
-    private final String delimiterPattern = "(?=([^\"]*\"[^\"]*\")*[^\"]*$)";
+    private static final String delimiterRegex = "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
 
     /*
      * Class names for logging.
@@ -87,7 +93,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             throwInvalidArgument("delimiter");
         }
 
-        this.delimiter = delimiter + delimiterPattern;
+        this.delimiter = delimiter + delimiterRegex;
+        this.delimiterPattern = Pattern.compile(this.delimiter);
+
         try {
             // Create the file reader
             fis = new FileInputStream(fileToParse);
@@ -136,7 +144,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             throwInvalidArgument("delimiter");
         }
 
-        this.delimiter = delimiter + delimiterPattern;
+        this.delimiter = delimiter + delimiterRegex;
+        this.delimiterPattern = Pattern.compile(this.delimiter);
+
         try {
             if (null == encoding || 0 == encoding.length()) {
                 sr = new InputStreamReader(fileToParse);
@@ -194,7 +204,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         if (firstLineIsColumnNames) {
             currentLine = fileReader.readLine();
             if (null != currentLine) {
-                columnNames = currentLine.split(delimiter, -1);
+                columnNames = delimiterPattern.split(currentLine, -1);
             }
         }
     }
@@ -238,7 +248,12 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             // The limit in split() function should be a negative value,
             // otherwise trailing empty strings are discarded.
             // Empty string is returned if there is no value.
-            String[] data = currentLine.split(delimiter, -1);
+            String[] data = delimiterPattern.split(currentLine, -1);
+
+            // get rid of enclosed quotes
+            for (int i = 0; i < data.length; i++) {
+                data[i] = data[i].replaceAll("^\"|\"$", "").replaceAll("\"\"", "\"");
+            }
 
             // Cannot go directly from String[] to Object[] and expect it to act
             // as an array.
@@ -264,8 +279,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             null);
                 }
 
+                String datum = data[pair.getKey() - 1];
                 try {
-                    if (0 == data[pair.getKey() - 1].length()) {
+                    if (null == datum || 0 == datum.length()) {
                         dataRow[pair.getKey() - 1] = null;
                         continue;
                     }
@@ -280,8 +296,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             // Server floors the decimal in integer types
                             DecimalFormat decimalFormatter = new DecimalFormat("#");
                             decimalFormatter.setRoundingMode(RoundingMode.DOWN);
-                            String formatedfInput = decimalFormatter
-                                    .format(Double.parseDouble(data[pair.getKey() - 1]));
+                            String formatedfInput = decimalFormatter.format(Double.parseDouble(datum));
                             dataRow[pair.getKey() - 1] = Integer.valueOf(formatedfInput);
                             break;
                         }
@@ -292,18 +307,17 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             // Server floors the decimal in integer types
                             DecimalFormat decimalFormatter = new DecimalFormat("#");
                             decimalFormatter.setRoundingMode(RoundingMode.DOWN);
-                            String formatedfInput = decimalFormatter
-                                    .format(Double.parseDouble(data[pair.getKey() - 1]));
+                            String formatedfInput = decimalFormatter.format(Double.parseDouble(datum));
                             dataRow[pair.getKey() - 1] = Short.valueOf(formatedfInput);
                             break;
                         }
 
                         case Types.BIGINT: {
-                            BigDecimal bd = new BigDecimal(data[pair.getKey() - 1].trim());
+                            BigDecimal bd = new BigDecimal(datum.trim());
                             try {
                                 dataRow[pair.getKey() - 1] = bd.setScale(0, RoundingMode.DOWN).longValueExact();
                             } catch (ArithmeticException ex) {
-                                String value = "'" + data[pair.getKey() - 1] + "'";
+                                String value = "'" + datum + "'";
                                 MessageFormat form = new MessageFormat(
                                         SQLServerException.getErrString("R_errorConvertingValue"));
                                 throw new SQLServerException(
@@ -314,7 +328,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
 
                         case Types.DECIMAL:
                         case Types.NUMERIC: {
-                            BigDecimal bd = new BigDecimal(data[pair.getKey() - 1].trim());
+                            BigDecimal bd = new BigDecimal(datum.trim());
                             dataRow[pair.getKey() - 1] = bd.setScale(cm.scale, RoundingMode.HALF_UP);
                             break;
                         }
@@ -324,22 +338,21 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             // Any non-zero value (integer/double) => 1, 0/0.0
                             // => 0
                             try {
-                                dataRow[pair.getKey()
-                                        - 1] = (0 == Double.parseDouble(data[pair.getKey() - 1])) ? Boolean.FALSE
-                                                                                                  : Boolean.TRUE;
+                                dataRow[pair.getKey() - 1] = (0 == Double.parseDouble(datum)) ? Boolean.FALSE
+                                                                                              : Boolean.TRUE;
                             } catch (NumberFormatException e) {
-                                dataRow[pair.getKey() - 1] = Boolean.parseBoolean(data[pair.getKey() - 1]);
+                                dataRow[pair.getKey() - 1] = Boolean.parseBoolean(datum);
                             }
                             break;
                         }
 
                         case Types.REAL: {
-                            dataRow[pair.getKey() - 1] = Float.parseFloat(data[pair.getKey() - 1]);
+                            dataRow[pair.getKey() - 1] = Float.parseFloat(datum);
                             break;
                         }
 
                         case Types.DOUBLE: {
-                            dataRow[pair.getKey() - 1] = Double.parseDouble(data[pair.getKey() - 1]);
+                            dataRow[pair.getKey() - 1] = Double.parseDouble(datum);
                             break;
                         }
 
@@ -357,7 +370,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                              * shows 1 row with columns: 0x61, 0x62
                              */
                             // Strip off 0x if present.
-                            String binData = data[pair.getKey() - 1].trim();
+                            String binData = datum.trim();
                             if (binData.startsWith("0x") || binData.startsWith("0X")) {
                                 dataRow[pair.getKey() - 1] = binData.substring(2);
                             } else {
@@ -371,11 +384,11 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
 
                             // The per-column DateTimeFormatter gets priority.
                             if (null != cm.dateTimeFormatter)
-                                offsetTimeValue = OffsetTime.parse(data[pair.getKey() - 1], cm.dateTimeFormatter);
+                                offsetTimeValue = OffsetTime.parse(datum, cm.dateTimeFormatter);
                             else if (timeFormatter != null)
-                                offsetTimeValue = OffsetTime.parse(data[pair.getKey() - 1], timeFormatter);
+                                offsetTimeValue = OffsetTime.parse(datum, timeFormatter);
                             else
-                                offsetTimeValue = OffsetTime.parse(data[pair.getKey() - 1]);
+                                offsetTimeValue = OffsetTime.parse(datum);
 
                             dataRow[pair.getKey() - 1] = offsetTimeValue;
                             break;
@@ -386,12 +399,11 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
 
                             // The per-column DateTimeFormatter gets priority.
                             if (null != cm.dateTimeFormatter)
-                                offsetDateTimeValue = OffsetDateTime.parse(data[pair.getKey() - 1],
-                                        cm.dateTimeFormatter);
+                                offsetDateTimeValue = OffsetDateTime.parse(datum, cm.dateTimeFormatter);
                             else if (dateTimeFormatter != null)
-                                offsetDateTimeValue = OffsetDateTime.parse(data[pair.getKey() - 1], dateTimeFormatter);
+                                offsetDateTimeValue = OffsetDateTime.parse(datum, dateTimeFormatter);
                             else
-                                offsetDateTimeValue = OffsetDateTime.parse(data[pair.getKey() - 1]);
+                                offsetDateTimeValue = OffsetDateTime.parse(datum);
 
                             dataRow[pair.getKey() - 1] = offsetDateTimeValue;
                             break;
@@ -426,12 +438,12 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                              * allow field terminators in data: https://technet.microsoft.com/en-us/library/
                              * aa196735%28v=sql.80%29.aspx?f=255&MSPPError=- 2147217396
                              */
-                            dataRow[pair.getKey() - 1] = data[pair.getKey() - 1];
+                            dataRow[pair.getKey() - 1] = datum;
                             break;
                         }
                     }
                 } catch (IllegalArgumentException e) {
-                    String value = "'" + data[pair.getKey() - 1] + "'";
+                    String value = "'" + datum + "'";
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
                     throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(cm.columnType)}), null, 0,
                             e);
@@ -519,6 +531,6 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         } catch (IOException e) {
             throw new SQLServerException(e.getMessage(), null, 0, e);
         }
-        return (null != currentLine);
+        return (null != currentLine && !currentLine.isEmpty());
     }
 }

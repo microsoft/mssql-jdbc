@@ -107,7 +107,9 @@ public class BulkCopyCSVTest extends AbstractTest {
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord with passing file from url")
     public void testCSVFromURL() throws SQLException {
-        // change back to https://raw.githubusercontent.com/microsoft/mssql-jdbc/dev/src/test/resources/BulkCopyCSVTestInput.csv after merge
+        // change back to
+        // https://raw.githubusercontent.com/microsoft/mssql-jdbc/dev/src/test/resources/BulkCopyCSVTestInput.csv before
+        // merging
         try (InputStream csvFileInputStream = new URL(
                 "https://raw.githubusercontent.com/lilgreenbird/mssql-jdbc/csv/src/test/resources/BulkCopyCSVTestInput.csv")
                         .openStream();
@@ -198,14 +200,20 @@ public class BulkCopyCSVTest extends AbstractTest {
                 ResultSetMetaData destMeta = ((ResultSet) dstResultSet.product()).getMetaData();
                 int totalColumns = destMeta.getColumnCount();
                 while (dstResultSet.next()) {
-                    String[] srcValues = br.readLine().split(delimiter + "(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
-                    if ((0 == srcValues.length) && (srcValues.length != totalColumns)) {
+                    String[] srcValues = br.readLine().split(delimiter + "(?=([^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+
+                    for (int i = 0; i < srcValues.length; i++) {
+                        srcValues[i] = srcValues[i].replaceAll("^\"|\"$", "").replaceAll("\"\"", "\"");
+                    }
+
+                    if ((0 == srcValues.length) || (srcValues.length != totalColumns)) {
                         srcValues = new String[totalColumns];
                         Arrays.fill(srcValues, null);
                     }
                     for (int i = 1; i <= totalColumns; i++) {
                         String srcValue = srcValues[i - 1];
                         String dstValue = dstResultSet.getString(i);
+                        srcValue = (srcValue.isEmpty()) ? null : srcValue;
                         srcValue = (null != srcValue) ? srcValue.trim() : srcValue;
                         dstValue = (null != dstValue) ? dstValue.trim() : dstValue;
                         // get the value from csv as string and compare them
