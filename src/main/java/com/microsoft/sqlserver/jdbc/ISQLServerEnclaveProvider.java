@@ -38,7 +38,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.crypto.KeyAgreement;
 
@@ -49,40 +49,41 @@ import javax.crypto.KeyAgreement;
  *
  */
 public interface ISQLServerEnclaveProvider {
-    static final String proc = "EXEC sp_describe_parameter_encryption ?,?,?";
+    static final String SDPE1 = "EXEC sp_describe_parameter_encryption ?,?";
+    static final String SDPE2 = "EXEC sp_describe_parameter_encryption ?,?,?";
 
     default byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         EnclaveSession enclaveSession = getEnclaveSession();
         if (null != enclaveSession) {
             try {
                 ByteArrayOutputStream enclavePackage = new ByteArrayOutputStream();
-                enclavePackage.writeBytes(enclaveSession.getSessionID());
+                enclavePackage.write(enclaveSession.getSessionID());
                 ByteArrayOutputStream keys = new ByteArrayOutputStream();
                 byte[] randomGUID = new byte[16];
                 SecureRandom.getInstanceStrong().nextBytes(randomGUID);
-                keys.writeBytes(randomGUID);
-                keys.writeBytes(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN)
-                        .putLong(enclaveSession.getCounter()).array());
-                keys.writeBytes(MessageDigest.getInstance("SHA-256").digest((userSQL).getBytes(UTF_16LE)));
+                keys.write(randomGUID);
+                keys.write(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(enclaveSession.getCounter())
+                        .array());
+                keys.write(MessageDigest.getInstance("SHA-256").digest((userSQL).getBytes(UTF_16LE)));
                 for (byte[] b : enclaveCEKs) {
-                    keys.writeBytes(b);
+                    keys.write(b);
                 }
                 enclaveCEKs.clear();
                 SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
                         enclaveSession.getSessionSecret(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
                 SQLServerAeadAes256CbcHmac256Algorithm algo = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey,
                         SQLServerEncryptionType.Randomized, (byte) 0x1);
-                enclavePackage.writeBytes(algo.encryptData(keys.toByteArray()));
+                enclavePackage.write(algo.encryptData(keys.toByteArray()));
                 return enclavePackage.toByteArray();
-            } catch (GeneralSecurityException | SQLServerException e) {
+            } catch (GeneralSecurityException | SQLServerException | IOException e) {
                 SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
             }
         }
         return null;
     }
 
-    default ResultSet executeProc(PreparedStatement stmt, String userSql, String preparedTypeDefinitions,
-            BaseAttestationRequest req) throws SQLException {
+    default ResultSet executeSDPEv2(PreparedStatement stmt, String userSql, String preparedTypeDefinitions,
+            BaseAttestationRequest req) throws SQLException, IOException {
         ((SQLServerPreparedStatement) stmt).isInternalEncryptionQuery = true;
         stmt.setNString(1, userSql);
         if (preparedTypeDefinitions != null && preparedTypeDefinitions.length() != 0) {
@@ -94,7 +95,19 @@ public interface ISQLServerEnclaveProvider {
         return ((SQLServerPreparedStatement) stmt).executeQueryInternal();
     }
 
-    default void processAev1SPDE(String userSql, String preparedTypeDefinitions, Parameter[] params,
+    default ResultSet executeSDPEv1(PreparedStatement stmt, String userSql,
+            String preparedTypeDefinitions) throws SQLException {
+        ((SQLServerPreparedStatement) stmt).isInternalEncryptionQuery = true;
+        stmt.setNString(1, userSql);
+        if (preparedTypeDefinitions != null && preparedTypeDefinitions.length() != 0) {
+            stmt.setNString(2, preparedTypeDefinitions);
+        } else {
+            stmt.setNString(2, "");
+        }
+        return ((SQLServerPreparedStatement) stmt).executeQueryInternal();
+    }
+
+    default void processSDPEv1(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames, SQLServerConnection connection, PreparedStatement stmt, ResultSet rs,
             ArrayList<byte[]> enclaveRequestedCEKs) throws SQLException {
         Map<Integer, CekTableEntry> cekList = new HashMap<>();
@@ -148,7 +161,7 @@ public interface ISQLServerEnclaveProvider {
 
         // Process the second resultset.
         if (!stmt.getMoreResults()) {
-            throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null,
+            throw new SQLServerException(null, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null,
                     0, false);
         }
 
@@ -164,7 +177,7 @@ public interface ISQLServerEnclaveProvider {
                 MessageFormat form = new MessageFormat(
                         SQLServerException.getErrString("R_InvalidEncryptionKeyOrdinal"));
                 Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
-                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
             }
             SQLServerEncryptionType encType = SQLServerEncryptionType
                     .of((byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
@@ -180,7 +193,7 @@ public interface ISQLServerEnclaveProvider {
                     MessageFormat form = new MessageFormat(
                             SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
                     Object[] msgArgs = {userSql, paramIndex + 1};
-                    SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "0", true);
+                    SQLServerException.makeFromDriverError(null, connection, form.format(msgArgs), "0", true);
                 }
             }
         }
@@ -241,7 +254,7 @@ abstract class BaseAttestationRequest {
     protected byte[] x;
     protected byte[] y;
 
-    byte[] getBytes() {
+    byte[] getBytes() throws IOException {
         return null;
     };
 
@@ -279,21 +292,16 @@ abstract class BaseAttestationRequest {
         /*
          * Create our BCRYPT_ECCKEY_BLOB
          */
-        KeyPairGenerator kpg = null;
         try {
-            kpg = KeyPairGenerator.getInstance("EC");
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC");
             kpg.initialize(new ECGenParameterSpec("secp384r1"));
-        } catch (GeneralSecurityException e) {
-            SQLServerException.makeFromDriverError(null, kpg, e.getLocalizedMessage(), "0", false);
-        }
-        KeyPair kp = kpg.generateKeyPair();
-        ECPublicKey publicKey = (ECPublicKey) kp.getPublic();
-        privateKey = kp.getPrivate();
-        ECPoint w = publicKey.getW();
-        try {
+            KeyPair kp = kpg.generateKeyPair();
+            ECPublicKey publicKey = (ECPublicKey) kp.getPublic();
+            privateKey = kp.getPrivate();
+            ECPoint w = publicKey.getW();
             x = adjustBigInt(w.getAffineX().toByteArray());
             y = adjustBigInt(w.getAffineY().toByteArray());
-        } catch (IOException e) {
+        } catch (GeneralSecurityException | IOException e) {
             SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
         }
     }
@@ -388,13 +396,13 @@ abstract class BaseAttestationResponse {
 
 class EnclaveSession {
     private byte[] sessionID;
-    private AtomicInteger counter;
+    private AtomicLong counter;
     private byte[] sessionSecret;
 
     EnclaveSession(byte[] cs, byte[] b) {
         sessionID = cs;
         sessionSecret = b;
-        counter = new AtomicInteger(0);
+        counter = new AtomicLong(0);
     }
 
     byte[] getSessionID() {

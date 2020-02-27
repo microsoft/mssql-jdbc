@@ -57,6 +57,10 @@ public abstract class AbstractTest {
     protected static String applicationKey = null;
     protected static String[] keyIDs = null;
 
+    protected static String[] enclaveServer = null;
+    protected static String[] enclaveAttestationUrl = null;
+    protected static String[] enclaveAttestationProtocol = null;
+
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
     protected static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
@@ -75,8 +79,10 @@ public abstract class AbstractTest {
     protected static String connectionStringNTLM;
 
     private static boolean determinedSqlAzureOrSqlServer = false;
+    private static boolean determinedSqlOS = false;
     private static boolean isSqlAzure = false;
     private static boolean isSqlAzureDW = false;
+    private static boolean isSqlLinux = false;
 
     /**
      * Byte Array containing streamed logging output. Content can be retrieved using toByteArray() or toString()
@@ -112,6 +118,24 @@ public abstract class AbstractTest {
         javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
         windowsKeyPath = getConfiguredProperty("windowsKeyPath");
+
+        String prop;
+        prop = getConfiguredProperty("enclaveServer", null);
+        if (null == prop) {
+            // default to server in connection string
+            String serverName = (connectionString.substring(Constants.JDBC_PREFIX.length())
+                    .split(Constants.SEMI_COLON)[0]).split(":")[0];
+            enclaveServer = new String[1];
+            enclaveServer[0] = new String(serverName);
+        } else {
+            enclaveServer = prop.split(Constants.SEMI_COLON);
+        }
+
+        prop = getConfiguredProperty("enclaveAttestationUrl", null);
+        enclaveAttestationUrl = null != prop ? prop.split(Constants.SEMI_COLON) : null;
+
+        prop = getConfiguredProperty("enclaveAttestationProtocol", null);
+        enclaveAttestationProtocol = null != prop ? prop.split(Constants.SEMI_COLON) : null;
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
@@ -167,6 +191,8 @@ public abstract class AbstractTest {
                 connection = getConnection();
             }
             isSqlAzureOrAzureDW(connection);
+
+            checkSqlOS(connection);
         } catch (Exception e) {
             throw e;
         }
@@ -381,6 +407,15 @@ public abstract class AbstractTest {
     }
 
     /**
+     * Returns if target Server is SQL Linux
+     *
+     * @return true/false
+     */
+    public static boolean isSqlLinux() {
+        return isSqlLinux;
+    }
+
+    /**
      * Determines the server's type.
      * 
      * @param con
@@ -401,6 +436,24 @@ public abstract class AbstractTest {
                     || engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
             isSqlAzureDW = (engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
             determinedSqlAzureOrSqlServer = true;
+        }
+    }
+
+    /**
+     * Determines the server's OSF
+     *
+     * @param con
+     * @throws SQLException
+     */
+    private static void checkSqlOS(Connection con) throws SQLException {
+        if (determinedSqlOS) {
+            return;
+        }
+
+        try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT @@VERSION")) {
+            rs.next();
+            isSqlLinux = rs.getString(1).contains("Linux");
+            determinedSqlOS = true;
         }
     }
 
