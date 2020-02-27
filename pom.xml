@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.1</version>
+	<version>8.2.1</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -56,12 +56,12 @@
 		<excludedGroups>xSQLv15, NTLM, reqExternalSetup</excludedGroups>
 
 		<!-- Use -preview for preview release, leave empty for official release.-->
-		<releaseExt>-preview</releaseExt>
+		<releaseExt></releaseExt>
 
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.2</azure.keyvault.version>
 		<azure.adal4j.version>1.6.4</azure.adal4j.version>
-		<rest.client.version>1.6.15</rest.client.version>
+		<rest.client.version>1.7.0</rest.client.version>
 		<osgi.core.version>6.0.0</osgi.core.version>
 		<osgi.comp.version>5.0.0</osgi.comp.version>
 		<antlr.runtime.version>4.7.2</antlr.runtime.version>
@@ -116,6 +116,13 @@
 			<version>${google.gson.version}</version>
 			<optional>true</optional>
 		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk15on</artifactId>
+			<version>1.64</version>
+			<optional>true</optional>
+		</dependency>
+
 
 		<!-- dependencies provided by an OSGi-Framework -->
 		<dependency>
@@ -208,6 +215,12 @@
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
 			<version>${h2.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-params</artifactId>
+			<version>5.6.0</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -354,43 +367,6 @@
 			</testResource>
 		</testResources>
 		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.2.1</version>
-				<executions>
-					<!-- Run shade goal on package phase -->
-					<execution>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<artifactSet>
-								<excludes>
-									<exclude>junit:junit</exclude>
-									<exclude>jmock:*</exclude>
-									<exclude>*:xml-apis</exclude>
-									<exclude>org.apache.maven:lib:tests</exclude>
-									<exclude>log4j:log4j:jar:</exclude>
-								</excludes>
-							</artifactSet>
-							<shadedArtifactAttached>true</shadedArtifactAttached>
-							<filters>
-								<filter>
-									<artifact>*:*</artifact>
-									<excludes>
-										<exclude>META-INF/*.SF</exclude>
-										<exclude>META-INF/*.DSA</exclude>
-										<exclude>META-INF/*.RSA</exclude>
-										<exclude>META-INF/NOTICE*</exclude>
-									</excludes>
-								</filter>
-							</filters>
-							<outputFile>${project.build.directory}\${project.build.finalName}-shaded.jar</outputFile>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>

@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -990,6 +991,16 @@ final class Util {
      */
     static String escapeSingleQuotes(String name) {
         return name.replace("'", "''");
+    }
+
+    static String convertInputStreamToString(java.io.InputStream is) throws IOException {
+        java.io.ByteArrayOutputStream result = new java.io.ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = is.read(buffer)) != -1) {
+            result.write(buffer, 0, length);
+        }
+        return result.toString();
     }
 }
 

@@ -46,6 +46,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.logging.Level;
 
 import javax.sql.RowSet;
+
 import microsoft.sql.DateTimeOffset;
 
 
@@ -2717,7 +2718,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Write header for sql_variant
      * 
-     * @param length:
+     * @param length
      *        length of base type + Basetype + probBytes
      * @param tdsType
      * @param probBytes
