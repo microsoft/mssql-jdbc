@@ -70,7 +70,7 @@ This driver is documented on [Microsoft's Documentation web site](https://docs.m
 For samples, please see the `src\sample` directory.
 
 ### Download the DLLs
-For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `mssql-jdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287)
+For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `mssql-jdbc_auth-<version>.<arch>` DLLs. They can be downloaded from the [Microsoft Download Center](https://docs.microsoft.com/en-us/sql/connect/jdbc/download-microsoft-jdbc-driver-for-sql-server). `mssql-jdbc_auth-<version>.<arch>` can also be downloaded from [Maven](https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc_auth).
 
 ### Download the driver
 Don't want to compile anything?
