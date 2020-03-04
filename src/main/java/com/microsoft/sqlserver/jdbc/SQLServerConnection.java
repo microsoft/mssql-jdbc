@@ -142,6 +142,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private SqlFedAuthToken fedAuthToken = null;
 
     private String originalHostNameInCertificate = null;
+    
+    private String clientCertificate = null;
+    private String clientKey = null;
+    private String clientKeyPassword = null;
 
     final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
@@ -2021,6 +2025,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (null != sPropValue) {
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
+            
+            sPropKey = SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                clientCertificate = sPropValue;
+            }
+            
+            sPropKey = SQLServerDriverStringProperty.CLIENT_KEY.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                clientKey = sPropValue;
+            }
+            
+            sPropKey = SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                clientKeyPassword = sPropValue;
+            }
 
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
@@ -2555,7 +2580,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // If prelogin negotiated SSL encryption then, enable it on the TDS channel.
         if (TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel) {
-            tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber());
+            tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber(), clientCertificate, clientKey, clientKeyPassword);
         }
 
         // We have successfully connected, now do the login. logon takes seconds timeout
@@ -2629,7 +2654,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 0, 0, 0, 0, 0, 0,
 
                 // - Encryption -
-                requestedEncryptionLevel,
+                ((null == clientCertificate) ? requestedEncryptionLevel : (byte) 0x80),
 
                 // TRACEID Data Session (ClientConnectionId + ActivityId) - Initialize to 0
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

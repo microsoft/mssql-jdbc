@@ -62,6 +62,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
@@ -1597,9 +1598,12 @@ final class TDSChannel implements Serializable {
      *        Server Host Name for SSL Handshake
      * @param port
      *        Server Port for SSL Handshake
+     * @param clientKeyPassword 
+     * @param clientKey 
+     * @param clientCertificate 
      * @throws SQLServerException
      */
-    void enableSSL(String host, int port) throws SQLServerException {
+    void enableSSL(String host, int port, String clientCertificate, String clientKey, String clientKeyPassword) throws SQLServerException {
         // If enabling SSL fails, which it can for a number of reasons, the following items
         // are used in logging information to the TDS channel logger to help diagnose the problem.
         Provider tmfProvider = null; // TrustManagerFactory provider
@@ -1774,13 +1778,32 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
-            sslContext = SSLContext.getInstance(sslProtocol);
-            sslContextProvider = sslContext.getProvider();
+            if (clientCertificate != null) {
+                KeyStore keystore = KeyStore.getInstance("PKCS12");
+                keystore.load(new FileInputStream(clientCertificate), clientKeyPassword.toCharArray());
+                KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
+                keyManagerFactory.init(keystore, clientKeyPassword.toCharArray());
+                
+//                TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+//                tmf.init(keystore);
+//                sslContext.init(keyManagerFactory.getKeyManagers(), tmf.getTrustManagers(), null);
+                
+                sslContext = SSLContext.getInstance(sslProtocol);
+                sslContextProvider = sslContext.getProvider();
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Initializing SSL context");
+                if (logger.isLoggable(Level.FINEST))
+                    logger.finest(toString() + " Initializing SSL context");
 
-            sslContext.init(null, tm, null);
+                sslContext.init(keyManagerFactory.getKeyManagers(), tm, null);
+            } else {
+                sslContext = SSLContext.getInstance(sslProtocol);
+                sslContextProvider = sslContext.getProvider();
+
+                if (logger.isLoggable(Level.FINEST))
+                    logger.finest(toString() + " Initializing SSL context");
+
+                sslContext.init(null, tm, null);
+            }
 
             // Got the SSL context. Now create an SSL socket over our own proxy socket
             // which we can toggle between TDS-encapsulated and raw communications.
