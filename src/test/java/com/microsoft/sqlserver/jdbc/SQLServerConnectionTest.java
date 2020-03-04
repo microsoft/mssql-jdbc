@@ -234,9 +234,13 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setEnclaveAttestationProtocol(stringPropValue);
         assertTrue(ds.getEnclaveAttestationProtocol().equals(stringPropValue));
 
+        ds.setKeyVaultProviderClientId(null);
+        assertTrue(ds.getKeyVaultProviderClientId() == null);
+
         ds.setKeyVaultProviderClientId(stringPropValue);
         assertTrue(ds.getKeyVaultProviderClientId().equals(stringPropValue));
 
+        ds.setKeyVaultProviderClientKey(null);
         ds.setKeyVaultProviderClientKey(stringPropValue);
         // there is no corresponding getKeyVaultProviderClientKey
     }

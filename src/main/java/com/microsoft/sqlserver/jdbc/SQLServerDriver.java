@@ -350,8 +350,8 @@ enum SQLServerDriverStringProperty {
     KEY_STORE_LOCATION("keyStoreLocation", ""),
     SSL_PROTOCOL("sslProtocol", SSLProtocol.TLS.toString()),
     MSI_CLIENT_ID("msiClientId", ""),
-    KEY_VAULT_PROVIDER_CLIENT_ID("keyVaultProviderClientId", ""),
-    KEY_VAULT_PROVIDER_CLIENT_KEY("keyVaultProviderClientKey", "");
+    KEY_VAULT_PROVIDER_CLIENT_ID("keyVaultProviderClientId", null),
+    KEY_VAULT_PROVIDER_CLIENT_KEY("keyVaultProviderClientKey", null);
 
     private final String name;
     private final String defaultValue;
