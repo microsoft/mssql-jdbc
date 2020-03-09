@@ -35,6 +35,7 @@ public final class Constants {
     public static final String xAzureSQLDW = "xAzureSQLDW";
     public static final String xAzureSQLMI = "xAzureSQLMI";
     public static final String NTLM = "NTLM";
+    public static final String MSI = "MSI";
     public static final String reqExternalSetup = "reqExternalSetup";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
@@ -137,6 +138,12 @@ public final class Constants {
 
     public static final String ENCLAVE_ATTESTATIONURL = "enclaveAttestationUrl";
     public static final String ENCLAVE_ATTESTATIONPROTOCOL = "enclaveAttestationProtocol";
+
+    // for MSI
+    public static final String MSISERVER = "MSISERVER";
+    public static final String MSICLIENTID = "MSICLIENTID";
+    public static final String KEYVAULTPROVIDER_CLIENTID = "KEYVAULTPROVIDERCLIENTID";
+    public static final String KEYVAULTPROVIDER_CLIENTKEY = "KEYVAULTPROVIDERCLIENTKEY";
 
     public static final String CONFIG_PROPERTIES_FILE = "config.properties";
 
