@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -31,6 +32,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
+import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.Provider;
 import java.security.Security;
@@ -68,6 +70,14 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMDecryptorProvider;
+import org.bouncycastle.openssl.PEMEncryptedKeyPair;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder;
 
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
@@ -1777,8 +1787,27 @@ final class TDSChannel implements Serializable {
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
-
-            if (clientCertificate != null) {
+            
+            if (null != clientKey) {
+                Security.addProvider(new BouncyCastleProvider());
+                PEMParser pemParser = new PEMParser(new FileReader(clientKey));
+                Object object = pemParser.readObject();
+                PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder().build(clientKeyPassword.toCharArray());
+                JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
+                KeyPair kp;
+                if (object instanceof PEMEncryptedKeyPair) {
+                    System.out.println("Encrypted key - we will use provided password");
+                    kp = converter.getKeyPair(((PEMEncryptedKeyPair) object).decryptKeyPair(decProv));
+                } else {
+                    System.out.println("Unencrypted key - no password needed");
+                    kp = converter.getKeyPair((PEMKeyPair) object);
+                }
+                KeyStore keystore = KeyStore.getInstance("JKS");
+                keystore.setKeyEntry(null, kp.getPrivate(),"".toCharArray(), null);
+                KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
+                keyManagerFactory.init(keystore, clientKeyPassword.toCharArray());
+                
+            } else if (clientCertificate != null) {
                 KeyStore keystore = KeyStore.getInstance("PKCS12");
                 keystore.load(new FileInputStream(clientCertificate), clientKeyPassword.toCharArray());
                 KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");

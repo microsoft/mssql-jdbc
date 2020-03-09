@@ -122,6 +122,13 @@
 			<version>1.64</version>
 			<optional>true</optional>
 		</dependency>
+		
+		<!-- dependencies for Client Certificate Authentication -->
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk15on</artifactId>
+			<version>1.64</version>
+		</dependency>
 
 
 		<!-- dependencies provided by an OSGi-Framework -->
