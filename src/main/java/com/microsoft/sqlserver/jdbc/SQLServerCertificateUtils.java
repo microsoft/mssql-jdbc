@@ -137,11 +137,11 @@ public class SQLServerCertificateUtils {
             try {
                 pemParser = new PEMParser(new StringReader(privateKeyPem));
                 Object object = pemParser.readObject();
-                PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder()
-                        .build(privateKeyPassword.toCharArray());
                 JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
                 KeyPair kp;
-                if (object instanceof PEMEncryptedKeyPair) {
+                if (object instanceof PEMEncryptedKeyPair && privateKeyPassword != null) {
+                    PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder()
+                            .build(privateKeyPassword.toCharArray());
                     kp = converter.getKeyPair(((PEMEncryptedKeyPair) object).decryptKeyPair(decProv));
                 } else {
                     kp = converter.getKeyPair((PEMKeyPair) object);
