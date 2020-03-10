@@ -1,12 +1,16 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -75,8 +79,17 @@ public class SQLServerCertificateUtils {
 
     private static Certificate loadCertificate(String certificatePem) throws IOException, GeneralSecurityException {
         CertificateFactory certificateFactory = CertificateFactory.getInstance("X509");
-        final byte[] content = readPemContent(certificatePem);
-        return certificateFactory.generateCertificate(new ByteArrayInputStream(content));
+        InputStream certstream = fullStream(certificatePem);
+        return certificateFactory.generateCertificate(certstream);
+    }
+
+    private static InputStream fullStream(String fname) throws IOException {
+        FileInputStream fis = new FileInputStream(fname);
+        DataInputStream dis = new DataInputStream(fis);
+        byte[] bytes = new byte[dis.available()];
+        dis.readFully(bytes);
+        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+        return bais;
     }
 
     private static PrivateKey loadPrivateKey(String privateKeyPem,
@@ -84,27 +97,18 @@ public class SQLServerCertificateUtils {
         return pemLoadPrivateKeyPkcs1OrPkcs8Encoded(privateKeyPem, privateKeyPass);
     }
 
-    private static byte[] readPemContent(String pemPath) throws IOException {
-        final byte[] content;
-        FileInputStream fis = new FileInputStream(pemPath);
-        try (PemReader pemReader = new PemReader(new InputStreamReader(fis))) {
-            final PemObject pemObject = pemReader.readPemObject();
-            content = pemObject.getContent();
-        }
-        return content;
-    }
+//    private static byte[] readPemContent(String pemPath) throws IOException {
+//        final byte[] content;
+//        FileInputStream fis = new FileInputStream(pemPath);
+//        try (PemReader pemReader = new PemReader(new InputStreamReader(fis))) {
+//            final PemObject pemObject = pemReader.readPemObject();
+//            content = pemObject.getContent();
+//        }
+//        return content;
+//    }
 
-    private static String getStringFromFile(String filePath) throws FileNotFoundException {
-        Scanner scanner = null;
-        try {
-            scanner = new Scanner(new File(filePath));
-            String text = scanner.useDelimiter("\\A").next();
-            return text;
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-        }
+    private static String getStringFromFile(String filePath) throws IOException {
+        return new String(Files.readAllBytes(Paths.get(filePath)));
     }
 
     private static PrivateKey pemLoadPrivateKeyPkcs1OrPkcs8Encoded(String privateKeyPemPath,
@@ -150,7 +154,8 @@ public class SQLServerCertificateUtils {
             } finally {
                 pemParser.close();
             }
+        } else {
+            return PVK.parse(new File(privateKeyPemPath), privateKeyPassword);
         }
-        throw new GeneralSecurityException("Not supported format of a private key");
     }
 }
