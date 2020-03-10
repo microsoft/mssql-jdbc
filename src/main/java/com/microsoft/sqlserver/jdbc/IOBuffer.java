@@ -64,6 +64,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
@@ -1608,12 +1609,13 @@ final class TDSChannel implements Serializable {
      *        Server Host Name for SSL Handshake
      * @param port
      *        Server Port for SSL Handshake
-     * @param clientKeyPassword 
-     * @param clientKey 
-     * @param clientCertificate 
+     * @param clientKeyPassword
+     * @param clientKey
+     * @param clientCertificate
      * @throws SQLServerException
      */
-    void enableSSL(String host, int port, String clientCertificate, String clientKey, String clientKeyPassword) throws SQLServerException {
+    void enableSSL(String host, int port, String clientCertificate, String clientKey,
+            String clientKeyPassword) throws SQLServerException {
         // If enabling SSL fails, which it can for a number of reasons, the following items
         // are used in logging information to the TDS channel logger to help diagnose the problem.
         Provider tmfProvider = null; // TrustManagerFactory provider
@@ -1787,43 +1789,18 @@ final class TDSChannel implements Serializable {
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
-            
-            if (null != clientKey) {
-                Security.addProvider(new BouncyCastleProvider());
-                PEMParser pemParser = new PEMParser(new FileReader(clientKey));
-                Object object = pemParser.readObject();
-                PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder().build(clientKeyPassword.toCharArray());
-                JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
-                KeyPair kp;
-                if (object instanceof PEMEncryptedKeyPair) {
-                    System.out.println("Encrypted key - we will use provided password");
-                    kp = converter.getKeyPair(((PEMEncryptedKeyPair) object).decryptKeyPair(decProv));
-                } else {
-                    System.out.println("Unencrypted key - no password needed");
-                    kp = converter.getKeyPair((PEMKeyPair) object);
-                }
-                KeyStore keystore = KeyStore.getInstance("JKS");
-                keystore.setKeyEntry(null, kp.getPrivate(),"".toCharArray(), null);
-                KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
-                keyManagerFactory.init(keystore, clientKeyPassword.toCharArray());
-                
-            } else if (clientCertificate != null) {
-                KeyStore keystore = KeyStore.getInstance("PKCS12");
-                keystore.load(new FileInputStream(clientCertificate), clientKeyPassword.toCharArray());
-                KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
-                keyManagerFactory.init(keystore, clientKeyPassword.toCharArray());
-                
-//                TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-//                tmf.init(keystore);
-//                sslContext.init(keyManagerFactory.getKeyManagers(), tmf.getTrustManagers(), null);
-                
+
+            if (null != clientCertificate) {
+                KeyManager[] km = SQLServerCertificateUtils.getKeyManagerFromFile(clientCertificate, clientKey,
+                        clientKeyPassword);
+
                 sslContext = SSLContext.getInstance(sslProtocol);
                 sslContextProvider = sslContext.getProvider();
 
                 if (logger.isLoggable(Level.FINEST))
                     logger.finest(toString() + " Initializing SSL context");
 
-                sslContext.init(keyManagerFactory.getKeyManagers(), tm, null);
+                sslContext.init(km, tm, null);
             } else {
                 sslContext = SSLContext.getInstance(sslProtocol);
                 sslContextProvider = sslContext.getProvider();
@@ -6254,7 +6231,8 @@ final class TDSWriter {
 
     void sendEnclavePackage(String sql, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         if (null != con && con.isAEv2()) {
-            if (null != sql && !sql.isEmpty() && null != enclaveCEKs && 0 < enclaveCEKs.size() && con.enclaveEstablished()) {
+            if (null != sql && !sql.isEmpty() && null != enclaveCEKs && 0 < enclaveCEKs.size()
+                    && con.enclaveEstablished()) {
                 byte[] b = con.generateEnclavePackage(sql, enclaveCEKs);
                 if (null != b && 0 != b.length) {
                     this.writeShort((short) b.length);
