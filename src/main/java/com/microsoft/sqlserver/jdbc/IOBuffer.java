@@ -1598,9 +1598,12 @@ final class TDSChannel implements Serializable {
      *        Server Host Name for SSL Handshake
      * @param port
      *        Server Port for SSL Handshake
+     * @param clientCertificate 
+     *        Client certificate path
+     * @param clientKey 
+     *        Private key file path
      * @param clientKeyPassword
-     * @param clientKey
-     * @param clientCertificate
+     *        Private key file's password
      * @throws SQLServerException
      */
     void enableSSL(String host, int port, String clientCertificate, String clientKey,
