@@ -292,21 +292,16 @@ abstract class BaseAttestationRequest {
         /*
          * Create our BCRYPT_ECCKEY_BLOB
          */
-        KeyPairGenerator kpg = null;
         try {
-            kpg = KeyPairGenerator.getInstance("EC");
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC");
             kpg.initialize(new ECGenParameterSpec("secp384r1"));
-        } catch (GeneralSecurityException e) {
-            SQLServerException.makeFromDriverError(null, kpg, e.getLocalizedMessage(), "0", false);
-        }
-        KeyPair kp = kpg.generateKeyPair();
-        ECPublicKey publicKey = (ECPublicKey) kp.getPublic();
-        privateKey = kp.getPrivate();
-        ECPoint w = publicKey.getW();
-        try {
+            KeyPair kp = kpg.generateKeyPair();
+            ECPublicKey publicKey = (ECPublicKey) kp.getPublic();
+            privateKey = kp.getPrivate();
+            ECPoint w = publicKey.getW();
             x = adjustBigInt(w.getAffineX().toByteArray());
             y = adjustBigInt(w.getAffineY().toByteArray());
-        } catch (IOException e) {
+        } catch (GeneralSecurityException | IOException e) {
             SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
         }
     }

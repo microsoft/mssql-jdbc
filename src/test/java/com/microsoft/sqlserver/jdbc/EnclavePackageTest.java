@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.security.cert.CertificateException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,11 +13,11 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.Tag;
-import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -28,18 +27,14 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 /**
  * A class for testing basic NTLMv2 functionality.
  */
-@RunWith(JUnitPlatform.class)
+@RunWith(Parameterized.class)
 @Tag(Constants.xSQLv14)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.reqExternalSetup)
 public class EnclavePackageTest extends AbstractTest {
 
-    private static SQLServerDataSource dsLocal = null;
-    private static SQLServerDataSource dsXA = null;
-    private static SQLServerDataSource dsPool = null;
-
-    private static String connectionStringEnclave;
+    private static String connectionStringEnclave = null;
 
     private static byte[] healthReportCertificate = {61, 11, 0, 0, 27, 2, 0, 0, -66, 3, 0, 0, 88, 5, 0, 0, 82, 83, 65,
             49, 0, 16, 0, 0, 3, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, -57, 59, -80, 116, -86, -109, -4,
@@ -183,35 +178,32 @@ public class EnclavePackageTest extends AbstractTest {
             -90, -67, 111, -82, -94, 96, -68, -79, -3, -51, -108, 41, 112, -89, 22, -92, 88, 37, 66, 20, 93, 111, 102,
             -69, -20, -47, -43, -24, 82, -41, 12, -58, 53, 68, -76, -94, -116, 75, 14, 24, -43, 73, -78, -87, 21};
 
+    @Parameters
+    public static String[][] enclaveParams() throws Exception {
+        setup();
+
+        return new String[][] {
+                {AbstractTest.enclaveServer[0], AbstractTest.enclaveAttestationUrl[0],
+                        AbstractTest.enclaveAttestationProtocol[0]},
+                {AbstractTest.enclaveServer[1], AbstractTest.enclaveAttestationUrl[1],
+                        AbstractTest.enclaveAttestationProtocol[1]}};
+    }
+
     /**
      * Setup environment for test.
      * 
      * @throws Exception
      *         when an error occurs
      */
-    public static void setupEnclave() throws Exception {
+    public static void setAEConnectionString(String url, String protocol) throws Exception {
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionString, "columnEncryptionSetting",
                 ColumnEncryptionSetting.Enabled.toString());
 
-        String enclaveAttestationUrl = System.getProperty("enclaveAttestationUrl");
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationUrl",
-                (null != enclaveAttestationUrl) ? enclaveAttestationUrl : "http://blah");
+                (null != url) ? url : "http://blah");
 
-        String enclaveAttestationProtocol = System.getProperty("enclaveAttestationProtocol");
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol",
-                (null != enclaveAttestationProtocol) ? enclaveAttestationProtocol : "HGS");
-
-        // reset logging to avoid severe logs due to negative testing
-        LogManager.getLogManager().reset();
-
-        dsLocal = new SQLServerDataSource();
-        AbstractTest.updateDataSource(connectionStringEnclave, dsLocal);
-
-        dsXA = new SQLServerXADataSource();
-        AbstractTest.updateDataSource(connectionStringEnclave, dsXA);
-
-        dsPool = new SQLServerConnectionPoolDataSource();
-        AbstractTest.updateDataSource(connectionStringEnclave, dsPool);
+                (null != url) ? protocol : "HGS");
     }
 
     /**
@@ -220,29 +212,44 @@ public class EnclavePackageTest extends AbstractTest {
      * @throws SQLException
      *         when an error occurs
      */
-    public static void testBasicConnection() throws SQLException {
+    public static void testBasicConnection(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(url, protocol);
+
+        SQLServerDataSource dsLocal = new SQLServerDataSource();
+        AbstractTest.updateDataSource(connectionStringEnclave, dsLocal);
+
+        SQLServerDataSource dsXA = new SQLServerXADataSource();
+        AbstractTest.updateDataSource(connectionStringEnclave, dsXA);
+
+        SQLServerDataSource dsPool = new SQLServerConnectionPoolDataSource();
+        AbstractTest.updateDataSource(connectionStringEnclave, dsPool);
+
         try (Connection con1 = dsLocal.getConnection(); Connection con2 = dsXA.getConnection();
                 Connection con3 = dsPool.getConnection();
                 Connection con4 = PrepUtil.getConnection(connectionStringEnclave)) {
             if (TestUtils.isAEv2(con1)) {
-                verifyEnclaveEnabled(con1);
+                verifyEnclaveEnabled(con1, protocol);
             }
             if (TestUtils.isAEv2(con2)) {
-                verifyEnclaveEnabled(con2);
+                verifyEnclaveEnabled(con2, protocol);
             }
             if (TestUtils.isAEv2(con3)) {
-                verifyEnclaveEnabled(con3);
+                verifyEnclaveEnabled(con3, protocol);
             }
             if (TestUtils.isAEv2(con4)) {
-                verifyEnclaveEnabled(con4);
+                verifyEnclaveEnabled(con4, protocol);
             }
         }
     }
 
     /**
      * Tests invalid connection property combinations.
+     * 
+     * @throws Exception
      */
-    public static void testInvalidProperties() {
+    public static void testInvalidProperties(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(url, protocol);
+
         // enclaveAttestationUrl and enclaveAttestationProtocol without "columnEncryptionSetting"
         testInvalidProperties(TestUtils.addOrOverrideProperty(connectionStringEnclave, "columnEncryptionSetting",
                 ColumnEncryptionSetting.Disabled.toString()), "R_enclavePropertiesError");
@@ -356,7 +363,7 @@ public class EnclavePackageTest extends AbstractTest {
     /*
      * Test invalidEnclaveSession
      */
-    public static void testInvalidEnclaveSession() {
+    public static void testInvalidEnclaveSession(String serverName, String url, String protocol) {
         SQLServerVSMEnclaveProvider provider = new SQLServerVSMEnclaveProvider();
         provider.invalidateEnclaveSession();
         if (null != provider.getEnclaveSession()) {
@@ -427,7 +434,7 @@ public class EnclavePackageTest extends AbstractTest {
     /*
      * Test bad certificate signature
      */
-    public static void testBadCertSignature() throws SQLServerException, CertificateException {
+    public static void testBadCertSignature() throws SQLServerException {
         try {
             VSMAttestationResponse resp = new VSMAttestationResponse(healthReportCertificate);
             resp.validateCert(null);
@@ -441,7 +448,9 @@ public class EnclavePackageTest extends AbstractTest {
     /*
      * Negative Test - AEv2 not supported
      */
-    public static void testAEv2NotSupported() {
+    public static void testAEv2NotSupported(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(url, protocol);
+
         try (SQLServerConnection con = PrepUtil.getConnection(connectionStringEnclave)) {
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
@@ -465,16 +474,16 @@ public class EnclavePackageTest extends AbstractTest {
     /*
      * Verify if Enclave is enabled
      */
-    private static void verifyEnclaveEnabled(Connection con) throws SQLException {
+    private static void verifyEnclaveEnabled(Connection con, String protocol) throws Exception {
         try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery(
                 "SELECT [name], [value], [value_in_use] FROM sys.configurations WHERE [name] = 'column encryption enclave type';")) {
             while (rs.next()) {
                 String enclaveType = rs.getString(2);
-                String enclaveAttestationProtocol = getConfiguredProperty("enclaveAttestationProtocol");
-                if (String.valueOf(AttestationProtocol.HGS).equals(enclaveAttestationProtocol)) {
+                if (String.valueOf(AttestationProtocol.HGS).equals(protocol)) {
                     assertEquals(EnclaveType.VBS.getValue(), Integer.parseInt(enclaveType));
-                } else if (String.valueOf(AttestationProtocol.AAS).equals(enclaveAttestationProtocol)) {
-                    assertEquals(EnclaveType.SGX.getValue(), Integer.parseInt(enclaveType));
+                } else if (String.valueOf(AttestationProtocol.AAS).equals(protocol)) {
+                    assertTrue(Integer.parseInt(enclaveType) == EnclaveType.VBS.getValue()
+                            || Integer.parseInt(enclaveType) == EnclaveType.SGX.getValue());
                 } else {
                     MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidEnclaveType"));
                     Object[] msgArgs = {enclaveType};

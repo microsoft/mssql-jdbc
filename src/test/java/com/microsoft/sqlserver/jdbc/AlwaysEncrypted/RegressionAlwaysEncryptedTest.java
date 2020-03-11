@@ -14,22 +14,21 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.microsoft.sqlserver.jdbc.TestUtils;
-import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
-@RunWith(JUnitPlatform.class)
+@RunWith(Parameterized.class)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 public class RegressionAlwaysEncryptedTest extends AESetup {
-
     static String numericTable[][] = {{"Bit", "bit"}, {"Tinyint", "tinyint"}, {"Smallint", "smallint"},};
 
     static String dateTable[][] = {{"Date", "date"},
@@ -39,8 +38,11 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     static String charTable[][] = {{"Char", "char(20) COLLATE Latin1_General_BIN2"},
             {"Varchar", "varchar(50) COLLATE Latin1_General_BIN2"},};
 
-    @Test
-    public void alwaysEncrypted1() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void alwaysEncrypted1(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
         try (Connection connection = PrepUtil.getConnection(
                 AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
@@ -67,8 +69,11 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
         }
     }
 
-    @Test
-    public void alwaysEncrypted2() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void alwaysEncrypted2(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+
         try (Connection connection = PrepUtil.getConnection(
                 AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
@@ -93,8 +98,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     }
 
     private void populateDateTable(Connection connection) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE) + " values( " + "?,?,?"
-                + ")";
+        String sql = "insert into " + DATE_TABLE_AE + " values( " + "?,?,?" + ")";
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
             sqlPstmt.setObject(1, Constants.DATE);
@@ -105,8 +109,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     }
 
     private void populateCharTable(Connection connection) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(CHAR_TABLE_AE) + " values( " + "?,?,?,?,?,?"
-                + ")";
+        String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?,?,?,?" + ")";
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
             sqlPstmt.setObject(1, "hi");
@@ -120,8 +123,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     }
 
     private void populateNumericTable(Connection connection) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE)
-                + " values(?,?,?,?,?,?,?,?,?)";
+        String sql = "insert into " + NUMERIC_TABLE_AE + " values(?,?,?,?,?,?,?,?,?)";
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
             sqlPstmt.setObject(1, true);
@@ -139,8 +141,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     }
 
     private void populateNumericTableSpecificSetter(Connection connection) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE) + " values( "
-                + "?,?,?,?,?,?,?,?,?" + ")";
+        String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?,?,?,?,?,?,?" + ")";
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
             sqlPstmt.setBoolean(1, true);
@@ -158,8 +159,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     }
 
     private void populateNumericTableWithNull(Connection connection) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE) + " values( " + "?,?,?"
-                + ",?,?,?" + ",?,?,?" + ")";
+        String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?" + ",?,?,?" + ",?,?,?" + ")";
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
             sqlPstmt.setObject(1, null, java.sql.Types.BIT);
@@ -177,8 +177,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
     private void verifyDateTable(Connection connection) throws SQLException {
         try (Statement stmt = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-                ResultSet rs = stmt
-                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE))) {
+                ResultSet rs = stmt.executeQuery("select * from " + DATE_TABLE_AE)) {
             while (rs.next()) {
                 // VSTS BUG 5268
                 // assertEquals(date.getTime(), ((Date) rs.getObject(1)).getTime());
@@ -188,8 +187,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
     private void verifyCharTable(Connection connection) throws SQLException {
         try (Statement stmt = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-                ResultSet rs = stmt
-                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(CHAR_TABLE_AE))) {
+                ResultSet rs = stmt.executeQuery("select * from " + CHAR_TABLE_AE)) {
             while (rs.next()) {
                 assertEquals("hi                  ", rs.getObject(1));
                 assertEquals("sample              ", rs.getObject(2));
@@ -203,8 +201,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
     private void verifyNumericTable(Connection connection, boolean isNull) throws SQLException {
         try (Statement stmt = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-                ResultSet rs = stmt
-                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE))) {
+                ResultSet rs = stmt.executeQuery("select * from " + NUMERIC_TABLE_AE)) {
             while (rs.next()) {
                 if (isNull) {
                     assertEquals(null, rs.getObject(1));
@@ -232,8 +229,8 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     }
 
     public static void dropTables(Statement stmt) throws SQLException {
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(DATE_TABLE_AE), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(CHAR_TABLE_AE), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE), stmt);
+        TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
+        TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+        TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
     }
 }

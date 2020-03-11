@@ -1,7 +1,29 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/) 
+The format is based on [Keep a Changelog](http://keepachangelog.com/)
+
+## [8.2.1] HotFix & Stable Release
+### Added
+- Added new Azure Key Vault endpoints to the list of trusted endpoints [#1264](https://github.com/microsoft/mssql-jdbc/pull/1264) 
+### Fixed issues
+- Fixed a potential NullPointerException issue when retrieving data as java.time.LocalTime or java.time.LocalDate type with SQLServerResultSet.getObject() [#1250](https://github.com/microsoft/mssql-jdbc/pull/1250) 
+
+## [8.2.0] Stable Release
+### Added
+- Added new tests for Always Encrypted with secure enclaves feature [#1166](https://github.com/microsoft/mssql-jdbc/pull/1166)
+- Added backwards compatibility for calling SQLServerClob.length() on nvarchar columns [#1214](https://github.com/microsoft/mssql-jdbc/pull/1214)
+
+### Fixed issues
+- Fixed an issue with potentially creating more enclave sessions than needed [#1208](https://github.com/microsoft/mssql-jdbc/pull/1208)
+- Fixed an issue with InputStream closing when calling SQLServerBlob.length() on an `image` column [#1214](https://github.com/microsoft/mssql-jdbc/pull/1214)
+- Fixed a potential performance issue created from trailing spaces in PreparedStatement queries [#1215](https://github.com/microsoft/mssql-jdbc/pull/1215)
+- Fixed an issue with native Always Encrypted calls not being synchronized [#1220](https://github.com/microsoft/mssql-jdbc/pull/1220)
+- Fixed issues identified by SonarQube [#1226](https://github.com/microsoft/mssql-jdbc/pull/1226), Semmle [#1234](https://github.com/microsoft/mssql-jdbc/pull/1234), and CredScanner [#1237](https://github.com/microsoft/mssql-jdbc/pull/1237)
+
+### Changed
+- Updated com.microsoft.rest:client-runtime to its latest version [#1235](https://github.com/microsoft/mssql-jdbc/pull/1235)
+- Removed shaded jars [#1239](https://github.com/microsoft/mssql-jdbc/pull/1239)
 
 ## [8.1.1] Preview Release
 ### Added
