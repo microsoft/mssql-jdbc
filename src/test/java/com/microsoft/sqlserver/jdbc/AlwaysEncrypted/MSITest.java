@@ -44,8 +44,12 @@ public class MSITest extends AESetup {
     public void testAuth() throws SQLException {
         String msiConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
                 + "serverName=" + msiServer + ";" + Constants.DATABASE + "=" + database + ";" + Constants.AUTHENTICATION
-                + "=" + "ActiveDirectoryMSI" + null != msiClientId ? Constants.MSICLIENTID + "="
-                        + msiClientId : ";" + null != keyVaultProvierClientId ? Constants.KEYVAULTPROVIDER_CLIENTID + "=" + keyVaultProvierClientId : ";" + null != keyVaultProvierClientKey ? Constants.KEYVAULTPROVIDER_CLIENTKEY + "=" + keyVaultProvierClientKey : "";
+                + "=" + "ActiveDirectoryMSI" + ";"
+                + (null != msiClientId ? Constants.MSICLIENTID + "=" + msiClientId : ";")
+                + (null != keyVaultProvierClientId ? Constants.KEYVAULTPROVIDER_CLIENTID + "=" + keyVaultProvierClientId
+                                                   : ";")
+                + (null != keyVaultProvierClientKey ? Constants.KEYVAULTPROVIDER_CLIENTKEY + "="
+                        + keyVaultProvierClientKey : "");
 
         try (SQLServerConnection con = PrepUtil.getConnection(msiConnectionString)) {} catch (Exception e) {
             fail(TestResource.getResource("R_loginFailed") + e.getMessage());

@@ -2658,7 +2658,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         System.arraycopy(preloginOptionData, 0, preloginRequest, preloginRequestOffset, preloginOptionData.length);
         preloginRequestOffset = preloginRequestOffset + preloginOptionData.length;
 
-        // If the client’s PRELOGIN request message contains the FEDAUTHREQUIRED option,
+        // If the client's PRELOGIN request message contains the FEDAUTHREQUIRED option,
         // the client MUST specify 0x01 as the B_FEDAUTHREQUIRED value
         if (fedAuthRequiredByUser) {
             preloginRequest[preloginRequestOffset] = 1;
