@@ -845,6 +845,36 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setKeyVaultProviderClientKey(String keyVaultProviderClientKey);
 
     /**
+     * Returns the value for the connection property 'keyVaultProviderRegistrationMode'.
+     * 
+     * @return keyVaultProviderRegistrationMode
+     */
+    String getKeyVaultProviderRegistrationMode();
+
+    /**
+     * Sets the Azure Key Vault (AKV) Provider Client Key to provided value to be used for column encryption.
+     * 
+     * @param keyVaultProviderClientKey
+     *        Client Key of Azure Key Vault (AKV) Provider to be used for column encryption.
+     */
+    void setKeyVaultManagedIdentityClientId(String clientId);
+
+    /**
+     * Returns the value for the connection property 'keyVaultManagedIdentityClientId'.
+     * 
+     * @return keyVaultManagedIdentityClientId
+     */
+    String getKeyVaultManagedIdentityClientId();
+
+    /**
+     * Sets the Azure Key Vault (AKV) Provider registration mode.
+     * 
+     * @param mode
+     *        registration mode used to register the Azure Key Vault (AKV) Provider to be used for column encryption.
+     */
+    void setKeyVaultProviderRegistrationMode(String mode);
+
+    /**
      * Returns the value for the connection property 'domain'.
      * 
      * @return 'domain' property value

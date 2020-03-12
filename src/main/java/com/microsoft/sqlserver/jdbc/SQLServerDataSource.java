@@ -911,6 +911,30 @@ public class SQLServerDataSource
     }
 
     @Override
+    public String getKeyVaultProviderRegistrationMode() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_REG_MODE.toString(),
+                SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_REG_MODE.getDefaultValue());
+    }
+
+    @Override
+    public void setKeyVaultManagedIdentityClientId(String clientId) {
+        setStringProperty(connectionProps,
+                SQLServerDriverStringProperty.KEY_VAULT_MANAGED_IDENTITY_CLIENT_ID.toString(), clientId);
+    }
+
+    @Override
+    public String getKeyVaultManagedIdentityClientId() {
+        return getStringProperty(connectionProps,
+                SQLServerDriverStringProperty.KEY_VAULT_MANAGED_IDENTITY_CLIENT_ID.toString(),
+                SQLServerDriverStringProperty.KEY_VAULT_MANAGED_IDENTITY_CLIENT_ID.getDefaultValue());
+    }
+
+    @Override
+    public void setKeyVaultProviderRegistrationMode(String mode) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_REG_MODE.toString(), mode);
+    }
+
+    @Override
     public String getDomain() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(),
                 SQLServerDriverStringProperty.DOMAIN.getDefaultValue());

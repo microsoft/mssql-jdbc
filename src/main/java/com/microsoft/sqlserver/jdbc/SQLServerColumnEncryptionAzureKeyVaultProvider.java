@@ -79,6 +79,33 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by
+     * KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * 
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    public SQLServerColumnEncryptionAzureKeyVaultProvider() throws SQLServerException {
+        credentials = new KeyVaultCredential();
+        keyVaultClient = new KeyVaultClient(credentials);
+    }
+
+    /**
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by
+     * KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     *
+     * @param clientId
+     *        Identifier of the client requesting the token.
+     * 
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId) throws SQLServerException {
+        credentials = new KeyVaultCredential(clientId);
+        keyVaultClient = new KeyVaultClient(credentials);
+    }
+
+    /**
      * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a client id and client key to authenticate to
      * AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
      * 
@@ -138,7 +165,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                 .withResponseBuilderFactory(new AzureResponseBuilder.Factory()).build();
         keyVaultClient = new KeyVaultClient(restClient);
     }
-    
+
     /**
      * Decryptes an encrypted CEK with RSA encryption algorithm using the asymmetric key specified by the key path
      * 
