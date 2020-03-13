@@ -635,6 +635,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String keyStoreAuthentication = null;
     String keyStoreSecret = null;
     String keyStoreLocation = null;
+    String keyStorePrincipalId = null;
 
     private ColumnEncryptionVersion serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_NotSupported;
 
@@ -1273,6 +1274,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 Object[] msgArgs = {"keyStoreLocation"};
                 throw new SQLServerException(form.format(msgArgs), null);
             }
+            if (null != keyStorePrincipalId) {
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_keyStoreAuthenticationNotSet"));
+                Object[] msgArgs = {"keyStorePrincipalId"};
+                throw new SQLServerException(form.format(msgArgs), null);
+            }
         } else {
             KeyStoreAuthentication keyStoreAuthentication = KeyStoreAuthentication.valueOfString(keyStoreAuth);
             switch (keyStoreAuthentication) {
@@ -1287,7 +1294,26 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
                     }
                     break;
-
+                case KeyVaultClientSecret:
+                    // need a secret use use the secret method
+                    if (null == keyStoreSecret) {
+                        throw new SQLServerException(
+                                SQLServerException.getErrString("R_keyStoreSecretOrLocationNotSet"), null);
+                    } else {
+                        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                                keyStorePrincipalId, keyStoreSecret);
+                        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+                    }
+                    break;
+                case KeyVaultManagedIdentity:
+                    if (null != keyStorePrincipalId) {
+                        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyStorePrincipalId);
+                        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+                    } else {
+                        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
+                        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+                    }
+                    break;
                 default:
                     // valueOfString would throw an exception if the keyStoreAuthentication is not valid.
                     break;
@@ -1514,45 +1540,30 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 keyStoreLocation = sPropValue;
             }
 
+            sPropKey = SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                keyStorePrincipalId = sPropValue;
+            }
+
             registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
 
-            SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider;
             if (null == globalCustomColumnEncryptionKeyStoreProviders) {
-                String keyVaultColumnEncryptionProviderRegMode = activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_REG_MODE.toString())
-                        .toUpperCase();
-
-                if (null == keyVaultColumnEncryptionProviderRegMode || keyVaultColumnEncryptionProviderRegMode
-                        .equals(KeyVaultProviderRegistrationMode.KeyVaultClientKey.toString())) {
-                    String keyVaultColumnEncryptionProviderClientId = activeConnectionProperties
-                            .getProperty(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString());
-                    String keyVaultColumnEncryptionProviderClientKey = activeConnectionProperties
-                            .getProperty(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString());
-
-                    akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                            keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
-
-                    Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-                    keyStoreMap.put(akvProvider.getName(), akvProvider);
-                    registerColumnEncryptionKeyStoreProviders(keyStoreMap);
-                } else if (keyVaultColumnEncryptionProviderRegMode
-                        .equals(KeyVaultProviderRegistrationMode.KeyVaultManagedIdentity.toString().toUpperCase())) {
-                    String keyVaultManagedIdentityCientId = activeConnectionProperties
-                            .getProperty(SQLServerDriverStringProperty.KEY_VAULT_MANAGED_IDENTITY_CLIENT_ID.toString());
-
-                    if (null != keyVaultManagedIdentityCientId) {
-                        akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                                keyVaultManagedIdentityCientId);
-                    } else {
-                        akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                                keyVaultManagedIdentityCientId);
+                sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    String keyVaultColumnEncryptionProviderClientId = sPropValue;
+                    sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null != sPropValue) {
+                        String keyVaultColumnEncryptionProviderClientKey = sPropValue;
+                        SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                                keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
+                        Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+                        keyStoreMap.put(akvProvider.getName(), akvProvider);
+                        registerColumnEncryptionKeyStoreProviders(keyStoreMap);
                     }
-
-                    Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-                    keyStoreMap.put(akvProvider.getName(), akvProvider);
-                    registerColumnEncryptionKeyStoreProviders(keyStoreMap);
                 }
-
             }
 
             sPropKey = SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString();

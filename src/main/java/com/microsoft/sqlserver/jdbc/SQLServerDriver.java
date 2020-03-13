@@ -113,29 +113,6 @@ enum ColumnEncryptionSetting {
 }
 
 
-enum KeyVaultProviderRegistrationMode {
-    KeyVaultClientKey,
-    KeyVaultManagedIdentity;
-
-    static KeyVaultProviderRegistrationMode valueOfString(String value) throws SQLServerException {
-        KeyVaultProviderRegistrationMode mode = null;
-
-        if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(KeyVaultProviderRegistrationMode.KeyVaultClientKey.toString())) {
-            mode = KeyVaultProviderRegistrationMode.KeyVaultClientKey;
-        } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(KeyVaultProviderRegistrationMode.KeyVaultManagedIdentity.toString())) {
-            mode = KeyVaultProviderRegistrationMode.KeyVaultManagedIdentity;
-        } else {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
-            Object[] msgArgs = {"keyVaultProviderRegistrationMode", value};
-            throw new SQLServerException(form.format(msgArgs), null);
-        }
-        return mode;
-    }
-}
-
-
 enum AttestationProtocol {
     HGS("HGS"),
     AAS("AAS");
@@ -231,13 +208,22 @@ enum SSLProtocol {
 
 
 enum KeyStoreAuthentication {
-    JavaKeyStorePassword;
+    JavaKeyStorePassword,
+    KeyVaultClientSecret,
+    KeyVaultManagedIdentity;
 
     static KeyStoreAuthentication valueOfString(String value) throws SQLServerException {
         KeyStoreAuthentication method = null;
 
         if (value.toLowerCase(Locale.US).equalsIgnoreCase(KeyStoreAuthentication.JavaKeyStorePassword.toString())) {
             method = KeyStoreAuthentication.JavaKeyStorePassword;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(KeyStoreAuthentication.KeyVaultClientSecret.toString())) {
+            method = KeyStoreAuthentication.KeyVaultClientSecret;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(KeyStoreAuthentication.KeyVaultManagedIdentity.toString())) {
+            method = KeyStoreAuthentication.KeyVaultManagedIdentity;
+
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"keyStoreAuthentication", value};
@@ -246,7 +232,6 @@ enum KeyStoreAuthentication {
         return method;
     }
 }
-
 
 enum AuthenticationScheme {
     nativeAuthentication,
@@ -375,9 +360,7 @@ enum SQLServerDriverStringProperty {
     MSI_CLIENT_ID("msiClientId", ""),
     KEY_VAULT_PROVIDER_CLIENT_ID("keyVaultProviderClientId", ""),
     KEY_VAULT_PROVIDER_CLIENT_KEY("keyVaultProviderClientKey", ""),
-    KEY_VAULT_PROVIDER_REG_MODE("keyVaultProviderRegistrationMode", KeyVaultProviderRegistrationMode.KeyVaultClientKey
-            .toString()),
-    KEY_VAULT_MANAGED_IDENTITY_CLIENT_ID("keyVaultManagedIdentityClientId", "");
+    KEY_STORE_PRINCIPAL_ID("keyStorePrincipalId", "");
 
     private final String name;
     private final String defaultValue;
@@ -622,13 +605,11 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString(),
                     SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.getDefaultValue(), false, null),
-            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_REG_MODE.toString(),
-                    SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_REG_MODE.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue()), false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(
-                    SQLServerDriverStringProperty.KEY_VAULT_MANAGED_IDENTITY_CLIENT_ID.toString(),
-                    SQLServerDriverStringProperty.KEY_VAULT_MANAGED_IDENTITY_CLIENT_ID.getDefaultValue(), false,
+                    SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString(),
+                    SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.getDefaultValue(), false,
                     null),};
 
     /**

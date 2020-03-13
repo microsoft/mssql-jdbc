@@ -911,27 +911,15 @@ public class SQLServerDataSource
     }
 
     @Override
-    public String getKeyVaultProviderRegistrationMode() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_REG_MODE.toString(),
-                SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_REG_MODE.getDefaultValue());
+    public void setKeyStorePrincipalId(String keyVaultPrincipalId) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString(),
+                keyVaultPrincipalId);
     }
 
     @Override
-    public void setKeyVaultManagedIdentityClientId(String clientId) {
-        setStringProperty(connectionProps,
-                SQLServerDriverStringProperty.KEY_VAULT_MANAGED_IDENTITY_CLIENT_ID.toString(), clientId);
-    }
-
-    @Override
-    public String getKeyVaultManagedIdentityClientId() {
-        return getStringProperty(connectionProps,
-                SQLServerDriverStringProperty.KEY_VAULT_MANAGED_IDENTITY_CLIENT_ID.toString(),
-                SQLServerDriverStringProperty.KEY_VAULT_MANAGED_IDENTITY_CLIENT_ID.getDefaultValue());
-    }
-
-    @Override
-    public void setKeyVaultProviderRegistrationMode(String mode) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_REG_MODE.toString(), mode);
+    public String getKeyStorePrincipalId() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString(),
+                SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.getDefaultValue());
     }
 
     @Override

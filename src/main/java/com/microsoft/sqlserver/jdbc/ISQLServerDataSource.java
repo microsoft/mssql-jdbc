@@ -822,6 +822,21 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getMSIClientId();
 
     /**
+     * Sets the Azure Key Vault (AKV) Provider user principal id.
+     * 
+     * @param keyVaultPrincipalId
+     *        principal Id of Azure Key Vault (AKV) Provider to be used for column encryption.
+     */
+    void setKeyStorePrincipalId(String keyVaultPrincipalId);
+
+    /**
+     * Returns the value for the connection property 'keyVaultPrincipalId'.
+     * 
+     * @return keyVaultPrincipalId
+     */
+    String getKeyStorePrincipalId();
+
+    /**
      * Sets the Azure Key Vault (AKV) Provider Client Id to provided value to be used for column encryption.
      * 
      * @param keyVaultProviderClientId
@@ -845,36 +860,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setKeyVaultProviderClientKey(String keyVaultProviderClientKey);
 
     /**
-     * Returns the value for the connection property 'keyVaultProviderRegistrationMode'.
-     * 
-     * @return keyVaultProviderRegistrationMode
-     */
-    String getKeyVaultProviderRegistrationMode();
-
-    /**
-     * Sets the Azure Key Vault (AKV) Provider Client Key to provided value to be used for column encryption.
-     * 
-     * @param keyVaultProviderClientKey
-     *        Client Key of Azure Key Vault (AKV) Provider to be used for column encryption.
-     */
-    void setKeyVaultManagedIdentityClientId(String clientId);
-
-    /**
-     * Returns the value for the connection property 'keyVaultManagedIdentityClientId'.
-     * 
-     * @return keyVaultManagedIdentityClientId
-     */
-    String getKeyVaultManagedIdentityClientId();
-
-    /**
-     * Sets the Azure Key Vault (AKV) Provider registration mode.
-     * 
-     * @param mode
-     *        registration mode used to register the Azure Key Vault (AKV) Provider to be used for column encryption.
-     */
-    void setKeyVaultProviderRegistrationMode(String mode);
-
-    /**
      * Returns the value for the connection property 'domain'.
      * 
      * @return 'domain' property value
@@ -882,7 +867,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getDomain();
 
     /**
-     * Sets the 'domain' connection property used for NTLM Authentication.
+     * F Sets the 'domain' connection property used for NTLM Authentication.
      *
      * @param domain
      *        Windows domain name
