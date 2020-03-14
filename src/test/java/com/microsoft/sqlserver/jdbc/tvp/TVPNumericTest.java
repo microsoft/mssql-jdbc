@@ -43,8 +43,8 @@ public class TVPNumericTest extends AbstractTest {
     private static String procedureName;
 
     /**
-     * Test a previous failure regarding to numeric precision. Issue #211 Test TVP name in SQLServerDataTable with
-     * setObject()
+     * Test a previous failure regarding to numeric precision reported on Issue #211. Test TVP name in
+     * SQLServerDataTable with setObject()
      * 
      * @throws SQLException
      * @throws SQLTimeoutException
@@ -52,7 +52,7 @@ public class TVPNumericTest extends AbstractTest {
     @Test
     public void testTVPNameWithDataTable() throws SQLException {
         String selectSQL = "SELECT * FROM " + escapedCharTableName + " ORDER BY c1 ASC";
-        String insertSQL = "INSERT INTO " + escapedCharTableName + " select * from ? ;";
+        String insertSQL = "INSERT INTO " + escapedCharTableName + " SELECT * FROM ? ;";
         float[] testValues = new float[] {0.0F, 1.123F, 12.12F};
 
         SQLServerDataTable tvp = new SQLServerDataTable();
