@@ -4,6 +4,11 @@
  */
 package com.microsoft.sqlserver.jdbc.tvp;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.sql.Statement;
@@ -28,41 +33,72 @@ import com.microsoft.sqlserver.testframework.Constants;
 @Tag(Constants.xAzureSQLDW)
 public class TVPNumericTest extends AbstractTest {
 
-    static SQLServerDataTable tvp = null;
     static String expectecValue1 = "hello";
     static String expectecValue2 = "world";
     static String expectecValue3 = "again";
 
     private static String tvpName;
-    private static String charTable;
+    private static String charTableName;
+    private static String escapedCharTableName;
     private static String procedureName;
 
     /**
-     * Test a previous failure regarding to numeric precision. Issue #211
+     * Test a previous failure regarding to numeric precision. Issue #211 Test TVP name in SQLServerDataTable with
+     * setObject()
      * 
      * @throws SQLException
      * @throws SQLTimeoutException
      */
     @Test
-    public void testNumericPresicionIssue211() throws SQLException {
-        tvp = new SQLServerDataTable();
+    public void testTVPNameWithDataTable() throws SQLException {
+        String selectSQL = "SELECT * FROM " + escapedCharTableName + " ORDER BY c1 ASC";
+        String insertSQL = "INSERT INTO " + escapedCharTableName + " select * from ? ;";
+        float[] testValues = new float[] {0.0F, 1.123F, 12.12F};
+
+        SQLServerDataTable tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.NUMERIC);
+        tvp.setTvpName(tvpName);
 
-        tvp.addRow(12.12);
-        tvp.addRow(1.123);
+        for (int i = 0; i < testValues.length; i++) {
+            tvp.addRow(testValues[i]);
+        }
 
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
-                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(charTable) + " select * from ? ;")) {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
         }
+        validateTVPInsert(selectSQL, testValues);
+
+        TestUtils.clearTable(connection, escapedCharTableName);
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+            pstmt.setObject(1, tvp, microsoft.sql.Types.STRUCTURED);
+            pstmt.execute();
+        }
+        validateTVPInsert(selectSQL, testValues);
+
+        TestUtils.clearTable(connection, escapedCharTableName);
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+            pstmt.setObject(1, tvp);
+            pstmt.execute();
+        }
+        validateTVPInsert(selectSQL, testValues);
+
+        TestUtils.clearTable(connection, escapedCharTableName);
+        try (CallableStatement cstmt = connection
+                .prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}");) {
+            cstmt.setObject("@InputData", tvp, microsoft.sql.Types.STRUCTURED);
+            cstmt.executeUpdate();
+        }
+        validateTVPInsert(selectSQL, testValues);
+        tvp.clear();
     }
 
     @BeforeAll
     public static void testSetup() throws SQLException {
         tvpName = RandomUtil.getIdentifier("numericTVP");
         procedureName = RandomUtil.getIdentifier("procedureThatCallsTVP");
-        charTable = RandomUtil.getIdentifier("tvpNumericTable");
+        charTableName = RandomUtil.getIdentifier("tvpNumericTable");
+        escapedCharTableName = AbstractSQLGenerator.escapeIdentifier(charTableName);
 
         createTVPS();
         createTables();
@@ -72,14 +108,14 @@ public class TVPNumericTest extends AbstractTest {
     private static void createProcedure() throws SQLException {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
                 + AbstractSQLGenerator.escapeIdentifier(tvpName) + " READONLY " + " AS " + " BEGIN " + " INSERT INTO "
-                + AbstractSQLGenerator.escapeIdentifier(charTable) + " SELECT * FROM @InputData" + " END";
+                + escapedCharTableName + " SELECT * FROM @InputData" + " END";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }
     }
 
     private static void createTables() throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(charTable) + " (c1 numeric(6,3) null);";
+        String sql = "create table " + escapedCharTableName + " (c1 numeric(6,3) null);";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }
@@ -93,16 +129,22 @@ public class TVPNumericTest extends AbstractTest {
         }
     }
 
+    private static void validateTVPInsert(String sql, float[] expectedValues) throws SQLException {
+        try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            int i = 1;
+            while (rs.next()) {
+                assertEquals(expectedValues[i - 1], rs.getFloat(1));
+                i++;
+            }
+        }
+    }
+
     @AfterAll
     public static void terminateVariation() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropProcedureIfExists(procedureName, stmt);
-            TestUtils.dropTableIfExists(charTable, stmt);
+            TestUtils.dropTableIfExists(charTableName, stmt);
             TestUtils.dropTypeIfExists(tvpName, stmt);
-        }
-
-        if (null != tvp) {
-            tvp.clear();
         }
     }
 }
