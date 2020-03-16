@@ -33,7 +33,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.clientCertAuth)
-public class ClientCertificateAuthentication extends AbstractTest {
+public class ClientCertificateAuthenticationTest extends AbstractTest {
 
     @Test
     public void pkcs1Test() throws Exception {
