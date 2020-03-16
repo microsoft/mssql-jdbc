@@ -60,6 +60,10 @@ public abstract class AbstractTest {
     protected static String[] enclaveServer = null;
     protected static String[] enclaveAttestationUrl = null;
     protected static String[] enclaveAttestationProtocol = null;
+    
+    protected static String clientCertificate = null;
+    protected static String clientKey = null;
+    protected static String clientKeyPassword = null;
 
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
@@ -136,6 +140,12 @@ public abstract class AbstractTest {
 
         prop = getConfiguredProperty("enclaveAttestationProtocol", null);
         enclaveAttestationProtocol = null != prop ? prop.split(Constants.SEMI_COLON) : null;
+        
+        clientCertificate = getConfiguredProperty("clientCertificate", null);
+        
+        clientKey = getConfiguredProperty("clientKey", null);
+        
+        clientKeyPassword = getConfiguredProperty("clientKeyPassword", null);
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {

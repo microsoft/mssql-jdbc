@@ -5155,7 +5155,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if we are using NTLM or SSPI or fed auth ADAL, do not send over username/password, since we will use SSPI
         // instead
-        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        // Also do not send username or password if user is attempting client certificate authentication.
+        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested) && clientCertificate == null) {
             tdsWriter.writeBytes(userBytes); // Username
             tdsWriter.writeBytes(passwordBytes); // Password (encrypted)
         }
