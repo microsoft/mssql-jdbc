@@ -26,7 +26,6 @@ import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -43,7 +42,6 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMDecryptorProvider;
 import org.bouncycastle.openssl.PEMEncryptedKeyPair;
 import org.bouncycastle.openssl.PEMKeyPair;
@@ -131,7 +129,7 @@ final class SQLServerCertificateUtils {
     private static PrivateKey loadPrivateKeyFromPKCS1(String key,
             String keyPass) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         try {
-            Security.addProvider(new BouncyCastleProvider());
+            SQLServerBouncyCastleLoader.loadBouncyCastle();
         } catch (SecurityException se) {
             // fall through, provider already loaded
         }
