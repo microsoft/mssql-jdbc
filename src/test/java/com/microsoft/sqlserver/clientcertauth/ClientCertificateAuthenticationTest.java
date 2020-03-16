@@ -37,8 +37,8 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
 
     @Test
     public void pkcs1Test() throws Exception {
-        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey=" + clientKey
-                + "1.key;" + "clientKeyPassword=" + clientKeyPassword + ";";
+        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey="
+                + clientKey + "1.key;" + "clientKeyPassword=" + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
             rs.next();
@@ -48,9 +48,8 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
 
     @Test
     public void pkcs8Test() throws Exception {
-        String conStr = connectionString
-                + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey=" + clientKey + "8.key;"
-                + "clientKeyPassword=" + clientKeyPassword + ";";
+        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey="
+                + clientKey + "8.key;" + "clientKeyPassword=" + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
             rs.next();
@@ -60,9 +59,8 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
 
     @Test
     public void pvkTest() throws Exception {
-        String conStr = connectionString
-                + ";clientCertificate=" + clientCertificate + ".cer;" + "clientKey=" + clientKey + "pvk;"
-                + "clientKeyPassword=" + clientKeyPassword + ";";
+        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".cer;" + "clientKey="
+                + clientKey + "pvk;" + "clientKeyPassword=" + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
             rs.next();
@@ -72,8 +70,8 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
 
     @Test
     public void pfxTest() throws Exception {
-        String conStr = connectionString
-                + ";clientCertificate=" + clientCertificate + ".pfx;" + "clientKeyPassword=" + clientKeyPassword + ";";
+        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pfx;" + "clientKeyPassword="
+                + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
             rs.next();
@@ -83,8 +81,8 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
 
     @Test
     public void invalidCert() throws Exception {
-        String conStr = connectionString
-                + ";clientCertificate=invalid_path;" + "clientKeyPassword=" + clientKeyPassword + ";";
+        String conStr = connectionString + ";clientCertificate=invalid_path;" + "clientKeyPassword=" + clientKeyPassword
+                + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
             rs.next();
@@ -95,8 +93,8 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
 
     @Test
     public void invalidCertPassword() throws Exception {
-        String conStr = connectionString
-                + ";clientCertificate=" + clientCertificate + ".pfx;" + "clientKeyPassword=invalid_password;";
+        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pfx;"
+                + "clientKeyPassword=invalid_password;";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
             rs.next();
