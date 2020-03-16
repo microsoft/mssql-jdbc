@@ -56,9 +56,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     private final String azureTrustedEndpoints[] = {"vault.azure.net", // default
             "vault.azure.cn", // Azure China
             "vault.usgovcloudapi.net", // US Government
-            "vault.microsoftazure.de", // Azure Germany
-            "vault.cloudapi.eaglex.ic.gov",
-            "vault.cloudapi.microsoft.scloud",
+            "vault.microsoftazure.de" // Azure Germany
     };
 
     private final String rsaEncryptionAlgorithmWithOAEPForAKV = "RSA-OAEP";
