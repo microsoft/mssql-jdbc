@@ -75,7 +75,7 @@ public abstract class AbstractTest {
     protected static String keyVaultProvierClientId = null;
     protected static String keyVaultProvierClientKey = null;
     protected static String database = null;
-    
+
     protected static SQLServerConnection connection = null;
     protected static ISQLServerDataSource ds = null;
     protected static ISQLServerDataSource dsXA = null;
@@ -191,7 +191,6 @@ public abstract class AbstractTest {
         keyVaultProvierClientId = getConfiguredProperty("keyVaultProvierClientId");
         keyVaultProvierClientKey = getConfiguredProperty("keyVaultProvierClientKey");
 
-        
         ds = updateDataSource(connectionString, new SQLServerDataSource());
         dsXA = updateDataSource(connectionString, new SQLServerXADataSource());
         dsPool = updateDataSource(connectionString, new SQLServerConnectionPoolDataSource());
@@ -292,6 +291,18 @@ public abstract class AbstractTest {
                             break;
                         case Constants.ENCLAVE_ATTESTATIONPROTOCOL:
                             ds.setEnclaveAttestationProtocol(value);
+                            break;
+                        case Constants.KEYVAULTPROVIDER_CLIENTID:
+                            ds.setKeyVaultProviderClientId(value);
+                            break;
+                        case Constants.KEYVAULTPROVIDER_CLIENTKEY:
+                            ds.setKeyVaultProviderClientKey(value);
+                            break;
+                        case Constants.KEYSTORE_AUTHENTICATION:
+                            ds.setKeyStoreAuthentication(value);
+                            break;
+                        case Constants.KEYSTORE_PRINCIPALID:
+                            ds.setKeyStorePrincipalId(value);
                             break;
                         default:
                             break;

@@ -144,6 +144,8 @@ public final class Constants {
     public static final String MSICLIENTID = "MSICLIENTID";
     public static final String KEYVAULTPROVIDER_CLIENTID = "KEYVAULTPROVIDERCLIENTID";
     public static final String KEYVAULTPROVIDER_CLIENTKEY = "KEYVAULTPROVIDERCLIENTKEY";
+    public static final String KEYSTORE_AUTHENTICATION = "KEYSTOREAUTHENTICATION";
+    public static final String KEYSTORE_PRINCIPALID = "KEYSTOREPRINCIPALID";
 
     public static final String CONFIG_PROPERTIES_FILE = "config.properties";
 

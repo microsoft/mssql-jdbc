@@ -6,12 +6,17 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
+import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -19,6 +24,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
@@ -30,28 +36,33 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.MSI)
 public class MSITest extends AESetup {
 
-    protected static String msiConnectionString = connectionString
-            + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled" + "serverName=" + msiServer + ";"
-            + Constants.DATABASE + "=" + database + ";" + Constants.AUTHENTICATION + "=" + "ActiveDirectoryMSI"
-            + null != msiClientId ? Constants.MSICLIENTID + "=" + msiClientId
-                                  : ";" + null != keyVaultProvierClientId ? Constants.KEYVAULTPROVIDER_CLIENTID + "="
-                                          + keyVaultProvierClientId : ";" + null != keyVaultProvierClientKey ? Constants.KEYVAULTPROVIDER_CLIENTKEY + "=" + keyVaultProvierClientKey : "";
+    static String msiConnectionString = null;;
+    static SQLServerDataSource ds = null;
+    static SQLServerDataSource msiDs = null;
+
+    @BeforeAll
+    public static void setup() throws Exception {
+        msiConnectionString = connectionString;
+
+        // remove credentials and use managed identity
+        TestUtils.addOrOverrideProperty(msiConnectionString, "keyVaultProvierClientId", "");
+        TestUtils.addOrOverrideProperty(msiConnectionString, "keyVaultProvierClientKey", "");
+
+        ds = new SQLServerDataSource();
+        AbstractTest.updateDataSource(connectionString, ds);
+
+        msiDs = new SQLServerDataSource();
+        AbstractTest.updateDataSource(msiConnectionString, msiDs);
+
+        registerAKVProvider();
+    }
 
     /*
-     * Test basic MSI auth
+     * Test basic MSI auth with credentials
      */
     @Test
-    public void testAuth() throws SQLException {
-        String msiConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
-                + "serverName=" + msiServer + ";" + Constants.DATABASE + "=" + database + ";" + Constants.AUTHENTICATION
-                + "=" + "ActiveDirectoryMSI" + ";"
-                + (null != msiClientId ? Constants.MSICLIENTID + "=" + msiClientId : ";")
-                + (null != keyVaultProvierClientId ? Constants.KEYVAULTPROVIDER_CLIENTID + "=" + keyVaultProvierClientId
-                                                   : ";")
-                + (null != keyVaultProvierClientKey ? Constants.KEYVAULTPROVIDER_CLIENTKEY + "="
-                        + keyVaultProvierClientKey : "");
-
-        try (SQLServerConnection con = PrepUtil.getConnection(msiConnectionString)) {} catch (Exception e) {
+    public void testAuthWithCred() throws SQLException {
+        try (SQLServerConnection con = PrepUtil.getConnection(connectionString)) {} catch (Exception e) {
             fail(TestResource.getResource("R_loginFailed") + e.getMessage());
         }
     }
@@ -61,30 +72,21 @@ public class MSITest extends AESetup {
      */
     @Test
     public void testDSAuth() throws SQLException {
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setServerName(msiServer);
-        ds.setDatabaseName(database);
-        ds.setAuthentication("ActiveDirectoryMSI");
-        ds.setColumnEncryptionSetting("enabled");
-
         try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {} catch (Exception e) {
             fail(TestResource.getResource("R_loginFailed") + e.getMessage());
         }
     }
 
     /*
-     * Test MSI auth using datasource
+     * Test MSI auth failure
      */
     @Test
-    public void testDSAKV() throws SQLException {
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setServerName(msiServer);
-        ds.setDatabaseName(database);
-        ds.setAuthentication("ActiveDirectoryMSI");
-        ds.setColumnEncryptionSetting("enabled");
-        ds.setKeyVaultProviderClientId(keyVaultProvierClientId);
-        ds.setKeyVaultProviderClientKey(keyVaultProvierClientKey);
-        try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {} catch (Exception e) {
+    public void testDSAuthFail() throws SQLException {
+        try (Connection con = msiDs.getConnection(); Statement stmt = con.createStatement()) {
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLException e) {
+            System.out.println("expected fail:" + e.getMessage());
+        } catch (Exception e) {
             fail(TestResource.getResource("R_loginFailed") + e.getMessage());
         }
     }
@@ -137,5 +139,12 @@ public class MSITest extends AESetup {
                 fail(TestResource.getResource("R_loginFailed") + e.getMessage());
             }
         }
+    }
+
+    private static void registerAKVProvider() throws SQLException {
+        SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
+        Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+        map.put("AZURE_KEY_VAULT", akvProvider);
+        SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
     }
 }
