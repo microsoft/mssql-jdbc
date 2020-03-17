@@ -38,8 +38,11 @@ public class MSITest extends AESetup {
 
     @BeforeAll
     public static void setup() throws Exception {
+        System.out.println("msi setup");
+
         msiConnectionString = connectionString;
 
+        if (connectionString == null) System.out.println("connectionstring is null");
         System.out.println("connectionString: "+connectionString);
         System.out.println("msiConnectionString: "+msiConnectionString);
         

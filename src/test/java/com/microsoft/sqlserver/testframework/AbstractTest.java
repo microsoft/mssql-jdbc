@@ -148,6 +148,7 @@ public abstract class AbstractTest {
                     Constants.JKS_SECRET.toCharArray());
             map.put("My_KEYSTORE", jksProvider);
         }
+        System.out.println("registering AKV provider ");
 
         if (null == akvProvider) {
             if (null != applicationClientID && null != applicationKey) {
