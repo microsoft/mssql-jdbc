@@ -70,11 +70,9 @@ public abstract class AbstractTest {
     protected static String windowsKeyPath = null;
 
     // properties needed for MSI
-    protected static String msiServer = null;
     protected static String msiClientId = null;
     protected static String keyVaultProvierClientId = null;
     protected static String keyVaultProvierClientKey = null;
-    protected static String database = null;
 
     protected static SQLServerConnection connection = null;
     protected static ISQLServerDataSource ds = null;
@@ -185,8 +183,6 @@ public abstract class AbstractTest {
         }
 
         // MSI properties
-        msiServer = getConfiguredProperty("msiServer");
-        database = getConfiguredProperty("database");
         msiClientId = getConfiguredProperty("msiClientId");
         keyVaultProvierClientId = getConfiguredProperty("keyVaultProvierClientId");
         keyVaultProvierClientKey = getConfiguredProperty("keyVaultProvierClientKey");
