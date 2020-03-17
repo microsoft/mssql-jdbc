@@ -6,8 +6,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -15,8 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
-import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -53,8 +49,6 @@ public class MSITest extends AESetup {
 
         msiDs = new SQLServerDataSource();
         AbstractTest.updateDataSource(msiConnectionString, msiDs);
-
-        registerAKVProvider();
     }
 
     /*
@@ -139,12 +133,5 @@ public class MSITest extends AESetup {
                 fail(TestResource.getResource("R_loginFailed") + e.getMessage());
             }
         }
-    }
-
-    private static void registerAKVProvider() throws SQLException {
-        SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
-        Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        map.put("AZURE_KEY_VAULT", akvProvider);
-        SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
     }
 }

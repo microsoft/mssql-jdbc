@@ -150,7 +150,11 @@ public abstract class AbstractTest {
         }
 
         if (null == akvProvider) {
-            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+            if (null != applicationClientID && null != applicationKey) {
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+            } else {
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
+            }
             map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         }
 
