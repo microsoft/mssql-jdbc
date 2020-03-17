@@ -46,6 +46,7 @@ public class MSITest extends AESetup {
 
         ds = new SQLServerDataSource();
         AbstractTest.updateDataSource(connectionString, ds);
+ System.out.println("msiConnectionString: "+msiConnectionString);
 
         msiDs = new SQLServerDataSource();
         AbstractTest.updateDataSource(msiConnectionString, msiDs);
