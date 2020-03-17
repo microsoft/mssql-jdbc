@@ -38,7 +38,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     @Test
     public void pkcs1Test() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey="
-                + clientKey + "1.key;" + "clientKeyPassword=" + clientKeyPassword + ";";
+                + clientKey + "-pkcs1.key;" + "clientKeyPassword=" + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
             rs.next();
@@ -49,7 +49,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     @Test
     public void pkcs8Test() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey="
-                + clientKey + "8.key;" + "clientKeyPassword=" + clientKeyPassword + ";";
+                + clientKey + "-pkcs8.key;" + "clientKeyPassword=" + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
             rs.next();
@@ -60,7 +60,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     @Test
     public void pvkTest() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".cer;" + "clientKey="
-                + clientKey + "pvk;" + "clientKeyPassword=" + clientKeyPassword + ";";
+                + clientKey + ".pvk;" + "clientKeyPassword=" + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
             rs.next();
