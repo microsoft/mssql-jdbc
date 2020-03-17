@@ -34,29 +34,18 @@ public class MSITest extends AESetup {
 
     static String msiConnectionString = null;;
     static SQLServerDataSource ds = null;
-    static SQLServerDataSource msiDs = null;
 
     @BeforeAll
     public static void setup() throws Exception {
-        System.out.println("msi setup");
-
         msiConnectionString = connectionString;
 
-        if (connectionString == null) System.out.println("connectionstring is null");
-        System.out.println("connectionString: "+connectionString);
-        System.out.println("msiConnectionString: "+msiConnectionString);
-        
-        // remove credentials and use managed identity
-        TestUtils.addOrOverrideProperty(msiConnectionString, "keyVaultProvierClientId", "");
-        TestUtils.addOrOverrideProperty(msiConnectionString, "keyVaultProvierClientKey", "");
+        if (connectionString == null)
+            System.out.println("connectionstring is null");
+        System.out.println("connectionString: " + connectionString);
+        System.out.println("msiConnectionString: " + msiConnectionString);
 
         ds = new SQLServerDataSource();
         AbstractTest.updateDataSource(connectionString, ds);
-System.out.println("connectionString: "+connectionString);
-System.out.println("msiConnectionString: "+msiConnectionString);
-
-        msiDs = new SQLServerDataSource();
-        AbstractTest.updateDataSource(msiConnectionString, msiDs);
     }
 
     /*
@@ -75,20 +64,6 @@ System.out.println("msiConnectionString: "+msiConnectionString);
     @Test
     public void testDSAuth() throws SQLException {
         try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {} catch (Exception e) {
-            fail(TestResource.getResource("R_loginFailed") + e.getMessage());
-        }
-    }
-
-    /*
-     * Test MSI auth failure
-     */
-    @Test
-    public void testDSAuthFail() throws SQLException {
-        try (Connection con = msiDs.getConnection(); Statement stmt = con.createStatement()) {
-            fail(TestResource.getResource("R_expectedFailPassed"));
-        } catch (SQLException e) {
-            System.out.println("expected fail:" + e.getMessage());
-        } catch (Exception e) {
             fail(TestResource.getResource("R_loginFailed") + e.getMessage());
         }
     }
