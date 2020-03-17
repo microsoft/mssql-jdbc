@@ -71,8 +71,8 @@ public abstract class AbstractTest {
 
     // properties needed for MSI
     protected static String msiClientId = null;
-    protected static String keyVaultProvierClientId = null;
-    protected static String keyVaultProvierClientKey = null;
+    protected static String keyVaultProviderClientId = null;
+    protected static String keyVaultProviderClientKey = null;
 
     protected static SQLServerConnection connection = null;
     protected static ISQLServerDataSource ds = null;
@@ -184,8 +184,8 @@ public abstract class AbstractTest {
 
         // MSI properties
         msiClientId = getConfiguredProperty("msiClientId");
-        keyVaultProvierClientId = getConfiguredProperty("keyVaultProvierClientId");
-        keyVaultProvierClientKey = getConfiguredProperty("keyVaultProvierClientKey");
+        keyVaultProviderClientId = getConfiguredProperty("keyVaultProviderClientId");
+        keyVaultProviderClientKey = getConfiguredProperty("keyVaultProviderClientKey");
 
         ds = updateDataSource(connectionString, new SQLServerDataSource());
         dsXA = updateDataSource(connectionString, new SQLServerXADataSource());

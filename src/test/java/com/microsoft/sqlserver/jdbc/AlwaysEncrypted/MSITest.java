@@ -59,9 +59,9 @@ public class MSITest extends AESetup {
      */
     @Test
     public void testCharAkvWithCred() throws SQLException {
-        if (null != keyVaultProvierClientId && null != keyVaultProvierClientId) {
-            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyVaultProvierClientId,
-                    keyVaultProvierClientId);
+        if (null != keyVaultProviderClientId && null != keyVaultProviderClientKey) {
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyVaultProviderClientId,
+                    keyVaultProviderClientKey);
             map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
             SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
         }
@@ -107,9 +107,9 @@ public class MSITest extends AESetup {
      */
     @Test
     public void testNumericAkvWithCred() throws SQLException {
-        if (null != keyVaultProvierClientId && null != keyVaultProvierClientId) {
-            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyVaultProvierClientId,
-                    keyVaultProvierClientId);
+        if (null != keyVaultProviderClientId && null != keyVaultProviderClientKey) {
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyVaultProviderClientId,
+                    keyVaultProviderClientKey);
             map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
             SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
         }
