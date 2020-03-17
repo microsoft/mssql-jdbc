@@ -149,9 +149,8 @@ public abstract class AbstractTest {
             map.put("My_KEYSTORE", jksProvider);
         }
 
-        if (null == akvProvider) {
-            if (null != applicationClientID && null != applicationKey) {
-                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+        if (null == akvProvider && null != applicationClientID && null != applicationKey) {
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
 
             map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
             if (!isKspRegistered) {
