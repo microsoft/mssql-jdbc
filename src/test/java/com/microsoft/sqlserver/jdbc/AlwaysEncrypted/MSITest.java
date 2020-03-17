@@ -56,7 +56,7 @@ public class MSITest extends AESetup {
     @Test
     public void testCharAKV() throws SQLException {
         String sql = "select * from " + CHAR_TABLE_AE;
-        try (SQLServerConnection con = PrepUtil.getConnection(connectionString);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
@@ -79,7 +79,7 @@ public class MSITest extends AESetup {
     @Test
     public void testNumericAKV() throws SQLException {
         String sql = "select * from " + NUMERIC_TABLE_AE;
-        try (SQLServerConnection con = PrepUtil.getConnection(connectionString);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
