@@ -867,7 +867,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getDomain();
 
     /**
-     * F Sets the 'domain' connection property used for NTLM Authentication.
+     * Sets the 'domain' connection property used for NTLM Authentication.
      *
      * @param domain
      *        Windows domain name

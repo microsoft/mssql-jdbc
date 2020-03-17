@@ -7,7 +7,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -31,23 +30,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.MSI)
 public class MSITest extends AESetup {
-
-    static String msiConnectionString = null;;
-    static SQLServerDataSource ds = null;
-
-    @BeforeAll
-    public static void setup() throws Exception {
-        msiConnectionString = connectionString;
-
-        if (connectionString == null)
-            System.out.println("connectionstring is null");
-        System.out.println("connectionString: " + connectionString);
-        System.out.println("msiConnectionString: " + msiConnectionString);
-
-        ds = new SQLServerDataSource();
-        AbstractTest.updateDataSource(connectionString, ds);
-    }
-
     /*
      * Test basic MSI auth with credentials
      */
@@ -63,6 +45,9 @@ public class MSITest extends AESetup {
      */
     @Test
     public void testDSAuth() throws SQLException {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        AbstractTest.updateDataSource(connectionString, ds);
+
         try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {} catch (Exception e) {
             fail(TestResource.getResource("R_loginFailed") + e.getMessage());
         }
@@ -71,7 +56,7 @@ public class MSITest extends AESetup {
     @Test
     public void testCharAKV() throws SQLException {
         String sql = "select * from " + CHAR_TABLE_AE;
-        try (SQLServerConnection con = PrepUtil.getConnection(msiConnectionString);
+        try (SQLServerConnection con = PrepUtil.getConnection(connectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
@@ -94,7 +79,7 @@ public class MSITest extends AESetup {
     @Test
     public void testNumericAKV() throws SQLException {
         String sql = "select * from " + NUMERIC_TABLE_AE;
-        try (SQLServerConnection con = PrepUtil.getConnection(msiConnectionString);
+        try (SQLServerConnection con = PrepUtil.getConnection(connectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
