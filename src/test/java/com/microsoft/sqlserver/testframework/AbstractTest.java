@@ -153,15 +153,11 @@ public abstract class AbstractTest {
             if (null != applicationClientID && null != applicationKey) {
                 akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
 
-            } else {
-                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
-            }
             map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
-        }
-
-        if (!isKspRegistered) {
-            SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
-            isKspRegistered = true;
+            if (!isKspRegistered) {
+                SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
+                isKspRegistered = true;
+            }
         }
 
         // if these properties are defined then NTLM is desired, modify connection string accordingly

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -31,10 +32,10 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.MSI)
 public class MSITest extends AESetup {
     /*
-     * Test basic MSI auth with credentials
+     * Test basic MSI auth
      */
     @Test
-    public void testAuthWithCred() throws SQLException {
+    public void testAuth() throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(connectionString)) {} catch (Exception e) {
             fail(TestResource.getResource("R_loginFailed") + e.getMessage());
         }
@@ -53,8 +54,32 @@ public class MSITest extends AESetup {
         }
     }
 
+    /*
+     * Test AKV with with credentials
+     */
     @Test
-    public void testCharAKV() throws SQLException {
+    public void testCharAkvWithCred() throws SQLException {
+        if (null != applicationClientID && null != applicationKey) {
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
+        }
+
+        testCharAkv();
+    }
+
+    /*
+     * Test AKV with MSI
+     */
+    public void testCharAkvWithMSI() throws SQLException {
+        akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
+        map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+        SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
+
+        testCharAkv();
+    }
+
+    private void testCharAkv() throws SQLException {
         String sql = "select * from " + CHAR_TABLE_AE;
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
@@ -76,8 +101,32 @@ public class MSITest extends AESetup {
 
     }
 
+    /*
+     * Test AKV with with credentials
+     */
     @Test
-    public void testNumericAKV() throws SQLException {
+    public void testNumericAkvWithCred() throws SQLException {
+        if (null != applicationClientID && null != applicationKey) {
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
+        }
+
+        testNumericAKV();
+    }
+
+    /*
+     * Test AKV with MSI
+     */
+    public void testNumericAkvWithMSI() throws SQLException {
+        akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
+        map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+        SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
+
+        testNumericAKV();
+    }
+
+    private void testNumericAKV() throws SQLException {
         String sql = "select * from " + NUMERIC_TABLE_AE;
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
