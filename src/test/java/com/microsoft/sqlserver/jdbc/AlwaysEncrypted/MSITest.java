@@ -40,13 +40,17 @@ public class MSITest extends AESetup {
     public static void setup() throws Exception {
         msiConnectionString = connectionString;
 
+        System.out.println("connectionString: "+connectionString);
+        System.out.println("msiConnectionString: "+msiConnectionString);
+        
         // remove credentials and use managed identity
         TestUtils.addOrOverrideProperty(msiConnectionString, "keyVaultProvierClientId", "");
         TestUtils.addOrOverrideProperty(msiConnectionString, "keyVaultProvierClientKey", "");
 
         ds = new SQLServerDataSource();
         AbstractTest.updateDataSource(connectionString, ds);
- System.out.println("msiConnectionString: "+msiConnectionString);
+System.out.println("connectionString: "+connectionString);
+System.out.println("msiConnectionString: "+msiConnectionString);
 
         msiDs = new SQLServerDataSource();
         AbstractTest.updateDataSource(msiConnectionString, msiDs);
