@@ -152,8 +152,11 @@ public abstract class AbstractTest {
         if (null == akvProvider) {
             if (null != applicationClientID && null != applicationKey) {
                 akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+                System.out.println("register AKV provider with clientid and clientkey");
+
             } else {
                 akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
+                System.out.println("register AKV provider no clientid and clientkey");
             }
             map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         }
@@ -162,6 +165,7 @@ public abstract class AbstractTest {
             SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
             isKspRegistered = true;
         }
+        System.out.println("registered AKV provider");
 
         // if these properties are defined then NTLM is desired, modify connection string accordingly
         String domain = getConfiguredProperty("domainNTLM");
@@ -190,10 +194,12 @@ public abstract class AbstractTest {
         msiClientId = getConfiguredProperty("msiClientId");
         keyVaultProvierClientId = getConfiguredProperty("keyVaultProvierClientId");
         keyVaultProvierClientKey = getConfiguredProperty("keyVaultProvierClientKey");
+        System.out.println("got MSI properties");
 
         ds = updateDataSource(connectionString, new SQLServerDataSource());
         dsXA = updateDataSource(connectionString, new SQLServerXADataSource());
         dsPool = updateDataSource(connectionString, new SQLServerConnectionPoolDataSource());
+        System.out.println("updated datasource");
 
         try {
             Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
@@ -303,6 +309,9 @@ public abstract class AbstractTest {
                             break;
                         case Constants.KEYSTORE_PRINCIPALID:
                             ds.setKeyStorePrincipalId(value);
+                            break;
+                        case Constants.MSICLIENTID:
+                            ds.setMSIClientId(value);
                             break;
                         default:
                             break;
