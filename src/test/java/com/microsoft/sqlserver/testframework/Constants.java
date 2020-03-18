@@ -43,6 +43,8 @@ public final class Constants {
     public static final String JDBC_PREFIX = "jdbc:sqlserver://";
     public static final String DEFAULT_DRIVER_LOG = "Driver.log";
     public static final String MSSQL_JDBC_PACKAGE = "com.microsoft.sqlserver.jdbc";
+    public static final String MSSQL_JDBC_PROPERTIES = "mssql-jdbc.properties";
+    public static final String AKV_TRUSTED_ENDPOINTS_KEYWORD = "AKVTrustedEndpoints";
 
     public static final String DEFAULT_WRAP_IDENTIFIER = "\'";
     public static final String CREATE_TABLE = "CREATE TABLE";
