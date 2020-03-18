@@ -4985,7 +4985,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 + 4; // AE is always on;
 
         // only add lengths of password and username if not using SSPI or requesting federated authentication info
-        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested) && clientCertificate == null) {
             len = len + passwordLen + userBytes.length;
         }
 
@@ -5063,7 +5063,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
             tdsWriter.writeShort((short) (0));
 
-        } else if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        } else if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested) && clientCertificate == null) {
             // User and Password
             tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
             tdsWriter.writeShort((short) (sUser == null ? 0 : sUser.length()));
