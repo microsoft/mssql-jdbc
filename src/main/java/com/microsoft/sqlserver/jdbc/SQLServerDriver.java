@@ -609,8 +609,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue()), false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(
                     SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString(),
-                    SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.getDefaultValue(), false,
-                    null),};
+                    SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.getDefaultValue(), false, null),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string
