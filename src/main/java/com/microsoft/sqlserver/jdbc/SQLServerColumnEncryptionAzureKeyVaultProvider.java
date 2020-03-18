@@ -666,7 +666,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             trustedEndpoints.add("vault.usgovcloudapi.net");
             trustedEndpoints.add("vault.microsoftazure.de");
         }
-        System.out.println(trustedEndpoints);
         return trustedEndpoints;
     }
 
