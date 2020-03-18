@@ -71,8 +71,8 @@ public abstract class AbstractTest {
 
     // properties needed for MSI
     protected static String msiClientId = null;
-    protected static String keyVaultProviderClientId = null;
-    protected static String keyVaultProviderClientKey = null;
+    protected static String keyStorePrincipalId = null;
+    protected static String keyStoreSecret = null;
 
     protected static SQLServerConnection connection = null;
     protected static ISQLServerDataSource ds = null;
@@ -146,12 +146,11 @@ public abstract class AbstractTest {
         if (null == jksProvider) {
             jksProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath,
                     Constants.JKS_SECRET.toCharArray());
-            map.put("My_KEYSTORE", jksProvider);
+            map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
         if (null == akvProvider && null != applicationClientID && null != applicationKey) {
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
-
             map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
             if (!isKspRegistered) {
                 SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
@@ -184,8 +183,8 @@ public abstract class AbstractTest {
 
         // MSI properties
         msiClientId = getConfiguredProperty("msiClientId");
-        keyVaultProviderClientId = getConfiguredProperty("keyVaultProviderClientId");
-        keyVaultProviderClientKey = getConfiguredProperty("keyVaultProviderClientKey");
+        keyStorePrincipalId = getConfiguredProperty("keyVaultProviderClientId");
+        keyStoreSecret = getConfiguredProperty("keyVaultProviderClientKey");
 
         ds = updateDataSource(connectionString, new SQLServerDataSource());
         dsXA = updateDataSource(connectionString, new SQLServerXADataSource());
@@ -299,6 +298,9 @@ public abstract class AbstractTest {
                             break;
                         case Constants.KEYSTORE_PRINCIPALID:
                             ds.setKeyStorePrincipalId(value);
+                            break;
+                        case Constants.KEYSTORE_SECRET:
+                            ds.setKeyStoreSecret(value);
                             break;
                         case Constants.MSICLIENTID:
                             ds.setMSIClientId(value);

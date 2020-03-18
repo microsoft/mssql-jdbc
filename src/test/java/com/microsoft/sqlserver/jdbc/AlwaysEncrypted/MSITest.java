@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -59,13 +58,17 @@ public class MSITest extends AESetup {
      */
     @Test
     public void testCharAkvWithCred() throws SQLException {
-        if (null != keyVaultProviderClientId && null != keyVaultProviderClientKey) {
-            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyVaultProviderClientId,
-                    keyVaultProviderClientKey);
-            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
-            SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
-        }
+        // remove the custom providers registered in AESetup
+        SQLServerConnection.removeGlobalCustomColumnEncryptionKeyStoreProvider(Constants.AZURE_KEY_VAULT_NAME);
+        SQLServerConnection.removeGlobalCustomColumnEncryptionKeyStoreProvider(Constants.CUSTOM_KEYSTORE_NAME);
 
+        // add credentials to connection string
+        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
+                Constants.KEYSTORE_AUTHENTICATION, "KeyVaultClientSecret");
+        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.KEYSTORE_PRINCIPALID,
+                keyStorePrincipalId);
+        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.KEYSTORE_SECRET,
+                keyStoreSecret);
         testCharAkv();
     }
 
@@ -73,11 +76,48 @@ public class MSITest extends AESetup {
      * Test AKV with MSI
      */
     public void testCharAkvWithMSI() throws SQLException {
-        akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
-        map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
-        SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
+        // remove the custom providers registered in AESetup
+        SQLServerConnection.removeGlobalCustomColumnEncryptionKeyStoreProvider(Constants.AZURE_KEY_VAULT_NAME);
+        SQLServerConnection.removeGlobalCustomColumnEncryptionKeyStoreProvider(Constants.CUSTOM_KEYSTORE_NAME);
 
+        // set to use Managed Identity for keystore auth
+        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
+                Constants.KEYSTORE_AUTHENTICATION, "KeyVaultManagedIdentity");
         testCharAkv();
+    }
+
+    /*
+     * Test AKV with with credentials
+     */
+    @Test
+    public void testNumericAkvWithCred() throws SQLException {
+        // remove the custom providers registered in AESetup
+        SQLServerConnection.removeGlobalCustomColumnEncryptionKeyStoreProvider(Constants.AZURE_KEY_VAULT_NAME);
+        SQLServerConnection.removeGlobalCustomColumnEncryptionKeyStoreProvider(Constants.CUSTOM_KEYSTORE_NAME);
+
+        // add credentials to connection string
+        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
+                Constants.KEYSTORE_AUTHENTICATION, "KeyVaultClientSecret");
+        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.KEYSTORE_PRINCIPALID,
+                keyStorePrincipalId);
+        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.KEYSTORE_SECRET,
+                keyStoreSecret);
+        testNumericAKV();
+    }
+
+    /*
+     * Test AKV with MSI
+     */
+    @Test
+    public void testNumericAkvWithMSI() throws SQLException {
+        // remove the custom providers registered in AESetup
+        SQLServerConnection.removeGlobalCustomColumnEncryptionKeyStoreProvider(Constants.AZURE_KEY_VAULT_NAME);
+        SQLServerConnection.removeGlobalCustomColumnEncryptionKeyStoreProvider(Constants.CUSTOM_KEYSTORE_NAME);
+
+        // set to use Managed Identity for keystore auth
+        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
+                Constants.KEYSTORE_AUTHENTICATION, "KeyVaultManagedIdentity");
+        testNumericAKV();
     }
 
     private void testCharAkv() throws SQLException {
@@ -100,32 +140,6 @@ public class MSITest extends AESetup {
             }
         }
 
-    }
-
-    /*
-     * Test AKV with with credentials
-     */
-    @Test
-    public void testNumericAkvWithCred() throws SQLException {
-        if (null != keyVaultProviderClientId && null != keyVaultProviderClientKey) {
-            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyVaultProviderClientId,
-                    keyVaultProviderClientKey);
-            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
-            SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
-        }
-
-        testNumericAKV();
-    }
-
-    /*
-     * Test AKV with MSI
-     */
-    public void testNumericAkvWithMSI() throws SQLException {
-        akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
-        map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
-        SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
-
-        testNumericAKV();
     }
 
     private void testNumericAKV() throws SQLException {

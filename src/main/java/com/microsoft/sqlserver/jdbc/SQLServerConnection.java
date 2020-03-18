@@ -684,7 +684,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     0, false);
         }
 
-        if (null != globalCustomColumnEncryptionKeyStoreProviders) {
+        if (null != globalCustomColumnEncryptionKeyStoreProviders
+                && !globalCustomColumnEncryptionKeyStoreProviders.isEmpty()) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_CustomKeyStoreProviderSetOnce"), null,
                     0, false);
         }
@@ -713,6 +714,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         loggerExternal.exiting(SQLServerConnection.class.getName(), "registerColumnEncryptionKeyStoreProviders",
+                "Number of Key store providers that are registered:"
+                        + globalCustomColumnEncryptionKeyStoreProviders.size());
+    }
+
+    /**
+     * Removes the custom key store providers from the globalCustomColumnEncryptionKeyStoreProviders.
+     * 
+     * @param server
+     *        String server name
+     */
+    public static synchronized void removeGlobalCustomColumnEncryptionKeyStoreProvider(String clientKeyStoreProviders) {
+        loggerExternal.entering(SQLServerConnection.class.getName(),
+                "removeGlobalCustomColumnEncryptionKeyStoreProvider", "Removing Column Encryption Key Store Provider");
+
+        // Use upper case for server and instance names.
+        globalCustomColumnEncryptionKeyStoreProviders.remove(clientKeyStoreProviders);
+
+        loggerExternal.exiting(SQLServerConnection.class.getName(),
+                "removeGlobalCustomColumnEncryptionKeyStoreProvider",
                 "Number of Key store providers that are registered:"
                         + globalCustomColumnEncryptionKeyStoreProviders.size());
     }
@@ -1302,17 +1322,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     } else {
                         SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
                                 keyStorePrincipalId, keyStoreSecret);
-                        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+                        Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+                        keyStoreMap.put(provider.getName(), provider);
+                        registerColumnEncryptionKeyStoreProviders(keyStoreMap);
                     }
                     break;
                 case KeyVaultManagedIdentity:
+                    SQLServerColumnEncryptionAzureKeyVaultProvider provider;
                     if (null != keyStorePrincipalId) {
-                        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyStorePrincipalId);
-                        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+                        provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyStorePrincipalId);
                     } else {
-                        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
-                        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+                        provider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
                     }
+                    Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+                    keyStoreMap.put(provider.getName(), provider);
+                    registerColumnEncryptionKeyStoreProviders(keyStoreMap);
                     break;
                 default:
                     // valueOfString would throw an exception if the keyStoreAuthentication is not valid.
