@@ -50,6 +50,7 @@
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
 			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
+			MSI   - - - - - - - For tests using MSI Authentication (excluded by default) 
 			reqExternalSetup  - For tests requiring external setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
@@ -97,7 +98,7 @@
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>azure-client-authentication</artifactId>
-			<version>1.6.12</version>
+			<version>1.7.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.microsoft.rest</groupId>
