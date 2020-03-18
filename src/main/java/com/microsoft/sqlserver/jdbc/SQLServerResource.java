@@ -624,5 +624,6 @@ public final class SQLServerResource extends ListResourceBundle {
                     "Enclave attestation failed, the DH public key signature can't be verified with the enclave public key."},
             {"R_AasJWTError", "An error occured when retrieving and validating the JSON web token."},
             {"R_AasEhdError", "aas-ehd claim from JWT did not match enclave public key."},
-            {"R_VbsRpDataError", "rp_data claim from JWT did not match client nonce."},};
+            {"R_VbsRpDataError", "rp_data claim from JWT did not match client nonce."},
+            {"R_clientCertError", "Reading client certificate failed. Please verify the location of the certificate."}};
 };

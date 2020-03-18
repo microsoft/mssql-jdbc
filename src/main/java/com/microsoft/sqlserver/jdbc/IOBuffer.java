@@ -1783,16 +1783,21 @@ final class TDSChannel implements Serializable {
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
             if (null != clientCertificate) {
-                KeyManager[] km = SQLServerCertificateUtils.getKeyManagerFromFile(clientCertificate, clientKey,
-                        clientKeyPassword);
+                try {
+                    KeyManager[] km = SQLServerCertificateUtils.getKeyManagerFromFile(clientCertificate, clientKey,
+                            clientKeyPassword);
+                    
+                    sslContext = SSLContext.getInstance(sslProtocol);
+                    sslContextProvider = sslContext.getProvider();
 
-                sslContext = SSLContext.getInstance(sslProtocol);
-                sslContextProvider = sslContext.getProvider();
+                    if (logger.isLoggable(Level.FINEST))
+                        logger.finest(toString() + " Initializing SSL context");
 
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Initializing SSL context");
-
-                sslContext.init(km, tm, null);
+                    sslContext.init(km, tm, null);
+                } catch (NullPointerException | FileNotFoundException e) {
+                    String strError = SQLServerException.getErrString("R_clientCertError");
+                    throw new SQLServerException(strError, null, 0, null);
+                }
             } else {
                 sslContext = SSLContext.getInstance(sslProtocol);
                 sslContextProvider = sslContext.getProvider();
