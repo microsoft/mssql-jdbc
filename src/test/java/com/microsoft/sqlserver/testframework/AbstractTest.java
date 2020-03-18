@@ -150,11 +150,11 @@ public abstract class AbstractTest {
         if (null == akvProvider) {
             File file = null;
             try {
-                file = new File("mssql-jdbc.properties");
+                file = new File(Constants.MSSQL_JDBC_PROPERTIES);
                 try (OutputStream os = new FileOutputStream(file);) {
                     Properties props = new Properties();
                     // Append to the list of hardcoded endpoints.
-                    props.setProperty("AKVTrustedEndpoints", ";vault.azure.net");
+                    props.setProperty(Constants.AKV_TRUSTED_ENDPOINTS_KEYWORD, ";vault.azure.net");
                     props.store(os, "");
                 }
                 akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
