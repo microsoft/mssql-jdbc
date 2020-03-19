@@ -3,9 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
-## [8.2.1] HotFix & Stable Release
+## [8.2.2] HotFix & Stable Release
 ### Added
-- Added new Azure Key Vault endpoints to the list of trusted endpoints [#1264](https://github.com/microsoft/mssql-jdbc/pull/1264) 
+- Added an option to configure the list of trusted Azure Key Vault endpoints [#1285](https://github.com/microsoft/mssql-jdbc/pull/1285)
+
+## [8.2.1] HotFix & Stable Release
 ### Fixed issues
 - Fixed a potential NullPointerException issue when retrieving data as java.time.LocalTime or java.time.LocalDate type with SQLServerResultSet.getObject() [#1250](https://github.com/microsoft/mssql-jdbc/pull/1250) 
 
