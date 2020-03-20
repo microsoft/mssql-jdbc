@@ -49,246 +49,250 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder;
 
+
 final class SQLServerCertificateUtils {
 
-	static KeyManager[] getKeyManagerFromFile(String certPath, String keyPath, String keyPassword)
-			throws IOException, GeneralSecurityException, SQLServerException {
-		if (keyPath != null && keyPath.length() > 0) {
-			return readPKCS8Certificate(certPath, keyPath, keyPassword);
-		} else {
-			return readPKCS12Certificate(certPath, keyPassword);
-		}
-	}
+    static KeyManager[] getKeyManagerFromFile(String certPath, String keyPath,
+            String keyPassword) throws IOException, GeneralSecurityException, SQLServerException {
+        if (keyPath != null && keyPath.length() > 0) {
+            return readPKCS8Certificate(certPath, keyPath, keyPassword);
+        } else {
+            return readPKCS12Certificate(certPath, keyPassword);
+        }
+    }
 
-	// PKCS#12 format
-	private static final String PKCS12_ALG = "PKCS12";
-	// PKCS#8 format
-	private static final String PEM_PRIVATE_START = "-----BEGIN PRIVATE KEY-----";
-	private static final String PEM_PRIVATE_END = "-----END PRIVATE KEY-----";
-	// PKCS#1 format
-	private static final String PEM_RSA_PRIVATE_START = "-----BEGIN RSA PRIVATE KEY-----";
-	// PVK format
-	private static final long PVK_MAGIC = 0xB0B5F11EL;
-	private static final byte[] RSA2_MAGIC = { 82, 83, 65, 50 };
-	private static final String RC4_ALG = "RC4";
-	private static final String RSA_ALG = "RSA";
+    // PKCS#12 format
+    private static final String PKCS12_ALG = "PKCS12";
+    private static final String SUN_X_509 = "SunX509";
+    // PKCS#8 format
+    private static final String PEM_PRIVATE_START = "-----BEGIN PRIVATE KEY-----";
+    private static final String PEM_PRIVATE_END = "-----END PRIVATE KEY-----";
+    private static final String JAVA_KEY_STORE = "JKS";
+    private static final String CLIENT_CERT = "client-cert";
+    private static final String CLIENT_KEY = "client-key";
+    // PKCS#1 format
+    private static final String PEM_RSA_PRIVATE_START = "-----BEGIN RSA PRIVATE KEY-----";
+    // PVK format
+    private static final long PVK_MAGIC = 0xB0B5F11EL;
+    private static final byte[] RSA2_MAGIC = {82, 83, 65, 50};
+    private static final String RC4_ALG = "RC4";
+    private static final String RSA_ALG = "RSA";
 
-	private static KeyManager[] readPKCS12Certificate(String certPath, String keyPassword)
-			throws NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException,
-			UnrecoverableKeyException, KeyStoreException {
-		KeyStore keystore = KeyStore.getInstance(PKCS12_ALG);
-		keystore.load(new FileInputStream(certPath), keyPassword.toCharArray());
-		KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
-		keyManagerFactory.init(keystore, keyPassword.toCharArray());
-		return keyManagerFactory.getKeyManagers();
-	}
+    private static KeyManager[] readPKCS12Certificate(String certPath,
+            String keyPassword) throws NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, UnrecoverableKeyException, KeyStoreException {
+        KeyStore keystore = KeyStore.getInstance(PKCS12_ALG);
+        keystore.load(new FileInputStream(certPath), keyPassword.toCharArray());
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(SUN_X_509);
+        keyManagerFactory.init(keystore, keyPassword.toCharArray());
+        return keyManagerFactory.getKeyManagers();
+    }
 
-	private static KeyManager[] readPKCS8Certificate(String certPath, String keyPath, String keyPassword)
-			throws IOException, GeneralSecurityException, SQLServerException {
-		Certificate clientCertificate = loadCertificate(certPath);
-		PrivateKey privateKey = loadPrivateKey(keyPath, keyPassword);
+    private static KeyManager[] readPKCS8Certificate(String certPath, String keyPath,
+            String keyPassword) throws IOException, GeneralSecurityException, SQLServerException {
+        Certificate clientCertificate = loadCertificate(certPath);
+        PrivateKey privateKey = loadPrivateKey(keyPath, keyPassword);
 
-		KeyStore keyStore = KeyStore.getInstance("JKS");
-		keyStore.load(null, null);
-		keyStore.setCertificateEntry("client-cert", clientCertificate);
-		keyStore.setKeyEntry("client-key", privateKey, keyPassword.toCharArray(),
-				new Certificate[] { clientCertificate });
+        KeyStore keyStore = KeyStore.getInstance(JAVA_KEY_STORE);
+        keyStore.load(null, null);
+        keyStore.setCertificateEntry(CLIENT_CERT, clientCertificate);
+        keyStore.setKeyEntry(CLIENT_KEY, privateKey, keyPassword.toCharArray(), new Certificate[] {clientCertificate});
 
-		KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-		kmf.init(keyStore, keyPassword.toCharArray());
-		return kmf.getKeyManagers();
-	}
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(keyStore, keyPassword.toCharArray());
+        return kmf.getKeyManagers();
+    }
 
-	private static PrivateKey loadPrivateKeyFromPKCS8(String key)
-			throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-		StringBuilder sb = new StringBuilder(key);
-		deleteFirst(sb, PEM_PRIVATE_START);
-		deleteFirst(sb, PEM_PRIVATE_END);
-		replaceAll(sb, "\\s", "");
-		byte[] pkcs8EncodedKey = Base64.getDecoder().decode(sb.toString());
+    private static PrivateKey loadPrivateKeyFromPKCS8(
+            String key) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        StringBuilder sb = new StringBuilder(key);
+        deleteFirst(sb, PEM_PRIVATE_START);
+        deleteFirst(sb, PEM_PRIVATE_END);
+        replaceAll(sb, "\\s", "");
+        byte[] pkcs8EncodedKey = Base64.getDecoder().decode(sb.toString());
 
-		KeyFactory factory = KeyFactory.getInstance(RSA_ALG);
-		return factory.generatePrivate(new PKCS8EncodedKeySpec(pkcs8EncodedKey));
-	}
+        KeyFactory factory = KeyFactory.getInstance(RSA_ALG);
+        return factory.generatePrivate(new PKCS8EncodedKeySpec(pkcs8EncodedKey));
+    }
 
-	private static void deleteFirst(StringBuilder sb, String str) {
-		int i = sb.indexOf(str);
-		if (i != -1) {
-			sb.delete(i, i + str.length());
-		}
-	}
+    private static void deleteFirst(StringBuilder sb, String str) {
+        int i = sb.indexOf(str);
+        if (i != -1) {
+            sb.delete(i, i + str.length());
+        }
+    }
 
-	private static void replaceAll(StringBuilder sb, String oldStr, String newStr) {
-		int index = sb.indexOf(oldStr);
-		while (index != -1) {
-			sb.replace(index, index + oldStr.length(), newStr);
-			index += newStr.length();
-			index = sb.indexOf(oldStr, index);
-		}
-	}
+    private static void replaceAll(StringBuilder sb, String oldStr, String newStr) {
+        int index = sb.indexOf(oldStr);
+        while (index != -1) {
+            sb.replace(index, index + oldStr.length(), newStr);
+            index += newStr.length();
+            index = sb.indexOf(oldStr, index);
+        }
+    }
 
-	private static PrivateKey loadPrivateKeyFromPKCS1(String key, String keyPass)
-			throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-		try {
-			SQLServerBouncyCastleLoader.loadBouncyCastle();
-		} catch (SecurityException se) {
-			// fall through, provider already loaded
-		}
-		PEMParser pemParser = null;
-		try {
-			pemParser = new PEMParser(new StringReader(key));
-			Object object = pemParser.readObject();
-			JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
-			KeyPair kp;
-			if (object instanceof PEMEncryptedKeyPair && keyPass != null) {
-				PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder().build(keyPass.toCharArray());
-				kp = converter.getKeyPair(((PEMEncryptedKeyPair) object).decryptKeyPair(decProv));
-			} else {
-				kp = converter.getKeyPair((PEMKeyPair) object);
-			}
-			return kp.getPrivate();
-		} finally {
-			pemParser.close();
-		}
-	}
+    private static PrivateKey loadPrivateKeyFromPKCS1(String key,
+            String keyPass) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        PEMParser pemParser = null;
+        try {
+            pemParser = new PEMParser(new StringReader(key));
+        } catch (Exception e) {
+            SQLServerBouncyCastleLoader.loadBouncyCastle();
+            pemParser = new PEMParser(new StringReader(key));
+        }
 
-	private static PrivateKey loadPrivateKeyFromPVK(String keyPath, String keyPass)
-			throws IOException, GeneralSecurityException, SQLServerException {
-		File f = new File(keyPath);
-		ByteBuffer buffer = ByteBuffer.allocate((int) f.length());
-		try (FileInputStream in = new FileInputStream(f)) {
-			in.getChannel().read(buffer);
-			buffer.order(ByteOrder.LITTLE_ENDIAN).rewind();
+        try {
+            Object object = pemParser.readObject();
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
+            KeyPair kp;
+            if (object instanceof PEMEncryptedKeyPair && keyPass != null) {
+                PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder().build(keyPass.toCharArray());
+                kp = converter.getKeyPair(((PEMEncryptedKeyPair) object).decryptKeyPair(decProv));
+            } else {
+                kp = converter.getKeyPair((PEMKeyPair) object);
+            }
+            return kp.getPrivate();
+        } finally {
+            pemParser.close();
+        }
+    }
 
-			long magic = buffer.getInt() & 0xFFFFFFFFL;
-			if (PVK_MAGIC != magic) {
-				SQLServerException.makeFromDriverError(null, magic, SQLServerResource.getResource("R_pvkHeaderError"),
-						"", false);
-			}
+    private static PrivateKey loadPrivateKeyFromPVK(String keyPath,
+            String keyPass) throws IOException, GeneralSecurityException, SQLServerException {
+        File f = new File(keyPath);
+        ByteBuffer buffer = ByteBuffer.allocate((int) f.length());
+        try (FileInputStream in = new FileInputStream(f)) {
+            in.getChannel().read(buffer);
+            buffer.order(ByteOrder.LITTLE_ENDIAN).rewind();
 
-			buffer.position(buffer.position() + 8); // skip reserved and keytype
-			boolean encrypted = buffer.getInt() != 0;
-			int saltLength = buffer.getInt();
-			int keyLength = buffer.getInt();
-			byte[] salt = new byte[saltLength];
-			buffer.get(salt);
+            long magic = buffer.getInt() & 0xFFFFFFFFL;
+            if (PVK_MAGIC != magic) {
+                SQLServerException.makeFromDriverError(null, magic, SQLServerResource.getResource("R_pvkHeaderError"),
+                        "", false);
+            }
 
-			buffer.position(buffer.position() + 8); // skip btype(1b), version(1b), reserved(2b), and keyalg(4b)
+            buffer.position(buffer.position() + 8); // skip reserved and keytype
+            boolean encrypted = buffer.getInt() != 0;
+            int saltLength = buffer.getInt();
+            int keyLength = buffer.getInt();
+            byte[] salt = new byte[saltLength];
+            buffer.get(salt);
 
-			byte[] key = new byte[keyLength - 8];
-			buffer.get(key);
+            buffer.position(buffer.position() + 8); // skip btype(1b), version(1b), reserved(2b), and keyalg(4b)
 
-			if (encrypted) {
-				MessageDigest digest = MessageDigest.getInstance("SHA1");
-				digest.update(salt);
-				if (keyPass != null) {
-					digest.update(keyPass.getBytes());
-				}
-				byte[] hash = digest.digest();
-				key = getSecretKeyFromHash(key, hash);
-			}
+            byte[] key = new byte[keyLength - 8];
+            buffer.get(key);
 
-			ByteBuffer keyBuff = ByteBuffer.wrap(key).order(ByteOrder.LITTLE_ENDIAN);
-			keyBuff.position(RSA2_MAGIC.length); // skip the header
+            if (encrypted) {
+                MessageDigest digest = MessageDigest.getInstance("SHA1");
+                digest.update(salt);
+                if (keyPass != null) {
+                    digest.update(keyPass.getBytes());
+                }
+                byte[] hash = digest.digest();
+                key = getSecretKeyFromHash(key, hash);
+            }
 
-			int byteLength = keyBuff.getInt() / 8;
-			BigInteger publicExponent = BigInteger.valueOf(keyBuff.getInt());
-			BigInteger modulus = getBigInteger(keyBuff, byteLength);
-			BigInteger prime1 = getBigInteger(keyBuff, byteLength / 2);
-			BigInteger prime2 = getBigInteger(keyBuff, byteLength / 2);
-			BigInteger primeExponent1 = getBigInteger(keyBuff, byteLength / 2);
-			BigInteger primeExponent2 = getBigInteger(keyBuff, byteLength / 2);
-			BigInteger crtCoefficient = getBigInteger(keyBuff, byteLength / 2);
-			BigInteger privateExponent = getBigInteger(keyBuff, byteLength);
+            ByteBuffer buff = ByteBuffer.wrap(key).order(ByteOrder.LITTLE_ENDIAN);
+            buff.position(RSA2_MAGIC.length); // skip the header
 
-			RSAPrivateCrtKeySpec spec = new RSAPrivateCrtKeySpec(modulus, publicExponent, privateExponent, prime1,
-					prime2, primeExponent1, primeExponent2, crtCoefficient);
-			KeyFactory factory = KeyFactory.getInstance(RSA_ALG);
-			return factory.generatePrivate(spec);
-		}
-	}
+            int byteLength = buff.getInt() / 8;
+            BigInteger publicExponent = BigInteger.valueOf(buff.getInt());
+            BigInteger modulus = getBigInteger(buff, byteLength);
+            BigInteger prime1 = getBigInteger(buff, byteLength / 2);
+            BigInteger prime2 = getBigInteger(buff, byteLength / 2);
+            BigInteger primeExponent1 = getBigInteger(buff, byteLength / 2);
+            BigInteger primeExponent2 = getBigInteger(buff, byteLength / 2);
+            BigInteger crtCoefficient = getBigInteger(buff, byteLength / 2);
+            BigInteger privateExponent = getBigInteger(buff, byteLength);
 
-	private static Certificate loadCertificate(String certificatePem) throws IOException, GeneralSecurityException {
-		CertificateFactory certificateFactory = CertificateFactory.getInstance("X509");
-		InputStream certstream = fileToStream(certificatePem);
-		return certificateFactory.generateCertificate(certstream);
-	}
+            RSAPrivateCrtKeySpec spec = new RSAPrivateCrtKeySpec(modulus, publicExponent, privateExponent, prime1,
+                    prime2, primeExponent1, primeExponent2, crtCoefficient);
+            KeyFactory factory = KeyFactory.getInstance(RSA_ALG);
+            return factory.generatePrivate(spec);
+        }
+    }
 
-	private static PrivateKey loadPrivateKey(String privateKeyPemPath, String privateKeyPassword)
-			throws GeneralSecurityException, IOException, SQLServerException {
-		String privateKeyPem = getStringFromFile(privateKeyPemPath);
+    private static Certificate loadCertificate(String certificatePem) throws IOException, GeneralSecurityException {
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X509");
+        InputStream certstream = fileToStream(certificatePem);
+        return certificateFactory.generateCertificate(certstream);
+    }
 
-		if (privateKeyPem.contains(PEM_PRIVATE_START)) { // PKCS#8 format
-			return loadPrivateKeyFromPKCS8(privateKeyPem);
-		} else if (privateKeyPem.contains(PEM_RSA_PRIVATE_START)) { // PKCS#1 format
-			return loadPrivateKeyFromPKCS1(privateKeyPem, privateKeyPassword);
-		} else {
-			return loadPrivateKeyFromPVK(privateKeyPemPath, privateKeyPassword);
-		}
-	}
+    private static PrivateKey loadPrivateKey(String privateKeyPemPath,
+            String privateKeyPassword) throws GeneralSecurityException, IOException, SQLServerException {
+        String privateKeyPem = getStringFromFile(privateKeyPemPath);
 
-	private static boolean startsWithMagic(byte[] b) {
-		for (int i = 0; i < RSA2_MAGIC.length; i++) {
-			if (b[i] != RSA2_MAGIC[i])
-				return false;
-		}
-		return true;
-	}
+        if (privateKeyPem.contains(PEM_PRIVATE_START)) { // PKCS#8 format
+            return loadPrivateKeyFromPKCS8(privateKeyPem);
+        } else if (privateKeyPem.contains(PEM_RSA_PRIVATE_START)) { // PKCS#1 format
+            return loadPrivateKeyFromPKCS1(privateKeyPem, privateKeyPassword);
+        } else {
+            return loadPrivateKeyFromPVK(privateKeyPemPath, privateKeyPassword);
+        }
+    }
 
-	private static byte[] getSecretKeyFromHash(byte[] originalKey, byte[] keyHash)
-			throws GeneralSecurityException, SQLServerException {
-		SecretKey strongKey = new SecretKeySpec(keyHash, 0, 16, RC4_ALG);
-		byte[] decoded = decryptSecretKey(strongKey, originalKey);
-		if (startsWithMagic(decoded)) {
-			return decoded;
-		}
+    private static boolean startsWithMagic(byte[] b) {
+        for (int i = 0; i < RSA2_MAGIC.length; i++) {
+            if (b[i] != RSA2_MAGIC[i])
+                return false;
+        }
+        return true;
+    }
 
-		// Couldn't find magic due to padding, trim the key
-		Arrays.fill(keyHash, 5, keyHash.length, (byte) 0);
-		SecretKey weakKey = new SecretKeySpec(keyHash, 0, 16, RC4_ALG);
-		decoded = decryptSecretKey(weakKey, originalKey);
-		if (startsWithMagic(decoded)) {
-			return decoded;
-		}
+    private static byte[] getSecretKeyFromHash(byte[] originalKey,
+            byte[] keyHash) throws GeneralSecurityException, SQLServerException {
+        SecretKey key = new SecretKeySpec(keyHash, 0, 16, RC4_ALG);
+        byte[] decrypted = decryptSecretKey(key, originalKey);
+        if (startsWithMagic(decrypted)) {
+            return decrypted;
+        }
 
-		SQLServerException.makeFromDriverError(null, originalKey, SQLServerResource.getResource("R_pvkParseError"), "",
-				false);
-		return null;
-	}
+        // Couldn't find magic due to padding, trim the key
+        Arrays.fill(keyHash, 5, keyHash.length, (byte) 0);
+        key = new SecretKeySpec(keyHash, 0, 16, RC4_ALG);
+        decrypted = decryptSecretKey(key, originalKey);
+        if (startsWithMagic(decrypted)) {
+            return decrypted;
+        }
 
-	private static byte[] decryptSecretKey(SecretKey key, byte[] encoded) throws GeneralSecurityException {
-		Cipher cipher = Cipher.getInstance(key.getAlgorithm());
-		cipher.init(Cipher.DECRYPT_MODE, key);
-		return cipher.doFinal(encoded);
-	}
+        SQLServerException.makeFromDriverError(null, originalKey, SQLServerResource.getResource("R_pvkParseError"), "",
+                false);
+        return null;
+    }
 
-	private static BigInteger getBigInteger(ByteBuffer buffer, int length) {
-		// Add an extra bit for signum
-		byte[] array = new byte[length + 1];
-		// Need to reverse the buffer because our buffer was set to Little Endian
-		for (int i = 0; i < length; i++) {
-			array[array.length - 1 - i] = buffer.get();
-		}
-		return new BigInteger(array);
-	}
+    private static byte[] decryptSecretKey(SecretKey key, byte[] encoded) throws GeneralSecurityException {
+        Cipher cipher = Cipher.getInstance(key.getAlgorithm());
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        return cipher.doFinal(encoded);
+    }
 
-	private static InputStream fileToStream(String fname) throws IOException {
-		FileInputStream fis = null;
-		DataInputStream dis = null;
-		try {
-			fis = new FileInputStream(fname);
-			dis = new DataInputStream(fis);
-			byte[] bytes = new byte[dis.available()];
-			dis.readFully(bytes);
-			ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-			return bais;
-		} finally {
-			dis.close();
-			fis.close();
-		}
-	}
+    private static BigInteger getBigInteger(ByteBuffer buffer, int length) {
+        // Add an extra bit for signum
+        byte[] array = new byte[length + 1];
+        // Write in reverse because our buffer was set to Little Endian
+        for (int i = 0; i < length; i++) {
+            array[array.length - 1 - i] = buffer.get();
+        }
+        return new BigInteger(array);
+    }
 
-	private static String getStringFromFile(String filePath) throws IOException {
-		return new String(Files.readAllBytes(Paths.get(filePath)));
-	}
+    private static InputStream fileToStream(String fname) throws IOException {
+        FileInputStream fis = null;
+        DataInputStream dis = null;
+        try {
+            fis = new FileInputStream(fname);
+            dis = new DataInputStream(fis);
+            byte[] bytes = new byte[dis.available()];
+            dis.readFully(bytes);
+            ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+            return bais;
+        } finally {
+            dis.close();
+            fis.close();
+        }
+    }
+
+    private static String getStringFromFile(String filePath) throws IOException {
+        return new String(Files.readAllBytes(Paths.get(filePath)));
+    }
 }
