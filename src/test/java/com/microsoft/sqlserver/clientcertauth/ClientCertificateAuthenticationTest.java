@@ -38,7 +38,18 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     @Test
     public void pkcs1Test() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey="
-                + clientKey + "-pkcs1.key;" + "clientKeyPassword=" + clientKeyPassword + ";";
+                + clientKey + "-pkcs1.key;";
+        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
+            rs.next();
+            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
+        }
+    }
+    
+    @Test
+    public void pkcs1EncryptedTest() throws Exception {
+        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey="
+                + clientKey + "-encrypted-pkcs1.key;" + "clientKeyPassword=" + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
             rs.next();
@@ -49,7 +60,18 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     @Test
     public void pkcs8Test() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey="
-                + clientKey + "-pkcs8.key;" + "clientKeyPassword=" + clientKeyPassword + ";";
+                + clientKey + "-pkcs8.key;";
+        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
+            rs.next();
+            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
+        }
+    }
+    
+    @Test
+    public void pkcs8EncryptedTest() throws Exception {
+        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey="
+                + clientKey + "-encrypted-pkcs8.key;" + "clientKeyPassword=" + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
             rs.next();
@@ -57,6 +79,27 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void pfxTest() throws Exception {
+        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pfx;";
+        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
+            rs.next();
+            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
+        }
+    }
+
+    @Test
+    public void pfxEncrytedTest() throws Exception {
+        String conStr = connectionString + ";clientCertificate=" + clientCertificate + "-encrypted.pfx;" + "clientKeyPassword="
+                + clientKeyPassword + ";";
+        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
+            rs.next();
+            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
+        }
+    }
+    
     @Test
     public void pvkTest() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".cer;" + "clientKey="
@@ -69,23 +112,10 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     }
 
     @Test
-    public void pfxTest() throws Exception {
-        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pfx;" + "clientKeyPassword="
-                + clientKeyPassword + ";";
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
-            rs.next();
-            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
-        }
-    }
-
-    @Test
     public void invalidCert() throws Exception {
         String conStr = connectionString + ";clientCertificate=invalid_path;" + "clientKeyPassword=" + clientKeyPassword
                 + ";";
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
-            rs.next();
+        try (Connection conn = DriverManager.getConnection(conStr)) {
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidPath")));
         }
@@ -95,9 +125,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     public void invalidCertPassword() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pfx;"
                 + "clientKeyPassword=invalid_password;";
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
-            rs.next();
+        try (Connection conn = DriverManager.getConnection(conStr)) {
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_keystorePassword")));
         }

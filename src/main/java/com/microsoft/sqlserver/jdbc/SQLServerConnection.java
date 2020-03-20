@@ -145,7 +145,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     
     private String clientCertificate = null;
     private String clientKey = null;
-    private String clientKeyPassword = null;
+    private String clientKeyPassword = "";
 
     final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;

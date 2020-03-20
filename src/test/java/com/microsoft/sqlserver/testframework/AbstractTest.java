@@ -63,7 +63,7 @@ public abstract class AbstractTest {
     
     protected static String clientCertificate = null;
     protected static String clientKey = null;
-    protected static String clientKeyPassword = null;
+    protected static String clientKeyPassword = "";
 
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
@@ -145,7 +145,7 @@ public abstract class AbstractTest {
         
         clientKey = getConfiguredProperty("clientKey", null);
         
-        clientKeyPassword = getConfiguredProperty("clientKeyPassword", null);
+        clientKeyPassword = getConfiguredProperty("clientKeyPassword", "");
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
