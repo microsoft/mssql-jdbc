@@ -185,6 +185,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_invalidEnclaveSessionFailed", "invalidate enclave session failed."},
             {"R_invalidEnclaveType", "Invalid enclave type {0}."},
             {"R_microsoft", "Microsoft"},
-            {"R_invalidPath", "invalid_path"},
+            {"R_invalidPath", "Reading client certificate failed"},
             {"R_keystorePassword", "keystore password was incorrect"}};
 }

@@ -51,9 +51,10 @@
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
 			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
 			reqExternalSetup  - For tests requiring external setup (excluded by default)
+			clientCertAuth  - - For tests requiring client certificate authentication setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
-		<excludedGroups>xSQLv15, NTLM, reqExternalSetup</excludedGroups>
+		<excludedGroups>xSQLv15, NTLM, reqExternalSetup, clientCertAuth</excludedGroups>
 
 		<!-- Use -preview for preview release, leave empty for official release.-->
 		<releaseExt>-preview</releaseExt>

@@ -132,15 +132,15 @@ final class SQLServerCertificateUtils {
 
     private static PrivateKey loadPrivateKeyFromPKCS1(String key,
             String keyPass) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        try {
+            SQLServerBouncyCastleLoader.loadBouncyCastle();
+        } catch (SecurityException e) {
+            // fall through, provider already loaded
+        }
+
         PEMParser pemParser = null;
         try {
             pemParser = new PEMParser(new StringReader(key));
-        } catch (Exception e) {
-            SQLServerBouncyCastleLoader.loadBouncyCastle();
-            pemParser = new PEMParser(new StringReader(key));
-        }
-
-        try {
             Object object = pemParser.readObject();
             JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
             KeyPair kp;
