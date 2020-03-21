@@ -6,9 +6,12 @@
 package com.microsoft.sqlserver.testframework;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -123,8 +126,8 @@ public abstract class AbstractTest {
         prop = getConfiguredProperty("enclaveServer", null);
         if (null == prop) {
             // default to server in connection string
-            String serverName = connectionString.substring(Constants.JDBC_PREFIX.length())
-                    .split(Constants.SEMI_COLON)[0];
+            String serverName = (connectionString.substring(Constants.JDBC_PREFIX.length())
+                    .split(Constants.SEMI_COLON)[0]).split(":")[0];
             enclaveServer = new String[1];
             enclaveServer[0] = new String(serverName);
         } else {
@@ -145,8 +148,22 @@ public abstract class AbstractTest {
         }
 
         if (null == akvProvider) {
-            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
-            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            File file = null;
+            try {
+                file = new File(Constants.MSSQL_JDBC_PROPERTIES);
+                try (OutputStream os = new FileOutputStream(file);) {
+                    Properties props = new Properties();
+                    // Append to the list of hardcoded endpoints.
+                    props.setProperty(Constants.AKV_TRUSTED_ENDPOINTS_KEYWORD, ";vault.azure.net");
+                    props.store(os, "");
+                }
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+                map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            } finally {
+                if (null != file) {
+                    file.delete();
+                }
+            }
         }
 
         if (!isKspRegistered) {
