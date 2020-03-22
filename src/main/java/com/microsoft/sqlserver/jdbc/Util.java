@@ -416,11 +416,12 @@ final class Util {
                     break;
                 }
                 case inEscapedValueStart: {
-                    // check for escaped }.
-                    // when we see a }, first check to see if this is before the end of the string to avoid index out of range exception
-                    // then check if the character immediately after is also a }.
-                    // if it is, then we have a }}, which is not the closing of the escaped state.
-                    if (ch == '}' && i + 1 <= tmpUrl.trim().length() && tmpUrl.charAt(i + 1) == '}') {
+                    /* check for escaped }.
+                    * when we see a }, first check to see if this is before the end of the string to avoid index out of range exception
+                    * then check if the character immediately after is also a }.
+                    * if it is, then we have a }}, which is not the closing of the escaped state.
+                    */
+                    if (ch == '}' && i + 1 <= tmpUrl.length() && tmpUrl.charAt(i + 1) == '}') {
                         builder = new StringBuilder();
                         builder.append(value);
                         builder.append(ch);
