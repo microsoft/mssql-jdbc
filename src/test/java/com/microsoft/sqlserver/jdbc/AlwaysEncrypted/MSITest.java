@@ -58,9 +58,8 @@ public class MSITest extends AESetup {
      */
     @Test
     public void testCharAkvWithCred() throws SQLException {
-        // remove the custom providers registered in AESetup
-        SQLServerConnection.unregisterColumnEncryptionKeyStoreProvider(Constants.AZURE_KEY_VAULT_NAME);
-        SQLServerConnection.unregisterColumnEncryptionKeyStoreProvider(Constants.CUSTOM_KEYSTORE_NAME);
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         // add credentials to connection string
         AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
@@ -76,9 +75,8 @@ public class MSITest extends AESetup {
      * Test AKV with MSI
      */
     public void testCharAkvWithMSI() throws SQLException {
-        // remove the custom providers registered in AESetup
-        SQLServerConnection.unregisterColumnEncryptionKeyStoreProvider(Constants.AZURE_KEY_VAULT_NAME);
-        SQLServerConnection.unregisterColumnEncryptionKeyStoreProvider(Constants.CUSTOM_KEYSTORE_NAME);
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         // set to use Managed Identity for keystore auth
         AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
@@ -91,9 +89,8 @@ public class MSITest extends AESetup {
      */
     @Test
     public void testNumericAkvWithCred() throws SQLException {
-        // remove the custom providers registered in AESetup
-        SQLServerConnection.unregisterColumnEncryptionKeyStoreProvider(Constants.AZURE_KEY_VAULT_NAME);
-        SQLServerConnection.unregisterColumnEncryptionKeyStoreProvider(Constants.CUSTOM_KEYSTORE_NAME);
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         // add credentials to connection string
         AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
@@ -110,9 +107,8 @@ public class MSITest extends AESetup {
      */
     @Test
     public void testNumericAkvWithMSI() throws SQLException {
-        // remove the custom providers registered in AESetup
-        SQLServerConnection.unregisterColumnEncryptionKeyStoreProvider(Constants.AZURE_KEY_VAULT_NAME);
-        SQLServerConnection.unregisterColumnEncryptionKeyStoreProvider(Constants.CUSTOM_KEYSTORE_NAME);
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         // set to use Managed Identity for keystore auth
         AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,

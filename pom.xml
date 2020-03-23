@@ -61,6 +61,7 @@
 
 		<!-- Driver Dependencies -->
 		<azure.keyvault.version>1.2.2</azure.keyvault.version>
+		<azure.client.auth.version>1.7.2</azure.client.auth.version>
 		<azure.adal4j.version>1.6.4</azure.adal4j.version>
 		<rest.client.version>1.7.0</rest.client.version>
 		<osgi.core.version>6.0.0</osgi.core.version>
@@ -98,7 +99,7 @@
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>azure-client-authentication</artifactId>
-			<version>1.7.2</version>
+			<version>${azure.client.auth.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.microsoft.rest</groupId>
