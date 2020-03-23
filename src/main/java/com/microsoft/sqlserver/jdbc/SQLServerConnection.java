@@ -724,16 +724,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param providerName
      *        custom key store provider name
      */
-    public static synchronized void removeGlobalCustomColumnEncryptionKeyStoreProvider(String providerName) {
+    public static synchronized void unregisterColumnEncryptionKeyStoreProvider(String providerName) {
         loggerExternal.entering(SQLServerConnection.class.getName(),
-                "removeGlobalCustomColumnEncryptionKeyStoreProvider", "Removing Column Encryption Key Store Provider");
+                "unregisterColumnEncryptionKeyStoreProvider", "Removing Column Encryption Key Store Provider");
 
         if (null != globalCustomColumnEncryptionKeyStoreProviders) {
             globalCustomColumnEncryptionKeyStoreProviders.remove(providerName);
         }
 
         loggerExternal.exiting(SQLServerConnection.class.getName(),
-                "removeGlobalCustomColumnEncryptionKeyStoreProvider",
+                "unregisterColumnEncryptionKeyStoreProvider",
                 "Number of Key store providers that are registered:"
                         + (null != globalCustomColumnEncryptionKeyStoreProviders ? globalCustomColumnEncryptionKeyStoreProviders
                                 .size() : 0));
