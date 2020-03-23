@@ -421,7 +421,7 @@ final class Util {
                     * then check if the character immediately after is also a }.
                     * if it is, then we have a }}, which is not the closing of the escaped state.
                     */
-                    if (ch == '}' && i + 1 <= tmpUrl.length() && tmpUrl.charAt(i + 1) == '}') {
+                    if (ch == '}' && i + 1 < tmpUrl.length() && tmpUrl.charAt(i + 1) == '}') {
                         builder = new StringBuilder();
                         builder.append(value);
                         builder.append(ch);
