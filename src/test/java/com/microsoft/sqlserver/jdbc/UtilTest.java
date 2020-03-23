@@ -50,6 +50,18 @@ public class UtilTest {
         assertEquals(prt.getProperty("serverName"), "localhost");
         assertEquals(prt.getProperty("user"), "username");
         assertEquals(prt.getProperty("databaseName"), "database");
+        
+        constr = "jdbc:sqlserver://localhost;password={pasS}}}";
+        prt = Util.parseUrl(constr, drLogger);
+        assertEquals(prt.getProperty("password"), "pasS}");
+        
+        constr = "jdbc:sqlserver://localhost;password={pasS}}} ";
+        prt = Util.parseUrl(constr, drLogger);
+        assertEquals(prt.getProperty("password"), "pasS}");
+        
+        constr = "jdbc:sqlserver://localhost;password={pasS}}} ;";
+        prt = Util.parseUrl(constr, drLogger);
+        assertEquals(prt.getProperty("password"), "pasS}");
     }
 
     private void writeAndReadLong(long valueToTest) {
