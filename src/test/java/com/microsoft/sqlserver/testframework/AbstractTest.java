@@ -201,8 +201,8 @@ public abstract class AbstractTest {
 
         // MSI properties
         msiClientId = getConfiguredProperty("msiClientId");
-        keyStorePrincipalId = getConfiguredProperty("keyVaultProviderClientId");
-        keyStoreSecret = getConfiguredProperty("keyVaultProviderClientKey");
+        keyStorePrincipalId = getConfiguredProperty("keyStorePrincipalId");
+        keyStoreSecret = getConfiguredProperty("keyStoreSecret");
 
         ds = updateDataSource(connectionString, new SQLServerDataSource());
         dsXA = updateDataSource(connectionString, new SQLServerXADataSource());
