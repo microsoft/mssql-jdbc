@@ -185,7 +185,7 @@ final class SQLServerCertificateUtils {
             if (encrypted) {
                 MessageDigest digest = MessageDigest.getInstance("SHA1");
                 digest.update(salt);
-                if (keyPass != null) {
+                if (null != keyPass) {
                     digest.update(keyPass.getBytes());
                 }
                 byte[] hash = digest.digest();

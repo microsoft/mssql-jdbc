@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -128,6 +129,21 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(conStr)) {
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_keystorePassword")));
+        }
+    }
+    
+    @Test
+    public void testDataSource() throws Exception {
+        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey="
+                + clientKey + "-pkcs1.key;";
+        
+        SQLServerDataSource dsLocal = new SQLServerDataSource();
+        AbstractTest.updateDataSource(conStr, dsLocal);
+        
+        try (Connection conn = dsLocal.getConnection(); Statement stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
+            rs.next();
+            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
         }
     }
 }

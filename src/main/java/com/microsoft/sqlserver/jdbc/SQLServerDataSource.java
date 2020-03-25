@@ -967,12 +967,6 @@ public class SQLServerDataSource
         setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY.toString(),
                 keyPath);
     }
-    
-    @Override
-    public String getClientKeyPassword() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(),
-                SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.getDefaultValue());
-    }
 
     @Override
     public void setClientKeyPassword(String password) {

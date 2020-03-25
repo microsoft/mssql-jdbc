@@ -933,13 +933,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Private key file path.
      */
     void setClientKey(String keyPath);
-    
-    /**
-     * Returns the password to be used for Private key provided by the user for client certificate authentication.
-     * 
-     * @return Private key password.
-     */
-    String getClientKeyPassword();
 
     /**
      * Sets the password to be used for Private key provided by the user for client certificate authentication.

@@ -305,6 +305,15 @@ public abstract class AbstractTest {
                         case Constants.ENCLAVE_ATTESTATIONPROTOCOL:
                             ds.setEnclaveAttestationProtocol(value);
                             break;
+                        case Constants.CLIENT_CERTIFICATE:
+                            ds.setClientCertificate(value);
+                            break;
+                        case Constants.CLIENT_KEY:
+                            ds.setClientKey(value);
+                            break;
+                        case Constants.CLIENT_KEY_PASSWORD:
+                            ds.setClientKeyPassword(value);
+                            break;
                         default:
                             break;
                     }

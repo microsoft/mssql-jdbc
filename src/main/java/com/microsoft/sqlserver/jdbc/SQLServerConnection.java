@@ -4985,7 +4985,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 + 4; // AE is always on;
 
         // only add lengths of password and username if not using SSPI or requesting federated authentication info
-        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested) && clientCertificate == null) {
+        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested) && null == clientCertificate) {
             len = len + passwordLen + userBytes.length;
         }
 
@@ -5063,7 +5063,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
             tdsWriter.writeShort((short) (0));
 
-        } else if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested) && clientCertificate == null) {
+        } else if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested) && null == clientCertificate) {
             // User and Password
             tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
             tdsWriter.writeShort((short) (sUser == null ? 0 : sUser.length()));
@@ -5156,7 +5156,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // if we are using NTLM or SSPI or fed auth ADAL, do not send over username/password, since we will use SSPI
         // instead
         // Also do not send username or password if user is attempting client certificate authentication.
-        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested) && clientCertificate == null) {
+        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested) && null == clientCertificate) {
             tdsWriter.writeBytes(userBytes); // Username
             tdsWriter.writeBytes(passwordBytes); // Password (encrypted)
         }

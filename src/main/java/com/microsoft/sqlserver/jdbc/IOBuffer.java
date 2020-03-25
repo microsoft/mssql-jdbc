@@ -1786,7 +1786,7 @@ final class TDSChannel implements Serializable {
                 try {
                     KeyManager[] km = SQLServerCertificateUtils.getKeyManagerFromFile(clientCertificate, clientKey,
                             clientKeyPassword);
-                    
+
                     sslContext = SSLContext.getInstance(sslProtocol);
                     sslContextProvider = sslContext.getProvider();
 
