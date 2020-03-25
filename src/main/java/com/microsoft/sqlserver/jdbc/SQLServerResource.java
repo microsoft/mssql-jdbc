@@ -625,5 +625,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_AasJWTError", "An error occured when retrieving and validating the JSON web token."},
             {"R_AasEhdError", "aas-ehd claim from JWT did not match enclave public key."},
             {"R_VbsRpDataError", "rp_data claim from JWT did not match client nonce."},
+            {"R_pvkParseError", "Could not read Private Key from PVK, check the password provided."},
+            {"R_pvkHeaderError", "Cannot parse the PVK, PVK file does not contain the correct header."},
             {"R_clientCertError", "Reading client certificate failed. Please verify the location of the certificate."}};
 };
