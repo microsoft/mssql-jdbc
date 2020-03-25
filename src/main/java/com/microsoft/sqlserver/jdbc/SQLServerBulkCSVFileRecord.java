@@ -51,7 +51,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
     private final String delimiter;
 
     /*
-     * Comiled delimiter pattern
+     * Compiled delimiter pattern
      */
     private final Pattern delimiterPattern;
 
