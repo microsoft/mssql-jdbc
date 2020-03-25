@@ -129,6 +129,7 @@
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk15on</artifactId>
 			<version>1.64</version>
+			<optional>true</optional>
 		</dependency>
 
 
