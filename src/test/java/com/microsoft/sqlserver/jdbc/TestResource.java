@@ -63,6 +63,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_wrongExceptionMessage", "Wrong exception message"},
             {"R_parameterNotDefined", "Parameter {0} was not defined"},
             {"R_unexpectedExceptionContent", "Unexpected content in exception message"},
+            {"R_connectionClosed", "The connection has been closed"},
             {"R_conversionFailed", "Conversion failed when converting {0} to {1} data type"},
             {"R_invalidQueryTimeout", "The query timeout value {0} is not valid."},
             {"R_skipAzure", "Skipping test case on Azure SQL."},
