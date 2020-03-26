@@ -1891,6 +1891,8 @@ final class TDSChannel implements Serializable {
                     && (SQLServerException.getErrString("R_truncatedServerResponse").equals(errMsg)
                             || SQLServerException.getErrString("R_truncatedServerResponse").equals(causeErrMsg))) {
                 con.terminate(SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED, form.format(msgArgs), e);
+            } else if (e instanceof FileNotFoundException) {
+                throw new SQLServerException(SQLServerException.getErrString("R_clientCertError"), null, 0, null);
             } else {
                 con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs), e);
             }
