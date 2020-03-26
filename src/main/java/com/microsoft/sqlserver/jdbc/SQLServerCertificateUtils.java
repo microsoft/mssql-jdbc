@@ -152,7 +152,9 @@ final class SQLServerCertificateUtils {
             }
             return kp.getPrivate();
         } finally {
-            pemParser.close();
+            if (null != pemParser) {
+                pemParser.close();
+            }
         }
     }
 
@@ -276,7 +278,7 @@ final class SQLServerCertificateUtils {
         return new BigInteger(array);
     }
 
-    private static InputStream fileToStream(String fname) throws IOException {
+    private static InputStream fileToStream(String fname) throws IOException, FileNotFoundException {
         FileInputStream fis = null;
         DataInputStream dis = null;
         try {
@@ -287,8 +289,12 @@ final class SQLServerCertificateUtils {
             ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
             return bais;
         } finally {
-            dis.close();
-            fis.close();
+            if (null != dis) {
+                dis.close();
+            }
+            if (null != fis) {
+                fis.close();
+            }
         }
     }
 

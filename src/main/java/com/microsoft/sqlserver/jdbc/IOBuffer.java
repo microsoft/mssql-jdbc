@@ -1794,7 +1794,7 @@ final class TDSChannel implements Serializable {
                         logger.finest(toString() + " Initializing SSL context");
 
                     sslContext.init(km, tm, null);
-                } catch (NullPointerException | FileNotFoundException e) {
+                } catch (FileNotFoundException e) {
                     String strError = SQLServerException.getErrString("R_clientCertError");
                     throw new SQLServerException(strError, null, 0, null);
                 }
