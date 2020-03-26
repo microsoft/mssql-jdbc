@@ -1782,9 +1782,17 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
-            KeyManager[] km = (null != clientCertificate && clientCertificate.length() > 0) ? SQLServerCertificateUtils
-                    .getKeyManagerFromFile(clientCertificate, clientKey, clientKeyPassword) : null;
-
+            KeyManager[] km = null;
+            if (null != clientCertificate) {
+                try {
+                    km = SQLServerCertificateUtils.getKeyManagerFromFile(clientCertificate, clientKey,
+                            clientKeyPassword);
+                } catch (FileNotFoundException e) {
+                    String strError = SQLServerException.getErrString("R_clientCertError");
+                    throw new SQLServerException(strError, null, 0, null);
+                }
+            }
+            
             sslContext = SSLContext.getInstance(sslProtocol);
             sslContextProvider = sslContext.getProvider();
 
@@ -1891,8 +1899,6 @@ final class TDSChannel implements Serializable {
                     && (SQLServerException.getErrString("R_truncatedServerResponse").equals(errMsg)
                             || SQLServerException.getErrString("R_truncatedServerResponse").equals(causeErrMsg))) {
                 con.terminate(SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED, form.format(msgArgs), e);
-            } else if (e instanceof FileNotFoundException) {
-                throw new SQLServerException(SQLServerException.getErrString("R_clientCertError"), null, 0, null);
             } else {
                 con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs), e);
             }
