@@ -16,6 +16,7 @@ import java.io.StringReader;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
@@ -107,26 +108,16 @@ final class SQLServerCertificateUtils {
         StringBuilder sb = new StringBuilder(key);
         deleteFirst(sb, PEM_PRIVATE_START);
         deleteFirst(sb, PEM_PRIVATE_END);
-        replaceAll(sb, "\\s", "");
-        byte[] pkcs8EncodedKey = Base64.getDecoder().decode(sb.toString());
+        byte[] formattedKey = Base64.getDecoder().decode(sb.toString().replaceAll("\\s",""));
 
         KeyFactory factory = KeyFactory.getInstance(RSA_ALG);
-        return factory.generatePrivate(new PKCS8EncodedKeySpec(pkcs8EncodedKey));
+        return factory.generatePrivate(new PKCS8EncodedKeySpec(formattedKey));
     }
 
     private static void deleteFirst(StringBuilder sb, String str) {
         int i = sb.indexOf(str);
         if (i != -1) {
             sb.delete(i, i + str.length());
-        }
-    }
-
-    private static void replaceAll(StringBuilder sb, String oldStr, String newStr) {
-        int index = sb.indexOf(oldStr);
-        while (index != -1) {
-            sb.replace(index, index + oldStr.length(), newStr);
-            index += newStr.length();
-            index = sb.indexOf(oldStr, index);
         }
     }
 
