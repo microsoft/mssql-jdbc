@@ -1598,9 +1598,9 @@ final class TDSChannel implements Serializable {
      *        Server Host Name for SSL Handshake
      * @param port
      *        Server Port for SSL Handshake
-     * @param clientCertificate 
+     * @param clientCertificate
      *        Client certificate path
-     * @param clientKey 
+     * @param clientKey
      *        Private key file path
      * @param clientKeyPassword
      *        Private key file's password
@@ -1782,31 +1782,16 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
-            if (null != clientCertificate) {
-                try {
-                    KeyManager[] km = SQLServerCertificateUtils.getKeyManagerFromFile(clientCertificate, clientKey,
-                            clientKeyPassword);
+            KeyManager[] km = (null != clientCertificate && clientCertificate.length() > 0) ? SQLServerCertificateUtils
+                    .getKeyManagerFromFile(clientCertificate, clientKey, clientKeyPassword) : null;
 
-                    sslContext = SSLContext.getInstance(sslProtocol);
-                    sslContextProvider = sslContext.getProvider();
+            sslContext = SSLContext.getInstance(sslProtocol);
+            sslContextProvider = sslContext.getProvider();
 
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(toString() + " Initializing SSL context");
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest(toString() + " Initializing SSL context");
 
-                    sslContext.init(km, tm, null);
-                } catch (NullPointerException | FileNotFoundException e) {
-                    String strError = SQLServerException.getErrString("R_clientCertError");
-                    throw new SQLServerException(strError, null, 0, null);
-                }
-            } else {
-                sslContext = SSLContext.getInstance(sslProtocol);
-                sslContextProvider = sslContext.getProvider();
-
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Initializing SSL context");
-
-                sslContext.init(null, tm, null);
-            }
+            sslContext.init(km, tm, null);
 
             // Got the SSL context. Now create an SSL socket over our own proxy socket
             // which we can toggle between TDS-encapsulated and raw communications.
