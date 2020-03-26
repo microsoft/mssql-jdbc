@@ -146,4 +146,27 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
             assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
         }
     }
+
+    
+    @Test
+    public void testEncryptTrusted() throws Exception {
+        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey="
+                + clientKey + "-pkcs8.key;" + "encrypt=true;trustServerCertificate=true;";
+        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID");
+            rs.next();
+            assertTrue(rs.getBoolean(1));
+        }
+    }
+
+    @Test
+    public void testEncryptUntrusted() throws Exception {
+        String conStr = connectionString + ";clientCertificate=" + clientCertificate + ".pem;" + "clientKey="
+                + clientKey + "-pkcs8.key;" + "encrypt=true;trustServerCertificate=false;trustStore=" + trustStorePath;
+        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID");
+            rs.next();
+            assertTrue(rs.getBoolean(1));
+        }
+    }
 }
