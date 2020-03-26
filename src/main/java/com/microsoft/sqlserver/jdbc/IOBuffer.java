@@ -1782,31 +1782,24 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
+            KeyManager[] km = null;
             if (null != clientCertificate) {
                 try {
-                    KeyManager[] km = SQLServerCertificateUtils.getKeyManagerFromFile(clientCertificate, clientKey,
+                    km = SQLServerCertificateUtils.getKeyManagerFromFile(clientCertificate, clientKey,
                             clientKeyPassword);
-
-                    sslContext = SSLContext.getInstance(sslProtocol);
-                    sslContextProvider = sslContext.getProvider();
-
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(toString() + " Initializing SSL context");
-
-                    sslContext.init(km, tm, null);
                 } catch (FileNotFoundException e) {
                     String strError = SQLServerException.getErrString("R_clientCertError");
                     throw new SQLServerException(strError, null, 0, null);
                 }
-            } else {
-                sslContext = SSLContext.getInstance(sslProtocol);
-                sslContextProvider = sslContext.getProvider();
-
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Initializing SSL context");
-
-                sslContext.init(null, tm, null);
             }
+            
+            sslContext = SSLContext.getInstance(sslProtocol);
+            sslContextProvider = sslContext.getProvider();
+
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest(toString() + " Initializing SSL context");
+
+            sslContext.init(km, tm, null);
 
             // Got the SSL context. Now create an SSL socket over our own proxy socket
             // which we can toggle between TDS-encapsulated and raw communications.
