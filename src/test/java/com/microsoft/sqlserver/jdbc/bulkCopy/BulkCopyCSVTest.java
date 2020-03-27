@@ -213,7 +213,7 @@ public class BulkCopyCSVTest extends AbstractTest {
                     for (int i = 1; i <= totalColumns; i++) {
                         String srcValue = srcValues[i - 1];
                         String dstValue = dstResultSet.getString(i);
-                        srcValue = (srcValue.isEmpty()) ? null : srcValue;
+                        srcValue = (null != srcValue) ? (srcValue.isEmpty()) ? null : srcValue : null;
                         srcValue = (null != srcValue) ? srcValue.trim() : srcValue;
                         dstValue = (null != dstValue) ? dstValue.trim() : dstValue;
                         // get the value from csv as string and compare them
