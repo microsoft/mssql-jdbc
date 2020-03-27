@@ -365,6 +365,7 @@ final class TDS {
     static final byte ENCRYPT_ON = 0x01;
     static final byte ENCRYPT_NOT_SUP = 0x02;
     static final byte ENCRYPT_REQ = 0x03;
+    static final byte ENCRYPT_CLIENT_CERT = (byte) 0x80;
     static final byte ENCRYPT_INVALID = (byte) 0xFF;
 
     static final String getEncryptionLevel(int level) {

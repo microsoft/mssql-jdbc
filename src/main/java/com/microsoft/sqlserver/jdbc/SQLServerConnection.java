@@ -2654,7 +2654,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 0, 0, 0, 0, 0, 0,
 
                 // - Encryption -
-                (null == clientCertificate) ? requestedEncryptionLevel : (byte) (requestedEncryptionLevel | (byte) 0x80),
+                (null == clientCertificate) ? requestedEncryptionLevel : (byte) (requestedEncryptionLevel | TDS.ENCRYPT_CLIENT_CERT),
 
                 // TRACEID Data Session (ClientConnectionId + ActivityId) - Initialize to 0
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
