@@ -56,7 +56,8 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
     private final Pattern delimiterPattern;
 
     /*
-     * Regex to match delimiters followed by 0 or even number of quotes
+     * Regex to match delimiters followed by 0 or even number of quotes. This splits the line following RFC4180 spec and
+     * allow for delimiter inside quotes. e.g. "aaaa","bb,bb","cccc"
      */
     private static final String delimiterRegex = "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
 
