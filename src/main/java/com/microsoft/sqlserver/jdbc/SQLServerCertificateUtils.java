@@ -79,9 +79,13 @@ final class SQLServerCertificateUtils {
     private static final String RSA_ALG = "RSA";
 
     private static KeyManager[] readPKCS12Certificate(String certPath,
-            String keyPassword) throws NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, UnrecoverableKeyException, KeyStoreException {
+            String keyPassword) throws NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, UnrecoverableKeyException, KeyStoreException, SQLServerException {
         KeyStore keystore = KeyStore.getInstance(PKCS12_ALG);
-        keystore.load(new FileInputStream(certPath), keyPassword.toCharArray());
+        try {
+            keystore.load(new FileInputStream(certPath), keyPassword.toCharArray());
+        } catch (FileNotFoundException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_clientCertError"), null, 0, null);
+        }
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(SUN_X_509);
         keyManagerFactory.init(keystore, keyPassword.toCharArray());
         return keyManagerFactory.getKeyManagers();
@@ -204,7 +208,7 @@ final class SQLServerCertificateUtils {
         }
     }
 
-    private static Certificate loadCertificate(String certificatePem) throws IOException, GeneralSecurityException {
+    private static Certificate loadCertificate(String certificatePem) throws IOException, GeneralSecurityException, SQLServerException {
         CertificateFactory certificateFactory = CertificateFactory.getInstance("X509");
         InputStream certstream = fileToStream(certificatePem);
         return certificateFactory.generateCertificate(certstream);
@@ -268,7 +272,7 @@ final class SQLServerCertificateUtils {
         return new BigInteger(array);
     }
 
-    private static InputStream fileToStream(String fname) throws IOException, FileNotFoundException {
+    private static InputStream fileToStream(String fname) throws IOException, SQLServerException {
         FileInputStream fis = null;
         DataInputStream dis = null;
         try {
@@ -278,6 +282,8 @@ final class SQLServerCertificateUtils {
             dis.readFully(bytes);
             ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
             return bais;
+        } catch (FileNotFoundException e) { 
+            throw new SQLServerException(SQLServerException.getErrString("R_clientCertError"), null, 0, null);
         } finally {
             if (null != dis) {
                 dis.close();
