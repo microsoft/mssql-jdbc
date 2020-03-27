@@ -275,6 +275,18 @@ public final class TestUtils {
     }
 
     /**
+     * Deletes the contents of a table.
+     * @param con
+     * @param tableName
+     * @throws SQLException
+     */
+    public static void clearTable(Connection con, String tableName) throws SQLException {
+        try (Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("DELETE FROM " + tableName);
+        }
+    }
+
+    /**
      * mimic "DROP View ..."
      * 
      * @param tableName
