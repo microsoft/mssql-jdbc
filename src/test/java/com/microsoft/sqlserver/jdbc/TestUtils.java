@@ -280,7 +280,7 @@ public final class TestUtils {
      * @param tableName
      * @throws SQLException
      */
-    public static void clearTable(java.sql.Connection con, String tableName) throws SQLException {
+    public static void clearTable(Connection con, String tableName) throws SQLException {
         try (Statement stmt = con.createStatement()) {
             stmt.executeUpdate("DELETE FROM " + tableName);
         }
