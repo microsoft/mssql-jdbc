@@ -180,11 +180,12 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
      */
     @Test
     public void testDataSource() throws Exception {
-        String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
-                + clientKey + PKCS1_KEY_SUFFIX;
-
         SQLServerDataSource dsLocal = new SQLServerDataSource();
-        AbstractTest.updateDataSource(conStr, dsLocal);
+        AbstractTest.updateDataSource(connectionString, dsLocal);
+        dsLocal.setClientCertificate(clientCertificate + PEM_SUFFIX.substring(0, PEM_SUFFIX.length() - 1));
+        dsLocal.setClientKey(
+                clientKey + ENCRYPTED_PKCS1_KEY_SUFFIX.substring(0, ENCRYPTED_PKCS1_KEY_SUFFIX.length() - 1));
+        dsLocal.setClientKeyPassword(clientKeyPassword);
 
         try (Connection conn = dsLocal.getConnection()) {
             assertTrue(conn.isValid(1));
@@ -216,7 +217,8 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     @Test
     public void testEncryptUntrusted() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
-                + clientKey + PKCS8_KEY_SUFFIX + "encrypt=true;trustServerCertificate=false;trustStore=" + trustStorePath;
+                + clientKey + PKCS8_KEY_SUFFIX + "encrypt=true;trustServerCertificate=false;trustStore="
+                + trustStorePath;
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt
                     .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID");
