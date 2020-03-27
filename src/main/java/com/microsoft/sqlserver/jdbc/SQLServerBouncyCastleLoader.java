@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.security.Provider;
 import java.security.Security;
 
 /*
@@ -13,6 +14,9 @@ import java.security.Security;
  */
 class SQLServerBouncyCastleLoader {
     static void loadBouncyCastle() {
-        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        Provider p = new org.bouncycastle.jce.provider.BouncyCastleProvider();
+        if (null == Security.getProvider(p.getName())) {
+            Security.addProvider(p);
+        }
     }
 }
