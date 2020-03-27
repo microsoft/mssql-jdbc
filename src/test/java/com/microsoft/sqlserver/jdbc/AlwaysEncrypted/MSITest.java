@@ -66,13 +66,11 @@ public class MSITest extends AESetup {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         // add credentials to connection string
-        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
-                Constants.KEYSTORE_AUTHENTICATION, "KeyVaultClientSecret");
-        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.KEYSTORE_PRINCIPALID,
-                keyStorePrincipalId);
-        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.KEYSTORE_SECRET,
-                keyStoreSecret);
-        testCharAkv();
+        String connStr = AETestConnectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_AUTHENTICATION, "KeyVaultClientSecret");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_PRINCIPALID, keyStorePrincipalId);
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_SECRET, keyStoreSecret);
+        testCharAkv(connStr);
     }
 
     /*
@@ -84,9 +82,10 @@ public class MSITest extends AESetup {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         // set to use Managed Identity for keystore auth
-        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
-                Constants.KEYSTORE_AUTHENTICATION, "KeyVaultManagedIdentity");
-        testCharAkv();
+        String connStr = AETestConnectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_AUTHENTICATION,
+                "KeyVaultManagedIdentity");
+        testCharAkv(connStr);
     }
 
     /*
@@ -98,13 +97,11 @@ public class MSITest extends AESetup {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         // add credentials to connection string
-        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
-                Constants.KEYSTORE_AUTHENTICATION, "KeyVaultClientSecret");
-        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.KEYSTORE_PRINCIPALID,
-                keyStorePrincipalId);
-        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.KEYSTORE_SECRET,
-                keyStoreSecret);
-        testNumericAKV();
+        String connStr = AETestConnectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_AUTHENTICATION, "KeyVaultClientSecret");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_PRINCIPALID, keyStorePrincipalId);
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_SECRET, keyStoreSecret);
+        testNumericAKV(connStr);
     }
 
     /*
@@ -116,14 +113,15 @@ public class MSITest extends AESetup {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         // set to use Managed Identity for keystore auth
-        AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString,
-                Constants.KEYSTORE_AUTHENTICATION, "KeyVaultManagedIdentity");
-        testNumericAKV();
+        String connStr = AETestConnectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_AUTHENTICATION,
+                "KeyVaultManagedIdentity");
+        testNumericAKV(connStr);
     }
 
-    private void testCharAkv() throws SQLException {
+    private void testCharAkv(String connStr) throws SQLException {
         String sql = "select * from " + CHAR_TABLE_AE;
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = PrepUtil.getConnection(connStr);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
@@ -140,12 +138,11 @@ public class MSITest extends AESetup {
                 }
             }
         }
-
     }
 
-    private void testNumericAKV() throws SQLException {
+    private void testNumericAKV(String connStr) throws SQLException {
         String sql = "select * from " + NUMERIC_TABLE_AE;
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
+        try (SQLServerConnection con = PrepUtil.getConnection(connStr);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
