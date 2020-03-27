@@ -57,7 +57,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     public void pkcs1Test() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
                 + clientKey + PKCS1_KEY_SUFFIX;
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(conStr)) {
             assertTrue(conn.isValid(1));
         }
     }
@@ -71,7 +71,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     public void pkcs1EncryptedTest() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
                 + clientKey + ENCRYPTED_PKCS1_KEY_SUFFIX + "clientKeyPassword=" + clientKeyPassword + ";";
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(conStr)) {
             assertTrue(conn.isValid(1));
         }
     }
@@ -85,7 +85,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     public void pkcs8Test() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
                 + clientKey + PKCS8_KEY_SUFFIX;
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(conStr)) {
             assertTrue(conn.isValid(1));
         }
     }
@@ -99,7 +99,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     public void pkcs8EncryptedTest() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
                 + clientKey + ENCRYPTED_PKCS8_KEY_SUFFIX + "clientKeyPassword=" + clientKeyPassword + ";";
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(conStr)) {
             assertTrue(conn.isValid(1));
         }
     }
@@ -112,7 +112,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     @Test
     public void pfxTest() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PFX_KEY_SUFFIX;
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(conStr)) {
             assertTrue(conn.isValid(1));
         }
     }
@@ -126,7 +126,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     public void pfxEncrytedTest() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + ENCRYPTED_PFX_KEY_SUFFIX
                 + "clientKeyPassword=" + clientKeyPassword + ";";
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(conStr)) {
             assertTrue(conn.isValid(1));
         }
     }
@@ -140,7 +140,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     public void pvkTest() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + CER_SUFFIX + "clientKey="
                 + clientKey + PVK_SUFFIX + "clientKeyPassword=" + clientKeyPassword + ";";
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(conStr)) {
             assertTrue(conn.isValid(1));
         }
     }
@@ -186,7 +186,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
         SQLServerDataSource dsLocal = new SQLServerDataSource();
         AbstractTest.updateDataSource(conStr, dsLocal);
 
-        try (Connection conn = dsLocal.getConnection(); Statement stmt = conn.createStatement()) {
+        try (Connection conn = dsLocal.getConnection()) {
             assertTrue(conn.isValid(1));
         }
     }
