@@ -111,7 +111,7 @@ final class SQLServerCertificateUtils {
         StringBuilder sb = new StringBuilder(key);
         deleteFirst(sb, PEM_PRIVATE_START);
         deleteFirst(sb, PEM_PRIVATE_END);
-        byte[] formattedKey = Base64.getDecoder().decode(sb.toString().replaceAll("\\s",""));
+        byte[] formattedKey = Base64.getDecoder().decode(sb.toString().replaceAll("\\s", ""));
 
         KeyFactory factory = KeyFactory.getInstance(RSA_ALG);
         return factory.generatePrivate(new PKCS8EncodedKeySpec(formattedKey));
@@ -126,12 +126,7 @@ final class SQLServerCertificateUtils {
 
     private static PrivateKey loadPrivateKeyFromPKCS1(String key,
             String keyPass) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-        try {
-            SQLServerBouncyCastleLoader.loadBouncyCastle();
-        } catch (SecurityException e) {
-            // fall through, provider already loaded
-        }
-
+        SQLServerBouncyCastleLoader.loadBouncyCastle();
         PEMParser pemParser = null;
         try {
             pemParser = new PEMParser(new StringReader(key));
