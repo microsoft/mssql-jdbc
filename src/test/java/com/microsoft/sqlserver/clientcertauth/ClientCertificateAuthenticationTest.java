@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
@@ -57,9 +58,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
                 + clientKey + PKCS1_KEY_SUFFIX;
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
-            rs.next();
-            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
+            assertTrue(conn.isValid(1));
         }
     }
 
@@ -73,9 +72,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
                 + clientKey + ENCRYPTED_PKCS1_KEY_SUFFIX + "clientKeyPassword=" + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
-            rs.next();
-            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
+            assertTrue(conn.isValid(1));
         }
     }
 
@@ -89,9 +86,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
                 + clientKey + PKCS8_KEY_SUFFIX;
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
-            rs.next();
-            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
+            assertTrue(conn.isValid(1));
         }
     }
 
@@ -105,9 +100,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
                 + clientKey + ENCRYPTED_PKCS8_KEY_SUFFIX + "clientKeyPassword=" + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
-            rs.next();
-            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
+            assertTrue(conn.isValid(1));
         }
     }
 
@@ -120,9 +113,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     public void pfxTest() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PFX_KEY_SUFFIX;
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
-            rs.next();
-            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
+            assertTrue(conn.isValid(1));
         }
     }
 
@@ -136,9 +127,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + ENCRYPTED_PFX_KEY_SUFFIX
                 + "clientKeyPassword=" + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
-            rs.next();
-            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
+            assertTrue(conn.isValid(1));
         }
     }
 
@@ -152,9 +141,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + CER_SUFFIX + "clientKey="
                 + clientKey + PVK_SUFFIX + "clientKeyPassword=" + clientKeyPassword + ";";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
-            rs.next();
-            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
+            assertTrue(conn.isValid(1));
         }
     }
 
@@ -168,7 +155,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
         String conStr = connectionString + ";clientCertificate=invalid_path;" + "clientKeyPassword=" + clientKeyPassword
                 + ";";
         try (Connection conn = DriverManager.getConnection(conStr)) {} catch (SQLServerException e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidPath")));
+            assertTrue(e.getCause().getMessage().matches(TestUtils.formatErrorMsg("R_clientCertError")));
         }
     }
 
@@ -200,9 +187,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
         AbstractTest.updateDataSource(conStr, dsLocal);
 
         try (Connection conn = dsLocal.getConnection(); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("SELECT @@VERSION AS 'SQL Server Version'");
-            rs.next();
-            assertTrue(rs.getString(1).contains(TestResource.getResource("R_microsoft")));
+            assertTrue(conn.isValid(1));
         }
     }
 
