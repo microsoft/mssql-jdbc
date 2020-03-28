@@ -63,6 +63,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.net.SocketFactory;
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
@@ -365,6 +366,7 @@ final class TDS {
     static final byte ENCRYPT_ON = 0x01;
     static final byte ENCRYPT_NOT_SUP = 0x02;
     static final byte ENCRYPT_REQ = 0x03;
+    static final byte ENCRYPT_CLIENT_CERT = (byte) 0x80;
     static final byte ENCRYPT_INVALID = (byte) 0xFF;
 
     static final String getEncryptionLevel(int level) {
@@ -1598,9 +1600,16 @@ final class TDSChannel implements Serializable {
      *        Server Host Name for SSL Handshake
      * @param port
      *        Server Port for SSL Handshake
+     * @param clientCertificate
+     *        Client certificate path
+     * @param clientKey
+     *        Private key file path
+     * @param clientKeyPassword
+     *        Private key file's password
      * @throws SQLServerException
      */
-    void enableSSL(String host, int port) throws SQLServerException {
+    void enableSSL(String host, int port, String clientCertificate, String clientKey,
+            String clientKeyPassword) throws SQLServerException {
         // If enabling SSL fails, which it can for a number of reasons, the following items
         // are used in logging information to the TDS channel logger to help diagnose the problem.
         Provider tmfProvider = null; // TrustManagerFactory provider
@@ -1766,13 +1775,16 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
+            KeyManager[] km = (null != clientCertificate && clientCertificate.length() > 0) ? SQLServerCertificateUtils
+                    .getKeyManagerFromFile(clientCertificate, clientKey, clientKeyPassword) : null;
+
             sslContext = SSLContext.getInstance(sslProtocol);
             sslContextProvider = sslContext.getProvider();
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Initializing SSL context");
 
-            sslContext.init(null, tm, null);
+            sslContext.init(km, tm, null);
 
             // Got the SSL context. Now create an SSL socket over our own proxy socket
             // which we can toggle between TDS-encapsulated and raw communications.
@@ -6217,7 +6229,8 @@ final class TDSWriter {
 
     void sendEnclavePackage(String sql, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         if (null != con && con.isAEv2()) {
-            if (null != sql && !sql.isEmpty() && null != enclaveCEKs && 0 < enclaveCEKs.size() && con.enclaveEstablished()) {
+            if (null != sql && !sql.isEmpty() && null != enclaveCEKs && 0 < enclaveCEKs.size()
+                    && con.enclaveEstablished()) {
                 byte[] b = con.generateEnclavePackage(sql, enclaveCEKs);
                 if (null != b && 0 != b.length) {
                     this.writeShort((short) b.length);

@@ -417,29 +417,43 @@ final class Util {
                     break;
                 }
                 case inEscapedValueStart: {
-                    if (ch == '}') {
-                        // no trimming use the value as it is.
-                        name = SQLServerDriver.getNormalizedPropertyName(name, logger);
-                        if (null != name) {
-                            if (logger.isLoggable(Level.FINE)) {
-                                if (!name.equals(SQLServerDriverStringProperty.USER.toString())
-                                        && !name.equals(SQLServerDriverStringProperty.PASSWORD.toString()))
-                                    logger.fine("Property:" + name + " Value:" + value);
-                            }
-                            p.put(name, value);
-                        }
-
-                        name = "";
-                        value = "";
-                        // to eat the spaces until the ; potentially we could do without the state but
-                        // it would not be clean
-                        state = inEscapedValueEnd;
-                    } else {
+                    /* check for escaped }.
+                    * when we see a }, first check to see if this is before the end of the string to avoid index out of range exception
+                    * then check if the character immediately after is also a }.
+                    * if it is, then we have a }}, which is not the closing of the escaped state.
+                    */
+                    if (ch == '}' && i + 1 < tmpUrl.length() && tmpUrl.charAt(i + 1) == '}') {
                         builder = new StringBuilder();
                         builder.append(value);
                         builder.append(ch);
                         value = builder.toString();
+                        i++; // escaped }} into a }, so increment the counter once more
                         // same state
+                    } else {
+                        if (ch == '}') {
+                            // no trimming use the value as it is.
+                            name = SQLServerDriver.getNormalizedPropertyName(name, logger);
+                            if (null != name) {
+                                if (logger.isLoggable(Level.FINE)) {
+                                    if (!name.equals(SQLServerDriverStringProperty.USER.toString())
+                                            && !name.equals(SQLServerDriverStringProperty.PASSWORD.toString()))
+                                        logger.fine("Property:" + name + " Value:" + value);
+                                }
+                                p.put(name, value);
+                            }
+
+                            name = "";
+                            value = "";
+                            // to eat the spaces until the ; potentially we could do without the state but
+                            // it would not be clean
+                            state = inEscapedValueEnd;
+                        } else {
+                            builder = new StringBuilder();
+                            builder.append(value);
+                            builder.append(ch);
+                            value = builder.toString();
+                            // same state
+                        }
                     }
                     break;
                 }
