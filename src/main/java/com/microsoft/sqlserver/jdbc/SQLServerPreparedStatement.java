@@ -1466,7 +1466,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } else {
             JavaType javaType = JavaType.of(obj);
             if (JavaType.TVP == javaType) {
-                tvpName = getTVPNameIfNull(index, null); // will return null if called from preparedStatement
+                // May return null if called from preparedStatement.
+                tvpName = getTVPNameFromObject(index, obj);
 
                 if ((null == tvpName) && (obj instanceof ResultSet)) {
                     throw new SQLServerException(SQLServerException.getErrString("R_TVPnotWorkWithSetObjectResultSet"),
@@ -1501,8 +1502,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {n, obj, jdbcType});
         checkClosed();
-        if (microsoft.sql.Types.STRUCTURED == jdbcType)
-            tvpName = getTVPNameIfNull(n, null);
+        if (microsoft.sql.Types.STRUCTURED == jdbcType) {
+            tvpName = getTVPNameFromObject(n, obj);
+        }
         setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), null, null, false, n, tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
@@ -1862,6 +1864,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         checkClosed();
         setValue(n, JDBCType.TVP, tvpBulkRecord, JavaType.TVP, tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setStructured");
+    }
+
+    String getTVPNameFromObject(int n, Object obj) throws SQLServerException {
+        String tvpName = null;
+        if (obj instanceof SQLServerDataTable) {
+            tvpName = ((SQLServerDataTable) obj).getTvpName();
+        }
+        // Get TVP name from SQLServerParameterMetaData if it is still null.
+        return getTVPNameIfNull(n, tvpName);
     }
 
     String getTVPNameIfNull(int n, String tvpName) throws SQLServerException {

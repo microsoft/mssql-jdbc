@@ -63,6 +63,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_wrongExceptionMessage", "Wrong exception message"},
             {"R_parameterNotDefined", "Parameter {0} was not defined"},
             {"R_unexpectedExceptionContent", "Unexpected content in exception message"},
+            {"R_connectionClosed", "The connection has been closed"},
             {"R_conversionFailed", "Conversion failed when converting {0} to {1} data type"},
             {"R_invalidQueryTimeout", "The query timeout value {0} is not valid."},
             {"R_skipAzure", "Skipping test case on Azure SQL."},
@@ -183,5 +184,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_resultSetEmpty", "Result set is empty."}, {"R_AlterAEv2Error", "Alter Column Encryption failed."},
             {"R_RichQueryError", "Rich query failed."}, {"R_reqExternalSetup", "External setup for test required."},
             {"R_invalidEnclaveSessionFailed", "invalidate enclave session failed."},
-            {"R_invalidEnclaveType", "Invalid enclave type {0}."}};
+            {"R_invalidEnclaveType", "Invalid enclave type {0}."},
+            {"R_keystorePassword", "keystore password was incorrect"}};
 }
