@@ -143,7 +143,6 @@ public final class Constants {
     public static final String ENCLAVE_ATTESTATIONPROTOCOL = "enclaveAttestationProtocol";
 
     // for MSI
-    public static final String MSISERVER = "MSISERVER";
     public static final String MSICLIENTID = "MSICLIENTID";
     public static final String KEYVAULTPROVIDER_CLIENTID = "KEYVAULTPROVIDERCLIENTID";
     public static final String KEYVAULTPROVIDER_CLIENTKEY = "KEYVAULTPROVIDERCLIENTKEY";
