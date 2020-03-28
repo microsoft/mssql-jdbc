@@ -5,23 +5,17 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
-import com.azure.identity.implementation.IdentityClient;
-import com.azure.identity.implementation.IdentityClientBuilder;
 import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.aad.adal4j.ClientCredential;
 import com.microsoft.azure.keyvault.authentication.KeyVaultCredentials;
-
-import reactor.core.publisher.Mono;
 
 
 /**
@@ -38,11 +32,7 @@ class KeyVaultCredential extends KeyVaultCredentials {
     private String accessToken;
 
     KeyVaultCredential() throws SQLServerException {
-        try {
-            miCred = new ManagedIdentityCredentialBuilder().build();
-        } catch (Exception e) {
-            System.out.println("exception: " + e.getMessage());
-        }
+        miCred = new ManagedIdentityCredentialBuilder().build();
         if (null == miCred) {
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityInitFail"), null);
         }
