@@ -50,7 +50,6 @@
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
 			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
-			MSI   - - - - - - - For tests using MSI Authentication (excluded by default) 
 			reqExternalSetup  - For tests requiring external setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
@@ -60,8 +59,8 @@
 		<releaseExt>-preview</releaseExt>
 
 		<!-- Driver Dependencies -->
+		<azure.identity.version>1.0.4</azure.identity.version>
 		<azure.keyvault.version>1.2.2</azure.keyvault.version>
-		<azure.client.auth.version>1.7.2</azure.client.auth.version>
 		<azure.adal4j.version>1.6.4</azure.adal4j.version>
 		<rest.client.version>1.7.0</rest.client.version>
 		<osgi.core.version>6.0.0</osgi.core.version>
@@ -85,9 +84,29 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-identity</artifactId>
+			<version>${azure.identity.version}</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>azure-keyvault</artifactId>
 			<version>${azure.keyvault.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-core</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-annotations</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-databind</artifactId>
+				</exclusion>
+			</exclusions>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
@@ -97,14 +116,23 @@
 			<optional>true</optional>
 		</dependency>
 		<dependency>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>azure-client-authentication</artifactId>
-			<version>${azure.client.auth.version}</version>
-		</dependency>
-		<dependency>
 			<groupId>com.microsoft.rest</groupId>
 			<artifactId>client-runtime</artifactId>
 			<version>${rest.client.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-core</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-annotations</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-databind</artifactId>
+				</exclusion>
+			</exclusions>
 			<optional>true</optional>
 		</dependency>
 

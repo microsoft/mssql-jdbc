@@ -10,11 +10,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.azure.identity.implementation.IdentityClient;
+import com.azure.identity.implementation.IdentityClientBuilder;
 import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.aad.adal4j.ClientCredential;
-import com.microsoft.azure.credentials.MSICredentials;
 import com.microsoft.azure.keyvault.authentication.KeyVaultCredentials;
+
+import reactor.core.publisher.Mono;
 
 
 /**
@@ -27,20 +34,23 @@ class KeyVaultCredential extends KeyVaultCredentials {
     SQLServerKeyVaultAuthenticationCallback authenticationCallback = null;
     String clientId = null;
     String clientKey = null;
-    MSICredentials msiCred = null;
+    ManagedIdentityCredential miCred = null;
+    private String accessToken;
 
     KeyVaultCredential() throws SQLServerException {
-        msiCred = new MSICredentials();
-        if (null == msiCred) {
+        try {
+            miCred = new ManagedIdentityCredentialBuilder().build();
+        } catch (Exception e) {
+            System.out.println("exception: " + e.getMessage());
+        }
+        if (null == miCred) {
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityInitFail"), null);
         }
     }
 
     KeyVaultCredential(String clientId) throws SQLServerException {
-        msiCred = new MSICredentials();
-        if (null != msiCred) {
-            msiCred.withClientId(clientId);
-        } else {
+        miCred = new ManagedIdentityCredentialBuilder().clientId(clientId).build();
+        if (null == miCred) {
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityInitFail"), null);
         }
     }
@@ -55,14 +65,11 @@ class KeyVaultCredential extends KeyVaultCredentials {
     }
 
     public String doAuthenticate(String authorization, String resource, String scope) {
-        String accessToken = null;
         if (null == authenticationCallback) {
-            if (null != msiCred) {
-                try {
-                    accessToken = msiCred.getToken(resource);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+            if (null != miCred) {
+                miCred.getToken(new TokenRequestContext().addScopes(resource)).subscribe(token -> {
+                    accessToken = token.getToken();
+                });
             } else {
                 AuthenticationResult token = getAccessTokenFromClientCredentials(authorization, resource, clientId,
                         clientKey);
