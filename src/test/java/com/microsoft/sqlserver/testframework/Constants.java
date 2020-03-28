@@ -24,6 +24,7 @@ public final class Constants {
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
      * NTLM  - - - - - - - For NTLM tests
      * reqExternalSetup  - For tests requiring external setup
+     * clientCertAuth  - - For tests requiring client certificate authentication setup
      * </pre>
      */
     public static final String xJDBC42 = "xJDBC42";
@@ -37,6 +38,7 @@ public final class Constants {
     public static final String NTLM = "NTLM";
     public static final String MSI = "MSI";
     public static final String reqExternalSetup = "reqExternalSetup";
+    public static final String clientCertAuth = "clientCertAuth";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");
@@ -149,7 +151,9 @@ public final class Constants {
     public static final String KEYSTORE_AUTHENTICATION = "KEYSTOREAUTHENTICATION";
     public static final String KEYSTORE_PRINCIPALID = "KEYSTOREPRINCIPALID";
     public static final String KEYSTORE_SECRET = "KEYSTORESECRET";
-
+    public static final String CLIENT_CERTIFICATE = "CLIENTCERTIFICATE";
+    public static final String CLIENT_KEY = "CLIENTKEY";
+    public static final String CLIENT_KEY_PASSWORD = "CLIENTKEYPASSWORD";
     public static final String CONFIG_PROPERTIES_FILE = "config.properties";
 
     public enum LOB {

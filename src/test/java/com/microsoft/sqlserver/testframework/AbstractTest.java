@@ -64,6 +64,12 @@ public abstract class AbstractTest {
     protected static String[] enclaveAttestationUrl = null;
     protected static String[] enclaveAttestationProtocol = null;
 
+    protected static String clientCertificate = null;
+    protected static String clientKey = null;
+    protected static String clientKeyPassword = "";
+
+    protected static String trustStorePath = "";
+
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
     protected static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
@@ -144,6 +150,14 @@ public abstract class AbstractTest {
 
         prop = getConfiguredProperty("enclaveAttestationProtocol", null);
         enclaveAttestationProtocol = null != prop ? prop.split(Constants.SEMI_COLON) : null;
+
+        clientCertificate = getConfiguredProperty("clientCertificate", null);
+
+        clientKey = getConfiguredProperty("clientKey", null);
+
+        clientKeyPassword = getConfiguredProperty("clientKeyPassword", "");
+
+        trustStorePath = getConfiguredProperty("trustStore", "");
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
@@ -322,6 +336,15 @@ public abstract class AbstractTest {
                             break;
                         case Constants.MSICLIENTID:
                             ds.setMSIClientId(value);
+                            break;
+                        case Constants.CLIENT_CERTIFICATE:
+                            ds.setClientCertificate(value);
+                            break;
+                        case Constants.CLIENT_KEY:
+                            ds.setClientKey(value);
+                            break;
+                        case Constants.CLIENT_KEY_PASSWORD:
+                            ds.setClientKeyPassword(value);
                             break;
                         default:
                             break;

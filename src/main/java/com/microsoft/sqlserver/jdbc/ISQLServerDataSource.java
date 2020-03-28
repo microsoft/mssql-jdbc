@@ -918,5 +918,43 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Enclave attestation protocol.
      */
     void setEnclaveAttestationProtocol(String protocol);
+    
+    /**
+     * Returns client certificate path for client certificate authentication.
+     * 
+     * @return Client certificate path.
+     */
+    String getClientCertificate();
+
+    /**
+     * Sets client certificate path for client certificate authentication.
+     * 
+     * @param certPath
+     *        Client certificate path.
+     */
+    void setClientCertificate(String certPath);
+    
+    /**
+     * Returns Private key file path for client certificate authentication.
+     * 
+     * @return Private key file path.
+     */
+    String getClientKey();
+
+    /**
+     * Sets Private key file path for client certificate authentication.
+     * 
+     * @param keyPath
+     *        Private key file path.
+     */
+    void setClientKey(String keyPath);
+
+    /**
+     * Sets the password to be used for Private key provided by the user for client certificate authentication.
+     * 
+     * @param password
+     *        Private key password.
+     */
+    void setClientKeyPassword(String password);
 
 }

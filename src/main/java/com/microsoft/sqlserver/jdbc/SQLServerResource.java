@@ -254,6 +254,9 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_gsscredentialPropertyDescription", "Impersonated GSS Credential to access SQL Server."},
             {"R_msiClientIdPropertyDescription",
                     "Client Id of User Assigned Managed Identity to be used for generating access token for Azure AD MSI Authentication"},
+            {"R_clientCertificatePropertyDescription", "Client certificate path for client certificate authentication feature."},
+            {"R_clientKeyPropertyDescription", "Private key file path for client certificate authentication feature."},
+            {"R_clientKeyPasswordPropertyDescription", "Password for private key if the private key is password protected."},
             {"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
             {"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
             {"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
@@ -625,5 +628,8 @@ public final class SQLServerResource extends ListResourceBundle {
                     "Enclave attestation failed, the DH public key signature can't be verified with the enclave public key."},
             {"R_AasJWTError", "An error occured when retrieving and validating the JSON web token."},
             {"R_AasEhdError", "aas-ehd claim from JWT did not match enclave public key."},
-            {"R_VbsRpDataError", "rp_data claim from JWT did not match client nonce."},};
+            {"R_VbsRpDataError", "rp_data claim from JWT did not match client nonce."},
+            {"R_pvkParseError", "Could not read Private Key from PVK, check the password provided."},
+            {"R_pvkHeaderError", "Cannot parse the PVK, PVK file does not contain the correct header."},
+            {"R_clientCertError", "Reading client certificate failed. Please verify the location of the certificate."}};
 };

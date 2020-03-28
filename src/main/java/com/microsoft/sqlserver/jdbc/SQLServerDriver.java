@@ -233,6 +233,7 @@ enum KeyStoreAuthentication {
     }
 }
 
+
 enum AuthenticationScheme {
     nativeAuthentication,
     ntlm,
@@ -360,7 +361,10 @@ enum SQLServerDriverStringProperty {
     MSI_CLIENT_ID("msiClientId", ""),
     KEY_VAULT_PROVIDER_CLIENT_ID("keyVaultProviderClientId", ""),
     KEY_VAULT_PROVIDER_CLIENT_KEY("keyVaultProviderClientKey", ""),
-    KEY_STORE_PRINCIPAL_ID("keyStorePrincipalId", "");
+    KEY_STORE_PRINCIPAL_ID("keyStorePrincipalId", ""),
+    CLIENT_CERTIFICATE("clientCertificate", ""),
+    CLIENT_KEY("clientKey", ""),
+    CLIENT_KEY_PASSWORD("clientKeyPassword", "");
 
     private final String name;
     private final String defaultValue;
@@ -607,9 +611,14 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue()), false, TRUE_FALSE),
-            new SQLServerDriverPropertyInfo(
-                    SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString(),
-                    SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.getDefaultValue(), false, null),};
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString(),
+                    SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString(),
+                    SQLServerDriverStringProperty.CLIENT_CERTIFICATE.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.CLIENT_KEY.toString(),
+                    SQLServerDriverStringProperty.CLIENT_KEY.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(),
+                    SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.getDefaultValue(), false, null),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string
