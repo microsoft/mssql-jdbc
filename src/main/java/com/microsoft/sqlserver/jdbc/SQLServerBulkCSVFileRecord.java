@@ -19,9 +19,10 @@ import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 
 
 /**
@@ -49,17 +50,6 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * Delimiter to parse lines with.
      */
     private final String delimiter;
-
-    /*
-     * Compiled delimiter pattern
-     */
-    private final Pattern delimiterPattern;
-
-    /*
-     * Regex to match delimiters followed by 0 or even number of quotes. This splits the line following RFC4180 spec and
-     * allow for delimiter inside quotes. e.g. "aaaa","bb,bb","cccc"
-     */
-    private static final String delimiterRegex = "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
 
     /*
      * Class names for logging.
@@ -94,8 +84,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             throwInvalidArgument("delimiter");
         }
 
-        this.delimiter = delimiter + delimiterRegex;
-        this.delimiterPattern = Pattern.compile(this.delimiter);
+        this.delimiter = delimiter;
 
         try {
             // Create the file reader
@@ -145,8 +134,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             throwInvalidArgument("delimiter");
         }
 
-        this.delimiter = delimiter + delimiterRegex;
-        this.delimiterPattern = Pattern.compile(this.delimiter);
+        this.delimiter = delimiter;
 
         try {
             if (null == encoding || 0 == encoding.length()) {
@@ -205,7 +193,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         if (firstLineIsColumnNames) {
             currentLine = fileReader.readLine();
             if (null != currentLine) {
-                columnNames = delimiterPattern.split(currentLine, -1);
+                columnNames = splitLine(currentLine);
             }
         }
     }
@@ -240,6 +228,39 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         loggerExternal.exiting(loggerPackageName, "close");
     }
 
+    /*
+     * Split line into fields separated by delimiters
+     */
+    private String[] splitLine(String line) {
+        List<String> fieldsList = new ArrayList<String>();
+        boolean inQuotes = false;
+        StringBuilder sb = new StringBuilder();
+        for (char ch : line.toCharArray()) {
+            if (ch == delimiter.charAt(0)) {
+                if (inQuotes) {
+                    sb.append(ch);
+                } else {
+                    fieldsList.add(sb.toString());
+                    sb = new StringBuilder();
+                }
+            } else {
+                // don't split if in quoted
+                if (ch == '\"') {
+                    inQuotes = !inQuotes;
+                }
+                sb.append(ch);
+            }
+
+        }
+
+        fieldsList.add(sb.toString());
+        String fields[] = new String[fieldsList.size()];
+        for (int i = 0; i < fieldsList.size(); i++) {
+            fields[i] = fieldsList.get(i);
+        }
+        return fields;
+    }
+
     @Override
     public Object[] getRowData() throws SQLServerException {
         if (null == currentLine)
@@ -249,11 +270,16 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             // The limit in split() function should be a negative value,
             // otherwise trailing empty strings are discarded.
             // Empty string is returned if there is no value.
-            String[] data = delimiterPattern.split(currentLine, -1);
+            String[] data = splitLine(currentLine);
 
             // get rid of enclosed quotes
             for (int i = 0; i < data.length; i++) {
-                data[i] = data[i].replaceAll("^\"|\"$", "").replaceAll("\"\"", "\"");
+                if (data[i].length() >= 2) {
+                    if (data[i].charAt(0) == '"' && data[i].charAt(data[i].length() - 1) == '"') {
+                        data[i] = data[i].substring(1, data[i].length() - 1);
+                        data[i] = data[i].replace("\"\"", "\"");
+                    }
+                }
             }
 
             // Cannot go directly from String[] to Object[] and expect it to act
