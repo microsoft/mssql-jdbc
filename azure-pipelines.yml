@@ -10,7 +10,7 @@ jobs:
     matrix:
       SQL-2019:
         Target_SQL: 'HGS-2k19-01'
-        Ex_Groups: 'xSQLv15, clientCertAuth'
+        Ex_Groups: 'xSQLv15,clientCertAuth'
       SQL-2012:
         Target_SQL: 'SQL-2K12-SP3-1'
         Ex_Groups: 'xSQLv12'
