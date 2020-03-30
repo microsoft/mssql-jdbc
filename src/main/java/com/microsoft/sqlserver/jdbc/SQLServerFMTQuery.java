@@ -74,7 +74,7 @@ class SQLServerFMTQuery {
 
     String getFMTQuery() {
         StringBuilder sb = new StringBuilder(FMT_ON);
-        if (prefix != "") {
+        if (!"".equals(prefix)) {
             sb.append(prefix);
         }
         sb.append(SELECT);

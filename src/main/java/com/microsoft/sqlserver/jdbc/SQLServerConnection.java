@@ -142,6 +142,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private SqlFedAuthToken fedAuthToken = null;
 
     private String originalHostNameInCertificate = null;
+    
+    private String clientCertificate = null;
+    private String clientKey = null;
+    private String clientKeyPassword = "";
 
     final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
@@ -2038,6 +2042,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (null != sPropValue) {
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
+            
+            sPropKey = SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                clientCertificate = sPropValue;
+            }
+            
+            sPropKey = SQLServerDriverStringProperty.CLIENT_KEY.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                clientKey = sPropValue;
+            }
+            
+            sPropKey = SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                clientKeyPassword = sPropValue;
+            }
 
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
@@ -2572,7 +2597,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // If prelogin negotiated SSL encryption then, enable it on the TDS channel.
         if (TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel) {
-            tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber());
+            tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber(), clientCertificate, clientKey, clientKeyPassword);
         }
 
         // We have successfully connected, now do the login. logon takes seconds timeout
@@ -2646,7 +2671,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 0, 0, 0, 0, 0, 0,
 
                 // - Encryption -
-                requestedEncryptionLevel,
+                (null == clientCertificate) ? requestedEncryptionLevel : (byte) (requestedEncryptionLevel | TDS.ENCRYPT_CLIENT_CERT),
 
                 // TRACEID Data Session (ClientConnectionId + ActivityId) - Initialize to 0
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -4977,7 +5002,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 + 4; // AE is always on;
 
         // only add lengths of password and username if not using SSPI or requesting federated authentication info
-        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested) && null == clientCertificate) {
             len = len + passwordLen + userBytes.length;
         }
 
@@ -5055,7 +5080,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
             tdsWriter.writeShort((short) (0));
 
-        } else if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        } else if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested) && null == clientCertificate) {
             // User and Password
             tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
             tdsWriter.writeShort((short) (sUser == null ? 0 : sUser.length()));
@@ -5147,7 +5172,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if we are using NTLM or SSPI or fed auth ADAL, do not send over username/password, since we will use SSPI
         // instead
-        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        // Also do not send username or password if user is attempting client certificate authentication.
+        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested) && null == clientCertificate) {
             tdsWriter.writeBytes(userBytes); // Username
             tdsWriter.writeBytes(passwordBytes); // Password (encrypted)
         }

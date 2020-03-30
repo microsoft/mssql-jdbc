@@ -25,13 +25,15 @@ public class XADataSourceTest extends AbstractTest {
     /**
      * Tests XA connection with PKCS12 truststore that is password protected.
      * 
-     * Only re-populate the truststore if need arises in the future.
-     * TestUtils.createTrustStore() can be used to create the truststore.
+     * Only re-populate the truststore if need arises in the future. TestUtils.createTrustStore() can be used to create
+     * the truststore.
      * 
      * @throws Exception
      */
     @Test
     public void testPKCS12() throws Exception {
+        org.junit.Assume.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
+
         SQLServerXADataSource ds = new SQLServerXADataSource();
 
         String trustStore = System.getProperty("pkcs12_truststore");

@@ -275,6 +275,18 @@ public final class TestUtils {
     }
 
     /**
+     * Deletes the contents of a table.
+     * @param con
+     * @param tableName
+     * @throws SQLException
+     */
+    public static void clearTable(Connection con, String tableName) throws SQLException {
+        try (Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("DELETE FROM " + tableName);
+        }
+    }
+
+    /**
      * mimic "DROP View ..."
      * 
      * @param tableName
@@ -822,7 +834,8 @@ public final class TestUtils {
      */
     public static String removeProperty(String connectionString, String property) {
         int start = connectionString.indexOf(property);
-        String propertyStr = connectionString.substring(start, connectionString.indexOf(";", start) + 1);
+        int end = connectionString.indexOf(";", start);
+        String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
         return connectionString.replace(propertyStr, "");
     }
 
