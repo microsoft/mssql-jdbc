@@ -6,9 +6,12 @@
 package com.microsoft.sqlserver.testframework;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -60,6 +63,12 @@ public abstract class AbstractTest {
     protected static String[] enclaveServer = null;
     protected static String[] enclaveAttestationUrl = null;
     protected static String[] enclaveAttestationProtocol = null;
+    
+    protected static String clientCertificate = null;
+    protected static String clientKey = null;
+    protected static String clientKeyPassword = "";
+    
+    protected static String trustStorePath = "";
 
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
@@ -136,6 +145,14 @@ public abstract class AbstractTest {
 
         prop = getConfiguredProperty("enclaveAttestationProtocol", null);
         enclaveAttestationProtocol = null != prop ? prop.split(Constants.SEMI_COLON) : null;
+        
+        clientCertificate = getConfiguredProperty("clientCertificate", null);
+        
+        clientKey = getConfiguredProperty("clientKey", null);
+        
+        clientKeyPassword = getConfiguredProperty("clientKeyPassword", "");
+        
+        trustStorePath = getConfiguredProperty("trustStore", "");
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
@@ -145,8 +162,22 @@ public abstract class AbstractTest {
         }
 
         if (null == akvProvider) {
-            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
-            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            File file = null;
+            try {
+                file = new File(Constants.MSSQL_JDBC_PROPERTIES);
+                try (OutputStream os = new FileOutputStream(file);) {
+                    Properties props = new Properties();
+                    // Append to the list of hardcoded endpoints.
+                    props.setProperty(Constants.AKV_TRUSTED_ENDPOINTS_KEYWORD, ";vault.azure.net");
+                    props.store(os, "");
+                }
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+                map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            } finally {
+                if (null != file) {
+                    file.delete();
+                }
+            }
         }
 
         if (!isKspRegistered) {
@@ -277,6 +308,15 @@ public abstract class AbstractTest {
                             break;
                         case Constants.ENCLAVE_ATTESTATIONPROTOCOL:
                             ds.setEnclaveAttestationProtocol(value);
+                            break;
+                        case Constants.CLIENT_CERTIFICATE:
+                            ds.setClientCertificate(value);
+                            break;
+                        case Constants.CLIENT_KEY:
+                            ds.setClientKey(value);
+                            break;
+                        case Constants.CLIENT_KEY_PASSWORD:
+                            ds.setClientKeyPassword(value);
                             break;
                         default:
                             break;

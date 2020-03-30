@@ -943,6 +943,36 @@ public class SQLServerDataSource
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString(),
                 protocol);
     }
+    
+    @Override
+    public String getClientCertificate() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString(),
+                SQLServerDriverStringProperty.CLIENT_CERTIFICATE.getDefaultValue());
+    }
+
+    @Override
+    public void setClientCertificate(String certPath) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString(),
+                certPath);
+    }
+    
+    @Override
+    public String getClientKey() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY.toString(),
+                SQLServerDriverStringProperty.CLIENT_KEY.getDefaultValue());
+    }
+
+    @Override
+    public void setClientKey(String keyPath) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY.toString(),
+                keyPath);
+    }
+
+    @Override
+    public void setClientKeyPassword(String password) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(),
+                password);
+    }
 
     /**
      * Sets a property string value.
