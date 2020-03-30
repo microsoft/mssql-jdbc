@@ -129,7 +129,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.2.2.jre13</version>
+	<version>8.3.0.jre14</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -152,7 +152,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.2.2.jre13</version>
+	<version>8.3.0.jre14</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -185,7 +185,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.2.2.jre13</version>
+	<version>8.3.0.jre14</version>
 </dependency>
 
 <dependency>
