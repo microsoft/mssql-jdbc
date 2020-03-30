@@ -138,3 +138,4 @@ dependencies {
 			'com.microsoft.azure:azure-keyvault-webkey:1.2.1',
 			'com.h2database:h2:1.4.200'
 }
+ 
