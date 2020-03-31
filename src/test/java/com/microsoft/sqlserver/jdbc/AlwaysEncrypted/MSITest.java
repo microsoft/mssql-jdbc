@@ -36,22 +36,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.MSI)
 public class MSITest extends AESetup {
-    /*
-     * Test basic MSI auth
-     */
-    @Test
-    public void testAuth() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(connectionString)) {} catch (Exception e) {
-            fail(TestResource.getResource("R_loginFailed") + e.getMessage());
-        }
-    }
 
     /*
      * Test MSI auth using datasource
      */
     @Test
     public void testDSAuth() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
         SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setKeyStoreAuthentication("KeyVaultManagedIdentity");
         AbstractTest.updateDataSource(connectionString, ds);
 
         try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {} catch (Exception e) {
@@ -215,8 +210,6 @@ public class MSITest extends AESetup {
                     AECommon.testGetBigDecimal(rs, numberOfColumns, values);
                     AECommon.testWithSpecifiedtype(rs, numberOfColumns, values);
                 }
-            } catch (Exception e) {
-                fail(TestResource.getResource("R_loginFailed") + e.getMessage());
             }
         }
     }
