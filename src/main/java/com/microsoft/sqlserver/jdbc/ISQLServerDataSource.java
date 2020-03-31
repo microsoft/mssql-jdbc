@@ -822,17 +822,17 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getMSIClientId();
 
     /**
-     * Sets the Azure Key Vault (AKV) Provider user principal id.
+     * Sets the Azure Active Directory Application Client ID.
      * 
-     * @param keyVaultPrincipalId
-     *        principal Id of Azure Key Vault (AKV) Provider to be used for column encryption.
+     * @param keyStorePrincipalId
+     *        Azure Active Directory Application Client ID.
      */
-    void setKeyStorePrincipalId(String keyVaultPrincipalId);
+    void setKeyStorePrincipalId(String keyStorePrincipalId);
 
     /**
-     * Returns the value for the connection property 'keyVaultPrincipalId'.
+     * Returns the value for the connection property 'keyStorePrincipalId'.
      * 
-     * @return keyVaultPrincipalId
+     * @return keyStorePrincipalId
      */
     String getKeyStorePrincipalId();
 
@@ -918,7 +918,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Enclave attestation protocol.
      */
     void setEnclaveAttestationProtocol(String protocol);
-    
+
     /**
      * Returns client certificate path for client certificate authentication.
      * 
@@ -933,7 +933,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Client certificate path.
      */
     void setClientCertificate(String certPath);
-    
+
     /**
      * Returns Private key file path for client certificate authentication.
      * 

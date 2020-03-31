@@ -911,9 +911,9 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setKeyStorePrincipalId(String keyVaultPrincipalId) {
+    public void setKeyStorePrincipalId(String keyStorePrincipalId) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString(),
-                keyVaultPrincipalId);
+                keyStorePrincipalId);
     }
 
     @Override
@@ -955,7 +955,7 @@ public class SQLServerDataSource
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString(),
                 protocol);
     }
-    
+
     @Override
     public String getClientCertificate() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString(),
@@ -964,10 +964,9 @@ public class SQLServerDataSource
 
     @Override
     public void setClientCertificate(String certPath) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString(),
-                certPath);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString(), certPath);
     }
-    
+
     @Override
     public String getClientKey() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY.toString(),
@@ -976,14 +975,12 @@ public class SQLServerDataSource
 
     @Override
     public void setClientKey(String keyPath) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY.toString(),
-                keyPath);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY.toString(), keyPath);
     }
 
     @Override
     public void setClientKeyPassword(String password) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(),
-                password);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(), password);
     }
 
     /**
