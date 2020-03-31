@@ -629,5 +629,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_VbsRpDataError", "rp_data claim from JWT did not match client nonce."},
             {"R_pvkParseError", "Could not read Private Key from PVK, check the password provided."},
             {"R_pvkHeaderError", "Cannot parse the PVK, PVK file does not contain the correct header."},
-            {"R_clientCertError", "Reading client certificate failed. Please verify the location of the certificate."}};
+            {"R_clientCertError", "Reading client certificate failed. Please verify the location of the certificate."},
+            {"R_socketFactoryTrustManager", "The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager."},
+            {"R_socketFactoryClassError", "The class specified by the socketFactoryClass property must be assignable to javax.net.SocketFactory."}};
 };
