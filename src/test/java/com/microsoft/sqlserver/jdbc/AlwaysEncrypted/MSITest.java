@@ -38,20 +38,58 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class MSITest extends AESetup {
 
     /*
-     * Test MSI auth using datasource
+     * Test MSI auth
      */
     @Test
-    public void testDSAuth() throws SQLException {
+    public void testMSIAuth() throws SQLException {
         // unregister the custom providers registered in AESetup
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
+        String connStr = connectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
+
+        try (SQLServerConnection con = PrepUtil.getConnection(connectionString)) {} catch (Exception e) {
+            fail(TestResource.getResource("R_loginFailed") + e.getMessage());
+        }
+    }
+
+    /*
+     * Test MSI auth using datasource
+     */
+    @Test
+    public void testDSMSIAuth() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
+        String connStr = connectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
+
         SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setKeyStoreAuthentication("KeyVaultManagedIdentity");
-        AbstractTest.updateDataSource(connectionString, ds);
+        ds.setAuthentication("ActiveDirectoryMSI");
+        AbstractTest.updateDataSource(connStr, ds);
 
         try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {} catch (Exception e) {
             fail(TestResource.getResource("R_loginFailed") + e.getMessage());
         }
+    }
+
+    /*
+     * Test MSI auth using datasource
+     */
+    @Test
+    public void testDSAkvWithMSI() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
+        String connStr = AETestConnectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_AUTHENTICATION,
+                "KeyVaultManagedIdentity");
+        SQLServerDataSource ds = new SQLServerDataSource();
+        AbstractTest.updateDataSource(connStr, ds);
+        testCharAkv(connStr);
     }
 
     /*
