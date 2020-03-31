@@ -40,6 +40,9 @@ public class MSITest extends AESetup {
     /*
      * Test MSI auth
      */
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
     @Test
     public void testMSIAuth() throws SQLException {
         // unregister the custom providers registered in AESetup
