@@ -1671,9 +1671,11 @@ final class TDSChannel implements Serializable {
             // Otherwise, we'll check if a specific TrustManager implemenation has been requested and
             // if so instantiate it, optionally specifying a constructor argument to customize it.
             else if (con.getTrustManagerClass() != null) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unassignableError"));
+                Object[] msgArgs = {"trustManagerClass", "javax.net.ssl.TrustManager"};
                 tm = new TrustManager[] {Util.newInstance(TrustManager.class, con.getTrustManagerClass(),
                         con.getTrustManagerConstructorArg(),
-                        SQLServerException.getErrString("R_socketFactoryTrustManager"))};
+                        form.format(msgArgs))};
             }
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
@@ -2609,9 +2611,11 @@ final class SocketFinder {
             } else {
                 String socketFactoryConstructorArg = conn.getSocketFactoryConstructorArg();
                 try {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unassignableError"));
+                    Object[] msgArgs = {"socketFactoryClass", "javax.net.SocketFactory"};
                     socketFactory = Util.newInstance(SocketFactory.class, socketFactoryClass,
                             socketFactoryConstructorArg,
-                            SQLServerException.getErrString("R_socketFactoryClassError"));
+                            form.format(msgArgs));
                 } catch (RuntimeException e) {
                     throw e;
                 } catch (Exception e) {
