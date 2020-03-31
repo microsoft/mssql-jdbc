@@ -661,6 +661,29 @@ public class SQLServerDataSource
     }
 
     @Override
+    public String getSocketFactoryClass() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString(), null);
+    }
+
+    @Override
+    public void setSocketFactoryClass(String socketFactoryClass) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString(),
+                socketFactoryClass);
+    }
+
+    @Override
+    public String getSocketFactoryConstructorArg() {
+        return getStringProperty(connectionProps,
+                SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString(), null);
+    }
+
+    @Override
+    public void setSocketFactoryConstructorArg(String socketFactoryConstructorArg) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString(),
+                socketFactoryConstructorArg);
+    }
+
+    @Override
     public void setSSLProtocol(String sslProtocol) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SSL_PROTOCOL.toString(), sslProtocol);
     }
@@ -943,7 +966,7 @@ public class SQLServerDataSource
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString(),
                 protocol);
     }
-    
+
     @Override
     public String getClientCertificate() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString(),
@@ -952,10 +975,9 @@ public class SQLServerDataSource
 
     @Override
     public void setClientCertificate(String certPath) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString(),
-                certPath);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString(), certPath);
     }
-    
+
     @Override
     public String getClientKey() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY.toString(),
@@ -964,14 +986,12 @@ public class SQLServerDataSource
 
     @Override
     public void setClientKey(String keyPath) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY.toString(),
-                keyPath);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY.toString(), keyPath);
     }
 
     @Override
     public void setClientKeyPassword(String password) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(),
-                password);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(), password);
     }
 
     /**

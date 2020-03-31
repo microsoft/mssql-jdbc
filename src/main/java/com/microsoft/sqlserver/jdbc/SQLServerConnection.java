@@ -612,6 +612,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return negotiatedEncryptionLevel;
     }
 
+    private String socketFactoryClass = null;
+
+    final String getSocketFactoryClass() {
+        return socketFactoryClass;
+    }
+
+    private String socketFactoryConstructorArg = null;
+
+    final String getSocketFactoryConstructorArg() {
+        return socketFactoryConstructorArg;
+    }
+
     private String trustManagerClass = null;
 
     final String getTrustManagerClass() {
@@ -1562,6 +1574,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
+
+            socketFactoryClass = activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString());
+            socketFactoryConstructorArg = activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString());
 
             // Set requestedEncryptionLevel according to the value of the encrypt connection property
             requestedEncryptionLevel = isBooleanPropertyOn(sPropKey, sPropValue) ? TDS.ENCRYPT_ON : TDS.ENCRYPT_OFF;

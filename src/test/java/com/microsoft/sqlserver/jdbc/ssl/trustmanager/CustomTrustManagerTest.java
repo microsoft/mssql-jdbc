@@ -62,7 +62,7 @@ public class CustomTrustManagerTest extends AbstractTest {
             fail();
         } catch (SQLException e) {
             assertTrue(e.getMessage().contains(
-                    "The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager"));
+                    "The class specified by the trustManagerClass property must be assignable to javax.net.ssl.TrustManager."));
         }
     }
 }
