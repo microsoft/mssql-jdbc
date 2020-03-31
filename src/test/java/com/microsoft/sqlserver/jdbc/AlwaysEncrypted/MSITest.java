@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.aad.adal4j.AuthenticationException;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -26,6 +27,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 /**
@@ -89,6 +91,22 @@ public class MSITest extends AESetup {
     }
 
     /*
+     * Test AKV with MSI and and principal id
+     */
+    @Test
+    public void testCharAkvWithMSIandPrincipalId() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
+        // set to use Managed Identity for keystore auth and principal id
+        String connStr = AETestConnectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_AUTHENTICATION,
+                "KeyVaultManagedIdentity");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_PRINCIPALID, keyStorePrincipalId);
+        testCharAkv(connStr);
+    }
+
+    /*
      * Test AKV with with bad credentials
      */
     @Test
@@ -140,6 +158,22 @@ public class MSITest extends AESetup {
         testNumericAKV(connStr);
     }
 
+    /*
+     * Test AKV with MSI and and principal id
+     */
+    @Test
+    public void testNumericAkvWithMSIandPrincipalId() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
+        // set to use Managed Identity for keystore auth and principal id
+        String connStr = AETestConnectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_AUTHENTICATION,
+                "KeyVaultManagedIdentity");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_PRINCIPALID, keyStorePrincipalId);
+        testNumericAKV(connStr);
+    }
+
     private void testCharAkv(String connStr) throws SQLException {
         String sql = "select * from " + CHAR_TABLE_AE;
         try (SQLServerConnection con = PrepUtil.getConnection(connStr);
@@ -151,7 +185,7 @@ public class MSITest extends AESetup {
             String[] values = createCharValues(false);
             populateCharNormalCase(values);
 
-            try (ResultSet rs = (null == stmt) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
+            try (ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
                 int numberOfColumns = rs.getMetaData().getColumnCount();
                 while (rs.next()) {
                     AECommon.testGetString(rs, numberOfColumns, values);
@@ -172,7 +206,7 @@ public class MSITest extends AESetup {
             String[] values = createNumericValues(false);
             populateNumeric(values);
 
-            try (SQLServerResultSet rs = (null == stmt) ? (SQLServerResultSet) pstmt.executeQuery()
+            try (SQLServerResultSet rs = (stmt == null) ? (SQLServerResultSet) pstmt.executeQuery()
                                                         : (SQLServerResultSet) stmt.executeQuery(sql)) {
                 int numberOfColumns = rs.getMetaData().getColumnCount();
                 while (rs.next()) {
