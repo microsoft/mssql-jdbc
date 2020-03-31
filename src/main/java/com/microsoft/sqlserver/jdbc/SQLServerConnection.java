@@ -993,7 +993,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
     static final private java.util.logging.Logger loggerExternal = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.Connection");
-    private static String loggingClassName = null;
+    private static String loggingClassName = "com.microsoft.sqlserver.jdbc.SQLServerConnection:";
 
     /**
      * There are three ways to get a failover partner connection string, from the failover map, the connecting server
@@ -1067,7 +1067,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     SQLServerConnection(String parentInfo) throws SQLServerException {
         int connectionID = nextConnectionID(); // sequential connection id
         traceID = "ConnectionID:" + connectionID;
-        loggingClassName = "com.microsoft.sqlserver.jdbc.SQLServerConnection:" + connectionID;
+        loggingClassName += connectionID;
         if (connectionlogger.isLoggable(Level.FINE))
             connectionlogger.fine(toString() + " created by (" + parentInfo + ")");
         initResettableValues();
