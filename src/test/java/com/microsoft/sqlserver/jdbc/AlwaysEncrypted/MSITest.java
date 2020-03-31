@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.aad.adal4j.AuthenticationException;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -27,7 +26,6 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 /**
@@ -153,7 +151,7 @@ public class MSITest extends AESetup {
             String[] values = createCharValues(false);
             populateCharNormalCase(values);
 
-            try (ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
+            try (ResultSet rs = (null == stmt) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
                 int numberOfColumns = rs.getMetaData().getColumnCount();
                 while (rs.next()) {
                     AECommon.testGetString(rs, numberOfColumns, values);
@@ -174,7 +172,7 @@ public class MSITest extends AESetup {
             String[] values = createNumericValues(false);
             populateNumeric(values);
 
-            try (SQLServerResultSet rs = (stmt == null) ? (SQLServerResultSet) pstmt.executeQuery()
+            try (SQLServerResultSet rs = (null == stmt) ? (SQLServerResultSet) pstmt.executeQuery()
                                                         : (SQLServerResultSet) stmt.executeQuery(sql)) {
                 int numberOfColumns = rs.getMetaData().getColumnCount();
                 while (rs.next()) {
