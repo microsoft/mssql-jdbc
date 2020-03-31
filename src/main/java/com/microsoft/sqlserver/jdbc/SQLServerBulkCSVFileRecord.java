@@ -235,16 +235,24 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         List<String> fieldsList = new ArrayList<String>();
         boolean inQuotes = false;
         StringBuilder sb = new StringBuilder();
+        String field;
+
         for (char ch : line.toCharArray()) {
             if (ch == delimiter.charAt(0)) {
                 if (inQuotes) {
                     sb.append(ch);
                 } else {
-                    fieldsList.add(sb.toString());
+                    field = sb.toString();
+                    field = (field.length() >= 2 && field.charAt(0) == '"'
+                            && field.charAt(field.length() - 1) == '"')
+                                                                        ? sb.toString().substring(1, field.length() - 1)
+                                                                                .replace("\"\"", "\"")
+                                                                        : field;
+                    fieldsList.add(field);
                     sb = new StringBuilder();
                 }
             } else {
-                // don't split if in quoted
+                // don't split if in quotes
                 if (ch == '\"') {
                     inQuotes = !inQuotes;
                 }
@@ -252,13 +260,12 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             }
 
         }
+        field = sb.toString();
+        field = (field.length() >= 2 && field.charAt(0) == '"' && field.charAt(field.length() - 1) == '"') ? sb
+                .toString().substring(1, field.length() - 1).replace("\"\"", "\"") : field;
+        fieldsList.add(field);
 
-        fieldsList.add(sb.toString());
-        String fields[] = new String[fieldsList.size()];
-        for (int i = 0; i < fieldsList.size(); i++) {
-            fields[i] = fieldsList.get(i);
-        }
-        return fields;
+        return fieldsList.toArray(new String[fieldsList.size()]);
     }
 
     @Override
@@ -271,16 +278,6 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             // otherwise trailing empty strings are discarded.
             // Empty string is returned if there is no value.
             String[] data = splitLine(currentLine);
-
-            // get rid of enclosed quotes
-            for (int i = 0; i < data.length; i++) {
-                if (data[i].length() >= 2) {
-                    if (data[i].charAt(0) == '"' && data[i].charAt(data[i].length() - 1) == '"') {
-                        data[i] = data[i].substring(1, data[i].length() - 1);
-                        data[i] = data[i].replace("\"\"", "\"");
-                    }
-                }
-            }
 
             // Cannot go directly from String[] to Object[] and expect it to act
             // as an array.
