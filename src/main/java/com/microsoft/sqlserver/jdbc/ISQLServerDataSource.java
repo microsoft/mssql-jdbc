@@ -933,7 +933,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Enclave attestation protocol.
      */
     void setEnclaveAttestationProtocol(String protocol);
-    
+
     /**
      * Returns client certificate path for client certificate authentication.
      * 
@@ -948,7 +948,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Client certificate path.
      */
     void setClientCertificate(String certPath);
-    
+
     /**
      * Returns Private key file path for client certificate authentication.
      * 

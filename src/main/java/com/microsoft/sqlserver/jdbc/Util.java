@@ -417,11 +417,11 @@ final class Util {
                     break;
                 }
                 case inEscapedValueStart: {
-                    /* check for escaped }.
-                    * when we see a }, first check to see if this is before the end of the string to avoid index out of range exception
-                    * then check if the character immediately after is also a }.
-                    * if it is, then we have a }}, which is not the closing of the escaped state.
-                    */
+                    /*
+                     * check for escaped }. when we see a }, first check to see if this is before the end of the string
+                     * to avoid index out of range exception then check if the character immediately after is also a }.
+                     * if it is, then we have a }}, which is not the closing of the escaped state.
+                     */
                     if (ch == '}' && i + 1 < tmpUrl.length() && tmpUrl.charAt(i + 1) == '}') {
                         builder = new StringBuilder();
                         builder.append(value);
@@ -999,10 +999,11 @@ final class Util {
 
     @SuppressWarnings("unchecked")
     static <T> T newInstance(Class<?> returnType, String className, String constructorArg,
-            String nonAssignableMessage) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException {
+            Object[] msgArgs) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException {
         Class<?> clazz = Class.forName(className);
         if (!returnType.isAssignableFrom(clazz)) {
-            throw new IllegalArgumentException(nonAssignableMessage);
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unassignableError"));
+            throw new IllegalArgumentException(form.format(msgArgs));
         }
         if (constructorArg == null) {
             return (T) clazz.getDeclaredConstructor().newInstance();

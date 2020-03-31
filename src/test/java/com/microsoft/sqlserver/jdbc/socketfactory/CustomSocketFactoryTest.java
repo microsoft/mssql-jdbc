@@ -40,7 +40,7 @@ public class CustomSocketFactoryTest extends AbstractTest {
         public DummySocketFactory(String arg) {
             this.arg = arg;
         }
-        
+
         public DummySocketFactory() {
             this.arg = null;
         }
@@ -93,27 +93,27 @@ public class CustomSocketFactoryTest extends AbstractTest {
         }
         Assert.assertEquals("The custom socket factory should have been used once", 1, dummyLog.size());
     }
-    
+
     /**
      * Connect with a custom socket factory.
      */
     @Test
     public void testCustomSocketFactoryWithArg() throws Exception {
         String constructorArg = "TEST-CUSTOM-ARG";
-        String url = connectionString + ";socketFactoryClass=" + DummySocketFactory.class.getName() + ";socketFactoryConstructorArg=" + constructorArg;
+        String url = connectionString + ";socketFactoryClass=" + DummySocketFactory.class.getName()
+                + ";socketFactoryConstructorArg=" + constructorArg;
         try (Connection con = PrepUtil.getConnection(url)) {
             Assert.assertTrue(con != null);
         }
         Assert.assertEquals("The custom socket factory should have been used once", 1, dummyLog.size());
-        Assert.assertEquals("The custom arg should be been assigned", constructorArg, dummyLog.get(0));        
+        Assert.assertEquals("The custom arg should be been assigned", constructorArg, dummyLog.get(0));
     }
 
     /**
      * This class does not implement SocketFactory and the connection must fail when it is specified by the
      * socketFactoryClass property.
      */
-    public static class InvalidSocketFactory {
-    }
+    public static class InvalidSocketFactory {}
 
     /**
      * Test with a custom socket factory class that does not implement SocketFactory.
