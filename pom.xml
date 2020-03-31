@@ -54,13 +54,12 @@
 			clientCertAuth  - - For tests requiring client certificate authentication setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
-		<excludedGroups>xSQLv15, NTLM, MSI, reqExternalSetup, clientCertAuth</excludedGroups>
+		<excludedGroups>xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth</excludedGroups>
 
 		<!-- Use -preview for preview release, leave empty for official release.-->
 		<releaseExt>-preview</releaseExt>
 
 		<!-- Driver Dependencies -->
-		<azure.identity.version>1.0.4</azure.identity.version>
 		<azure.keyvault.version>1.2.2</azure.keyvault.version>
 		<azure.adal4j.version>1.6.4</azure.adal4j.version>
 		<rest.client.version>1.7.0</rest.client.version>
@@ -87,29 +86,9 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>com.azure</groupId>
-			<artifactId>azure-identity</artifactId>
-			<version>${azure.identity.version}</version>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>azure-keyvault</artifactId>
 			<version>${azure.keyvault.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-core</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-annotations</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-databind</artifactId>
-				</exclusion>
-			</exclusions>
 			<optional>true</optional>
 		</dependency>
 		<dependency>

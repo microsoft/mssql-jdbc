@@ -5,13 +5,11 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import com.azure.core.credential.TokenRequestContext;
-import com.azure.identity.ManagedIdentityCredential;
-import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.aad.adal4j.ClientCredential;
@@ -28,22 +26,13 @@ class KeyVaultCredential extends KeyVaultCredentials {
     SQLServerKeyVaultAuthenticationCallback authenticationCallback = null;
     String clientId = null;
     String clientKey = null;
-    ManagedIdentityCredential miCred = null;
-    private String accessToken;
-
-    KeyVaultCredential() throws SQLServerException {
-        miCred = new ManagedIdentityCredentialBuilder().build();
-        if (null == miCred) {
-            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityInitFail"), null);
-        }
-    }
+    String accessToken = null;
 
     KeyVaultCredential(String clientId) throws SQLServerException {
-        miCred = new ManagedIdentityCredentialBuilder().clientId(clientId).build();
-        if (null == miCred) {
-            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityInitFail"), null);
-        }
+        this.clientId = clientId;
     }
+
+    KeyVaultCredential() {}
 
     KeyVaultCredential(String clientId, String clientKey) {
         this.clientId = clientId;
@@ -55,11 +44,15 @@ class KeyVaultCredential extends KeyVaultCredentials {
     }
 
     public String doAuthenticate(String authorization, String resource, String scope) {
+        String accessToken = null;
         if (null == authenticationCallback) {
-            if (null != miCred) {
-                miCred.getToken(new TokenRequestContext().addScopes(resource)).subscribe(token -> {
-                    accessToken = token.getToken();
-                });
+            if (null == clientKey) {
+                try {
+                    SqlFedAuthToken token = SQLServerSecurityUtility.getMSIAuthToken(resource, clientId);
+                    accessToken = (null != token) ? token.accessToken : null;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             } else {
                 AuthenticationResult token = getAccessTokenFromClientCredentials(authorization, resource, clientId,
                         clientKey);
