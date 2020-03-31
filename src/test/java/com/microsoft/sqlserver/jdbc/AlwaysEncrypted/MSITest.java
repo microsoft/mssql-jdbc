@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.aad.adal4j.AuthenticationException;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -26,6 +27,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 /**
@@ -57,6 +59,28 @@ public class MSITest extends AESetup {
     }
 
     /*
+     * Test MSI auth with msiClientId
+     */
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testMSIAuthWithMSIClientId() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
+        String connStr = connectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, msiClientId);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(connectionString)) {} catch (Exception e) {
+            fail(TestResource.getResource("R_loginFailed") + e.getMessage());
+        }
+    }
+
+    /*
      * Test MSI auth using datasource
      */
     @Tag(Constants.xSQLv12)
@@ -81,7 +105,32 @@ public class MSITest extends AESetup {
     }
 
     /*
-     * Test MSI auth using datasource
+     * Test MSI auth with msiClientId using datasource
+     */
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testDSMSIAuthWithMSIClientId() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
+        String connStr = connectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
+
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setAuthentication("ActiveDirectoryMSI");
+        ds.setMSIClientId(msiClientId);
+        AbstractTest.updateDataSource(connStr, ds);
+
+        try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {} catch (Exception e) {
+            fail(TestResource.getResource("R_loginFailed") + e.getMessage());
+        }
+    }
+
+    /*
+     * Test AKV with MSI using datasource
      */
     @Test
     public void testDSAkvWithMSI() throws SQLException {
