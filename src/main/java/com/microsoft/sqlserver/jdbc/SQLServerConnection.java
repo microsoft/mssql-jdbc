@@ -712,7 +712,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Unregisters all the custom key store providers from the globalCustomColumnEncryptionKeyStoreProviders.
+     * Unregisters all the custom key store providers from the globalCustomColumnEncryptionKeyStoreProviders by clearing
+     * the map and setting it to null.
      */
     public static synchronized void unregisterColumnEncryptionKeyStoreProviders() {
         loggerExternal.entering(loggingClassName, "unregisterColumnEncryptionKeyStoreProviders",
@@ -724,9 +725,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         loggerExternal.exiting(loggingClassName, "unregisterColumnEncryptionKeyStoreProviders",
-                "Number of Key store providers that are registered:"
-                        + (null != globalCustomColumnEncryptionKeyStoreProviders ? globalCustomColumnEncryptionKeyStoreProviders
-                                .size() : 0));
+                "Number of Key store providers that are registered: 0");
     }
 
     synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalSystemColumnEncryptionKeyStoreProvider(

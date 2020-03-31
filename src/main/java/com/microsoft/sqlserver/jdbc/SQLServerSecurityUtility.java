@@ -40,6 +40,12 @@ class SQLServerSecurityUtility {
     static final private java.util.logging.Logger connectionlogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
 
+    static final int GONE = 410;
+    static final int TOO_MANY_RESQUESTS = 429;
+    static final int NOT_FOUND = 404;
+    static final int INTERNAL_SERVER_ERROR = 500;
+    static final int NETWORK_CONNECT_TIMEOUT_ERROR = 599;
+
     /**
      * Give the hash of given plain text
      * 
@@ -271,7 +277,7 @@ class SQLServerSecurityUtility {
             maxRetry = 20;
             // Simplified variant of Exponential BackOff
             for (int x = 0; x < maxRetry; x++) {
-                retrySlots.add(500 * ((2 << 1) - 1) / 1000);
+                retrySlots.add(INTERNAL_SERVER_ERROR * ((2 << 1) - 1) / 1000);
             }
         }
 
@@ -354,8 +360,9 @@ class SQLServerSecurityUtility {
                     try {
                         int responseCode = connection.getResponseCode();
                         // Check Error Response Code from Connection
-                        if (410 == responseCode || 429 == responseCode || 404 == responseCode
-                                || (500 <= responseCode && 599 >= responseCode)) {
+                        if (GONE == responseCode || TOO_MANY_RESQUESTS == responseCode || NOT_FOUND == responseCode
+                                || (INTERNAL_SERVER_ERROR <= responseCode
+                                        && NETWORK_CONNECT_TIMEOUT_ERROR >= responseCode)) {
                             try {
                                 int retryTimeoutInMs = retrySlots.get(ThreadLocalRandom.current().nextInt(retry - 1));
                                 // Error code 410 indicates IMDS upgrade is in progress, which can take up to 70s

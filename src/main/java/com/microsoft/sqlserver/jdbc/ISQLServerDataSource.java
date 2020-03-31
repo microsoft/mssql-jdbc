@@ -824,6 +824,9 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     /**
      * Sets the Azure Active Directory Application Client ID.
      * 
+     * When KeyStoreAuthentication = KeyVaultClientSecret, set this value to a valid Azure Active Directory Application
+     * Client ID
+     * 
      * @param keyStorePrincipalId
      *        Azure Active Directory Application Client ID.
      */
