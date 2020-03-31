@@ -39,7 +39,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentic
 class SQLServerSecurityUtility {
     static final private java.util.logging.Logger connectionlogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
-    
+
     /**
      * Give the hash of given plain text
      * 
@@ -234,7 +234,17 @@ class SQLServerSecurityUtility {
             throw new SQLServerException(SQLServerException.getErrString("R_VerifySignature"), null);
         }
     }
-    
+
+    /**
+     * Get Managed Identity Authentication token
+     * 
+     * @param resource
+     *        token resource
+     * @param msiClientId
+     *        Managed Identity or User Assigned Managed Identity
+     * @return fedauth token
+     * @throws SQLServerException
+     */
     static SqlFedAuthToken getMSIAuthToken(String resource, String msiClientId) throws SQLServerException {
         // IMDS upgrade time can take up to 70s
         final int imdsUpgradeTimeInMs = 70 * 1000;

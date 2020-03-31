@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
