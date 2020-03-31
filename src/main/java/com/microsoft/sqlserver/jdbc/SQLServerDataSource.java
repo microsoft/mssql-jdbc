@@ -661,6 +661,29 @@ public class SQLServerDataSource
     }
 
     @Override
+    public String getSocketFactoryClass() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString(), null);
+    }
+
+    @Override
+    public void setSocketFactoryClass(String socketFactoryClass) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString(),
+                socketFactoryClass);
+    }
+
+    @Override
+    public String getSocketFactoryConstructorArg() {
+        return getStringProperty(connectionProps,
+                SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString(), null);
+    }
+
+    @Override
+    public void setSocketFactoryConstructorArg(String socketFactoryConstructorArg) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString(),
+                socketFactoryConstructorArg);
+    }
+
+    @Override
     public void setSSLProtocol(String sslProtocol) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.SSL_PROTOCOL.toString(), sslProtocol);
     }

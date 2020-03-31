@@ -224,6 +224,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_packetSizePropertyDescription", "The network packet size used to communicate with SQL Server."},
             {"R_encryptPropertyDescription",
                     "Determines if Secure Sockets Layer (SSL) encryption should be used between the client and the server."},
+            {"R_socketFactoryClassPropertyDescription", "The class to instantiate as the SocketFactory for connections"},
+            {"R_socketFactoryConstructorArgPropertyDescription", "The optional argument to pass to the constructor specified by socketFactoryClass"},
             {"R_trustServerCertificatePropertyDescription",
                     "Determines if the driver should validate the SQL Server Secure Sockets Layer (SSL) certificate."},
             {"R_trustStoreTypePropertyDescription", "KeyStore type."},
@@ -631,5 +633,6 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_VbsRpDataError", "rp_data claim from JWT did not match client nonce."},
             {"R_pvkParseError", "Could not read Private Key from PVK, check the password provided."},
             {"R_pvkHeaderError", "Cannot parse the PVK, PVK file does not contain the correct header."},
-            {"R_clientCertError", "Reading client certificate failed. Please verify the location of the certificate."}};
+            {"R_clientCertError", "Reading client certificate failed. Please verify the location of the certificate."},
+            {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."}};
 };

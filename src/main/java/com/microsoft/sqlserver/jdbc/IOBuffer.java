@@ -62,6 +62,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.net.SocketFactory;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
@@ -1670,18 +1671,9 @@ final class TDSChannel implements Serializable {
             // Otherwise, we'll check if a specific TrustManager implemenation has been requested and
             // if so instantiate it, optionally specifying a constructor argument to customize it.
             else if (con.getTrustManagerClass() != null) {
-                Class<?> tmClass = Class.forName(con.getTrustManagerClass());
-                if (!TrustManager.class.isAssignableFrom(tmClass)) {
-                    throw new IllegalArgumentException(
-                            "The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager");
-                }
-                String constructorArg = con.getTrustManagerConstructorArg();
-                if (constructorArg == null) {
-                    tm = new TrustManager[] {(TrustManager) tmClass.getDeclaredConstructor().newInstance()};
-                } else {
-                    tm = new TrustManager[] {
-                            (TrustManager) tmClass.getDeclaredConstructor(String.class).newInstance(constructorArg)};
-                }
+                Object[] msgArgs = {"trustManagerClass", "javax.net.ssl.TrustManager"};
+                tm = new TrustManager[] {Util.newInstance(TrustManager.class, con.getTrustManagerClass(),
+                        con.getTrustManagerConstructorArg(), msgArgs)};
             }
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
@@ -2607,6 +2599,29 @@ final class SocketFinder {
         }
     }
 
+    private SocketFactory socketFactory = null;
+
+    private SocketFactory getSocketFactory() throws IOException {
+        if (socketFactory == null) {
+            String socketFactoryClass = conn.getSocketFactoryClass();
+            if (socketFactoryClass == null) {
+                socketFactory = SocketFactory.getDefault();
+            } else {
+                String socketFactoryConstructorArg = conn.getSocketFactoryConstructorArg();
+                try {
+                    Object[] msgArgs = {"socketFactoryClass", "javax.net.SocketFactory"};
+                    socketFactory = Util.newInstance(SocketFactory.class, socketFactoryClass,
+                            socketFactoryConstructorArg, msgArgs);
+                } catch (RuntimeException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new IOException(e);
+                }
+            }
+        }
+        return socketFactory;
+    }
+
     // This method contains the old logic of connecting to
     // a socket of one of the IPs corresponding to a given host name.
     // In the old code below, the logic around 0 timeout has been removed as
@@ -2633,7 +2648,7 @@ final class SocketFinder {
         assert timeoutInMilliSeconds != 0 : "timeout cannot be zero";
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();
-        selectedSocket = new Socket();
+        selectedSocket = getSocketFactory().createSocket();
         selectedSocket.connect(addr, timeoutInMilliSeconds);
         return selectedSocket;
     }
@@ -2652,7 +2667,7 @@ final class SocketFinder {
             // create a socket, inetSocketAddress and a corresponding socketConnector per inetAddress
             noOfSpawnedThreads = inetAddrs.length;
             for (InetAddress inetAddress : inetAddrs) {
-                Socket s = new Socket();
+                Socket s = getSocketFactory().createSocket();
                 sockets.add(s);
 
                 InetSocketAddress inetSocketAddress = new InetSocketAddress(inetAddress, portNumber);
