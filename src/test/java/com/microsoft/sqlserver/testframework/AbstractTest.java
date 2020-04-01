@@ -63,11 +63,11 @@ public abstract class AbstractTest {
     protected static String[] enclaveServer = null;
     protected static String[] enclaveAttestationUrl = null;
     protected static String[] enclaveAttestationProtocol = null;
-    
+
     protected static String clientCertificate = null;
     protected static String clientKey = null;
     protected static String clientKeyPassword = "";
-    
+
     protected static String trustStorePath = "";
 
     protected static String javaKeyPath = null;
@@ -77,6 +77,11 @@ public abstract class AbstractTest {
     static boolean isKspRegistered = false;
 
     protected static String windowsKeyPath = null;
+
+    // properties needed for MSI
+    protected static String msiClientId = null;
+    protected static String keyStorePrincipalId = null;
+    protected static String keyStoreSecret = null;
 
     protected static SQLServerConnection connection = null;
     protected static ISQLServerDataSource ds = null;
@@ -145,23 +150,23 @@ public abstract class AbstractTest {
 
         prop = getConfiguredProperty("enclaveAttestationProtocol", null);
         enclaveAttestationProtocol = null != prop ? prop.split(Constants.SEMI_COLON) : null;
-        
+
         clientCertificate = getConfiguredProperty("clientCertificate", null);
-        
+
         clientKey = getConfiguredProperty("clientKey", null);
-        
+
         clientKeyPassword = getConfiguredProperty("clientKeyPassword", "");
-        
+
         trustStorePath = getConfiguredProperty("trustStore", "");
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
             jksProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath,
                     Constants.JKS_SECRET.toCharArray());
-            map.put("My_KEYSTORE", jksProvider);
+            map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null == akvProvider) {
+        if (null == akvProvider && null != applicationClientID && null != applicationKey) {
             File file = null;
             try {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
@@ -207,6 +212,11 @@ public abstract class AbstractTest {
                     "NTLM");
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");
         }
+
+        // MSI properties
+        msiClientId = getConfiguredProperty("msiClientId");
+        keyStorePrincipalId = getConfiguredProperty("keyStorePrincipalId");
+        keyStoreSecret = getConfiguredProperty("keyStoreSecret");
 
         ds = updateDataSource(connectionString, new SQLServerDataSource());
         dsXA = updateDataSource(connectionString, new SQLServerXADataSource());
@@ -308,6 +318,24 @@ public abstract class AbstractTest {
                             break;
                         case Constants.ENCLAVE_ATTESTATIONPROTOCOL:
                             ds.setEnclaveAttestationProtocol(value);
+                            break;
+                        case Constants.KEYVAULTPROVIDER_CLIENTID:
+                            ds.setKeyVaultProviderClientId(value);
+                            break;
+                        case Constants.KEYVAULTPROVIDER_CLIENTKEY:
+                            ds.setKeyVaultProviderClientKey(value);
+                            break;
+                        case Constants.KEYSTORE_AUTHENTICATION:
+                            ds.setKeyStoreAuthentication(value);
+                            break;
+                        case Constants.KEYSTORE_PRINCIPALID:
+                            ds.setKeyStorePrincipalId(value);
+                            break;
+                        case Constants.KEYSTORE_SECRET:
+                            ds.setKeyStoreSecret(value);
+                            break;
+                        case Constants.MSICLIENTID:
+                            ds.setMSIClientId(value);
                             break;
                         case Constants.CLIENT_CERTIFICATE:
                             ds.setClientCertificate(value);
