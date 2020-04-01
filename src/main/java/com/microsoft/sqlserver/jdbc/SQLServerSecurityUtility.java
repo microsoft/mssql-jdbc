@@ -377,7 +377,7 @@ class SQLServerSecurityUtility {
                         } else {
                             if (null != msiClientId && !msiClientId.isEmpty()) {
                                 throw new SQLServerException(
-                                        SQLServerException.getErrString("R_MSITokenFailureClientId"), null);
+                                        SQLServerException.getErrString("R_MSITokenFailureImdsClientId"), null);
                             } else {
                                 throw new SQLServerException(SQLServerException.getErrString("R_MSITokenFailureImds"),
                                         null);

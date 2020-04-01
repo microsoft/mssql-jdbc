@@ -1317,7 +1317,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // need a secret use use the secret method
                     if (null == keyStoreSecret) {
                         throw new SQLServerException(
-                                SQLServerException.getErrString("R_keyStoreSecretOrLocationNotSet"), null);
+                                SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
                     } else {
                         SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
                                 keyStorePrincipalId, keyStoreSecret);
