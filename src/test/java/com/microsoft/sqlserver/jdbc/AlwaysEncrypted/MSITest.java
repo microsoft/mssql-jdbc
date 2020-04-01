@@ -53,7 +53,7 @@ public class MSITest extends AESetup {
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
 
-        try (SQLServerConnection con = PrepUtil.getConnection(connectionString)) {} catch (Exception e) {
+        try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {} catch (Exception e) {
             fail(TestResource.getResource("R_loginFailed") + e.getMessage());
         }
     }
@@ -75,7 +75,7 @@ public class MSITest extends AESetup {
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, msiClientId);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(connectionString)) {} catch (Exception e) {
+        try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {} catch (Exception e) {
             fail(TestResource.getResource("R_loginFailed") + e.getMessage());
         }
     }
