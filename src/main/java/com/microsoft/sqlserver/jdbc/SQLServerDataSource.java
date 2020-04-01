@@ -934,6 +934,18 @@ public class SQLServerDataSource
     }
 
     @Override
+    public void setKeyStorePrincipalId(String keyStorePrincipalId) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString(),
+                keyStorePrincipalId);
+    }
+
+    @Override
+    public String getKeyStorePrincipalId() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString(),
+                SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.getDefaultValue());
+    }
+
+    @Override
     public String getDomain() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(),
                 SQLServerDriverStringProperty.DOMAIN.getDefaultValue());

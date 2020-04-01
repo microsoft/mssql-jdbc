@@ -852,6 +852,25 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getMSIClientId();
 
     /**
+     * Sets the value for the connection property 'keyStorePrincipalId'.
+     * 
+     * @param keyStorePrincipalId
+     * 
+     *        <pre>
+     *        When keyStoreAuthentication = keyVaultClientSecret, set this value to a valid Azure Active Directory Application Client ID.
+     *        When keyStoreAuthentication = keyVaultManagedIdentity, set this value to a valid Azure Active Directory Application Object ID (optional, for user-assigned only).
+     *        </pre>
+     */
+    void setKeyStorePrincipalId(String keyStorePrincipalId);
+
+    /**
+     * Returns the value for the connection property 'keyStorePrincipalId'.
+     * 
+     * @return keyStorePrincipalId
+     */
+    String getKeyStorePrincipalId();
+
+    /**
      * Sets the Azure Key Vault (AKV) Provider Client Id to provided value to be used for column encryption.
      * 
      * @param keyVaultProviderClientId

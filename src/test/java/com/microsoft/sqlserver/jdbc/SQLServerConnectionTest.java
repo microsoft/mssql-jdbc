@@ -239,6 +239,9 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         ds.setKeyVaultProviderClientKey(stringPropValue);
         // there is no corresponding getKeyVaultProviderClientKey
+
+        ds.setKeyStorePrincipalId(stringPropValue);
+        assertTrue(ds.getKeyStorePrincipalId().equals(stringPropValue));
     }
 
     @Test
