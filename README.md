@@ -48,14 +48,14 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\target` directory. 
-        * Run `mvn install -Pjre13`. This creates JRE 13 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 13+).
+        * Run `mvn install -Pjre14`. This creates JRE 14 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 14+).
         * Run `mvn install -Pjre11`. This creates JRE 11 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 11+).
         * Run `mvn install -Pjre8`. This creates JRE 8 compatible jar in `\target` directory which is JDBC 4.2 compliant (Build with JDK 11+).
 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\build\libs` directory. 
-        * Run `gradle build -PbuildProfile=jre13`. This creates JRE 13 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 13+).
+        * Run `gradle build -PbuildProfile=jre14`. This creates JRE 14 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 14+).
         * Run `gradle build -PbuildProfile=jre11`. This creates JRE 11 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 11+).
         * Run `gradle build -PbuildProfile=jre8`. This creates JRE 8 compatible jar in `\build\libs` directory which is JDBC 4.2 compliant (Build with JDK 11+).
 
@@ -92,7 +92,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.1.jre13-preview</version>
+	<version>8.3.0.jre14-preview</version>
 </dependency>
 ```
 
@@ -129,7 +129,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.2.2.jre13</version>
+	<version>8.3.0.jre14-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -152,7 +152,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.2.2.jre13</version>
+	<version>8.3.0.jre14-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -185,7 +185,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.2.2.jre13</version>
+	<version>8.3.0.jre14-preview</version>
 </dependency>
 
 <dependency>
