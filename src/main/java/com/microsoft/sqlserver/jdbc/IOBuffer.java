@@ -62,6 +62,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.net.SocketFactory;
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
@@ -364,6 +366,7 @@ final class TDS {
     static final byte ENCRYPT_ON = 0x01;
     static final byte ENCRYPT_NOT_SUP = 0x02;
     static final byte ENCRYPT_REQ = 0x03;
+    static final byte ENCRYPT_CLIENT_CERT = (byte) 0x80;
     static final byte ENCRYPT_INVALID = (byte) 0xFF;
 
     static final String getEncryptionLevel(int level) {
@@ -1597,9 +1600,16 @@ final class TDSChannel implements Serializable {
      *        Server Host Name for SSL Handshake
      * @param port
      *        Server Port for SSL Handshake
+     * @param clientCertificate
+     *        Client certificate path
+     * @param clientKey
+     *        Private key file path
+     * @param clientKeyPassword
+     *        Private key file's password
      * @throws SQLServerException
      */
-    void enableSSL(String host, int port) throws SQLServerException {
+    void enableSSL(String host, int port, String clientCertificate, String clientKey,
+            String clientKeyPassword) throws SQLServerException {
         // If enabling SSL fails, which it can for a number of reasons, the following items
         // are used in logging information to the TDS channel logger to help diagnose the problem.
         Provider tmfProvider = null; // TrustManagerFactory provider
@@ -1661,18 +1671,9 @@ final class TDSChannel implements Serializable {
             // Otherwise, we'll check if a specific TrustManager implemenation has been requested and
             // if so instantiate it, optionally specifying a constructor argument to customize it.
             else if (con.getTrustManagerClass() != null) {
-                Class<?> tmClass = Class.forName(con.getTrustManagerClass());
-                if (!TrustManager.class.isAssignableFrom(tmClass)) {
-                    throw new IllegalArgumentException(
-                            "The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager");
-                }
-                String constructorArg = con.getTrustManagerConstructorArg();
-                if (constructorArg == null) {
-                    tm = new TrustManager[] {(TrustManager) tmClass.getDeclaredConstructor().newInstance()};
-                } else {
-                    tm = new TrustManager[] {
-                            (TrustManager) tmClass.getDeclaredConstructor(String.class).newInstance(constructorArg)};
-                }
+                Object[] msgArgs = {"trustManagerClass", "javax.net.ssl.TrustManager"};
+                tm = new TrustManager[] {Util.newInstance(TrustManager.class, con.getTrustManagerClass(),
+                        con.getTrustManagerConstructorArg(), msgArgs)};
             }
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
@@ -1774,13 +1775,16 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
+            KeyManager[] km = (null != clientCertificate && clientCertificate.length() > 0) ? SQLServerCertificateUtils
+                    .getKeyManagerFromFile(clientCertificate, clientKey, clientKeyPassword) : null;
+
             sslContext = SSLContext.getInstance(sslProtocol);
             sslContextProvider = sslContext.getProvider();
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Initializing SSL context");
 
-            sslContext.init(null, tm, null);
+            sslContext.init(km, tm, null);
 
             // Got the SSL context. Now create an SSL socket over our own proxy socket
             // which we can toggle between TDS-encapsulated and raw communications.
@@ -2595,6 +2599,29 @@ final class SocketFinder {
         }
     }
 
+    private SocketFactory socketFactory = null;
+
+    private SocketFactory getSocketFactory() throws IOException {
+        if (socketFactory == null) {
+            String socketFactoryClass = conn.getSocketFactoryClass();
+            if (socketFactoryClass == null) {
+                socketFactory = SocketFactory.getDefault();
+            } else {
+                String socketFactoryConstructorArg = conn.getSocketFactoryConstructorArg();
+                try {
+                    Object[] msgArgs = {"socketFactoryClass", "javax.net.SocketFactory"};
+                    socketFactory = Util.newInstance(SocketFactory.class, socketFactoryClass,
+                            socketFactoryConstructorArg, msgArgs);
+                } catch (RuntimeException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new IOException(e);
+                }
+            }
+        }
+        return socketFactory;
+    }
+
     // This method contains the old logic of connecting to
     // a socket of one of the IPs corresponding to a given host name.
     // In the old code below, the logic around 0 timeout has been removed as
@@ -2621,7 +2648,7 @@ final class SocketFinder {
         assert timeoutInMilliSeconds != 0 : "timeout cannot be zero";
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();
-        selectedSocket = new Socket();
+        selectedSocket = getSocketFactory().createSocket();
         selectedSocket.connect(addr, timeoutInMilliSeconds);
         return selectedSocket;
     }
@@ -2640,7 +2667,7 @@ final class SocketFinder {
             // create a socket, inetSocketAddress and a corresponding socketConnector per inetAddress
             noOfSpawnedThreads = inetAddrs.length;
             for (InetAddress inetAddress : inetAddrs) {
-                Socket s = new Socket();
+                Socket s = getSocketFactory().createSocket();
                 sockets.add(s);
 
                 InetSocketAddress inetSocketAddress = new InetSocketAddress(inetAddress, portNumber);
@@ -6202,7 +6229,8 @@ final class TDSWriter {
 
     void sendEnclavePackage(String sql, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         if (null != con && con.isAEv2()) {
-            if (null != sql && !sql.isEmpty() && null != enclaveCEKs && 0 < enclaveCEKs.size() && con.enclaveEstablished()) {
+            if (null != sql && !sql.isEmpty() && null != enclaveCEKs && 0 < enclaveCEKs.size()
+                    && con.enclaveEstablished()) {
                 byte[] b = con.generateEnclavePackage(sql, enclaveCEKs);
                 if (null != b && 0 != b.length) {
                     this.writeShort((short) b.length);

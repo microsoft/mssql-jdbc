@@ -127,15 +127,15 @@ public class CallableStatementTest extends AESetup {
      */
     @BeforeAll
     public static void initValues() throws Exception {
+        dropAll();
+
         numericValues = createNumericValues(nullable);
         byteValues = createBinaryValues(nullable);
         dateValues = createTemporalTypesCallableStatement(nullable);
         charValues = createCharValues(nullable);
-
-        initCallableStatementTest();
     }
 
-    static void initCallableStatementTest() throws Exception {
+    void initCallableStatementTest() throws Exception {
         dropAll();
 
         createSPTables(cekJks);
@@ -250,6 +250,9 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testVariousIOParams(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        initCallableStatementTest();
+
         createmixedProcedureNumericPrecisionScale();
         testmixedProcedureNumericPrecisionScaleInorder("{call " + mixedProcedureNumericPrecisionScale + "(?,?,?,?)}");
         testmixedProcedureNumericPrecisionScaleParameterName(

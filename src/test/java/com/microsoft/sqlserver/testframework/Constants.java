@@ -24,6 +24,7 @@ public final class Constants {
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
      * NTLM  - - - - - - - For NTLM tests
      * reqExternalSetup  - For tests requiring external setup
+     * clientCertAuth  - - For tests requiring client certificate authentication setup
      * </pre>
      */
     public static final String xJDBC42 = "xJDBC42";
@@ -35,7 +36,9 @@ public final class Constants {
     public static final String xAzureSQLDW = "xAzureSQLDW";
     public static final String xAzureSQLMI = "xAzureSQLMI";
     public static final String NTLM = "NTLM";
+    public static final String MSI = "MSI";
     public static final String reqExternalSetup = "reqExternalSetup";
+    public static final String clientCertAuth = "clientCertAuth";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");
@@ -43,6 +46,8 @@ public final class Constants {
     public static final String JDBC_PREFIX = "jdbc:sqlserver://";
     public static final String DEFAULT_DRIVER_LOG = "Driver.log";
     public static final String MSSQL_JDBC_PACKAGE = "com.microsoft.sqlserver.jdbc";
+    public static final String MSSQL_JDBC_PROPERTIES = "mssql-jdbc.properties";
+    public static final String AKV_TRUSTED_ENDPOINTS_KEYWORD = "AKVTrustedEndpoints";
 
     public static final String DEFAULT_WRAP_IDENTIFIER = "\'";
     public static final String CREATE_TABLE = "CREATE TABLE";
@@ -90,6 +95,7 @@ public final class Constants {
     public static final String WINDOWS_KEY_STORE_NAME = "MSSQL_CERTIFICATE_STORE";
     public static final String AZURE_KEY_VAULT_NAME = "AZURE_KEY_VAULT";
     public static final String JAVA_KEY_STORE_NAME = "MSSQL_JAVA_KEYSTORE";
+    public static final String CUSTOM_KEYSTORE_NAME = "CUSTOM_KEYSTORE";
     public static final String JAVA_KEY_STORE_FILENAME = "JavaKeyStore.txt";
     public static final String JAVA_KEY_STORE_SECRET = "JavaKeyStorePassword";
     public static final String JKS = "JKS";
@@ -138,6 +144,16 @@ public final class Constants {
     public static final String ENCLAVE_ATTESTATIONURL = "enclaveAttestationUrl";
     public static final String ENCLAVE_ATTESTATIONPROTOCOL = "enclaveAttestationProtocol";
 
+    // for MSI
+    public static final String MSICLIENTID = "MSICLIENTID";
+    public static final String KEYVAULTPROVIDER_CLIENTID = "KEYVAULTPROVIDERCLIENTID";
+    public static final String KEYVAULTPROVIDER_CLIENTKEY = "KEYVAULTPROVIDERCLIENTKEY";
+    public static final String KEYSTORE_AUTHENTICATION = "KEYSTOREAUTHENTICATION";
+    public static final String KEYSTORE_PRINCIPALID = "KEYSTOREPRINCIPALID";
+    public static final String KEYSTORE_SECRET = "KEYSTORESECRET";
+    public static final String CLIENT_CERTIFICATE = "CLIENTCERTIFICATE";
+    public static final String CLIENT_KEY = "CLIENTKEY";
+    public static final String CLIENT_KEY_PASSWORD = "CLIENTKEYPASSWORD";
     public static final String CONFIG_PROPERTIES_FILE = "config.properties";
 
     public enum LOB {

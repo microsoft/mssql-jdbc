@@ -1793,6 +1793,7 @@ public class DataTypesTest extends AbstractTest {
      * 
      * @throws Exception
      */
+    @Tag(Constants.xSQLv12)
     @Test
     public void testGetLocalDateTimePriorGregorian() throws Exception {
         String ldtTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ldtTable"));
