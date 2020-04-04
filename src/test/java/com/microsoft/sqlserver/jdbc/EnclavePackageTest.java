@@ -289,7 +289,7 @@ public class EnclavePackageTest extends AbstractTest {
     public static void testBadAkv() {
         try {
             SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                    null);
+                    (String) null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
