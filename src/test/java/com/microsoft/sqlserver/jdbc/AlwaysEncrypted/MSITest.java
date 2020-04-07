@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -160,6 +161,21 @@ public class MSITest extends AESetup {
     }
 
     /*
+     * Test AKV with with credentials using deprecated properties
+     */
+    @Test
+    public void testCharAkvWithCredDeprecated() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
+        // add deprecated connection properties
+        String connStr = AETestConnectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYVAULTPROVIDER_CLIENTID, keyStorePrincipalId);
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYVAULTPROVIDER_CLIENTKEY, keyStoreSecret);
+        testCharAkv(connStr);
+    }
+
+    /*
      * Test AKV with MSI
      */
     @Test
@@ -188,6 +204,82 @@ public class MSITest extends AESetup {
                 "KeyVaultManagedIdentity");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_PRINCIPALID, keyStorePrincipalId);
         testCharAkv(connStr);
+    }
+
+    /*
+     * Test AKV with with missing credentials
+     */
+    @Test
+    public void testNumericAkvMissingCred() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
+        // set auth type to key vault client secret but do not provide secret
+        String connStr = AETestConnectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_AUTHENTICATION, "KeyVaultClientSecret");
+        try {
+            testNumericAKV(connStr);
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreSecretNotSet")));
+        }
+    }
+
+    /*
+     * Test AKV with with keyStoreSecret secret but no keyStoreAuthentication
+     */
+    @Test
+    public void testNumericAkvSecretNoAuth() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
+        // set key store secret but do not specify authentication type
+        String connStr = AETestConnectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_SECRET, keyStoreSecret);
+        try {
+            testNumericAKV(connStr);
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")));
+        }
+    }
+
+    /*
+     * Test AKV with with keyStorePrincipalId but no keyStoreAuthentication
+     */
+    @Test
+    public void testNumericAkvPrincipalIdNoAuth() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
+        // set principal id but do not specify authentication type
+        String connStr = AETestConnectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_PRINCIPALID, keyStorePrincipalId);
+        try {
+            testNumericAKV(connStr);
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")));
+        }
+    }
+
+    /*
+     * Test AKV with with keyStoreLocation but no keyStoreAuthentication
+     */
+    @Test
+    public void testNumericAkvLocationNoAuth() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
+        // set key store location but do not specify authentication type
+        String connStr = AETestConnectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_LOCATION, "location");
+        try {
+            testNumericAKV(connStr);
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")));
+        }
     }
 
     /*
