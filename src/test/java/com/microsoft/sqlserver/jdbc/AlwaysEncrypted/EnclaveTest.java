@@ -252,9 +252,9 @@ public class EnclaveTest extends AESetup {
         checkAESetup(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTableSimple);
-            s.execute("INSERT INTO " + NUMERIC_TABLE_AE + " VALUES (1,2,3)");
-            PreparedStatement pstmt = c.prepareStatement("ALTER TABLE " + NUMERIC_TABLE_AE + "ALTER COLUMN RANDOMIZEDInt INT NULL WITH (ONLINE = ON)");
+            createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
+            s.execute("INSERT INTO " + CHAR_TABLE_AE + " VALUES ('a','b','test')");
+            PreparedStatement pstmt = c.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE + " ALTER COLUMN RANDOMIZEDVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
             pstmt.execute();
         }
     }
@@ -291,9 +291,9 @@ public class EnclaveTest extends AESetup {
         checkAESetup(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
-            createTable(CHAR_TABLE_AE, cekJks, charTableSimple);
+            createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
             s.execute("INSERT INTO " + CHAR_TABLE_AE + " VALUES ('a','b','test')");
-            PreparedStatement pstmt = c.prepareStatement("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDChar LIKE ?");
+            PreparedStatement pstmt = c.prepareStatement("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDVarchar LIKE ?");
             pstmt.setString(1, "t%");
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
