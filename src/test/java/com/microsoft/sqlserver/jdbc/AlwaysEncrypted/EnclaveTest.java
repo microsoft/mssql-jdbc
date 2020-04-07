@@ -242,6 +242,22 @@ public class EnclaveTest extends AESetup {
             }
         }
     }
+    
+    /**
+     * Test alter column
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testAlter(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement s = c.createStatement()) {
+            createTable(NUMERIC_TABLE_AE, cekJks, numericTableSimple);
+            s.execute("INSERT INTO " + NUMERIC_TABLE_AE + " VALUES (1,2,3)");
+            PreparedStatement pstmt = c.prepareStatement("ALTER TABLE " + NUMERIC_TABLE_AE + "ALTER COLUMN RANDOMIZEDInt INT NULL WITH (ONLINE = ON)");
+            pstmt.execute();
+        }
+    }
 
     /**
      * Rich Query with number compare
@@ -254,7 +270,7 @@ public class EnclaveTest extends AESetup {
                 Statement s = c.createStatement()) {
             createTable(NUMERIC_TABLE_AE, cekJks, numericTableSimple);
             s.execute("INSERT INTO " + NUMERIC_TABLE_AE + " VALUES (1,2,3)");
-            PreparedStatement pstmt = c.prepareStatement("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDText LIKE ?");
+            PreparedStatement pstmt = c.prepareStatement("SELECT * FROM " + NUMERIC_TABLE_AE + " WHERE RANDOMIZEDInt LIKE ?");
             pstmt.setInt(1, 3);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -277,7 +293,7 @@ public class EnclaveTest extends AESetup {
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, charTableSimple);
             s.execute("INSERT INTO " + CHAR_TABLE_AE + " VALUES ('a','b','test')");
-            PreparedStatement pstmt = c.prepareStatement("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDText LIKE ?");
+            PreparedStatement pstmt = c.prepareStatement("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDChar LIKE ?");
             pstmt.setString(1, "t%");
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
