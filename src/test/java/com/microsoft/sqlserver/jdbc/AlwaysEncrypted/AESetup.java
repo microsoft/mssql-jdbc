@@ -73,8 +73,6 @@ public class AESetup extends AbstractTest {
     // test that only run on Windows will be skipped
     static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
 
-    protected static boolean isAEv2 = false;
-
     public static final String tableName = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("AETest_")));
     public static final String CHAR_TABLE_AE = TestUtils
@@ -125,6 +123,10 @@ public class AESetup extends AbstractTest {
             {"NumericDefault", "numeric", "DECIMAL"}, {"Numeric", "numeric(8,2)", "DECIMAL"},
             {"SmallMoney", "smallmoney", "SMALLMONEY"}, {"Money", "money", "MONEY"},
             {"Decimal2", "decimal(28,4)", "DECIMAL"}, {"Numeric2", "numeric(28,4)", "DECIMAL"},};
+    
+    static String numericTableSimple[][] = {{"Int", "int", "INT"}};
+    
+    static String charTableSimple[][] = {{"Text", "text", "TEXT"}};
 
     // CREATE TABLE tableName (columns) NULL"
     static String createSql = "CREATE TABLE %s (%s)";
@@ -201,14 +203,6 @@ public class AESetup extends AbstractTest {
      */
     void checkAESetup(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
-
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
-            isAEv2 = TestUtils.isAEv2(con);
-        } catch (SQLException e) {
-            isAEv2 = false;
-        } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
-        }
     }
 
     @BeforeAll
