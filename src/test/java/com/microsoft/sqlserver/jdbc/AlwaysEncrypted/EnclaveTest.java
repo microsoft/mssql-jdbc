@@ -254,7 +254,9 @@ public class EnclaveTest extends AESetup {
                 Statement s = c.createStatement()) {
             createTable(NUMERIC_TABLE_AE, cekJks, numericTableSimple);
             s.execute("INSERT INTO " + NUMERIC_TABLE_AE + " VALUES (1,2,3)");
-            try (ResultSet rs = s.executeQuery("SELECT * FROM " + NUMERIC_TABLE_AE + " WHERE RANDOMIZEDInt = 3")) {
+            PreparedStatement pstmt = c.prepareStatement("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDText LIKE ?");
+            pstmt.setInt(1, 3);
+            try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     assertTrue(rs.getInt(1) == 1);
                     assertTrue(rs.getInt(2) == 2);
@@ -275,7 +277,9 @@ public class EnclaveTest extends AESetup {
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, charTableSimple);
             s.execute("INSERT INTO " + CHAR_TABLE_AE + " VALUES ('a','b','test')");
-            try (ResultSet rs = s.executeQuery("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDText LIKE 't%'")) {
+            PreparedStatement pstmt = c.prepareStatement("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDText LIKE ?");
+            pstmt.setString(1, "t%");
+            try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     assertTrue(rs.getString(1).equalsIgnoreCase("a"));
                     assertTrue(rs.getString(2).equalsIgnoreCase("b"));
