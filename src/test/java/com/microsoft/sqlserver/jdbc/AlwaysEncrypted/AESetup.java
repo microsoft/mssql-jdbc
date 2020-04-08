@@ -188,18 +188,6 @@ public class AESetup extends AbstractTest {
         }
     }
 
-    /**
-     * Setup AE connection string and check setup
-     * 
-     * @param serverName
-     * @param url
-     * @param protocol
-     * @throws SQLException
-     */
-    void checkAESetup(String serverName, String url, String protocol) throws Exception {
-        setAEConnectionString(serverName, url, protocol);
-    }
-
     @BeforeAll
     public static void setupAETest() throws Exception {
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");

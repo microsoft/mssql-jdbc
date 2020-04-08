@@ -276,6 +276,7 @@ public final class TestUtils {
 
     /**
      * Deletes the contents of a table.
+     * 
      * @param con
      * @param tableName
      * @throws SQLException
@@ -834,13 +835,9 @@ public final class TestUtils {
      */
     public static String removeProperty(String connectionString, String property) {
         int start = connectionString.indexOf(property);
-        if (start > -1) {
-            int end = connectionString.indexOf(";", start);
-            String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
-            return connectionString.replace(propertyStr, "");
-        } else {
-            return connectionString;
-        }
+        int end = connectionString.indexOf(";", start);
+        String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
+        return connectionString.replace(propertyStr, "");
     }
 
     /**

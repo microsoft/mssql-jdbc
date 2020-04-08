@@ -1742,40 +1742,6 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
     }
 
-    /**
-     * Alter Column encryption on deterministic columns to randomized - this will trigger enclave to re-encrypt
-     * 
-     * @param stmt
-     * @param tableName
-     * @param table
-     * @param values
-     * @throws SQLException
-     */
-    protected void testAlterColumnEncryption(SQLServerStatement stmt, String tableName, String table[][],
-            String cekName) throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
-            for (int i = 0; i < table.length; i++) {
-                // alter deterministic to randomized
-                String sql = "ALTER TABLE " + tableName + " ALTER COLUMN " + ColumnType.DETERMINISTIC.name()
-                        + table[i][0] + " " + table[i][1]
-                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ")";
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                        stmtColEncSetting)) {
-                    stmt.execute(sql);
-                    if (!TestUtils.isAEv2(con)) {
-                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-                    }
-                } catch (SQLException e) {
-                    if (!TestUtils.isAEv2(con)) {
-                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-                    } else {
-                        fail(TestResource.getResource("R_AlterAEv2Error") + e.getMessage() + "Query: " + sql);
-                    }
-                }
-            }
-        }
-    }
-
     private void testRichQuery(SQLServerStatement stmt, String tableName, String table[][],
             String[] values) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {

@@ -150,7 +150,7 @@ public class EnclaveTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testAEv2NotSupported(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
+        setAEConnectionString(serverName, url, protocol);
 
         boolean isAEv2 = false;
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
@@ -231,7 +231,7 @@ public class EnclaveTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testAEFMTOnly(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";useFmtOnly=true", AEInfo);
                 Statement s = c.createStatement()) {
             createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
@@ -251,7 +251,7 @@ public class EnclaveTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testAlter(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
@@ -272,7 +272,7 @@ public class EnclaveTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testNumericRichQuery(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
             createTable(NUMERIC_TABLE_AE, cekJks, numericTableSimple);
@@ -299,7 +299,7 @@ public class EnclaveTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testStringRichQuery(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
@@ -326,7 +326,7 @@ public class EnclaveTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testAlterNoEncrypt(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
