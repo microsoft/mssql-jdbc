@@ -49,7 +49,8 @@ public class EnclaveTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testBasicConnection(String serverName, String url, String protocol) throws Exception {
-        EnclavePackageTest.testBasicConnection(serverName, url, protocol);
+        setAEConnectionString(serverName, url, protocol);
+        EnclavePackageTest.testBasicConnection(AETestConnectionString, protocol);
     }
 
     /**
