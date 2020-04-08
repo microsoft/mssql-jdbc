@@ -182,6 +182,11 @@ public class AESetup extends AbstractTest {
                     + Constants.ENCLAVE_ATTESTATIONPROTOCOL + "=" + protocol;
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
                     + ";" + enclaveProperties;
+
+            // show progress if testing multiple servers
+            if (enclaveServer.length > 1) {
+                System.out.println("Testing enclave: " + enclaveProperties);
+            }
         } else {
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false"
                     + ";columnEncryptionSetting=enabled";
