@@ -126,7 +126,7 @@ public class AESetup extends AbstractTest {
     
     static String numericTableSimple[][] = {{"Int", "int", "INT"}};
     
-    static String varcharTableSimple[][] = {{"Varchar", "varchar(20)", "VARCHAR"}};
+    static String varcharTableSimple[][] = {{"Varchar", "varchar(20) COLLATE LATIN1_GENERAL_BIN2", "VARCHAR"}};
 
     // CREATE TABLE tableName (columns) NULL"
     static String createSql = "CREATE TABLE %s (%s)";

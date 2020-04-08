@@ -185,5 +185,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_RichQueryError", "Rich query failed."}, {"R_reqExternalSetup", "External setup for test required."},
             {"R_invalidEnclaveSessionFailed", "invalidate enclave session failed."},
             {"R_invalidEnclaveType", "Invalid enclave type {0}."},
-            {"R_keystorePassword", "keystore password was incorrect"}};
+            {"R_keystorePassword", "keystore password was incorrect"},
+            {"R_enclaveNotEnabled", "The statement triggers enclave computations"}};
 }

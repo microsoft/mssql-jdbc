@@ -7,6 +7,8 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -242,7 +244,7 @@ public class EnclaveTest extends AESetup {
             }
         }
     }
-    
+
     /**
      * Test alter column
      */
@@ -253,8 +255,13 @@ public class EnclaveTest extends AESetup {
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
-            s.execute("INSERT INTO " + CHAR_TABLE_AE + " VALUES ('a','b','test')");
-            PreparedStatement pstmt = c.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE + " ALTER COLUMN RANDOMIZEDVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
+            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
+            pstmt.setString(1, "a");
+            pstmt.setString(2, "b");
+            pstmt.setString(3, "test");
+            pstmt.execute();
+            pstmt = c.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE
+                    + " ALTER COLUMN RandomizedVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
             pstmt.execute();
         }
     }
@@ -269,8 +276,12 @@ public class EnclaveTest extends AESetup {
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
             createTable(NUMERIC_TABLE_AE, cekJks, numericTableSimple);
-            s.execute("INSERT INTO " + NUMERIC_TABLE_AE + " VALUES (1,2,3)");
-            PreparedStatement pstmt = c.prepareStatement("SELECT * FROM " + NUMERIC_TABLE_AE + " WHERE RANDOMIZEDInt LIKE ?");
+            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + NUMERIC_TABLE_AE + " VALUES (?,?,?)");
+            pstmt.setInt(1, 1);
+            pstmt.setInt(2, 2);
+            pstmt.setInt(3, 3);
+            pstmt.execute();
+            pstmt = c.prepareStatement("SELECT * FROM " + NUMERIC_TABLE_AE + " WHERE RANDOMIZEDInt = ?");
             pstmt.setInt(1, 3);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -292,8 +303,12 @@ public class EnclaveTest extends AESetup {
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
-            s.execute("INSERT INTO " + CHAR_TABLE_AE + " VALUES ('a','b','test')");
-            PreparedStatement pstmt = c.prepareStatement("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDVarchar LIKE ?");
+            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
+            pstmt.setString(1, "a");
+            pstmt.setString(2, "b");
+            pstmt.setString(3, "test");
+            pstmt.execute();
+            pstmt = c.prepareStatement("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDVarchar LIKE ?");
             pstmt.setString(1, "t%");
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -302,6 +317,34 @@ public class EnclaveTest extends AESetup {
                     assertTrue(rs.getString(3).equalsIgnoreCase("test"));
                 }
             }
+        }
+    }
+    
+    /**
+     * Test alter column with a non AEv2 connection
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testAlterNoEncrypt(String serverName, String url, String protocol) throws Exception {
+        checkAESetup(serverName, url, protocol);
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement s = c.createStatement()) {
+            createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
+            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
+            pstmt.setString(1, "a");
+            pstmt.setString(2, "b");
+            pstmt.setString(3, "test");
+            pstmt.execute();
+        }
+        String testConnectionString = TestUtils.removeProperty(AETestConnectionString,
+                Constants.ENCLAVE_ATTESTATIONURL);
+        testConnectionString = TestUtils.removeProperty(testConnectionString, Constants.ENCLAVE_ATTESTATIONPROTOCOL);
+        try (Connection c = DriverManager.getConnection(testConnectionString)) {
+            PreparedStatement pstmt = c.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE
+                    + " ALTER COLUMN RandomizedVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
+            pstmt.execute();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_enclaveNotEnabled")));
         }
     }
 }
