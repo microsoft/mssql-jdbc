@@ -15,9 +15,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.text.DateFormat;
 import java.text.MessageFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -270,7 +268,7 @@ class SQLServerSecurityUtility {
                 && !msiSecret.isEmpty();
 
         if (isAzureFunction) {
-            urlString.append(msiEndpoint).append("?api-version=2017-09-01&resource=").append(resource);
+            urlString.append(msiEndpoint).append("?api-version=2019-08-01&resource=").append(resource);
         } else {
             urlString.append(ActiveDirectoryAuthentication.AZURE_REST_MSI_URL).append("&resource=").append(resource);
             // Retry acquiring access token upto 20 times due to possible IMDS upgrade (Applies to VM only)
@@ -283,11 +281,7 @@ class SQLServerSecurityUtility {
 
         // Append Client Id if available
         if (null != msiClientId && !msiClientId.isEmpty()) {
-            if (isAzureFunction) {
-                urlString.append("&clientid=").append(msiClientId);
-            } else {
-                urlString.append("&client_id=").append(msiClientId);
-            }
+            urlString.append("&client_id=").append(msiClientId);
         }
 
         // Loop while maxRetry reaches its limit
@@ -299,7 +293,7 @@ class SQLServerSecurityUtility {
                 connection.setRequestMethod("GET");
 
                 if (isAzureFunction) {
-                    connection.setRequestProperty("Secret", msiSecret);
+                    connection.setRequestProperty("X-IDENTITY-HEADER", msiSecret);
                     if (connectionlogger.isLoggable(Level.FINER)) {
                         connectionlogger.finer("Using Azure Function/App Service MSI auth: " + urlString);
                     }
@@ -324,29 +318,22 @@ class SQLServerSecurityUtility {
 
                     Calendar cal = new Calendar.Builder().setInstant(new Date()).build();
 
+                    int startIndex_ATX;
+
+                    // Fetch expires_on
                     if (isAzureFunction) {
-                        // Fetch expires_on
-                        int startIndex_ATX = result
+                        startIndex_ATX = result
                                 .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER)
                                 + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER.length();
-                        String accessTokenExpiry = result.substring(startIndex_ATX,
-                                result.indexOf("\"", startIndex_ATX + 1));
-                        if (connectionlogger.isLoggable(Level.FINER)) {
-                            connectionlogger.finer("MSI auth token expires on: " + accessTokenExpiry);
-                        }
-
-                        DateFormat df = new SimpleDateFormat(
-                                ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_DATE_FORMAT);
-                        cal = new Calendar.Builder().setInstant(df.parse(accessTokenExpiry)).build();
                     } else {
-                        // Fetch expires_in
-                        int startIndex_ATX = result
+                        startIndex_ATX = result
                                 .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER)
                                 + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
-                        String accessTokenExpiry = result.substring(startIndex_ATX,
-                                result.indexOf("\"", startIndex_ATX + 1));
-                        cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
                     }
+
+                    String accessTokenExpiry = result.substring(startIndex_ATX,
+                            result.indexOf("\"", startIndex_ATX + 1));
+                    cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
 
                     return new SqlFedAuthToken(accessToken, cal.getTime());
                 }
