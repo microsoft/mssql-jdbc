@@ -3343,6 +3343,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN", "Connection.commit");
         loggerExternal.exiting(loggingClassName, "commit");
     }
+    
+    public void commit(boolean delayedDurability) throws SQLServerException {
+        loggerExternal.entering(loggingClassName, "commit");
+        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
+            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+        }
+
+        checkClosed();
+        if (!databaseAutoCommitMode)
+        {
+            if (!delayedDurability)
+                connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN", "Connection.commit");
+            else
+                connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN WITH ( DELAYED_DURABILITY =  ON )", "Connection.commit");
+        }
+        loggerExternal.exiting(loggingClassName, "commit");
+    }
 
     @Override
     public void rollback() throws SQLServerException {
