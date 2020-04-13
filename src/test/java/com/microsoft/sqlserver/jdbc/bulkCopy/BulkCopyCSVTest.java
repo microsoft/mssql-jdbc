@@ -5,9 +5,13 @@
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -15,6 +19,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.AfterAll;
@@ -26,9 +31,11 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -54,6 +61,7 @@ public class BulkCopyCSVTest extends AbstractTest {
 
     static String inputFile = "BulkCopyCSVTestInput.csv";
     static String inputFileNoColumnName = "BulkCopyCSVTestInputNoColumnName.csv";
+    static String inputFileDelimiterEscape = "BulkCopyCSVTestInputDelimiterEscape.csv";
     static String encoding = "UTF-8";
     static String delimiter = ",";
 
@@ -77,9 +85,13 @@ public class BulkCopyCSVTest extends AbstractTest {
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord")
     public void testCSV() {
-        try (SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding,
-                delimiter, true)) {
-            testBulkCopyCSV(fileRecord, true);
+        String fileName = filePath + inputFile;
+        try (SQLServerBulkCSVFileRecord f1 = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter, true);
+                SQLServerBulkCSVFileRecord f2 = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter, true);) {
+            testBulkCopyCSV(f1, true);
+
+            f2.setEscapeColumnDelimitersCSV(true);
+            testBulkCopyCSV(f2, true);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -91,9 +103,13 @@ public class BulkCopyCSVTest extends AbstractTest {
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord First line not being column name")
     public void testCSVFirstLineNotColumnName() {
-        try (SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFileNoColumnName,
-                encoding, delimiter, false)) {
-            testBulkCopyCSV(fileRecord, false);
+        String fileName = filePath + inputFileNoColumnName;
+        try (SQLServerBulkCSVFileRecord f1 = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter, false);
+                SQLServerBulkCSVFileRecord f2 = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter, false)) {
+            testBulkCopyCSV(f1, false);
+
+            f2.setEscapeColumnDelimitersCSV(true);
+            testBulkCopyCSV(f2, false);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -115,6 +131,44 @@ public class BulkCopyCSVTest extends AbstractTest {
             testBulkCopyCSV(fileRecord, true);
         } catch (Exception e) {
             fail(e.getMessage());
+        }
+    }
+
+    @Test
+    @DisplayName("Test setEscapeColumnDelimitersCSV")
+    public void testEscapeColumnDelimitersCSV() throws SQLException, FileNotFoundException, IOException {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
+        String fileName = filePath + inputFileDelimiterEscape;
+        String escapeSplitPattern = "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter,
+                        false)) {
+            bulkCopy.setDestinationTableName(tableName);
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+            fileRecord.addColumnMetadata(1, null, java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(2, null, java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(3, null, java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(4, null, java.sql.Types.VARCHAR, 50, 0);
+            stmt.executeUpdate(
+                    "CREATE TABLE " + tableName + " (c1 varchar(50), c2 varchar(50), c3 varchar(50), c4 varchar(50))");
+            bulkCopy.writeToServer(fileRecord);
+
+            String line;
+            try (ResultSet rs = stmt.executeQuery("SELECT * from " + tableName);
+                    BufferedReader br = new BufferedReader(new FileReader(fileName));) {
+                while (rs.next() && (line = br.readLine()) != null) {
+                    String[] tokens = line.split(delimiter + escapeSplitPattern, -1);
+                    for (int i = 0; i < tokens.length; i++) {
+                        tokens[i] = tokens[i].replaceAll("^\"|\"$", "").replaceAll("\"\"", "\"");
+                    }
+                    assertEquals(tokens[0], rs.getString("c1"));
+                    assertEquals(tokens[1], rs.getString("c2"));
+                    assertEquals(tokens[2], rs.getString("c3"));
+                    assertEquals(tokens[3], rs.getString("c4"));
+                }
+
+            }
         }
     }
 

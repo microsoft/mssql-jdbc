@@ -49,6 +49,10 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      */
     private final String delimiter;
 
+    private boolean escapeDelimiters;
+
+    private static final String escapeSplitPattern = "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
+
     /*
      * Class names for logging.
      */
@@ -189,15 +193,18 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         if (firstLineIsColumnNames) {
             currentLine = fileReader.readLine();
             if (null != currentLine) {
-                columnNames = currentLine.split(delimiter, -1);
+                columnNames = (escapeDelimiters && currentLine.contains("\""))
+                                                                               ? escapeQuotesRFC4180(currentLine.split(
+                                                                                       delimiter + escapeSplitPattern))
+                                                                               : currentLine.split(delimiter, -1);
             }
         }
     }
-    
+
     private void initLoggerResources() {
         super.loggerPackageName = "com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord";
     }
-    
+
     /**
      * Releases any resources associated with the file reader.
      * 
@@ -229,21 +236,24 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         if (null == currentLine)
             return null;
         else {
-            // Binary data may be corrupted
-            // The limit in split() function should be a negative value,
-            // otherwise trailing empty strings are discarded.
-            // Empty string is returned if there is no value.
-            String[] data = currentLine.split(delimiter, -1);
-
-            // Cannot go directly from String[] to Object[] and expect it to act
-            // as an array.
+            /*
+             * Binary data may be corrupted The limit in split() function should be a negative value, otherwise trailing
+             * empty strings are discarded. Empty string is returned if there is no value.
+             */
+            String[] data = (escapeDelimiters && currentLine.contains("\""))
+                                                                             ? escapeQuotesRFC4180(currentLine.split(
+                                                                                     delimiter + escapeSplitPattern))
+                                                                             : currentLine.split(delimiter, -1);
+            /*
+             * Cannot go directly from String[] to Object[] and expect it to act as an array.
+             */
             Object[] dataRow = new Object[data.length];
 
             for (Entry<Integer, ColumnMetadata> pair : columnMetadata.entrySet()) {
                 ColumnMetadata cm = pair.getValue();
-
-                // Reading a column not available in csv
-                // positionInFile > number of columns retrieved after split
+                /*
+                 * Reading a column not available in csv positionInFile > number of columns retrieved after split
+                 */
                 if (data.length < pair.getKey() - 1) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidColumn"));
                     Object[] msgArgs = {pair.getKey()};
@@ -271,8 +281,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                          * data (say "10") is to be inserted into an numeric column. Our implementation does the same.
                          */
                         case Types.INTEGER: {
-                            // Formatter to remove the decimal part as SQL
-                            // Server floors the decimal in integer types
+                            // Formatter to remove the decimal part as SQL Server floors the decimal in integer types.
                             DecimalFormat decimalFormatter = new DecimalFormat("#");
                             decimalFormatter.setRoundingMode(RoundingMode.DOWN);
                             String formatedfInput = decimalFormatter
@@ -283,8 +292,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
 
                         case Types.TINYINT:
                         case Types.SMALLINT: {
-                            // Formatter to remove the decimal part as SQL
-                            // Server floors the decimal in integer types
+                            // Formatter to remove the decimal part as SQL Server floors the decimal in integer types.
                             DecimalFormat decimalFormatter = new DecimalFormat("#");
                             decimalFormatter.setRoundingMode(RoundingMode.DOWN);
                             String formatedfInput = decimalFormatter
@@ -315,9 +323,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                         }
 
                         case Types.BIT: {
-                            // "true" => 1, "false" => 0
-                            // Any non-zero value (integer/double) => 1, 0/0.0
-                            // => 0
+                            // "true" => 1, "false" => 0. Any non-zero value (integer/double) => 1, 0/0.0 => 0
                             try {
                                 dataRow[pair.getKey()
                                         - 1] = (0 == Double.parseDouble(data[pair.getKey() - 1])) ? Boolean.FALSE
@@ -485,9 +491,10 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                 columnMetadata.put(positionInSource,
                         new ColumnMetadata(colName, java.sql.Types.LONGNVARCHAR, precision, scale, dateTimeFormatter));
                 break;
-
-            // Redirecting Float as Double based on data type mapping
-            // https://msdn.microsoft.com/en-us/library/ms378878%28v=sql.110%29.aspx
+            /*
+             * Redirecting Float as Double based on data type mapping
+             * https://msdn.microsoft.com/library/ms378878%28v=sql.110%29.aspx
+             */
             case java.sql.Types.FLOAT:
                 columnMetadata.put(positionInSource,
                         new ColumnMetadata(colName, java.sql.Types.DOUBLE, precision, scale, dateTimeFormatter));
@@ -515,5 +522,44 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             throw new SQLServerException(e.getMessage(), null, 0, e);
         }
         return (null != currentLine);
+    }
+
+    public boolean isEscapeColumnDelimitersCSV() {
+        return escapeDelimiters;
+    }
+
+    public void setEscapeColumnDelimitersCSV(boolean escapeDelimiters) {
+        this.escapeDelimiters = escapeDelimiters;
+    }
+
+    private static String[] escapeQuotesRFC4180(String[] tokens) {
+        if (null == tokens) {
+            return tokens;
+        }
+        for (int i = 0; i < tokens.length; i++) {
+            boolean escaped = false;
+            int j = 0;
+            StringBuilder sb = new StringBuilder();
+            if (tokens[i].contains("\"")) {
+                tokens[i] = tokens[i].trim();
+            }
+            while (j < tokens[i].length()) {
+                if ('"' == tokens[i].charAt(j)) {
+                    if (!escaped) {
+                        escaped = true;
+                    } else {
+                        if ((j < tokens[i].length() - 1) && '"' == tokens[i].charAt(j + 1)) {
+                            sb.append('"');
+                            j++;
+                        }
+                    }
+                } else {
+                    sb.append(tokens[i].charAt(j));
+                }
+                j++;
+            }
+            tokens[i] = sb.toString();
+        }
+        return tokens;
     }
 }
