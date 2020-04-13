@@ -309,7 +309,7 @@ class SQLServerSecurityUtility {
                 try (InputStream stream = connection.getInputStream()) {
 
                     BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8), 100);
-                    String result = reader.readLine();
+                    StringBuilder result = new StringBuilder(reader.readLine());
 
                     int startIndex_AT = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER)
                             + ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER.length();
