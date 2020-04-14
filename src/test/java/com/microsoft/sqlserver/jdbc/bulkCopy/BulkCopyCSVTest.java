@@ -139,7 +139,16 @@ public class BulkCopyCSVTest extends AbstractTest {
     public void testEscapeColumnDelimitersCSV() throws SQLException, FileNotFoundException, IOException {
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
         String fileName = filePath + inputFileDelimiterEscape;
-        String escapeSplitPattern = "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
+        /*
+         * The list below is the copy of inputFileDelimiterEscape with quotes removed.
+         */
+        String[][] expectedEscaped = new String[4][4];
+        expectedEscaped[0] = new String[] {"test", " test\"", "no,split", " testNoQuote"};
+        expectedEscaped[1] = new String[] {null, null, null, null};
+        expectedEscaped[2] = new String[] {"\"", "test\"test", "test,\"  test", null};
+        expectedEscaped[3] = new String[] {"testNoQuote  ", " testSpaceAround ", " testSpaceInside ",
+                "  testSpaceQuote\" "};
+
         try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
                 SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter,
@@ -154,18 +163,15 @@ public class BulkCopyCSVTest extends AbstractTest {
                     "CREATE TABLE " + tableName + " (c1 varchar(50), c2 varchar(50), c3 varchar(50), c4 varchar(50))");
             bulkCopy.writeToServer(fileRecord);
 
-            String line;
+            int i = 0;
             try (ResultSet rs = stmt.executeQuery("SELECT * from " + tableName);
                     BufferedReader br = new BufferedReader(new FileReader(fileName));) {
-                while (rs.next() && (line = br.readLine()) != null) {
-                    String[] tokens = line.split(delimiter + escapeSplitPattern, -1);
-                    for (int i = 0; i < tokens.length; i++) {
-                        tokens[i] = tokens[i].replaceAll("^\"|\"$", "").replaceAll("\"\"", "\"");
-                    }
-                    assertEquals(tokens[0], rs.getString("c1"));
-                    assertEquals(tokens[1], rs.getString("c2"));
-                    assertEquals(tokens[2], rs.getString("c3"));
-                    assertEquals(tokens[3], rs.getString("c4"));
+                while (rs.next()) {
+                    assertEquals(expectedEscaped[i][0], rs.getString("c1"));
+                    assertEquals(expectedEscaped[i][1], rs.getString("c2"));
+                    assertEquals(expectedEscaped[i][2], rs.getString("c3"));
+                    assertEquals(expectedEscaped[i][3], rs.getString("c4"));
+                    i++;
                 }
 
             }

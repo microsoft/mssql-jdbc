@@ -524,10 +524,25 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         return (null != currentLine);
     }
 
+    /**
+     * Returns whether the rules to escape delimiters are used.
+     *
+     * @return true if the rules are used, false otherwise.
+     */
     public boolean isEscapeColumnDelimitersCSV() {
         return escapeDelimiters;
     }
 
+    /**
+     * When set to true, the following rules will be used to parse CSV files: Each field may or may not be enclosed in
+     * double quotes. If fields are not enclosed with double quotes, then double quotes may not appear inside the
+     * fields. Fields containing double quotes, and delimiters. If double-quotes are used to enclose fields, then a
+     * double-quote appearing inside a field must be escaped by preceding it with another double quote. should be
+     * enclosed in double-quotes.
+     *
+     * @param escapeDelimiters
+     *        true if the rules above to be used.
+     */
     public void setEscapeColumnDelimitersCSV(boolean escapeDelimiters) {
         this.escapeDelimiters = escapeDelimiters;
     }
