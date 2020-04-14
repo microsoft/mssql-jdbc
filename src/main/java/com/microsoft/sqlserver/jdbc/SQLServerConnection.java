@@ -1316,8 +1316,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 case KeyVaultClientSecret:
                     // need a secret use use the secret method
                     if (null == keyStoreSecret) {
-                        throw new SQLServerException(
-                                SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
+                        throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
                     } else {
                         SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
                                 keyStorePrincipalId, keyStoreSecret);
@@ -2343,7 +2342,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (timerHasExpired(timerExpire)) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                        Object[] msgArgs = {currentConnectPlaceHolder.getServerName(),
+                        String serverNameFromConnectionStr = activeConnectionProperties
+                                .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+                        String serverName = currentConnectPlaceHolder.getServerName();
+                        Object[] msgArgs = {
+                                (serverName.equals(serverNameFromConnectionStr)) ? serverName : serverName + "("
+                                        + serverNameFromConnectionStr + ")",
                                 Integer.toString(currentConnectPlaceHolder.getPortNumber()),
                                 SQLServerException.getErrString("R_timedOutBeforeRouting")};
                         String msg = form.format(msgArgs);
@@ -2807,8 +2811,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + " Unexpected end of prelogin response after " + responseBytesRead + " bytes read");
                 }
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                Object[] msgArgs = {serverName, Integer.toString(portNumber),
-                        SQLServerException.getErrString("R_notSQLServer")};
+                String serverNameFromConnectionStr = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+                Object[] msgArgs = {
+                        (serverName.equals(serverNameFromConnectionStr)) ? serverName
+                                                                         : serverName + "("
+                                                                                 + serverNameFromConnectionStr + ")",
+                        Integer.toString(portNumber), SQLServerException.getErrString("R_notSQLServer")};
                 terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
             }
 
@@ -2831,8 +2840,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + preloginResponse[0]);
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {serverName, Integer.toString(portNumber),
-                            SQLServerException.getErrString("R_notSQLServer")};
+                    String serverNameFromConnectionStr = activeConnectionProperties
+                            .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+                    Object[] msgArgs = {
+                            (serverName.equals(serverNameFromConnectionStr)) ? serverName : serverName + "("
+                                    + serverNameFromConnectionStr + ")",
+                            Integer.toString(portNumber), SQLServerException.getErrString("R_notSQLServer")};
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
 
@@ -2845,8 +2858,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + preloginResponse[1]);
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {serverName, Integer.toString(portNumber),
-                            SQLServerException.getErrString("R_notSQLServer")};
+                    String serverNameFromConnectionStr = activeConnectionProperties
+                            .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+                    Object[] msgArgs = {
+                            (serverName.equals(serverNameFromConnectionStr)) ? serverName : serverName + "("
+                                    + serverNameFromConnectionStr + ")",
+                            Integer.toString(portNumber), SQLServerException.getErrString("R_notSQLServer")};
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
 
@@ -2860,8 +2877,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + responseLength + " is greater than allowed length:" + preloginResponse.length);
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {serverName, Integer.toString(portNumber),
-                            SQLServerException.getErrString("R_notSQLServer")};
+                    String serverNameFromConnectionStr = activeConnectionProperties
+                            .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+                    Object[] msgArgs = {
+                            (serverName.equals(serverNameFromConnectionStr)) ? serverName : serverName + "("
+                                    + serverNameFromConnectionStr + ")",
+                            Integer.toString(portNumber), SQLServerException.getErrString("R_notSQLServer")};
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
 
