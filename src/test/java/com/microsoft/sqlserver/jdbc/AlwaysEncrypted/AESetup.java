@@ -123,9 +123,9 @@ public class AESetup extends AbstractTest {
             {"NumericDefault", "numeric", "DECIMAL"}, {"Numeric", "numeric(8,2)", "DECIMAL"},
             {"SmallMoney", "smallmoney", "SMALLMONEY"}, {"Money", "money", "MONEY"},
             {"Decimal2", "decimal(28,4)", "DECIMAL"}, {"Numeric2", "numeric(28,4)", "DECIMAL"},};
-    
+
     static String numericTableSimple[][] = {{"Int", "int", "INT"}};
-    
+
     static String varcharTableSimple[][] = {{"Varchar", "varchar(20) COLLATE LATIN1_GENERAL_BIN2", "VARCHAR"}};
 
     // CREATE TABLE tableName (columns) NULL"
@@ -1959,15 +1959,14 @@ public class AESetup extends AbstractTest {
                 String sql = "ALTER TABLE " + tableName + " ALTER COLUMN " + ColumnType.DETERMINISTIC.name()
                         + table[i][0] + " " + table[i][1]
                         + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ")";
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                        stmtColEncSetting)) {
-                	pstmt.execute();
+                try {
+                    stmt.execute(sql);
                     if (!TestUtils.isAEv2(con)) {
                         fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                     }
                 } catch (SQLException e) {
                     if (!TestUtils.isAEv2(con)) {
-                    	fail(e.getMessage());
+                        fail(e.getMessage());
                     } else {
                         fail(TestResource.getResource("R_AlterAEv2Error") + e.getMessage() + "Query: " + sql);
                     }
