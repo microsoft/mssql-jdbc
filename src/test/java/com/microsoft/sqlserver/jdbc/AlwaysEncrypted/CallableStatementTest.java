@@ -132,10 +132,6 @@ public class CallableStatementTest extends AESetup {
         dateValues = createTemporalTypesCallableStatement(nullable);
         charValues = createCharValues(nullable);
 
-        initCallableStatementTest();
-    }
-
-    static void initCallableStatementTest() throws Exception {
         dropAll();
 
         createSPTables(cekJks);

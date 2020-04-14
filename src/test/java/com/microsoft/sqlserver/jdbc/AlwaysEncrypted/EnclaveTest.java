@@ -15,6 +15,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -193,7 +194,7 @@ public class EnclaveTest extends AESetup {
     }
 
     /*
-     * Test char
+     * Tests alter column encryption on char tables
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
@@ -209,7 +210,7 @@ public class EnclaveTest extends AESetup {
     }
 
     /*
-     * Test char
+     * Tests alter column encryption on char tables with AKV
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
@@ -346,6 +347,17 @@ public class EnclaveTest extends AESetup {
             pstmt.execute();
         } catch (SQLException e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_enclaveNotEnabled")));
+        }
+    }
+    
+    @AfterAll
+    public static void dropAll() throws Exception {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
+            TestUtils.dropTableIfExists(BINARY_TABLE_AE, stmt);
+            TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
+            TestUtils.dropTableIfExists(SCALE_DATE_TABLE_AE, stmt);
         }
     }
 }

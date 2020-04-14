@@ -1948,7 +1948,7 @@ public class AESetup extends AbstractTest {
      * @param stmt
      * @param tableName
      * @param table
-     * @param values
+     * @param cekName
      * @throws SQLException
      */
     protected void testAlterColumnEncryption(SQLServerStatement stmt, String tableName, String table[][],
@@ -1961,13 +1961,13 @@ public class AESetup extends AbstractTest {
                         + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ")";
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
-                    stmt.execute(sql);
+                	pstmt.execute();
                     if (!TestUtils.isAEv2(con)) {
                         fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                     }
                 } catch (SQLException e) {
                     if (!TestUtils.isAEv2(con)) {
-                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    	fail(e.getMessage());
                     } else {
                         fail(TestResource.getResource("R_AlterAEv2Error") + e.getMessage() + "Query: " + sql);
                     }
