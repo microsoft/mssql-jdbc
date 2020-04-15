@@ -46,11 +46,6 @@ if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile
 	}
 	sourceCompatibility = 14
 	targetCompatibility = 14
-	test {
-		useJUnitPlatform {
-			excludeTags 'MSI','clientCertAuth'
-		}
-	}
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre11"){
@@ -64,11 +59,6 @@ if (hasProperty('buildProfile') && buildProfile == "jre11"){
 	}
 	sourceCompatibility = 11
 	targetCompatibility = 11
-	test {
-		useJUnitPlatform {
-			excludeTags 'MSI','clientCertAuth'
-		}
-	}
 }
 
 if(hasProperty('buildProfile') && buildProfile == "jre8") {
