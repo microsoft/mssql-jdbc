@@ -242,7 +242,7 @@ public class EnclaveTest extends AESetup {
                     + "?,?,?," + "?,?,?," + "?,?,?" + ")";
             try (PreparedStatement p = c.prepareStatement(sql)) {
                 ParameterMetaData pmd = p.getParameterMetaData();
-                assertTrue(pmd.getParameterCount() == 48);
+                assertTrue(48 == pmd.getParameterCount());
             }
         }
     }
@@ -287,9 +287,9 @@ public class EnclaveTest extends AESetup {
             pstmt.setInt(1, 3);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    assertTrue(rs.getInt(1) == 1);
-                    assertTrue(rs.getInt(2) == 2);
-                    assertTrue(rs.getInt(3) == 3);
+                    assertTrue(1 == rs.getInt(1));
+                    assertTrue(2 == rs.getInt(2));
+                    assertTrue(3 == rs.getInt(3));
                 }
             }
         }
