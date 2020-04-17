@@ -242,7 +242,7 @@ final class Util {
         Properties p = new Properties();
         String tmpUrl = url;
         String sPrefix = "jdbc:sqlserver://";
-        String result = "";
+        StringBuilder result = new StringBuilder();
         String name = "";
         String value = "";
         StringBuilder builder;
@@ -275,10 +275,7 @@ final class Util {
                         // done immediately
                         state = inName;
                     } else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result.append(ch);
                         state = inServerName;
                     }
                     break;
@@ -287,14 +284,14 @@ final class Util {
                 case inServerName: {
                     if (ch == ';' || ch == ':' || ch == '\\') {
                         // non escaped trim the string
-                        result = result.trim();
-                        if (result.length() > 0) {
-                            p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), result);
+                        String propertyValue = result.toString().trim();
+                        if (propertyValue.length() > 0) {
+                            p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), propertyValue);
                             if (logger.isLoggable(Level.FINE)) {
-                                logger.fine("Property:serverName " + "Value:" + result);
+                                logger.fine("Property:serverName " + "Value:" + propertyValue);
                             }
                         }
-                        result = "";
+                        result.setLength(0);
 
                         if (ch == ';')
                             state = inName;
@@ -303,10 +300,7 @@ final class Util {
                         else
                             state = inInstanceName;
                     } else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result.append(ch);
                         // same state
                     }
                     break;
@@ -314,18 +308,15 @@ final class Util {
 
                 case inPort: {
                     if (ch == ';') {
-                        result = result.trim();
+                        String propertyValue = result.toString().trim();
                         if (logger.isLoggable(Level.FINE)) {
-                            logger.fine("Property:portNumber " + "Value:" + result);
+                            logger.fine("Property:portNumber " + "Value:" + propertyValue);
                         }
-                        p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), result);
-                        result = "";
+                        p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), propertyValue);
+                        result.setLength(0);
                         state = inName;
                     } else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result.append(ch);
                         // same state
                     }
                     break;
@@ -333,22 +324,19 @@ final class Util {
                 case inInstanceName: {
                     if (ch == ';' || ch == ':') {
                         // non escaped trim the string
-                        result = result.trim();
+                        String propertyValue = result.toString().trim();
                         if (logger.isLoggable(Level.FINE)) {
-                            logger.fine("Property:instanceName " + "Value:" + result);
+                            logger.fine("Property:instanceName " + "Value:" + propertyValue);
                         }
-                        p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), result.toLowerCase(Locale.US));
-                        result = "";
+                        p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), propertyValue.toLowerCase(Locale.US));
+                        result.setLength(0);
 
                         if (ch == ';')
                             state = inName;
                         else
                             state = inPort;
                     } else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result.append(ch);
                         // same state
                     }
                     break;
@@ -478,8 +466,8 @@ final class Util {
         // Exit
         switch (state) {
             case inServerName:
-                result = result.trim();
-                if (result.length() > 0) {
+                String propertyValue = result.toString().trim();
+                if (propertyValue.length() > 0) {
                     if (logger.isLoggable(Level.FINE)) {
                         logger.fine("Property:serverName " + "Value:" + result);
                     }
@@ -487,18 +475,18 @@ final class Util {
                 }
                 break;
             case inPort:
-                result = result.trim();
+                propertyValue = result.toString().trim();
                 if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("Property:portNumber " + "Value:" + result);
+                    logger.fine("Property:portNumber " + "Value:" + propertyValue);
                 }
-                p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), result);
+                p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), propertyValue);
                 break;
             case inInstanceName:
-                result = result.trim();
+                propertyValue = result.toString().trim();
                 if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("Property:instanceName " + "Value:" + result);
+                    logger.fine("Property:instanceName " + "Value:" + propertyValue);
                 }
-                p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), result);
+                p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), propertyValue);
                 break;
             case inValue:
                 // simple value trim
