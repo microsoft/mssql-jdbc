@@ -172,7 +172,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String getServerNameString(String serverName) {
         String serverNameFromConnectionStr = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
-        if (null == serverName || serverName.equals(serverNameFromConnectionStr)) {
+        if (null == serverName || !isRoutedInCurrentAttempt) {
             return serverName;
         }
 
@@ -2346,9 +2346,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // is done just to be consistent with the rest of the logic.
                     attemptNumber++;
 
-                    // set isRoutedInCurrentAttempt to false for the next attempt
-                    isRoutedInCurrentAttempt = false;
-
                     // useParallel and useTnir should be set to false once we get routed
                     useParallel = false;
                     useTnir = false;
@@ -2367,6 +2364,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         String msg = form.format(msgArgs);
                         terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
                     } else {
+                        // set isRoutedInCurrentAttempt to false for the next attempt
+                        isRoutedInCurrentAttempt = false;
+
                         continue;
                     }
                 } else
