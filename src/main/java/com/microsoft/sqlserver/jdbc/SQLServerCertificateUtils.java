@@ -206,11 +206,8 @@ final class SQLServerCertificateUtils {
     private static Certificate loadCertificate(
             String certificatePem) throws IOException, GeneralSecurityException, SQLServerException {
         CertificateFactory certificateFactory = CertificateFactory.getInstance("X509");
-        InputStream certStream = fileToStream(certificatePem);
-        try {
+        try (InputStream certStream = fileToStream(certificatePem)) {
             return certificateFactory.generateCertificate(certStream);
-        } finally {
-            certStream.close();
         }
     }
 
