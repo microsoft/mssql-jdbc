@@ -172,7 +172,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String getServerNameString(String serverName) {
         String serverNameFromConnectionStr = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
-        if (null == serverName || !isRoutedInCurrentAttempt || serverName.equals(serverNameFromConnectionStr)) {
+        if (null == serverName || serverName.equals(serverNameFromConnectionStr)) {
             return serverName;
         }
 
