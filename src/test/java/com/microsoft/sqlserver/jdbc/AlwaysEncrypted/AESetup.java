@@ -73,8 +73,6 @@ public class AESetup extends AbstractTest {
     // test that only run on Windows will be skipped
     static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
 
-    protected static boolean isAEv2 = false;
-
     public static final String tableName = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("AETest_")));
     public static final String CHAR_TABLE_AE = TestUtils
@@ -125,6 +123,10 @@ public class AESetup extends AbstractTest {
             {"NumericDefault", "numeric", "DECIMAL"}, {"Numeric", "numeric(8,2)", "DECIMAL"},
             {"SmallMoney", "smallmoney", "SMALLMONEY"}, {"Money", "money", "MONEY"},
             {"Decimal2", "decimal(28,4)", "DECIMAL"}, {"Numeric2", "numeric(28,4)", "DECIMAL"},};
+
+    static String numericTableSimple[][] = {{"Int", "int", "INT"}};
+
+    static String varcharTableSimple[][] = {{"Varchar", "varchar(20) COLLATE LATIN1_GENERAL_BIN2", "VARCHAR"}};
 
     // CREATE TABLE tableName (columns) NULL"
     static String createSql = "CREATE TABLE %s (%s)";
@@ -188,26 +190,6 @@ public class AESetup extends AbstractTest {
         } else {
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false"
                     + ";columnEncryptionSetting=enabled";
-        }
-    }
-
-    /**
-     * Setup AE connection string and check setup
-     * 
-     * @param serverName
-     * @param url
-     * @param protocol
-     * @throws SQLException
-     */
-    void checkAESetup(String serverName, String url, String protocol) throws Exception {
-        setAEConnectionString(serverName, url, protocol);
-
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
-            isAEv2 = TestUtils.isAEv2(con);
-        } catch (SQLException e) {
-            isAEv2 = false;
-        } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
 
@@ -1958,5 +1940,38 @@ public class AESetup extends AbstractTest {
         String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin"
                 + " drop column master key " + cmkName + " end";
         stmt.execute(cekSql);
+    }
+
+    /**
+     * Alter Column encryption on deterministic columns to randomized - this will trigger enclave to re-encrypt
+     * 
+     * @param stmt
+     * @param tableName
+     * @param table
+     * @param cekName
+     * @throws SQLException
+     */
+    protected void testAlterColumnEncryption(SQLServerStatement stmt, String tableName, String table[][],
+            String cekName) throws SQLException {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+            for (int i = 0; i < table.length; i++) {
+                // alter deterministic to randomized
+                String sql = "ALTER TABLE " + tableName + " ALTER COLUMN " + ColumnType.DETERMINISTIC.name()
+                        + table[i][0] + " " + table[i][1]
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ")";
+                try {
+                    stmt.execute(sql);
+                    if (!TestUtils.isAEv2(con)) {
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    }
+                } catch (SQLException e) {
+                    if (!TestUtils.isAEv2(con)) {
+                        fail(e.getMessage());
+                    } else {
+                        fail(TestResource.getResource("R_AlterAEv2Error") + e.getMessage() + "Query: " + sql);
+                    }
+                }
+            }
+        }
     }
 }
