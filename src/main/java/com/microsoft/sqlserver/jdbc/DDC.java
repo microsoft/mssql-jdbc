@@ -73,10 +73,12 @@ final class DDC {
             case BINARY:
                 return convertIntToBytes(intValue, valueLength);
             case SQL_VARIANT:
-                // specifically return short if the underlying datatype of sql_variant is tinyint or smallint
+                // return short or bit if the underlying datatype of sql_variant is tinyint, smallint or bit
                 // otherwise, return integer
                 // Longer datatypes such as double and float are handled by convertLongToObject instead.
-                if (valueLength == 3 || valueLength == 4) {
+                if (valueLength == 1) {
+                    return 0 != intValue;
+                } else if (valueLength == 3 || valueLength == 4) {
                     return (short) intValue;
                 } else {
                     return intValue;
@@ -353,6 +355,7 @@ final class DDC {
             case NUMERIC:
             case MONEY:
             case SMALLMONEY:
+            case SQL_VARIANT:
                 return bigDecimalVal;
             case FLOAT:
             case DOUBLE:

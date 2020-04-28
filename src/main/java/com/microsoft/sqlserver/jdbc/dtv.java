@@ -3968,7 +3968,6 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
 
             case MONEY4:
-                jdbcType = JDBCType.SMALLMONEY;
                 precision = Long.toString(Long.MAX_VALUE).length();
                 typeInfo.setPrecision(precision);
                 scale = 4;
@@ -3980,7 +3979,6 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
 
             case MONEY8:
-                jdbcType = JDBCType.MONEY;
                 precision = Long.toString(Long.MAX_VALUE).length();
                 scale = 4;
                 typeInfo.setPrecision(precision);
@@ -3993,7 +3991,6 @@ final class ServerDTVImpl extends DTVImpl {
 
             case BIT1:
             case BITN:
-                jdbcType = JDBCType.BIT;
                 switch (expectedValueLength) {
                     case 8:
                         convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType,
