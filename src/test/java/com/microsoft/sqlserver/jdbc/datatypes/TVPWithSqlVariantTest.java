@@ -72,7 +72,7 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             while (rs.next()) {
                 assertEquals(rs.getInt(1), 12);
                 assertEquals(rs.getString(1), "" + 12);
-                assertEquals(rs.getObject(1), 12);
+                assertEquals(rs.getInt(1), 12);
             }
         }
     }

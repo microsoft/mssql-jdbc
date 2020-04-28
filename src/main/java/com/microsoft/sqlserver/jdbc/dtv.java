@@ -3922,41 +3922,32 @@ final class ServerDTVImpl extends DTVImpl {
         TDSType baseType = TDSType.valueOf(intbaseType);
         switch (baseType) {
             case INT8:
-                jdbcType = JDBCType.BIGINT;
                 convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType,
                         streamGetterArgs.streamType);
                 break;
 
             case INT4:
-                jdbcType = JDBCType.INTEGER;
                 convertedValue = DDC.convertIntegerToObject(tdsReader.readInt(), valueLength, jdbcType,
                         streamGetterArgs.streamType);
                 break;
 
             case INT2:
-                jdbcType = JDBCType.SMALLINT;
                 convertedValue = DDC.convertIntegerToObject(tdsReader.readShort(), valueLength, jdbcType,
                         streamGetterArgs.streamType);
                 break;
 
             case INT1:
-                jdbcType = JDBCType.TINYINT;
                 convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), valueLength, jdbcType,
                         streamGetterArgs.streamType);
                 break;
 
             case DECIMALN:
             case NUMERICN:
-                if (TDSType.DECIMALN == baseType)
-                    jdbcType = JDBCType.DECIMAL;
-                else if (TDSType.NUMERICN == baseType)
-                    jdbcType = JDBCType.NUMERIC;
                 if (cbPropsActual != sqlVariantProbBytes.DECIMALN.getIntValue()) { // Numeric and decimal have the same
                                                                                    // probbytes value
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
-                jdbcType = JDBCType.DECIMAL;
                 precision = tdsReader.readUnsignedByte();
                 scale = tdsReader.readUnsignedByte();
                 typeInfo.setScale(scale); // typeInfo needs to be updated. typeInfo is usually set when reading
@@ -3969,12 +3960,10 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
 
             case FLOAT4:
-                jdbcType = JDBCType.REAL;
                 convertedValue = tdsReader.readReal(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
 
             case FLOAT8:
-                jdbcType = JDBCType.FLOAT;
                 convertedValue = tdsReader.readFloat(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
 
@@ -4038,10 +4027,6 @@ final class ServerDTVImpl extends DTVImpl {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
-                if (TDSType.BIGVARCHAR == baseType)
-                    jdbcType = JDBCType.VARCHAR;
-                else if (TDSType.BIGCHAR == baseType)
-                    jdbcType = JDBCType.CHAR;
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
                 maxLength = tdsReader.readUnsignedShort();
@@ -4063,10 +4048,6 @@ final class ServerDTVImpl extends DTVImpl {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
-                if (TDSType.NCHAR == baseType)
-                    jdbcType = JDBCType.NCHAR;
-                else if (TDSType.NVARCHAR == baseType)
-                    jdbcType = JDBCType.NVARCHAR;
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
                 maxLength = tdsReader.readUnsignedShort();
