@@ -36,6 +36,7 @@ import java.security.Provider;
 import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
@@ -1593,6 +1594,9 @@ final class TDSChannel implements Serializable {
         SSL_HANDHSAKE_COMPLETE
     }
 
+    static final String TLS_1 = "TLSv1";
+    static final String TLS_1_1 = "TLSv1.1";
+
     /**
      * Enables SSL Handshake.
      * 
@@ -1796,6 +1800,15 @@ final class TDSChannel implements Serializable {
 
             // don't close proxy when SSL socket is closed
             sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
+
+            // Check the TLS version
+            String tlsProtocol = sslSocket.getSession().getProtocol();
+            if (TLS_1.equalsIgnoreCase(tlsProtocol) || TLS_1_1.equalsIgnoreCase(tlsProtocol)) {
+                String warningMsg = tlsProtocol
+                        + " was negotiated. Please update server and client to use TLSv1.2 at minimum.";
+                logger.warning(warningMsg);
+                con.addWarning(warningMsg);
+            }
 
             // At long last, start the SSL handshake ...
             if (logger.isLoggable(Level.FINER))

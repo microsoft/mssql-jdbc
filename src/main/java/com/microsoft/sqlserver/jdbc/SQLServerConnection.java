@@ -3572,7 +3572,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     // Any changes to SQLWarnings should be synchronized.
-    private void addWarning(String warningString) {
+    void addWarning(String warningString) {
         synchronized (warningSynchronization) {
             SQLWarning warning = new SQLWarning(warningString);
 
