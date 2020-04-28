@@ -83,7 +83,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
-                assertEquals(rs.getBigDecimal(1), new BigDecimal("123.1200"));
+                assertEquals(rs.getObject(1), new BigDecimal("123.1200"));
             }
         }
     }
@@ -102,7 +102,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
-                assertEquals(rs.getBigDecimal(1), new BigDecimal("123.1200"));
+                assertEquals(rs.getObject(1), new BigDecimal("123.1200"));
             }
         }
     }
@@ -238,7 +238,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
-                assertEquals(rs.getFloat(1), value);
+                assertEquals(rs.getObject(1), Double.valueOf("5.0"));
             }
         }
     }
@@ -257,7 +257,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
-                assertEquals(rs.getLong(1), value);
+                assertEquals(rs.getObject(1), value);
             }
         }
     }
@@ -276,7 +276,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
-                assertEquals(rs.getShort(1), value);
+                assertEquals(rs.getObject(1), value);
             }
         }
     }
@@ -295,7 +295,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
-                assertEquals(rs.getShort(1), value);
+                assertEquals(rs.getObject(1), value);
             }
         }
     }
@@ -314,7 +314,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
-                assertEquals(rs.getBoolean(1), true);
+                assertEquals(rs.getObject(1), true);
             }
         }
     }
@@ -333,7 +333,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
-                assertEquals(rs.getFloat(1), value);
+                assertEquals(rs.getObject(1), Float.valueOf("5.0"));
             }
         }
     }
@@ -736,7 +736,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
-                assertEquals(rs.getInt(1), 2);
+                assertEquals(rs.getObject(1), 2);
             }
         }
     }
@@ -900,7 +900,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
                 cs.registerOutParameter(1, microsoft.sql.Types.SQL_VARIANT);
                 cs.setObject(2, col2Value, microsoft.sql.Types.SQL_VARIANT);
                 cs.execute();
-                assertEquals(cs.getInt(1), col1Value);
+                assertEquals(cs.getObject(1), col1Value);
             }
         }
     }
@@ -999,8 +999,8 @@ public class SQLVariantResultSetTest extends AbstractTest {
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 rs.next();
-                assertEquals(rs.getShort(1), value1);
-                assertEquals(rs.getInt(2), value2);
+                assertEquals(rs.getObject(1), value1);
+                assertEquals(rs.getObject(2), value2);
                 assertEquals(rs.getObject(3), value3);
             }
         }
@@ -1018,10 +1018,9 @@ public class SQLVariantResultSetTest extends AbstractTest {
             int index = 0;
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("SELECT cast('abc' as sql_variant) UNION ALL SELECT cast(42 as sql_variant)")) {
-                rs.next();    
-                assertEquals(rs.getObject(1), expected[index++]);
-                rs.next();
-                assertEquals(rs.getInt(1), expected[index++]);
+                while (rs.next()) {
+                    assertEquals(rs.getObject(1), expected[index++]);
+                }
             }
         }
     }
