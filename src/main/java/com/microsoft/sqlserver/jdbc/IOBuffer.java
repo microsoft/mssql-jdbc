@@ -1593,9 +1593,6 @@ final class TDSChannel implements Serializable {
         SSL_HANDHSAKE_COMPLETE
     }
 
-    static final String TLS_1 = "TLSv1";
-    static final String TLS_1_1 = "TLSv1.1";
-
     /**
      * Enables SSL Handshake.
      * 
@@ -1800,15 +1797,6 @@ final class TDSChannel implements Serializable {
             // don't close proxy when SSL socket is closed
             sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
 
-            // Check the TLS version
-            String tlsProtocol = sslSocket.getSession().getProtocol();
-            if (TLS_1.equalsIgnoreCase(tlsProtocol) || TLS_1_1.equalsIgnoreCase(tlsProtocol)) {
-                String warningMsg = tlsProtocol
-                        + " was negotiated. Please update server and client to use TLSv1.2 at minimum.";
-                logger.warning(warningMsg);
-                con.addWarning(warningMsg);
-            }
-
             // At long last, start the SSL handshake ...
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Starting SSL handshake");
@@ -1837,6 +1825,16 @@ final class TDSChannel implements Serializable {
 
             // SSL is now enabled; switch over the channel socket
             channelSocket = sslSocket;
+
+            // Check the TLS version
+            String tlsProtocol = sslSocket.getSession().getProtocol();
+            if (SSLProtocol.TLS_V10.toString().equalsIgnoreCase(tlsProtocol)
+                    || SSLProtocol.TLS_V11.toString().equalsIgnoreCase(tlsProtocol)) {
+                String warningMsg = tlsProtocol
+                        + " was negotiated. Please update server and client to use TLSv1.2 at minimum.";
+                logger.warning(warningMsg);
+                con.addWarning(warningMsg);
+            }
 
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " SSL enabled");
