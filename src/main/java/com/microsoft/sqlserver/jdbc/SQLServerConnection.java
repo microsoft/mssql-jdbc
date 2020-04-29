@@ -163,6 +163,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return this.sharedTimer;
     }
 
+    /**
+     * Get the server name string including redirected server if applicable
+     * 
+     * @param serverName
+     * @return
+     */
+    String getServerNameString(String serverName) {
+        String serverNameFromConnectionStr = activeConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+        if (null == serverName || serverName.equals(serverNameFromConnectionStr)) {
+            return serverName;
+        }
+
+        // server was redirected
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_redirectedFrom"));
+        Object[] msgArgs = {serverName, serverNameFromConnectionStr};
+        return form.format(msgArgs);
+    }
+
     static class CityHash128Key implements java.io.Serializable {
 
         /**
@@ -1316,8 +1335,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 case KeyVaultClientSecret:
                     // need a secret use use the secret method
                     if (null == keyStoreSecret) {
-                        throw new SQLServerException(
-                                SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
+                        throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
                     } else {
                         SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
                                 keyStorePrincipalId, keyStoreSecret);
@@ -2328,9 +2346,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // is done just to be consistent with the rest of the logic.
                     attemptNumber++;
 
-                    // set isRoutedInCurrentAttempt to false for the next attempt
-                    isRoutedInCurrentAttempt = false;
-
                     // useParallel and useTnir should be set to false once we get routed
                     useParallel = false;
                     useTnir = false;
@@ -2343,12 +2358,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (timerHasExpired(timerExpire)) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                        Object[] msgArgs = {currentConnectPlaceHolder.getServerName(),
+                        Object[] msgArgs = {getServerNameString(currentConnectPlaceHolder.getServerName()),
                                 Integer.toString(currentConnectPlaceHolder.getPortNumber()),
                                 SQLServerException.getErrString("R_timedOutBeforeRouting")};
                         String msg = form.format(msgArgs);
                         terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
                     } else {
+                        // set isRoutedInCurrentAttempt to false for the next attempt
+                        isRoutedInCurrentAttempt = false;
+
                         continue;
                     }
                 } else
@@ -2807,7 +2825,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + " Unexpected end of prelogin response after " + responseBytesRead + " bytes read");
                 }
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                Object[] msgArgs = {serverName, Integer.toString(portNumber),
+                Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
                         SQLServerException.getErrString("R_notSQLServer")};
                 terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
             }
@@ -2831,7 +2849,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + preloginResponse[0]);
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {serverName, Integer.toString(portNumber),
+                    Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
                             SQLServerException.getErrString("R_notSQLServer")};
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
@@ -2845,7 +2863,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + preloginResponse[1]);
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {serverName, Integer.toString(portNumber),
+                    Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
                             SQLServerException.getErrString("R_notSQLServer")};
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
@@ -2860,7 +2878,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + responseLength + " is greater than allowed length:" + preloginResponse.length);
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {serverName, Integer.toString(portNumber),
+                    Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
                             SQLServerException.getErrString("R_notSQLServer")};
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
