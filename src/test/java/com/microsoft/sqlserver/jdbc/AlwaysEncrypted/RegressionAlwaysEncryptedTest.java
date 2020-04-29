@@ -41,8 +41,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void alwaysEncrypted1(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-
+        setAEConnectionString(serverName, url, protocol);
         try (Connection connection = PrepUtil.getConnection(
                 AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
@@ -72,8 +71,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void alwaysEncrypted2(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-
+        setAEConnectionString(serverName, url, protocol);
         try (Connection connection = PrepUtil.getConnection(
                 AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {

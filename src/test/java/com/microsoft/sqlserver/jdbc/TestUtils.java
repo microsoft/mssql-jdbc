@@ -276,6 +276,7 @@ public final class TestUtils {
 
     /**
      * Deletes the contents of a table.
+     * 
      * @param con
      * @param tableName
      * @throws SQLException
