@@ -3333,17 +3333,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public void commit() throws SQLServerException {
-        loggerExternal.entering(loggingClassName, "commit");
-        if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
-        }
-
-        checkClosed();
-        if (!databaseAutoCommitMode)
-            connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN", "Connection.commit");
-        loggerExternal.exiting(loggingClassName, "commit");
+        commit(false);
     }
     
+    /**
+     * Makes all changes made since the previous
+     * commit/rollback permanent and releases any database locks
+     * currently held by this <code>Connection</code> object.
+     * This method should be
+     * used only when auto-commit mode has been disabled.
+     * 
+     * @param delayedDurability flag to indicate whether the commit will occur with delayed durability on.
+     * @throws SQLServerException Exception if a database access error occurs,
+     */
     public void commit(boolean delayedDurability) throws SQLServerException {
         loggerExternal.entering(loggingClassName, "commit");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
