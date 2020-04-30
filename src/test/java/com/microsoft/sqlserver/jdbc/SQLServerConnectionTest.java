@@ -788,4 +788,16 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         assertTrue(isInterrupted, TestResource.getResource("R_threadInterruptNotSet"));
     }
+
+    /**
+     * Test calling method to get redirected server string.
+     */
+    @Test
+    public void testRedirectedError() {
+        try (SQLServerConnection conn = getConnection()) {
+            assertTrue(conn.getServerNameString(null) == null);
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
+    }
 }

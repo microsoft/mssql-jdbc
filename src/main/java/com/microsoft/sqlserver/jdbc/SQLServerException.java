@@ -157,8 +157,8 @@ public final class SQLServerException extends java.sql.SQLException {
         initCause(cause);
         logException(null, errText, true);
         if (Util.isActivityTraceOn()) {
-            // set the activityid flag so that we don't send the current  ActivityId later.
-            ActivityCorrelator.setCurrentActivityIdSentFlag(); 
+            // set the activityid flag so that we don't send the current ActivityId later.
+            ActivityCorrelator.setCurrentActivityIdSentFlag();
         }
     }
 
@@ -167,7 +167,7 @@ public final class SQLServerException extends java.sql.SQLException {
         initCause(cause);
         logException(null, errText, true);
         if (Util.isActivityTraceOn()) {
-            ActivityCorrelator.setCurrentActivityIdSentFlag(); 
+            ActivityCorrelator.setCurrentActivityIdSentFlag();
         }
     }
 
@@ -175,7 +175,7 @@ public final class SQLServerException extends java.sql.SQLException {
         super(errText, errState, errNum);
         logException(obj, errText, bStack);
         if (Util.isActivityTraceOn()) {
-            ActivityCorrelator.setCurrentActivityIdSentFlag(); 
+            ActivityCorrelator.setCurrentActivityIdSentFlag();
         }
     }
 
@@ -280,9 +280,9 @@ public final class SQLServerException extends java.sql.SQLException {
             MessageFormat formDetail = new MessageFormat(SQLServerException.getErrString("R_tcpOpenFailed"));
             Object[] msgArgsDetail = {connectException.getMessage()};
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-            Object[] msgArgs = {hostName, Integer.toString(portNumber), formDetail.format(msgArgsDetail)};
-            String s = form.format(msgArgs);
-            SQLServerException.makeFromDriverError(conn, conn, s,
+            Object[] msgArgs = {conn.getServerNameString(hostName), Integer.toString(portNumber),
+                    formDetail.format(msgArgsDetail)};
+            SQLServerException.makeFromDriverError(conn, conn, form.format(msgArgs),
                     SQLServerException.EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH, false);
         }
     }
