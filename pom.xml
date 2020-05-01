@@ -275,47 +275,8 @@
 						<configuration>
 							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
 							<excludedGroups>${excludedGroups}, xJDBC42</excludedGroups>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
-			<id>jre8test</id>
-			<build>
-				<finalName>${project.artifactId}-${project.version}.jre8${releaseExt}</finalName>
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.8.0</version>
-						<configuration>
-							<skipMain>true</skipMain>
-							<useIncrementalCompilation>false</useIncrementalCompilation>
-						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>3.0.0-M1</version>
-						<configuration>
-							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
-							<excludedGroups>${excludedGroups}, xJDBC42</excludedGroups>
-							<!--
-							the following is necessary to work around the plugin error:
-							[ERROR] Caused by: org.apache.maven.surefire.booter.SurefireBooterForkException: The forked VM terminated without properly saying goodbye. VM crash or System.exit called?
-							-->
-							<forkCount>3</forkCount>
-							<reuseForks>true</reuseForks>
-							<argLine>-Xmx1024m -XX:MaxPermSize=256m</argLine>
-						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-enforcer-plugin</artifactId>
-						<version>3.0.0-M2</version>
-						<configuration>
-							<skip>true</skip>
+							<!-- needs to be overridden as illegal-access and MaxPermSize=256m not valid in java 8 -->
+							<argLine>-Xmx1024m</argLine>
 						</configuration>
 					</plugin>
 				</plugins>
