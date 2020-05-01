@@ -377,10 +377,10 @@ public class NTLMConnectionTest extends AbstractTest {
 
 		// write bad bytes
 		if (0 <= offset) {
-			token.position(offset);
+			((java.nio.Buffer) token).position(offset);
 			token.put(badBytes);
 		} else {
-			token.position(tokenLen + offset);
+			((java.nio.Buffer) token).position(tokenLen + offset);
 			token.put(badBytes);
 		}
 
