@@ -155,7 +155,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     SharedTimer getSharedTimer() throws SQLServerException {
         if (state == State.Closed) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
-                    null, false);
+                    SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
         }
         if (null == sharedTimer) {
             this.sharedTimer = SharedTimer.getTimer();
@@ -1167,7 +1167,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void checkClosed() throws SQLServerException {
         if (isSessionUnAvailable()) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
-                    null, false);
+                    SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
         }
     }
 
