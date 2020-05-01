@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.nio.charset.Charset;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.NClob;
@@ -29,253 +30,252 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
-
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
 public class LobsStreamingTest extends AbstractTest {
 
-    private static String tableName = null;
+	private static String tableName = null;
 
-    @BeforeEach
-    public void init() throws SQLException {
-        tableName = RandomUtil.getIdentifier("streamingTest");
-    }
+	@BeforeEach
+	public void init() throws SQLException {
+		tableName = RandomUtil.getIdentifier("streamingTest");
+	}
 
-    private String getRandomString(int length, String validCharacters) {
-        StringBuilder salt = new StringBuilder();
-        while (salt.length() < length) {
-            int index = (int) (Constants.RANDOM.nextFloat() * validCharacters.length());
-            salt.append(validCharacters.charAt(index));
-        }
-        String saltStr = salt.toString();
-        return saltStr;
-    }
+	private String getRandomString(int length, String validCharacters) {
+		StringBuilder salt = new StringBuilder();
+		while (salt.length() < length) {
+			int index = (int) (Constants.RANDOM.nextFloat() * validCharacters.length());
+			salt.append(validCharacters.charAt(index));
+		}
+		String saltStr = salt.toString();
+		return saltStr;
+	}
 
-    // closing the scanner closes the InputStream, and the driver needs the stream to fill LoBs
-    private String getStringFromInputStream(InputStream is, Scanner s) {
-        return s.hasNext() ? s.next() : "";
-    }
+	// closing the scanner closes the InputStream, and the driver needs the stream
+	// to fill LoBs
+	private String getStringFromInputStream(InputStream is, Scanner s) {
+		return s.hasNext() ? s.next() : "";
+	}
 
-    private String getStringFromReader(Reader r, long l) throws IOException {
-        // read the Reader contents into a buffer and return the complete string
-        final StringBuilder stringBuilder = new StringBuilder((int) l);
-        char[] buffer = new char[(int) l];
-        int amountRead = -1;
-        while ((amountRead = r.read(buffer, 0, (int) l)) != -1) {
-            stringBuilder.append(buffer, 0, amountRead);
-        }
-        return stringBuilder.toString();
-    }
+	private String getStringFromReader(Reader r, long l) throws IOException {
+		// read the Reader contents into a buffer and return the complete string
+		final StringBuilder stringBuilder = new StringBuilder((int) l);
+		char[] buffer = new char[(int) l];
+		int amountRead = -1;
+		while ((amountRead = r.read(buffer, 0, (int) l)) != -1) {
+			stringBuilder.append(buffer, 0, amountRead);
+		}
+		return stringBuilder.toString();
+	}
 
-    private void createLobTable(Statement stmt, String table, Constants.LOB l) throws SQLException {
-        String columnType = (l == Constants.LOB.CLOB) ? "varchar(max)" : "nvarchar(max)";
-        stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table) + " (id int, lobValue " + columnType
-                + ")");
-    }
+	private void createLobTable(Statement stmt, String table, Constants.LOB l) throws SQLException {
+		String columnType = (l == Constants.LOB.CLOB) ? "varchar(max)" : "nvarchar(max)";
+		stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(table) + " (id int, lobValue " + columnType
+				+ ")");
+	}
 
-    private ArrayList<String> createRandomStringArray(Constants.LOB l) {
-        String characterPool = (l == Constants.LOB.CLOB) ? Constants.ASCII_CHARACTERS : Constants.UNICODE_CHARACTERS;
-        ArrayList<String> string_array = new ArrayList<>();
-        IntStream.range(0, Constants.LOB_ARRAY_SIZE).forEach(i -> string_array.add(getRandomString(
-                Constants.RANDOM.nextInt(Constants.LOB_LENGTH_MIN, Constants.LOB_LENGTH_MAX), characterPool)));
-        return string_array;
-    }
+	private ArrayList<String> createRandomStringArray(Constants.LOB l) {
+		String characterPool = (l == Constants.LOB.CLOB) ? Constants.ASCII_CHARACTERS : Constants.UNICODE_CHARACTERS;
+		ArrayList<String> string_array = new ArrayList<>();
+		IntStream.range(0, Constants.LOB_ARRAY_SIZE).forEach(i -> string_array.add(getRandomString(
+				Constants.RANDOM.nextInt(Constants.LOB_LENGTH_MIN, Constants.LOB_LENGTH_MAX), characterPool)));
+		return string_array;
+	}
 
-    private void insertData(Connection conn, String table, ArrayList<String> lobs) throws SQLException {
-        try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + table + "] VALUES(?,?)")) {
-            for (int i = 0; i < lobs.size(); i++) {
-                Clob c = conn.createClob();
-                c.setString(1, lobs.get(i));
-                pstmt.setInt(1, i);
-                pstmt.setClob(2, c);
-                pstmt.addBatch();
-            }
-            pstmt.executeBatch();
-        }
-    }
+	private void insertData(Connection conn, String table, ArrayList<String> lobs) throws SQLException {
+		try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO [" + table + "] VALUES(?,?)")) {
+			for (int i = 0; i < lobs.size(); i++) {
+				Clob c = conn.createClob();
+				c.setString(1, lobs.get(i));
+				pstmt.setInt(1, i);
+				pstmt.setClob(2, c);
+				pstmt.addBatch();
+			}
+			pstmt.executeBatch();
+		}
+	}
 
-    @Test
-    @DisplayName("testLengthAfterStream")
-    public void testLengthAfterStream() throws SQLException, IOException {
-        try (Connection conn = getConnection();) {
-            try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(tableName, stmt);
-                ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
+	@Test
+	@DisplayName("testLengthAfterStream")
+	public void testLengthAfterStream() throws SQLException, IOException {
+		try (Connection conn = getConnection();) {
+			try (Statement stmt = conn.createStatement()) {
+				TestUtils.dropTableIfExists(tableName, stmt);
+				ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
 
-                createLobTable(stmt, tableName, Constants.LOB.CLOB);
-                insertData(conn, tableName, lob_data);
+				createLobTable(stmt, tableName, Constants.LOB.CLOB);
+				insertData(conn, tableName, lob_data);
 
-                try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
-                    while (rs.next()) {
-                        Clob c = rs.getClob(2);
-                        try (Reader r = c.getCharacterStream()) {
-                            long clobLength = c.length();
-                            String received = getStringFromReader(r, clobLength);// streaming string
-                            c.free();
-                            assertEquals(lob_data.get(rs.getInt(1)), received);// compare streamed string to initial
-                                                                               // string
-                        }
-                    }
-                }
-            } finally {
-                try (Statement stmt = conn.createStatement()) {
-                    TestUtils.dropTableIfExists(tableName, stmt);
-                }
-            }
-        }
-    }
+				try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
+					while (rs.next()) {
+						Clob c = rs.getClob(2);
+						try (Reader r = c.getCharacterStream()) {
+							long clobLength = c.length();
+							String received = getStringFromReader(r, clobLength);// streaming string
+							c.free();
+							assertEquals(lob_data.get(rs.getInt(1)), received);// compare streamed string to initial
+																				// string
+						}
+					}
+				}
+			} finally {
+				try (Statement stmt = conn.createStatement()) {
+					TestUtils.dropTableIfExists(tableName, stmt);
+				}
+			}
+		}
+	}
 
-    @Test
-    @DisplayName("testClobsVarcharASCII")
-    @SuppressWarnings("resource")
-    public void testClobsVarcharASCII() throws SQLException, IOException {
-        try (Connection conn = getConnection()) {
-            try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(tableName, stmt);
+	@Test
+	@DisplayName("testClobsVarcharASCII")
+	@SuppressWarnings("resource")
+	public void testClobsVarcharASCII() throws SQLException, IOException {
+		try (Connection conn = getConnection()) {
+			try (Statement stmt = conn.createStatement()) {
+				TestUtils.dropTableIfExists(tableName, stmt);
 
-                ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
-                ArrayList<String> recievedDataFromServer = new ArrayList<>();
+				ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
+				ArrayList<String> recievedDataFromServer = new ArrayList<>();
 
-                createLobTable(stmt, tableName, Constants.LOB.CLOB);
-                insertData(conn, tableName, lob_data);
+				createLobTable(stmt, tableName, Constants.LOB.CLOB);
+				insertData(conn, tableName, lob_data);
 
-                try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
-                    while (rs.next()) {
-                        int index = rs.getInt(1);
-                        Clob c = rs.getClob(2);
-                        assertEquals(c.length(), lob_data.get(index).length());
-                        try (InputStream is = c.getAsciiStream();
-                                Scanner s = new Scanner(is, java.nio.charset.StandardCharsets.US_ASCII)
-                                        .useDelimiter("\\A")) {
-                            String received = getStringFromInputStream(is, s);// streaming string
-                            assertEquals(lob_data.get(index), received);// compare streamed string to initial string
-                            c.free();
-                            recievedDataFromServer.add(received);
-                        }
-                    }
-                    for (int i = 0; i < lob_data.size(); i++) {
-                        assertEquals(recievedDataFromServer.get(i), lob_data.get(i));// compare static string to
-                                                                                     // streamed
-                                                                                     // string
-                    }
-                }
-            } finally {
-                try (Statement stmt = conn.createStatement()) {
-                    TestUtils.dropTableIfExists(tableName, stmt);
-                }
-            }
-        }
+				try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
+					while (rs.next()) {
+						int index = rs.getInt(1);
+						Clob c = rs.getClob(2);
+						assertEquals(c.length(), lob_data.get(index).length());
+						try (InputStream is = c.getAsciiStream();
+								Scanner s = new Scanner(is, Charset.forName("US-ASCII")).useDelimiter("\\A")) {
+							String received = getStringFromInputStream(is, s);// streaming string
+							assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+							c.free();
+							recievedDataFromServer.add(received);
+						}
+					}
+					for (int i = 0; i < lob_data.size(); i++) {
+						assertEquals(recievedDataFromServer.get(i), lob_data.get(i));// compare static string to
+																						// streamed
+																						// string
+					}
+				}
+			} finally {
+				try (Statement stmt = conn.createStatement()) {
+					TestUtils.dropTableIfExists(tableName, stmt);
+				}
+			}
+		}
 
-    }
+	}
 
-    @SuppressWarnings("resource")
-    @Test
-    @DisplayName("testNClobsNVarcharASCII")
-    public void testNClobsVarcharASCII() throws SQLException, IOException {
-        try (Connection conn = getConnection()) {
-            try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(tableName, stmt);
-                // Testing AsciiStream, use Clob string set or characters will be converted to '?'
-                ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
+	@SuppressWarnings("resource")
+	@Test
+	@DisplayName("testNClobsNVarcharASCII")
+	public void testNClobsVarcharASCII() throws SQLException, IOException {
+		try (Connection conn = getConnection()) {
+			try (Statement stmt = conn.createStatement()) {
+				TestUtils.dropTableIfExists(tableName, stmt);
+				// Testing AsciiStream, use Clob string set or characters will be converted to
+				// '?'
+				ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
 
-                createLobTable(stmt, tableName, Constants.LOB.NCLOB);
-                insertData(conn, tableName, lob_data);
+				createLobTable(stmt, tableName, Constants.LOB.NCLOB);
+				insertData(conn, tableName, lob_data);
 
-                try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
-                    while (rs.next()) {
-                        int index = rs.getInt(1);
-                        NClob c = rs.getNClob(2);
-                        assertEquals(c.length(), lob_data.get(index).length());
-                        try (InputStream is = c.getAsciiStream();
-                                Scanner s = new Scanner(is, java.nio.charset.StandardCharsets.US_ASCII)
-                                        .useDelimiter("\\A")) {
-                            String received = getStringFromInputStream(is, s);// NClob AsciiStream is never streamed
-                            c.free();
-                            assertEquals(lob_data.get(index), received);// compare string to initial string
-                        }
-                    }
-                }
-            } finally {
-                try (Statement stmt = conn.createStatement()) {
-                    TestUtils.dropTableIfExists(tableName, stmt);
-                }
-            }
-        }
-    }
+				try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
+					while (rs.next()) {
+						int index = rs.getInt(1);
+						NClob c = rs.getNClob(2);
+						assertEquals(c.length(), lob_data.get(index).length());
+						try (InputStream is = c.getAsciiStream();
+								Scanner s = new Scanner(is, Charset.forName("US-ASCII")).useDelimiter("\\A")) {
+							String received = getStringFromInputStream(is, s);// NClob AsciiStream is never streamed
+							c.free();
+							assertEquals(lob_data.get(index), received);// compare string to initial string
+						}
+					}
+				}
+			} finally {
+				try (Statement stmt = conn.createStatement()) {
+					TestUtils.dropTableIfExists(tableName, stmt);
+				}
+			}
+		}
+	}
 
-    @Test
-    @DisplayName("testClobsVarcharCHARA")
-    public void testClobsVarcharCHARA() throws SQLException, IOException {
-        try (Connection conn = getConnection()) {
-            try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(tableName, stmt);
+	@Test
+	@DisplayName("testClobsVarcharCHARA")
+	public void testClobsVarcharCHARA() throws SQLException, IOException {
+		try (Connection conn = getConnection()) {
+			try (Statement stmt = conn.createStatement()) {
+				TestUtils.dropTableIfExists(tableName, stmt);
 
-                ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
-                ArrayList<String> receivedDataFromServer = new ArrayList<>();
+				ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
+				ArrayList<String> receivedDataFromServer = new ArrayList<>();
 
-                createLobTable(stmt, tableName, Constants.LOB.CLOB);
-                insertData(conn, tableName, lob_data);
+				createLobTable(stmt, tableName, Constants.LOB.CLOB);
+				insertData(conn, tableName, lob_data);
 
-                try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
-                    while (rs.next()) {
-                        int index = rs.getInt(1);
-                        Clob c = rs.getClob(2);
-                        assertEquals(c.length(), lob_data.get(index).length());
-                        try (Reader reader = c.getCharacterStream()) {
-                            String received = getStringFromReader(reader, c.length());// streaming string
-                            receivedDataFromServer.add(received);
-                            assertEquals(lob_data.get(index), received);// compare streamed string to initial string
-                            c.free();
-                        }
-                    }
-                }
-                for (int i = 0; i < lob_data.size(); i++) {
-                    assertEquals(receivedDataFromServer.get(i), lob_data.get(i));// compare static string to streamed
-                                                                                 // string
-                }
-            } finally {
-                try (Statement stmt = conn.createStatement()) {
-                    TestUtils.dropTableIfExists(tableName, stmt);
-                }
-            }
-        }
-    }
+				try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
+					while (rs.next()) {
+						int index = rs.getInt(1);
+						Clob c = rs.getClob(2);
+						assertEquals(c.length(), lob_data.get(index).length());
+						try (Reader reader = c.getCharacterStream()) {
+							String received = getStringFromReader(reader, c.length());// streaming string
+							receivedDataFromServer.add(received);
+							assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+							c.free();
+						}
+					}
+				}
+				for (int i = 0; i < lob_data.size(); i++) {
+					assertEquals(receivedDataFromServer.get(i), lob_data.get(i));// compare static string to streamed
+																					// string
+				}
+			} finally {
+				try (Statement stmt = conn.createStatement()) {
+					TestUtils.dropTableIfExists(tableName, stmt);
+				}
+			}
+		}
+	}
 
-    @Test
-    @DisplayName("testNClobsVarcharCHARA")
-    public void testNClobsVarcharCHARA() throws SQLException, IOException {
-        try (Connection conn = getConnection()) {
-            try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(tableName, stmt);
+	@Test
+	@DisplayName("testNClobsVarcharCHARA")
+	public void testNClobsVarcharCHARA() throws SQLException, IOException {
+		try (Connection conn = getConnection()) {
+			try (Statement stmt = conn.createStatement()) {
+				TestUtils.dropTableIfExists(tableName, stmt);
 
-                ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.NCLOB);
-                ArrayList<String> receivedDataFromServer = new ArrayList<>();
+				ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.NCLOB);
+				ArrayList<String> receivedDataFromServer = new ArrayList<>();
 
-                createLobTable(stmt, tableName, Constants.LOB.NCLOB);
-                insertData(conn, tableName, lob_data);
+				createLobTable(stmt, tableName, Constants.LOB.NCLOB);
+				insertData(conn, tableName, lob_data);
 
-                try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
-                    while (rs.next()) {
-                        int index = rs.getInt(1);
-                        NClob c = rs.getNClob(2);
-                        assertEquals(c.length(), lob_data.get(index).length());
-                        try (Reader reader = c.getCharacterStream()) {
-                            String received = getStringFromReader(reader, c.length());// streaming string
-                            receivedDataFromServer.add(received);
-                            assertEquals(lob_data.get(index), received);// compare streamed string to initial string
-                            c.free();
-                        }
-                    }
-                }
-                for (int i = 0; i < lob_data.size(); i++) {
-                    assertEquals(receivedDataFromServer.get(i), lob_data.get(i));// compare static string to streamed
-                                                                                 // string
-                }
-            } finally {
-                try (Statement stmt = conn.createStatement()) {
-                    TestUtils.dropTableIfExists(tableName, stmt);
-                }
-            }
-        }
-    }
+				try (ResultSet rs = stmt.executeQuery("SELECT * FROM [" + tableName + "] ORDER BY id ASC")) {
+					while (rs.next()) {
+						int index = rs.getInt(1);
+						NClob c = rs.getNClob(2);
+						assertEquals(c.length(), lob_data.get(index).length());
+						try (Reader reader = c.getCharacterStream()) {
+							String received = getStringFromReader(reader, c.length());// streaming string
+							receivedDataFromServer.add(received);
+							assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+							c.free();
+						}
+					}
+				}
+				for (int i = 0; i < lob_data.size(); i++) {
+					assertEquals(receivedDataFromServer.get(i), lob_data.get(i));// compare static string to streamed
+																					// string
+				}
+			} finally {
+				try (Statement stmt = conn.createStatement()) {
+					TestUtils.dropTableIfExists(tableName, stmt);
+				}
+			}
+		}
+	}
 }
