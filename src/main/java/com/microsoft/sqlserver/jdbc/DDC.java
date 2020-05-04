@@ -614,9 +614,9 @@ final class DDC {
         if (firstDash > 0 && secondDash > 0 && secondDash < dividingSpace - 1) {
             if (firstDash == YEAR_LENGTH && (secondDash - firstDash > 1 && secondDash - firstDash <= MONTH_LENGTH + 1)
                     && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
-                year = Integer.parseInt(s, 0, firstDash, 10);
-                month = Integer.parseInt(s, firstDash + 1, secondDash, 10);
-                day = Integer.parseInt(s, secondDash + 1, dividingSpace, 10);
+                year = Util.parseInt(s, 0, firstDash, 10);
+                month = Util.parseInt(s, firstDash + 1, secondDash, 10);
+                day = Util.parseInt(s, secondDash + 1, dividingSpace, 10);
 
                 if ((month >= 1 && month <= MAX_MONTH) && (day >= 1 && day <= MAX_DAY)) {
                     parsedDate = true;
@@ -630,16 +630,16 @@ final class DDC {
         // Convert the time; default missing nanos
         int len = s.length();
         if (firstColon > 0 && secondColon > 0 && secondColon < len - 1) {
-            hour = Integer.parseInt(s, dividingSpace + 1, firstColon, 10);
-            minute = Integer.parseInt(s, firstColon + 1, secondColon, 10);
+            hour = Util.parseInt(s, dividingSpace + 1, firstColon, 10);
+            minute = Util.parseInt(s, firstColon + 1, secondColon, 10);
             if (period > 0 && period < len - 1) {
-                second = Integer.parseInt(s, secondColon + 1, period, 10);
+                second = Util.parseInt(s, secondColon + 1, period, 10);
                 int nanoPrecision = len - (period + 1);
                 if (nanoPrecision > 9)
                     throw new java.lang.IllegalArgumentException(formatError);
                 if (!Character.isDigit(s.charAt(period + 1)))
                     throw new java.lang.IllegalArgumentException(formatError);
-                int tmpNanos = Integer.parseInt(s, period + 1, len, 10);
+                int tmpNanos = Util.parseInt(s, period + 1, len, 10);
                 while (nanoPrecision < 9) {
                     tmpNanos *= 10;
                     nanoPrecision++;
@@ -648,7 +648,7 @@ final class DDC {
             } else if (period > 0) {
                 throw new java.lang.IllegalArgumentException(formatError);
             } else {
-                second = Integer.parseInt(s, secondColon + 1, len, 10);
+                second = Util.parseInt(s, secondColon + 1, len, 10);
             }
         } else {
             throw new java.lang.IllegalArgumentException(formatError);
@@ -1274,7 +1274,8 @@ final class DDC {
 
                     case DATETIME2: {
                         return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
-                                java.sql.Timestamp.valueOf(ldt), fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                                java.sql.Timestamp.valueOf(ldt),
+                                fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
                     }
 
                     case DATETIME: // and SMALLDATETIME
