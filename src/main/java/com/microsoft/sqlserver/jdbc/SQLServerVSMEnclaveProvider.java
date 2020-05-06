@@ -16,6 +16,7 @@ import java.security.Security;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.MGF1ParameterSpec;
@@ -275,9 +276,10 @@ class VSMAttestationResponse extends BaseAttestationResponse {
                         .generateCertificates(new ByteArrayInputStream(b));
                 for (X509Certificate cert : certs) {
                     try {
+                        cert.checkValidity();
                         healthCert.verify(cert.getPublicKey());
                         return;
-                    } catch (SignatureException e) {
+                    } catch (SignatureException | CertificateExpiredException e) {
                         // Doesn't match, but continue looping through the rest of the certificates
                     }
                 }

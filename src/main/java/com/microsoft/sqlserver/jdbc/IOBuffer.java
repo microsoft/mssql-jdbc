@@ -1831,6 +1831,16 @@ final class TDSChannel implements Serializable {
             // SSL is now enabled; switch over the channel socket
             channelSocket = sslSocket;
 
+            // Check the TLS version
+            String tlsProtocol = sslSocket.getSession().getProtocol();
+            if (SSLProtocol.TLS_V10.toString().equalsIgnoreCase(tlsProtocol)
+                    || SSLProtocol.TLS_V11.toString().equalsIgnoreCase(tlsProtocol)) {
+                String warningMsg = tlsProtocol
+                        + " was negotiated. Please update server and client to use TLSv1.2 at minimum.";
+                logger.warning(warningMsg);
+                con.addWarning(warningMsg);
+            }
+
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " SSL enabled");
         } catch (Exception e) {
