@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.math.BigInteger;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
@@ -153,7 +154,7 @@ final class SQLServerCertificateUtils {
         ByteBuffer buffer = ByteBuffer.allocate((int) f.length());
         try (FileInputStream in = new FileInputStream(f)) {
             in.getChannel().read(buffer);
-            ((java.nio.Buffer) buffer.order(ByteOrder.LITTLE_ENDIAN)).rewind();
+            ((Buffer) buffer.order(ByteOrder.LITTLE_ENDIAN)).rewind();
 
             long magic = buffer.getInt() & 0xFFFFFFFFL;
             if (PVK_MAGIC != magic) {
@@ -161,14 +162,15 @@ final class SQLServerCertificateUtils {
                         "", false);
             }
 
-            buffer.position(buffer.position() + 8); // skip reserved and keytype
+            ((Buffer) buffer).position(((Buffer) buffer).position() + 8); // skip reserved and keytype
             boolean encrypted = buffer.getInt() != 0;
             int saltLength = buffer.getInt();
             int keyLength = buffer.getInt();
             byte[] salt = new byte[saltLength];
             buffer.get(salt);
 
-            buffer.position(buffer.position() + 8); // skip btype(1b), version(1b), reserved(2b), and keyalg(4b)
+            ((Buffer) buffer).position(((Buffer) buffer).position() + 8); // skip btype(1b), version(1b), reserved(2b),
+                                                                          // and keyalg(4b)
 
             byte[] key = new byte[keyLength - 8];
             buffer.get(key);
@@ -184,7 +186,7 @@ final class SQLServerCertificateUtils {
             }
 
             ByteBuffer buff = ByteBuffer.wrap(key).order(ByteOrder.LITTLE_ENDIAN);
-            buff.position(RSA2_MAGIC.length); // skip the header
+            ((Buffer) buff).position(RSA2_MAGIC.length); // skip the header
 
             int byteLength = buff.getInt() / 8;
             BigInteger publicExponent = BigInteger.valueOf(buff.getInt());
