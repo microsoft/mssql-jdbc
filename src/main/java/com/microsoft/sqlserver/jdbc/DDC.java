@@ -29,7 +29,7 @@ import java.util.TimeZone;
 
 
 /**
- * Utility class for all Data Dependant Conversions (DDC).
+ * Utility class for all Data Dependent Conversions (DDC).
  */
 
 final class DDC {

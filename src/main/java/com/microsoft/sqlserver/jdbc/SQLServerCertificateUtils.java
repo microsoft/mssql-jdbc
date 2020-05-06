@@ -153,7 +153,7 @@ final class SQLServerCertificateUtils {
         ByteBuffer buffer = ByteBuffer.allocate((int) f.length());
         try (FileInputStream in = new FileInputStream(f)) {
             in.getChannel().read(buffer);
-            buffer.order(ByteOrder.LITTLE_ENDIAN).rewind();
+            ((java.nio.Buffer) buffer.order(ByteOrder.LITTLE_ENDIAN)).rewind();
 
             long magic = buffer.getInt() & 0xFFFFFFFFL;
             if (PVK_MAGIC != magic) {
