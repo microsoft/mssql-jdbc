@@ -2314,6 +2314,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // Successful connection, cache the IP address and port if server supports DNS Cache.
                 if (serverSupportsDNSCaching) {
                     dnsCache.put(currentConnectPlaceHolder.getServerName(), inetSocketAddress);
+                } else {
+                    dnsCache.remove(currentConnectPlaceHolder.getServerName());
                 }
 
                 if (isRoutedInCurrentAttempt) {
@@ -4671,9 +4673,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 if (1 == data[0]) {
                     serverSupportsDNSCaching = true;
-                    if(null == dnsCache) {
+                    if (null == dnsCache) {
                         dnsCache = new ConcurrentHashMap<String, InetSocketAddress>();
                     }
+                } else {
+                    serverSupportsDNSCaching = false;
                 }
                 break;
             }
