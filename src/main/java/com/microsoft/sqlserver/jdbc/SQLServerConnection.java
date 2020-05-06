@@ -685,10 +685,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private static ConcurrentHashMap<String, InetSocketAddress> dnsCache = null;
 
     static InetSocketAddress getDNSEntry(String key) {
-        if (null != dnsCache) {
-            return dnsCache.get(key);
-        }
-        return null;
+        return null != dnsCache ? dnsCache.get(key) : null;
     }
 
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
