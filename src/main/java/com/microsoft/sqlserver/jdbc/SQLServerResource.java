@@ -73,6 +73,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_invalidPacketSize", "The packetSize {0} is not valid."},
             {"R_packetSizeTooBigForSSL",
                     "SSL encryption cannot be used with a network packet size larger than {0} bytes.  Please check your connection properties and SQL Server configuration."},
+            {"R_redirectedFrom" , "{0} (redirected from {1})"},
             {"R_tcpipConnectionFailed", "The TCP/IP connection to the host {0}, port {1} has failed. Error: \"{2}\"."}, // <loccomment>{PlaceHolder="TCP/IP"}</locomment>
             {"R_invalidTransactionLevel", "The transaction level {0} is not valid."},
             {"R_cantInvokeRollback", "Cannot invoke a rollback operation when the AutoCommit mode is set to \"true\"."},
