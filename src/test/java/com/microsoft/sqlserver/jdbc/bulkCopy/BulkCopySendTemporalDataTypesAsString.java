@@ -62,7 +62,8 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("sendTemporalDataTypesAsStringForBulkCopyDestTable"));
     static String destTableName2 = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("sendTemporalDataTypesAsStringForBulkCopyDestTable2"));
-
+    static String destTableNameEncrypted = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("sendTemporalDataTypesAsStringForBulkCopyDestTableEncrypted"));
     static String filePath = null;
 
     /**
@@ -80,6 +81,23 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
 
             testBulkCopyCSV(conn, fileRecord);
 
+        }
+    }
+    
+    /**
+     * Test basic case with sendTemporalDataTypesAsStringForBulkCopy connection property, using a resultset.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testSendTemporalDataTypesAsStringForBulkCopyRS() throws SQLException {
+        beforeEachSetup();
+        try (Connection conn = PrepUtil
+                .getConnection(connectionString + ";sendTemporalDataTypesAsStringForBulkCopy=false")) {
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding,
+                    delimiter, true);
+
+            testBulkCopyResultSet(conn, fileRecord);
         }
     }
 
@@ -122,6 +140,35 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
             bulkCopy.writeToServer(fileRecord);
 
             validateValuesFromCSV(stmt, destTableName, inputFile);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+    
+    private void testBulkCopyResultSet(Connection conn, SQLServerBulkCSVFileRecord fileRecord) {
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
+
+            fileRecord.addColumnMetadata(1, "c1", java.sql.Types.DATE, 0, 0); // with Date
+            fileRecord.addColumnMetadata(2, "c2", java.sql.Types.TIMESTAMP, 0, 0); // with Datetime
+            fileRecord.addColumnMetadata(3, "c3", java.sql.Types.TIMESTAMP, 0, 7); // with Datetime2
+            fileRecord.addColumnMetadata(4, "c4", java.sql.Types.TIME, 0, 7); // with time
+            fileRecord.addColumnMetadata(5, "c5", microsoft.sql.Types.DATETIMEOFFSET, 0, 7); // with datetimeoffset
+            fileRecord.addColumnMetadata(6, "c6", java.sql.Types.TIMESTAMP, 0, 0); // with SmallDatetime
+            fileRecord.addColumnMetadata(7, "c7", java.sql.Types.DECIMAL, 19, 4); // with money
+            fileRecord.addColumnMetadata(8, "c8", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
+
+            bulkCopy.setDestinationTableName(destTableName);
+            bulkCopy.writeToServer(fileRecord);
+
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + destTableName);
+                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(conn);) {
+                bcOperation.setDestinationTableName(destTableName2);
+                bcOperation.writeToServer(rs);
+            }
+            
+            validateValuesFromCSV(stmt, destTableName2, inputFile);
         } catch (Exception e) {
             fail(e.getMessage());
         }
