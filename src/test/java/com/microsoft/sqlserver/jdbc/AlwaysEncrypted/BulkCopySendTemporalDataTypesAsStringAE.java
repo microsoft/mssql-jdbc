@@ -2,7 +2,7 @@
  * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
-package com.microsoft.sqlserver.jdbc.bulkCopy;
+package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
 import static org.junit.Assert.fail;
 
@@ -18,6 +18,7 @@ import java.util.Arrays;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -30,6 +31,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
@@ -51,20 +53,24 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * SMALLDATETIME:YYYY-MM-DD hh:mm:ss
  * TIME: hh:mm:ss[.nnnnnnn]
  * 
+ * This class tests both AE and non-AE scenarios.
  */
 @RunWith(JUnitPlatform.class)
-public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xAzureSQLDB)
+@Tag(Constants.xAzureSQLDW)
+public class BulkCopySendTemporalDataTypesAsStringAE extends AESetup {
     static String inputFile = "BulkCopyCSVSendTemporalDataTypesAsStringForBulkCopy.csv";
     static String encoding = "UTF-8";
     static String delimiter = ",";
+    static String filePath = null;
 
     static String destTableName = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("sendTemporalDataTypesAsStringForBulkCopyDestTable"));
     static String destTableName2 = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("sendTemporalDataTypesAsStringForBulkCopyDestTable2"));
-    static String destTableNameEncrypted = AbstractSQLGenerator
-            .escapeIdentifier(RandomUtil.getIdentifier("sendTemporalDataTypesAsStringForBulkCopyDestTableEncrypted"));
-    static String filePath = null;
+    static String destTableNameAE = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("sendTemporalDataTypesAsStringForBulkCopyDestTableAE"));
 
     /**
      * Test basic case with sendTemporalDataTypesAsStringForBulkCopy connection property.
@@ -79,11 +85,10 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
             SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding,
                     delimiter, true);
 
-            testBulkCopyCSV(conn, fileRecord);
-
+            testBulkCopyCSV(conn, fileRecord, destTableName);
         }
     }
-    
+
     /**
      * Test basic case with sendTemporalDataTypesAsStringForBulkCopy connection property, using a resultset.
      * 
@@ -97,7 +102,7 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
             SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding,
                     delimiter, true);
 
-            testBulkCopyResultSet(conn, fileRecord);
+            testBulkCopyResultSet(conn, fileRecord, destTableName);
         }
     }
 
@@ -117,12 +122,28 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
             SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding,
                     delimiter, true);
 
-            testBulkCopyCSV(conn, fileRecord);
+            testBulkCopyCSV(conn, fileRecord, destTableName);
+        }
+    }
+    
+    /**
+     * Test basic case with sendTemporalDataTypesAsStringForBulkCopy connection property, with AE enabled.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testSendTemporalDataTypesAsStringForBulkCopyAE() throws SQLException {
+        beforeEachSetupAE();
+        try (Connection conn = PrepUtil
+                .getConnection(AETestConnectionString + ";sendTemporalDataTypesAsStringForBulkCopy=false", AEInfo)) {
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding,
+                    delimiter, true);
 
+            testBulkCopyCSV(conn, fileRecord, destTableNameAE);
         }
     }
 
-    private void testBulkCopyCSV(Connection conn, SQLServerBulkCSVFileRecord fileRecord) {
+    private void testBulkCopyCSV(Connection conn, SQLServerBulkCSVFileRecord fileRecord, String tableName) {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
@@ -136,16 +157,16 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
             fileRecord.addColumnMetadata(7, "c7", java.sql.Types.DECIMAL, 19, 4); // with money
             fileRecord.addColumnMetadata(8, "c8", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
 
-            bulkCopy.setDestinationTableName(destTableName);
+            bulkCopy.setDestinationTableName(tableName);
             bulkCopy.writeToServer(fileRecord);
 
-            validateValuesFromCSV(stmt, destTableName, inputFile);
+            validateValuesFromCSV(stmt, tableName, inputFile);
         } catch (Exception e) {
             fail(e.getMessage());
         }
     }
     
-    private void testBulkCopyResultSet(Connection conn, SQLServerBulkCSVFileRecord fileRecord) {
+    private void testBulkCopyResultSet(Connection conn, SQLServerBulkCSVFileRecord fileRecord, String destTableName) {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
@@ -167,13 +188,13 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
                 bcOperation.setDestinationTableName(destTableName2);
                 bcOperation.writeToServer(rs);
             }
-            
+
             validateValuesFromCSV(stmt, destTableName2, inputFile);
         } catch (Exception e) {
             fail(e.getMessage());
         }
     }
-
+    
     static void validateValuesFromCSV(Statement stmt, String destinationTable, String inputFile) {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
@@ -201,7 +222,7 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
             fail("CSV validation failed with " + e.getMessage());
         }
     }
-
+    
     private void beforeEachSetup() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(destTableName, stmt);
@@ -216,6 +237,32 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
         }
     }
 
+    private void beforeEachSetupAE() throws SQLException {
+        try (Connection con = PrepUtil
+                .getConnection(AETestConnectionString + ";sendTemporalDataTypesAsStringForBulkCopy=false", AEInfo);
+                Statement stmt = con.createStatement()) {
+            TestUtils.dropTableIfExists(destTableNameAE, stmt);
+            String table = "create table " + destTableNameAE + " ("
+                    + "c1 date ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                    + cekJks + ") NULL,"
+                    + "c2 datetime ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                    + cekJks + ") NULL,"
+                    + "c3 datetime2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                    + cekJks + ") NULL,"
+                    + "c4 time ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                    + cekJks + ") NULL,"
+                    + "c5 datetimeoffset ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                    + cekJks + ") NULL,"
+                    + "c6 smalldatetime ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                    + cekJks + ") NULL,"
+                    + "c7 money ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                    + cekJks + ") NULL,"
+                    + "c8 smallmoney ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                    + cekJks + ") NULL," + ");";
+            stmt.execute(table);
+        }
+    }
+
     @BeforeAll
     public static void setupTest() throws SQLException {
         filePath = TestUtils.getCurrentClassPath();
@@ -224,8 +271,7 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
     @AfterAll
     public static void cleanTest() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-            TestUtils.dropTableIfExists(destTableName, stmt);
-            TestUtils.dropTableIfExists(destTableName2, stmt);
+            TestUtils.dropTableIfExists(destTableNameAE, stmt);
         }
     }
 }
