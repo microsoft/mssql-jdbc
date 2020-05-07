@@ -26,6 +26,7 @@ import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -34,7 +35,8 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 /**
  * Test connection property sendTemporalDataTypesAsStringForBulkCopy
- * This connection string, when set to FALSE, will send DATE, DATETIME, DATIMETIME2 DATETIMEOFFSET, SMALLDATETIME, and TIME
+ * This connection string, when set to FALSE, will send DATE, DATETIME, DATIMETIME2 DATETIMEOFFSET, SMALLDATETIME, and
+ * TIME
  * datatypes as their respective types instead of sending them as String.
  * Additionally, even without setting this connection string to FALSE, MONEY and SMALLMONEY datatypes will be
  * sent as MONEY / SMALLMONEY datatypes instead of DECIMAL after these changes.
@@ -56,8 +58,10 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
     static String encoding = "UTF-8";
     static String delimiter = ",";
 
-    static String destTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("sendTemporalDataTypesAsStringForBulkCopyDestTable"));
-    static String destTableName2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("sendTemporalDataTypesAsStringForBulkCopyDestTable2"));
+    static String destTableName = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("sendTemporalDataTypesAsStringForBulkCopyDestTable"));
+    static String destTableName2 = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("sendTemporalDataTypesAsStringForBulkCopyDestTable2"));
 
     static String filePath = null;
 
@@ -79,25 +83,45 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
         }
     }
 
+    /**
+     * Test basic case with sendTemporalDataTypesAsStringForBulkCopy connection property, using a data source.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testSendTemporalDataTypesAsStringForBulkCopyDS() throws SQLException {
+        beforeEachSetup();
+        SQLServerDataSource dsLocal = new SQLServerDataSource();
+        AbstractTest.updateDataSource(connectionString, dsLocal);
+        dsLocal.setSendTemporalDataTypesAsStringForBulkCopy(false);
+
+        try (Connection conn = dsLocal.getConnection()) {
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding,
+                    delimiter, true);
+
+            testBulkCopyCSV(conn, fileRecord);
+
+        }
+    }
+
     private void testBulkCopyCSV(Connection conn, SQLServerBulkCSVFileRecord fileRecord) {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
-                Statement stmt = conn.createStatement()) {
-            
-                fileRecord.addColumnMetadata(1, "c1", java.sql.Types.DATE, 0, 0); // with Date
-                fileRecord.addColumnMetadata(2, "c2", java.sql.Types.TIMESTAMP, 0, 0); // with Datetime
-                fileRecord.addColumnMetadata(3, "c3", java.sql.Types.TIMESTAMP, 0, 7); // with Datetime2
-                fileRecord.addColumnMetadata(4, "c4", java.sql.Types.TIME, 0, 7); // with time
-                fileRecord.addColumnMetadata(5, "c5", microsoft.sql.Types.DATETIMEOFFSET, 0, 7); // with datetimeoffset
-                fileRecord.addColumnMetadata(6, "c6", java.sql.Types.TIMESTAMP, 0, 0); // with SmallDatetime
-                fileRecord.addColumnMetadata(7, "c7", java.sql.Types.DECIMAL, 19, 4); // with money
-                fileRecord.addColumnMetadata(8, "c8", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
-                
-                bulkCopy.setDestinationTableName(destTableName);
-                bulkCopy.writeToServer(fileRecord);
-                
-                validateValuesFromCSV(stmt, destTableName, inputFile);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
+
+            fileRecord.addColumnMetadata(1, "c1", java.sql.Types.DATE, 0, 0); // with Date
+            fileRecord.addColumnMetadata(2, "c2", java.sql.Types.TIMESTAMP, 0, 0); // with Datetime
+            fileRecord.addColumnMetadata(3, "c3", java.sql.Types.TIMESTAMP, 0, 7); // with Datetime2
+            fileRecord.addColumnMetadata(4, "c4", java.sql.Types.TIME, 0, 7); // with time
+            fileRecord.addColumnMetadata(5, "c5", microsoft.sql.Types.DATETIMEOFFSET, 0, 7); // with datetimeoffset
+            fileRecord.addColumnMetadata(6, "c6", java.sql.Types.TIMESTAMP, 0, 0); // with SmallDatetime
+            fileRecord.addColumnMetadata(7, "c7", java.sql.Types.DECIMAL, 19, 4); // with money
+            fileRecord.addColumnMetadata(8, "c8", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
+
+            bulkCopy.setDestinationTableName(destTableName);
+            bulkCopy.writeToServer(fileRecord);
+
+            validateValuesFromCSV(stmt, destTableName, inputFile);
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -130,12 +154,12 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
             fail("CSV validation failed with " + e.getMessage());
         }
     }
-    
+
     private void beforeEachSetup() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(destTableName, stmt);
             TestUtils.dropTableIfExists(destTableName2, stmt);
-            
+
             String table = "create table " + destTableName
                     + " (c1 date, c2 datetime, c3 datetime2, c4 time, c5 datetimeoffset, c6 smalldatetime, c7 money, c8 smallmoney)";
             stmt.execute(table);
