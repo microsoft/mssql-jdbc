@@ -134,6 +134,8 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
                     fis.close();
 
                 // Loading as JKS failed, try to load as PKCS12
+                String currentDirectory = System.getProperty("user.dir");
+                System.out.println("The current working directory is " + currentDirectory);
                 keyStore = KeyStore.getInstance("PKCS12");
                 fis = new FileInputStream(keyStorePath);
                 keyStore.load(fis, keyStorePwd);

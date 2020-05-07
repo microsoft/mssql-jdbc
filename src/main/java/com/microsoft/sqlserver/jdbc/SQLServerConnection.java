@@ -135,6 +135,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private String clientCertificate = null;
     private String clientKey = null;
     private String clientKeyPassword = "";
+    
+    private boolean sendTemporalDataTypesAsStringForBulkCopy = true;
 
     final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
@@ -632,6 +634,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     boolean isColumnEncryptionSettingEnabled() {
         return (columnEncryptionSetting.equalsIgnoreCase(ColumnEncryptionSetting.Enabled.toString()));
+    }
+    
+    boolean getSendTemporalDataTypesAsStringForBulkCopy() {
+        return sendTemporalDataTypesAsStringForBulkCopy;
     }
 
     String enclaveAttestationUrl = null;
@@ -2101,6 +2107,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (null != sPropValue) {
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 clientKeyPassword = sPropValue;
+            }
+            
+            sPropKey = SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                sendTemporalDataTypesAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
             }
 
             FailoverInfo fo = null;

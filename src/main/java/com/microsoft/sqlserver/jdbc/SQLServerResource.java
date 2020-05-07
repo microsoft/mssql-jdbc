@@ -263,6 +263,8 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_clientKeyPropertyDescription", "Private key file path for client certificate authentication feature."},
             {"R_clientKeyPasswordPropertyDescription",
                     "Password for private key if the private key is password protected."},
+            {"R_sendTemporalDataTypesAsStringForBulkCopyPropertyDescription",
+                    "Flag to indicate whether the driver will send temporal datatypes as String value to the server for bulk copy."},
             {"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
             {"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
             {"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
