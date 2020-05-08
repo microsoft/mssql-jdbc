@@ -3991,31 +3991,8 @@ final class ServerDTVImpl extends DTVImpl {
 
             case BIT1:
             case BITN:
-                switch (expectedValueLength) {
-                    case 8:
-                        convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType,
-                                streamGetterArgs.streamType);
-                        break;
-
-                    case 4:
-                        convertedValue = DDC.convertIntegerToObject(tdsReader.readInt(), expectedValueLength, jdbcType,
-                                streamGetterArgs.streamType);
-                        break;
-
-                    case 2:
-                        convertedValue = DDC.convertIntegerToObject(tdsReader.readShort(), expectedValueLength,
-                                jdbcType, streamGetterArgs.streamType);
-                        break;
-
-                    case 1:
-                        convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), expectedValueLength,
-                                jdbcType, streamGetterArgs.streamType);
-                        break;
-
-                    default:
-                        assert false : "Unexpected valueLength" + expectedValueLength;
-                        break;
-                }
+                    convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), expectedValueLength,
+                            jdbcType, streamGetterArgs.streamType);
                 break;
 
             case BIGVARCHAR:
