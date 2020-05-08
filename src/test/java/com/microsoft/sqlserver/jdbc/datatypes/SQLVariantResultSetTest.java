@@ -1064,11 +1064,18 @@ public class SQLVariantResultSetTest extends AbstractTest {
     
     @Test
     public void testCastThenGetNumeric() throws SQLException {
-        try (Connection con = getConnection(); Statement stmt = con.createStatement();) {
-            SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("select cast(123 as sql_variant) as c1");
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                SQLServerResultSet rs = (SQLServerResultSet) stmt
+                        .executeQuery("select cast(123 as sql_variant) as c1");) {
+
             rs.next();
-            long longValue = rs.getLong("c1");
-            assertEquals(longValue, 123L);
+            assertEquals(true, rs.getBoolean("c1")); // select int as boolean inside sql_variant
+            assertEquals(123, rs.getShort("c1")); // select int as short inside sql_variant
+            assertEquals(123L, rs.getInt("c1")); // select int as int inside sql_variant
+            assertEquals(123f, rs.getFloat("c1")); // select int as float inside sql_variant
+            assertEquals(123L, rs.getLong("c1")); // select int as long inside sql_variant
+            assertEquals(123d, rs.getDouble("c1")); // select int as double inside sql_variant
+            assertEquals(new BigDecimal(123), rs.getBigDecimal("c1")); // select int as bigdecimal (money) inside sql_variant
         }
     }
 
