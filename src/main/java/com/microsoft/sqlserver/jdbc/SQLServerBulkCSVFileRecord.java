@@ -536,9 +536,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
     /**
      * When set to true, the following rules will be used to parse CSV files: Each field may or may not be enclosed in
      * double quotes. If fields are not enclosed with double quotes, then double quotes may not appear inside the
-     * fields. Fields containing double quotes, and delimiters. If double-quotes are used to enclose fields, then a
-     * double-quote appearing inside a field must be escaped by preceding it with another double quote. should be
-     * enclosed in double-quotes.
+     * fields. Fields containing double quotes, and delimiters should be enclosed in double quotes. If double-quotes are
+     * used to enclose fields, then a double-quote appearing inside a field must be escaped by preceding it with another
+     * double quote.
      *
      * @param escapeDelimiters
      *        true if the rules above to be used.

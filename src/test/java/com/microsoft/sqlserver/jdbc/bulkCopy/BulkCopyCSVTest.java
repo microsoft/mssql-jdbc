@@ -142,12 +142,13 @@ public class BulkCopyCSVTest extends AbstractTest {
         /*
          * The list below is the copy of inputFileDelimiterEscape with quotes removed.
          */
-        String[][] expectedEscaped = new String[4][4];
+        String[][] expectedEscaped = new String[5][4];
         expectedEscaped[0] = new String[] {"test", " test\"", "no,split", " testNoQuote"};
         expectedEscaped[1] = new String[] {null, null, null, null};
         expectedEscaped[2] = new String[] {"\"", "test\"test", "test,\"  test", null};
         expectedEscaped[3] = new String[] {"testNoQuote  ", " testSpaceAround ", " testSpaceInside ",
                 "  testSpaceQuote\" "};
+        expectedEscaped[4] = new String[] {null, null, null, " testSpaceInside "};
 
         try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
@@ -155,16 +156,17 @@ public class BulkCopyCSVTest extends AbstractTest {
                         false)) {
             bulkCopy.setDestinationTableName(tableName);
             fileRecord.setEscapeColumnDelimitersCSV(true);
-            fileRecord.addColumnMetadata(1, null, java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(1, null, java.sql.Types.INTEGER, 0, 0);
             fileRecord.addColumnMetadata(2, null, java.sql.Types.VARCHAR, 50, 0);
             fileRecord.addColumnMetadata(3, null, java.sql.Types.VARCHAR, 50, 0);
             fileRecord.addColumnMetadata(4, null, java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(5, null, java.sql.Types.VARCHAR, 50, 0);
             stmt.executeUpdate(
-                    "CREATE TABLE " + tableName + " (c1 varchar(50), c2 varchar(50), c3 varchar(50), c4 varchar(50))");
+                    "CREATE TABLE " + tableName + " (id INT IDENTITY(1,1), c1 VARCHAR(50), c2 VARCHAR(50), c3 VARCHAR(50), c4 VARCHAR(50))");
             bulkCopy.writeToServer(fileRecord);
 
             int i = 0;
-            try (ResultSet rs = stmt.executeQuery("SELECT * from " + tableName);
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName + " ORDER BY id");
                     BufferedReader br = new BufferedReader(new FileReader(fileName));) {
                 while (rs.next()) {
                     assertEquals(expectedEscaped[i][0], rs.getString("c1"));
@@ -173,7 +175,6 @@ public class BulkCopyCSVTest extends AbstractTest {
                     assertEquals(expectedEscaped[i][3], rs.getString("c4"));
                     i++;
                 }
-
             }
         }
     }

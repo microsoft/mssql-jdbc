@@ -1,4 +1,5 @@
-"test", " test""", "no,split" , testNoQuote
-"",  "", "", ""
-"""", "test""test", "test,""  test", ""
-testNoQuote  , testSpaceAround , " testSpaceInside ",  "  testSpaceQuote"" "
+1,"test", " test""", "no,split" , testNoQuote
+2,"",  "", "", ""
+3,"""", "test""test", "test,""  test", ""
+4,testNoQuote  , testSpaceAround , " testSpaceInside ",  "  testSpaceQuote"" "
+5,"",  "", "", " testSpaceInside "
