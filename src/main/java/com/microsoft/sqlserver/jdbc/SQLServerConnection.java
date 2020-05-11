@@ -679,6 +679,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return serverSupportsDataClassification;
     }
 
+    // Boolean that indicates whether LOB objects created by this connection should be loaded into memory
+    private boolean loadLargeObjects = SQLServerDriverBooleanProperty.LOAD_LARGE_OBJECTS.getDefaultValue();
+
+    public boolean getLoadLargeObjects() {
+        return loadLargeObjects;
+    }
+
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
     static {
         if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
@@ -2120,6 +2127,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 clientKeyPassword = sPropValue;
             }
+            
+            sPropKey = SQLServerDriverBooleanProperty.LOAD_LARGE_OBJECTS.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.LOAD_LARGE_OBJECTS.getDefaultValue());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+            loadLargeObjects = isBooleanPropertyOn(sPropKey, sPropValue);
 
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
@@ -3353,16 +3368,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void commit() throws SQLServerException {
         commit(false);
     }
-    
+
     /**
-     * Makes all changes made since the previous
-     * commit/rollback permanent and releases any database locks
-     * currently held by this <code>Connection</code> object.
-     * This method should be
-     * used only when auto-commit mode has been disabled.
+     * Makes all changes made since the previous commit/rollback permanent and releases any database locks currently
+     * held by this <code>Connection</code> object. This method should be used only when auto-commit mode has been
+     * disabled.
      * 
-     * @param delayedDurability flag to indicate whether the commit will occur with delayed durability on.
-     * @throws SQLServerException Exception if a database access error occurs,
+     * @param delayedDurability
+     *        flag to indicate whether the commit will occur with delayed durability on.
+     * @throws SQLServerException
+     *         Exception if a database access error occurs,
      */
     public void commit(boolean delayedDurability) throws SQLServerException {
         loggerExternal.entering(loggingClassName, "commit");
@@ -3371,12 +3386,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         checkClosed();
-        if (!databaseAutoCommitMode)
-        {
+        if (!databaseAutoCommitMode) {
             if (!delayedDurability)
                 connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN", "Connection.commit");
             else
-                connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN WITH ( DELAYED_DURABILITY =  ON )", "Connection.commit");
+                connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN WITH ( DELAYED_DURABILITY =  ON )",
+                        "Connection.commit");
         }
         loggerExternal.exiting(loggingClassName, "commit");
     }

@@ -991,4 +991,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     void setClientKeyPassword(String password);
 
+    /**
+     * Specifies the flag to load LOBs instead of stream them.
+     *
+     * @param loadLargeObjects
+     *        boolean value for 'loadLargeObjects'.
+     */
+    void setLoadLargeObjects(boolean loadLargeObjects);
+
+    /**
+     * Returns the current flag value for loadLargeObjects.
+     *
+     * @return 'loadLargeObjects' property value.
+     */
+    boolean getLoadLargeObjects();
+
 }

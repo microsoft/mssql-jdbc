@@ -494,6 +494,17 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue());
     }
 
+    @Override
+    public void setLoadLargeObjects(boolean loadLargeObjects) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.LOAD_LARGE_OBJECTS.toString(), loadLargeObjects);
+    }
+
+    @Override
+    public boolean getLoadLargeObjects() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.LOAD_LARGE_OBJECTS.toString(),
+                SQLServerDriverBooleanProperty.LOAD_LARGE_OBJECTS.getDefaultValue());
+    }
+
     /**
      * Sets whether string parameters are sent to the server in UNICODE format.
      * 
