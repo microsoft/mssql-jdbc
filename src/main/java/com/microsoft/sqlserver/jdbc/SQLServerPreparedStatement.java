@@ -2720,12 +2720,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
             boolean needsPrepare = false;
-
+            
+            encryptionMetadataIsRetrieved = false;
             if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()) {
                 this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
                         parameterNames);
                 encryptionMetadataIsRetrieved = true;
-
                 needsPrepare = true;
 
                 // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
@@ -2744,6 +2744,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     && (0 < batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(batchParam);
                 encryptionMetadataIsRetrieved = true;
+                needsPrepare = true;
 
                 // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
                 // on on
