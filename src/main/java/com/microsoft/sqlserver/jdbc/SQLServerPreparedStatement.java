@@ -2719,16 +2719,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
+            boolean needsPrepare = false;
 
             if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()) {
                 this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
                         parameterNames);
                 encryptionMetadataIsRetrieved = true;
 
+                needsPrepare = true;
+
                 // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
-                // on on
-                // Connection
-                buildPreparedStrings(batchParam, true);
+                // on on Connection
+                hasNewTypeDefinitions = buildPreparedStrings(batchParam, true);
 
                 // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
                 // batches.
@@ -2741,11 +2743,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection))
                     && (0 < batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(batchParam);
+                encryptionMetadataIsRetrieved = true;
 
                 // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
                 // on on
                 // Connection
-                buildPreparedStrings(batchParam, true);
+                hasNewTypeDefinitions = buildPreparedStrings(batchParam, true);
 
                 // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
                 // batches.
@@ -2762,7 +2765,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
 
-            boolean needsPrepare = true;
             // Retry execution if existing handle could not be re-used.
             for (int attempt = 1; attempt <= 2; ++attempt) {
                 try {
@@ -2789,8 +2791,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // the size of a batch's string parameter values changes such
                     // that repreparation is necessary.
                     ++numBatchesPrepared;
-                    needsPrepare = doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
-                    if (needsPrepare || numBatchesPrepared == numBatches) {
+                    if (doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions)
+                            || needsPrepare || numBatchesPrepared == numBatches) {
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
                         boolean retry = false;
