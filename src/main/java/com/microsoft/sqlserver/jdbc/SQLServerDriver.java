@@ -433,7 +433,7 @@ enum SQLServerDriverBooleanProperty {
     ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL),
     USE_BULK_COPY_FOR_BATCH_INSERT("useBulkCopyForBatchInsert", false),
     USE_FMT_ONLY("useFmtOnly", false),
-    LOAD_LARGE_OBJECTS("loadLargeObjeccts", false);
+    LOAD_LARGE_OBJECTS("loadLargeObjects", false);
 
     private final String name;
     private final boolean defaultValue;
