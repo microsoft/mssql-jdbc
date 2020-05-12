@@ -21,4 +21,9 @@ abstract class SQLServerLob implements Serializable {
      * @throws SQLException
      */
     abstract void fillFromStream() throws SQLException;
+
+    /**
+     * Provides functionality for the result set to set whether to load the LOB objects fully.
+     */
+    abstract void setStreaming(boolean b);
 }

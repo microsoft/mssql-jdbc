@@ -2080,6 +2080,16 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return value;
     }
 
+    private void configureLobs(SQLServerLob lob) throws SQLServerException {
+        if (null != stmt) {
+            SQLServerConnection c = (SQLServerConnection) stmt.getConnection();
+            if (null != c && c.getLoadLargeObjects()) {
+                lob.setStreaming(true);
+            }
+        }
+        activeLOB = lob;
+    }
+
     @Override
     public java.io.InputStream getAsciiStream(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getAsciiStream", columnIndex);
@@ -2782,7 +2792,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         Blob value = (Blob) getValue(i, JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2792,7 +2802,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         Blob value = (Blob) getValue(findColumn(colName), JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2802,7 +2812,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         Clob value = (Clob) getValue(columnIndex, JDBCType.CLOB);
         loggerExternal.exiting(getClassNameLogging(), "getClob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2812,7 +2822,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         Clob value = (Clob) getValue(findColumn(colName), JDBCType.CLOB);
         loggerExternal.exiting(getClassNameLogging(), "getClob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2822,7 +2832,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         NClob value = (NClob) getValue(columnIndex, JDBCType.NCLOB);
         loggerExternal.exiting(getClassNameLogging(), "getNClob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2832,7 +2842,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         NClob value = (NClob) getValue(findColumn(columnLabel), JDBCType.NCLOB);
         loggerExternal.exiting(getClassNameLogging(), "getNClob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
