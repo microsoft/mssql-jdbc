@@ -56,7 +56,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.xAzureSQLDW)
-public class BulkCopySendTemporalDataTypesAsStringAE extends AESetup {
+public class BulkCopySendTemporalDataTypesAsStringAETest extends AESetup {
     static String inputFile = "BulkCopyCSVSendTemporalDataTypesAsStringForBulkCopy.csv";
     static String encoding = "UTF-8";
     static String delimiter = ",";
@@ -108,7 +108,7 @@ public class BulkCopySendTemporalDataTypesAsStringAE extends AESetup {
     static void validateValuesFromCSV(Statement stmt, String destinationTable, String inputFile) {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
-                ResultSet rs = stmt.executeQuery("SELECT * FROM " + destinationTable)) {
+                ResultSet rs = stmt.executeQuery("select c1, c2, c3, c4, c5, c6, c7, c8 FROM " + destinationTable)) {
             br.readLine(); // skip first line as it is header
 
             ResultSetMetaData destMeta = rs.getMetaData();

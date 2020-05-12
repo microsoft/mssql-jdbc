@@ -927,11 +927,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 break;
             case java.sql.Types.NUMERIC:
             case java.sql.Types.DECIMAL:
-                // SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column,
-                // but Azure DW only accepts money types for money column.
-                // To make the code compatible against both SQL Server and Azure DW, always send decimal and
-                // numeric as money/smallmoney if the destination column is money/smallmoney
-                // and the source is decimal/numeric.
+                /*
+                 * SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column,
+                 * but Azure DW only accepts money types for money column.
+                 * To make the code compatible against both SQL Server and Azure DW, always send decimal and
+                 * numeric as money/smallmoney if the destination column is money/smallmoney
+                 * and the source is decimal/numeric.
+                 */
                 if (destSSType == SSType.MONEY) {
                     tdsWriter.writeByte(TDSType.MONEYN.byteValue());
                     tdsWriter.writeByte((byte) 8);
@@ -1294,11 +1296,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case microsoft.sql.Types.SMALLMONEY:
                 return "smallmoney";
             case java.sql.Types.DECIMAL:
-                // SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column,
-                // but Azure DW only accepts money types for money column.
-                // To make the code compatible against both SQL Server and Azure DW, always send decimal and
-                // numeric as money/smallmoney if the destination column is money/smallmoney
-                // and the source is decimal/numeric.
+                /*
+                 * SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column,
+                 * but Azure DW only accepts money types for money column.
+                 * To make the code compatible against both SQL Server and Azure DW, always send decimal and
+                 * numeric as money/smallmoney if the destination column is money/smallmoney
+                 * and the source is decimal/numeric.
+                 */
                 if (destSSType == SSType.MONEY) {
                     return "money";
                 } else if (destSSType == SSType.SMALLMONEY) {
@@ -2044,10 +2048,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             bulkJdbcType = destColumnMetadata.get(destColOrdinal).jdbcType;
             bulkScale = destColumnMetadata.get(destColOrdinal).scale;
         } else if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
-            // Bulk copy from CSV and destination is not encrypted. In this case, we send the temporal types as varchar
-            // and
-            // SQL Server does the conversion. If destination is encrypted, then temporal types can not be sent as
-            // varchar.
+            /*
+             * Bulk copy from CSV and destination is not encrypted. In this case, we send the temporal types as varchar
+             * and
+             * SQL Server does the conversion. If destination is encrypted, then temporal types can not be sent as
+             * varchar.
+             */
             switch (bulkJdbcType) {
                 case java.sql.Types.DATE:
                 case java.sql.Types.TIME:
@@ -2194,11 +2200,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH,
                                     DriverError.NOT_SET, null);
                         }
-                        // SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column,
-                        // but Azure DW only accepts money types for money column.
-                        // To make the code compatible against both SQL Server and Azure DW, always send decimal and
-                        // numeric as money/smallmoney if the destination column is money/smallmoney
-                        // and the source is decimal/numeric.
+                        /*
+                         * SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column,
+                         * but Azure DW only accepts money types for money column.
+                         * To make the code compatible against both SQL Server and Azure DW, always send decimal and
+                         * numeric as money/smallmoney if the destination column is money/smallmoney
+                         * and the source is decimal/numeric.
+                         */
                         if (destSSType == SSType.MONEY) {
                             tdsWriter.writeMoney((BigDecimal) colValue, microsoft.sql.Types.MONEY);
                         } else if (destSSType == SSType.SMALLMONEY) {

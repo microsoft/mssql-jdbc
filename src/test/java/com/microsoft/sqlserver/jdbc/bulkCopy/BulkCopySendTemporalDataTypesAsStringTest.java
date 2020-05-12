@@ -53,7 +53,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * 
  */
 @RunWith(JUnitPlatform.class)
-public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
+public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
     static String inputFile = "BulkCopyCSVSendTemporalDataTypesAsStringForBulkCopy.csv";
     static String encoding = "UTF-8";
     static String delimiter = ",";
@@ -158,7 +158,7 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
             bulkCopy.setDestinationTableName(destTableName);
             bulkCopy.writeToServer(fileRecord);
 
-            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + destTableName);
+            try (ResultSet rs = stmt.executeQuery("select c1, c2, c3, c4, c5, c6, c7, c8 FROM " + destTableName);
                     SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(conn);) {
                 bcOperation.setDestinationTableName(destTableName2);
                 bcOperation.writeToServer(rs);
@@ -173,7 +173,7 @@ public class BulkCopySendTemporalDataTypesAsString extends AbstractTest {
     static void validateValuesFromCSV(Statement stmt, String destinationTable, String inputFile) {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
-                ResultSet rs = stmt.executeQuery("SELECT * FROM " + destinationTable)) {
+                ResultSet rs = stmt.executeQuery("select c1, c2, c3, c4, c5, c6, c7, c8 FROM " + destinationTable)) {
             br.readLine(); // skip first line as it is header
 
             ResultSetMetaData destMeta = rs.getMetaData();

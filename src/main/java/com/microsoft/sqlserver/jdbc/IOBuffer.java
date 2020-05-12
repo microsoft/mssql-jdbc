@@ -3396,7 +3396,7 @@ final class TDSWriter {
         System.arraycopy(valueBytes, 2, bytes, 0, valueBytes.length - 2);
         writeBytes(bytes);
     }
-    
+
     /**
      * Append a money/smallmoney value in the TDS stream.
      * 
@@ -3410,7 +3410,7 @@ final class TDSWriter {
         moneyVal = moneyVal.setScale(4, RoundingMode.HALF_UP);
 
         int bLength;
-        
+
         // Money types are 8 bytes, smallmoney are 4 bytes
         bLength = (srcJdbcType == microsoft.sql.Types.MONEY ? 8 : 4);
         writeByte((byte) (bLength));
@@ -3598,12 +3598,14 @@ final class TDSWriter {
         TimeZone timeZone; // Time zone to associate with the value in the Gregorian calendar
         int subSecondNanos;
         int minutesOffset;
-        
-        // Out of all the supported temporal datatypes, DateTimeOffset is the only datatype that doesn't
-        // allow direct casting from java.sql.timestamp (which was created from a String).
-        // DateTimeOffset was never required to be constructed from a String, but with the
-        // introduction of extended bulk copy support for Azure DW, we now need to support this scenario.
-        // Parse the DTO as string if it's coming from a CSV.
+
+        /*
+         * Out of all the supported temporal datatypes, DateTimeOffset is the only datatype that doesn't
+         * allow direct casting from java.sql.timestamp (which was created from a String).
+         * DateTimeOffset was never required to be constructed from a String, but with the
+         * introduction of extended bulk copy support for Azure DW, we now need to support this scenario.
+         * Parse the DTO as string if it's coming from a CSV.
+         */
         if (value instanceof String) {
             String stringValue = (String) value;
             int lastColon = stringValue.lastIndexOf(':');
@@ -3614,12 +3616,14 @@ final class TDSWriter {
 
             if (offsetString.startsWith("-"))
                 minutesOffset = -minutesOffset;
-            
-            // If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
-            // will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
-            // Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
-            // use a local time zone determined by the minutes offset of the value, since
-            // the writers for those types expect local calendars.
+
+            /*
+             * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
+             * will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
+             * Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
+             * use a local time zone determined by the minutes offset of the value, since
+             * the writers for those types expect local calendars.
+             */
             timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
                                                              : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
 
@@ -3652,11 +3656,13 @@ final class TDSWriter {
             subSecondNanos = dtoValue.getTimestamp().getNanos();
             minutesOffset = dtoValue.getMinutesOffset();
 
-            // If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
-            // will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
-            // Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
-            // use a local time zone determined by the minutes offset of the value, since
-            // the writers for those types expect local calendars.
+            /*
+             * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
+             * will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
+             * Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
+             * use a local time zone determined by the minutes offset of the value, since
+             * the writers for those types expect local calendars.
+             */
             timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
                                                              : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
 
