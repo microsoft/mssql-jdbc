@@ -72,6 +72,17 @@ final class DDC {
                 return (float) intValue;
             case BINARY:
                 return convertIntToBytes(intValue, valueLength);
+            case SQL_VARIANT:
+                // return short or bit if the underlying datatype of sql_variant is tinyint, smallint or bit
+                // otherwise, return integer
+                // Longer datatypes such as double and float are handled by convertLongToObject instead.
+                if (valueLength == 1) {
+                    return 0 != intValue;
+                } else if (valueLength == 3 || valueLength == 4) {
+                    return (short) intValue;
+                } else {
+                    return intValue;
+                }
             default:
                 return Integer.toString(intValue);
         }
@@ -93,6 +104,7 @@ final class DDC {
     static final Object convertLongToObject(long longVal, JDBCType jdbcType, SSType baseSSType, StreamType streamType) {
         switch (jdbcType) {
             case BIGINT:
+            case SQL_VARIANT:
                 return longVal;
             case INTEGER:
                 return (int) longVal;
@@ -209,6 +221,7 @@ final class DDC {
     static final Object convertFloatToObject(float floatVal, JDBCType jdbcType, StreamType streamType) {
         switch (jdbcType) {
             case REAL:
+            case SQL_VARIANT:
                 return floatVal;
             case INTEGER:
                 return (int) floatVal;
@@ -266,6 +279,7 @@ final class DDC {
         switch (jdbcType) {
             case FLOAT:
             case DOUBLE:
+            case SQL_VARIANT:
                 return doubleVal;
             case REAL:
                 return (Double.valueOf(doubleVal)).floatValue();
@@ -341,6 +355,7 @@ final class DDC {
             case NUMERIC:
             case MONEY:
             case SMALLMONEY:
+            case SQL_VARIANT:
                 return bigDecimalVal;
             case FLOAT:
             case DOUBLE:
