@@ -2719,14 +2719,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
-            boolean needsResponse = false;
+            boolean reqStarted = false;
 
-            encryptionMetadataIsRetrieved = false;
             if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()) {
                 this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
                         parameterNames);
                 encryptionMetadataIsRetrieved = true;
-                needsResponse = true;
+                reqStarted = true;
 
                 // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
                 // on on Connection
@@ -2743,7 +2742,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection))
                     && (0 < batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(batchParam);
-                needsResponse = true;
+                reqStarted = true;
 
                 // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
                 // on on Connection
@@ -2792,7 +2791,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // that repreparation is necessary.
                     ++numBatchesPrepared;
                     needsPrepare = doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
-                    if (needsResponse || needsPrepare || numBatchesPrepared == numBatches) {
+                    if (reqStarted || needsPrepare || numBatchesPrepared == numBatches) {
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
                         boolean retry = false;
