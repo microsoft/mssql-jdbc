@@ -1061,6 +1061,23 @@ public class SQLVariantResultSetTest extends AbstractTest {
             assertEquals(object.getClass(), java.sql.Time.class);;
         }
     }
+    
+    @Test
+    public void testCastThenGetNumeric() throws SQLException {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                SQLServerResultSet rs = (SQLServerResultSet) stmt
+                        .executeQuery("select cast(123 as sql_variant) as c1");) {
+
+            rs.next();
+            assertEquals(true, rs.getBoolean("c1")); // select int as boolean inside sql_variant
+            assertEquals(123, rs.getShort("c1")); // select int as short inside sql_variant
+            assertEquals(123L, rs.getInt("c1")); // select int as int inside sql_variant
+            assertEquals(123f, rs.getFloat("c1")); // select int as float inside sql_variant
+            assertEquals(123L, rs.getLong("c1")); // select int as long inside sql_variant
+            assertEquals(123d, rs.getDouble("c1")); // select int as double inside sql_variant
+            assertEquals(new BigDecimal(123), rs.getBigDecimal("c1")); // select int as bigdecimal (money) inside sql_variant
+        }
+    }
 
     private boolean parseByte(byte[] expectedData, byte[] retrieved) {
         assertTrue(Arrays.equals(expectedData, Arrays.copyOf(retrieved, expectedData.length)),
