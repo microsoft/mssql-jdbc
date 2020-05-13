@@ -3607,47 +3607,53 @@ final class TDSWriter {
          * Parse the DTO as string if it's coming from a CSV.
          */
         if (value instanceof String) {
-            String stringValue = (String) value;
-            int lastColon = stringValue.lastIndexOf(':');
+            try {
+                String stringValue = (String) value;
+                int lastColon = stringValue.lastIndexOf(':');
 
-            String offsetString = stringValue.substring(lastColon - 3);
-            minutesOffset = 60 * Integer.valueOf(offsetString.substring(1, 3))
-                    + Integer.valueOf(offsetString.substring(4, 6));
+                String offsetString = stringValue.substring(lastColon - 3);
+                minutesOffset = 60 * Integer.valueOf(offsetString.substring(1, 3))
+                        + Integer.valueOf(offsetString.substring(4, 6));
 
-            if (offsetString.startsWith("-"))
-                minutesOffset = -minutesOffset;
+                if (offsetString.startsWith("-"))
+                    minutesOffset = -minutesOffset;
 
-            /*
-             * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
-             * will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
-             * Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
-             * use a local time zone determined by the minutes offset of the value, since
-             * the writers for those types expect local calendars.
-             */
-            timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
-                                                             : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
+                /*
+                 * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
+                 * will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
+                 * Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
+                 * use a local time zone determined by the minutes offset of the value, since
+                 * the writers for those types expect local calendars.
+                 */
+                timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
+                                                                 : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
 
-            calendar = new GregorianCalendar(timeZone, Locale.US);
+                calendar = new GregorianCalendar(timeZone, Locale.CHINA);
 
-            String timestampString = stringValue.substring(0, lastColon - 4);
-            int year = Integer.valueOf(timestampString.substring(0, 4));
-            int month = Integer.valueOf(timestampString.substring(5, 7));
-            int day = Integer.valueOf(timestampString.substring(8, 10));
-            int hour = Integer.valueOf(timestampString.substring(11, 13));
-            int minute = Integer.valueOf(timestampString.substring(14, 16));
-            int second = Integer.valueOf(timestampString.substring(17, 19));
+                String timestampString = stringValue.substring(0, lastColon - 4);
+                int year = Integer.valueOf(timestampString.substring(0, 4));
+                int month = Integer.valueOf(timestampString.substring(5, 7));
+                int day = Integer.valueOf(timestampString.substring(8, 10));
+                int hour = Integer.valueOf(timestampString.substring(11, 13));
+                int minute = Integer.valueOf(timestampString.substring(14, 16));
+                int second = Integer.valueOf(timestampString.substring(17, 19));
 
-            subSecondNanos = (19 == timestampString.indexOf('.')) ? (new BigDecimal(timestampString.substring(19)))
-                    .scaleByPowerOfTen(9).intValue() : 0;
+                subSecondNanos = (19 == timestampString.indexOf('.')) ? (new BigDecimal(timestampString.substring(19)))
+                        .scaleByPowerOfTen(9).intValue() : 0;
 
-            calendar.setLenient(true);
-            calendar.set(Calendar.YEAR, year);
-            calendar.set(Calendar.MONTH, month - 1);
-            calendar.set(Calendar.DAY_OF_MONTH, day);
-            calendar.set(Calendar.HOUR_OF_DAY, hour);
-            calendar.set(Calendar.MINUTE, minute);
-            calendar.set(Calendar.SECOND, second);
-            calendar.add(Calendar.MINUTE, -minutesOffset);
+                calendar.setLenient(true);
+                calendar.set(Calendar.YEAR, year);
+                calendar.set(Calendar.MONTH, month - 1);
+                calendar.set(Calendar.DAY_OF_MONTH, day);
+                calendar.set(Calendar.HOUR_OF_DAY, hour);
+                calendar.set(Calendar.MINUTE, minute);
+                calendar.set(Calendar.SECOND, second);
+                calendar.add(Calendar.MINUTE, -minutesOffset);
+            } catch (NumberFormatException | IndexOutOfBoundsException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingDataError"));
+                Object[] msgArgs = {value, JDBCType.DATETIMEOFFSET};
+                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+            }
         } else {
             long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
 

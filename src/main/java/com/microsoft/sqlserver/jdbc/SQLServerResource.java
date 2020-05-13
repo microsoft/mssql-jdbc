@@ -297,6 +297,7 @@ public final class SQLServerResource extends ListResourceBundle {
                     "Destination connection must be a connection from the Microsoft JDBC Driver for SQL Server."},
             {"R_unableRetrieveSourceData", "Unable to retrieve data from the source."},
             {"R_ParsingError", "Failed to parse data for the {0} type."},
+            {"R_ParsingDataError", "Failed to parse data {0} for the {1} type."},
             {"R_BulkTypeNotSupported", "Data type {0} is not supported in bulk copy."},
             {"R_BulkTypeNotSupportedDW", "Data type {0} is not supported in bulk copy against Azure Data Warehouse."},
             {"R_invalidTransactionOption",
