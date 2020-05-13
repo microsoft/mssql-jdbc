@@ -943,10 +943,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     tdsWriter.writeByte((byte) 4);
                     break;
                 }
-                if (java.sql.Types.DECIMAL == srcJdbcType)
-                    tdsWriter.writeByte(TDSType.DECIMALN.byteValue()); // 0x6A
-                else
-                    tdsWriter.writeByte(TDSType.NUMERICN.byteValue()); // 0x6C
+                byte byteType = (java.sql.Types.DECIMAL == srcJdbcType) ? TDSType.DECIMALN.byteValue() : TDSType.NUMERICN.byteValue();
+                tdsWriter.writeByte(byteType);
                 tdsWriter.writeByte((byte) TDSWriter.BIGDECIMAL_MAX_LENGTH); // maximum length
                 tdsWriter.writeByte((byte) srcPrecision); // unsigned byte
                 tdsWriter.writeByte((byte) srcScale); // unsigned byte
