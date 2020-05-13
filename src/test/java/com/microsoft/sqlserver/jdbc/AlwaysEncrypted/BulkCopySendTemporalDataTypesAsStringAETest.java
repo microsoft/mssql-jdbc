@@ -83,18 +83,17 @@ public class BulkCopySendTemporalDataTypesAsStringAETest extends AESetup {
     }
 
     private void testBulkCopyCSV(Connection conn, SQLServerBulkCSVFileRecord fileRecord, String tableName) {
-        try (BufferedReader br = new BufferedReader(
-                new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
+        try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
 
-            fileRecord.addColumnMetadata(1, "c1", java.sql.Types.DATE, 0, 0); // with Date
-            fileRecord.addColumnMetadata(2, "c2", java.sql.Types.TIMESTAMP, 0, 0); // with Datetime
-            fileRecord.addColumnMetadata(3, "c3", java.sql.Types.TIMESTAMP, 0, 7); // with Datetime2
-            fileRecord.addColumnMetadata(4, "c4", java.sql.Types.TIME, 0, 7); // with time
-            fileRecord.addColumnMetadata(5, "c5", microsoft.sql.Types.DATETIMEOFFSET, 0, 7); // with datetimeoffset
-            fileRecord.addColumnMetadata(6, "c6", java.sql.Types.TIMESTAMP, 0, 0); // with SmallDatetime
-            fileRecord.addColumnMetadata(7, "c7", java.sql.Types.DECIMAL, 19, 4); // with money
-            fileRecord.addColumnMetadata(8, "c8", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
+            fileRecord.addColumnMetadata(1, "id", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(2, "c1", java.sql.Types.DATE, 0, 0); // with Date
+            fileRecord.addColumnMetadata(3, "c2", java.sql.Types.TIMESTAMP, 0, 0); // with Datetime
+            fileRecord.addColumnMetadata(4, "c3", java.sql.Types.TIMESTAMP, 0, 7); // with Datetime2
+            fileRecord.addColumnMetadata(5, "c4", java.sql.Types.TIME, 0, 7); // with time
+            fileRecord.addColumnMetadata(6, "c5", microsoft.sql.Types.DATETIMEOFFSET, 0, 7); // with datetimeoffset
+            fileRecord.addColumnMetadata(7, "c6", java.sql.Types.TIMESTAMP, 0, 0); // with SmallDatetime
+            fileRecord.addColumnMetadata(8, "c7", java.sql.Types.DECIMAL, 19, 4); // with money
+            fileRecord.addColumnMetadata(9, "c8", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
 
             bulkCopy.setDestinationTableName(tableName);
             bulkCopy.writeToServer(fileRecord);
@@ -108,7 +107,7 @@ public class BulkCopySendTemporalDataTypesAsStringAETest extends AESetup {
     static void validateValuesFromCSV(Statement stmt, String destinationTable, String inputFile) {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
-                ResultSet rs = stmt.executeQuery("select c1, c2, c3, c4, c5, c6, c7, c8 FROM " + destinationTable)) {
+                ResultSet rs = stmt.executeQuery("select * FROM " + destinationTable + " order by id")) {
             br.readLine(); // skip first line as it is header
 
             ResultSetMetaData destMeta = rs.getMetaData();
@@ -138,7 +137,7 @@ public class BulkCopySendTemporalDataTypesAsStringAETest extends AESetup {
                 .getConnection(AETestConnectionString + ";sendTemporalDataTypesAsStringForBulkCopy=false", AEInfo);
                 Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(destTableNameAE, stmt);
-            String table = "create table " + destTableNameAE + " ("
+            String table = "create table " + destTableNameAE + " (id int, "
                     + "c1 date ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                     + cekJks + ") NULL,"
                     + "c2 datetime ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "

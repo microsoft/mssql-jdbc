@@ -119,18 +119,17 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
     }
 
     private void testBulkCopyCSV(Connection conn, SQLServerBulkCSVFileRecord fileRecord) {
-        try (BufferedReader br = new BufferedReader(
-                new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
+        try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
 
-            fileRecord.addColumnMetadata(1, "c1", java.sql.Types.DATE, 0, 0); // with Date
-            fileRecord.addColumnMetadata(2, "c2", java.sql.Types.TIMESTAMP, 0, 0); // with Datetime
-            fileRecord.addColumnMetadata(3, "c3", java.sql.Types.TIMESTAMP, 0, 7); // with Datetime2
-            fileRecord.addColumnMetadata(4, "c4", java.sql.Types.TIME, 0, 7); // with time
-            fileRecord.addColumnMetadata(5, "c5", microsoft.sql.Types.DATETIMEOFFSET, 0, 7); // with datetimeoffset
-            fileRecord.addColumnMetadata(6, "c6", java.sql.Types.TIMESTAMP, 0, 0); // with SmallDatetime
-            fileRecord.addColumnMetadata(7, "c7", java.sql.Types.DECIMAL, 19, 4); // with money
-            fileRecord.addColumnMetadata(8, "c8", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
+            fileRecord.addColumnMetadata(1, "id", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(2, "c1", java.sql.Types.DATE, 0, 0); // with Date
+            fileRecord.addColumnMetadata(3, "c2", java.sql.Types.TIMESTAMP, 0, 0); // with Datetime
+            fileRecord.addColumnMetadata(4, "c3", java.sql.Types.TIMESTAMP, 0, 7); // with Datetime2
+            fileRecord.addColumnMetadata(5, "c4", java.sql.Types.TIME, 0, 7); // with time
+            fileRecord.addColumnMetadata(6, "c5", microsoft.sql.Types.DATETIMEOFFSET, 0, 7); // with datetimeoffset
+            fileRecord.addColumnMetadata(7, "c6", java.sql.Types.TIMESTAMP, 0, 0); // with SmallDatetime
+            fileRecord.addColumnMetadata(8, "c7", java.sql.Types.DECIMAL, 19, 4); // with money
+            fileRecord.addColumnMetadata(9, "c8", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
 
             bulkCopy.setDestinationTableName(destTableName);
             bulkCopy.writeToServer(fileRecord);
@@ -142,23 +141,22 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
     }
 
     private void testBulkCopyResultSet(Connection conn, SQLServerBulkCSVFileRecord fileRecord) {
-        try (BufferedReader br = new BufferedReader(
-                new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
+        try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
 
-            fileRecord.addColumnMetadata(1, "c1", java.sql.Types.DATE, 0, 0); // with Date
-            fileRecord.addColumnMetadata(2, "c2", java.sql.Types.TIMESTAMP, 0, 0); // with Datetime
-            fileRecord.addColumnMetadata(3, "c3", java.sql.Types.TIMESTAMP, 0, 7); // with Datetime2
-            fileRecord.addColumnMetadata(4, "c4", java.sql.Types.TIME, 0, 7); // with time
-            fileRecord.addColumnMetadata(5, "c5", microsoft.sql.Types.DATETIMEOFFSET, 0, 7); // with datetimeoffset
-            fileRecord.addColumnMetadata(6, "c6", java.sql.Types.TIMESTAMP, 0, 0); // with SmallDatetime
-            fileRecord.addColumnMetadata(7, "c7", java.sql.Types.DECIMAL, 19, 4); // with money
-            fileRecord.addColumnMetadata(8, "c8", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
+            fileRecord.addColumnMetadata(1, "id", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(2, "c1", java.sql.Types.DATE, 0, 0); // with Date
+            fileRecord.addColumnMetadata(3, "c2", java.sql.Types.TIMESTAMP, 0, 0); // with Datetime
+            fileRecord.addColumnMetadata(4, "c3", java.sql.Types.TIMESTAMP, 0, 7); // with Datetime2
+            fileRecord.addColumnMetadata(5, "c4", java.sql.Types.TIME, 0, 7); // with time
+            fileRecord.addColumnMetadata(6, "c5", microsoft.sql.Types.DATETIMEOFFSET, 0, 7); // with datetimeoffset
+            fileRecord.addColumnMetadata(7, "c6", java.sql.Types.TIMESTAMP, 0, 0); // with SmallDatetime
+            fileRecord.addColumnMetadata(8, "c7", java.sql.Types.DECIMAL, 19, 4); // with money
+            fileRecord.addColumnMetadata(9, "c8", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
 
             bulkCopy.setDestinationTableName(destTableName);
             bulkCopy.writeToServer(fileRecord);
 
-            try (ResultSet rs = stmt.executeQuery("select c1, c2, c3, c4, c5, c6, c7, c8 FROM " + destTableName);
+            try (ResultSet rs = stmt.executeQuery("select * FROM " + destTableName + " order by id");
                     SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(conn);) {
                 bcOperation.setDestinationTableName(destTableName2);
                 bcOperation.writeToServer(rs);
@@ -173,7 +171,7 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
     static void validateValuesFromCSV(Statement stmt, String destinationTable, String inputFile) {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
-                ResultSet rs = stmt.executeQuery("select c1, c2, c3, c4, c5, c6, c7, c8 FROM " + destinationTable)) {
+                ResultSet rs = stmt.executeQuery("select * FROM " + destinationTable + " order by id")) {
             br.readLine(); // skip first line as it is header
 
             ResultSetMetaData destMeta = rs.getMetaData();
@@ -204,10 +202,10 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
             TestUtils.dropTableIfExists(destTableName2, stmt);
 
             String table = "create table " + destTableName
-                    + " (c1 date, c2 datetime, c3 datetime2, c4 time, c5 datetimeoffset, c6 smalldatetime, c7 money, c8 smallmoney)";
+                    + " (id int, c1 date, c2 datetime, c3 datetime2, c4 time, c5 datetimeoffset, c6 smalldatetime, c7 money, c8 smallmoney)";
             stmt.execute(table);
             table = "create table " + destTableName2
-                    + " (c1 date, c2 datetime, c3 datetime2, c4 time, c5 datetimeoffset, c6 smalldatetime, c7 money, c8 smallmoney)";
+                    + " (id int, c1 date, c2 datetime, c3 datetime2, c4 time, c5 datetimeoffset, c6 smalldatetime, c7 money, c8 smallmoney)";
             stmt.execute(table);
         }
     }

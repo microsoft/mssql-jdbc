@@ -992,17 +992,17 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setClientKeyPassword(String password);
 
     /**
-     * Returns whether the driver will send temporal datatypes as String value to the server for bulk copy.
+     * Returns the current flag for value sendTemporalDataTypesAsStringForBulkCopy
      * 
-     * @return sendTemporalDataTypesAsStringForBulkCopy flag.
+     * @return 'sendTemporalDataTypesAsStringForBulkCopy' property value.
      */
     boolean getSendTemporalDataTypesAsStringForBulkCopy();
 
     /**
-     * Sets whether the driver will send temporal datatypes as String value to the server for bulk copy.
+     * Specifies the flag to send temporal datatypes as String for Bulk Copy.
      * 
      * @param sendTemporalDataTypesAsStringForBulkCopy
-     *        the flag for connection string.
+     *        boolean value for 'sendTemporalDataTypesAsStringForBulkCopy'.
      */
     void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
 
