@@ -2175,7 +2175,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 null, JDBCType.of(bulkJdbcType))) {
                             MessageFormat form = new MessageFormat(
                                     SQLServerException.getErrString("R_valueOutOfRange"));
-                            Object[] msgArgs = {SSType.DECIMAL};
+                            Object[] msgArgs = {destSSType};
                             throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH,
                                     DriverError.NOT_SET, null);
                         }
@@ -2196,7 +2196,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 null, JDBCType.of(bulkJdbcType))) {
                             MessageFormat form = new MessageFormat(
                                     SQLServerException.getErrString("R_valueOutOfRange"));
-                            Object[] msgArgs = {SSType.DECIMAL};
+                            Object[] msgArgs = {destSSType};
                             throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH,
                                     DriverError.NOT_SET, null);
                         }
