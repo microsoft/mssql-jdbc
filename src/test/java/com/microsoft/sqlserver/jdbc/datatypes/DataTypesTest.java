@@ -768,8 +768,7 @@ public class DataTypesTest extends AbstractTest {
                 TimeZone.setDefault(tzDefault);
             }
 
-            // Verify PreparedStatement.setTimestamp(..., Calendar) as well (don't change
-            // the VM default)
+            // Verify PreparedStatement.setTimestamp(..., Calendar) as well (don't change the VM default)
             ps.setTimestamp(1, expectedTimestamp(), Calendar.getInstance(tz));
             ps.execute();
             ps.getMoreResults();
@@ -1633,8 +1632,7 @@ public class DataTypesTest extends AbstractTest {
                     rs.updateRow();
                     assertEquals("1900-01-01 23:59:59.99999", rs.getTimestamp(3).toString());
 
-                    // Update time(2) from Time to max value in a day. The value should not be
-                    // rounded
+                    // Update time(2) from Time to max value in a day. The value should not be rounded
                     rs.updateTime(6, time);
                     rs.updateRow();
                     // conversion to timestamp is necessary to see fractional secs
