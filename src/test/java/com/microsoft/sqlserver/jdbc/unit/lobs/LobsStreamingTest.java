@@ -52,8 +52,7 @@ public class LobsStreamingTest extends AbstractTest {
         return saltStr;
     }
 
-    // closing the scanner closes the InputStream, and the driver needs the stream
-    // to fill LoBs
+    // closing the scanner closes the InputStream, and the driver needs the stream to fill LoBs
     private String getStringFromInputStream(InputStream is, Scanner s) {
         return s.hasNext() ? s.next() : "";
     }
@@ -176,8 +175,7 @@ public class LobsStreamingTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
-                // Testing AsciiStream, use Clob string set or characters will be converted to
-                // '?'
+                // Testing AsciiStream, use Clob string set or characters will be converted to '?'
                 ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
 
                 createLobTable(stmt, tableName, Constants.LOB.NCLOB);

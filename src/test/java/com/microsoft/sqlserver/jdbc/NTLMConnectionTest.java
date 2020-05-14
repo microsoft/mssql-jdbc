@@ -372,8 +372,8 @@ public class NTLMConnectionTest extends AbstractTest {
         token.put(challengeTargetInfo2);
 
         /*
-         * update targin the cast is necessary as JDK 8 calls method Buffer.position(I)LBuffer while in JDK 9+ calls
-         * method ByteBuffer.position(I)LByteBuffer
+         * update target info - the cast is necessary as JDK 8 calls method Buffer.position(I)LBuffer while in JDK 9+
+         * calls method ByteBuffer.position(I)LByteBuffer
          */
         ((java.nio.Buffer) token).position(ntlmChallengeTargetInfoLenOffset);
         token.putShort((short) targetInfoLen); // update target info len
