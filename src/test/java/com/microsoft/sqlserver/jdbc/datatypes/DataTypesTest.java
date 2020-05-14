@@ -731,8 +731,7 @@ public class DataTypesTest extends AbstractTest {
                 // temporary change default time zone while doing the update
                 TimeZone.setDefault(tz);
 
-                // Update the timestamp value with this value's time zone (set as the VM default
-                // above)
+                // Update the timestamp value with this value's time zone (set as the VM default above)
                 rs.updateTimestamp(1, expectedTimestamp());
                 rs.updateRow();
 
@@ -870,8 +869,7 @@ public class DataTypesTest extends AbstractTest {
             // Verify typed getter (with time zone argument)
             assertEquals(expectedTimestamp(), cs.getTimestamp(2, Calendar.getInstance(tz)));
 
-            // Verify getObject (no provision for time zone argument - need to push/pop the
-            // default)
+            // Verify getObject (no provision for time zone argument - need to push/pop the default)
             TimeZone tzDefault = TimeZone.getDefault();
             try {
                 TimeZone.setDefault(tz);
@@ -1131,8 +1129,7 @@ public class DataTypesTest extends AbstractTest {
 
                 try (CallableStatement cs = conn.prepareCall("{call " + escapedProcName + "(?,?)}")) {
 
-                    // Set up a timestamp with a time component that is the last millisecond of the
-                    // day
+                    // Set up a timestamp with a time component that is the last millisecond of the day
                     Timestamp ts = Timestamp.valueOf("2010-02-15 23:59:59.999");
 
                     /*
@@ -1144,8 +1141,7 @@ public class DataTypesTest extends AbstractTest {
                     cs.registerOutParameter(2, java.sql.Types.TIME);
                     cs.execute();
 
-                    // Fetch the OUT parameter and verify that we have a date-normalized TIME of
-                    // midnight
+                    // Fetch the OUT parameter and verify that we have a date-normalized TIME of midnight
                     java.sql.Time timeOut = cs.getTime(2);
                     Timestamp tsOut = new Timestamp(timeOut.getTime());
                     assertEquals("1970-01-01 00:00:00.0", tsOut.toString());
@@ -1169,8 +1165,7 @@ public class DataTypesTest extends AbstractTest {
 
             String sql;
             try (Statement stmt = conn.createStatement()) {
-                // SQL Azure requires each table to have a clustered index, so change col1 to
-                // the primary key
+                // SQL Azure requires each table to have a clustered index, so change col1 to the primary key
                 sql = "CREATE TABLE " + escapedTableName + " (col1 int primary key, col2 datetimeoffset(6))";
                 stmt.executeUpdate(sql);
                 sql = "INSERT INTO " + escapedTableName + " VALUES(1, '2010-04-29 10:51:12.123456 +00:00')";
@@ -1420,8 +1415,7 @@ public class DataTypesTest extends AbstractTest {
                 }
 
                 // Test PreparedStatement with DateTimeOffset (using Buddhist calendar)
-                // Note: Expected value does not reflect Buddhist year, even though a Buddhist
-                // calendar is used.
+                // Note: Expected value does not reflect Buddhist year, even though a Buddhist calendar is used.
                 DateTimeOffset dto = DateTimeOffset.valueOf(ts,
                         Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles")));
 
@@ -1470,8 +1464,7 @@ public class DataTypesTest extends AbstractTest {
         }
     }
 
-    // test setTimestamp to DATETIMEOFFSET yields a value in local time with UTC
-    // time zone offset (+00:00)
+    // test setTimestamp to DATETIMEOFFSET yields a value in local time with UTC time zone offset (+00:00)
     @Test
     public void testTimestampToDateTimeOffset() throws Exception {
         try (Connection conn = getConnection();
@@ -1531,8 +1524,7 @@ public class DataTypesTest extends AbstractTest {
                 PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS VARCHAR)")) {
             Timestamp ts;
 
-            // Test setting value during the Gregorian cutover via Timestamp constructed
-            // from String
+            // Test setting value during the Gregorian cutover via Timestamp constructed from String
             ts = Timestamp.valueOf("1582-10-24 15:07:09.081");
             ps.setTimestamp(1, ts);
             try (ResultSet rs = ps.executeQuery()) {
@@ -1540,8 +1532,7 @@ public class DataTypesTest extends AbstractTest {
                 assertEquals("1582-10-24 15:07:09.0810000", rs.getString(1));
             }
 
-            // Test setting value during the Gregorian cutover via Timestamp constructed
-            // from Calendar
+            // Test setting value during the Gregorian cutover via Timestamp constructed from Calendar
             Calendar cal = Calendar.getInstance();
             cal.set(1582, Calendar.NOVEMBER, 1, 15, 7, 9);
             cal.set(Calendar.MILLISECOND, 81);
@@ -1610,8 +1601,7 @@ public class DataTypesTest extends AbstractTest {
                     assertEquals("9999-12-31 23:59:59.99 +00:00", dto.toString());
 
                     // Attempt to update datetimeoffset(2) from the first out of range value
-                    // Verify that an exception is thrown and that the statement/connection is still
-                    // usable after
+                    // Verify that an exception is thrown and that the statement/connection is still usable after
                     boolean exceptionThrown = true;
                     try {
                         Timestamp tsInvalid = Timestamp.valueOf("9999-12-31 23:59:59.999999999");
@@ -1635,8 +1625,7 @@ public class DataTypesTest extends AbstractTest {
                     rs.updateRow();
                     assertEquals("1900-01-01 11:05:23.98766", rs.getTimestamp(3).toString());
 
-                    // Update time(5) from Timestamp to max value in a day. The value should not be
-                    // rounded
+                    // Update time(5) from Timestamp to max value in a day. The value should not be rounded
                     ts = Timestamp.valueOf("2010-01-12 23:59:59");
                     ts.setNanos(999999999);
                     Time time = new java.sql.Time(ts.getTime());
@@ -1651,8 +1640,7 @@ public class DataTypesTest extends AbstractTest {
                     // conversion to timestamp is necessary to see fractional secs
                     assertEquals("1970-01-01 23:59:59.99", new Timestamp(rs.getTime(6).getTime()).toString());
 
-                    // Update time(5) from Timestamp to max value in a second. The value should be
-                    // rounded
+                    // Update time(5) from Timestamp to max value in a second. The value should be rounded
                     ts = Timestamp.valueOf("2010-01-12 23:59:58");
                     ts.setNanos(999999999);
                     time = new java.sql.Time(ts.getTime());
@@ -1660,22 +1648,19 @@ public class DataTypesTest extends AbstractTest {
                     rs.updateRow();
                     assertEquals("1900-01-01 23:59:59.0", rs.getTimestamp(3).toString());
 
-                    // Update time(2) from Time to max value in a second. The value should be
-                    // rounded
+                    // Update time(2) from Time to max value in a second. The value should be rounded
                     rs.updateTime(6, time);
                     rs.updateRow();
                     // conversion to timestamp is necessary to see fractional secs
                     assertEquals("1970-01-01 23:59:59.0", new Timestamp(rs.getTime(6).getTime()).toString());
 
-                    // Update datetime w/expected rounding of nanos to DATETIME's 1/300second
-                    // resolution
+                    // Update datetime w/expected rounding of nanos to DATETIME's 1/300second resolution
                     ts = Timestamp.valueOf("6289-04-22 05:13:57.6741234");
                     rs.updateTimestamp(2, ts);
                     rs.updateRow();
                     assertEquals("6289-04-22 05:13:57.673", rs.getTimestamp(2).toString());
 
-                    // Update datetime with rounding-induced overflow from Time (should roll date
-                    // part to 1/2/1970)
+                    // Update datetime with rounding-induced overflow from Time (should roll date part to 1/2/1970)
                     ts = Timestamp.valueOf("2010-01-18 23:59:59.999");
                     rs.updateTime(2, new java.sql.Time(ts.getTime()));
                     rs.updateRow();
