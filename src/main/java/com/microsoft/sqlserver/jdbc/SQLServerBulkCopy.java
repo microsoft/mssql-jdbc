@@ -2469,6 +2469,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         else
                             tdsWriter.writeByte((byte) 0x05);
                         if (colValue instanceof String) {
+                            /*
+                             * if colValue is an instance of String, this means the data is coming from a CSV file.
+                             * Time string is expected to come in with this pattern: hh:mm:ss[.nnnnnnn]
+                             * First, look for the '.' character to determine if the String has the optional nanoseconds
+                             * component.
+                             * Next, create a java.sql.Time instance with the hh:mm:ss part we extracted, then set that
+                             * time as the timestamp's time.
+                             * Then, add the nanoseconds (optional, 0 if not provided) to the timestamp value.
+                             * Finally, provide the timestamp value to writeTime method.
+                             */
                             java.sql.Timestamp ts = new java.sql.Timestamp(0);
                             int nanos = 0;
                             int decimalIndex = ((String) colValue).indexOf('.');
