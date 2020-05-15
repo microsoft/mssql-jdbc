@@ -3607,16 +3607,30 @@ final class TDSWriter {
          * Parse the DTO as string if it's coming from a CSV.
          */
         if (value instanceof String) {
+            // expected format: YYYY-MM-DD hh:mm:ss[.nnnnnnn] [{+|-}hh:mm]
             try {
                 String stringValue = (String) value;
                 int lastColon = stringValue.lastIndexOf(':');
 
                 String offsetString = stringValue.substring(lastColon - 3);
-                minutesOffset = 60 * Integer.valueOf(offsetString.substring(1, 3))
-                        + Integer.valueOf(offsetString.substring(4, 6));
 
-                if (offsetString.startsWith("-"))
-                    minutesOffset = -minutesOffset;
+                /*
+                 * At this point, offsetString should look like +hh:mm or -hh:mm. Otherwise, the optional offset
+                 * value has not been provided. Parse accordingly.
+                 */
+                String timestampString;
+
+                if (!offsetString.startsWith("+") && !offsetString.startsWith("-")) {
+                    minutesOffset = 0;
+                    timestampString = stringValue;
+                } else {
+                    minutesOffset = 60 * Integer.valueOf(offsetString.substring(1, 3))
+                            + Integer.valueOf(offsetString.substring(4, 6));
+                    timestampString = stringValue.substring(0, lastColon - 4);
+
+                    if (offsetString.startsWith("-"))
+                        minutesOffset = -minutesOffset;
+                }
 
                 /*
                  * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
@@ -3630,7 +3644,6 @@ final class TDSWriter {
 
                 calendar = new GregorianCalendar(timeZone, Locale.CHINA);
 
-                String timestampString = stringValue.substring(0, lastColon - 4);
                 int year = Integer.valueOf(timestampString.substring(0, 4));
                 int month = Integer.valueOf(timestampString.substring(5, 7));
                 int day = Integer.valueOf(timestampString.substring(8, 10));

@@ -55,6 +55,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
     static String inputFile = "BulkCopyCSVSendTemporalDataTypesAsStringForBulkCopy.csv";
+    static String inputFile2 = "BulkCopyCSVSendTemporalDataTypesAsStringForBulkCopy2.csv";
     static String encoding = "UTF-8";
     static String delimiter = ",";
 
@@ -77,7 +78,25 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
             SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding,
                     delimiter, true);
 
-            testBulkCopyCSV(conn, fileRecord);
+            testBulkCopyCSV(conn, fileRecord, true);
+        }
+    }
+
+    /**
+     * Test basic case with sendTemporalDataTypesAsStringForBulkCopy connection property, with
+     * the optional parts of the data removed, such as nanoseconds or offset part of DateTimeOffset.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testSendTemporalDataTypesAsStringForBulkCopyOptional() throws SQLException {
+        beforeEachSetup();
+        try (Connection conn = PrepUtil
+                .getConnection(connectionString + ";sendTemporalDataTypesAsStringForBulkCopy=false")) {
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile2, encoding,
+                    delimiter, true);
+
+            testBulkCopyCSV(conn, fileRecord, false);
         }
     }
 
@@ -94,7 +113,7 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
             SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding,
                     delimiter, true);
 
-            testBulkCopyResultSet(conn, fileRecord);
+            testBulkCopyResultSet(conn, fileRecord, true);
         }
     }
 
@@ -114,11 +133,12 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
             SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding,
                     delimiter, true);
 
-            testBulkCopyCSV(conn, fileRecord);
+            testBulkCopyCSV(conn, fileRecord, true);
         }
     }
 
-    private void testBulkCopyCSV(Connection conn, SQLServerBulkCSVFileRecord fileRecord) {
+    private void testBulkCopyCSV(Connection conn, SQLServerBulkCSVFileRecord fileRecord,
+            boolean expectedMatchesCSVData) {
         try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
 
             fileRecord.addColumnMetadata(1, "id", java.sql.Types.INTEGER, 0, 0);
@@ -134,13 +154,14 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
             bulkCopy.setDestinationTableName(destTableName);
             bulkCopy.writeToServer(fileRecord);
 
-            validateValuesFromCSV(stmt, destTableName, inputFile);
+            validateValuesFromCSV(stmt, destTableName, inputFile, expectedMatchesCSVData);
         } catch (Exception e) {
             fail(e.getMessage());
         }
     }
 
-    private void testBulkCopyResultSet(Connection conn, SQLServerBulkCSVFileRecord fileRecord) {
+    private void testBulkCopyResultSet(Connection conn, SQLServerBulkCSVFileRecord fileRecord,
+            boolean expectedMatchesCSVData) {
         try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
 
             fileRecord.addColumnMetadata(1, "id", java.sql.Types.INTEGER, 0, 0);
@@ -162,13 +183,14 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
                 bcOperation.writeToServer(rs);
             }
 
-            validateValuesFromCSV(stmt, destTableName2, inputFile);
+            validateValuesFromCSV(stmt, destTableName2, inputFile, expectedMatchesCSVData);
         } catch (Exception e) {
             fail(e.getMessage());
         }
     }
 
-    static void validateValuesFromCSV(Statement stmt, String destinationTable, String inputFile) {
+    static void validateValuesFromCSV(Statement stmt, String destinationTable, String inputFile,
+            boolean expectedMatchesCSVData) {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(filePath + inputFile), encoding));
                 ResultSet rs = stmt.executeQuery("select * FROM " + destinationTable + " order by id")) {
@@ -176,12 +198,33 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
 
             ResultSetMetaData destMeta = rs.getMetaData();
             int totalColumns = destMeta.getColumnCount();
-            while (rs.next()) {
-                String[] srcValues = br.readLine().split(delimiter);
-                if ((0 == srcValues.length) && (srcValues.length != totalColumns)) {
-                    srcValues = new String[totalColumns];
-                    Arrays.fill(srcValues, null);
+            if (expectedMatchesCSVData) {
+                while (rs.next()) {
+                    String[] srcValues = br.readLine().split(delimiter);
+                    if ((0 == srcValues.length) && (srcValues.length != totalColumns)) {
+                        srcValues = new String[totalColumns];
+                        Arrays.fill(srcValues, null);
+                    }
+                    for (int i = 1; i <= totalColumns; i++) {
+                        String srcValue = srcValues[i - 1];
+                        String dstValue = rs.getString(i);
+                        srcValue = (null != srcValue) ? srcValue.trim() : srcValue;
+                        dstValue = (null != dstValue) ? dstValue.trim() : dstValue;
+                        // get the value from csv as string and compare them
+                        ComparisonUtil.compareExpectedAndActual(java.sql.Types.VARCHAR, srcValue, dstValue);
+                    }
                 }
+            } else {
+                /*
+                 * Data in the CSV file has omitted the optional values such as nanoseconds, but the returned
+                 * data from the server has the optional values attached. Therefore, we must compare the returned
+                 * data to predetermined values.
+                 */
+                rs.next();
+                String[] srcValues = new String[] {"1", "0001-01-01", "1753-01-01 00:00:00.0",
+                        "0001-01-01 00:00:00.0000000", "00:00:00.0000000", "2025-12-10 12:32:10.0000000 +00:00",
+                        "1900-01-01 06:56:00.0", "100.2523", "100.2523"};
+
                 for (int i = 1; i <= totalColumns; i++) {
                     String srcValue = srcValues[i - 1];
                     String dstValue = rs.getString(i);
