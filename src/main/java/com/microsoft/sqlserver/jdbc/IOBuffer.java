@@ -3642,7 +3642,7 @@ final class TDSWriter {
                 timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
                                                                  : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
 
-                calendar = new GregorianCalendar(timeZone, Locale.CHINA);
+                calendar = new GregorianCalendar(timeZone);
 
                 int year = Integer.valueOf(timestampString.substring(0, 4));
                 int month = Integer.valueOf(timestampString.substring(5, 7));
