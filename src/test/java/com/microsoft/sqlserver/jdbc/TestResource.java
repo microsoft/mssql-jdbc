@@ -187,5 +187,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_invalidEnclaveSessionFailed", "invalidate enclave session failed."},
             {"R_invalidEnclaveType", "Invalid enclave type {0}."},
             {"R_keystorePassword", "keystore password was incorrect"},
-            {"R_enclaveNotEnabled", "The statement triggers enclave computations"}};
+            {"R_enclaveNotEnabled", "The statement triggers enclave computations"},
+            {"R_dataClassificationNotSupported", "Data Classification is not supported on this server."}};
 }
