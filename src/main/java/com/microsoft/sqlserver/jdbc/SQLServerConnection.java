@@ -4963,7 +4963,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.writeInt(0); // Primary server connection ID
 
         tdsWriter.writeByte((byte) (// OptionFlags1:
-
         TDS.LOGIN_OPTION1_ORDER_X86 | // X86 byte order for numeric & datetime types
                 TDS.LOGIN_OPTION1_CHARSET_ASCII | // ASCII character set
                 TDS.LOGIN_OPTION1_FLOAT_IEEE_754 | // IEEE 754 floating point representation

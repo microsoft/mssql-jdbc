@@ -47,8 +47,6 @@ public class DataClassificationTest extends AbstractTest {
      * 
      * @throws Exception
      */
-    @Tag(Constants.xAzureSQLDB)
-    @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Test
@@ -60,7 +58,7 @@ public class DataClassificationTest extends AbstractTest {
 
             for (int i = 0; i < sensitivityRank.length; i++) {
                 createTable(connection, stmt);
-               // addSensitivity(connection, stmt, sensitivityRank[i][0]);
+                addSensitivity(connection, stmt, sensitivityRank[i][0]);
                 insertData(connection, stmt);
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName)) {
                     verifySensitivityClassification(rs, Integer.parseInt(sensitivityRank[i][1]));
