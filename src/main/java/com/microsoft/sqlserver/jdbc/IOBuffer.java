@@ -4476,16 +4476,16 @@ final class TDSWriter {
             SQLCollation collation) throws SQLServerException {
         boolean bValueNull = (sValue == null);
         int nValueLen = bValueNull ? 0 : (2 * sValue.length());
-        boolean isShortValue = nValueLen <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
-
         // Textual RPC requires a collation. If none is provided, as is the case when
         // the SSType is non-textual, then use the database collation by default.
         if (null == collation)
             collation = con.getDatabaseCollation();
 
-        // Use PLP encoding on Yukon and later with long values and OUT parameters
-        boolean usePLP = (!isShortValue || bOut);
-        if (usePLP) {
+        /*
+         * Use PLP encoding if either OUT params were specified or if the user query exceeds
+         * DataTypes.SHORT_VARTYPE_MAX_BYTES
+         */
+        if (nValueLen > DataTypes.SHORT_VARTYPE_MAX_BYTES || bOut) {
             writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
 
             // Handle Yukon v*max type header here.
@@ -4503,16 +4503,10 @@ final class TDSWriter {
                 // Send the terminator PLP chunk.
                 writeInt(0);
             }
-        } else // non-PLP type
-        {
+        } else { // non-PLP type
             // Write maximum length of data
-            if (isShortValue) {
-                writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
-                writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
-            } else {
-                writeRPCNameValType(sName, bOut, TDSType.NTEXT);
-                writeInt(DataTypes.IMAGE_TEXT_MAX_BYTES);
-            }
+            writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
+            writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
 
             collation.writeCollation(this);
 
@@ -4521,10 +4515,7 @@ final class TDSWriter {
                 writeShort((short) -1); // actual len
             } else {
                 // Write actual length of data
-                if (isShortValue)
-                    writeShort((short) nValueLen);
-                else
-                    writeInt(nValueLen);
+                writeShort((short) nValueLen);
 
                 // If length is zero, we're done.
                 if (0 != nValueLen)
