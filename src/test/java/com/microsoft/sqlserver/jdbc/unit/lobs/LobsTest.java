@@ -9,12 +9,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -579,6 +583,221 @@ public class LobsTest extends AbstractTest {
         }
     }
 
+    @Test
+    @DisplayName("testBlobNotStreaming")
+    public void testBlobNotStreaming() throws SQLException, IOException {
+        String types[] = {"varbinary(max)"};
+        table = createTable(table, types, false);
+
+        int bufferSize = 10000;
+        byte[] data = new byte[bufferSize];
+        try (Connection conn = getConnection(); PreparedStatement pstmt = conn
+                .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
+            Blob b = conn.createBlob();
+            Constants.RANDOM.nextBytes(data);
+            b.setBytes(1, data);
+            pstmt.setInt(1, 1);
+            pstmt.setBlob(2, b);
+            pstmt.executeUpdate();
+        }
+
+        String streamString = TestUtils.addOrOverrideProperty(connectionString, "delayLoadingLobs", "true");
+        String loadedString = TestUtils.addOrOverrideProperty(streamString, "delayLoadingLobs", "false");
+
+        try (Connection streamingConnection = DriverManager.getConnection(streamString);
+                Connection loadedConnection = DriverManager.getConnection(loadedString);
+                Statement sStmt = streamingConnection.createStatement();
+                Statement lStmt = loadedConnection.createStatement()) {
+            try (ResultSet rs = sStmt.executeQuery(
+                    "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0))) {
+                rs.next();
+                Blob b = rs.getBlob(2);
+                InputStream stream = b.getBinaryStream();
+                try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                    int read = 0;
+                    byte[] chunk = new byte[bufferSize];
+                    while ((read = stream.read(chunk)) > 0)
+                        buffer.write(chunk, 0, read);
+                    assertTrue(Arrays.equals(chunk, data));
+                }
+            }
+            try (ResultSet rs = lStmt.executeQuery(
+                    "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0))) {
+                rs.next();
+                Blob b = rs.getBlob(2);
+                InputStream stream = b.getBinaryStream();
+                try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                    int read = 0;
+                    byte[] chunk = new byte[bufferSize];
+                    while ((read = stream.read(chunk)) > 0)
+                        buffer.write(chunk, 0, read);
+                    assertTrue(Arrays.equals(chunk, data));
+                }
+            }
+        } finally {
+            try (Connection c = getConnection(); Statement stmt = c.createStatement()) {
+                TestUtils.dropTableIfExists(table.getEscapedTableName(), stmt);
+            }
+        }
+    }
+
+    /*
+     * Tests Clobs and ASCII stream
+     */
+    @Test
+    @DisplayName("testClobNotStreamingASCII")
+    public void testClobNotStreamingASCII() throws SQLException, IOException {
+        String types[] = {"varchar(max)"};
+        table = createTable(table, types, false);
+        // Avoid issues such as UNICODE / other languages, keep the test simple
+        String testStr = "MICROSOFT JDBC DRIVER CLOB TEST 123\"";
+
+        try (Connection conn = getConnection(); PreparedStatement pstmt = conn
+                .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
+            Clob c = conn.createClob();
+            c.setString(1, testStr);
+            pstmt.setInt(1, 1);
+            pstmt.setClob(2, c);
+            pstmt.executeUpdate();
+        }
+
+        String streamString = TestUtils.addOrOverrideProperty(connectionString, "delayLoadingLobs", "true");
+        String loadedString = TestUtils.addOrOverrideProperty(streamString, "delayLoadingLobs", "false");
+
+        try (Connection streamingConnection = DriverManager.getConnection(streamString);
+                Connection loadedConnection = DriverManager.getConnection(loadedString);
+                Statement sStmt = streamingConnection.createStatement();
+                Statement lStmt = loadedConnection.createStatement()) {
+            try (ResultSet rs = sStmt.executeQuery(
+                    "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0))) {
+                rs.next();
+                Clob c = rs.getClob(2);
+                BufferedReader in = new BufferedReader(new InputStreamReader(c.getAsciiStream()));
+                String line = null;
+                StringBuilder rslt = new StringBuilder();
+                while ((line = in.readLine()) != null) {
+                    rslt.append(line);
+                }
+                assertEquals(testStr, rslt.toString());
+            }
+            try (ResultSet rs = lStmt.executeQuery(
+                    "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0))) {
+                rs.next();
+                Clob c = rs.getClob(2);
+                BufferedReader in = new BufferedReader(new InputStreamReader(c.getAsciiStream()));
+                String line = null;
+                StringBuilder rslt = new StringBuilder();
+                while ((line = in.readLine()) != null) {
+                    rslt.append(line);
+                }
+                assertEquals(testStr, rslt.toString());
+            }
+        } finally {
+            try (Connection c = getConnection(); Statement stmt = c.createStatement()) {
+                TestUtils.dropTableIfExists(table.getEscapedTableName(), stmt);
+            }
+        }
+    }
+
+    /*
+     * Tests Clobs and ASCII stream
+     */
+    @Test
+    @DisplayName("testContinuousReading")
+    public void testContinuousReading() throws SQLException, IOException {
+        String types[] = {"varchar(max)"};
+        table = createTable(table, types, false);
+        // Avoid issues such as UNICODE / other languages, keep the test simple
+        String testStr = "MICROSOFT JDBC DRIVER";
+
+        try (Connection conn = getConnection(); PreparedStatement pstmt = conn
+                .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
+            Clob c = conn.createClob();
+            c.setString(1, testStr);
+            pstmt.setInt(1, 1);
+            pstmt.setClob(2, c);
+            pstmt.executeUpdate();
+        }
+
+        String loadedString = TestUtils.addOrOverrideProperty(connectionString, "delayLoadingLobs", "false");
+        try (Connection loadedConnection = DriverManager.getConnection(loadedString);
+                Statement lStmt = loadedConnection.createStatement()) {
+            BufferedReader in;
+            try (ResultSet rs = lStmt.executeQuery(
+                    "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0))) {
+                rs.next();
+                Clob c = rs.getClob(2);
+                in = new BufferedReader(new InputStreamReader(c.getAsciiStream()));
+                char[] msft = new char[9];
+                in.read(msft);
+                assertEquals("MICROSOFT", String.valueOf(msft));
+            }
+            assertEquals(" JDBC DRIVER", in.readLine());
+        } finally {
+            try (Connection c = getConnection(); Statement stmt = c.createStatement()) {
+                TestUtils.dropTableIfExists(table.getEscapedTableName(), stmt);
+            }
+        }
+    }
+
+    /*
+     * Tests NClobs and Character Stream
+     */
+    @Test
+    @DisplayName("testNClobNotStreamingChara")
+    public void testNClobNotStreamingChara() throws SQLException, IOException {
+        String types[] = {"nvarchar(max)"};
+        table = createTable(table, types, false);
+        // Avoid issues such as UNICODE / other languages, keep the test simple
+        String testStr = "MICROSOFT_JDBC_DRIVER_NCLOB_TEST_123";
+
+        try (Connection conn = getConnection(); PreparedStatement pstmt = conn
+                .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
+            NClob c = conn.createNClob();
+            c.setString(0, testStr);
+            pstmt.setInt(1, 1);
+            pstmt.setClob(2, c);
+            pstmt.executeUpdate();
+        }
+
+        String streamString = TestUtils.addOrOverrideProperty(connectionString, "delayLoadingLobs", "true");
+        String loadedString = TestUtils.addOrOverrideProperty(streamString, "delayLoadingLobs", "false");
+
+        try (Connection streamingConnection = DriverManager.getConnection(streamString);
+                Connection loadedConnection = DriverManager.getConnection(loadedString);
+                Statement sStmt = streamingConnection.createStatement();
+                Statement lStmt = loadedConnection.createStatement()) {
+            try (ResultSet rs = sStmt.executeQuery(
+                    "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0))) {
+                rs.next();
+                NClob c = rs.getNClob(2);
+                BufferedReader in = new BufferedReader(c.getCharacterStream());
+                String line = null;
+                StringBuilder rslt = new StringBuilder();
+                while ((line = in.readLine()) != null) {
+                    rslt.append(line);
+                }
+                assertEquals(testStr, rslt.toString());
+            }
+            try (ResultSet rs = lStmt.executeQuery(
+                    "select * from " + table.getEscapedTableName() + " ORDER BY " + table.getEscapedColumnName(0))) {
+                rs.next();
+                NClob c = rs.getNClob(2);
+                BufferedReader in = new BufferedReader(c.getCharacterStream());
+                String line = null;
+                StringBuilder rslt = new StringBuilder();
+                while ((line = in.readLine()) != null) {
+                    rslt.append(line);
+                }
+                assertEquals(testStr, rslt.toString());
+            }
+        } finally {
+            try (Connection c = getConnection(); Statement stmt = c.createStatement()) {
+                TestUtils.dropTableIfExists(table.getEscapedTableName(), stmt);
+            }
+        }
+    }
+
     private void testUpdateLobs(String types[], Class<?> lobClass) throws Exception {
         table = createTable(table, types, false); // create empty table
         int size = 10000;
@@ -719,7 +938,7 @@ public class LobsTest extends AbstractTest {
 
     }
 
-    private static DBTable createTable(DBTable table, String[] types, boolean populateTable) throws Exception {
+    private static DBTable createTable(DBTable table, String[] types, boolean populateTable) throws SQLException {
 
         try (DBConnection connection = new DBConnection(connectionString);
                 DBStatement stmt = connection.createStatement()) {
