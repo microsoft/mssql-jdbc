@@ -495,14 +495,15 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setLoadLargeObjects(boolean loadLargeObjects) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.LOAD_LARGE_OBJECTS.toString(), loadLargeObjects);
+    public void setDelayLoadingLobs(boolean delayLoadingLobs) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString(),
+                delayLoadingLobs);
     }
 
     @Override
-    public boolean getLoadLargeObjects() {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.LOAD_LARGE_OBJECTS.toString(),
-                SQLServerDriverBooleanProperty.LOAD_LARGE_OBJECTS.getDefaultValue());
+    public boolean getDelayLoadingLobs() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString(),
+                SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue());
     }
 
     /**

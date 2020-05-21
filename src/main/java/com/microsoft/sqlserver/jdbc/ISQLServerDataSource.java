@@ -994,16 +994,16 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     /**
      * Specifies the flag to load LOBs instead of stream them.
      *
-     * @param loadLargeObjects
-     *        boolean value for 'loadLargeObjects'.
+     * @param delayLoadingLobs
+     *        boolean value for 'delayLoadingLobs'.
      */
-    void setLoadLargeObjects(boolean loadLargeObjects);
+    void setDelayLoadingLobs(boolean delayLoadingLobs);
 
     /**
-     * Returns the current flag value for loadLargeObjects.
+     * Returns the current flag value for delayLoadingLobs.
      *
-     * @return 'loadLargeObjects' property value.
+     * @return 'delayLoadingLobs' property value.
      */
-    boolean getLoadLargeObjects();
+    boolean getDelayLoadingLobs();
 
 }

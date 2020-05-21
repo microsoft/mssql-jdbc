@@ -641,6 +641,6 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_pvkHeaderError", "Cannot parse the PVK, PVK file does not contain the correct header."},
             {"R_clientCertError", "Reading client certificate failed. Please verify the location of the certificate."},
             {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."},
-            {"R_loadLargeObjectsPropertyDescription",
+            {"R_delayLoadingLobsPropertyDescription",
             "Boolean flag which indicates whether the driver will load LOB datatypes into memeory."}};
 };

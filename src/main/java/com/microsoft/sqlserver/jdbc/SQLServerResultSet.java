@@ -2083,7 +2083,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     private void configureLobs(SQLServerLob lob) throws SQLServerException {
         if (null != stmt) {
             SQLServerConnection c = (SQLServerConnection) stmt.getConnection();
-            if (null != c && c.getLoadLargeObjects()) {
+            if (null != c && !c.getDelayLoadingLobs()) {
                 lob.setStreaming(true);
             }
         }

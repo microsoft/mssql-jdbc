@@ -23,7 +23,8 @@ abstract class SQLServerLob implements Serializable {
     abstract void fillFromStream() throws SQLException;
 
     /**
-     * Provides functionality for the result set to set whether to load the LOB objects fully.
+     * Provides functionality for the result set to set whether to load the LOB objects fully. Setting this property to
+     * TRUE will cause LOBs to be loaded into memory. The default behavior is FALSE.
      */
     abstract void setStreaming(boolean b);
 }

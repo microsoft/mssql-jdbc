@@ -680,10 +680,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     // Boolean that indicates whether LOB objects created by this connection should be loaded into memory
-    private boolean loadLargeObjects = SQLServerDriverBooleanProperty.LOAD_LARGE_OBJECTS.getDefaultValue();
+    private boolean delayLoadingLobs = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue();
 
-    public boolean getLoadLargeObjects() {
-        return loadLargeObjects;
+    public boolean getDelayLoadingLobs() {
+        return delayLoadingLobs;
     }
 
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
@@ -2127,14 +2127,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 clientKeyPassword = sPropValue;
             }
-            
-            sPropKey = SQLServerDriverBooleanProperty.LOAD_LARGE_OBJECTS.toString();
+
+            sPropKey = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null == sPropValue) {
-                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.LOAD_LARGE_OBJECTS.getDefaultValue());
+                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
-            loadLargeObjects = isBooleanPropertyOn(sPropKey, sPropValue);
+            delayLoadingLobs = isBooleanPropertyOn(sPropKey, sPropValue);
 
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
