@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
@@ -127,6 +128,7 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
         beforeEachSetup();
         SQLServerDataSource dsLocal = new SQLServerDataSource();
         AbstractTest.updateDataSource(connectionString + ";sendTemporalDataTypesAsStringForBulkCopy=false", dsLocal);
+        assertFalse(dsLocal.getSendTemporalDataTypesAsStringForBulkCopy());
 
         try (Connection conn = dsLocal.getConnection()) {
             SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding,
@@ -147,8 +149,8 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
             fileRecord.addColumnMetadata(5, "c4", java.sql.Types.TIME, 0, 7); // with time
             fileRecord.addColumnMetadata(6, "c5", microsoft.sql.Types.DATETIMEOFFSET, 0, 7); // with datetimeoffset
             fileRecord.addColumnMetadata(7, "c6", java.sql.Types.TIMESTAMP, 0, 0); // with SmallDatetime
-            fileRecord.addColumnMetadata(8, "c7", java.sql.Types.DECIMAL, 19, 4); // with money
-            fileRecord.addColumnMetadata(9, "c8", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
+            fileRecord.addColumnMetadata(8, "c7", microsoft.sql.Types.MONEY, 19, 4); // with money
+            fileRecord.addColumnMetadata(9, "c8", microsoft.sql.Types.SMALLMONEY, 10, 4); // with smallmoney
 
             bulkCopy.setDestinationTableName(destTableName);
             bulkCopy.writeToServer(fileRecord);
