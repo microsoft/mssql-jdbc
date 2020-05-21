@@ -126,8 +126,7 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
     public void testSendTemporalDataTypesAsStringForBulkCopyDS() throws SQLException {
         beforeEachSetup();
         SQLServerDataSource dsLocal = new SQLServerDataSource();
-        AbstractTest.updateDataSource(connectionString, dsLocal);
-        dsLocal.setSendTemporalDataTypesAsStringForBulkCopy(false);
+        AbstractTest.updateDataSource(connectionString + ";sendTemporalDataTypesAsStringForBulkCopy=false", dsLocal);
 
         try (Connection conn = dsLocal.getConnection()) {
             SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(filePath + inputFile, encoding,
