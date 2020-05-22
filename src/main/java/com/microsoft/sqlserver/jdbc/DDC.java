@@ -631,7 +631,7 @@ final class DDC {
         int len = s.length();
         if (firstColon > 0 && secondColon > 0 && secondColon < len - 1) {
             hour = Integer.parseInt(s.subSequence(dividingSpace + 1, firstColon).toString());
-            minute = Util.parseInt(s, firstColon + 1, secondColon, 10);
+            minute = Integer.parseInt(s.subSequence(firstColon + 1, secondColon).toString());
             if (period > 0 && period < len - 1) {
                 second = Util.parseInt(s, secondColon + 1, period, 10);
                 int nanoPrecision = len - (period + 1);
