@@ -639,7 +639,7 @@ final class DDC {
                     throw new java.lang.IllegalArgumentException(formatError);
                 if (!Character.isDigit(s.charAt(period + 1)))
                     throw new java.lang.IllegalArgumentException(formatError);
-                int tmpNanos = Util.parseInt(s, period + 1, len, 10);
+                int tmpNanos = Integer.parseInt(s.subSequence(period + 1, len).toString());
                 while (nanoPrecision < 9) {
                     tmpNanos *= 10;
                     nanoPrecision++;
