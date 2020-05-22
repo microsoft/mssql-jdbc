@@ -754,7 +754,7 @@ public class LobsTest extends AbstractTest {
         try (Connection conn = getConnection(); PreparedStatement pstmt = conn
                 .prepareStatement("INSERT INTO " + table.getEscapedTableName() + "  VALUES(?,?)")) {
             NClob c = conn.createNClob();
-            c.setString(0, testStr);
+            c.setString(1, testStr);
             pstmt.setInt(1, 1);
             pstmt.setClob(2, c);
             pstmt.executeUpdate();
