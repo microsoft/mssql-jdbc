@@ -149,22 +149,22 @@ public class BulkCopyCSVTest extends AbstractTest {
          * The list below is the copy of inputFileDelimiterEscape with quotes removed.
          */
         String[][] expectedEscaped = new String[11][4];
-        expectedEscaped[0] = new String[] {"test", " test\"", "no,split", " testNoQuote"};
+        expectedEscaped[0] = new String[] {"test", " test\"", "no@split", " testNoQuote"};
         expectedEscaped[1] = new String[] {null, null, null, null};
-        expectedEscaped[2] = new String[] {"\"", "test\"test", "test,\"  test", null};
+        expectedEscaped[2] = new String[] {"\"", "test\"test", "test@\"  test", null};
         expectedEscaped[3] = new String[] {"testNoQuote  ", " testSpaceAround ", " testSpaceInside ",
                 "  testSpaceQuote\" "};
         expectedEscaped[4] = new String[] {null, null, null, " testSpaceInside "};
         expectedEscaped[5] = new String[] {"1997", "Ford", "E350", "E63"};
         expectedEscaped[6] = new String[] {"1997", "Ford", "E350", "E63"};
-        expectedEscaped[7] = new String[] {"1997", "Ford", "E350", "Super, luxurious truck"};
-        expectedEscaped[8] = new String[] {"1997", "Ford", "E350", "Super, \"luxurious\" truck"};
+        expectedEscaped[7] = new String[] {"1997", "Ford", "E350", "Super@ luxurious truck"};
+        expectedEscaped[8] = new String[] {"1997", "Ford", "E350", "Super@ \"luxurious\" truck"};
         expectedEscaped[9] = new String[] {"1997", "Ford", "E350", "E63"};
         expectedEscaped[10] = new String[] {"1997", "Ford", "E350", " Super luxurious truck "};
 
         try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
-                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter,
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, "@",
                         false)) {
             bulkCopy.setDestinationTableName(tableName);
             fileRecord.setEscapeColumnDelimitersCSV(true);
