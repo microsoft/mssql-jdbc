@@ -648,7 +648,7 @@ final class DDC {
             } else if (period > 0) {
                 throw new java.lang.IllegalArgumentException(formatError);
             } else {
-                second = Util.parseInt(s, secondColon + 1, len, 10);
+                second = Integer.parseInt(s.subSequence(secondColon + 1, len).toString());
             }
         } else {
             throw new java.lang.IllegalArgumentException(formatError);
