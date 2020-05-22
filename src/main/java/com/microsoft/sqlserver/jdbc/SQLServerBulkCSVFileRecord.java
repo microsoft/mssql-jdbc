@@ -51,6 +51,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
 
     private boolean escapeDelimiters;
 
+    // Regex to ignore delimiter when the field is enclosed in quotes.
     private static final String escapeSplitPattern = "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
 
     /*
@@ -244,16 +245,14 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                                                                              ? escapeQuotesRFC4180(currentLine.split(
                                                                                      delimiter + escapeSplitPattern))
                                                                              : currentLine.split(delimiter, -1);
-            /*
-             * Cannot go directly from String[] to Object[] and expect it to act as an array.
-             */
+
+            // Cannot go directly from String[] to Object[] and expect it to act as an array.
+
             Object[] dataRow = new Object[data.length];
 
             for (Entry<Integer, ColumnMetadata> pair : columnMetadata.entrySet()) {
                 ColumnMetadata cm = pair.getValue();
-                /*
-                 * Reading a column not available in csv positionInFile > number of columns retrieved after split
-                 */
+                // Reading a column not available in csv positionInFile > number of columns retrieved after split
                 if (data.length < pair.getKey() - 1) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidColumn"));
                     Object[] msgArgs = {pair.getKey()};
@@ -538,7 +537,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * double quotes. If fields are not enclosed with double quotes, then double quotes may not appear inside the
      * fields. Fields containing double quotes, and delimiters should be enclosed in double quotes. If double-quotes are
      * used to enclose fields, then a double-quote appearing inside a field must be escaped by preceding it with another
-     * double quote.
+     * double quote. Spaces are considered part of a field. Spaces before and after enclosing double quotes are ignored.
      *
      * @param escapeDelimiters
      *        true if the rules above to be used.
@@ -547,7 +546,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         this.escapeDelimiters = escapeDelimiters;
     }
 
-    private static String[] escapeQuotesRFC4180(String[] tokens) {
+    private static String[] escapeQuotesRFC4180(String[] tokens) throws SQLServerException {
         if (null == tokens) {
             return tokens;
         }
@@ -555,7 +554,11 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             boolean escaped = false;
             int j = 0;
             StringBuilder sb = new StringBuilder();
-            if (tokens[i].contains("\"")) {
+            long quoteCount = tokens[i].chars().filter(ch -> ch == '"').count();
+            if (0 != quoteCount % 2) {
+                throw new SQLServerException(SQLServerException.getErrString("R_InvalidCSVOddQuotes"), null, 0, null);
+            }
+            if (quoteCount > 0) {
                 tokens[i] = tokens[i].trim();
             }
             while (j < tokens[i].length()) {

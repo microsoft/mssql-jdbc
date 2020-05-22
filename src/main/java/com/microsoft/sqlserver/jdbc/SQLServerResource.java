@@ -639,5 +639,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_pvkParseError", "Could not read Private Key from PVK, check the password provided."},
             {"R_pvkHeaderError", "Cannot parse the PVK, PVK file does not contain the correct header."},
             {"R_clientCertError", "Reading client certificate failed. Please verify the location of the certificate."},
-            {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."}};
+            {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."},
+            {"R_InvalidCSVOddQuotes", "Failed to parse the CSV file: Odd number of quotes."},
+            };
 };
