@@ -616,7 +616,7 @@ final class DDC {
                     && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
                 year = Integer.parseInt(s.subSequence(0, firstDash).toString());
                 month = Integer.parseInt(s.subSequence(firstDash + 1, secondDash).toString());
-                day = Util.parseInt(s, secondDash + 1, dividingSpace, 10);
+                day = Integer.parseInt(s.subSequence(secondDash + 1, dividingSpace).toString());
 
                 if ((month >= 1 && month <= MAX_MONTH) && (day >= 1 && day <= MAX_DAY)) {
                     parsedDate = true;
