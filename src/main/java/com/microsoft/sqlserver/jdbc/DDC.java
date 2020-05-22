@@ -614,7 +614,7 @@ final class DDC {
         if (firstDash > 0 && secondDash > 0 && secondDash < dividingSpace - 1) {
             if (firstDash == YEAR_LENGTH && (secondDash - firstDash > 1 && secondDash - firstDash <= MONTH_LENGTH + 1)
                     && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
-                year = Util.parseInt(s, 0, firstDash, 10);
+                year = Integer.parseInt(s.subSequence(0, firstDash).toString());
                 month = Integer.parseInt(s.subSequence(firstDash + 1, secondDash).toString());
                 day = Util.parseInt(s, secondDash + 1, dividingSpace, 10);
 
