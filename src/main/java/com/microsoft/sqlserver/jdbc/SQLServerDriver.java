@@ -433,6 +433,7 @@ enum SQLServerDriverBooleanProperty {
     ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL),
     USE_BULK_COPY_FOR_BATCH_INSERT("useBulkCopyForBatchInsert", false),
     USE_FMT_ONLY("useFmtOnly", false),
+    SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY("sendTemporalDataTypesAsStringForBulkCopy", true),
     DELAY_LOADING_LOBS("delayLoadingLobs", true);
 
     private final String name;
@@ -627,7 +628,13 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(),
                     SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString(),
-                    Boolean.toString(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue()), false, TRUE_FALSE),};
+                    Boolean.toString(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue()), false,
+                    TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(
+                    SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY
+                            .getDefaultValue()),
+                    false, TRUE_FALSE),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string

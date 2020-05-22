@@ -307,6 +307,8 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             break;
                         }
 
+                        case microsoft.sql.Types.MONEY:
+                        case microsoft.sql.Types.SMALLMONEY:
                         case Types.DECIMAL:
                         case Types.NUMERIC: {
                             BigDecimal bd = new BigDecimal(data[pair.getKey() - 1].trim());
