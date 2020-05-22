@@ -633,7 +633,7 @@ final class DDC {
             hour = Integer.parseInt(s.subSequence(dividingSpace + 1, firstColon).toString());
             minute = Integer.parseInt(s.subSequence(firstColon + 1, secondColon).toString());
             if (period > 0 && period < len - 1) {
-                second = Util.parseInt(s, secondColon + 1, period, 10);
+                second = Integer.parseInt(s.subSequence(secondColon + 1, period).toString());
                 int nanoPrecision = len - (period + 1);
                 if (nanoPrecision > 9)
                     throw new java.lang.IllegalArgumentException(formatError);
