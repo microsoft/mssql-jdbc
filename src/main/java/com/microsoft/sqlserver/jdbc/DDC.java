@@ -338,6 +338,30 @@ final class DDC {
         return valueBytes;
     }
 
+    static final byte[] convertMoneyToBytes(BigDecimal bigDecimalVal, int bLength) {
+        byte[] valueBytes = new byte[bLength];
+
+        BigInteger bi = bigDecimalVal.unscaledValue();
+
+        if (bLength == 8) {
+            // money
+            byte[] longbArray = new byte[bLength];
+            Util.writeLong(bi.longValue(), longbArray, 0);
+            /*
+             * TDS 2.2.5.5.1.4 Fixed-Point Numbers
+             * Money is represented as a 8 byte signed integer, with one 4-byte integer that represents
+             * the more significant half, and one 4-byte integer that represents the less significant half.
+             */
+            System.arraycopy(longbArray, 0, valueBytes, 4, 4);
+            System.arraycopy(longbArray, 4, valueBytes, 0, 4);
+        } else {
+            // smallmoney
+            Util.writeInt(bi.intValue(), valueBytes, 0);
+        }
+
+        return valueBytes;
+    }
+
     /**
      * Convert a BigDecimal object to desired target user type.
      * 
@@ -1289,7 +1313,8 @@ final class DDC {
 
                     case DATETIME2: {
                         return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
-                                java.sql.Timestamp.valueOf(ldt), fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                                java.sql.Timestamp.valueOf(ldt),
+                                fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
                     }
 
                     case DATETIME: // and SMALLDATETIME
