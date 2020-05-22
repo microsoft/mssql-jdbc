@@ -348,9 +348,9 @@ final class DDC {
             byte[] longbArray = new byte[bLength];
             Util.writeLong(bi.longValue(), longbArray, 0);
             /*
-             * TDS 2.2.5.5.1.4 Fixed-Point Numbers
-             * Money is represented as a 8 byte signed integer, with one 4-byte integer that represents
-             * the more significant half, and one 4-byte integer that represents the less significant half.
+             * TDS 2.2.5.5.1.4 Fixed-Point Numbers Money is represented as a 8 byte signed integer, with one 4-byte
+             * integer that represents the more significant half, and one 4-byte integer that represents the less
+             * significant half.
              */
             System.arraycopy(longbArray, 0, valueBytes, 4, 4);
             System.arraycopy(longbArray, 4, valueBytes, 0, 4);
@@ -653,9 +653,9 @@ final class DDC {
         if (firstDash > 0 && secondDash > 0 && secondDash < dividingSpace - 1) {
             if (firstDash == YEAR_LENGTH && (secondDash - firstDash > 1 && secondDash - firstDash <= MONTH_LENGTH + 1)
                     && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
-                year = Integer.parseInt(s.subSequence(0, firstDash).toString());
-                month = Integer.parseInt(s.subSequence(firstDash + 1, secondDash).toString());
-                day = Integer.parseInt(s.subSequence(secondDash + 1, dividingSpace).toString());
+                year = Integer.parseInt(s.substring(0, firstDash));
+                month = Integer.parseInt(s.substring(firstDash + 1, secondDash));
+                day = Integer.parseInt(s.substring(secondDash + 1, dividingSpace));
 
                 if ((month >= 1 && month <= MAX_MONTH) && (day >= 1 && day <= MAX_DAY)) {
                     parsedDate = true;
@@ -669,16 +669,16 @@ final class DDC {
         // Convert the time; default missing nanos
         int len = s.length();
         if (firstColon > 0 && secondColon > 0 && secondColon < len - 1) {
-            hour = Integer.parseInt(s.subSequence(dividingSpace + 1, firstColon).toString());
-            minute = Integer.parseInt(s.subSequence(firstColon + 1, secondColon).toString());
+            hour = Integer.parseInt(s.substring(dividingSpace + 1, firstColon));
+            minute = Integer.parseInt(s.substring(firstColon + 1, secondColon));
             if (period > 0 && period < len - 1) {
-                second = Integer.parseInt(s.subSequence(secondColon + 1, period).toString());
+                second = Integer.parseInt(s.substring(secondColon + 1, period));
                 int nanoPrecision = len - (period + 1);
                 if (nanoPrecision > 9)
                     throw new java.lang.IllegalArgumentException(formatError);
                 if (!Character.isDigit(s.charAt(period + 1)))
                     throw new java.lang.IllegalArgumentException(formatError);
-                int tmpNanos = Integer.parseInt(s.subSequence(period + 1, len).toString());
+                int tmpNanos = Integer.parseInt(s.substring(period + 1, len));
                 while (nanoPrecision < 9) {
                     tmpNanos *= 10;
                     nanoPrecision++;
@@ -687,7 +687,7 @@ final class DDC {
             } else if (period > 0) {
                 throw new java.lang.IllegalArgumentException(formatError);
             } else {
-                second = Integer.parseInt(s.subSequence(secondColon + 1, len).toString());
+                second = Integer.parseInt(s.substring(secondColon + 1, len));
             }
         } else {
             throw new java.lang.IllegalArgumentException(formatError);
