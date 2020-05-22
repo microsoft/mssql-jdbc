@@ -15,7 +15,6 @@ import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -1033,6 +1032,7 @@ final class Util {
         }
         return result.toString();
     }
+}
 
 
 final class SQLIdentifier {
