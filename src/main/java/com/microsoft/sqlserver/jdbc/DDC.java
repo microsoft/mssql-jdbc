@@ -630,7 +630,7 @@ final class DDC {
         // Convert the time; default missing nanos
         int len = s.length();
         if (firstColon > 0 && secondColon > 0 && secondColon < len - 1) {
-            hour = Util.parseInt(s, dividingSpace + 1, firstColon, 10);
+            hour = Integer.parseInt(s.subSequence(dividingSpace + 1, firstColon).toString());
             minute = Util.parseInt(s, firstColon + 1, secondColon, 10);
             if (period > 0 && period < len - 1) {
                 second = Util.parseInt(s, secondColon + 1, period, 10);
