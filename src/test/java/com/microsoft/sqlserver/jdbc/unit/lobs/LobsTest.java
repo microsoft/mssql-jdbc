@@ -764,7 +764,6 @@ public class LobsTest extends AbstractTest {
             pstmt.executeUpdate();
         }
 
-        
         SQLServerDataSource ds1 = new SQLServerDataSource();
         SQLServerDataSource ds2 = new SQLServerDataSource();
         updateDataSource(connectionString, ds1);
@@ -772,8 +771,7 @@ public class LobsTest extends AbstractTest {
         ds1.setDelayLoadingLobs(true);
         ds1.setDelayLoadingLobs(false);
 
-        try (Connection streamingConnection = ds1.getConnection();
-                Connection loadedConnection = ds2.getConnection();
+        try (Connection streamingConnection = ds1.getConnection(); Connection loadedConnection = ds2.getConnection();
                 Statement sStmt = streamingConnection.createStatement();
                 Statement lStmt = loadedConnection.createStatement()) {
             try (ResultSet rs = sStmt.executeQuery(
