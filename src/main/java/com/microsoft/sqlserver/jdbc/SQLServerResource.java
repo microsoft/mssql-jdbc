@@ -266,6 +266,8 @@ public final class SQLServerResource extends ListResourceBundle {
                     "Password for private key if the private key is password protected."},
             {"R_sendTemporalDataTypesAsStringForBulkCopyPropertyDescription",
                     "Flag to indicate whether the driver will send temporal datatypes as String value to the server for bulk copy."},
+            {"R_delayLoadingLobsPropertyDescription",
+                    "Boolean flag which indicates whether the driver will load LOB datatypes into memeory."},
             {"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
             {"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
             {"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
@@ -643,7 +645,5 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_pvkParseError", "Could not read Private Key from PVK, check the password provided."},
             {"R_pvkHeaderError", "Cannot parse the PVK, PVK file does not contain the correct header."},
             {"R_clientCertError", "Reading client certificate failed. Please verify the location of the certificate."},
-            {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."},
-            {"R_delayLoadingLobsPropertyDescription",
-            "Boolean flag which indicates whether the driver will load LOB datatypes into memeory."}};
+            {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."},};
 };

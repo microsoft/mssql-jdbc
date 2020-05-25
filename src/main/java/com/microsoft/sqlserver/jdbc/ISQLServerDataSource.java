@@ -992,7 +992,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setClientKeyPassword(String password);
 
     /**
-     * Specifies the flag to load LOBs instead of stream them.
+     * Specifies the flag to load LOBs instead of streaming them.
      *
      * @param delayLoadingLobs
      *        boolean value for 'delayLoadingLobs'.

@@ -41,6 +41,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.jdbc.TestUtils.DBBinaryStream;
@@ -583,6 +584,9 @@ public class LobsTest extends AbstractTest {
         }
     }
 
+    /*
+     * Tests delayLoadingLobs with Blobs
+     */
     @Test
     @DisplayName("testBlobNotStreaming")
     public void testBlobNotStreaming() throws SQLException, IOException {
@@ -700,7 +704,7 @@ public class LobsTest extends AbstractTest {
     }
 
     /*
-     * Tests Clobs and ASCII stream
+     * Tests continuous reading on non-streaming stream after the RS closes.
      */
     @Test
     @DisplayName("testContinuousReading")
@@ -741,7 +745,7 @@ public class LobsTest extends AbstractTest {
     }
 
     /*
-     * Tests NClobs and Character Stream
+     * Tests NClobs and Character Stream and Data source
      */
     @Test
     @DisplayName("testNClobNotStreamingChara")
@@ -760,11 +764,16 @@ public class LobsTest extends AbstractTest {
             pstmt.executeUpdate();
         }
 
-        String streamString = TestUtils.addOrOverrideProperty(connectionString, "delayLoadingLobs", "true");
-        String loadedString = TestUtils.addOrOverrideProperty(streamString, "delayLoadingLobs", "false");
+        
+        SQLServerDataSource ds1 = new SQLServerDataSource();
+        SQLServerDataSource ds2 = new SQLServerDataSource();
+        updateDataSource(connectionString, ds1);
+        updateDataSource(connectionString, ds2);
+        ds1.setDelayLoadingLobs(true);
+        ds1.setDelayLoadingLobs(false);
 
-        try (Connection streamingConnection = DriverManager.getConnection(streamString);
-                Connection loadedConnection = DriverManager.getConnection(loadedString);
+        try (Connection streamingConnection = ds1.getConnection();
+                Connection loadedConnection = ds2.getConnection();
                 Statement sStmt = streamingConnection.createStatement();
                 Statement lStmt = loadedConnection.createStatement()) {
             try (ResultSet rs = sStmt.executeQuery(

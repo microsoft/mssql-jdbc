@@ -122,12 +122,6 @@ abstract class SQLServerClobBase extends SQLServerLob {
         return fullClassName.substring(1 + fullClassName.lastIndexOf('.'));
     }
 
-    private boolean loadLob = false;
-
-    void setStreaming(boolean b) {
-        loadLob = b;
-    }
-
     /**
      * Constructs a new CLOB from a String.
      * 
@@ -215,7 +209,7 @@ abstract class SQLServerClobBase extends SQLServerLob {
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
         }
         // If the LOB is currently streaming and the stream hasn't been read, read it.
-        if (null == value && !activeStreams.isEmpty() && loadLob) {
+        if (!delayLoadingLob && null == value && !activeStreams.isEmpty()) {
             getStringFromStream();
         }
 
@@ -248,7 +242,7 @@ abstract class SQLServerClobBase extends SQLServerLob {
     public Reader getCharacterStream() throws SQLException {
         checkClosed();
         // If the LOB is currently streaming and the stream hasn't been read, read it.
-        if (null == value && !activeStreams.isEmpty() && loadLob) {
+        if (!delayLoadingLob && null == value && !activeStreams.isEmpty()) {
             getStringFromStream();
         }
 

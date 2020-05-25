@@ -53,12 +53,6 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
 
     private final String traceID;
 
-    private boolean loadLob = false;
-
-    void setStreaming(boolean b) {
-        loadLob = b;
-    }
-
     public final String toString() {
         return traceID;
     }
@@ -150,7 +144,7 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
     public InputStream getBinaryStream() throws SQLException {
         checkClosed();
         // If the LOB is currently streaming and the stream hasn't been read, read it.
-        if (null == value && !activeStreams.isEmpty() && loadLob) {
+        if (!delayLoadingLob && null == value && !activeStreams.isEmpty()) {
             getBytesFromStream();
         }
 
