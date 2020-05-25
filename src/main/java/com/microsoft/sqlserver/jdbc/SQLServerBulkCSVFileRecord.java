@@ -555,11 +555,12 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             int j = 0;
             StringBuilder sb = new StringBuilder();
             long quoteCount = tokens[i].chars().filter(ch -> ch == '"').count();
-            if (0 != quoteCount % 2) {
-                throw new SQLServerException(SQLServerException.getErrString("R_InvalidCSVOddQuotes"), null, 0, null);
-            }
             if (quoteCount > 0) {
                 tokens[i] = tokens[i].trim();
+            }
+            if (0 != quoteCount % 2 || (quoteCount > 0
+                    && ('"' != tokens[i].charAt(0) || '"' != tokens[i].charAt(tokens[i].length() - 1)))) {
+                throw new SQLServerException(SQLServerException.getErrString("R_InvalidCSVQuotes"), null, 0, null);
             }
             while (j < tokens[i].length()) {
                 if ('"' == tokens[i].charAt(j)) {
