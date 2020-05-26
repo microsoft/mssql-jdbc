@@ -1006,6 +1006,20 @@ public class SQLServerDataSource
         setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(), password);
     }
 
+    @Override
+    public boolean getSendTemporalDataTypesAsStringForBulkCopy() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString(),
+                SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.getDefaultValue());
+    }
+
+    @Override
+    public void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy) {
+        setBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString(),
+                sendTemporalDataTypesAsStringForBulkCopy);
+    }
+
     /**
      * Sets a property string value.
      * 

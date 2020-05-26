@@ -136,6 +136,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private String clientKey = null;
     private String clientKeyPassword = "";
 
+    private boolean sendTemporalDataTypesAsStringForBulkCopy = true;
+
     final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
@@ -651,6 +653,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     boolean isColumnEncryptionSettingEnabled() {
         return (columnEncryptionSetting.equalsIgnoreCase(ColumnEncryptionSetting.Enabled.toString()));
+    }
+
+    boolean getSendTemporalDataTypesAsStringForBulkCopy() {
+        return sendTemporalDataTypesAsStringForBulkCopy;
     }
 
     String enclaveAttestationUrl = null;
@@ -2121,6 +2127,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 clientKeyPassword = sPropValue;
             }
 
+            sPropKey = SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                sendTemporalDataTypesAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
+            }
+
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
             String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
@@ -3353,7 +3365,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void commit() throws SQLServerException {
         commit(false);
     }
-    
+
     /**
      * Makes all changes made since the previous
      * commit/rollback permanent and releases any database locks
@@ -3361,8 +3373,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * This method should be
      * used only when auto-commit mode has been disabled.
      * 
-     * @param delayedDurability flag to indicate whether the commit will occur with delayed durability on.
-     * @throws SQLServerException Exception if a database access error occurs,
+     * @param delayedDurability
+     *        flag to indicate whether the commit will occur with delayed durability on.
+     * @throws SQLServerException
+     *         Exception if a database access error occurs,
      */
     public void commit(boolean delayedDurability) throws SQLServerException {
         loggerExternal.entering(loggingClassName, "commit");
@@ -3371,12 +3385,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         checkClosed();
-        if (!databaseAutoCommitMode)
-        {
+        if (!databaseAutoCommitMode) {
             if (!delayedDurability)
                 connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN", "Connection.commit");
             else
-                connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN WITH ( DELAYED_DURABILITY =  ON )", "Connection.commit");
+                connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN WITH ( DELAYED_DURABILITY =  ON )",
+                        "Connection.commit");
         }
         loggerExternal.exiting(loggingClassName, "commit");
     }
