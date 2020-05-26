@@ -494,6 +494,18 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue());
     }
 
+    @Override
+    public void setDelayLoadingLobs(boolean delayLoadingLobs) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString(),
+                delayLoadingLobs);
+    }
+
+    @Override
+    public boolean getDelayLoadingLobs() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString(),
+                SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue());
+    }
+
     /**
      * Sets whether string parameters are sent to the server in UNICODE format.
      * 
