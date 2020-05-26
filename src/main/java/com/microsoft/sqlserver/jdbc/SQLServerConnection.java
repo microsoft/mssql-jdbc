@@ -685,6 +685,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return serverSupportsDataClassification;
     }
 
+    // Boolean that indicates whether LOB objects created by this connection should be loaded into memory
+    private boolean delayLoadingLobs = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue();
+
+    public boolean getDelayLoadingLobs() {
+        return delayLoadingLobs;
+    }
+
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
     static {
         if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
@@ -2133,6 +2140,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sendTemporalDataTypesAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
             }
 
+            sPropKey = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+            delayLoadingLobs = isBooleanPropertyOn(sPropKey, sPropValue);
+
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
             String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
@@ -3367,11 +3382,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Makes all changes made since the previous
-     * commit/rollback permanent and releases any database locks
-     * currently held by this <code>Connection</code> object.
-     * This method should be
-     * used only when auto-commit mode has been disabled.
+     * Makes all changes made since the previous commit/rollback permanent and releases any database locks currently
+     * held by this <code>Connection</code> object. This method should be used only when auto-commit mode has been
+     * disabled.
      * 
      * @param delayedDurability
      *        flag to indicate whether the commit will occur with delayed durability on.

@@ -143,6 +143,11 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
     @Override
     public InputStream getBinaryStream() throws SQLException {
         checkClosed();
+        // If the LOB is currently streaming and the stream hasn't been read, read it.
+        if (!delayLoadingLob && null == value && !activeStreams.isEmpty()) {
+            getBytesFromStream();
+        }
+
         if (null == value && !activeStreams.isEmpty()) {
             InputStream stream = (InputStream) activeStreams.get(0);
             try {
