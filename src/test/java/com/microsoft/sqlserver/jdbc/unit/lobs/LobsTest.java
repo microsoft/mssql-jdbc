@@ -770,7 +770,7 @@ public class LobsTest extends AbstractTest {
         updateDataSource(connectionString, ds1);
         updateDataSource(connectionString, ds2);
         ds1.setDelayLoadingLobs(true);
-        ds1.setDelayLoadingLobs(false);
+        ds2.setDelayLoadingLobs(false);
 
         try (Connection streamingConnection = ds1.getConnection();
                 Connection loadedConnection = ds2.getConnection();
