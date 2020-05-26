@@ -36,6 +36,7 @@ public final class Constants {
     public static final String xAzureSQLDW = "xAzureSQLDW";
     public static final String xAzureSQLMI = "xAzureSQLMI";
     public static final String NTLM = "NTLM";
+    public static final String MSI = "MSI";
     public static final String reqExternalSetup = "reqExternalSetup";
     public static final String clientCertAuth = "clientCertAuth";
 
@@ -94,6 +95,7 @@ public final class Constants {
     public static final String WINDOWS_KEY_STORE_NAME = "MSSQL_CERTIFICATE_STORE";
     public static final String AZURE_KEY_VAULT_NAME = "AZURE_KEY_VAULT";
     public static final String JAVA_KEY_STORE_NAME = "MSSQL_JAVA_KEYSTORE";
+    public static final String CUSTOM_KEYSTORE_NAME = "CUSTOM_KEYSTORE";
     public static final String JAVA_KEY_STORE_FILENAME = "JavaKeyStore.txt";
     public static final String JAVA_KEY_STORE_SECRET = "JavaKeyStorePassword";
     public static final String JKS = "JKS";
@@ -141,11 +143,19 @@ public final class Constants {
 
     public static final String ENCLAVE_ATTESTATIONURL = "enclaveAttestationUrl";
     public static final String ENCLAVE_ATTESTATIONPROTOCOL = "enclaveAttestationProtocol";
-    
+
+    // for MSI
+    public static final String MSICLIENTID = "MSICLIENTID";
+    public static final String KEYVAULTPROVIDER_CLIENTID = "KEYVAULTPROVIDERCLIENTID";
+    public static final String KEYVAULTPROVIDER_CLIENTKEY = "KEYVAULTPROVIDERCLIENTKEY";
+    public static final String KEYSTORE_AUTHENTICATION = "KEYSTOREAUTHENTICATION";
+    public static final String KEYSTORE_PRINCIPALID = "KEYSTOREPRINCIPALID";
+    public static final String KEYSTORE_SECRET = "KEYSTORESECRET";
+    public static final String KEYSTORE_LOCATION = "KEYSTORELOCATION";
     public static final String CLIENT_CERTIFICATE = "CLIENTCERTIFICATE";
     public static final String CLIENT_KEY = "CLIENTKEY";
     public static final String CLIENT_KEY_PASSWORD = "CLIENTKEYPASSWORD";
-    
+    public static final String SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY = "SENDTEMPORALDATATYPESASSTRINGFORBULKCOPY";
     public static final String CONFIG_PROPERTIES_FILE = "config.properties";
 
     public enum LOB {

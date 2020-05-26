@@ -84,6 +84,22 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a client id and client key to authenticate to
+     * AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * 
+     * @param clientId
+     *        Identifier of the client requesting the token.
+     * @param clientKey
+     *        Key of the client requesting the token.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
+        credentials = new KeyVaultCredential(clientId, clientKey);
+        keyVaultClient = new KeyVaultClient(credentials);
+    }
+
+    /**
      * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a callback function to authenticate to AAD and
      * an executor service.. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
      * 
@@ -129,23 +145,34 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a client id and client key to authenticate to
-     * AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by
+     * KeyVaultClient at runtime to authenticate to Azure Key Vault.
      * 
-     * @param clientId
-     *        Identifier of the client requesting the token.
-     * @param clientKey
-     *        Key of the client requesting the token.
      * @throws SQLServerException
      *         when an error occurs
      */
-    public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
-        credentials = new KeyVaultCredential(clientId, clientKey);
+    SQLServerColumnEncryptionAzureKeyVaultProvider() throws SQLServerException {
+        credentials = new KeyVaultCredential();
         keyVaultClient = new KeyVaultClient(credentials);
     }
 
     /**
-     * Decryptes an encrypted CEK with RSA encryption algorithm using the asymmetric key specified by the key path
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by
+     * KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     *
+     * @param clientId
+     *        Identifier of the client requesting the token.
+     * 
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId) throws SQLServerException {
+        credentials = new KeyVaultCredential(clientId);
+        keyVaultClient = new KeyVaultClient(credentials);
+    }
+
+    /**
+     * Decrypts an encrypted CEK with RSA encryption algorithm using the asymmetric key specified by the key path
      * 
      * @param masterKeyPath
      *        - Complete path of an asymmetric key in AKV
@@ -640,7 +667,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         boolean append = true;
         if (null != mssqlJdbcProperties) {
             String endpoints = mssqlJdbcProperties.getProperty(AKV_TRUSTED_ENDPOINTS_KEYWORD);
-            if (null != endpoints && !endpoints.isBlank()) {
+            if (null != endpoints && !endpoints.trim().isEmpty()) {
                 endpoints = endpoints.trim();
                 // Append if the list starts with a semicolon.
                 if (';' != endpoints.charAt(0)) {
@@ -650,7 +677,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                 }
                 String[] entries = endpoints.split(";");
                 for (String entry : entries) {
-                    if (null != entry && !entry.isBlank()) {
+                    if (null != entry && !entry.trim().isEmpty()) {
                         trustedEndpoints.add(entry.trim());
                     }
                 }

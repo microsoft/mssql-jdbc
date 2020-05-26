@@ -762,6 +762,36 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getSSLProtocol();
 
     /**
+     * Returns the value for the connection property 'socketFactoryClass'.
+     *
+     * @return socketFactoryClass property value
+     */
+    String getSocketFactoryClass();
+
+    /**
+     * Sets the connection property 'socketFactoryClass' on the connection.
+     *
+     * @param socketFactoryClass
+     *        The fully qualified class name of a custom javax.net.SocketFactory.
+     */
+    void setSocketFactoryClass(String socketFactoryClass);
+
+    /**
+     * Returns the value for the connection property 'socketFactoryConstructorArg'.
+     *
+     * @return socketFactoryConstructorArg property value
+     */
+    String getSocketFactoryConstructorArg();
+
+    /**
+     * Sets Constructor Arguments to be provided on constructor of 'socketFactoryClass'.
+     *
+     * @param socketFactoryConstructorArg
+     *        'socketFactoryClass' constructor arguments
+     */
+    void setSocketFactoryConstructorArg(String socketFactoryConstructorArg);
+
+    /**
      * Sets the connection property 'trustManagerClass' on the connection.
      * 
      * @param trustManagerClass
@@ -820,6 +850,25 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return msiClientId property value
      */
     String getMSIClientId();
+
+    /**
+     * Sets the value for the connection property 'keyStorePrincipalId'.
+     * 
+     * @param keyStorePrincipalId
+     * 
+     *        <pre>
+     *        When keyStoreAuthentication = keyVaultClientSecret, set this value to a valid Azure Active Directory Application Client ID.
+     *        When keyStoreAuthentication = keyVaultManagedIdentity, set this value to a valid Azure Active Directory Application Object ID (optional, for user-assigned only).
+     *        </pre>
+     */
+    void setKeyStorePrincipalId(String keyStorePrincipalId);
+
+    /**
+     * Returns the value for the connection property 'keyStorePrincipalId'.
+     * 
+     * @return keyStorePrincipalId
+     */
+    String getKeyStorePrincipalId();
 
     /**
      * Sets the Azure Key Vault (AKV) Provider Client Id to provided value to be used for column encryption.
@@ -903,7 +952,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Enclave attestation protocol.
      */
     void setEnclaveAttestationProtocol(String protocol);
-    
+
     /**
      * Returns client certificate path for client certificate authentication.
      * 
@@ -918,7 +967,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Client certificate path.
      */
     void setClientCertificate(String certPath);
-    
+
     /**
      * Returns Private key file path for client certificate authentication.
      * 
@@ -941,5 +990,35 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Private key password.
      */
     void setClientKeyPassword(String password);
+
+    /**
+     * Specifies the flag to load LOBs instead of streaming them.
+     *
+     * @param delayLoadingLobs
+     *        boolean value for 'delayLoadingLobs'.
+     */
+    void setDelayLoadingLobs(boolean delayLoadingLobs);
+
+    /**
+     * Returns the current flag value for delayLoadingLobs.
+     *
+     * @return 'delayLoadingLobs' property value.
+     */
+    boolean getDelayLoadingLobs();
+
+    /*
+     * Returns the current flag for value sendTemporalDataTypesAsStringForBulkCopy
+     * 
+     * @return 'sendTemporalDataTypesAsStringForBulkCopy' property value.
+     */
+    boolean getSendTemporalDataTypesAsStringForBulkCopy();
+
+    /**
+     * Specifies the flag to send temporal datatypes as String for Bulk Copy.
+     * 
+     * @param sendTemporalDataTypesAsStringForBulkCopy
+     *        boolean value for 'sendTemporalDataTypesAsStringForBulkCopy'.
+     */
+    void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
 
 }

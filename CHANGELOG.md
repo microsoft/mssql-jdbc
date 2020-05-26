@@ -3,6 +3,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [8.3.0] Preview Release
+### Added
+- Added connection properties to specify custom SocketFactory [#1217](https://github.com/Microsoft/mssql-jdbc/pull/1217)
+- Added support for Client Certificate Authentication [#1284](https://github.com/microsoft/mssql-jdbc/pull/1284)
+- Added support for JAVA 14 [#1290](https://github.com/microsoft/mssql-jdbc/pull/1290)
+- Added support for authentication to Azure Key Vault using Managed Identity [#1286](https://github.com/microsoft/mssql-jdbc/pull/1286)
+
+### Fixed issues
+- Fixed an issue with escaping curly brackets in connection string [#1251](https://github.com/microsoft/mssql-jdbc/pull/1251)
+- Fixed a warning when retrieving Operating System information from SQL Server Linux when using distributed transactions [#1279](https://github.com/microsoft/mssql-jdbc/pull/1279)
+
+### Changed
+- Updated Gradle dependencies [#1244](https://github.com/microsoft/mssql-jdbc/pull/1244)
+- Updated SQLServerPreparedStatement.setObject() to retrieve TVP name from SQLServerDataTable [#1282](https://github.com/microsoft/mssql-jdbc/pull/1282)
+
 ## [8.2.2] HotFix & Stable Release
 ### Added
 - Added an option to configure the list of trusted Azure Key Vault endpoints [#1285](https://github.com/microsoft/mssql-jdbc/pull/1285)

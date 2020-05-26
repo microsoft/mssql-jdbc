@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -241,10 +242,9 @@ final class Util {
         Properties p = new Properties();
         String tmpUrl = url;
         String sPrefix = "jdbc:sqlserver://";
-        String result = "";
+        StringBuilder result = new StringBuilder();
         String name = "";
         String value = "";
-        StringBuilder builder;
 
         if (!tmpUrl.startsWith(sPrefix))
             return null;
@@ -274,10 +274,7 @@ final class Util {
                         // done immediately
                         state = inName;
                     } else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result.append(ch);
                         state = inServerName;
                     }
                     break;
@@ -286,14 +283,14 @@ final class Util {
                 case inServerName: {
                     if (ch == ';' || ch == ':' || ch == '\\') {
                         // non escaped trim the string
-                        result = result.trim();
-                        if (result.length() > 0) {
-                            p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), result);
+                        String property = result.toString().trim();
+                        if (property.length() > 0) {
+                            p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), property);
                             if (logger.isLoggable(Level.FINE)) {
-                                logger.fine("Property:serverName " + "Value:" + result);
+                                logger.fine("Property:serverName " + "Value:" + property);
                             }
                         }
-                        result = "";
+                        result.setLength(0);
 
                         if (ch == ';')
                             state = inName;
@@ -302,10 +299,7 @@ final class Util {
                         else
                             state = inInstanceName;
                     } else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result.append(ch);
                         // same state
                     }
                     break;
@@ -313,18 +307,15 @@ final class Util {
 
                 case inPort: {
                     if (ch == ';') {
-                        result = result.trim();
+                        String property = result.toString().trim();
                         if (logger.isLoggable(Level.FINE)) {
-                            logger.fine("Property:portNumber " + "Value:" + result);
+                            logger.fine("Property:portNumber " + "Value:" + property);
                         }
-                        p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), result);
-                        result = "";
+                        p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), property);
+                        result.setLength(0);
                         state = inName;
                     } else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result.append(ch);
                         // same state
                     }
                     break;
@@ -332,22 +323,19 @@ final class Util {
                 case inInstanceName: {
                     if (ch == ';' || ch == ':') {
                         // non escaped trim the string
-                        result = result.trim();
+                        String property = result.toString().trim();
                         if (logger.isLoggable(Level.FINE)) {
-                            logger.fine("Property:instanceName " + "Value:" + result);
+                            logger.fine("Property:instanceName " + "Value:" + property);
                         }
-                        p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), result.toLowerCase(Locale.US));
-                        result = "";
+                        p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), property.toLowerCase(Locale.US));
+                        result.setLength(0);
 
                         if (ch == ';')
                             state = inName;
                         else
                             state = inPort;
                     } else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result.append(ch);
                         // same state
                     }
                     break;
@@ -369,7 +357,7 @@ final class Util {
                         }
                         // same state
                     } else {
-                        builder = new StringBuilder();
+                        StringBuilder builder = new StringBuilder();
                         builder.append(name);
                         builder.append(ch);
                         name = builder.toString();
@@ -407,7 +395,7 @@ final class Util {
                                     SQLServerException.getErrString("R_errorConnectionString"), null, true);
                         }
                     } else {
-                        builder = new StringBuilder();
+                        StringBuilder builder = new StringBuilder();
                         builder.append(value);
                         builder.append(ch);
                         value = builder.toString();
@@ -416,13 +404,13 @@ final class Util {
                     break;
                 }
                 case inEscapedValueStart: {
-                    /* check for escaped }.
-                    * when we see a }, first check to see if this is before the end of the string to avoid index out of range exception
-                    * then check if the character immediately after is also a }.
-                    * if it is, then we have a }}, which is not the closing of the escaped state.
-                    */
+                    /*
+                     * check for escaped }. when we see a }, first check to see if this is before the end of the string
+                     * to avoid index out of range exception then check if the character immediately after is also a }.
+                     * if it is, then we have a }}, which is not the closing of the escaped state.
+                     */
                     if (ch == '}' && i + 1 < tmpUrl.length() && tmpUrl.charAt(i + 1) == '}') {
-                        builder = new StringBuilder();
+                        StringBuilder builder = new StringBuilder();
                         builder.append(value);
                         builder.append(ch);
                         value = builder.toString();
@@ -447,7 +435,7 @@ final class Util {
                             // it would not be clean
                             state = inEscapedValueEnd;
                         } else {
-                            builder = new StringBuilder();
+                            StringBuilder builder = new StringBuilder();
                             builder.append(value);
                             builder.append(ch);
                             value = builder.toString();
@@ -477,27 +465,27 @@ final class Util {
         // Exit
         switch (state) {
             case inServerName:
-                result = result.trim();
-                if (result.length() > 0) {
+                String property = result.toString().trim();
+                if (property.length() > 0) {
                     if (logger.isLoggable(Level.FINE)) {
-                        logger.fine("Property:serverName " + "Value:" + result);
+                        logger.fine("Property:serverName " + "Value:" + property);
                     }
-                    p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), result);
+                    p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), property);
                 }
                 break;
             case inPort:
-                result = result.trim();
+                property = result.toString().trim();
                 if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("Property:portNumber " + "Value:" + result);
+                    logger.fine("Property:portNumber " + "Value:" + property);
                 }
-                p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), result);
+                p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), property);
                 break;
             case inInstanceName:
-                result = result.trim();
+                property = result.toString().trim();
                 if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("Property:instanceName " + "Value:" + result);
+                    logger.fine("Property:instanceName " + "Value:" + property);
                 }
-                p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), result);
+                p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), property);
                 break;
             case inValue:
                 // simple value trim
@@ -994,6 +982,21 @@ final class Util {
     // otherwise return SQLServerConnection
     static boolean use43Wrapper() {
         return use43Wrapper;
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T> T newInstance(Class<?> returnType, String className, String constructorArg,
+            Object[] msgArgs) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException {
+        Class<?> clazz = Class.forName(className);
+        if (!returnType.isAssignableFrom(clazz)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unassignableError"));
+            throw new IllegalArgumentException(form.format(msgArgs));
+        }
+        if (constructorArg == null) {
+            return (T) clazz.getDeclaredConstructor().newInstance();
+        } else {
+            return (T) clazz.getDeclaredConstructor(String.class).newInstance(constructorArg);
+        }
     }
 
     /**

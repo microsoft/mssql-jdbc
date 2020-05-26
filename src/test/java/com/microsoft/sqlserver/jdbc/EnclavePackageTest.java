@@ -212,21 +212,19 @@ public class EnclavePackageTest extends AbstractTest {
      * @throws SQLException
      *         when an error occurs
      */
-    public static void testBasicConnection(String serverName, String url, String protocol) throws Exception {
-        setAEConnectionString(url, protocol);
-
+    public static void testBasicConnection(String cString, String protocol) throws Exception {
         SQLServerDataSource dsLocal = new SQLServerDataSource();
-        AbstractTest.updateDataSource(connectionStringEnclave, dsLocal);
+        AbstractTest.updateDataSource(cString, dsLocal);
 
         SQLServerDataSource dsXA = new SQLServerXADataSource();
-        AbstractTest.updateDataSource(connectionStringEnclave, dsXA);
+        AbstractTest.updateDataSource(cString, dsXA);
 
         SQLServerDataSource dsPool = new SQLServerConnectionPoolDataSource();
-        AbstractTest.updateDataSource(connectionStringEnclave, dsPool);
+        AbstractTest.updateDataSource(cString, dsPool);
 
         try (Connection con1 = dsLocal.getConnection(); Connection con2 = dsXA.getConnection();
                 Connection con3 = dsPool.getConnection();
-                Connection con4 = PrepUtil.getConnection(connectionStringEnclave)) {
+                Connection con4 = PrepUtil.getConnection(cString)) {
             if (TestUtils.isAEv2(con1)) {
                 verifyEnclaveEnabled(con1, protocol);
             }
@@ -289,7 +287,7 @@ public class EnclavePackageTest extends AbstractTest {
     public static void testBadAkv() {
         try {
             SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                    null);
+                    (String) null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
