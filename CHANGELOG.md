@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added certificate expiry validation when using Always Encrypted with secure enclaves feature [#1321](https://github.com/microsoft/mssql-jdbc/pull/1321)
 - Added SQL State to Exception when connection is closed [#1326](https://github.com/microsoft/mssql-jdbc/pull/1326)
 - Introduced extended bulk copy support against Azure Data Warehouse [#1331](https://github.com/microsoft/mssql-jdbc/pull/1331)
-- Introduced delayLoadingLobs connection property to provide backward compatibility when streaming LOBs [#1336](https://github.com/microsoft/mssql-jdbc/pull/1336)
+- Introduced 'delayLoadingLobs' connection property to provide backward compatibility when streaming LOBs [#1336](https://github.com/microsoft/mssql-jdbc/pull/1336)
 
 ### Fixed issues
 - Fixed an issue with MSI authentication failing due to expiry date format mismatch [#1308](https://github.com/microsoft/mssql-jdbc/pull/1308)
@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Changed
 - Updated driver and test dependencies [#1294](https://github.com/microsoft/mssql-jdbc/pull/1294), [#1313](https://github.com/microsoft/mssql-jdbc/pull/1313)
-- Improved exception message when connecting to redirection-enabled Azure server. [#1311](https://github.com/microsoft/mssql-jdbc/pull/1311)
+- Improved exception message when connecting to redirection-enabled Azure server [#1311](https://github.com/microsoft/mssql-jdbc/pull/1311)
 - Improved performance when parsing connection string [#1317](https://github.com/microsoft/mssql-jdbc/pull/1317)
 - Updated the driver to throw a warning when TLS version lower than 1.2 is negotiated [#1322](https://github.com/microsoft/mssql-jdbc/pull/1322)
 - Removed unused code [#1330](https://github.com/microsoft/mssql-jdbc/pull/1330)

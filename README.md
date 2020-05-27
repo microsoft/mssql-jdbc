@@ -191,7 +191,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>org.antlr</groupId>
 	<artifactId>antlr4-runtime</artifactId>
-	<version>4.7.2</version>
+	<version>4.8-1</version>
 </dependency>
 ```
 
