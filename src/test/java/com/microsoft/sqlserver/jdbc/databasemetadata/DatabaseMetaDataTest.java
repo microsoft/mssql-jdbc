@@ -120,6 +120,16 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testDatabaseCompatibilityLevel() throws SQLException {
+        try (Connection conn = getConnection()) {
+            SQLServerDatabaseMetaData dbmData = (SQLServerDatabaseMetaData) conn.getMetaData();
+            int compatibilityLevel = dbmData.getDatabaseCompatibilityLevel();
+            assertTrue(compatibilityLevel > 0);
+            assertTrue(compatibilityLevel < dbmData.getDatabaseMajorVersion()*100);
+        }
+    }
+
     /**
      * Your password should not be in getURL method.
      * 
