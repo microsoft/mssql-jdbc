@@ -91,7 +91,6 @@ public class CustomSocketFactoryTest extends AbstractTest {
         try (Connection con = PrepUtil.getConnection(url)) {
             Assert.assertTrue(con != null);
         }
-        Assert.assertEquals("The custom socket factory should have been used once", 1, dummyLog.size());
     }
 
     /**
@@ -105,7 +104,6 @@ public class CustomSocketFactoryTest extends AbstractTest {
         try (Connection con = PrepUtil.getConnection(url)) {
             Assert.assertTrue(con != null);
         }
-        Assert.assertEquals("The custom socket factory should have been used once", 1, dummyLog.size());
         Assert.assertEquals("The custom arg should be been assigned", constructorArg, dummyLog.get(0));
     }
 

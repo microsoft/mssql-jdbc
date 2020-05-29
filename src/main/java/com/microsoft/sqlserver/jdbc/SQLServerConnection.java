@@ -136,6 +136,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private String clientKey = null;
     private String clientKeyPassword = "";
 
+    private boolean sendTemporalDataTypesAsStringForBulkCopy = true;
+
     final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
@@ -155,12 +157,31 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     SharedTimer getSharedTimer() throws SQLServerException {
         if (state == State.Closed) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
-                    null, false);
+                    SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
         }
         if (null == sharedTimer) {
             this.sharedTimer = SharedTimer.getTimer();
         }
         return this.sharedTimer;
+    }
+
+    /**
+     * Get the server name string including redirected server if applicable
+     * 
+     * @param serverName
+     * @return
+     */
+    String getServerNameString(String serverName) {
+        String serverNameFromConnectionStr = activeConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+        if (null == serverName || serverName.equals(serverNameFromConnectionStr)) {
+            return serverName;
+        }
+
+        // server was redirected
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_redirectedFrom"));
+        Object[] msgArgs = {serverName, serverNameFromConnectionStr};
+        return form.format(msgArgs);
     }
 
     static class CityHash128Key implements java.io.Serializable {
@@ -634,6 +655,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (columnEncryptionSetting.equalsIgnoreCase(ColumnEncryptionSetting.Enabled.toString()));
     }
 
+    boolean getSendTemporalDataTypesAsStringForBulkCopy() {
+        return sendTemporalDataTypesAsStringForBulkCopy;
+    }
+
     String enclaveAttestationUrl = null;
     String enclaveAttestationProtocol = null;
 
@@ -658,6 +683,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     boolean getServerSupportsDataClassification() {
         return serverSupportsDataClassification;
+    }
+
+    // Boolean that indicates whether LOB objects created by this connection should be loaded into memory
+    private boolean delayLoadingLobs = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue();
+
+    boolean getDelayLoadingLobs() {
+        return delayLoadingLobs;
     }
 
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
@@ -1148,7 +1180,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void checkClosed() throws SQLServerException {
         if (isSessionUnAvailable()) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
-                    null, false);
+                    SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
         }
     }
 
@@ -1316,8 +1348,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 case KeyVaultClientSecret:
                     // need a secret use use the secret method
                     if (null == keyStoreSecret) {
-                        throw new SQLServerException(
-                                SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
+                        throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
                     } else {
                         SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
                                 keyStorePrincipalId, keyStoreSecret);
@@ -2103,6 +2134,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 clientKeyPassword = sPropValue;
             }
 
+            sPropKey = SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                sendTemporalDataTypesAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
+            }
+
+            sPropKey = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+            delayLoadingLobs = isBooleanPropertyOn(sPropKey, sPropValue);
+
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
             String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
@@ -2328,9 +2373,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // is done just to be consistent with the rest of the logic.
                     attemptNumber++;
 
-                    // set isRoutedInCurrentAttempt to false for the next attempt
-                    isRoutedInCurrentAttempt = false;
-
                     // useParallel and useTnir should be set to false once we get routed
                     useParallel = false;
                     useTnir = false;
@@ -2343,12 +2385,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (timerHasExpired(timerExpire)) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                        Object[] msgArgs = {currentConnectPlaceHolder.getServerName(),
+                        Object[] msgArgs = {getServerNameString(currentConnectPlaceHolder.getServerName()),
                                 Integer.toString(currentConnectPlaceHolder.getPortNumber()),
                                 SQLServerException.getErrString("R_timedOutBeforeRouting")};
                         String msg = form.format(msgArgs);
                         terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
                     } else {
+                        // set isRoutedInCurrentAttempt to false for the next attempt
+                        isRoutedInCurrentAttempt = false;
+
                         continue;
                     }
                 } else
@@ -2807,7 +2852,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + " Unexpected end of prelogin response after " + responseBytesRead + " bytes read");
                 }
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                Object[] msgArgs = {serverName, Integer.toString(portNumber),
+                Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
                         SQLServerException.getErrString("R_notSQLServer")};
                 terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
             }
@@ -2831,7 +2876,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + preloginResponse[0]);
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {serverName, Integer.toString(portNumber),
+                    Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
                             SQLServerException.getErrString("R_notSQLServer")};
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
@@ -2845,7 +2890,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + preloginResponse[1]);
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {serverName, Integer.toString(portNumber),
+                    Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
                             SQLServerException.getErrString("R_notSQLServer")};
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
@@ -2860,7 +2905,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + responseLength + " is greater than allowed length:" + preloginResponse.length);
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {serverName, Integer.toString(portNumber),
+                    Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
                             SQLServerException.getErrString("R_notSQLServer")};
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
@@ -3333,14 +3378,33 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public void commit() throws SQLServerException {
+        commit(false);
+    }
+
+    /**
+     * Makes all changes made since the previous commit/rollback permanent and releases any database locks currently
+     * held by this <code>Connection</code> object. This method should be used only when auto-commit mode has been
+     * disabled.
+     * 
+     * @param delayedDurability
+     *        flag to indicate whether the commit will occur with delayed durability on.
+     * @throws SQLServerException
+     *         Exception if a database access error occurs,
+     */
+    public void commit(boolean delayedDurability) throws SQLServerException {
         loggerExternal.entering(loggingClassName, "commit");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
         checkClosed();
-        if (!databaseAutoCommitMode)
-            connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN", "Connection.commit");
+        if (!databaseAutoCommitMode) {
+            if (!delayedDurability)
+                connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN", "Connection.commit");
+            else
+                connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN WITH ( DELAYED_DURABILITY =  ON )",
+                        "Connection.commit");
+        }
         loggerExternal.exiting(loggingClassName, "commit");
     }
 
@@ -3572,7 +3636,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     // Any changes to SQLWarnings should be synchronized.
-    private void addWarning(String warningString) {
+    void addWarning(String warningString) {
         synchronized (warningSynchronization) {
             SQLWarning warning = new SQLWarning(warningString);
 

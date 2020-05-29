@@ -317,7 +317,7 @@ abstract class BaseAttestationRequest {
         if (b.length < BIG_INTEGER_SIZE) {
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             for (int i = 0; i < BIG_INTEGER_SIZE - b.length; i++) {
-                output.write(new byte[] {0});
+                output.write(0);
             }
             output.write(b);
             b = output.toByteArray();

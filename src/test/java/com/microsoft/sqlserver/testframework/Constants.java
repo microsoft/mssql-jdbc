@@ -151,9 +151,11 @@ public final class Constants {
     public static final String KEYSTORE_AUTHENTICATION = "KEYSTOREAUTHENTICATION";
     public static final String KEYSTORE_PRINCIPALID = "KEYSTOREPRINCIPALID";
     public static final String KEYSTORE_SECRET = "KEYSTORESECRET";
+    public static final String KEYSTORE_LOCATION = "KEYSTORELOCATION";
     public static final String CLIENT_CERTIFICATE = "CLIENTCERTIFICATE";
     public static final String CLIENT_KEY = "CLIENTKEY";
     public static final String CLIENT_KEY_PASSWORD = "CLIENTKEYPASSWORD";
+    public static final String SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY = "SENDTEMPORALDATATYPESASSTRINGFORBULKCOPY";
     public static final String CONFIG_PROPERTIES_FILE = "config.properties";
 
     public enum LOB {

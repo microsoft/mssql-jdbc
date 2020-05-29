@@ -494,6 +494,18 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue());
     }
 
+    @Override
+    public void setDelayLoadingLobs(boolean delayLoadingLobs) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString(),
+                delayLoadingLobs);
+    }
+
+    @Override
+    public boolean getDelayLoadingLobs() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString(),
+                SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue());
+    }
+
     /**
      * Sets whether string parameters are sent to the server in UNICODE format.
      * 
@@ -1004,6 +1016,20 @@ public class SQLServerDataSource
     @Override
     public void setClientKeyPassword(String password) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(), password);
+    }
+
+    @Override
+    public boolean getSendTemporalDataTypesAsStringForBulkCopy() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString(),
+                SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.getDefaultValue());
+    }
+
+    @Override
+    public void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy) {
+        setBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString(),
+                sendTemporalDataTypesAsStringForBulkCopy);
     }
 
     /**

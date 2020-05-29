@@ -425,6 +425,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (SQLServerException e) {
             assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"),
                     TestResource.getResource("R_wrongExceptionMessage"));
+            assertEquals("08S01", e.getSQLState(), TestResource.getResource("R_wrongSqlState"));
         }
         try (Connection conn = getConnection()) {
             conn.close();
@@ -433,6 +434,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (SQLServerException e) {
             assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"),
                     TestResource.getResource("R_wrongExceptionMessage"));
+          assertEquals("08S01", e.getSQLState(), TestResource.getResource("R_wrongSqlState"));
         }
     }
 
@@ -567,6 +569,7 @@ public class SQLServerConnectionTest extends AbstractTest {
             } catch (SQLException e) {
                 assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"),
                         TestResource.getResource("R_wrongExceptionMessage"));
+              assertEquals("08S01", e.getSQLState(), TestResource.getResource("R_wrongSqlState"));
             }
         }
 
@@ -787,5 +790,17 @@ public class SQLServerConnectionTest extends AbstractTest {
         executor.shutdownNow();
 
         assertTrue(isInterrupted, TestResource.getResource("R_threadInterruptNotSet"));
+    }
+
+    /**
+     * Test calling method to get redirected server string.
+     */
+    @Test
+    public void testRedirectedError() {
+        try (SQLServerConnection conn = getConnection()) {
+            assertTrue(conn.getServerNameString(null) == null);
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
     }
 }
