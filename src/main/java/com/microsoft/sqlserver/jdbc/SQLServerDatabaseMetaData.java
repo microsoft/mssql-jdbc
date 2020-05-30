@@ -2538,20 +2538,25 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return true;
     }
 
-    /* -------------- MSSQL-JDBC Extension methods  ---------------- */
+    /* -------------- MSSQL-JDBC Extension methods start here --------------- */
 
+    /**
+     * Returns the database compatibility level setting for the current database.  This is useful if the
+     * database's compatibility level is lower than the engine version.  In this case the database will only
+     * support SQL commands at its compatibility level, and not the wider set of commands accepted by the
+     * engine.
+     *
+     * @return the database compatibility level value (from sys.databases table).
+     */
     public int getDatabaseCompatibilityLevel() throws SQLException {
         checkClosed();
         String database = connection.getCatalog();
-        try (SQLServerResultSet rs = getResultSetFromInternalQueries(null,
-                "select name, compatibility_level from sys.databases where name = '" + database + "'")) {
-            if (!rs.next()) {
-                return 0;
-            }
-            return rs.getInt("compatibility_level");
-        } catch (SQLServerException e) {
+        SQLServerResultSet rs = getResultSetFromInternalQueries(null,
+                "select name, compatibility_level from sys.databases where name = '" + database + "'");
+        if (!rs.next()) {
             return 0;
         }
+        return rs.getInt("compatibility_level");
     }
 }
 

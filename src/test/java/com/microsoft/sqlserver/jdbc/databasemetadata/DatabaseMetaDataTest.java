@@ -126,7 +126,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
             SQLServerDatabaseMetaData dbmData = (SQLServerDatabaseMetaData) conn.getMetaData();
             int compatibilityLevel = dbmData.getDatabaseCompatibilityLevel();
             assertTrue(compatibilityLevel > 0);
-            assertTrue(compatibilityLevel < dbmData.getDatabaseMajorVersion()*100);
         }
     }
 
