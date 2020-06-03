@@ -30,6 +30,8 @@ public class XADataSourceTest extends AbstractTest {
      * 
      * @throws Exception
      */
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
     @Test
     public void testPKCS12() throws Exception {
         org.junit.Assume.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
