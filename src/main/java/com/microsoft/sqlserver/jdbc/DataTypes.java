@@ -670,7 +670,8 @@ enum JDBCType {
     GUID(Category.CHARACTER, microsoft.sql.Types.GUID, String.class.getName()),
     SQL_VARIANT(Category.SQL_VARIANT, microsoft.sql.Types.SQL_VARIANT, Object.class.getName()),
     GEOMETRY(Category.GEOMETRY, microsoft.sql.Types.GEOMETRY, Object.class.getName()),
-    GEOGRAPHY(Category.GEOGRAPHY, microsoft.sql.Types.GEOGRAPHY, Object.class.getName());
+    GEOGRAPHY(Category.GEOGRAPHY, microsoft.sql.Types.GEOGRAPHY, Object.class.getName()),
+    LOCALDATETIME(Category.TIMESTAMP, java.sql.Types.TIMESTAMP, LocalDateTime.class.getName());
 
     final Category category;
     private final int intValue;
@@ -789,9 +790,9 @@ enum JDBCType {
         SQLXML(JDBCType.Category.SQLXML, EnumSet.of(JDBCType.Category.SQLXML)),
 
         TVP(JDBCType.Category.TVP, EnumSet.of(JDBCType.Category.TVP)),
-        
+
         GEOMETRY(JDBCType.Category.GEOMETRY, EnumSet.of(JDBCType.Category.GEOMETRY)),
-        
+
         GEOGRAPHY(JDBCType.Category.GEOGRAPHY, EnumSet.of(JDBCType.Category.GEOGRAPHY));
 
         private final JDBCType.Category from;
@@ -974,10 +975,8 @@ enum JDBCType {
     }
 
     /**
-     * Returns if datat types are supported by JDBC.
+     * Returns if data types are supported by JDBC.
      * 
-     * @param jdbcType
-     *        the JDBC type to check
      * @return true if the type is unsupported
      */
     boolean isUnsupported() {

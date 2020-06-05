@@ -10,7 +10,7 @@ import java.text.MessageFormat;
 
 /**
  * 
- * This class is used to handle exceptions that may be received from sqljdbc_auth.dll and sqljdbc_xa.dll
+ * This class is used to handle exceptions that may be received from mssql-jdbc_auth DLL and sqljdbc_xa DLL.
  *
  */
 class DLLException extends Exception {

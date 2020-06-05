@@ -28,7 +28,7 @@ class TDSTimeoutTask implements Runnable {
     @Override
     public final void run() {
         // Create a new thread to run the interrupt to ensure that blocking operations performed
-        // by the interrupt do not hang the primary timer thread.
+        // by the interrupt do not block the primary timer thread.
         String name = "mssql-timeout-task-" + COUNTER.incrementAndGet() + "-" + connectionId;
         Thread thread = new Thread(this::interrupt, name);
         thread.setDaemon(true);

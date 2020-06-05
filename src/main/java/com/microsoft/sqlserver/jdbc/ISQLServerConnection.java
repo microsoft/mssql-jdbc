@@ -18,7 +18,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
 
     // Transaction types.
     // TRANSACTION_SNAPSHOT corresponds to -> SET TRANSACTION ISOLATION LEVEL SNAPSHOT
-    public final static int TRANSACTION_SNAPSHOT = 0x1000;
+    int TRANSACTION_SNAPSHOT = 0x1000;
 
     /**
      * Returns the connection ID of the most recent connection attempt, regardless of whether the attempt succeeded or
@@ -29,7 +29,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    public UUID getClientConnectionId() throws SQLServerException;
+    UUID getClientConnectionId() throws SQLServerException;
 
     /**
      * Creates a <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given type,
@@ -53,7 +53,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *         if a database access error occurs, this method is called on a closed connection or the given parameters
      *         are not <code>ResultSet</code> constants indicating type, concurrency, and holdability
      */
-    public Statement createStatement(int nType, int nConcur, int nHold,
+    Statement createStatement(int nType, int nConcur, int nHold,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
 
     /**
@@ -85,7 +85,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *         if a database access error occurs, this method is called on a closed connection or the given parameter is
      *         not a <code>Statement</code> constant indicating whether auto-generated keys should be returned
      */
-    public PreparedStatement prepareStatement(String sql, int flag,
+    PreparedStatement prepareStatement(String sql, int flag,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
 
     /**
@@ -119,7 +119,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @throws SQLServerException
      *         if a database access error occurs or this method is called on a closed connection
      */
-    public PreparedStatement prepareStatement(String sql, int[] columnIndexes,
+    PreparedStatement prepareStatement(String sql, int[] columnIndexes,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
 
     /**
@@ -153,7 +153,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @throws SQLServerException
      *         if a database access error occurs or this method is called on a closed connection
      */
-    public PreparedStatement prepareStatement(String sql, String[] columnNames,
+    PreparedStatement prepareStatement(String sql, String[] columnNames,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
 
     /**
@@ -183,7 +183,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *         if a database access error occurs, this method is called on a closed connection or the given parameters
      *         are not <code>ResultSet</code> constants indicating type, concurrency, and holdability
      */
-    public PreparedStatement prepareStatement(java.lang.String sql, int nType, int nConcur, int resultSetHoldability,
+    PreparedStatement prepareStatement(java.lang.String sql, int nType, int nConcur, int resultSetHoldability,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
 
     /**
@@ -211,7 +211,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *         if a database access error occurs, this method is called on a closed connection or the given parameters
      *         are not <code>ResultSet</code> constants indicating type, concurrency, and holdability
      */
-    public CallableStatement prepareCall(String sql, int nType, int nConcur, int nHold,
+    CallableStatement prepareCall(String sql, int nType, int nConcur, int nHold,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException;
 
     /**
@@ -229,7 +229,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @throws SQLServerException
      *         if a database access error occurs
      */
-    public void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException;
+    void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException;
 
     /**
      * Returns the value of the sendTimeAsDatetime property.
@@ -239,19 +239,19 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @throws SQLServerException
      *         if a database access error occurs
      */
-    public boolean getSendTimeAsDatetime() throws SQLServerException;
+    boolean getSendTimeAsDatetime() throws SQLServerException;
 
     /**
      * Returns the number of currently outstanding prepared statement un-prepare actions.
      * 
      * @return Returns the current value per the description.
      */
-    public int getDiscardedServerPreparedStatementCount();
+    int getDiscardedServerPreparedStatementCount();
 
     /**
      * Forces the un-prepare requests for any outstanding discarded prepared statements to be executed.
      */
-    public void closeUnreferencedPreparedStatementHandles();
+    void closeUnreferencedPreparedStatementHandles();
 
     /**
      * Returns the behavior for a specific connection instance. If false the first execution will call sp_executesql and
@@ -262,7 +262,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * 
      * @return Returns the current setting per the description.
      */
-    public boolean getEnablePrepareOnFirstPreparedStatementCall();
+    boolean getEnablePrepareOnFirstPreparedStatementCall();
 
     /**
      * Sets the behavior for a specific connection instance. If value is false the first execution will call
@@ -273,7 +273,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @param value
      *        Changes the setting per the description.
      */
-    public void setEnablePrepareOnFirstPreparedStatementCall(boolean value);
+    void setEnablePrepareOnFirstPreparedStatementCall(boolean value);
 
     /**
      * Returns the behavior for a specific connection instance. This setting controls how many outstanding prepared
@@ -285,7 +285,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * 
      * @return Returns the current setting per the description.
      */
-    public int getServerPreparedStatementDiscardThreshold();
+    int getServerPreparedStatementDiscardThreshold();
 
     /**
      * Sets the behavior for a specific connection instance. This setting controls how many outstanding prepared
@@ -297,7 +297,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @param value
      *        Changes the setting per the description.
      */
-    public void setServerPreparedStatementDiscardThreshold(int value);
+    void setServerPreparedStatementDiscardThreshold(int value);
 
     /**
      * Sets the size of the prepared statement cache for this connection. A value less than 1 means no cache.
@@ -306,28 +306,28 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        The new cache size.
      * 
      */
-    public void setStatementPoolingCacheSize(int value);
+    void setStatementPoolingCacheSize(int value);
 
     /**
      * Returns the size of the prepared statement cache for this connection. A value less than 1 means no cache.
      * 
      * @return Returns the current setting per the description.
      */
-    public int getStatementPoolingCacheSize();
+    int getStatementPoolingCacheSize();
 
     /**
      * Returns whether statement pooling is enabled or not for this connection.
      * 
      * @return Returns the current setting per the description.
      */
-    public boolean isStatementPoolingEnabled();
+    boolean isStatementPoolingEnabled();
 
     /**
      * Returns the current number of pooled prepared statement handles.
      * 
      * @return Returns the current setting per the description.
      */
-    public int getStatementHandleCacheEntryCount();
+    int getStatementHandleCacheEntryCount();
 
     /**
      * Sets the value to Disable/enable statement pooling.
@@ -335,27 +335,27 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @param value
      *        true to disable statement pooling, false to enable it.
      */
-    public void setDisableStatementPooling(boolean value);
+    void setDisableStatementPooling(boolean value);
 
     /**
      * Returns the value whether statement pooling is disabled.
      * 
      * @return true if statement pooling is disabled, false if it is enabled.
      */
-    public boolean getDisableStatementPooling();
+    boolean getDisableStatementPooling();
 
     /**
      * Returns the current flag value for useFmtOnly.
-     * 
+     *
      * @return 'useFmtOnly' property value.
      */
-    public boolean getUseFmtOnly();
+    boolean getUseFmtOnly();
 
     /**
      * Specifies the flag to use FMTONLY for parameter metadata queries.
-     * 
+     *
      * @param useFmtOnly
      *        boolean value for 'useFmtOnly'.
      */
-    public void setUseFmtOnly(boolean useFmtOnly);
+    void setUseFmtOnly(boolean useFmtOnly);
 }

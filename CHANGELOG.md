@@ -1,7 +1,109 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/) 
+The format is based on [Keep a Changelog](http://keepachangelog.com/)
+
+## [8.3.1] Preview Release
+### Added
+- Added delayed durability option to SQLServerConnection.commit() [#1310](https://github.com/microsoft/mssql-jdbc/pull/1310)
+- Introduced SQLServerBulkCSVFileRecord.setEscapeColumnDelimitersCSV() to escape delimiters and double quotes when using bulk copy to load from CSV files [#1312](https://github.com/microsoft/mssql-jdbc/pull/1312)
+- Added certificate expiry validation when using Always Encrypted with secure enclaves feature [#1321](https://github.com/microsoft/mssql-jdbc/pull/1321)
+- Added SQL State to Exception when connection is closed [#1326](https://github.com/microsoft/mssql-jdbc/pull/1326)
+- Introduced extended bulk copy support against Azure Data Warehouse [#1331](https://github.com/microsoft/mssql-jdbc/pull/1331)
+- Introduced 'delayLoadingLobs' connection property to provide backward compatibility when streaming LOBs [#1336](https://github.com/microsoft/mssql-jdbc/pull/1336)
+
+### Fixed issues
+- Fixed an issue with MSI authentication failing due to expiry date format mismatch [#1308](https://github.com/microsoft/mssql-jdbc/pull/1308)
+- Fixed an issue with streams not getting closed when using Always Encrypted with secure enclaves feature [#1315](https://github.com/microsoft/mssql-jdbc/pull/1315)
+- Fixed an issue with retrieving SQL VARIANT as its underlying type [#1320](https://github.com/microsoft/mssql-jdbc/pull/1320)
+- Fixed issues with the driver not being JAVA 8 compliant [#1328](https://github.com/microsoft/mssql-jdbc/pull/1328)
+- Fixed an issue with PreparedStatement when inserting large spatial data types [#1337](https://github.com/microsoft/mssql-jdbc/pull/1337)
+
+### Changed
+- Updated driver and test dependencies [#1294](https://github.com/microsoft/mssql-jdbc/pull/1294), [#1313](https://github.com/microsoft/mssql-jdbc/pull/1313)
+- Improved exception message when connecting to redirection-enabled Azure server [#1311](https://github.com/microsoft/mssql-jdbc/pull/1311)
+- Improved performance when parsing connection string [#1317](https://github.com/microsoft/mssql-jdbc/pull/1317)
+- Updated the driver to throw a warning when TLS version lower than 1.2 is negotiated [#1322](https://github.com/microsoft/mssql-jdbc/pull/1322)
+- Removed unused code [#1330](https://github.com/microsoft/mssql-jdbc/pull/1330)
+
+## [8.3.0] Preview Release
+### Added
+- Added connection properties to specify custom SocketFactory [#1217](https://github.com/Microsoft/mssql-jdbc/pull/1217)
+- Added support for Client Certificate Authentication [#1284](https://github.com/microsoft/mssql-jdbc/pull/1284)
+- Added support for JAVA 14 [#1290](https://github.com/microsoft/mssql-jdbc/pull/1290)
+- Added support for authentication to Azure Key Vault using Managed Identity [#1286](https://github.com/microsoft/mssql-jdbc/pull/1286)
+
+### Fixed issues
+- Fixed an issue with escaping curly brackets in connection string [#1251](https://github.com/microsoft/mssql-jdbc/pull/1251)
+- Fixed a warning when retrieving Operating System information from SQL Server Linux when using distributed transactions [#1279](https://github.com/microsoft/mssql-jdbc/pull/1279)
+
+### Changed
+- Updated Gradle dependencies [#1244](https://github.com/microsoft/mssql-jdbc/pull/1244)
+- Updated SQLServerPreparedStatement.setObject() to retrieve TVP name from SQLServerDataTable [#1282](https://github.com/microsoft/mssql-jdbc/pull/1282)
+
+## [8.2.2] HotFix & Stable Release
+### Added
+- Added an option to configure the list of trusted Azure Key Vault endpoints [#1285](https://github.com/microsoft/mssql-jdbc/pull/1285)
+
+## [8.2.1] HotFix & Stable Release
+### Fixed issues
+- Fixed a potential NullPointerException issue when retrieving data as java.time.LocalTime or java.time.LocalDate type with SQLServerResultSet.getObject() [#1250](https://github.com/microsoft/mssql-jdbc/pull/1250) 
+
+## [8.2.0] Stable Release
+### Added
+- Added new tests for Always Encrypted with secure enclaves feature [#1166](https://github.com/microsoft/mssql-jdbc/pull/1166)
+- Added backwards compatibility for calling SQLServerClob.length() on nvarchar columns [#1214](https://github.com/microsoft/mssql-jdbc/pull/1214)
+
+### Fixed issues
+- Fixed an issue with potentially creating more enclave sessions than needed [#1208](https://github.com/microsoft/mssql-jdbc/pull/1208)
+- Fixed an issue with InputStream closing when calling SQLServerBlob.length() on an `image` column [#1214](https://github.com/microsoft/mssql-jdbc/pull/1214)
+- Fixed a potential performance issue created from trailing spaces in PreparedStatement queries [#1215](https://github.com/microsoft/mssql-jdbc/pull/1215)
+- Fixed an issue with native Always Encrypted calls not being synchronized [#1220](https://github.com/microsoft/mssql-jdbc/pull/1220)
+- Fixed issues identified by SonarQube [#1226](https://github.com/microsoft/mssql-jdbc/pull/1226), Semmle [#1234](https://github.com/microsoft/mssql-jdbc/pull/1234), and CredScanner [#1237](https://github.com/microsoft/mssql-jdbc/pull/1237)
+
+### Changed
+- Updated com.microsoft.rest:client-runtime to its latest version [#1235](https://github.com/microsoft/mssql-jdbc/pull/1235)
+- Removed shaded jars [#1239](https://github.com/microsoft/mssql-jdbc/pull/1239)
+
+## [8.1.1] Preview Release
+### Added
+- Added more tests to improve code coverage for Always Encrypted with secure enclaves feature [#1186](https://github.com/microsoft/mssql-jdbc/pull/1186)
+- Added certificate and enclave session caching for Always Encrypted with secure enclaves feature [#1189](https://github.com/microsoft/mssql-jdbc/pull/1189)
+
+### Fixed issues
+- Fixed a potential NullPointerException in SQLServerDataColumn.equals() [#1168](https://github.com/microsoft/mssql-jdbc/pull/1168)
+- Fixed an issue with BulkCopy when source is unicode char/varchar and destination is nchar/nvarchar [#1193](https://github.com/microsoft/mssql-jdbc/pull/1193)
+- Fixed an issue with SQLServerDatabaseMetaData.getColumns() only returning the first column against Azure SQL Data Warehouse [#1197](https://github.com/microsoft/mssql-jdbc/pull/1197)
+- Fixed an issue with SQLServerDatabaseMetaData.getImportedKeys() failing against Azure SQL Data Warehouse [#1205](https://github.com/microsoft/mssql-jdbc/pull/1205)
+
+### Changed
+- Made internal model public for SQLServerSpatialDatatype class [#1169](https://github.com/microsoft/mssql-jdbc/pull/1169)
+- Updated ISQLServerBulkData APIs to throw SQLException instead of SQLServerException [#1187](https://github.com/microsoft/mssql-jdbc/pull/1187)
+- Changed SQLServerConnection.state to volatile [#1194](https://github.com/microsoft/mssql-jdbc/pull/1194)
+- Optimized temporal datatype getter methods by replacing Calendar with LocalDatetime [#1200](https://github.com/microsoft/mssql-jdbc/pull/1200)
+- Updated driver and test dependencies [#1203](https://github.com/microsoft/mssql-jdbc/pull/1203)
+
+## [8.1.0] Preview Release
+### Added
+- Added ISQLServerBulkData to remove implementation details from ISQLServerBulkRecord [#1099](https://github.com/microsoft/mssql-jdbc/pull/1099)
+- Added support for Azure national clouds when using Azure Key Vault [#1130](https://github.com/microsoft/mssql-jdbc/pull/1130)
+- Implemented hashCode() and equals() APIs for SQLServerDataTable and SQLServerDataColumn [#1146](https://github.com/Microsoft/mssql-jdbc/pull/1146)
+- Added support for JAVA 13 [#1151](https://github.com/Microsoft/mssql-jdbc/pull/1151)
+- Added support for Always Encrypted with Secure Enclaves [#1155](https://github.com/Microsoft/mssql-jdbc/pull/1155)
+
+### Fixed Issues
+- Fixed Geography.STAsBinary() returning null for a single point [#1074](https://github.com/microsoft/mssql-jdbc/pull/1074)
+- Fixed DatabaseMetaData.getImportedKeys() returning duplicate rows [#1092](https://github.com/microsoft/mssql-jdbc/pull/1092)
+- Fixed issue with truststore password being removed too early for XA connections [#1133](https://github.com/microsoft/mssql-jdbc/pull/1133)
+- Fixed issue with SQLServerDatabaseMetada.getColumns() not escaping wildcard characters [#1138](https://github.com/microsoft/mssql-jdbc/pull/1138)
+- Removed extra spaces in SQLServerDatabaseMetaData.getNumericFunctions() and SQLServerDatabaseMetaData.getStringFunctions() return values [#1117](https://github.com/microsoft/mssql-jdbc/pull/1117)
+
+### Changed
+- Improved performance of column name lookups [#1066](https://github.com/microsoft/mssql-jdbc/pull/1066)
+- Test improvements [#1100](https://github.com/microsoft/mssql-jdbc/pull/1100)
+- Updated issue templates [#1148](https://github.com/microsoft/mssql-jdbc/pull/1148)
+- Improved performance of CallableStatement and ParameterMetaData when using procedure names that contain wildcard characters [#1149](https://github.com/microsoft/mssql-jdbc/pull/1149)
+- Updated CI to use SQL Server 2012 instead of 2008R2 [#1153](https://github.com/microsoft/mssql-jdbc/pull/1153)
 
 ## [7.4.1] HotFix & Stable Release
 ### Fixed Issues

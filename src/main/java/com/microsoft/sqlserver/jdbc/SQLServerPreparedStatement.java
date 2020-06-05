@@ -52,9 +52,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private static final long serialVersionUID = -6292257029445685221L;
 
-    /** Flag to indicate that it is an internal query to retrieve encryption metadata. */
-    boolean isInternalEncryptionQuery = false;
-
     /** delimiter for multiple statements in a single batch */
     @SuppressWarnings("unused")
     private static final int BATCH_STATEMENT_DELIMITER_TDS_71 = 0x80;
@@ -292,6 +289,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 executedSqlDirectly ? TDS.PROCID_SP_UNPREPARE : TDS.PROCID_SP_CURSORUNPREPARE);
                         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
                         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+                        tdsWriter.sendEnclavePackage(null, null);
                         tdsWriter.writeRPCInt(null, handleToClose, false);
                         TDSParser.parse(startResponse(), getLogContext());
                         return true;
@@ -556,6 +554,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
 
+        if (connection.isAEv2() && !isInternalEncryptionQuery) {
+            this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, inOutParam,
+                    parameterNames);
+            encryptionMetadataIsRetrieved = true;
+            setMaxRowsAndMaxFieldSize();
+            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
+        }
+
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
                 && !isInternalEncryptionQuery) {
 
@@ -564,7 +570,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getParameterEncryptionMetadata(inOutParam);
                 encryptionMetadataIsRetrieved = true;
 
-                // maxRows is set to 0 when retreving encryption metadata,
+                // maxRows is set to 0 when retrieving encryption metadata,
                 // need to set it back
                 setMaxRowsAndMaxFieldSize();
             }
@@ -704,6 +710,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_CURSORPREPEXEC);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
@@ -747,6 +754,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_PREPEXEC);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // <prepared handle>
         // IN (reprepare): Old handle to unprepare before repreparing
@@ -774,6 +782,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTESQL);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // No handle used.
         resetPrepStmtHandle(false);
@@ -800,6 +809,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOREXECUTE);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // <handle> IN
         assert hasPreparedStatementHandle();
@@ -832,6 +842,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTE);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2 */
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
 
         // <handle> IN
         assert hasPreparedStatementHandle();
@@ -844,113 +855,106 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
          * not need to be the same as in the table definition. Also, when string is sent to an int field, the parameter
          * is defined as nvarchar(<size of string>). Same for varchar datatypes, exact length is used.
          */
-        SQLServerResultSet rs = null;
-        SQLServerCallableStatement stmt = null;
-
         assert connection != null : "Connection should not be null";
 
-        try {
+        try (Statement stmt = connection.prepareCall("exec sp_describe_parameter_encryption ?,?")) {
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine(
                         "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
             }
-
-            stmt = (SQLServerCallableStatement) connection.prepareCall("exec sp_describe_parameter_encryption ?,?");
-            stmt.isInternalEncryptionQuery = true;
-            stmt.setNString(1, preparedSQL);
-            stmt.setNString(2, preparedTypeDefinitions);
-            rs = (SQLServerResultSet) stmt.executeQueryInternal();
-        } catch (SQLException e) {
-            if (e instanceof SQLServerException) {
-                throw (SQLServerException) e;
-            } else {
-                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
-                        0, e);
-            }
-        }
-
-        if (null == rs) {
-            // No results. Meaning no parameter.
-            // Should never happen.
-            return;
-        }
-
-        Map<Integer, CekTableEntry> cekList = new HashMap<>();
-        CekTableEntry cekEntry = null;
-        try {
-            while (rs.next()) {
-                int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
-                if (!cekList.containsKey(currentOrdinal)) {
-                    cekEntry = new CekTableEntry(currentOrdinal);
-                    cekList.put(cekEntry.ordinal, cekEntry);
-                } else {
-                    cekEntry = cekList.get(currentOrdinal);
+            ((SQLServerCallableStatement) stmt).isInternalEncryptionQuery = true;
+            ((SQLServerCallableStatement) stmt).setNString(1, preparedSQL);
+            ((SQLServerCallableStatement) stmt).setNString(2, preparedTypeDefinitions);
+            try (ResultSet rs = ((SQLServerCallableStatement) stmt).executeQueryInternal()) {
+                if (null == rs) {
+                    // No results. Meaning no parameter.
+                    // Should never happen.
+                    return;
                 }
-                cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
-                        rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
-            }
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Matadata of CEKs is retrieved.");
-            }
-        } catch (SQLException e) {
-            if (e instanceof SQLServerException) {
-                throw (SQLServerException) e;
-            } else {
-                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
-                        0, e);
-            }
-        }
 
-        // Process the second resultset.
-        if (!stmt.getMoreResults()) {
-            throw new SQLServerException(this, SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null,
-                    0, false);
-        }
-
-        // Parameter count in the result set.
-        int paramCount = 0;
-        try {
-            rs = (SQLServerResultSet) stmt.getResultSet();
-            while (rs.next()) {
-                paramCount++;
-                String paramName = rs.getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
-                int paramIndex = parameterNames.indexOf(paramName);
-                int cekOrdinal = rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionKeyOrdinal.value());
-                cekEntry = cekList.get(cekOrdinal);
-
-                // cekEntry will be null if none of the parameters are encrypted.
-                if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
-                    MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_InvalidEncryptionKeyOridnal"));
-                    Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
-                    throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                Map<Integer, CekTableEntry> cekList = new HashMap<>();
+                CekTableEntry cekEntry = null;
+                while (rs.next()) {
+                    int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
+                    if (!cekList.containsKey(currentOrdinal)) {
+                        cekEntry = new CekTableEntry(currentOrdinal);
+                        cekList.put(cekEntry.ordinal, cekEntry);
+                    } else {
+                        cekEntry = cekList.get(currentOrdinal);
+                    }
+                    cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
+                            rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
                 }
-                SQLServerEncryptionType encType = SQLServerEncryptionType
-                        .of((byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
-                if (SQLServerEncryptionType.PlainText != encType) {
-                    params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
-                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
-                            null, encType.value,
-                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
-                    // Decrypt the symmetric key.(This will also validate and throw if needed).
-                    SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
-                } else {
-                    if (params[paramIndex].getForceEncryption()) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
-                        Object[] msgArgs = {userSQL, paramIndex + 1};
-                        SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
+                if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                    getStatementLogger().fine("Matadata of CEKs is retrieved.");
+                }
+
+                // Process the second resultset.
+                if (!stmt.getMoreResults()) {
+                    throw new SQLServerException(this,
+                            SQLServerException.getErrString("R_UnexpectedDescribeParamFormat"), null, 0, false);
+                }
+
+                // Parameter count in the result set.
+                int paramCount = 0;
+                try (ResultSet secondRs = stmt.getResultSet()) {
+                    while (secondRs.next()) {
+                        paramCount++;
+                        String paramName = secondRs
+                                .getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
+                        int paramIndex = parameterNames.indexOf(paramName);
+                        int cekOrdinal = secondRs
+                                .getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionKeyOrdinal.value());
+                        cekEntry = cekList.get(cekOrdinal);
+
+                        // cekEntry will be null if none of the parameters are encrypted.
+                        if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_InvalidEncryptionKeyOrdinal"));
+                            Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
+                            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                        }
+                        SQLServerEncryptionType encType = SQLServerEncryptionType.of((byte) secondRs
+                                .getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
+                        if (SQLServerEncryptionType.PlainText != encType) {
+                            params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
+                                    (byte) secondRs.getInt(
+                                            DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
+                                    null, encType.value, (byte) secondRs.getInt(
+                                            DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
+                            // Decrypt the symmetric key.(This will also validate and throw if needed).
+                            SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
+                        } else {
+                            if (params[paramIndex].getForceEncryption()) {
+                                MessageFormat form = new MessageFormat(SQLServerException
+                                        .getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
+                                Object[] msgArgs = {userSQL, paramIndex + 1};
+                                SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null,
+                                        true);
+                            }
+                        }
+                    }
+                    if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                        getStatementLogger().fine("Parameter encryption metadata is set.");
                     }
                 }
-            }
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Parameter encryption metadata is set.");
+
+                if (paramCount != params.length) {
+                    // Encryption metadata wasn't sent by the server.
+                    // We expect the metadata to be sent for all the parameters in the original
+                    // sp_describe_parameter_encryption.
+                    // For parameters that don't need encryption, the encryption type is set to plaintext.
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_MissingParamEncryptionMetadata"));
+                    Object[] msgArgs = {userSQL};
+                    throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                }
             }
         } catch (SQLException e) {
             if (e instanceof SQLServerException) {
@@ -961,22 +965,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
-        if (paramCount != params.length) {
-            // Encryption metadata wasn't sent by the server.
-            // We expect the metadata to be sent for all the parameters in the original
-            // sp_describe_parameter_encryption.
-            // For parameters that don't need encryption, the encryption type is set to plaintext.
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MissingParamEncryptionMetadata"));
-            Object[] msgArgs = {userSQL};
-            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-        }
-
-        // Null check for rs is done already.
-        rs.close();
-
-        if (null != stmt) {
-            stmt.close();
-        }
         connection.resetCurrentCommand();
     }
 
@@ -1025,6 +1013,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
         return false;
     }
+
+    private ArrayList<byte[]> enclaveCEKs;
 
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions) throws SQLServerException {
@@ -1476,7 +1466,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } else {
             JavaType javaType = JavaType.of(obj);
             if (JavaType.TVP == javaType) {
-                tvpName = getTVPNameIfNull(index, null); // will return null if called from preparedStatement
+                // May return null if called from preparedStatement.
+                tvpName = getTVPNameFromObject(index, obj);
 
                 if ((null == tvpName) && (obj instanceof ResultSet)) {
                     throw new SQLServerException(SQLServerException.getErrString("R_TVPnotWorkWithSetObjectResultSet"),
@@ -1511,8 +1502,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {n, obj, jdbcType});
         checkClosed();
-        if (microsoft.sql.Types.STRUCTURED == jdbcType)
-            tvpName = getTVPNameIfNull(n, null);
+        if (microsoft.sql.Types.STRUCTURED == jdbcType) {
+            tvpName = getTVPNameFromObject(n, obj);
+        }
         setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), null, null, false, n, tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
@@ -1874,6 +1866,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setStructured");
     }
 
+    String getTVPNameFromObject(int n, Object obj) throws SQLServerException {
+        String tvpName = null;
+        if (obj instanceof SQLServerDataTable) {
+            tvpName = ((SQLServerDataTable) obj).getTvpName();
+        }
+        // Get TVP name from SQLServerParameterMetaData if it is still null.
+        return getTVPNameIfNull(n, tvpName);
+    }
+
     String getTVPNameIfNull(int n, String tvpName) throws SQLServerException {
         if ((null == tvpName) || (0 == tvpName.length())) {
             // Check if the CallableStatement/PreparedStatement is a stored procedure call
@@ -2025,7 +2026,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     bcOperation.setDestinationTableName(tableName);
                     bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                     bcOperation.setDestinationTableMetadata(rs);
-                    bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
+                    bcOperation.writeToServer(batchRecord);
                     bcOperation.close();
                     updateCounts = new int[batchParamValues.size()];
                     for (int i = 0; i < batchParamValues.size(); ++i) {
@@ -2182,7 +2183,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     bcOperation.setDestinationTableName(tableName);
                     bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                     bcOperation.setDestinationTableMetadata(rs);
-                    bcOperation.writeToServer((ISQLServerBulkRecord) batchRecord);
+                    bcOperation.writeToServer(batchRecord);
                     bcOperation.close();
                     updateCounts = new long[batchParamValues.size()];
                     for (int i = 0; i < batchParamValues.size(); ++i) {
@@ -2709,17 +2710,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Create the parameter array that we'll use for all the items in this batch.
         Parameter[] batchParam = new Parameter[inOutParam.length];
 
-        /*
-         * TDSWriter tdsWriter = null; while (numBatchesExecuted < numBatches) { // Fill in the parameter values for
-         * this batch Parameter paramValues[] = batchParamValues.get(numBatchesPrepared); assert paramValues.length ==
-         * batchParam.length; System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length); boolean
-         * hasExistingTypeDefinitions = preparedTypeDefinitions != null; boolean hasNewTypeDefinitions =
-         * buildPreparedStrings(batchParam, false); // Get the encryption metadata for the first batch only. if ((0 ==
-         * numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 <
-         * batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
-         * getParameterEncryptionMetadata(batchParam);
-         */
-
         TDSWriter tdsWriter = null;
         while (numBatchesExecuted < numBatches) {
             // Fill in the parameter values for this batch
@@ -2730,12 +2720,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
 
+            if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()) {
+                this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
+                        parameterNames);
+                encryptionMetadataIsRetrieved = true;
+
+                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
+                // on on
+                // Connection
+                buildPreparedStrings(batchParam, true);
+
+                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                // batches.
+                for (Parameter aBatchParam : batchParam) {
+                    cryptoMetaBatch.add(aBatchParam.cryptoMeta);
+                }
+            }
+
             // Get the encryption metadata for the first batch only.
             if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection))
                     && (0 < batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
                 getParameterEncryptionMetadata(batchParam);
 
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
+                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
+                // on on
                 // Connection
                 buildPreparedStrings(batchParam, true);
 

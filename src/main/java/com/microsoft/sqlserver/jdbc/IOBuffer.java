@@ -40,6 +40,7 @@ import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
@@ -61,6 +62,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.net.SocketFactory;
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
@@ -113,7 +116,9 @@ final class TDS {
     // AE constants
     // 0x03 is for x_eFeatureExtensionId_Rcs
     static final byte TDS_FEATURE_EXT_AE = 0x04;
-    static final byte MAX_SUPPORTED_TCE_VERSION = 0x01; // max version
+    static final byte COLUMNENCRYPTION_NOT_SUPPORTED = 0x00; // column encryption not supported
+    static final byte COLUMNENCRYPTION_VERSION1 = 0x01; // column encryption without enclave
+    static final byte COLUMNENCRYPTION_VERSION2 = 0x02; // column encryption with enclave
     static final int CUSTOM_CIPHER_ALGORITHM_ID = 0; // max version
     // 0x06 is for x_eFeatureExtensionId_LoginToken
     // 0x07 is for x_eFeatureExtensionId_ClientSideTelemetry
@@ -361,6 +366,7 @@ final class TDS {
     static final byte ENCRYPT_ON = 0x01;
     static final byte ENCRYPT_NOT_SUP = 0x02;
     static final byte ENCRYPT_REQ = 0x03;
+    static final byte ENCRYPT_CLIENT_CERT = (byte) 0x80;
     static final byte ENCRYPT_INVALID = (byte) 0xFF;
 
     static final String getEncryptionLevel(int level) {
@@ -1594,9 +1600,16 @@ final class TDSChannel implements Serializable {
      *        Server Host Name for SSL Handshake
      * @param port
      *        Server Port for SSL Handshake
+     * @param clientCertificate
+     *        Client certificate path
+     * @param clientKey
+     *        Private key file path
+     * @param clientKeyPassword
+     *        Private key file's password
      * @throws SQLServerException
      */
-    void enableSSL(String host, int port) throws SQLServerException {
+    void enableSSL(String host, int port, String clientCertificate, String clientKey,
+            String clientKeyPassword) throws SQLServerException {
         // If enabling SSL fails, which it can for a number of reasons, the following items
         // are used in logging information to the TDS channel logger to help diagnose the problem.
         Provider tmfProvider = null; // TrustManagerFactory provider
@@ -1658,18 +1671,9 @@ final class TDSChannel implements Serializable {
             // Otherwise, we'll check if a specific TrustManager implemenation has been requested and
             // if so instantiate it, optionally specifying a constructor argument to customize it.
             else if (con.getTrustManagerClass() != null) {
-                Class<?> tmClass = Class.forName(con.getTrustManagerClass());
-                if (!TrustManager.class.isAssignableFrom(tmClass)) {
-                    throw new IllegalArgumentException(
-                            "The class specified by the trustManagerClass property must implement javax.net.ssl.TrustManager");
-                }
-                String constructorArg = con.getTrustManagerConstructorArg();
-                if (constructorArg == null) {
-                    tm = new TrustManager[] {(TrustManager) tmClass.getDeclaredConstructor().newInstance()};
-                } else {
-                    tm = new TrustManager[] {
-                            (TrustManager) tmClass.getDeclaredConstructor(String.class).newInstance(constructorArg)};
-                }
+                Object[] msgArgs = {"trustManagerClass", "javax.net.ssl.TrustManager"};
+                tm = new TrustManager[] {Util.newInstance(TrustManager.class, con.getTrustManagerClass(),
+                        con.getTrustManagerConstructorArg(), msgArgs)};
             }
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
@@ -1771,13 +1775,16 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
+            KeyManager[] km = (null != clientCertificate && clientCertificate.length() > 0) ? SQLServerCertificateUtils
+                    .getKeyManagerFromFile(clientCertificate, clientKey, clientKeyPassword) : null;
+
             sslContext = SSLContext.getInstance(sslProtocol);
             sslContextProvider = sslContext.getProvider();
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Initializing SSL context");
 
-            sslContext.init(null, tm, null);
+            sslContext.init(km, tm, null);
 
             // Got the SSL context. Now create an SSL socket over our own proxy socket
             // which we can toggle between TDS-encapsulated and raw communications.
@@ -1818,6 +1825,16 @@ final class TDSChannel implements Serializable {
 
             // SSL is now enabled; switch over the channel socket
             channelSocket = sslSocket;
+
+            // Check the TLS version
+            String tlsProtocol = sslSocket.getSession().getProtocol();
+            if (SSLProtocol.TLS_V10.toString().equalsIgnoreCase(tlsProtocol)
+                    || SSLProtocol.TLS_V11.toString().equalsIgnoreCase(tlsProtocol)) {
+                String warningMsg = tlsProtocol
+                        + " was negotiated. Please update server and client to use TLSv1.2 at minimum.";
+                logger.warning(warningMsg);
+                con.addWarning(warningMsg);
+            }
 
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " SSL enabled");
@@ -2592,6 +2609,29 @@ final class SocketFinder {
         }
     }
 
+    private SocketFactory socketFactory = null;
+
+    private SocketFactory getSocketFactory() throws IOException {
+        if (socketFactory == null) {
+            String socketFactoryClass = conn.getSocketFactoryClass();
+            if (socketFactoryClass == null) {
+                socketFactory = SocketFactory.getDefault();
+            } else {
+                String socketFactoryConstructorArg = conn.getSocketFactoryConstructorArg();
+                try {
+                    Object[] msgArgs = {"socketFactoryClass", "javax.net.SocketFactory"};
+                    socketFactory = Util.newInstance(SocketFactory.class, socketFactoryClass,
+                            socketFactoryConstructorArg, msgArgs);
+                } catch (RuntimeException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new IOException(e);
+                }
+            }
+        }
+        return socketFactory;
+    }
+
     // This method contains the old logic of connecting to
     // a socket of one of the IPs corresponding to a given host name.
     // In the old code below, the logic around 0 timeout has been removed as
@@ -2618,7 +2658,7 @@ final class SocketFinder {
         assert timeoutInMilliSeconds != 0 : "timeout cannot be zero";
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();
-        selectedSocket = new Socket();
+        selectedSocket = getSocketFactory().createSocket();
         selectedSocket.connect(addr, timeoutInMilliSeconds);
         return selectedSocket;
     }
@@ -2637,7 +2677,7 @@ final class SocketFinder {
             // create a socket, inetSocketAddress and a corresponding socketConnector per inetAddress
             noOfSpawnedThreads = inetAddrs.length;
             for (InetAddress inetAddress : inetAddrs) {
-                Socket s = new Socket();
+                Socket s = getSocketFactory().createSocket();
                 sockets.add(s);
 
                 InetSocketAddress inetSocketAddress = new InetSocketAddress(inetAddress, portNumber);
@@ -3358,6 +3398,28 @@ final class TDSWriter {
     }
 
     /**
+     * Append a money/smallmoney value in the TDS stream.
+     * 
+     * @param moneyVal
+     *        the money data value.
+     * @param srcJdbcType
+     *        the source JDBCType
+     * @throws SQLServerException
+     */
+    void writeMoney(BigDecimal moneyVal, int srcJdbcType) throws SQLServerException {
+        moneyVal = moneyVal.setScale(4, RoundingMode.HALF_UP);
+
+        int bLength;
+
+        // Money types are 8 bytes, smallmoney are 4 bytes
+        bLength = (srcJdbcType == microsoft.sql.Types.MONEY ? 8 : 4);
+        writeByte((byte) (bLength));
+
+        byte[] valueBytes = DDC.convertMoneyToBytes(moneyVal, bLength);
+        writeBytes(valueBytes);
+    }
+
+    /**
      * Append a big decimal inside sql_variant in the TDS stream.
      * 
      * @param bigDecimalVal
@@ -3534,27 +3596,100 @@ final class TDSWriter {
     void writeDateTimeOffset(Object value, int scale, SSType destSSType) throws SQLServerException {
         GregorianCalendar calendar;
         TimeZone timeZone; // Time zone to associate with the value in the Gregorian calendar
-        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         int subSecondNanos;
         int minutesOffset;
 
-        microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
-        utcMillis = dtoValue.getTimestamp().getTime();
-        subSecondNanos = dtoValue.getTimestamp().getNanos();
-        minutesOffset = dtoValue.getMinutesOffset();
+        /*
+         * Out of all the supported temporal datatypes, DateTimeOffset is the only datatype that doesn't
+         * allow direct casting from java.sql.timestamp (which was created from a String).
+         * DateTimeOffset was never required to be constructed from a String, but with the
+         * introduction of extended bulk copy support for Azure DW, we now need to support this scenario.
+         * Parse the DTO as string if it's coming from a CSV.
+         */
+        if (value instanceof String) {
+            // expected format: YYYY-MM-DD hh:mm:ss[.nnnnnnn] [{+|-}hh:mm]
+            try {
+                String stringValue = (String) value;
+                int lastColon = stringValue.lastIndexOf(':');
 
-        // If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
-        // will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
-        // Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
-        // use a local time zone determined by the minutes offset of the value, since
-        // the writers for those types expect local calendars.
-        timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
-                                                         : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
+                String offsetString = stringValue.substring(lastColon - 3);
 
-        calendar = new GregorianCalendar(timeZone, Locale.US);
-        calendar.setLenient(true);
-        calendar.clear();
-        calendar.setTimeInMillis(utcMillis);
+                /*
+                 * At this point, offsetString should look like +hh:mm or -hh:mm. Otherwise, the optional offset
+                 * value has not been provided. Parse accordingly.
+                 */
+                String timestampString;
+
+                if (!offsetString.startsWith("+") && !offsetString.startsWith("-")) {
+                    minutesOffset = 0;
+                    timestampString = stringValue;
+                } else {
+                    minutesOffset = 60 * Integer.valueOf(offsetString.substring(1, 3))
+                            + Integer.valueOf(offsetString.substring(4, 6));
+                    timestampString = stringValue.substring(0, lastColon - 4);
+
+                    if (offsetString.startsWith("-"))
+                        minutesOffset = -minutesOffset;
+                }
+
+                /*
+                 * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
+                 * will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
+                 * Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
+                 * use a local time zone determined by the minutes offset of the value, since
+                 * the writers for those types expect local calendars.
+                 */
+                timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
+                                                                 : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
+
+                calendar = new GregorianCalendar(timeZone);
+
+                int year = Integer.valueOf(timestampString.substring(0, 4));
+                int month = Integer.valueOf(timestampString.substring(5, 7));
+                int day = Integer.valueOf(timestampString.substring(8, 10));
+                int hour = Integer.valueOf(timestampString.substring(11, 13));
+                int minute = Integer.valueOf(timestampString.substring(14, 16));
+                int second = Integer.valueOf(timestampString.substring(17, 19));
+
+                subSecondNanos = (19 == timestampString.indexOf('.')) ? (new BigDecimal(timestampString.substring(19)))
+                        .scaleByPowerOfTen(9).intValue() : 0;
+
+                calendar.setLenient(true);
+                calendar.set(Calendar.YEAR, year);
+                calendar.set(Calendar.MONTH, month - 1);
+                calendar.set(Calendar.DAY_OF_MONTH, day);
+                calendar.set(Calendar.HOUR_OF_DAY, hour);
+                calendar.set(Calendar.MINUTE, minute);
+                calendar.set(Calendar.SECOND, second);
+                calendar.add(Calendar.MINUTE, -minutesOffset);
+            } catch (NumberFormatException | IndexOutOfBoundsException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingDataError"));
+                Object[] msgArgs = {value, JDBCType.DATETIMEOFFSET};
+                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+            }
+        } else {
+            long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+
+            microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
+            utcMillis = dtoValue.getTimestamp().getTime();
+            subSecondNanos = dtoValue.getTimestamp().getNanos();
+            minutesOffset = dtoValue.getMinutesOffset();
+
+            /*
+             * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
+             * will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
+             * Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
+             * use a local time zone determined by the minutes offset of the value, since
+             * the writers for those types expect local calendars.
+             */
+            timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
+                                                             : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
+
+            calendar = new GregorianCalendar(timeZone, Locale.US);
+            calendar.setLenient(true);
+            calendar.clear();
+            calendar.setTimeInMillis(utcMillis);
+        }
 
         writeScaledTemporal(calendar, subSecondNanos, scale, SSType.DATETIMEOFFSET);
 
@@ -3701,8 +3836,9 @@ final class TDSWriter {
         int bytesWritten = 0;
         int bytesToWrite;
 
-        if (logger.isLoggable(Level.FINEST))
+        if (logger.isLoggable(Level.FINEST)) {
             logger.finest(toString() + " Writing " + length + " bytes");
+        }
 
         while ((bytesToWrite = length - bytesWritten) > 0) {
             if (0 == stagingBuffer.remaining())
@@ -3769,13 +3905,19 @@ final class TDSWriter {
                 bytesToCopy = valueBytes.length;
 
             int bytesCopied = 0;
-            while (bytesCopied < bytesToCopy) {
-                char ch = value.charAt(charsCopied++);
-                valueBytes[bytesCopied++] = (byte) ((ch >> 0) & 0xFF);
-                valueBytes[bytesCopied++] = (byte) ((ch >> 8) & 0xFF);
-            }
+            try {
+                while (bytesCopied < bytesToCopy) {
+                    char ch = value.charAt(charsCopied++);
+                    valueBytes[bytesCopied++] = (byte) ((ch >> 0) & 0xFF);
+                    valueBytes[bytesCopied++] = (byte) ((ch >> 8) & 0xFF);
+                }
 
-            writeBytes(valueBytes, 0, bytesCopied);
+                writeBytes(valueBytes, 0, bytesCopied);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
+                Object[] msgArgs = {bytesCopied};
+                error(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET);
+            }
         }
     }
 
@@ -4205,7 +4347,7 @@ final class TDSWriter {
      * 
      * @param sName
      *        the optional parameter name
-     * @param shortValue
+     * @param byteValue
      *        the data value
      * @param bOut
      *        boolean true if the data value is being registered as an output parameter
@@ -4429,16 +4571,16 @@ final class TDSWriter {
             SQLCollation collation) throws SQLServerException {
         boolean bValueNull = (sValue == null);
         int nValueLen = bValueNull ? 0 : (2 * sValue.length());
-        boolean isShortValue = nValueLen <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
-
         // Textual RPC requires a collation. If none is provided, as is the case when
         // the SSType is non-textual, then use the database collation by default.
         if (null == collation)
             collation = con.getDatabaseCollation();
 
-        // Use PLP encoding on Yukon and later with long values and OUT parameters
-        boolean usePLP = (!isShortValue || bOut);
-        if (usePLP) {
+        /*
+         * Use PLP encoding if either OUT params were specified or if the user query exceeds
+         * DataTypes.SHORT_VARTYPE_MAX_BYTES
+         */
+        if (nValueLen > DataTypes.SHORT_VARTYPE_MAX_BYTES || bOut) {
             writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
 
             // Handle Yukon v*max type header here.
@@ -4456,16 +4598,10 @@ final class TDSWriter {
                 // Send the terminator PLP chunk.
                 writeInt(0);
             }
-        } else // non-PLP type
-        {
+        } else { // non-PLP type
             // Write maximum length of data
-            if (isShortValue) {
-                writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
-                writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
-            } else {
-                writeRPCNameValType(sName, bOut, TDSType.NTEXT);
-                writeInt(DataTypes.IMAGE_TEXT_MAX_BYTES);
-            }
+            writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
+            writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
 
             collation.writeCollation(this);
 
@@ -4474,10 +4610,7 @@ final class TDSWriter {
                 writeShort((short) -1); // actual len
             } else {
                 // Write actual length of data
-                if (isShortValue)
-                    writeShort((short) nValueLen);
-                else
-                    writeInt(nValueLen);
+                writeShort((short) nValueLen);
 
                 // If length is zero, we're done.
                 if (0 != nValueLen)
@@ -6189,6 +6322,23 @@ final class TDSWriter {
         // Write the data
         writeReader(re, reLength, usePLP);
     }
+
+    void sendEnclavePackage(String sql, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
+        if (null != con && con.isAEv2()) {
+            if (null != sql && !sql.isEmpty() && null != enclaveCEKs && 0 < enclaveCEKs.size()
+                    && con.enclaveEstablished()) {
+                byte[] b = con.generateEnclavePackage(sql, enclaveCEKs);
+                if (null != b && 0 != b.length) {
+                    this.writeShort((short) b.length);
+                    this.writeBytes(b);
+                } else {
+                    this.writeShort((short) 0);
+                }
+            } else {
+                this.writeShort((short) 0);
+            }
+        }
+    }
 }
 
 
@@ -6284,6 +6434,7 @@ final class TDSReader implements Serializable {
     private boolean useColumnEncryption = false;
     private boolean serverSupportsColumnEncryption = false;
     private boolean serverSupportsDataClassification = false;
+    private ColumnEncryptionVersion columnEncryptionVersion;
 
     private final byte valueBytes[] = new byte[256];
 
@@ -6308,6 +6459,7 @@ final class TDSReader implements Serializable {
             useColumnEncryption = true;
         }
         serverSupportsColumnEncryption = con.getServerSupportsColumnEncryption();
+        columnEncryptionVersion = con.getServerColumnEncryptionVersion();
         serverSupportsDataClassification = con.getServerSupportsDataClassification();
     }
 
@@ -7162,14 +7314,17 @@ abstract class TDSCommand implements Serializable {
         return readingResponse;
     }
 
+    protected ArrayList<byte[]> enclaveCEKs;
+
     /**
      * Creates this command with an optional timeout.
      *
      * @param logContext
      *        the string describing the context for this command.
-     * @param timeoutSeconds
-     *        (optional) the time before which the command must complete before it is interrupted. A value of 0 means no
-     *        timeout.
+     * @param queryTimeoutSeconds
+     *        the time before which the command must complete before it is interrupted. A value of 0 means no timeout.
+     * @param cancelQueryTimeoutSeconds
+     *        the time to cancel the query timeout A value of 0 means no timeout.
      */
     TDSCommand(String logContext, int queryTimeoutSeconds, int cancelQueryTimeoutSeconds) {
         this.logContext = logContext;

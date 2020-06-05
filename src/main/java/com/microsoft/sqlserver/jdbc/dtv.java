@@ -740,14 +740,16 @@ final class DTV {
                 switch (typeInfo.getSSType()) {
                     case DATETIME:
                     case DATETIME2:
-                        /* Default and max fractional precision is 7 digits (100ns)
-                         * Send DateTime2 to DateTime columns to let the server handle nanosecond rounding. Also
-                         * adjust scale accordingly to avoid rounding on driver's end.
+                        /*
+                         * Default and max fractional precision is 7 digits (100ns) Send DateTime2 to DateTime columns
+                         * to let the server handle nanosecond rounding. Also adjust scale accordingly to avoid rounding
+                         * on driver's end.
                          */
-                        int scale = (typeInfo.getSSType() == SSType.DATETIME) ? typeInfo.getScale() + 4 : typeInfo.getScale();
+                        int scale = (typeInfo.getSSType() == SSType.DATETIME) ? typeInfo.getScale() + 4
+                                                                              : typeInfo.getScale();
                         tdsWriter.writeRPCDateTime2(name,
-                                timestampNormalizedCalendar(calendar, javaType, conn.baseYear()), subSecondNanos,
-                                scale, isOutParam);
+                                timestampNormalizedCalendar(calendar, javaType, conn.baseYear()), subSecondNanos, scale,
+                                isOutParam);
 
                         break;
 
@@ -1699,11 +1701,11 @@ final class DTV {
                 case DATETIMEOFFSET:
                     op.execute(this, (microsoft.sql.DateTimeOffset) value);
                     break;
-                    
+
                 case GEOMETRY:
                     op.execute(this, ((Geometry) value).serialize());
                     break;
-                    
+
                 case GEOGRAPHY:
                     op.execute(this, ((Geography) value).serialize());
                     break;
@@ -2160,7 +2162,7 @@ final class AppDTVImpl extends DTVImpl {
                     }
                 } else
                     dtvScale = dtv.getScale();
-                if (dtvScale != null && dtvScale != biScale)
+                if (null != dtvScale && 0 != Integer.compare(dtvScale, biScale))
                     bigDecimalValue = bigDecimalValue.setScale(dtvScale, RoundingMode.DOWN);
             }
             dtv.setValue(bigDecimalValue, JavaType.BIGDECIMAL);
@@ -3609,7 +3611,9 @@ final class ServerDTVImpl extends DTVImpl {
             }
 
             case DATETIME: {
-                if (8 != decryptedValue.length) {
+                int ticksSinceMidnight = (Util.readInt(decryptedValue, 4) * 10 + 1) / 3;
+
+                if (8 != decryptedValue.length || Integer.MAX_VALUE < ticksSinceMidnight) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NormalizationErrorAE"));
                     throw new SQLServerException(form.format(new Object[] {baseSSType}), null, 0, null);
                 }
@@ -3618,7 +3622,7 @@ final class ServerDTVImpl extends DTVImpl {
                 // (January 1, 1900 00:00:00 GMT) and 4 bytes for
                 // the number of three hundredths (1/300) of a second since midnight.
                 return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal, Util.readInt(decryptedValue, 0),
-                        (Util.readInt(decryptedValue, 4) * 10 + 1) / 3, 0);
+                        ticksSinceMidnight, 0);
             }
 
             case DATETIMEOFFSET: {
@@ -3918,41 +3922,32 @@ final class ServerDTVImpl extends DTVImpl {
         TDSType baseType = TDSType.valueOf(intbaseType);
         switch (baseType) {
             case INT8:
-                jdbcType = JDBCType.BIGINT;
                 convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType,
                         streamGetterArgs.streamType);
                 break;
 
             case INT4:
-                jdbcType = JDBCType.INTEGER;
                 convertedValue = DDC.convertIntegerToObject(tdsReader.readInt(), valueLength, jdbcType,
                         streamGetterArgs.streamType);
                 break;
 
             case INT2:
-                jdbcType = JDBCType.SMALLINT;
                 convertedValue = DDC.convertIntegerToObject(tdsReader.readShort(), valueLength, jdbcType,
                         streamGetterArgs.streamType);
                 break;
 
             case INT1:
-                jdbcType = JDBCType.TINYINT;
                 convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), valueLength, jdbcType,
                         streamGetterArgs.streamType);
                 break;
 
             case DECIMALN:
             case NUMERICN:
-                if (TDSType.DECIMALN == baseType)
-                    jdbcType = JDBCType.DECIMAL;
-                else if (TDSType.NUMERICN == baseType)
-                    jdbcType = JDBCType.NUMERIC;
                 if (cbPropsActual != sqlVariantProbBytes.DECIMALN.getIntValue()) { // Numeric and decimal have the same
                                                                                    // probbytes value
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
-                jdbcType = JDBCType.DECIMAL;
                 precision = tdsReader.readUnsignedByte();
                 scale = tdsReader.readUnsignedByte();
                 typeInfo.setScale(scale); // typeInfo needs to be updated. typeInfo is usually set when reading
@@ -3965,17 +3960,14 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
 
             case FLOAT4:
-                jdbcType = JDBCType.REAL;
                 convertedValue = tdsReader.readReal(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
 
             case FLOAT8:
-                jdbcType = JDBCType.FLOAT;
                 convertedValue = tdsReader.readFloat(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
 
             case MONEY4:
-                jdbcType = JDBCType.SMALLMONEY;
                 precision = Long.toString(Long.MAX_VALUE).length();
                 typeInfo.setPrecision(precision);
                 scale = 4;
@@ -3987,7 +3979,6 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
 
             case MONEY8:
-                jdbcType = JDBCType.MONEY;
                 precision = Long.toString(Long.MAX_VALUE).length();
                 scale = 4;
                 typeInfo.setPrecision(precision);
@@ -4000,32 +3991,8 @@ final class ServerDTVImpl extends DTVImpl {
 
             case BIT1:
             case BITN:
-                jdbcType = JDBCType.BIT;
-                switch (expectedValueLength) {
-                    case 8:
-                        convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType,
-                                streamGetterArgs.streamType);
-                        break;
-
-                    case 4:
-                        convertedValue = DDC.convertIntegerToObject(tdsReader.readInt(), expectedValueLength, jdbcType,
-                                streamGetterArgs.streamType);
-                        break;
-
-                    case 2:
-                        convertedValue = DDC.convertIntegerToObject(tdsReader.readShort(), expectedValueLength,
-                                jdbcType, streamGetterArgs.streamType);
-                        break;
-
-                    case 1:
-                        convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), expectedValueLength,
-                                jdbcType, streamGetterArgs.streamType);
-                        break;
-
-                    default:
-                        assert false : "Unexpected valueLength" + expectedValueLength;
-                        break;
-                }
+                    convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), expectedValueLength,
+                            jdbcType, streamGetterArgs.streamType);
                 break;
 
             case BIGVARCHAR:
@@ -4034,10 +4001,6 @@ final class ServerDTVImpl extends DTVImpl {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
-                if (TDSType.BIGVARCHAR == baseType)
-                    jdbcType = JDBCType.VARCHAR;
-                else if (TDSType.BIGCHAR == baseType)
-                    jdbcType = JDBCType.CHAR;
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
                 maxLength = tdsReader.readUnsignedShort();
@@ -4059,10 +4022,6 @@ final class ServerDTVImpl extends DTVImpl {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
-                if (TDSType.NCHAR == baseType)
-                    jdbcType = JDBCType.NCHAR;
-                else if (TDSType.NVARCHAR == baseType)
-                    jdbcType = JDBCType.NVARCHAR;
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
                 maxLength = tdsReader.readUnsignedShort();

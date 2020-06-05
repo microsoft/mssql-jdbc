@@ -6,19 +6,13 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.net.URL;
 import java.net.UnknownHostException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -32,13 +26,9 @@ import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
-import java.text.DateFormat;
 import java.text.MessageFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -49,7 +39,6 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -125,6 +114,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private ConcurrentLinkedQueue<PreparedStatementHandle> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<>();
     private AtomicInteger discardedPreparedStatementHandleCount = new AtomicInteger(0);
 
+    private SQLServerColumnEncryptionKeyStoreProvider keystoreProvider = null;
+
     private boolean fedAuthRequiredByUser = false;
     private boolean fedAuthRequiredPreLoginResponse = false;
     private boolean federatedAuthenticationRequested = false;
@@ -140,6 +131,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private SqlFedAuthToken fedAuthToken = null;
 
     private String originalHostNameInCertificate = null;
+
+    private String clientCertificate = null;
+    private String clientKey = null;
+    private String clientKeyPassword = "";
+
+    private boolean sendTemporalDataTypesAsStringForBulkCopy = true;
 
     final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
@@ -160,12 +157,31 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     SharedTimer getSharedTimer() throws SQLServerException {
         if (state == State.Closed) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
-                    null, false);
+                    SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
         }
         if (null == sharedTimer) {
             this.sharedTimer = SharedTimer.getTimer();
         }
         return this.sharedTimer;
+    }
+
+    /**
+     * Get the server name string including redirected server if applicable
+     * 
+     * @param serverName
+     * @return
+     */
+    String getServerNameString(String serverName) {
+        String serverNameFromConnectionStr = activeConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+        if (null == serverName || serverName.equals(serverNameFromConnectionStr)) {
+            return serverName;
+        }
+
+        // server was redirected
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_redirectedFrom"));
+        Object[] msgArgs = {serverName, serverNameFromConnectionStr};
+        return form.format(msgArgs);
     }
 
     static class CityHash128Key implements java.io.Serializable {
@@ -606,6 +622,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return negotiatedEncryptionLevel;
     }
 
+    private String socketFactoryClass = null;
+
+    final String getSocketFactoryClass() {
+        return socketFactoryClass;
+    }
+
+    private String socketFactoryConstructorArg = null;
+
+    final String getSocketFactoryConstructorArg() {
+        return socketFactoryConstructorArg;
+    }
+
     private String trustManagerClass = null;
 
     final String getTrustManagerClass() {
@@ -627,20 +655,41 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (columnEncryptionSetting.equalsIgnoreCase(ColumnEncryptionSetting.Enabled.toString()));
     }
 
+    boolean getSendTemporalDataTypesAsStringForBulkCopy() {
+        return sendTemporalDataTypesAsStringForBulkCopy;
+    }
+
+    String enclaveAttestationUrl = null;
+    String enclaveAttestationProtocol = null;
+
     String keyStoreAuthentication = null;
     String keyStoreSecret = null;
     String keyStoreLocation = null;
+    String keyStorePrincipalId = null;
 
-    private boolean serverSupportsColumnEncryption = false;
+    private ColumnEncryptionVersion serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_NotSupported;
+
+    private String enclaveType = null;
 
     boolean getServerSupportsColumnEncryption() {
-        return serverSupportsColumnEncryption;
+        return (serverColumnEncryptionVersion.value() > ColumnEncryptionVersion.AE_NotSupported.value());
+    }
+
+    ColumnEncryptionVersion getServerColumnEncryptionVersion() {
+        return serverColumnEncryptionVersion;
     }
 
     private boolean serverSupportsDataClassification = false;
 
     boolean getServerSupportsDataClassification() {
         return serverSupportsDataClassification;
+    }
+
+    // Boolean that indicates whether LOB objects created by this connection should be loaded into memory
+    private boolean delayLoadingLobs = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue();
+
+    boolean getDelayLoadingLobs() {
+        return delayLoadingLobs;
     }
 
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
@@ -664,7 +713,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     public static synchronized void registerColumnEncryptionKeyStoreProviders(
             Map<String, SQLServerColumnEncryptionKeyStoreProvider> clientKeyStoreProviders) throws SQLServerException {
-        loggerExternal.entering(SQLServerConnection.class.getName(), "registerColumnEncryptionKeyStoreProviders",
+        loggerExternal.entering(loggingClassName, "registerColumnEncryptionKeyStoreProviders",
                 "Registering Column Encryption Key Store Providers");
 
         if (null == clientKeyStoreProviders) {
@@ -672,7 +721,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     0, false);
         }
 
-        if (null != globalCustomColumnEncryptionKeyStoreProviders) {
+        if (null != globalCustomColumnEncryptionKeyStoreProviders
+                && !globalCustomColumnEncryptionKeyStoreProviders.isEmpty()) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_CustomKeyStoreProviderSetOnce"), null,
                     0, false);
         }
@@ -700,18 +750,35 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             globalCustomColumnEncryptionKeyStoreProviders.put(entry.getKey(), entry.getValue());
         }
 
-        loggerExternal.exiting(SQLServerConnection.class.getName(), "registerColumnEncryptionKeyStoreProviders",
+        loggerExternal.exiting(loggingClassName, "registerColumnEncryptionKeyStoreProviders",
                 "Number of Key store providers that are registered:"
                         + globalCustomColumnEncryptionKeyStoreProviders.size());
     }
 
-    static synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalSystemColumnEncryptionKeyStoreProvider(
+    /**
+     * Unregisters all the custom key store providers from the globalCustomColumnEncryptionKeyStoreProviders by clearing
+     * the map and setting it to null.
+     */
+    public static synchronized void unregisterColumnEncryptionKeyStoreProviders() {
+        loggerExternal.entering(loggingClassName, "unregisterColumnEncryptionKeyStoreProviders",
+                "Removing Column Encryption Key Store Provider");
+
+        if (null != globalCustomColumnEncryptionKeyStoreProviders) {
+            globalCustomColumnEncryptionKeyStoreProviders.clear();
+            globalCustomColumnEncryptionKeyStoreProviders = null;
+        }
+
+        loggerExternal.exiting(loggingClassName, "unregisterColumnEncryptionKeyStoreProviders",
+                "Number of Key store providers that are registered: 0");
+    }
+
+    synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalSystemColumnEncryptionKeyStoreProvider(
             String providerName) {
         return (null != globalSystemColumnEncryptionKeyStoreProviders && globalSystemColumnEncryptionKeyStoreProviders
                 .containsKey(providerName)) ? globalSystemColumnEncryptionKeyStoreProviders.get(providerName) : null;
     }
 
-    static synchronized String getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders() {
+    synchronized String getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders() {
         return (null != globalCustomColumnEncryptionKeyStoreProviders) ? globalCustomColumnEncryptionKeyStoreProviders
                 .keySet().toString() : null;
     }
@@ -725,7 +792,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return keyStores;
     }
 
-    static synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalCustomColumnEncryptionKeyStoreProvider(
+    synchronized SQLServerColumnEncryptionKeyStoreProvider getGlobalCustomColumnEncryptionKeyStoreProvider(
             String providerName) {
         return (null != globalCustomColumnEncryptionKeyStoreProviders && globalCustomColumnEncryptionKeyStoreProviders
                 .containsKey(providerName)) ? globalCustomColumnEncryptionKeyStoreProviders.get(providerName) : null;
@@ -735,6 +802,35 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             String providerName) {
         return (null != systemColumnEncryptionKeyStoreProvider && systemColumnEncryptionKeyStoreProvider
                 .containsKey(providerName)) ? systemColumnEncryptionKeyStoreProvider.get(providerName) : null;
+    }
+
+    synchronized SQLServerColumnEncryptionKeyStoreProvider getColumnEncryptionKeyStoreProvider(
+            String providerName) throws SQLServerException {
+
+        // Check for the connection provider first.
+        keystoreProvider = getSystemColumnEncryptionKeyStoreProvider(providerName);
+
+        // There is no connection provider of this name, check for the global system providers.
+        if (null == keystoreProvider) {
+            keystoreProvider = getGlobalSystemColumnEncryptionKeyStoreProvider(providerName);
+        }
+
+        // There is no global system provider of this name, check for the global custom providers.
+        if (null == keystoreProvider) {
+            keystoreProvider = getGlobalCustomColumnEncryptionKeyStoreProvider(providerName);
+        }
+
+        // No provider was found of this name.
+        if (null == keystoreProvider) {
+            String systemProviders = getAllSystemColumnEncryptionKeyStoreProviders();
+            String customProviders = getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders();
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_UnrecognizedKeyStoreProviderName"));
+            Object[] msgArgs = {providerName, systemProviders, customProviders};
+            throw new SQLServerException(form.format(msgArgs), null);
+        }
+
+        return keystoreProvider;
     }
 
     private String trustedServerNameAE = null;
@@ -748,7 +844,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     public static synchronized void setColumnEncryptionTrustedMasterKeyPaths(
             Map<String, List<String>> trustedKeyPaths) {
-        loggerExternal.entering(SQLServerConnection.class.getName(), "setColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.entering(loggingClassName, "setColumnEncryptionTrustedMasterKeyPaths",
                 "Setting Trusted Master Key Paths");
 
         // Use upper case for server and instance names.
@@ -757,7 +853,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             columnEncryptionTrustedMasterKeyPaths.put(entry.getKey().toUpperCase(), entry.getValue());
         }
 
-        loggerExternal.exiting(SQLServerConnection.class.getName(), "setColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.exiting(loggingClassName, "setColumnEncryptionTrustedMasterKeyPaths",
                 "Number of Trusted Master Key Paths: " + columnEncryptionTrustedMasterKeyPaths.size());
     }
 
@@ -771,13 +867,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     public static synchronized void updateColumnEncryptionTrustedMasterKeyPaths(String server,
             List<String> trustedKeyPaths) {
-        loggerExternal.entering(SQLServerConnection.class.getName(), "updateColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.entering(loggingClassName, "updateColumnEncryptionTrustedMasterKeyPaths",
                 "Updating Trusted Master Key Paths");
 
         // Use upper case for server and instance names.
         columnEncryptionTrustedMasterKeyPaths.put(server.toUpperCase(), trustedKeyPaths);
 
-        loggerExternal.exiting(SQLServerConnection.class.getName(), "updateColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.exiting(loggingClassName, "updateColumnEncryptionTrustedMasterKeyPaths",
                 "Number of Trusted Master Key Paths: " + columnEncryptionTrustedMasterKeyPaths.size());
     }
 
@@ -788,13 +884,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      *        String server name
      */
     public static synchronized void removeColumnEncryptionTrustedMasterKeyPaths(String server) {
-        loggerExternal.entering(SQLServerConnection.class.getName(), "removeColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.entering(loggingClassName, "removeColumnEncryptionTrustedMasterKeyPaths",
                 "Removing Trusted Master Key Paths");
 
         // Use upper case for server and instance names.
         columnEncryptionTrustedMasterKeyPaths.remove(server.toUpperCase());
 
-        loggerExternal.exiting(SQLServerConnection.class.getName(), "removeColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.exiting(loggingClassName, "removeColumnEncryptionTrustedMasterKeyPaths",
                 "Number of Trusted Master Key Paths: " + columnEncryptionTrustedMasterKeyPaths.size());
     }
 
@@ -804,7 +900,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @return columnEncryptionTrustedMasterKeyPaths.
      */
     public static synchronized Map<String, List<String>> getColumnEncryptionTrustedMasterKeyPaths() {
-        loggerExternal.entering(SQLServerConnection.class.getName(), "getColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.entering(loggingClassName, "getColumnEncryptionTrustedMasterKeyPaths",
                 "Getting Trusted Master Key Paths");
 
         Map<String, List<String>> masterKeyPathCopy = new HashMap<>();
@@ -813,7 +909,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             masterKeyPathCopy.put(entry.getKey(), entry.getValue());
         }
 
-        loggerExternal.exiting(SQLServerConnection.class.getName(), "getColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.exiting(loggingClassName, "getColumnEncryptionTrustedMasterKeyPaths",
                 "Number of Trusted Master Key Paths: " + masterKeyPathCopy.size());
 
         return masterKeyPathCopy;
@@ -856,7 +952,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return rolledBackTransaction;
     }
 
-    private State state = State.Initialized; // connection state
+    private volatile State state = State.Initialized; // connection state
 
     private void setState(State state) {
         this.state = state;
@@ -941,7 +1037,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
     static final private java.util.logging.Logger loggerExternal = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.Connection");
-    private final String loggingClassName;
+    private static String loggingClassName = "com.microsoft.sqlserver.jdbc.SQLServerConnection:";
 
     /**
      * There are three ways to get a failover partner connection string, from the failover map, the connecting server
@@ -1015,7 +1111,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     SQLServerConnection(String parentInfo) throws SQLServerException {
         int connectionID = nextConnectionID(); // sequential connection id
         traceID = "ConnectionID:" + connectionID;
-        loggingClassName = "com.microsoft.sqlserver.jdbc.SQLServerConnection:" + connectionID;
+        loggingClassName += connectionID;
         if (connectionlogger.isLoggable(Level.FINE))
             connectionlogger.fine(toString() + " created by (" + parentInfo + ")");
         initResettableValues();
@@ -1065,10 +1161,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return connectionlogger;
     }
 
-    String getClassNameLogging() {
-        return loggingClassName;
-    }
-
     /**
      * Provides a helper function to return an ID string suitable for tracing.
      */
@@ -1088,7 +1180,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void checkClosed() throws SQLServerException {
         if (isSessionUnAvailable()) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
-                    null, false);
+                    SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
         }
     }
 
@@ -1233,6 +1325,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 Object[] msgArgs = {"keyStoreLocation"};
                 throw new SQLServerException(form.format(msgArgs), null);
             }
+            if (null != keyStorePrincipalId) {
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_keyStoreAuthenticationNotSet"));
+                Object[] msgArgs = {"keyStorePrincipalId"};
+                throw new SQLServerException(form.format(msgArgs), null);
+            }
         } else {
             KeyStoreAuthentication keyStoreAuthentication = KeyStoreAuthentication.valueOfString(keyStoreAuth);
             switch (keyStoreAuthentication) {
@@ -1247,7 +1345,29 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
                     }
                     break;
-
+                case KeyVaultClientSecret:
+                    // need a secret use use the secret method
+                    if (null == keyStoreSecret) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
+                    } else {
+                        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                                keyStorePrincipalId, keyStoreSecret);
+                        Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+                        keyStoreMap.put(provider.getName(), provider);
+                        registerColumnEncryptionKeyStoreProviders(keyStoreMap);
+                    }
+                    break;
+                case KeyVaultManagedIdentity:
+                    SQLServerColumnEncryptionAzureKeyVaultProvider provider;
+                    if (null != keyStorePrincipalId) {
+                        provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyStorePrincipalId);
+                    } else {
+                        provider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
+                    }
+                    Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+                    keyStoreMap.put(provider.getName(), provider);
+                    registerColumnEncryptionKeyStoreProviders(keyStoreMap);
+                    break;
                 default:
                     // valueOfString would throw an exception if the keyStoreAuthentication is not valid.
                     break;
@@ -1422,6 +1542,40 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
             columnEncryptionSetting = ColumnEncryptionSetting.valueOfString(sPropValue).toString();
 
+            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                enclaveAttestationUrl = sPropValue;
+            }
+
+            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                enclaveAttestationProtocol = sPropValue;
+                if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"),
+                            null);
+                }
+
+                if (enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.HGS.toString())) {
+                    this.enclaveProvider = new SQLServerVSMEnclaveProvider();
+                } else {
+                    // If it's a valid Provider & not HGS, then it has to be AAS
+                    this.enclaveProvider = new SQLServerAASEnclaveProvider();
+                }
+            }
+
+            // enclave requires columnEncryption=enabled, enclaveAttestationUrl and enclaveAttestationProtocol
+            if ((null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                    && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty()))
+                    || (null != enclaveAttestationProtocol && !enclaveAttestationProtocol.isEmpty()
+                            && (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()))
+                    || (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                            && (null != enclaveAttestationProtocol || !enclaveAttestationProtocol.isEmpty())
+                            && (null == columnEncryptionSetting || !isColumnEncryptionSettingEnabled()))) {
+                throw new SQLServerException(SQLServerException.getErrString("R_enclavePropertiesError"), null);
+            }
+
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
@@ -1438,6 +1592,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
                 keyStoreLocation = sPropValue;
+            }
+
+            sPropKey = SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                keyStorePrincipalId = sPropValue;
             }
 
             registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
@@ -1484,6 +1644,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
+
+            socketFactoryClass = activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString());
+            socketFactoryConstructorArg = activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString());
 
             // Set requestedEncryptionLevel according to the value of the encrypt connection property
             requestedEncryptionLevel = isBooleanPropertyOn(sPropKey, sPropValue) ? TDS.ENCRYPT_ON : TDS.ENCRYPT_OFF;
@@ -1948,6 +2113,41 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
 
+            sPropKey = SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                clientCertificate = sPropValue;
+            }
+
+            sPropKey = SQLServerDriverStringProperty.CLIENT_KEY.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                clientKey = sPropValue;
+            }
+
+            sPropKey = SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                clientKeyPassword = sPropValue;
+            }
+
+            sPropKey = SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                sendTemporalDataTypesAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
+            }
+
+            sPropKey = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+            delayLoadingLobs = isBooleanPropertyOn(sPropKey, sPropValue);
+
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
             String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
@@ -2173,9 +2373,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // is done just to be consistent with the rest of the logic.
                     attemptNumber++;
 
-                    // set isRoutedInCurrentAttempt to false for the next attempt
-                    isRoutedInCurrentAttempt = false;
-
                     // useParallel and useTnir should be set to false once we get routed
                     useParallel = false;
                     useTnir = false;
@@ -2188,12 +2385,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (timerHasExpired(timerExpire)) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                        Object[] msgArgs = {currentConnectPlaceHolder.getServerName(),
+                        Object[] msgArgs = {getServerNameString(currentConnectPlaceHolder.getServerName()),
                                 Integer.toString(currentConnectPlaceHolder.getPortNumber()),
                                 SQLServerException.getErrString("R_timedOutBeforeRouting")};
                         String msg = form.format(msgArgs);
                         terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
                     } else {
+                        // set isRoutedInCurrentAttempt to false for the next attempt
+                        isRoutedInCurrentAttempt = false;
+
                         continue;
                     }
                 } else
@@ -2444,14 +2644,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param timeOutsliceInMillisForFullTimeout
      * @throws SQLServerException
      */
-    private void connectHelper(ServerPortPlaceHolder serverInfo, int timeOutsliceInMillis, int timeOutFullInSeconds,
+    private void connectHelper(ServerPortPlaceHolder serverInfo, int timeOutSliceInMillis, int timeOutFullInSeconds,
             boolean useParallel, boolean useTnir, boolean isTnirFirstAttempt,
             int timeOutsliceInMillisForFullTimeout) throws SQLServerException {
         // Make the initial tcp-ip connection.
 
         if (connectionlogger.isLoggable(Level.FINE)) {
             connectionlogger.fine(toString() + " Connecting with server: " + serverInfo.getServerName() + " port: "
-                    + serverInfo.getPortNumber() + " Timeout slice: " + timeOutsliceInMillis + " Timeout Full: "
+                    + serverInfo.getPortNumber() + " Timeout slice: " + timeOutSliceInMillis + " Timeout Full: "
                     + timeOutFullInSeconds);
         }
 
@@ -2469,7 +2669,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), 0, useParallel, useTnir,
                     isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
         else
-            tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), timeOutsliceInMillis, useParallel,
+            tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), timeOutSliceInMillis, useParallel,
                     useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
 
         setState(State.Connected);
@@ -2481,7 +2681,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // If prelogin negotiated SSL encryption then, enable it on the TDS channel.
         if (TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel) {
-            tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber());
+            tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber(), clientCertificate, clientKey,
+                    clientKeyPassword);
         }
 
         // We have successfully connected, now do the login. logon takes seconds timeout
@@ -2555,7 +2756,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 0, 0, 0, 0, 0, 0,
 
                 // - Encryption -
-                requestedEncryptionLevel,
+                (null == clientCertificate) ? requestedEncryptionLevel
+                                            : (byte) (requestedEncryptionLevel | TDS.ENCRYPT_CLIENT_CERT),
 
                 // TRACEID Data Session (ClientConnectionId + ActivityId) - Initialize to 0
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2563,7 +2765,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         System.arraycopy(preloginOptionData, 0, preloginRequest, preloginRequestOffset, preloginOptionData.length);
         preloginRequestOffset = preloginRequestOffset + preloginOptionData.length;
 
-        // If the client’s PRELOGIN request message contains the FEDAUTHREQUIRED option,
+        // If the client's PRELOGIN request message contains the FEDAUTHREQUIRED option,
         // the client MUST specify 0x01 as the B_FEDAUTHREQUIRED value
         if (fedAuthRequiredByUser) {
             preloginRequest[preloginRequestOffset] = 1;
@@ -2650,7 +2852,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + " Unexpected end of prelogin response after " + responseBytesRead + " bytes read");
                 }
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                Object[] msgArgs = {serverName, Integer.toString(portNumber),
+                Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
                         SQLServerException.getErrString("R_notSQLServer")};
                 terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
             }
@@ -2674,7 +2876,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + preloginResponse[0]);
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {serverName, Integer.toString(portNumber),
+                    Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
                             SQLServerException.getErrString("R_notSQLServer")};
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
@@ -2688,7 +2890,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + preloginResponse[1]);
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {serverName, Integer.toString(portNumber),
+                    Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
                             SQLServerException.getErrString("R_notSQLServer")};
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
@@ -2703,7 +2905,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + responseLength + " is greater than allowed length:" + preloginResponse.length);
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {serverName, Integer.toString(portNumber),
+                    Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
                             SQLServerException.getErrString("R_notSQLServer")};
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
@@ -3015,12 +3217,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             final boolean doExecute() throws SQLServerException {
-                startRequest(TDS.PKT_QUERY).writeString(sql);
+                TDSWriter tdsWriter = startRequest(TDS.PKT_QUERY);
+                tdsWriter.sendEnclavePackage(null, null);
+                tdsWriter.writeString(sql);
                 TDSParser.parse(startResponse(), getLogContext());
                 return true;
             }
         }
-
         executeCommand(new ConnectionCommand(sql, logContext));
     }
 
@@ -3100,40 +3303,40 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public Statement createStatement() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "createStatement");
+        loggerExternal.entering(loggingClassName, "createStatement");
         Statement st = createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
+        loggerExternal.exiting(loggingClassName, "createStatement", st);
         return st;
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement", sql);
+        loggerExternal.entering(loggingClassName, "prepareStatement", sql);
         PreparedStatement pst = prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        loggerExternal.exiting(getClassNameLogging(), "prepareStatement", pst);
+        loggerExternal.exiting(loggingClassName, "prepareStatement", pst);
         return pst;
     }
 
     @Override
     public CallableStatement prepareCall(String sql) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareCall", sql);
+        loggerExternal.entering(loggingClassName, "prepareCall", sql);
         CallableStatement st = prepareCall(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
+        loggerExternal.exiting(loggingClassName, "prepareCall", st);
         return st;
     }
 
     @Override
     public String nativeSQL(String sql) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "nativeSQL", sql);
+        loggerExternal.entering(loggingClassName, "nativeSQL", sql);
         checkClosed();
-        loggerExternal.exiting(getClassNameLogging(), "nativeSQL", sql);
+        loggerExternal.exiting(loggingClassName, "nativeSQL", sql);
         return sql;
     }
 
     @Override
     public void setAutoCommit(boolean newAutoCommitMode) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "setAutoCommit", newAutoCommitMode);
+            loggerExternal.entering(loggingClassName, "setAutoCommit", newAutoCommitMode);
             if (Util.isActivityTraceOn())
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -3156,16 +3359,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         rolledBackTransaction = false;
         connectionCommand(sqlStatementToSetCommit(newAutoCommitMode) + commitPendingTransaction, "setAutoCommit");
         databaseAutoCommitMode = newAutoCommitMode;
-        loggerExternal.exiting(getClassNameLogging(), "setAutoCommit");
+        loggerExternal.exiting(loggingClassName, "setAutoCommit");
     }
 
     @Override
     public boolean getAutoCommit() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getAutoCommit");
+        loggerExternal.entering(loggingClassName, "getAutoCommit");
         checkClosed();
         boolean res = !inXATransaction && databaseAutoCommitMode;
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "getAutoCommit", res);
+            loggerExternal.exiting(loggingClassName, "getAutoCommit", res);
         return res;
     }
 
@@ -3175,20 +3378,39 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public void commit() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "commit");
+        commit(false);
+    }
+
+    /**
+     * Makes all changes made since the previous commit/rollback permanent and releases any database locks currently
+     * held by this <code>Connection</code> object. This method should be used only when auto-commit mode has been
+     * disabled.
+     * 
+     * @param delayedDurability
+     *        flag to indicate whether the commit will occur with delayed durability on.
+     * @throws SQLServerException
+     *         Exception if a database access error occurs,
+     */
+    public void commit(boolean delayedDurability) throws SQLServerException {
+        loggerExternal.entering(loggingClassName, "commit");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
 
         checkClosed();
-        if (!databaseAutoCommitMode)
-            connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN", "Connection.commit");
-        loggerExternal.exiting(getClassNameLogging(), "commit");
+        if (!databaseAutoCommitMode) {
+            if (!delayedDurability)
+                connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN", "Connection.commit");
+            else
+                connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN WITH ( DELAYED_DURABILITY =  ON )",
+                        "Connection.commit");
+        }
+        loggerExternal.exiting(loggingClassName, "commit");
     }
 
     @Override
     public void rollback() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "rollback");
+        loggerExternal.entering(loggingClassName, "rollback");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -3199,12 +3421,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     null, true);
         } else
             connectionCommand("IF @@TRANCOUNT > 0 ROLLBACK TRAN", "Connection.rollback");
-        loggerExternal.exiting(getClassNameLogging(), "rollback");
+        loggerExternal.exiting(loggingClassName, "rollback");
     }
 
     @Override
     public void abort(Executor executor) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "abort", executor);
+        loggerExternal.entering(loggingClassName, "abort", executor);
 
         // no-op if connection is closed
         if (isClosed())
@@ -3236,12 +3458,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             executor.execute(() -> clearConnectionResources());
         }
 
-        loggerExternal.exiting(getClassNameLogging(), "abort");
+        loggerExternal.exiting(loggingClassName, "abort");
     }
 
     @Override
     public void close() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "close");
+        loggerExternal.entering(loggingClassName, "close");
 
         /*
          * Always report the connection as closed for any further use, no matter what happens when we try to clean up
@@ -3251,7 +3473,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         clearConnectionResources();
 
-        loggerExternal.exiting(getClassNameLogging(), "close");
+        loggerExternal.exiting(loggingClassName, "close");
     }
 
     private void clearConnectionResources() {
@@ -3312,43 +3534,43 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public boolean isClosed() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "isClosed");
-        loggerExternal.exiting(getClassNameLogging(), "isClosed", isSessionUnAvailable());
+        loggerExternal.entering(loggingClassName, "isClosed");
+        loggerExternal.exiting(loggingClassName, "isClosed", isSessionUnAvailable());
         return isSessionUnAvailable();
     }
 
     @Override
     public DatabaseMetaData getMetaData() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getMetaData");
+        loggerExternal.entering(loggingClassName, "getMetaData");
         checkClosed();
         if (databaseMetaData == null) {
             databaseMetaData = new SQLServerDatabaseMetaData(this);
         }
-        loggerExternal.exiting(getClassNameLogging(), "getMetaData", databaseMetaData);
+        loggerExternal.exiting(loggingClassName, "getMetaData", databaseMetaData);
         return databaseMetaData;
     }
 
     @Override
     public void setReadOnly(boolean readOnly) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setReadOnly", readOnly);
+            loggerExternal.entering(loggingClassName, "setReadOnly", readOnly);
         checkClosed();
         // do nothing per spec
-        loggerExternal.exiting(getClassNameLogging(), "setReadOnly");
+        loggerExternal.exiting(loggingClassName, "setReadOnly");
     }
 
     @Override
     public boolean isReadOnly() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "isReadOnly");
+        loggerExternal.entering(loggingClassName, "isReadOnly");
         checkClosed();
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "isReadOnly", Boolean.FALSE);
+            loggerExternal.exiting(loggingClassName, "isReadOnly", Boolean.FALSE);
         return false;
     }
 
     @Override
     public void setCatalog(String catalog) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "setCatalog", catalog);
+        loggerExternal.entering(loggingClassName, "setCatalog", catalog);
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -3357,14 +3579,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             connectionCommand("use " + Util.escapeSQLId(catalog), "setCatalog");
             sCatalog = catalog;
         }
-        loggerExternal.exiting(getClassNameLogging(), "setCatalog");
+        loggerExternal.exiting(loggingClassName, "setCatalog");
     }
 
     @Override
     public String getCatalog() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getCatalog");
+        loggerExternal.entering(loggingClassName, "getCatalog");
         checkClosed();
-        loggerExternal.exiting(getClassNameLogging(), "getCatalog", sCatalog);
+        loggerExternal.exiting(loggingClassName, "getCatalog", sCatalog);
         return sCatalog;
     }
 
@@ -3375,7 +3597,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void setTransactionIsolation(int level) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "setTransactionIsolation", level);
+            loggerExternal.entering(loggingClassName, "setTransactionIsolation", level);
             if (Util.isActivityTraceOn()) {
                 loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
             }
@@ -3388,15 +3610,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         transactionIsolationLevel = level;
         sql = sqlStatementToSetTransactionIsolationLevel();
         connectionCommand(sql, "setTransactionIsolation");
-        loggerExternal.exiting(getClassNameLogging(), "setTransactionIsolation");
+        loggerExternal.exiting(loggingClassName, "setTransactionIsolation");
     }
 
     @Override
     public int getTransactionIsolation() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getTransactionIsolation");
+        loggerExternal.entering(loggingClassName, "getTransactionIsolation");
         checkClosed();
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "getTransactionIsolation", transactionIsolationLevel);
+            loggerExternal.exiting(loggingClassName, "getTransactionIsolation", transactionIsolationLevel);
         return transactionIsolationLevel;
     }
 
@@ -3406,15 +3628,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     // Think about returning a copy when we implement additional warnings.
     @Override
     public SQLWarning getWarnings() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getWarnings");
+        loggerExternal.entering(loggingClassName, "getWarnings");
         checkClosed();
         // check null warn wont crash
-        loggerExternal.exiting(getClassNameLogging(), "getWarnings", sqlWarnings);
+        loggerExternal.exiting(loggingClassName, "getWarnings", sqlWarnings);
         return sqlWarnings;
     }
 
     // Any changes to SQLWarnings should be synchronized.
-    private void addWarning(String warningString) {
+    void addWarning(String warningString) {
         synchronized (warningSynchronization) {
             SQLWarning warning = new SQLWarning(warningString);
 
@@ -3429,10 +3651,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void clearWarnings() throws SQLServerException {
         synchronized (warningSynchronization) {
-            loggerExternal.entering(getClassNameLogging(), "clearWarnings");
+            loggerExternal.entering(loggingClassName, "clearWarnings");
             checkClosed();
             sqlWarnings = null;
-            loggerExternal.exiting(getClassNameLogging(), "clearWarnings");
+            loggerExternal.exiting(loggingClassName, "clearWarnings");
         }
     }
 
@@ -3440,7 +3662,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "createStatement",
+            loggerExternal.entering(loggingClassName, "createStatement",
                     new Object[] {resultSetType, resultSetConcurrency});
         checkClosed();
         SQLServerStatement st = new SQLServerStatement(this, resultSetType, resultSetConcurrency,
@@ -3448,7 +3670,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (requestStarted) {
             addOpenStatement(st);
         }
-        loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
+        loggerExternal.exiting(loggingClassName, "createStatement", st);
         return st;
     }
 
@@ -3456,7 +3678,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public PreparedStatement prepareStatement(String sql, int resultSetType,
             int resultSetConcurrency) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "prepareStatement",
+            loggerExternal.entering(loggingClassName, "prepareStatement",
                     new Object[] {sql, resultSetType, resultSetConcurrency});
         checkClosed();
 
@@ -3466,14 +3688,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (requestStarted) {
             addOpenStatement(st);
         }
-        loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
+        loggerExternal.exiting(loggingClassName, "prepareStatement", st);
         return st;
     }
 
     private PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "prepareStatement",
+            loggerExternal.entering(loggingClassName, "prepareStatement",
                     new Object[] {sql, resultSetType, resultSetConcurrency, stmtColEncSetting});
         checkClosed();
 
@@ -3484,7 +3706,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             addOpenStatement(st);
         }
 
-        loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
+        loggerExternal.exiting(loggingClassName, "prepareStatement", st);
         return st;
     }
 
@@ -3492,7 +3714,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public CallableStatement prepareCall(String sql, int resultSetType,
             int resultSetConcurrency) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "prepareCall",
+            loggerExternal.entering(loggingClassName, "prepareCall",
                     new Object[] {sql, resultSetType, resultSetConcurrency});
         checkClosed();
 
@@ -3503,18 +3725,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             addOpenStatement(st);
         }
 
-        loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
+        loggerExternal.exiting(loggingClassName, "prepareCall", st);
         return st;
     }
 
     @Override
     public void setTypeMap(java.util.Map<String, Class<?>> map) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "setTypeMap", map);
+        loggerExternal.entering(loggingClassName, "setTypeMap", map);
         checkClosed();
         if (map != null && (map instanceof java.util.HashMap)) {
             // we return an empty Hash map if the user gives this back make sure we accept it.
             if (map.isEmpty()) {
-                loggerExternal.exiting(getClassNameLogging(), "setTypeMap");
+                loggerExternal.exiting(loggingClassName, "setTypeMap");
                 return;
             }
 
@@ -3524,10 +3746,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public java.util.Map<String, Class<?>> getTypeMap() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getTypeMap");
+        loggerExternal.entering(loggingClassName, "getTypeMap");
         checkClosed();
         java.util.Map<String, Class<?>> mp = new java.util.HashMap<>();
-        loggerExternal.exiting(getClassNameLogging(), "getTypeMap", mp);
+        loggerExternal.exiting(loggingClassName, "getTypeMap", mp);
         return mp;
     }
 
@@ -3540,9 +3762,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int len = 6; // (1byte = featureID, 4bytes = featureData length, 1 bytes = Version)
 
         if (write) {
-            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TCE
-            tdsWriter.writeInt(1);
-            tdsWriter.writeByte(TDS.MAX_SUPPORTED_TCE_VERSION);
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TC
+            tdsWriter.writeInt(1); // length of version
+            if (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()) {
+                tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION1);
+            } else {
+                tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);
+            }
         }
         return len;
     }
@@ -4178,7 +4404,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         while (true) {
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
-                validateAdalLibrary("R_ADALMissing");
+                if (!adalContextExists()) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALMissing"));
+                    throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
+                }
                 fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                         authenticationString);
@@ -4186,14 +4415,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // Break out of the retry loop in successful case.
                 break;
             } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
-                fedAuthToken = getMSIAuthToken(fedAuthInfo.spn,
+                fedAuthToken = SQLServerSecurityUtility.getMSIAuthToken(fedAuthInfo.spn,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
 
                 // Break out of the retry loop in successful case.
                 break;
             } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
 
-                // If operating system is windows and sqljdbc_auth is loaded then choose the DLL authentication.
+                // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
                 if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")
                         && AuthenticationJNI.isDllLoaded()) {
                     try {
@@ -4212,7 +4441,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         break;
                     } catch (DLLException adalException) {
 
-                        // the sqljdbc_auth.dll return -1 for errorCategory, if unable to load the adalsql.dll
+                        // the mssql-jdbc_auth DLL return -1 for errorCategory, if unable to load the adalsql DLL
                         int errorCategory = adalException.GetCategory();
                         if (-1 == errorCategory) {
                             MessageFormat form = new MessageFormat(
@@ -4266,7 +4495,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // OS version here.
                 else {
                     // Check if ADAL4J library is available
-                    validateAdalLibrary("R_DLLandADALMissing");
+                    if (!adalContextExists()) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DLLandADALMissing"));
+                        Object[] msgArgs = {SQLServerDriver.AUTH_DLL_NAME, authenticationString};
+                        throw new SQLServerException(form.format(msgArgs), null, 0, null);
+                    }
                     fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
                 }
                 // Break out of the retry loop in successful case.
@@ -4277,164 +4510,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return fedAuthToken;
     }
 
-    private void validateAdalLibrary(String errorMessage) throws SQLServerException {
+    private boolean adalContextExists() {
         try {
             Class.forName("com.microsoft.aad.adal4j.AuthenticationContext");
         } catch (ClassNotFoundException e) {
-            // throw Exception for missing libraries
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString(errorMessage));
-            throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
+            return false;
         }
-    }
-
-    private SqlFedAuthToken getMSIAuthToken(String resource, String msiClientId) throws SQLServerException {
-        // IMDS upgrade time can take up to 70s
-        final int imdsUpgradeTimeInMs = 70 * 1000;
-        final List<Integer> retrySlots = new ArrayList<>();
-        final String msiEndpoint = System.getenv("MSI_ENDPOINT");
-        final String msiSecret = System.getenv("MSI_SECRET");
-
-        StringBuilder urlString = new StringBuilder();
-        int retry = 1, maxRetry = 1;
-
-        /*
-         * isAzureFunction is used for identifying if the current client application is running in a Virtual Machine
-         * (without MSI environment variables) or App Service/Function (with MSI environment variables) as the APIs to
-         * be called for acquiring MSI Token are different for both cases.
-         */
-        boolean isAzureFunction = null != msiEndpoint && !msiEndpoint.isEmpty() && null != msiSecret
-                && !msiSecret.isEmpty();
-
-        if (isAzureFunction) {
-            urlString.append(msiEndpoint).append("?api-version=2017-09-01&resource=").append(resource);
-        } else {
-            urlString.append(ActiveDirectoryAuthentication.AZURE_REST_MSI_URL).append("&resource=").append(resource);
-            // Retry acquiring access token upto 20 times due to possible IMDS upgrade (Applies to VM only)
-            maxRetry = 20;
-            // Simplified variant of Exponential BackOff
-            for (int x = 0; x < maxRetry; x++) {
-                retrySlots.add(500 * ((2 << 1) - 1) / 1000);
-            }
-        }
-
-        // Append Client Id if available
-        if (null != msiClientId && !msiClientId.isEmpty()) {
-            if (isAzureFunction) {
-                urlString.append("&clientid=").append(msiClientId);
-            } else {
-                urlString.append("&client_id=").append(msiClientId);
-            }
-        }
-
-        // Loop while maxRetry reaches its limit
-        while (retry <= maxRetry) {
-            HttpURLConnection connection = null;
-
-            try {
-                connection = (HttpURLConnection) new URL(urlString.toString()).openConnection();
-                connection.setRequestMethod("GET");
-
-                if (isAzureFunction) {
-                    connection.setRequestProperty("Secret", msiSecret);
-                    if (connectionlogger.isLoggable(Level.FINER)) {
-                        connectionlogger.finer(toString() + " Using Azure Function/App Service MSI auth: " + urlString);
-                    }
-                } else {
-                    connection.setRequestProperty("Metadata", "true");
-                    if (connectionlogger.isLoggable(Level.FINER)) {
-                        connectionlogger.finer(toString() + " Using Azure MSI auth: " + urlString);
-                    }
-                }
-
-                connection.connect();
-
-                try (InputStream stream = connection.getInputStream()) {
-
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8), 100);
-                    String result = reader.readLine();
-
-                    int startIndex_AT = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER)
-                            + ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER.length();
-
-                    String accessToken = result.substring(startIndex_AT, result.indexOf("\"", startIndex_AT + 1));
-
-                    Calendar cal = new Calendar.Builder().setInstant(new Date()).build();
-
-                    if (isAzureFunction) {
-                        // Fetch expires_on
-                        int startIndex_ATX = result
-                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER)
-                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER.length();
-                        String accessTokenExpiry = result.substring(startIndex_ATX,
-                                result.indexOf("\"", startIndex_ATX + 1));
-                        if (connectionlogger.isLoggable(Level.FINER)) {
-                            connectionlogger.finer(toString() + " MSI auth token expires on: " + accessTokenExpiry);
-                        }
-
-                        DateFormat df = new SimpleDateFormat(
-                                ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_DATE_FORMAT);
-                        cal = new Calendar.Builder().setInstant(df.parse(accessTokenExpiry)).build();
-                    } else {
-                        // Fetch expires_in
-                        int startIndex_ATX = result
-                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER)
-                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
-                        String accessTokenExpiry = result.substring(startIndex_ATX,
-                                result.indexOf("\"", startIndex_ATX + 1));
-                        cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
-                    }
-
-                    return new SqlFedAuthToken(accessToken, cal.getTime());
-                }
-            } catch (Exception e) {
-                retry++;
-                // Below code applicable only when !isAzureFunctcion (VM)
-                if (retry > maxRetry) {
-                    // Do not retry if maxRetry limit has been reached.
-                    break;
-                } else {
-                    try {
-                        int responseCode = connection.getResponseCode();
-                        // Check Error Response Code from Connection
-                        if (410 == responseCode || 429 == responseCode || 404 == responseCode
-                                || (500 <= responseCode && 599 >= responseCode)) {
-                            try {
-                                int retryTimeoutInMs = retrySlots.get(ThreadLocalRandom.current().nextInt(retry - 1));
-                                // Error code 410 indicates IMDS upgrade is in progress, which can take up to 70s
-                                retryTimeoutInMs = (responseCode == 410
-                                        && retryTimeoutInMs < imdsUpgradeTimeInMs) ? imdsUpgradeTimeInMs
-                                                                                   : retryTimeoutInMs;
-                                Thread.sleep(retryTimeoutInMs);
-                            } catch (InterruptedException ex) {
-                                // Throw runtime exception as driver must not be interrupted here
-                                throw new RuntimeException(ex);
-                            }
-                        } else {
-                            if (null != msiClientId && !msiClientId.isEmpty()) {
-                                SQLServerException.makeFromDriverError(this, null,
-                                        SQLServerException.getErrString("R_MSITokenFailureClientId"), null, true);
-                            } else {
-                                SQLServerException.makeFromDriverError(this, null,
-                                        SQLServerException.getErrString("R_MSITokenFailureImds"), null, true);
-                            }
-                        }
-                    } catch (IOException io) {
-                        // Throw error as unexpected if response code not available
-                        SQLServerException.makeFromDriverError(this, null,
-                                SQLServerException.getErrString("R_MSITokenFailureUnexpected"), null, true);
-                    }
-                }
-            } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
-            }
-        }
-        if (retry > maxRetry) {
-            SQLServerException.makeFromDriverError(this, null, SQLServerException
-                    .getErrString(isAzureFunction ? "R_MSITokenFailureEndpoint" : "R_MSITokenFailureImds"), null, true);
-        }
-        return null;
+        return true;
     }
 
     /**
@@ -4553,13 +4635,29 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                byte supportedTceVersion = data[0];
-                if (0 == supportedTceVersion || supportedTceVersion > TDS.MAX_SUPPORTED_TCE_VERSION) {
+                aeVersion = data[0];
+                if (TDS.COLUMNENCRYPTION_NOT_SUPPORTED == aeVersion || aeVersion > TDS.COLUMNENCRYPTION_VERSION2) {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                serverSupportsColumnEncryption = true;
+                serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v1;
+
+                if (null != enclaveAttestationUrl) {
+                    if (aeVersion < TDS.COLUMNENCRYPTION_VERSION2) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_enclaveNotSupported"), null);
+                    } else {
+                        serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v2;
+                        enclaveType = new String(data, 2, data.length - 2, UTF_16LE);
+                    }
+
+                    if (!EnclaveType.isValidEnclaveType(enclaveType)) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_enclaveTypeInvalid"));
+                        Object[] msgArgs = {enclaveType};
+                        throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                    }
+                }
                 break;
+
             }
             case TDS.TDS_FEATURE_EXT_DATACLASSIFICATION: {
                 if (connectionlogger.isLoggable(Level.FINER)) {
@@ -4619,6 +4717,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             final boolean doExecute() throws SQLServerException {
                 TDSWriter tdsWriter = startRequest(TDS.PKT_DTC);
+                tdsWriter.sendEnclavePackage(null, null);
 
                 tdsWriter.writeShort((short) requestType);
                 if (null == payload) {
@@ -4714,8 +4813,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /**
      * Send a TDS 7.x logon packet.
      * 
-     * @param secsTimeout
-     *        (optional) if non-zero, seconds to wait for logon to be sent.
+     * @param logonCommand
+     *        the logon command
+     * @param authentication
+     *        SSPI authentication
+     * @param fedAuthFeatureExtensionData
+     *        fedauth feature extension data
      * @throws SQLServerException
      */
     private void sendLogon(LogonCommand logonCommand, SSPIAuthentication authentication,
@@ -4854,7 +4957,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 + 4; // AE is always on;
 
         // only add lengths of password and username if not using SSPI or requesting federated authentication info
-        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)
+                && null == clientCertificate) {
             len = len + passwordLen + userBytes.length;
         }
 
@@ -4932,7 +5036,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
             tdsWriter.writeShort((short) (0));
 
-        } else if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        } else if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)
+                && null == clientCertificate) {
             // User and Password
             tdsWriter.writeShort((short) (tdsLoginRequestBaseLength + dataLen));
             tdsWriter.writeShort((short) (sUser == null ? 0 : sUser.length()));
@@ -5024,7 +5129,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if we are using NTLM or SSPI or fed auth ADAL, do not send over username/password, since we will use SSPI
         // instead
-        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)) {
+        // Also do not send username or password if user is attempting client certificate authentication.
+        if (!integratedSecurity && !(federatedAuthenticationInfoRequested || federatedAuthenticationRequested)
+                && null == clientCertificate) {
             tdsWriter.writeBytes(userBytes); // Username
             tdsWriter.writeBytes(passwordBytes); // Password (encrypted)
         }
@@ -5098,18 +5205,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public Statement createStatement(int nType, int nConcur, int resultSetHoldability) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "createStatement",
+        loggerExternal.entering(loggingClassName, "createStatement",
                 new Object[] {nType, nConcur, resultSetHoldability});
         Statement st = createStatement(nType, nConcur, resultSetHoldability,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
-        loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
+        loggerExternal.exiting(loggingClassName, "createStatement", st);
         return st;
     }
 
     @Override
     public Statement createStatement(int nType, int nConcur, int resultSetHoldability,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "createStatement",
+        loggerExternal.entering(loggingClassName, "createStatement",
                 new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetting});
         checkClosed();
         checkValidHoldability(resultSetHoldability);
@@ -5118,25 +5225,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (requestStarted) {
             addOpenStatement((ISQLServerStatement) st);
         }
-        loggerExternal.exiting(getClassNameLogging(), "createStatement", st);
+        loggerExternal.exiting(loggingClassName, "createStatement", st);
         return st;
     }
 
     @Override
     public PreparedStatement prepareStatement(java.lang.String sql, int nType, int nConcur,
             int resultSetHoldability) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement",
+        loggerExternal.entering(loggingClassName, "prepareStatement",
                 new Object[] {nType, nConcur, resultSetHoldability});
         PreparedStatement st = prepareStatement(sql, nType, nConcur, resultSetHoldability,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
-        loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
+        loggerExternal.exiting(loggingClassName, "prepareStatement", st);
         return st;
     }
 
     @Override
     public PreparedStatement prepareStatement(java.lang.String sql, int nType, int nConcur, int resultSetHoldability,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement",
+        loggerExternal.entering(loggingClassName, "prepareStatement",
                 new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetting});
         checkClosed();
         checkValidHoldability(resultSetHoldability);
@@ -5148,25 +5255,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             addOpenStatement((ISQLServerStatement) st);
         }
 
-        loggerExternal.exiting(getClassNameLogging(), "prepareStatement", st);
+        loggerExternal.exiting(loggingClassName, "prepareStatement", st);
         return st;
     }
 
     @Override
     public CallableStatement prepareCall(String sql, int nType, int nConcur,
             int resultSetHoldability) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement",
+        loggerExternal.entering(loggingClassName, "prepareStatement",
                 new Object[] {nType, nConcur, resultSetHoldability});
         CallableStatement st = prepareCall(sql, nType, nConcur, resultSetHoldability,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
-        loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
+        loggerExternal.exiting(loggingClassName, "prepareCall", st);
         return st;
     }
 
     @Override
     public CallableStatement prepareCall(String sql, int nType, int nConcur, int resultSetHoldability,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetiing) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement",
+        loggerExternal.entering(loggingClassName, "prepareStatement",
                 new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetiing});
         checkClosed();
         checkValidHoldability(resultSetHoldability);
@@ -5178,7 +5285,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             addOpenStatement((ISQLServerStatement) st);
         }
 
-        loggerExternal.exiting(getClassNameLogging(), "prepareCall", st);
+        loggerExternal.exiting(loggingClassName, "prepareCall", st);
         return st;
     }
 
@@ -5187,12 +5294,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public PreparedStatement prepareStatement(String sql, int flag) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, flag});
+            loggerExternal.entering(loggingClassName, "prepareStatement", new Object[] {sql, flag});
         }
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, flag,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 
-        loggerExternal.exiting(getClassNameLogging(), "prepareStatement", ps);
+        loggerExternal.exiting(loggingClassName, "prepareStatement", ps);
         return ps;
     }
 
@@ -5200,33 +5307,32 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public PreparedStatement prepareStatement(String sql, int flag,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "prepareStatement",
-                    new Object[] {sql, flag, stmtColEncSetting});
+            loggerExternal.entering(loggingClassName, "prepareStatement", new Object[] {sql, flag, stmtColEncSetting});
         }
         checkClosed();
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, stmtColEncSetting);
         ps.bRequestedGeneratedKeys = (flag == Statement.RETURN_GENERATED_KEYS);
-        loggerExternal.exiting(getClassNameLogging(), "prepareStatement", ps);
+        loggerExternal.exiting(loggingClassName, "prepareStatement", ps);
         return ps;
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, columnIndexes});
+            loggerExternal.entering(loggingClassName, "prepareStatement", new Object[] {sql, columnIndexes});
         }
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, columnIndexes,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 
-        loggerExternal.exiting(getClassNameLogging(), "prepareStatement", ps);
+        loggerExternal.exiting(loggingClassName, "prepareStatement", ps);
         return ps;
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, int[] columnIndexes,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement",
+        loggerExternal.entering(loggingClassName, "prepareStatement",
                 new Object[] {sql, columnIndexes, stmtColEncSetting});
 
         checkClosed();
@@ -5237,27 +5343,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, stmtColEncSetting);
         ps.bRequestedGeneratedKeys = true;
-        loggerExternal.exiting(getClassNameLogging(), "prepareStatement", ps);
+        loggerExternal.exiting(loggingClassName, "prepareStatement", ps);
         return ps;
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "prepareStatement", new Object[] {sql, columnNames});
+            loggerExternal.entering(loggingClassName, "prepareStatement", new Object[] {sql, columnNames});
         }
 
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, columnNames,
                 SQLServerStatementColumnEncryptionSetting.UseConnectionSetting);
 
-        loggerExternal.exiting(getClassNameLogging(), "prepareStatement", ps);
+        loggerExternal.exiting(loggingClassName, "prepareStatement", ps);
         return ps;
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, String[] columnNames,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "prepareStatement",
+        loggerExternal.entering(loggingClassName, "prepareStatement",
                 new Object[] {sql, columnNames, stmtColEncSetting});
         checkClosed();
         if (columnNames == null || columnNames.length != 1) {
@@ -5267,7 +5373,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         SQLServerPreparedStatement ps = (SQLServerPreparedStatement) prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, stmtColEncSetting);
         ps.bRequestedGeneratedKeys = true;
-        loggerExternal.exiting(getClassNameLogging(), "prepareStatement", ps);
+        loggerExternal.exiting(loggingClassName, "prepareStatement", ps);
         return ps;
     }
 
@@ -5275,7 +5381,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "releaseSavepoint", savepoint);
+        loggerExternal.entering(loggingClassName, "releaseSavepoint", savepoint);
         SQLServerException.throwNotSupportedException(this, null);
     }
 
@@ -5302,31 +5408,31 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public Savepoint setSavepoint(String sName) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "setSavepoint", sName);
+        loggerExternal.entering(loggingClassName, "setSavepoint", sName);
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         Savepoint pt = setNamedSavepoint(sName);
-        loggerExternal.exiting(getClassNameLogging(), "setSavepoint", pt);
+        loggerExternal.exiting(loggingClassName, "setSavepoint", pt);
         return pt;
     }
 
     @Override
     public Savepoint setSavepoint() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "setSavepoint");
+        loggerExternal.entering(loggingClassName, "setSavepoint");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         Savepoint pt = setNamedSavepoint(null);
-        loggerExternal.exiting(getClassNameLogging(), "setSavepoint", pt);
+        loggerExternal.exiting(loggingClassName, "setSavepoint", pt);
         return pt;
     }
 
     @Override
     public void rollback(Savepoint s) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "rollback", s);
+        loggerExternal.entering(loggingClassName, "rollback", s);
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -5337,20 +5443,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
         connectionCommand("IF @@TRANCOUNT > 0 ROLLBACK TRAN " + Util.escapeSQLId(((SQLServerSavepoint) s).getLabel()),
                 "rollbackSavepoint");
-        loggerExternal.exiting(getClassNameLogging(), "rollback");
+        loggerExternal.exiting(loggingClassName, "rollback");
     }
 
     @Override
     public int getHoldability() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getHoldability");
+        loggerExternal.entering(loggingClassName, "getHoldability");
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "getHoldability", holdability);
+            loggerExternal.exiting(loggingClassName, "getHoldability", holdability);
         return holdability;
     }
 
     @Override
     public void setHoldability(int holdability) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "setHoldability", holdability);
+        loggerExternal.entering(loggingClassName, "setHoldability", holdability);
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
@@ -5370,12 +5476,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             this.holdability = holdability;
         }
 
-        loggerExternal.exiting(getClassNameLogging(), "setHoldability");
+        loggerExternal.exiting(loggingClassName, "setHoldability");
     }
 
     @Override
     public int getNetworkTimeout() throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "getNetworkTimeout");
+        loggerExternal.entering(loggingClassName, "getNetworkTimeout");
 
         checkClosed();
 
@@ -5386,13 +5492,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, ioe.getMessage(), ioe);
         }
 
-        loggerExternal.exiting(getClassNameLogging(), "getNetworkTimeout");
+        loggerExternal.exiting(loggingClassName, "getNetworkTimeout");
         return timeout;
     }
 
     @Override
     public void setNetworkTimeout(Executor executor, int timeout) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "setNetworkTimeout", timeout);
+        loggerExternal.entering(loggingClassName, "setNetworkTimeout", timeout);
 
         if (timeout < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSocketTimeout"));
@@ -5421,12 +5527,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, ioe.getMessage(), ioe);
         }
 
-        loggerExternal.exiting(getClassNameLogging(), "setNetworkTimeout");
+        loggerExternal.exiting(loggingClassName, "setNetworkTimeout");
     }
 
     @Override
     public String getSchema() throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "getSchema");
+        loggerExternal.entering(loggingClassName, "getSchema");
 
         checkClosed();
 
@@ -5448,17 +5554,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     null, true);
         }
 
-        loggerExternal.exiting(getClassNameLogging(), "getSchema");
+        loggerExternal.exiting(loggingClassName, "getSchema");
         return null;
     }
 
     @Override
     public void setSchema(String schema) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "setSchema", schema);
+        loggerExternal.entering(loggingClassName, "setSchema", schema);
         checkClosed();
         addWarning(SQLServerException.getErrString("R_setSchemaWarning"));
 
-        loggerExternal.exiting(getClassNameLogging(), "setSchema");
+        loggerExternal.exiting(loggingClassName, "setSchema");
     }
 
     @Override
@@ -5502,11 +5608,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public SQLXML createSQLXML() throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "createSQLXML");
+        loggerExternal.entering(loggingClassName, "createSQLXML");
         SQLXML sqlxml = new SQLServerSQLXML(this);
 
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.exiting(getClassNameLogging(), "createSQLXML", sqlxml);
+            loggerExternal.exiting(loggingClassName, "createSQLXML", sqlxml);
         return sqlxml;
     }
 
@@ -5522,24 +5628,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public Properties getClientInfo() throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "getClientInfo");
+        loggerExternal.entering(loggingClassName, "getClientInfo");
         checkClosed();
         Properties p = new Properties();
-        loggerExternal.exiting(getClassNameLogging(), "getClientInfo", p);
+        loggerExternal.exiting(loggingClassName, "getClientInfo", p);
         return p;
     }
 
     @Override
     public String getClientInfo(String name) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "getClientInfo", name);
+        loggerExternal.entering(loggingClassName, "getClientInfo", name);
         checkClosed();
-        loggerExternal.exiting(getClassNameLogging(), "getClientInfo", null);
+        loggerExternal.exiting(loggingClassName, "getClientInfo", null);
         return null;
     }
 
     @Override
     public void setClientInfo(Properties properties) throws SQLClientInfoException {
-        loggerExternal.entering(getClassNameLogging(), "setClientInfo", properties);
+        loggerExternal.entering(loggingClassName, "setClientInfo", properties);
         // This function is only marked as throwing only SQLClientInfoException so the conversion is necessary
         try {
             checkClosed();
@@ -5557,13 +5663,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 addWarning(form.format(msgArgs));
             }
         }
-        loggerExternal.exiting(getClassNameLogging(), "setClientInfo");
+        loggerExternal.exiting(loggingClassName, "setClientInfo");
     }
 
     @Override
     public void setClientInfo(String name, String value) throws SQLClientInfoException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "setClientInfo", new Object[] {name, value});
+            loggerExternal.entering(loggingClassName, "setClientInfo", new Object[] {name, value});
         }
         // This function is only marked as throwing only SQLClientInfoException so the conversion is necessary
         try {
@@ -5576,7 +5682,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProperty"));
         Object[] msgArgs = {name};
         addWarning(form.format(msgArgs));
-        loggerExternal.exiting(getClassNameLogging(), "setClientInfo");
+        loggerExternal.exiting(loggingClassName, "setClientInfo");
     }
 
     /**
@@ -5601,7 +5707,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     @Override
     public boolean isValid(int timeout) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "isValid", timeout);
+        loggerExternal.entering(loggingClassName, "isValid", timeout);
 
         // Throw an exception if the timeout is invalid
         if (timeout < 0) {
@@ -5637,21 +5743,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             connectionlogger.fine(toString() + " Exception checking connection validity: " + e.getMessage());
         }
 
-        loggerExternal.exiting(getClassNameLogging(), "isValid", isValid);
+        loggerExternal.exiting(loggingClassName, "isValid", isValid);
         return isValid;
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
+        loggerExternal.entering(loggingClassName, "isWrapperFor", iface);
         boolean f = iface.isInstance(this);
-        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", f);
+        loggerExternal.exiting(loggingClassName, "isWrapperFor", f);
         return f;
     }
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
+        loggerExternal.entering(loggingClassName, "unwrap", iface);
         T t;
         try {
             t = iface.cast(this);
@@ -5660,7 +5766,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             SQLServerException newe = new SQLServerException(e.getMessage(), e);
             throw newe;
         }
-        loggerExternal.exiting(getClassNameLogging(), "unwrap", t);
+        loggerExternal.exiting(loggingClassName, "unwrap", t);
         return t;
     }
 
@@ -5680,8 +5786,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private List<ISQLServerStatement> openStatements;
     private boolean originalUseFmtOnly;
 
+    int aeVersion = TDS.COLUMNENCRYPTION_NOT_SUPPORTED;
+
     protected void beginRequestInternal() throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "beginRequest", this);
+        loggerExternal.entering(loggingClassName, "beginRequest", this);
         synchronized (this) {
             if (!requestStarted) {
                 originalDatabaseAutoCommitMode = databaseAutoCommitMode;
@@ -5701,11 +5809,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 requestStarted = true;
             }
         }
-        loggerExternal.exiting(getClassNameLogging(), "beginRequest", this);
+        loggerExternal.exiting(loggingClassName, "beginRequest", this);
     }
 
     protected void endRequestInternal() throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "endRequest", this);
+        loggerExternal.entering(loggingClassName, "endRequest", this);
         synchronized (this) {
             if (requestStarted) {
                 if (!databaseAutoCommitMode) {
@@ -5757,7 +5865,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 requestStarted = false;
             }
         }
-        loggerExternal.exiting(getClassNameLogging(), "endRequest", this);
+        loggerExternal.exiting(loggingClassName, "endRequest", this);
     }
 
     /**
@@ -5798,10 +5906,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
 
-        while (dstBegin < sqlDst.length)
-            sqlDst[dstBegin++] = ' ';
-
-        return new String(sqlDst);
+        return new String(sqlDst, 0, dstBegin);
     }
 
     /**
@@ -6130,7 +6235,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             try {
                 // Execute the batched set.
-                try (Statement stmt = this.createStatement()) {
+                try (SQLServerStatement stmt = (SQLServerStatement) this.createStatement()) {
+                    stmt.isInternalEncryptionQuery = true;
                     stmt.execute(sql.toString());
                 }
 
@@ -6195,8 +6301,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Prepares the cache handle.
-     * 
-     * @param value
      */
     private void prepareCache() {
         preparedStatementHandleCache = new Builder<CityHash128Key, PreparedStatementHandle>()
@@ -6369,6 +6473,32 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             openStatements.remove(st);
         }
     }
+
+    boolean isAEv2() {
+        return (aeVersion >= TDS.COLUMNENCRYPTION_VERSION2);
+    }
+
+    private ISQLServerEnclaveProvider enclaveProvider;
+
+    ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
+            ArrayList<String> parameterNames) throws SQLServerException {
+        if (!this.enclaveEstablished()) {
+            enclaveProvider.getAttestationParameters(this.enclaveAttestationUrl);
+        }
+        return enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
+    }
+
+    boolean enclaveEstablished() {
+        return (null != enclaveProvider.getEnclaveSession());
+    }
+
+    byte[] generateEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
+        return (enclaveCEKs.size() > 0) ? enclaveProvider.getEnclavePackage(userSQL, enclaveCEKs) : null;
+    }
+
+    String getServerName() {
+        return this.trustedServerNameAE;
+    }
 }
 
 
@@ -6377,7 +6507,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
  * 
  */
 final class SQLServerConnectionSecurityManager {
-    static final String dllName = "sqljdbc_auth.dll";
+    static final String dllName = SQLServerDriver.AUTH_DLL_NAME + ".dll";
     String serverName;
     int portNumber;
 

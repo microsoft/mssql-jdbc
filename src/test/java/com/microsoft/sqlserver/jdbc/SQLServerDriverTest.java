@@ -17,6 +17,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -36,12 +37,12 @@ public class SQLServerDriverTest extends AbstractTest {
      * 
      * @since 1.9
      * @throws ClassNotFoundException
+     * @throws SQLException
      */
     @Test
-    public void testDriverDM() throws ClassNotFoundException {
-        Stream<Driver> drivers = DriverManager.drivers();
-        Object[] driversArray = drivers.toArray();
-        assertEquals(driversArray[0].getClass(), Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver"),
+    public void testDriverDM() throws SQLException, ClassNotFoundException {
+        Driver driver = DriverManager.getDriver(connectionString);
+        assertEquals(Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver"), driver.getClass(),
                 TestResource.getResource("R_parrentLoggerNameWrong"));
     }
 
@@ -59,9 +60,8 @@ public class SQLServerDriverTest extends AbstractTest {
             current = drivers.nextElement();
             DriverManager.deregisterDriver(current);
         }
-        Stream<Driver> currentDrivers = DriverManager.drivers();
-        Object[] driversArray = currentDrivers.toArray();
-        assertEquals(0, driversArray.length);
+        Enumeration<Driver> currentDrivers = DriverManager.getDrivers();
+        assertEquals(false, currentDrivers.hasMoreElements());
         DriverManager.registerDriver(current);
     }
 

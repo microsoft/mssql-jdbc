@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.text.MessageFormat;
+import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Locale;
@@ -28,7 +29,7 @@ import java.util.TimeZone;
 
 
 /**
- * Utility class for all Data Dependant Conversions (DDC).
+ * Utility class for all Data Dependent Conversions (DDC).
  */
 
 final class DDC {
@@ -36,7 +37,7 @@ final class DDC {
     /**
      * Convert an Integer object to desired target user type.
      * 
-     * @param intvalue
+     * @param intValue
      *        the value to convert.
      * @param valueLength
      *        the value to convert.
@@ -71,6 +72,17 @@ final class DDC {
                 return (float) intValue;
             case BINARY:
                 return convertIntToBytes(intValue, valueLength);
+            case SQL_VARIANT:
+                // return short or bit if the underlying datatype of sql_variant is tinyint, smallint or bit
+                // otherwise, return integer
+                // Longer datatypes such as double and float are handled by convertLongToObject instead.
+                if (valueLength == 1) {
+                    return 0 != intValue;
+                } else if (valueLength == 3 || valueLength == 4) {
+                    return (short) intValue;
+                } else {
+                    return intValue;
+                }
             default:
                 return Integer.toString(intValue);
         }
@@ -92,6 +104,7 @@ final class DDC {
     static final Object convertLongToObject(long longVal, JDBCType jdbcType, SSType baseSSType, StreamType streamType) {
         switch (jdbcType) {
             case BIGINT:
+            case SQL_VARIANT:
                 return longVal;
             case INTEGER:
                 return (int) longVal;
@@ -208,6 +221,7 @@ final class DDC {
     static final Object convertFloatToObject(float floatVal, JDBCType jdbcType, StreamType streamType) {
         switch (jdbcType) {
             case REAL:
+            case SQL_VARIANT:
                 return floatVal;
             case INTEGER:
                 return (int) floatVal;
@@ -265,6 +279,7 @@ final class DDC {
         switch (jdbcType) {
             case FLOAT:
             case DOUBLE:
+            case SQL_VARIANT:
                 return doubleVal;
             case REAL:
                 return (Double.valueOf(doubleVal)).floatValue();
@@ -323,6 +338,30 @@ final class DDC {
         return valueBytes;
     }
 
+    static final byte[] convertMoneyToBytes(BigDecimal bigDecimalVal, int bLength) {
+        byte[] valueBytes = new byte[bLength];
+
+        BigInteger bi = bigDecimalVal.unscaledValue();
+
+        if (bLength == 8) {
+            // money
+            byte[] longbArray = new byte[bLength];
+            Util.writeLong(bi.longValue(), longbArray, 0);
+            /*
+             * TDS 2.2.5.5.1.4 Fixed-Point Numbers Money is represented as a 8 byte signed integer, with one 4-byte
+             * integer that represents the more significant half, and one 4-byte integer that represents the less
+             * significant half.
+             */
+            System.arraycopy(longbArray, 0, valueBytes, 4, 4);
+            System.arraycopy(longbArray, 4, valueBytes, 0, 4);
+        } else {
+            // smallmoney
+            Util.writeInt(bi.intValue(), valueBytes, 0);
+        }
+
+        return valueBytes;
+    }
+
     /**
      * Convert a BigDecimal object to desired target user type.
      * 
@@ -340,6 +379,7 @@ final class DDC {
             case NUMERIC:
             case MONEY:
             case SMALLMONEY:
+            case SQL_VARIANT:
                 return bigDecimalVal;
             case FLOAT:
             case DOUBLE:
@@ -518,6 +558,8 @@ final class DDC {
             // Convert String to Temporal types.
             case TIMESTAMP:
                 return java.sql.Timestamp.valueOf(stringVal.trim());
+            case LOCALDATETIME:
+                return parseStringIntoLDT(stringVal.trim());
             case DATE:
                 return java.sql.Date.valueOf(getDatePart(stringVal.trim()));
             case TIME: {
@@ -557,6 +599,100 @@ final class DDC {
                         return stringVal;
                 }
         }
+    }
+
+    /**
+     * Taken from java.sql.Timestamp implementation
+     * 
+     * @param s
+     *        String to be parsed
+     * @return LocalDateTime
+     */
+    private static LocalDateTime parseStringIntoLDT(String s) {
+        final int YEAR_LENGTH = 4;
+        final int MONTH_LENGTH = 2;
+        final int DAY_LENGTH = 2;
+        final int MAX_MONTH = 12;
+        final int MAX_DAY = 31;
+        int year = 0;
+        int month = 0;
+        int day = 0;
+        int hour;
+        int minute;
+        int second;
+        int a_nanos = 0;
+        int firstDash;
+        int secondDash;
+        int dividingSpace;
+        int firstColon;
+        int secondColon;
+        int period;
+        String formatError = "Timestamp format must be yyyy-mm-dd hh:mm:ss[.fffffffff]";
+
+        if (s == null)
+            throw new java.lang.IllegalArgumentException("null string");
+
+        // Split the string into date and time components
+        s = s.trim();
+        dividingSpace = s.indexOf(' ');
+        if (dividingSpace < 0) {
+            throw new java.lang.IllegalArgumentException(formatError);
+        }
+
+        // Parse the date
+        firstDash = s.indexOf('-');
+        secondDash = s.indexOf('-', firstDash + 1);
+
+        // Parse the time
+        firstColon = s.indexOf(':', dividingSpace + 1);
+        secondColon = s.indexOf(':', firstColon + 1);
+        period = s.indexOf('.', secondColon + 1);
+
+        // Convert the date
+        boolean parsedDate = false;
+        if (firstDash > 0 && secondDash > 0 && secondDash < dividingSpace - 1) {
+            if (firstDash == YEAR_LENGTH && (secondDash - firstDash > 1 && secondDash - firstDash <= MONTH_LENGTH + 1)
+                    && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
+                year = Integer.parseInt(s.substring(0, firstDash));
+                month = Integer.parseInt(s.substring(firstDash + 1, secondDash));
+                day = Integer.parseInt(s.substring(secondDash + 1, dividingSpace));
+
+                if ((month >= 1 && month <= MAX_MONTH) && (day >= 1 && day <= MAX_DAY)) {
+                    parsedDate = true;
+                }
+            }
+        }
+        if (!parsedDate) {
+            throw new java.lang.IllegalArgumentException(formatError);
+        }
+
+        // Convert the time; default missing nanos
+        int len = s.length();
+        if (firstColon > 0 && secondColon > 0 && secondColon < len - 1) {
+            hour = Integer.parseInt(s.substring(dividingSpace + 1, firstColon));
+            minute = Integer.parseInt(s.substring(firstColon + 1, secondColon));
+            if (period > 0 && period < len - 1) {
+                second = Integer.parseInt(s.substring(secondColon + 1, period));
+                int nanoPrecision = len - (period + 1);
+                if (nanoPrecision > 9)
+                    throw new java.lang.IllegalArgumentException(formatError);
+                if (!Character.isDigit(s.charAt(period + 1)))
+                    throw new java.lang.IllegalArgumentException(formatError);
+                int tmpNanos = Integer.parseInt(s.substring(period + 1, len));
+                while (nanoPrecision < 9) {
+                    tmpNanos *= 10;
+                    nanoPrecision++;
+                }
+                a_nanos = tmpNanos;
+            } else if (period > 0) {
+                throw new java.lang.IllegalArgumentException(formatError);
+            } else {
+                second = Integer.parseInt(s.substring(secondColon + 1, len));
+            }
+        } else {
+            throw new java.lang.IllegalArgumentException(formatError);
+        }
+        return LocalDateTime.of(year, month, day, hour, minute, second, a_nanos);
     }
 
     static final Object convertStreamToObject(BaseInputStream stream, TypeInfo typeInfo, JDBCType jdbcType,
@@ -754,9 +890,17 @@ final class DDC {
      */
     static final Object convertTemporalToObject(JDBCType jdbcType, SSType ssType, Calendar timeZoneCalendar,
             int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) {
+
+        // In cases where a Calendar object (and therefore Timezone) is not passed to the method,
+        // use the path below instead to optimize performance.
+        if (null == timeZoneCalendar) {
+            return convertTemporalToObject(jdbcType, ssType, daysSinceBaseDate, ticksSinceMidnight,
+                    fractionalSecondsScale);
+        }
+
         // Determine the local time zone to associate with the value. Use the default VM
         // time zone if no time zone is otherwise specified.
-        TimeZone localTimeZone = (null != timeZoneCalendar) ? timeZoneCalendar.getTimeZone() : TimeZone.getDefault();
+        TimeZone localTimeZone = timeZoneCalendar.getTimeZone();
 
         // Assumed time zone associated with the date and time parts of the value.
         //
@@ -765,7 +909,6 @@ final class DDC {
         TimeZone componentTimeZone = (SSType.DATETIMEOFFSET == ssType) ? UTC.timeZone : localTimeZone;
 
         int subSecondNanos;
-
         // The date and time parts assume a Gregorian calendar with Gregorian leap year behavior
         // over the entire supported range of values. Create and initialize such a calendar to
         // use to interpret the date and time parts in their associated time zone.
@@ -893,16 +1036,9 @@ final class DDC {
             default:
                 throw new AssertionError("Unexpected SSType: " + ssType);
         }
-        int localMillisOffset;
-        if (null == timeZoneCalendar) {
-            TimeZone tz = TimeZone.getDefault();
-            GregorianCalendar _cal = new GregorianCalendar(componentTimeZone, Locale.US);
-            _cal.setLenient(true);
-            _cal.clear();
-            localMillisOffset = tz.getOffset(_cal.getTimeInMillis());
-        } else {
-            localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
-        }
+
+        int localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
+
         // Convert the calendar value (in local time) to the desired Java object type.
         switch (jdbcType.category) {
             case BINARY:
@@ -994,6 +1130,9 @@ final class DDC {
             case TIMESTAMP: {
                 java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
                 ts.setNanos(subSecondNanos);
+                if (jdbcType == JDBCType.LOCALDATETIME) {
+                    return ts.toLocalDateTime();
+                }
                 return ts;
             }
 
@@ -1048,6 +1187,139 @@ final class DDC {
                     case DATETIME: // and SMALLDATETIME
                     {
                         return (new java.sql.Timestamp(cal.getTimeInMillis())).toString();
+                    }
+
+                    default:
+                        throw new AssertionError("Unexpected SSType: " + ssType);
+                }
+            }
+
+            default:
+                throw new AssertionError("Unexpected JDBCType: " + jdbcType);
+        }
+    }
+
+    private static Object convertTemporalToObject(JDBCType jdbcType, SSType ssType, int daysSinceBaseDate,
+            long ticksSinceMidnight, int fractionalSecondsScale) {
+        int subSecondNanos;
+
+        // In cases where Timezone values don't need to be considered, use LocalDateTime go avoid
+        // overhead from using a Calendar object.
+        // Note that DateTimeOffset path is not handled in this method, since DateTimeOffset always has
+        // its own Calendar object (UTC timezone) associated with it.
+        LocalDateTime ldt = null;
+
+        switch (ssType) {
+            case TIME: {
+                ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0).plusNanos(ticksSinceMidnight);
+
+                subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
+                break;
+            }
+
+            case DATE:
+            case DATETIME2:
+            case DATETIMEOFFSET: {
+                ldt = LocalDateTime.of(1, 1, 1, 0, 0, 0);
+                ldt = ldt.plusDays(daysSinceBaseDate);
+                // If the target is java.sql.Date, don't add the time component since it needs to be at midnight.
+                if (jdbcType.category != JDBCType.Category.DATE) {
+                    ldt = ldt.plusNanos(ticksSinceMidnight);
+                }
+                subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
+                break;
+            }
+
+            case DATETIME: // and SMALLDATETIME
+            {
+                ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0);
+                ldt = ldt.plusDays(daysSinceBaseDate);
+                // If the target is java.sql.Date, don't add the time component since it needs to be at midnight.
+                if (jdbcType.category != JDBCType.Category.DATE) {
+                    ldt = ldt.plusNanos(ticksSinceMidnight * Nanos.PER_MILLISECOND);
+                }
+
+                subSecondNanos = (int) ((ticksSinceMidnight * Nanos.PER_MILLISECOND) % Nanos.PER_SECOND);
+                break;
+            }
+
+            default:
+                throw new AssertionError("Unexpected SSType: " + ssType);
+        }
+
+        switch (jdbcType.category) {
+            case BINARY:
+            case SQL_VARIANT: {
+                switch (ssType) {
+                    case DATE: {
+                        return java.sql.Date.valueOf(ldt.toLocalDate());
+                    }
+
+                    case DATETIME:
+                    case DATETIME2: {
+                        java.sql.Timestamp ts = java.sql.Timestamp.valueOf(ldt);
+                        ts.setNanos(subSecondNanos);
+                        return ts;
+                    }
+
+                    case TIME: {
+                        if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2) {
+                            ldt = ldt.plusNanos(1000000);
+                        }
+                        java.sql.Time t = java.sql.Time.valueOf(ldt.toLocalTime());
+                        t.setTime(t.getTime() + (ldt.getNano() / Nanos.PER_MILLISECOND));
+                        return t;
+                    }
+
+                    default:
+                        throw new AssertionError("Unexpected SSType: " + ssType);
+                }
+            }
+
+            case DATE: {
+                return java.sql.Date.valueOf(ldt.toLocalDate());
+            }
+
+            case TIME: {
+                if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2) {
+                    ldt = ldt.plusNanos(1000000);
+                }
+                java.sql.Time t = java.sql.Time.valueOf(ldt.toLocalTime());
+                t.setTime(t.getTime() + (ldt.getNano() / Nanos.PER_MILLISECOND));
+                return t;
+            }
+
+            case TIMESTAMP: {
+                if (jdbcType == JDBCType.LOCALDATETIME) {
+                    return ldt;
+                }
+
+                java.sql.Timestamp ts = java.sql.Timestamp.valueOf(ldt);
+                ts.setNanos(subSecondNanos);
+                return ts;
+            }
+
+            case CHARACTER: {
+                switch (ssType) {
+                    case DATE: {
+                        return String.format(Locale.US, "%1$tF", // yyyy-mm-dd
+                                java.sql.Timestamp.valueOf(ldt));
+                    }
+
+                    case TIME: {
+                        return String.format(Locale.US, "%1$tT%2$s", // hh:mm:ss[.nnnnnnn]
+                                ldt, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                    }
+
+                    case DATETIME2: {
+                        return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
+                                java.sql.Timestamp.valueOf(ldt),
+                                fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                    }
+
+                    case DATETIME: // and SMALLDATETIME
+                    {
+                        return (java.sql.Timestamp.valueOf(ldt)).toString();
                     }
 
                     default:

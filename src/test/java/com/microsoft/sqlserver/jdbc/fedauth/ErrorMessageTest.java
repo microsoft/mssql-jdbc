@@ -21,6 +21,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
@@ -66,7 +67,7 @@ public class ErrorMessageTest extends AbstractTest {
             if (!(e instanceof SQLServerException)) {
                 fail(e.getMessage());
             }
-            assertTrue(e.getMessage(), e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         } finally {
             if (null != connection) {
                 connection.close();
@@ -85,7 +86,7 @@ public class ErrorMessageTest extends AbstractTest {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage(), e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         }
     }
 
@@ -120,7 +121,7 @@ public class ErrorMessageTest extends AbstractTest {
             }
 
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(e.getMessage(),
+            assertTrue(
                     e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
         } finally {
             if (null != connection) {
@@ -164,7 +165,7 @@ public class ErrorMessageTest extends AbstractTest {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(e.getMessage(),
+            assertTrue(
                     e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
         } finally {
             if (null != connection) {
@@ -189,7 +190,7 @@ public class ErrorMessageTest extends AbstractTest {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage(), e.getMessage().startsWith(ERR_MSG_SQL_AUTH_FAILED_SSL));
+            assertTrue(e.getMessage().startsWith(ERR_MSG_SQL_AUTH_FAILED_SSL));
         } finally {
             if (null != connection) {
                 connection.close();
@@ -229,12 +230,11 @@ public class ErrorMessageTest extends AbstractTest {
 
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage(),
-                    e.getMessage()
-                            .contains("Failed to authenticate the user " + userName
-                                    + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                            && e.getCause().getCause().getMessage()
-                                    .contains("To sign into this application, the account must be added to"));
+            assertTrue(e.getMessage()
+                    .contains("Failed to authenticate the user " + userName
+                            + " in Active Directory (Authentication=ActiveDirectoryPassword).")
+                    && e.getCause().getCause().getMessage()
+                            .contains("To sign into this application, the account must be added to"));
         } finally {
             if (null != connection) {
                 connection.close();
@@ -261,14 +261,15 @@ public class ErrorMessageTest extends AbstractTest {
             info.put("Authentication", "activedirectoryIntegrated");
 
             // remove the username and password property
-            String newConnectionURL = removeUserNameAndPassword(connectionString);
+            String newConnectionURL = TestUtils.removeProperty(TestUtils.removeProperty(connectionString, "user"),
+                    "password");
             connection = DriverManager.getConnection(newConnectionURL, info);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage(), e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         } finally {
             if (null != connection) {
                 connection.close();
@@ -318,7 +319,7 @@ public class ErrorMessageTest extends AbstractTest {
                 }
 
                 String wrongUserName = azureUserName.split("@")[1];
-                assertTrue(e.getMessage(), e.getMessage()
+                assertTrue(e.getMessage()
                         .startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
                 retry = false;
             } finally {
@@ -334,29 +335,16 @@ public class ErrorMessageTest extends AbstractTest {
         java.util.Properties info = new Properties();
         info.put("accesstoken", accessToken);
         info.put("TrustServerCertificate", "true");
-        String newConnectionURL = removeUserNameAndPassword(connectionString);
-
+        String newConnectionURL = TestUtils.removeProperty(TestUtils.removeProperty(connectionString, "user"),
+                "password");
         try (Connection connection = DriverManager.getConnection(newConnectionURL, info)) {
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage(), e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         }
-    }
-
-    private String removeUserNameAndPassword(String connectionURL) {
-        String[] properties = connectionURL.split(";");
-        String newConnectionURL = "";
-        for (String property : properties) {
-            if (property.toLowerCase().startsWith("password") || property.toLowerCase().startsWith("username")
-                    || property.toLowerCase().startsWith("user")) {
-                continue;
-            }
-            newConnectionURL = newConnectionURL + property + ";";
-        }
-        return newConnectionURL;
     }
 
     @Test
@@ -385,16 +373,22 @@ public class ErrorMessageTest extends AbstractTest {
             connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user="
                     + azureUserName + ";password=WrongPassword;"
                     + "Authentication=ActiveDirectoryPassword;HostNameInCertificate=" + hostNameInCertificate;
-            connection = DriverManager.getConnection(connectionUrl);
+            System.out.println("connectionUrl: " + connectionUrl);
+
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
+
+            System.out.println("error msg: " + e.getMessage());
+            System.out.println("cause: " + e.getCause().getMessage());
+            System.out.println("cause cause: " + e.getCause().getCause().getMessage());
+
             assertTrue(e.getMessage()
                     .contains("Failed to authenticate the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                    && (e.getCause().getCause().getMessage().contains("Invalid username or password")
+                    && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
                             || e.getCause().getCause().getMessage().contains(
                                     "You've tried to sign in too many times with an incorrect user ID or password.")));
 

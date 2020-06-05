@@ -16,7 +16,6 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.ListIterator;
 import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -821,6 +820,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         // through regular Statement objects. We need to ensure that any such JDBC
         // call syntax is rewritten here as SQL exec syntax.
         String sql = ensureSQLSyntax(execCmd.sql);
+        if (!isInternalEncryptionQuery && connection.isAEv2()) {
+            execCmd.enclaveCEKs = connection.initEnclaveParameters(sql, null, null, null);
+        }
 
         // If this request might be a query (as opposed to an update) then make
         // sure we set the max number of rows and max field size for any ResultSet
@@ -848,6 +850,8 @@ public class SQLServerStatement implements ISQLServerStatement {
             expectCursorOutParams = false;
 
             TDSWriter tdsWriter = execCmd.startRequest(TDS.PKT_QUERY);
+
+            tdsWriter.sendEnclavePackage(sql, execCmd.enclaveCEKs);
 
             tdsWriter.writeString(sql);
 
@@ -914,6 +918,11 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Make sure any previous maxRows limitation on the connection is removed.
         connection.setMaxRows(0);
 
+        String batchStatementString = String.join(";", batchStatementBuffer);
+        if (connection.isAEv2()) {
+            execCmd.enclaveCEKs = connection.initEnclaveParameters(batchStatementString, null, null, null);
+        }
+
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -926,12 +935,8 @@ public class SQLServerStatement implements ISQLServerStatement {
         TDSWriter tdsWriter = execCmd.startRequest(TDS.PKT_QUERY);
 
         // Write the concatenated batch of statements, delimited by semicolons
-        ListIterator<String> batchIter = batchStatementBuffer.listIterator();
-        tdsWriter.writeString(batchIter.next());
-        while (batchIter.hasNext()) {
-            tdsWriter.writeString(" ; ");
-            tdsWriter.writeString(batchIter.next());
-        }
+        tdsWriter.sendEnclavePackage(batchStatementString, execCmd.enclaveCEKs);
+        tdsWriter.writeString(batchStatementString);
 
         // Start the response
         ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
@@ -1204,6 +1209,9 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     Vector<SQLWarning> sqlWarnings; // the SQL warnings chain
+
+    /** Flag to indicate that it is an internal query to retrieve encryption metadata. */
+    boolean isInternalEncryptionQuery;
 
     @Override
     public final SQLWarning getWarnings() throws SQLServerException {
@@ -2000,6 +2008,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         tdsWriter.writeShort(TDS.PROCID_SP_CURSOROPEN);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+        tdsWriter.sendEnclavePackage(sql, execCmd.enclaveCEKs);
 
         // <cursor> OUT
         tdsWriter.writeRPCInt(null, 0, true);

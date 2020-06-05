@@ -11,29 +11,33 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.sql.Connection;
 import java.sql.Date;
 import java.sql.JDBCType;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Properties;
+import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
-import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -44,52 +48,217 @@ import microsoft.sql.DateTimeOffset;
 
 
 /**
- * Setup for Always Encrypted test This test will work on Appveyor and Travis-ci as java key store gets created from the
- * .yml scripts. Users on their local machine should create the keystore manually and save the alias name in
- * JavaKeyStore.txt file. For local test purposes, put this in the target/test-classes directory
+ * Setup for Always Encrypted test This test will work on Azure DevOps as java key store gets created from the .yml
+ * scripts. Users on their local machine should create the keystore manually and save the alias name in JavaKeyStore.txt
+ * file. For local test purposes, put this in the target/test-classes directory
  *
  */
 @RunWith(JUnitPlatform.class)
 public class AESetup extends AbstractTest {
+    static String cmkJks = Constants.CMK_NAME + "_JKS";
+    static String cmkWin = Constants.CMK_NAME + "_WIN";
+    static String cmkAkv = Constants.CMK_NAME + "_AKV";
+    static String cekJks = Constants.CEK_NAME + "_JKS";
+    static String cekWin = Constants.CEK_NAME + "_WIN";
+    static String cekAkv = Constants.CEK_NAME + "_AKV";
 
-    static String filePath = null;
-    static String thumbprint = null;
-    static String keyPath = null;
-    static String javaKeyAliases = null;
-
-    static SQLServerColumnEncryptionKeyStoreProvider storeProvider = null;
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
+
     static String AETestConnectionString;
+    static String enclaveProperties = "";
 
     static Properties AEInfo;
+    static Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+
+    // test that only run on Windows will be skipped
+    static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
+
+    public static final String tableName = TestUtils
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("AETest_")));
+    public static final String CHAR_TABLE_AE = TestUtils
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedChar")));
+    public static final String BINARY_TABLE_AE = TestUtils
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedBinary")));
+    public static final String DATE_TABLE_AE = TestUtils
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedDate")));
+    public static final String NUMERIC_TABLE_AE = TestUtils.escapeSingleQuotes(
+            AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedNumeric")));
+    public static final String SCALE_DATE_TABLE_AE = TestUtils.escapeSingleQuotes(
+            AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedScaleDate")));
+
+    enum ColumnType {
+        PLAIN,
+        RANDOMIZED,
+        DETERMINISTIC
+    }
+
+    /*
+     * tables used in the tests {columnName, columnType}
+     */
+    static String binaryTable[][] = {{"Binary", "binary(20)", "BINARY"}, {"Varbinary", "varbinary(50)", "BINARY"},
+            {"VarbinaryMax", "varbinary(max)", "BINARY"}, {"Binary512", "binary(512)", "BINARY"},
+            {"Binary8000", "varbinary(8000)", "BINARY"}};
+
+    static String charTable[][] = {{"Char", "char(20) COLLATE Latin1_General_BIN2", "CHAR"},
+            {"Varchar", "varchar(50) COLLATE Latin1_General_BIN2", "CHAR"},
+            {"VarcharMax", "varchar(max) COLLATE Latin1_General_BIN2", "LONGVARCHAR"},
+            {"Nchar", "nchar(30) COLLATE Latin1_General_BIN2", "NCHAR"},
+            {"Nvarchar", "nvarchar(60) COLLATE Latin1_General_BIN2", "NCHAR"},
+            {"NvarcharMax", "nvarchar(max) COLLATE Latin1_General_BIN2", "LONGNVARCHAR"},
+            {"Uniqueidentifier", "uniqueidentifier", "GUID"},
+            {"Varchar8000", "varchar(8000) COLLATE Latin1_General_BIN2", "CHAR"},
+            {"Nvarchar4000", "nvarchar(4000) COLLATE Latin1_General_BIN2", "NCHAR"},};
+
+    static String dateTable[][] = {{"Date", "date", "DATE"}, {"Datetime2Default", "datetime2", "TIMESTAMP"},
+            {"DatetimeoffsetDefault", "datetimeoffset", "DATETIMEOFFSET"}, {"TimeDefault", "time", "TIME"},
+            {"Datetime", "datetime", "DATETIME"}, {"Smalldatetime", "smalldatetime", "SMALLDATETIME"}};
+
+    static String dateScaleTable[][] = {{"Datetime2", "datetime2(2)", "DATE"}, {"Time", "time(2)", "DATE"},
+            {"Datetimeoffset", "datetimeoffset(2)", "DATE"}};
+
+    static String numericTable[][] = {{"Bit", "bit", "BIT"}, {"Tinyint", "tinyint", "TINYINT"},
+            {"Smallint", "smallint", "SMALLINT"}, {"Int", "int", "INTEGER"}, {"Bigint", "bigint", "BIGINT"},
+            {"FloatDefault", "float", "DOUBLE"}, {"Float", "float(30)", "DOUBLE"}, {"Real", "real", "FLOAT"},
+            {"DecimalDefault", "decimal", "DECIMAL"}, {"Decimal", "decimal(10,5)", "DECIMAL"},
+            {"NumericDefault", "numeric", "DECIMAL"}, {"Numeric", "numeric(8,2)", "DECIMAL"},
+            {"SmallMoney", "smallmoney", "SMALLMONEY"}, {"Money", "money", "MONEY"},
+            {"Decimal2", "decimal(28,4)", "DECIMAL"}, {"Numeric2", "numeric(28,4)", "DECIMAL"},};
+
+    static String numericTableSimple[][] = {{"Int", "int", "INT"}};
+
+    static String varcharTableSimple[][] = {{"Varchar", "varchar(20) COLLATE LATIN1_GENERAL_BIN2", "VARCHAR"}};
+
+    // CREATE TABLE tableName (columns) NULL"
+    static String createSql = "CREATE TABLE %s (%s)";
+
+    // ENCRYPTED WITH (ENCRYPTION_TYPE = encryptionType, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256',
+    // COLUMN_ENCRYPTION_KEY = cekName
+    static String encryptSql = " ENCRYPTED WITH (ENCRYPTION_TYPE = %s, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = %s";
+
+    /*
+     * List of all the randomized columns in the tests
+     */
+    static String[] randomizedColumns = {"PlainBinary binary(20)", "PlainVarbinary varbinary(50)",
+            "PlainVarbinaryMax varbinary(max)", "PlainBinary512 binary(512)", "PlainBinary8000 varbinary(8000)",
+            "PlainChar char(20)", "PlainVarchar varchar(50)", "PlainVarcharMax varchar(max)", "PlainNchar nchar(30)",
+            "PlainNvarchar nvarchar(60)", "PlainNvarcharMax nvarchar(max)", "PlainUniqueidentifier uniqueidentifier",
+            "PlainVarchar8000 varchar(8000)", "PlainNvarchar4000 nvarchar(4000)", "PlainDate date",
+            "PlainDatetime2Default datetime2", "PlainDatetimeoffsetDefault datetimeoffset", "PlainTimeDefault time",
+            "PlainDatetime datetime", "PlainSmalldatetime smalldatetime", "PlainDatetime2 datetime2(0)",
+            "PlainDatetime2Default datetime2", "PlainDatetimeoffsetDefault datetimeoffset", "PlainTimeDefault time",
+            "PlainTime time(0)", "PlainDatetimeoffset datetimeoffset(0)", "PlainDatetime2 datetime2(2)",
+            "PlainTime time(2)", "PlainDatetimeoffset datetimeoffset(2)", "PlainBit bit", "PlainTinyint tinyint",
+            "PlainSmallint smallint", "PlainInt int", "PlainBigint bigint", "PlainFloatDefault float",
+            "PlainFloat float(30)", "PlainReal real", "PlainDecimalDefault decimal", "PlainDecimal decimal(10,5)",
+            "PlainNumericDefault numeric", "PlainNumeric numeric(8,2)", "PlainSmallMoney smallmoney",
+            "PlainMoney money", "PlainDecimal2 decimal(28,4)", "PlainNumeric2 numeric(28,4)", "PlainFloat float(30)",
+            "PlainDecimal decimal(30)", "PlainNumeric numeric(30)"};
+
+    // junit test parameters: serverName, enclaveAttestationUrl, enclaveAttestationProtocol
+    static String[][] param = new String[(null == AbstractTest.enclaveServer ? 0
+                                                                             : AbstractTest.enclaveServer.length)][3];
 
     /**
-     * Create connection, statement and generate path of resource file
+     * This provides the arguments (serverName, enclaveAttestationUrl, enclaveAttestationProtocol) for the parameterized
+     * tests using MethodSource parameters
      * 
+     * @return parameters for the tests
      * @throws Exception
-     * @throws TestAbortedException
      */
-    @BeforeAll
-    public static void setUpConnection() throws TestAbortedException, Exception {
-        AETestConnectionString = connectionString + ";sendTimeAsDateTime=false";
-        readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
-        try (Connection con = PrepUtil.getConnection(AETestConnectionString); Statement stmt = con.createStatement()) {
-            dropCEK(stmt);
-            dropCMK(stmt);
-        }
+    static String[][] enclaveParams() throws Exception {
+        return param;
+    }
 
-        keyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
-        storeProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(keyPath, Constants.JKS_SECRET.toCharArray());
+    /**
+     * Get the AE connection string
+     * 
+     * @param serverName
+     * @param url
+     * @param protocol
+     */
+    static void setAEConnectionString(String serverName, String url, String protocol) {
+        // AEv2 is not supported on Linux servers
+        if (!isSqlLinux() && null != serverName && null != url && null != protocol) {
+            enclaveProperties = "serverName=" + serverName + ";" + Constants.ENCLAVE_ATTESTATIONURL + "=" + url + ";"
+                    + Constants.ENCLAVE_ATTESTATIONPROTOCOL + "=" + protocol;
+            AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
+                    + ";" + enclaveProperties;
+
+            // show progress if testing multiple servers
+            if (enclaveServer.length > 1) {
+                System.out.println("Testing enclave: " + enclaveProperties);
+            }
+        } else {
+            AETestConnectionString = connectionString + ";sendTimeAsDateTime=false"
+                    + ";columnEncryptionSetting=enabled";
+        }
+    }
+
+    @BeforeAll
+    public static void setupAETest() throws Exception {
+        readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
+
         stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;
 
         AEInfo = new Properties();
         AEInfo.setProperty("ColumnEncryptionSetting", Constants.ENABLED);
         AEInfo.setProperty("keyStoreAuthentication", Constants.JAVA_KEY_STORE_SECRET);
-        AEInfo.setProperty("keyStoreLocation", keyPath);
+        AEInfo.setProperty("keyStoreLocation", AEjavaKeyPath);
         AEInfo.setProperty("keyStoreSecret", Constants.JKS_SECRET);
 
-        createCMK(Constants.JAVA_KEY_STORE_NAME, javaKeyAliases);
-        createCEK(storeProvider);
+        // reset logging to avoid severe logs due to negative testing
+        LogManager.getLogManager().reset();
+
+        // setup test params and encryption keys on each server
+        for (int i = 0; i < enclaveServer.length; i++) {
+            String serverName = enclaveServer[i];
+            String url = null != enclaveAttestationUrl ? enclaveAttestationUrl[i] : null;
+            String protocol = null != enclaveAttestationProtocol ? enclaveAttestationProtocol[i] : null;
+
+            param[i][0] = serverName;
+            param[i][1] = url;
+            param[i][2] = protocol;
+
+            setAEConnectionString(serverName, url, protocol);
+
+            createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, AEjavaKeyAliases, Constants.CMK_SIGNATURE);
+            createCEK(cmkJks, cekJks, jksProvider);
+
+            if (null != keyIDs && !keyIDs[0].isEmpty()) {
+                createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
+                createCEK(cmkAkv, cekAkv, akvProvider);
+            }
+
+            if (null != windowsKeyPath) {
+                createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
+                createCEK(cmkWin, cekWin, null);
+            }
+        }
+    }
+
+    /**
+     * Dropping all CMKs and CEKs and any open resources. Technically, dropAll depends on the state of the class so it
+     * shouldn't be static, but the AfterAll annotation requires it to be static.
+     * 
+     * @throws SQLException
+     */
+    public static void dropAll() throws Exception {
+        try (Statement stmt = connection.createStatement()) {
+            dropTables(stmt);
+
+            dropCEK(cekJks, stmt);
+            dropCMK(cmkJks, stmt);
+
+            if (null != cekWin) {
+                dropCEK(cekWin, stmt);
+                dropCMK(cmkWin, stmt);
+            }
+
+            if (null != cekAkv) {
+                dropCEK(cekAkv, stmt);
+                dropCMK(cmkAkv, stmt);
+            }
+        }
     }
 
     /**
@@ -99,11 +268,10 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     @AfterAll
-    public static void dropAll() throws Exception {
-        try (Statement stmt = connection.createStatement()) {
-            dropTables(stmt);
-            dropCEK(stmt);
-            dropCMK(stmt);
+    public static void cleanUp() throws Exception {
+        dropAll();
+        if (null != connection) {
+            connection.close();
         }
     }
 
@@ -116,7 +284,7 @@ public class AESetup extends AbstractTest {
      * @throws IOException
      */
     private static void readFromFile(String inputFile, String lookupValue) throws IOException {
-        filePath = TestUtils.getCurrentClassPath();
+        String filePath = TestUtils.getCurrentClassPath();
         try {
             File f = new File(filePath + inputFile);
             try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
@@ -126,7 +294,7 @@ public class AESetup extends AbstractTest {
                 while ((readLine = buffer.readLine()) != null) {
                     if (readLine.trim().contains(lookupValue)) {
                         linecontents = readLine.split(" ");
-                        javaKeyAliases = linecontents[2];
+                        AEjavaKeyAliases = linecontents[2];
                         break;
                     }
                 }
@@ -137,46 +305,27 @@ public class AESetup extends AbstractTest {
     }
 
     /**
-     * Create encrypted table for Binary
+     * Create AE test tables
      * 
+     * @param tableName
+     *        name of test table
+     * @param table
+     *        2d array containing table column definitions
      * @throws SQLException
      */
-    protected static void createBinaryTable() throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(Constants.BINARY_TABLE_AE) + " ("
-                + "PlainBinary binary(20) null,"
-                + "RandomizedBinary binary(20) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicBinary binary(20) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainVarbinary varbinary(50) null,"
-                + "RandomizedVarbinary varbinary(50) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicVarbinary varbinary(50) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainVarbinaryMax varbinary(max) null,"
-                + "RandomizedVarbinaryMax varbinary(max) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicVarbinaryMax varbinary(max) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainBinary512 binary(512) null,"
-                + "RandomizedBinary512 binary(512) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicBinary512 binary(512) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainBinary8000 varbinary(8000) null,"
-                + "RandomizedBinary8000 varbinary(8000) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicBinary8000 varbinary(8000) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + ");";
-
+    protected static void createTable(String tableName, String cekName, String table[][]) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String sql = "";
+            for (int i = 0; i < table.length; i++) {
+                sql += ColumnType.PLAIN.name() + table[i][0] + " " + table[i][1] + " NULL,";
+                sql += ColumnType.DETERMINISTIC.name() + table[i][0] + " " + table[i][1]
+                        + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), cekName) + ") NULL,";
+                sql += ColumnType.RANDOMIZED.name() + table[i][0] + " " + table[i][1]
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ") NULL,";
+            }
+            TestUtils.dropTableIfExists(tableName, stmt);
+            sql = String.format(createSql, tableName, sql);
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -184,71 +333,33 @@ public class AESetup extends AbstractTest {
         }
     }
 
-    /**
-     * Create encrypted table for Char
-     * 
-     * @throws SQLException
-     */
-    protected static void createCharTable() throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE) + " ("
-                + "PlainChar char(20) null,"
-                + "RandomizedChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainVarchar varchar(50) null,"
-                + "RandomizedVarchar varchar(50) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicVarchar varchar(50) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainVarcharMax varchar(max) null,"
-                + "RandomizedVarcharMax varchar(max) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicVarcharMax varchar(max) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainNchar nchar(30) null,"
-                + "RandomizedNchar nchar(30) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicNchar nchar(30) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainNvarchar nvarchar(60) null,"
-                + "RandomizedNvarchar nvarchar(60) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicNvarchar nvarchar(60) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainNvarcharMax nvarchar(max) null,"
-                + "RandomizedNvarcharMax nvarchar(max) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicNvarcharMax nvarchar(max) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainUniqueidentifier uniqueidentifier null,"
-                + "RandomizedUniqueidentifier uniqueidentifier ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicUniqueidentifier uniqueidentifier ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainVarchar8000 varchar(8000) null,"
-                + "RandomizedVarchar8000 varchar(8000) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicVarchar8000 varchar(8000) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainNvarchar4000 nvarchar(4000) null,"
-                + "RandomizedNvarchar4000 nvarchar(4000) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicNvarchar4000 nvarchar(4000) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + ");";
-
+    protected static void createPrecisionTable(String tableName, String table[][], String cekName, int floatPrecision,
+            int precision, int scale) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String sql = "";
+            for (int i = 0; i < table.length; i++) {
+                if ("float" == table[i][1]) {
+                    sql += ColumnType.PLAIN.name() + table[i][0] + "Precision " + table[i][1] + "(" + floatPrecision
+                            + ") NULL,";
+                    sql += ColumnType.RANDOMIZED.name() + table[i][0] + "Precision " + table[i][1] + "("
+                            + floatPrecision + ") " + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName)
+                            + ") NULL,";
+                    sql += ColumnType.DETERMINISTIC.name() + table[i][0] + "Precision " + table[i][1] + "("
+                            + floatPrecision + ") "
+                            + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), cekName) + ") NULL,";
+                } else {
+                    sql += ColumnType.PLAIN.name() + table[i][0] + "Precision " + table[i][1] + "(" + precision + ","
+                            + scale + ") NULL,";
+                    sql += ColumnType.RANDOMIZED.name() + table[i][0] + "Precision " + table[i][1] + "(" + precision
+                            + "," + scale + ") " + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName)
+                            + ") NULL,";
+                    sql += ColumnType.DETERMINISTIC.name() + table[i][0] + "Precision " + table[i][1] + "(" + precision
+                            + "," + scale + ") " + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), cekName)
+                            + ") NULL,";
+                }
+            }
+            sql = String.format(createSql, tableName, sql);
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -256,303 +367,27 @@ public class AESetup extends AbstractTest {
         }
     }
 
-    /**
-     * Create encrypted table for Date
-     * 
-     * @throws SQLException
-     */
-    protected void createDateTable() throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " ("
-                + "PlainDate date null,"
-                + "RandomizedDate date ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicDate date ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainDatetime2Default datetime2 null,"
-                + "RandomizedDatetime2Default datetime2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicDatetime2Default datetime2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainDatetimeoffsetDefault datetimeoffset null,"
-                + "RandomizedDatetimeoffsetDefault datetimeoffset ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicDatetimeoffsetDefault datetimeoffset ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainTimeDefault time null,"
-                + "RandomizedTimeDefault time ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicTimeDefault time ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainDatetime datetime null,"
-                + "RandomizedDatetime datetime ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicDatetime datetime ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainSmalldatetime smalldatetime null,"
-                + "RandomizedSmalldatetime smalldatetime ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicSmalldatetime smalldatetime ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + ");";
-
+    protected static void createScaleTable(String tableName, String table[][], String cekName,
+            int scale) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            stmt.execute(sql);
-            stmt.execute("DBCC FREEPROCCACHE");
-        } catch (SQLException e) {
-            fail(e.getMessage());
-        }
-    }
+            String sql = "";
+            for (int i = 0; i < table.length; i++) {
 
-    /**
-     * Create encrypted table for Date with precision
-     * 
-     * @throws SQLException
-     */
-    protected void createDatePrecisionTable(int scale) throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " ("
-        // 1
-                + "PlainDatetime2 datetime2(" + scale + ") null," + "RandomizedDatetime2 datetime2(" + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + "DeterministicDatetime2 datetime2(" + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                sql += ColumnType.PLAIN.name() + table[i][0] + "Scale " + table[i][1] + "(" + scale + ") NULL,";
+                sql += ColumnType.RANDOMIZED.name() + table[i][0] + "Scale " + table[i][1] + "(" + scale + ") "
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ") NULL,";
+                sql += ColumnType.DETERMINISTIC.name() + table[i][0] + "Scale " + table[i][1] + "(" + scale + ") "
+                        + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), cekName) + ") NULL,";
 
-                // 4
-                + "PlainDatetime2Default datetime2 null,"
-                + "RandomizedDatetime2Default datetime2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicDatetime2Default datetime2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
+                sql += ColumnType.PLAIN.name() + table[i][0] + " " + table[i][1] + " NULL,";
+                sql += ColumnType.RANDOMIZED.name() + table[i][0] + " " + table[i][1]
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ") NULL,";
+                sql += ColumnType.DETERMINISTIC.name() + table[i][0] + " " + table[i][1]
+                        + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), cekName) + ") NULL,";
+            }
 
-                // 7
-                + "PlainDatetimeoffsetDefault datetimeoffset null,"
-                + "RandomizedDatetimeoffsetDefault datetimeoffset ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicDatetimeoffsetDefault datetimeoffset ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                // 10
-                + "PlainTimeDefault time null,"
-                + "RandomizedTimeDefault time ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicTimeDefault time ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                // 13
-                + "PlainTime time(" + scale + ") null," + "RandomizedTime time(" + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + "DeterministicTime time(" + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                // 16
-                + "PlainDatetimeoffset datetimeoffset(" + scale + ") null," + "RandomizedDatetimeoffset datetimeoffset("
-                + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + "DeterministicDatetimeoffset datetimeoffset(" + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + ");";
-
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            stmt.execute(sql);
-            stmt.execute("DBCC FREEPROCCACHE");
-        } catch (SQLException e) {
-            fail(e.getMessage());
-        }
-    }
-
-    /**
-     * Create encrypted table for Date with scale
-     * 
-     * @throws SQLException
-     */
-    protected static void createDateScaleTable() throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(Constants.SCALE_DATE_TABLE_AE) + " ("
-
-                + "PlainDatetime2 datetime2(2) null,"
-                + "RandomizedDatetime2 datetime2(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicDatetime2 datetime2(2) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainTime time(2) null,"
-                + "RandomizedTime time(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicTime time(2) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainDatetimeoffset datetimeoffset(2) null,"
-                + "RandomizedDatetimeoffset datetimeoffset(2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicDatetimeoffset datetimeoffset(2) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + ");";
-
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            stmt.execute(sql);
-            stmt.execute("DBCC FREEPROCCACHE");
-        } catch (SQLException e) {
-            fail(e.getMessage());
-        }
-    }
-
-    /**
-     * Create encrypted table for Numeric
-     * 
-     * @throws SQLException
-     */
-    protected static void createNumericTable() throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " ("
-                + "PlainBit bit null,"
-                + "RandomizedBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainTinyint tinyint null,"
-                + "RandomizedTinyint tinyint ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicTinyint tinyint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainSmallint smallint null,"
-                + "RandomizedSmallint smallint ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicSmallint smallint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainInt int null,"
-                + "RandomizedInt int ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicInt int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainBigint bigint null,"
-                + "RandomizedBigint bigint ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicBigint bigint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainFloatDefault float null,"
-                + "RandomizedFloatDefault float ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicFloatDefault float ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainFloat float(30) null,"
-                + "RandomizedFloat float(30) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicFloat float(30) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainReal real null,"
-                + "RandomizedReal real ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicReal real ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainDecimalDefault decimal null,"
-                + "RandomizedDecimalDefault decimal ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicDecimalDefault decimal ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainDecimal decimal(10,5) null,"
-                + "RandomizedDecimal decimal(10,5) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicDecimal decimal(10,5) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainNumericDefault numeric null,"
-                + "RandomizedNumericDefault numeric ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicNumericDefault numeric ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainNumeric numeric(8,2) null,"
-                + "RandomizedNumeric numeric(8,2) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicNumeric numeric(8,2) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainSmallMoney smallmoney null,"
-                + "RandomizedSmallMoney smallmoney ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicSmallMoney smallmoney ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainMoney money null,"
-                + "RandomizedMoney money ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicMoney money ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainDecimal2 decimal(28,4) null,"
-                + "RandomizedDecimal2 decimal(28,4) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicDecimal2 decimal(28,4) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainNumeric2 numeric(28,4) null,"
-                + "RandomizedNumeric2 numeric(28,4) ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicNumeric2 numeric(28,4) ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + ");";
-
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            stmt.execute(sql);
-            stmt.execute("DBCC FREEPROCCACHE");
-        } catch (SQLException e) {
-            fail(e.getMessage());
-        }
-    }
-
-    /**
-     * Create encrypted table for Numeric with precision
-     * 
-     * @throws SQLException
-     */
-    protected void createNumericPrecisionTable(int floatPrecision, int precision, int scale) throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " ("
-                + "PlainFloat float(" + floatPrecision + ") null," + "RandomizedFloat float(" + floatPrecision
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + "DeterministicFloat float(" + floatPrecision
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainDecimal decimal(" + precision + "," + scale + ") null," + "RandomizedDecimal decimal("
-                + precision + "," + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + "DeterministicDecimal decimal(" + precision + "," + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-
-                + "PlainNumeric numeric(" + precision + "," + scale + ") null," + "RandomizedNumeric numeric("
-                + precision + "," + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + "DeterministicNumeric numeric(" + precision + "," + scale
-                + ") ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL"
-
-                + ");";
-
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            sql = String.format(createSql, tableName, sql);
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -565,7 +400,7 @@ public class AESetup extends AbstractTest {
      * 
      * @param nullable
      */
-    protected static LinkedList<byte[]> createbinaryValues(boolean nullable) {
+    protected static LinkedList<byte[]> createBinaryValues(boolean nullable) {
 
         boolean encrypted = true;
         RandomData.returnNull = nullable;
@@ -673,13 +508,15 @@ public class AESetup extends AbstractTest {
      * @param keyPath
      * @throws SQLException
      */
-    private static void createCMK(String keyStoreName, String keyPath) throws SQLException {
+    private static void createCMK(String cmkName, String keyStoreName, String keyPath,
+            String signature) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil
-                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
+                .getConnection(AETestConnectionString + ";sendTimeAsDateTime=false", AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + Constants.CMK_NAME
-                    + "')" + " begin" + " CREATE COLUMN MASTER KEY " + Constants.CMK_NAME
-                    + " WITH (KEY_STORE_PROVIDER_NAME = '" + keyStoreName + "', KEY_PATH = '" + keyPath + "')" + " end";
+            String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
+                    + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
+                    + keyStoreName + "', KEY_PATH = '" + keyPath + "'"
+                    + (TestUtils.isAEv2(con) ? ",ENCLAVE_COMPUTATIONS (SIGNATURE = " + signature + ")) end" : ") end");
             stmt.execute(sql);
         }
     }
@@ -691,18 +528,31 @@ public class AESetup extends AbstractTest {
      * @param certStore
      * @throws SQLException
      */
-    private static void createCEK(SQLServerColumnEncryptionKeyStoreProvider storeProvider) throws SQLException {
+    private static void createCEK(String cmkName, String cekName,
+            SQLServerColumnEncryptionKeyStoreProvider storeProvider) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil
-                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
+                .getConnection(AETestConnectionString + ";sendTimeAsDateTime=false", AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byte[] valuesDefault = Constants.CEK_STRING.getBytes();
-            String cekSql = null;
-            byte[] key = storeProvider.encryptColumnEncryptionKey(javaKeyAliases, Constants.CEK_ALGORITHM,
-                    valuesDefault);
-            cekSql = "CREATE COLUMN ENCRYPTION KEY " + Constants.CEK_NAME + " WITH VALUES " + "(COLUMN_MASTER_KEY = "
-                    + Constants.CMK_NAME + ", ALGORITHM = '" + Constants.CEK_ALGORITHM + "', ENCRYPTED_VALUE = 0x"
-                    + TestUtils.bytesToHexString(key, key.length) + ");";
-            stmt.execute(cekSql);
+            String encryptedValue;
+
+            if (storeProvider instanceof SQLServerColumnEncryptionJavaKeyStoreProvider) {
+                byte[] key = storeProvider.encryptColumnEncryptionKey(AEjavaKeyAliases, Constants.CEK_ALGORITHM,
+                        valuesDefault);
+                encryptedValue = "0x" + TestUtils.bytesToHexString(key, key.length);
+            } else if (storeProvider instanceof SQLServerColumnEncryptionAzureKeyVaultProvider) {
+                byte[] key = storeProvider.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM,
+                        valuesDefault);
+                encryptedValue = "0x" + TestUtils.bytesToHexString(key, key.length);
+            } else {
+                encryptedValue = Constants.CEK_ENCRYPTED_VALUE;
+            }
+
+            String sql = "if not exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
+                    + " begin" + " CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES " + "(COLUMN_MASTER_KEY = "
+                    + cmkName + ", ALGORITHM = '" + Constants.CEK_ALGORITHM + "', ENCRYPTED_VALUE = " + encryptedValue
+                    + ") end;";
+            stmt.execute(sql);
         }
     }
 
@@ -712,10 +562,10 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void dropTables(Statement stmt) throws SQLException {
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(Constants.BINARY_TABLE_AE), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE), stmt);
+        TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
+        TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+        TestUtils.dropTableIfExists(BINARY_TABLE_AE, stmt);
+        TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
     }
 
     /**
@@ -725,11 +575,11 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinaryNormalCase(LinkedList<byte[]> byteValues) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.BINARY_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + BINARY_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil
-                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
+                .getConnection(AETestConnectionString + ";sendTimeAsDateTime=false", AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -789,8 +639,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinarySetObject(LinkedList<byte[]> byteValues) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.BINARY_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + BINARY_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?" + ")";
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
@@ -851,8 +701,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinarySetObjectWithJDBCType(LinkedList<byte[]> byteValues) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.BINARY_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + BINARY_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -913,8 +763,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateBinaryNullCase() throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.BINARY_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + BINARY_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -951,8 +801,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharNormalCase(String[] charValues) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1018,8 +868,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharSetObject(String[] charValues) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1081,8 +931,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharSetObjectWithJDBCTypes(String[] charValues) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1143,8 +993,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateCharNullCase() throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1197,13 +1047,12 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateNormalCase(LinkedList<Object> dateValues) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + DATE_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
-
             // date
             for (int i = 1; i <= 3; i++) {
                 pstmt.setDate(i, (Date) dateValues.get(0));
@@ -1245,8 +1094,7 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateScaleNormalCase(LinkedList<Object> dateValues) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.SCALE_DATE_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + SCALE_DATE_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1280,8 +1128,8 @@ public class AESetup extends AbstractTest {
      */
     protected static void populateDateSetObject(LinkedList<Object> dateValues, String setter) throws SQLException {
 
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + DATE_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1347,8 +1195,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected void populateDateSetObjectNull() throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + DATE_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1394,8 +1242,8 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateDateNullCase() throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " values( "
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+        String sql = "insert into " + DATE_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1442,9 +1290,9 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumeric(String[] values) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " values( "
+        String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1551,9 +1399,9 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericSetObject(String[] values) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " values( "
+        String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1660,9 +1508,9 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericSetObjectWithJDBCTypes(String[] values) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " values( "
+        String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1768,9 +1616,9 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericSetObjectNull() throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " values( "
+        String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1867,9 +1715,9 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericNullCase(String[] values) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " values( "
+        String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
+                + "?,?,?," + "?,?,?," + "?,?,?"
 
                 + ")";
 
@@ -1967,9 +1815,9 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     protected static void populateNumericNormalCase(String[] numericValues) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " values( "
+        String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?"
+                + "?,?,?," + "?,?,?," + "?,?,?"
 
                 + ")";
 
@@ -2078,9 +1926,9 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    private static void dropCEK(Statement stmt) throws SQLException {
-        String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + Constants.CEK_NAME
-                + "')" + " begin" + " drop column encryption key " + Constants.CEK_NAME + " end";
+    private static void dropCEK(String cekName, Statement stmt) throws SQLException {
+        String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
+                + " begin" + " drop column encryption key " + cekName + " end";
         stmt.execute(cekSql);
     }
 
@@ -2089,10 +1937,42 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    private static void dropCMK(Statement stmt) throws SQLException {
-        String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + Constants.CMK_NAME + "')"
-                + " begin" + " drop column master key " + Constants.CMK_NAME + " end";
+    private static void dropCMK(String cmkName, Statement stmt) throws SQLException {
+        String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin"
+                + " drop column master key " + cmkName + " end";
         stmt.execute(cekSql);
     }
 
+    /**
+     * Alter Column encryption on deterministic columns to randomized - this will trigger enclave to re-encrypt
+     * 
+     * @param stmt
+     * @param tableName
+     * @param table
+     * @param cekName
+     * @throws SQLException
+     */
+    protected void testAlterColumnEncryption(SQLServerStatement stmt, String tableName, String table[][],
+            String cekName) throws SQLException {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+            for (int i = 0; i < table.length; i++) {
+                // alter deterministic to randomized
+                String sql = "ALTER TABLE " + tableName + " ALTER COLUMN " + ColumnType.DETERMINISTIC.name()
+                        + table[i][0] + " " + table[i][1]
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ")";
+                try {
+                    stmt.execute(sql);
+                    if (!TestUtils.isAEv2(con)) {
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    }
+                } catch (SQLException e) {
+                    if (!TestUtils.isAEv2(con)) {
+                        fail(e.getMessage());
+                    } else {
+                        fail(TestResource.getResource("R_AlterAEv2Error") + e.getMessage() + "Query: " + sql);
+                    }
+                }
+            }
+        }
+    }
 }

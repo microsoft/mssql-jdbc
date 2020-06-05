@@ -108,7 +108,7 @@ public class FedAuthWithAE extends AbstractTest {
             dropCMK(stmt, cmkName2);
             setupCMK_AKVNew(cmkName2, stmt);
 
-            createCEK(cmkName2, setupKeyStoreProvider_AKVNew(), stmt, keyIds[0]);
+            createCEK(cmkName2, setupKeyStoreProvider_AKVNew(), stmt, keyIDs[0]);
             createCharTable(stmt, charTableNew);
 
             populateCharNormalCase(charValues, connection, charTableNew);
@@ -123,7 +123,7 @@ public class FedAuthWithAE extends AbstractTest {
             dropCMK(stmt, cmkName3);
             setupCMK_AKVOld(cmkName3, stmt);
 
-            createCEK(cmkName3, setupKeyStoreProvider_AKVOld(), stmt, keyIds[0]);
+            createCEK(cmkName3, setupKeyStoreProvider_AKVOld(), stmt, keyIDs[0]);
             createCharTable(stmt, charTableOld);
 
             populateCharNormalCase(charValues, connection, charTableOld);
@@ -161,12 +161,9 @@ public class FedAuthWithAE extends AbstractTest {
             String stringValue2 = ("" + rs.getString(i + 1)).trim();
             String stringValue3 = ("" + rs.getString(i + 2)).trim();
             try {
-                assertTrue(
-                        "stringValue1:" + stringValue1 + " stringValue2: " + stringValue2 + " stringValue2: "
-                                + stringValue2,
-                        stringValue1.equalsIgnoreCase("" + values[index])
-                                && stringValue2.equalsIgnoreCase("" + values[index])
-                                && stringValue3.equalsIgnoreCase("" + values[index]));
+                assertTrue(stringValue1.equalsIgnoreCase("" + values[index])
+                        && stringValue2.equalsIgnoreCase("" + values[index])
+                        && stringValue3.equalsIgnoreCase("" + values[index]));
             } catch (Exception e) {
                 fail(e.getMessage());
             } finally {
@@ -288,11 +285,11 @@ public class FedAuthWithAE extends AbstractTest {
     }
 
     private void setupCMK_AKVOld(String cmkName, Statement stmt) throws SQLException {
-        createCMK(cmkName, "AZURE_KEY_VAULT", keyIds[0], stmt);
+        createCMK(cmkName, "AZURE_KEY_VAULT", keyIDs[0], stmt);
     }
 
     private void setupCMK_AKVNew(String cmkName, Statement stmt) throws SQLException {
-        createCMK(cmkName, "AZURE_KEY_VAULT", keyIds[0], stmt);
+        createCMK(cmkName, "AZURE_KEY_VAULT", keyIDs[0], stmt);
     }
 
     private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_JKS() throws SQLException {
@@ -301,7 +298,7 @@ public class FedAuthWithAE extends AbstractTest {
 
     private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_AKVNew() throws SQLServerException {
         return registerAKVProvider(
-                new SQLServerColumnEncryptionAzureKeyVaultProvider(FedauthTest.applicationClientId, applicationKey));
+                new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey));
     }
 
     private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_AKVOld() throws SQLServerException {
@@ -312,7 +309,7 @@ public class FedAuthWithAE extends AbstractTest {
                 AuthenticationResult result = null;
                 try {
                     AuthenticationContext context = new AuthenticationContext(authority, false, service);
-                    ClientCredential cred = new ClientCredential(applicationClientId, applicationKey);
+                    ClientCredential cred = new ClientCredential(applicationClientID, applicationKey);
 
                     Future<AuthenticationResult> future = context.acquireToken(resource, cred, null);
                     result = future.get();

@@ -46,7 +46,7 @@ public class ConcurrentLoginTest extends AbstractTest {
                                 ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                             if (rs.next()) {
                                 String retrievedUserName = rs.getString(1);
-                                assertTrue(retrievedUserName, retrievedUserName.equals(azureUserName));
+                                assertTrue(retrievedUserName.equals(azureUserName));
                             }
                         }
                     } catch (SQLException e) {
@@ -71,7 +71,7 @@ public class ConcurrentLoginTest extends AbstractTest {
                                 ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                             if (rs.next()) {
                                 String retrievedUserName = rs.getString(1);
-                                assertTrue(retrievedUserName, retrievedUserName.equals(azureUserName));
+                                assertTrue(retrievedUserName.equals(azureUserName));
                             }
                         }
                     } catch (SQLException e) {
@@ -81,7 +81,7 @@ public class ConcurrentLoginTest extends AbstractTest {
             }.start();
 
             // active directory integrated
-            if (AzureAuthMode.ActiveDirectoryIntegrated == azureAuthMode) {
+            if (enableADIntegrated) {
                 new Thread() {
                     public void run() {
                         try {
@@ -96,7 +96,7 @@ public class ConcurrentLoginTest extends AbstractTest {
                                     ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                                 if (rs.next()) {
                                     String retrievedUserName = rs.getString(1);
-                                    assertTrue(retrievedUserName, retrievedUserName.equals(azureUserName));
+                                    assertTrue(retrievedUserName.equals(azureUserName));
                                 }
                             }
                         } catch (SQLException e) {

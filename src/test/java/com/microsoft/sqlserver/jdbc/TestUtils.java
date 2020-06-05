@@ -10,7 +10,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.net.URI;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -21,11 +26,11 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
-import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
@@ -106,38 +111,12 @@ public final class TestUtils {
     }
 
     /**
-     * Read variable from property files if found null try to read from env.
+     * Checks if connection is established to server that supports AEv2.
      * 
-     * @param key
-     * @return Value
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isAEv2()
      */
-    public static String getConfiguredProperty(String key) {
-        String value = System.getProperty(key);
-
-        if (null == value) {
-            value = System.getenv(key);
-        }
-
-        if (null == value && null != AbstractTest.properties) {
-            value = AbstractTest.properties.getProperty(key);
-        }
-        return value;
-    }
-
-    /**
-     * Convenient method for {@link #getConfiguredProperty(String)}
-     * 
-     * @param key
-     * @return Value
-     */
-    public static String getConfiguredProperty(String key, String defaultValue) {
-        String value = getConfiguredProperty(key);
-
-        if (null == value) {
-            value = defaultValue;
-        }
-
-        return value;
+    public static boolean isAEv2(Connection con) {
+        return ((SQLServerConnection) con).isAEv2();
     }
 
     /**
@@ -293,6 +272,19 @@ public final class TestUtils {
      */
     public static void dropTableIfExists(String tableName, java.sql.Statement stmt) throws SQLException {
         dropObjectIfExists(tableName, "U", stmt);
+    }
+
+    /**
+     * Deletes the contents of a table.
+     * 
+     * @param con
+     * @param tableName
+     * @throws SQLException
+     */
+    public static void clearTable(Connection con, String tableName) throws SQLException {
+        try (Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("DELETE FROM " + tableName);
+        }
     }
 
     /**
@@ -830,5 +822,70 @@ public final class TestUtils {
      */
     public static String addOrOverrideProperty(String connectionString, String property, String value) {
         return connectionString + ";" + property + "=" + value + ";";
+    }
+
+    /**
+     * Remove the given connection property in the connection string
+     * 
+     * @param connectionString
+     *        original connection string
+     * @param property
+     *        name of the property
+     * @return The updated connection string
+     */
+    public static String removeProperty(String connectionString, String property) {
+        int start = connectionString.indexOf(property);
+        int end = connectionString.indexOf(";", start);
+        String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
+        return connectionString.replace(propertyStr, "");
+    }
+
+    /**
+     * Creates a truststore and returns the path of it.
+     * 
+     * @param certificates
+     *        String list of certificates
+     * @param tsName
+     *        name of truststore to create
+     * @param tsPwd
+     *        password of truststore to set
+     * @param ksType
+     *        type of Keystore e.g PKCS12 or JKS
+     * @return Path of truststore that was created
+     * @throws Exception
+     */
+    public static String createTrustStore(List<String> certificates, String tsName, String tsPwd,
+            String ksType) throws Exception {
+        return (new TrustStore(certificates, tsName, tsPwd, ksType)).getFileName();
+    }
+
+    private static class TrustStore {
+        private File trustStoreFile;
+
+        TrustStore(List<String> certificateNames, String tsName, String tsPwd, String ksType) throws Exception {
+            trustStoreFile = File.createTempFile(tsName, null, new File("."));
+            trustStoreFile.deleteOnExit();
+            KeyStore ks = KeyStore.getInstance(ksType);
+            ks.load(null, null);
+
+            for (String certificateName : certificateNames) {
+                ks.setCertificateEntry(certificateName, getCertificate(certificateName));
+            }
+
+            FileOutputStream os = new FileOutputStream(trustStoreFile);
+            ks.store(os, tsPwd.toCharArray());
+            os.flush();
+            os.close();
+        }
+
+        final String getFileName() throws Exception {
+            return trustStoreFile.getCanonicalPath();
+        }
+
+        private static java.security.cert.Certificate getCertificate(String certname) throws Exception {
+            FileInputStream is = new FileInputStream(certname);
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            return cf.generateCertificate(is);
+        }
     }
 }

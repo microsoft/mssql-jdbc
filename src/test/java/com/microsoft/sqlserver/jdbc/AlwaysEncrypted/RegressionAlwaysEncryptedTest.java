@@ -14,40 +14,53 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.microsoft.sqlserver.jdbc.TestUtils;
-import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
-@RunWith(JUnitPlatform.class)
+@RunWith(Parameterized.class)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 public class RegressionAlwaysEncryptedTest extends AESetup {
+    static String numericTable[][] = {{"Bit", "bit"}, {"Tinyint", "tinyint"}, {"Smallint", "smallint"},};
 
-    @Test
-    public void alwaysEncrypted1() throws SQLException {
+    static String dateTable[][] = {{"Date", "date"},
+
+    };
+
+    static String charTable[][] = {{"Char", "char(20) COLLATE Latin1_General_BIN2"},
+            {"Varchar", "varchar(50) COLLATE Latin1_General_BIN2"},};
+
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void alwaysEncrypted1(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
+                AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 
-            createNumericTable(stmt);
+            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
+
             populateNumericTable(connection);
             verifyNumericTable(connection, false);
 
             dropTables(stmt);
-            createDateTable(stmt);
+            createTable(DATE_TABLE_AE, cekJks, dateTable);
+
             populateDateTable(connection);
             verifyDateTable(connection);
 
             dropTables(stmt);
-            createNumericTable(stmt);
+            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
+
             populateNumericTableWithNull(connection);
             verifyNumericTable(connection, true);
 
@@ -55,24 +68,26 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
         }
     }
 
-    @Test
-    public void alwaysEncrypted2() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void alwaysEncrypted2(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
+                AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 
-            createCharTable(stmt);
+            createTable(CHAR_TABLE_AE, cekJks, charTable);
             populateCharTable(connection);
             verifyCharTable(connection);
 
             dropTables(stmt);
-            createDateTable(stmt);
+            createTable(DATE_TABLE_AE, cekJks, dateTable);
             populateDateTable(connection);
             verifyDateTable(connection);
 
             dropTables(stmt);
-            createNumericTable(stmt);
+            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
             populateNumericTableSpecificSetter(connection);
             verifyNumericTable(connection, false);
 
@@ -81,18 +96,18 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     }
 
     private void populateDateTable(Connection connection) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " values( " + "?"
-                + ")";
+        String sql = "insert into " + DATE_TABLE_AE + " values( " + "?,?,?" + ")";
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
             sqlPstmt.setObject(1, Constants.DATE);
+            sqlPstmt.setObject(2, Constants.DATE);
+            sqlPstmt.setObject(3, Constants.DATE);
             sqlPstmt.executeUpdate();
         }
     }
 
     private void populateCharTable(Connection connection) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE) + " values( "
-                + "?,?,?,?,?,?" + ")";
+        String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?,?,?,?" + ")";
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
             sqlPstmt.setObject(1, "hi");
@@ -106,8 +121,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     }
 
     private void populateNumericTable(Connection connection) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE)
-                + " values(?,?,?,?,?,?,?,?,?)";
+        String sql = "insert into " + NUMERIC_TABLE_AE + " values(?,?,?,?,?,?,?,?,?)";
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
             sqlPstmt.setObject(1, true);
@@ -125,8 +139,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     }
 
     private void populateNumericTableSpecificSetter(Connection connection) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " values( "
-                + "?,?,?,?,?,?,?,?,?" + ")";
+        String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?,?,?,?,?,?,?" + ")";
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
             sqlPstmt.setBoolean(1, true);
@@ -144,8 +157,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     }
 
     private void populateNumericTableWithNull(Connection connection) throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " values( "
-                + "?,?,?" + ",?,?,?" + ",?,?,?" + ")";
+        String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?" + ",?,?,?" + ",?,?,?" + ")";
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
             sqlPstmt.setObject(1, null, java.sql.Types.BIT);
@@ -163,8 +175,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
     private void verifyDateTable(Connection connection) throws SQLException {
         try (Statement stmt = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-                ResultSet rs = stmt.executeQuery(
-                        "select * from " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE))) {
+                ResultSet rs = stmt.executeQuery("select * from " + DATE_TABLE_AE)) {
             while (rs.next()) {
                 // VSTS BUG 5268
                 // assertEquals(date.getTime(), ((Date) rs.getObject(1)).getTime());
@@ -174,8 +185,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
     private void verifyCharTable(Connection connection) throws SQLException {
         try (Statement stmt = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-                ResultSet rs = stmt.executeQuery(
-                        "select * from " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE))) {
+                ResultSet rs = stmt.executeQuery("select * from " + CHAR_TABLE_AE)) {
             while (rs.next()) {
                 assertEquals("hi                  ", rs.getObject(1));
                 assertEquals("sample              ", rs.getObject(2));
@@ -189,8 +199,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
     private void verifyNumericTable(Connection connection, boolean isNull) throws SQLException {
         try (Statement stmt = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-                ResultSet rs = stmt.executeQuery(
-                        "select * from " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE))) {
+                ResultSet rs = stmt.executeQuery("select * from " + NUMERIC_TABLE_AE)) {
             while (rs.next()) {
                 if (isNull) {
                     assertEquals(null, rs.getObject(1));
@@ -217,48 +226,9 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
         }
     }
 
-    private void createDateTable(Statement stmt) throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE) + " ("
-                + "RandomizedDate date ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + ");";
-        stmt.execute(sql);
-    }
-
-    private void createCharTable(Statement stmt) throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE) + " ("
-                + "PlainChar char(20) null,"
-                + "RandomizedChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + "PlainVarchar varchar(50) null,"
-                + "RandomizedVarchar varchar(50) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicVarchar varchar(50) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + ");";
-        stmt.execute(sql);
-    }
-
-    private void createNumericTable(Statement stmt) throws SQLException {
-        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE) + " ("
-                + "PlainBit bit null,"
-                + "RandomizedBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicBit bit ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + "PlainTinyint tinyint null,"
-                + "RandomizedTinyint tinyint ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicTinyint tinyint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + "PlainSmallint smallint null,"
-                + "RandomizedSmallint smallint ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL,"
-                + "DeterministicSmallint smallint ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
-                + Constants.CEK_NAME + ") NULL," + ");";
-        stmt.execute(sql);
-    }
-
     public static void dropTables(Statement stmt) throws SQLException {
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(Constants.DATE_TABLE_AE), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(Constants.CHAR_TABLE_AE), stmt);
-        TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(Constants.NUMERIC_TABLE_AE), stmt);
+        TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
+        TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+        TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
     }
 }

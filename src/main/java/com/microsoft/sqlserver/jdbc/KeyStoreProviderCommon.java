@@ -139,7 +139,7 @@ class KeyStoreProviderCommon {
 
     }
 
-    private static boolean verifyRSASignature(byte[] hash, byte[] signature, X509Certificate certificate,
+    static boolean verifyRSASignature(byte[] hash, byte[] signature, X509Certificate certificate,
             String masterKeyPath) throws SQLServerException {
         Signature signVerify;
         boolean verificationSuccess = false;

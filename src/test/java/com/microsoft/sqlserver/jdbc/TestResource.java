@@ -18,7 +18,7 @@ public final class TestResource extends ListResourceBundle {
     public static String getResource(String key) {
         return TestResource.getBundle(Constants.MSSQL_JDBC_PACKAGE + ".TestResource").getString(key);
     }
-    
+
     public static String formatErrorMsg(String resource) {
         return (".*\\Q" + getResource(resource) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
     }
@@ -61,8 +61,10 @@ public final class TestResource extends ListResourceBundle {
             {"R_connectionReset", "Connection reset"}, {"R_unknownException", "Unknown exception"},
             {"R_deadConnection", "Dead connection should be invalid"},
             {"R_wrongExceptionMessage", "Wrong exception message"},
+            {"R_wrongSqlState", "Wrong sql state"},
             {"R_parameterNotDefined", "Parameter {0} was not defined"},
             {"R_unexpectedExceptionContent", "Unexpected content in exception message"},
+            {"R_connectionClosed", "The connection has been closed"},
             {"R_conversionFailed", "Conversion failed when converting {0} to {1} data type"},
             {"R_invalidQueryTimeout", "The query timeout value {0} is not valid."},
             {"R_skipAzure", "Skipping test case on Azure SQL."},
@@ -179,5 +181,11 @@ public final class TestResource extends ListResourceBundle {
             {"R_incorrectSyntaxTableDW", "Incorrect syntax near 'table'."},
             {"R_ConnectionStringNull", "Connection String should not be null"},
             {"R_OperandTypeClash", "Operand type clash"},
-            {"R_NoPrivilege", "The EXECUTE permission was denied on the object {0}"}};
+            {"R_NoPrivilege", "The EXECUTE permission was denied on the object {0}"},
+            {"R_resultSetEmpty", "Result set is empty."}, {"R_AlterAEv2Error", "Alter Column Encryption failed."},
+            {"R_RichQueryError", "Rich query failed."}, {"R_reqExternalSetup", "External setup for test required."},
+            {"R_invalidEnclaveSessionFailed", "invalidate enclave session failed."},
+            {"R_invalidEnclaveType", "Invalid enclave type {0}."},
+            {"R_keystorePassword", "keystore password was incorrect"},
+            {"R_enclaveNotEnabled", "The statement triggers enclave computations"}};
 }

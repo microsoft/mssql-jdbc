@@ -762,6 +762,36 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getSSLProtocol();
 
     /**
+     * Returns the value for the connection property 'socketFactoryClass'.
+     *
+     * @return socketFactoryClass property value
+     */
+    String getSocketFactoryClass();
+
+    /**
+     * Sets the connection property 'socketFactoryClass' on the connection.
+     *
+     * @param socketFactoryClass
+     *        The fully qualified class name of a custom javax.net.SocketFactory.
+     */
+    void setSocketFactoryClass(String socketFactoryClass);
+
+    /**
+     * Returns the value for the connection property 'socketFactoryConstructorArg'.
+     *
+     * @return socketFactoryConstructorArg property value
+     */
+    String getSocketFactoryConstructorArg();
+
+    /**
+     * Sets Constructor Arguments to be provided on constructor of 'socketFactoryClass'.
+     *
+     * @param socketFactoryConstructorArg
+     *        'socketFactoryClass' constructor arguments
+     */
+    void setSocketFactoryConstructorArg(String socketFactoryConstructorArg);
+
+    /**
      * Sets the connection property 'trustManagerClass' on the connection.
      * 
      * @param trustManagerClass
@@ -822,6 +852,25 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getMSIClientId();
 
     /**
+     * Sets the value for the connection property 'keyStorePrincipalId'.
+     * 
+     * @param keyStorePrincipalId
+     * 
+     *        <pre>
+     *        When keyStoreAuthentication = keyVaultClientSecret, set this value to a valid Azure Active Directory Application Client ID.
+     *        When keyStoreAuthentication = keyVaultManagedIdentity, set this value to a valid Azure Active Directory Application Object ID (optional, for user-assigned only).
+     *        </pre>
+     */
+    void setKeyStorePrincipalId(String keyStorePrincipalId);
+
+    /**
+     * Returns the value for the connection property 'keyStorePrincipalId'.
+     * 
+     * @return keyStorePrincipalId
+     */
+    String getKeyStorePrincipalId();
+
+    /**
      * Sets the Azure Key Vault (AKV) Provider Client Id to provided value to be used for column encryption.
      * 
      * @param keyVaultProviderClientId
@@ -843,14 +892,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Client Key of Azure Key Vault (AKV) Provider to be used for column encryption.
      */
     void setKeyVaultProviderClientKey(String keyVaultProviderClientKey);
-    
-    /**
-     * Sets the 'domain' connection property used for NTLM Authentication.
-     *
-     * @param domain
-     *        Windows domain name
-     */
-    void setDomain(String domain);
 
     /**
      * Returns the value for the connection property 'domain'.
@@ -860,17 +901,124 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getDomain();
 
     /**
+     * Sets the 'domain' connection property used for NTLM Authentication.
+     *
+     * @param domain
+     *        Windows domain name
+     */
+    void setDomain(String domain);
+
+    /**
      * Returns the current flag value for useFmtOnly.
-     * 
+     *
      * @return 'useFmtOnly' property value.
      */
-    public boolean getUseFmtOnly();
+    boolean getUseFmtOnly();
 
     /**
      * Specifies the flag to use FMTONLY for parameter metadata queries.
-     * 
+     *
      * @param useFmtOnly
      *        boolean value for 'useFmtOnly'.
      */
-    public void setUseFmtOnly(boolean useFmtOnly);
+    void setUseFmtOnly(boolean useFmtOnly);
+
+    /**
+     * Returns the enclave attestation URL used in Always Encrypted with Secure Enclaves.
+     * 
+     * @return enclave attestation URL.
+     */
+    String getEnclaveAttestationUrl();
+
+    /**
+     * Sets the enclave attestation URL used in Always Encrypted with Secure Enclaves.
+     * 
+     * @param url
+     *        Enclave attestation URL.
+     */
+    void setEnclaveAttestationUrl(String url);
+
+    /**
+     * Returns the enclave attestation protocol used in Always Encrypted with Secure Enclaves.
+     * 
+     * @return Enclave attestation protocol.
+     */
+    String getEnclaveAttestationProtocol();
+
+    /**
+     * Sets the enclave attestation protocol to be used in Always Encrypted with Secure Enclaves.
+     * 
+     * @param protocol
+     *        Enclave attestation protocol.
+     */
+    void setEnclaveAttestationProtocol(String protocol);
+
+    /**
+     * Returns client certificate path for client certificate authentication.
+     * 
+     * @return Client certificate path.
+     */
+    String getClientCertificate();
+
+    /**
+     * Sets client certificate path for client certificate authentication.
+     * 
+     * @param certPath
+     *        Client certificate path.
+     */
+    void setClientCertificate(String certPath);
+
+    /**
+     * Returns Private key file path for client certificate authentication.
+     * 
+     * @return Private key file path.
+     */
+    String getClientKey();
+
+    /**
+     * Sets Private key file path for client certificate authentication.
+     * 
+     * @param keyPath
+     *        Private key file path.
+     */
+    void setClientKey(String keyPath);
+
+    /**
+     * Sets the password to be used for Private key provided by the user for client certificate authentication.
+     * 
+     * @param password
+     *        Private key password.
+     */
+    void setClientKeyPassword(String password);
+
+    /**
+     * Specifies the flag to load LOBs instead of streaming them.
+     *
+     * @param delayLoadingLobs
+     *        boolean value for 'delayLoadingLobs'.
+     */
+    void setDelayLoadingLobs(boolean delayLoadingLobs);
+
+    /**
+     * Returns the current flag value for delayLoadingLobs.
+     *
+     * @return 'delayLoadingLobs' property value.
+     */
+    boolean getDelayLoadingLobs();
+
+    /*
+     * Returns the current flag for value sendTemporalDataTypesAsStringForBulkCopy
+     * 
+     * @return 'sendTemporalDataTypesAsStringForBulkCopy' property value.
+     */
+    boolean getSendTemporalDataTypesAsStringForBulkCopy();
+
+    /**
+     * Specifies the flag to send temporal datatypes as String for Bulk Copy.
+     * 
+     * @param sendTemporalDataTypesAsStringForBulkCopy
+     *        boolean value for 'sendTemporalDataTypesAsStringForBulkCopy'.
+     */
+    void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
+
 }

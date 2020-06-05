@@ -113,6 +113,62 @@ enum ColumnEncryptionSetting {
 }
 
 
+enum AttestationProtocol {
+    HGS("HGS"),
+    AAS("AAS");
+
+    private final String protocol;
+
+    AttestationProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    static boolean isValidAttestationProtocol(String protocol) {
+        for (AttestationProtocol p : AttestationProtocol.values()) {
+            if (protocol.equalsIgnoreCase(p.toString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return protocol;
+    }
+}
+
+
+enum EnclaveType {
+    VBS("VBS"),
+    SGX("SGX");
+
+    private final String type;
+
+    EnclaveType(String type) {
+        this.type = type;
+    }
+
+    public int getValue() {
+        return ordinal() + 1;
+    }
+
+    static boolean isValidEnclaveType(String type) {
+        for (EnclaveType t : EnclaveType.values()) {
+            if (type.equalsIgnoreCase(t.toString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return type;
+    }
+}
+
+
 enum SSLProtocol {
     TLS("TLS"),
     TLS_V10("TLSv1"),
@@ -152,13 +208,22 @@ enum SSLProtocol {
 
 
 enum KeyStoreAuthentication {
-    JavaKeyStorePassword;
+    JavaKeyStorePassword,
+    KeyVaultClientSecret,
+    KeyVaultManagedIdentity;
 
     static KeyStoreAuthentication valueOfString(String value) throws SQLServerException {
         KeyStoreAuthentication method = null;
 
         if (value.toLowerCase(Locale.US).equalsIgnoreCase(KeyStoreAuthentication.JavaKeyStorePassword.toString())) {
             method = KeyStoreAuthentication.JavaKeyStorePassword;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(KeyStoreAuthentication.KeyVaultClientSecret.toString())) {
+            method = KeyStoreAuthentication.KeyVaultClientSecret;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(KeyStoreAuthentication.KeyVaultManagedIdentity.toString())) {
+            method = KeyStoreAuthentication.KeyVaultManagedIdentity;
+
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"keyStoreAuthentication", value};
@@ -237,6 +302,7 @@ enum ApplicationIntent {
 
 enum SQLServerDriverObjectProperty {
     GSS_CREDENTIAL("gsscredential", null);
+
     private final String name;
     private final String defaultValue;
 
@@ -275,6 +341,8 @@ enum SQLServerDriverStringProperty {
     DOMAIN("domain", ""),
     SERVER_NAME("serverName", ""),
     SERVER_SPN("serverSpn", ""),
+    SOCKET_FACTORY_CLASS("socketFactoryClass", ""),
+    SOCKET_FACTORY_CONSTRUCTOR_ARG("socketFactoryConstructorArg", ""),
     TRUST_STORE_TYPE("trustStoreType", "JKS"),
     TRUST_STORE("trustStore", ""),
     TRUST_STORE_PASSWORD("trustStorePassword", ""),
@@ -286,13 +354,19 @@ enum SQLServerDriverStringProperty {
     AUTHENTICATION("authentication", SqlAuthentication.NotSpecified.toString()),
     ACCESS_TOKEN("accessToken", ""),
     COLUMN_ENCRYPTION("columnEncryptionSetting", ColumnEncryptionSetting.Disabled.toString()),
+    ENCLAVE_ATTESTATION_URL("enclaveAttestationUrl", ""),
+    ENCLAVE_ATTESTATION_PROTOCOL("enclaveAttestationProtocol", ""),
     KEY_STORE_AUTHENTICATION("keyStoreAuthentication", ""),
     KEY_STORE_SECRET("keyStoreSecret", ""),
     KEY_STORE_LOCATION("keyStoreLocation", ""),
     SSL_PROTOCOL("sslProtocol", SSLProtocol.TLS.toString()),
     MSI_CLIENT_ID("msiClientId", ""),
     KEY_VAULT_PROVIDER_CLIENT_ID("keyVaultProviderClientId", ""),
-    KEY_VAULT_PROVIDER_CLIENT_KEY("keyVaultProviderClientKey", "");
+    KEY_VAULT_PROVIDER_CLIENT_KEY("keyVaultProviderClientKey", ""),
+    KEY_STORE_PRINCIPAL_ID("keyStorePrincipalId", ""),
+    CLIENT_CERTIFICATE("clientCertificate", ""),
+    CLIENT_KEY("clientKey", ""),
+    CLIENT_KEY_PASSWORD("clientKeyPassword", "");
 
     private final String name;
     private final String defaultValue;
@@ -358,7 +432,9 @@ enum SQLServerDriverBooleanProperty {
     FIPS("fips", false),
     ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL),
     USE_BULK_COPY_FOR_BATCH_INSERT("useBulkCopyForBatchInsert", false),
-    USE_FMT_ONLY("useFmtOnly", false);
+    USE_FMT_ONLY("useFmtOnly", false),
+    SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY("sendTemporalDataTypesAsStringForBulkCopy", true),
+    DELAY_LOADING_LOBS("delayLoadingLobs", true);
 
     private final String name;
     private final boolean defaultValue;
@@ -385,6 +461,8 @@ enum SQLServerDriverBooleanProperty {
 public final class SQLServerDriver implements java.sql.Driver {
     static final String PRODUCT_NAME = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor
             + " for SQL Server";
+    static final String AUTH_DLL_NAME = "mssql-jdbc_auth-" + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor + "."
+            + SQLJdbcVersion.patch + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.releaseExt;
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
 
     private static final String[] TRUE_FALSE = {"true", "false"};
@@ -400,6 +478,10 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue(), false,
                     new String[] {ColumnEncryptionSetting.Disabled.toString(),
                             ColumnEncryptionSetting.Enabled.toString()}),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString(),
+                    SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString(),
+                    SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DATABASE_NAME.toString(),
                     SQLServerDriverStringProperty.DATABASE_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(),
@@ -460,6 +542,10 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.SERVER_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_SPN.toString(),
                     SQLServerDriverStringProperty.SERVER_SPN.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString(),
+                    SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString(),
+                    SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(),
                     Boolean.toString(
                             SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue()),
@@ -532,8 +618,23 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString(),
                     SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString(),
-                    Boolean.toString(SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue()), false,
-                    TRUE_FALSE),};
+                    Boolean.toString(SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue()), false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString(),
+                    SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString(),
+                    SQLServerDriverStringProperty.CLIENT_CERTIFICATE.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.CLIENT_KEY.toString(),
+                    SQLServerDriverStringProperty.CLIENT_KEY.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(),
+                    SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue()), false,
+                    TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(
+                    SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY
+                            .getDefaultValue()),
+                    false, TRUE_FALSE),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string

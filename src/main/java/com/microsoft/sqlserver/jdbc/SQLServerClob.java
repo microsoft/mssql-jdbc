@@ -85,7 +85,7 @@ abstract class SQLServerClobBase extends SQLServerLob {
 
     private boolean isClosed = false;
 
-    private final TypeInfo typeInfo;
+    protected final TypeInfo typeInfo;
 
     /**
      * Active streams which must be closed when the Clob/NClob is closed. Initial size of the array is based on an
@@ -205,9 +205,13 @@ abstract class SQLServerClobBase extends SQLServerLob {
      */
     public InputStream getAsciiStream() throws SQLException {
         checkClosed();
-
-        if (null != sqlCollation && !sqlCollation.supportsAsciiConversion())
+        if (null != sqlCollation && !sqlCollation.supportsAsciiConversion()) {
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
+        }
+        // If the LOB is currently streaming and the stream hasn't been read, read it.
+        if (!delayLoadingLob && null == value && !activeStreams.isEmpty()) {
+            getStringFromStream();
+        }
 
         // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
         InputStream getterStream = null;
@@ -237,6 +241,10 @@ abstract class SQLServerClobBase extends SQLServerLob {
      */
     public Reader getCharacterStream() throws SQLException {
         checkClosed();
+        // If the LOB is currently streaming and the stream hasn't been read, read it.
+        if (!delayLoadingLob && null == value && !activeStreams.isEmpty()) {
+            getStringFromStream();
+        }
 
         Reader getterStream = null;
         if (null == value && !activeStreams.isEmpty()) {
@@ -328,7 +336,13 @@ abstract class SQLServerClobBase extends SQLServerLob {
     public long length() throws SQLException {
         checkClosed();
         if (null == value && activeStreams.get(0) instanceof BaseInputStream) {
-            return (long) ((BaseInputStream) activeStreams.get(0)).payloadLength;
+            int length = ((BaseInputStream) activeStreams.get(0)).payloadLength;
+            if (null != typeInfo) {
+                String columnTypeName = typeInfo.getSSTypeName();
+                return ("nvarchar".equalsIgnoreCase(columnTypeName)
+                        || "ntext".equalsIgnoreCase(columnTypeName)) ? length / 2 : length;
+            }
+            return (long) length;
         } else if (null == value) {
             return 0;
         }

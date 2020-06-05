@@ -27,6 +27,12 @@ class KeyVaultCredential extends KeyVaultCredentials {
     String clientKey = null;
     String accessToken = null;
 
+    KeyVaultCredential(String clientId) throws SQLServerException {
+        this.clientId = clientId;
+    }
+
+    KeyVaultCredential() {}
+
     KeyVaultCredential(String clientId, String clientKey) {
         this.clientId = clientId;
         this.clientKey = clientKey;
@@ -37,11 +43,20 @@ class KeyVaultCredential extends KeyVaultCredentials {
     }
 
     public String doAuthenticate(String authorization, String resource, String scope) {
-        String accessToken;
+        String accessToken = null;
         if (null == authenticationCallback) {
-            AuthenticationResult token = getAccessTokenFromClientCredentials(authorization, resource, clientId,
-                    clientKey);
-            accessToken = token.getAccessToken();
+            if (null == clientKey) {
+                try {
+                    SqlFedAuthToken token = SQLServerSecurityUtility.getMSIAuthToken(resource, clientId);
+                    accessToken = (null != token) ? token.accessToken : null;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                AuthenticationResult token = getAccessTokenFromClientCredentials(authorization, resource, clientId,
+                        clientKey);
+                accessToken = token.getAccessToken();
+            }
         } else {
             accessToken = authenticationCallback.getAccessToken(authorization, resource, scope);
         }

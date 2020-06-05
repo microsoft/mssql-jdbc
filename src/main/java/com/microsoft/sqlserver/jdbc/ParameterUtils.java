@@ -42,16 +42,16 @@ final class ParameterUtils {
     }
 
     /**
-     * Locates the first occurrence of [c] in [sql] starting at [offset], where [sql] is a SQL statement string, which
+     * Locates the first occurrence of [ch] in [sql] starting at [offset], where [sql] is a SQL statement string, which
      * may contain any combination of:
      *
      * - Literals, enclosed in single quotes (') - Literals, enclosed in double quotes (") - Escape sequences, enclosed
      * in square brackets ([]) - Escaped escapes or literal delimiters (i.e. '', "", or ]]) in the above - Single-line
      * comments, beginning in -- and continuing to EOL - Multi-line comments, enclosed in C-style comment delimiters
      *
-     * and [c] is not contained any of the above.
+     * and [ch] is not contained any of the above.
      *
-     * @param c
+     * @param ch
      *        the character to search for
      * @param sql
      *        the SQL string to search in

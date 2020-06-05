@@ -145,7 +145,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Source data (from a Record). Is null unless the corresponding version of writeToServer is called.
      */
-    private ISQLServerBulkRecord sourceBulkRecord;
+    private ISQLServerBulkData serverBulkData;
 
     /**
      * Source data (from ResultSet). Is null unless the corresponding version of writeToServer is called.
@@ -583,7 +583,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         sourceResultSet = sourceData;
 
-        sourceBulkRecord = null;
+        serverBulkData = null;
 
         // Save the resultset metadata as it is used in many places.
         try {
@@ -602,18 +602,18 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      * destinationTableName property of the SQLServerBulkCopy object.
      * 
      * @param sourceData
-     *        SQLServerBulkReader to read data rows from.
+     *        ISQLServerBulkData to read data rows from.
      * @throws SQLServerException
      *         If there are any issues encountered when performing the bulk copy operation
      */
-    public void writeToServer(ISQLServerBulkRecord sourceData) throws SQLServerException {
+    public void writeToServer(ISQLServerBulkData sourceData) throws SQLServerException {
         loggerExternal.entering(loggerClassName, "writeToServer");
 
         if (null == sourceData) {
             throwInvalidArgument("sourceData");
         }
 
-        sourceBulkRecord = sourceData;
+        serverBulkData = sourceData;
         sourceResultSet = null;
 
         writeToServer();
@@ -627,7 +627,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     private void initializeDefaults() {
         columnMappings = new ArrayList<>();
         destinationTableName = null;
-        sourceBulkRecord = null;
+        serverBulkData = null;
         sourceResultSet = null;
         sourceResultSetMetaData = null;
         srcColumnCount = 0;
@@ -919,23 +919,35 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case microsoft.sql.Types.MONEY:
             case microsoft.sql.Types.SMALLMONEY:
+                tdsWriter.writeByte(TDSType.MONEYN.byteValue()); // 0x6E
+                if (SSType.MONEY == destSSType)
+                    tdsWriter.writeByte((byte) 8);
+                else
+                    tdsWriter.writeByte((byte) 4);
+                break;
             case java.sql.Types.NUMERIC:
             case java.sql.Types.DECIMAL:
-                if (isBaseType && ((SSType.MONEY == destSSType) || (SSType.SMALLMONEY == destSSType))) {
-                    tdsWriter.writeByte(TDSType.MONEYN.byteValue()); // 0x6E
-                    if (SSType.MONEY == destSSType)
-                        tdsWriter.writeByte((byte) 8);
-                    else
-                        tdsWriter.writeByte((byte) 4);
-                } else {
-                    if (java.sql.Types.DECIMAL == srcJdbcType)
-                        tdsWriter.writeByte(TDSType.DECIMALN.byteValue()); // 0x6A
-                    else
-                        tdsWriter.writeByte(TDSType.NUMERICN.byteValue()); // 0x6C
-                    tdsWriter.writeByte((byte) TDSWriter.BIGDECIMAL_MAX_LENGTH); // maximum length
-                    tdsWriter.writeByte((byte) srcPrecision); // unsigned byte
-                    tdsWriter.writeByte((byte) srcScale); // unsigned byte
+                /*
+                 * SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column,
+                 * but Azure DW only accepts money types for money column.
+                 * To make the code compatible against both SQL Server and Azure DW, always send decimal and
+                 * numeric as money/smallmoney if the destination column is money/smallmoney
+                 * and the source is decimal/numeric.
+                 */
+                if (destSSType == SSType.MONEY) {
+                    tdsWriter.writeByte(TDSType.MONEYN.byteValue());
+                    tdsWriter.writeByte((byte) 8);
+                    break;
+                } else if (destSSType == SSType.SMALLMONEY) {
+                    tdsWriter.writeByte(TDSType.MONEYN.byteValue());
+                    tdsWriter.writeByte((byte) 4);
+                    break;
                 }
+                byte byteType = (java.sql.Types.DECIMAL == srcJdbcType) ? TDSType.DECIMALN.byteValue() : TDSType.NUMERICN.byteValue();
+                tdsWriter.writeByte(byteType);
+                tdsWriter.writeByte((byte) TDSWriter.BIGDECIMAL_MAX_LENGTH); // maximum length
+                tdsWriter.writeByte((byte) srcPrecision); // unsigned byte
+                tdsWriter.writeByte((byte) srcScale); // unsigned byte
                 break;
 
             case microsoft.sql.Types.GUID:
@@ -944,11 +956,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     tdsWriter.writeByte(TDSType.GUID.byteValue());
                     tdsWriter.writeByte((byte) 0x10);
                 } else {
-                    // BIGCHARTYPE
-                    tdsWriter.writeByte(TDSType.BIGCHAR.byteValue());
-
-                    tdsWriter.writeShort((short) (srcPrecision));
-
+                    if (unicodeConversionRequired(srcJdbcType, destSSType)) {
+                        tdsWriter.writeByte(TDSType.NCHAR.byteValue());
+                        tdsWriter.writeShort(isBaseType ? (short) (srcPrecision) : (short) (2 * srcPrecision));
+                    } else {
+                        tdsWriter.writeByte(TDSType.BIGCHAR.byteValue());
+                        tdsWriter.writeShort((short) (srcPrecision));
+                    }
                     collation.writeCollation(tdsWriter);
                 }
                 break;
@@ -961,12 +975,20 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case java.sql.Types.LONGVARCHAR:
             case java.sql.Types.VARCHAR: // 0xA7
-                // BIGVARCHARTYPE
-                tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
-                if (isStreaming) {
-                    tdsWriter.writeShort((short) 0xFFFF);
+                if (unicodeConversionRequired(srcJdbcType, destSSType)) {
+                    tdsWriter.writeByte(TDSType.NVARCHAR.byteValue());
+                    if (isStreaming) {
+                        tdsWriter.writeShort((short) 0xFFFF);
+                    } else {
+                        tdsWriter.writeShort(isBaseType ? (short) (srcPrecision) : (short) (2 * srcPrecision));
+                    }
                 } else {
-                    tdsWriter.writeShort((short) (srcPrecision));
+                    tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
+                    if (isStreaming) {
+                        tdsWriter.writeShort((short) 0xFFFF);
+                    } else {
+                        tdsWriter.writeShort((short) (srcPrecision));
+                    }
                 }
                 collation.writeCollation(tdsWriter);
                 break;
@@ -1001,7 +1023,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case microsoft.sql.Types.DATETIME:
             case microsoft.sql.Types.SMALLDATETIME:
             case java.sql.Types.TIMESTAMP:
-                if ((!isBaseType) && (null != sourceBulkRecord)) {
+                if (((!isBaseType) && (null != serverBulkData))
+                        && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                     tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
                     tdsWriter.writeShort((short) (srcPrecision));
                     collation.writeCollation(tdsWriter);
@@ -1039,7 +1062,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                  * unencrypted. string literal formats supported by temporal types are available in MSDN page on data
                  * types.
                  */
-                if ((!isBaseType) && (null != sourceBulkRecord)) {
+                if (((!isBaseType) && (null != serverBulkData))
+                        && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                     tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
                     tdsWriter.writeShort((short) (srcPrecision));
                     collation.writeCollation(tdsWriter);
@@ -1049,7 +1073,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 break;
 
             case java.sql.Types.TIME: // 0x29
-                if ((!isBaseType) && (null != sourceBulkRecord)) {
+                if (((!isBaseType) && (null != serverBulkData))
+                        && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                     tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
                     tdsWriter.writeShort((short) (srcPrecision));
                     collation.writeCollation(tdsWriter);
@@ -1067,7 +1092,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 break;
 
             case microsoft.sql.Types.DATETIMEOFFSET: // 0x2B
-                if ((!isBaseType) && (null != sourceBulkRecord)) {
+                if (((!isBaseType) && (null != serverBulkData))
+                        && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                     tdsWriter.writeByte(TDSType.BIGVARCHAR.byteValue());
                     tdsWriter.writeShort((short) (srcPrecision));
                     collation.writeCollation(tdsWriter);
@@ -1183,6 +1209,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         int srcPrecision;
 
         bulkJdbcType = srcColumnMetadata.get(srcColIndx).jdbcType;
+
         // For char/varchar precision is the size.
         bulkPrecision = srcPrecision = srcColumnMetadata.get(srcColIndx).precision;
         int destPrecision = destColumnMetadata.get(destColIndx).precision;
@@ -1263,18 +1290,41 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 return "real";
 
             case microsoft.sql.Types.MONEY:
+                return "money";
             case microsoft.sql.Types.SMALLMONEY:
+                return "smallmoney";
             case java.sql.Types.DECIMAL:
+                /*
+                 * SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column,
+                 * but Azure DW only accepts money types for money column.
+                 * To make the code compatible against both SQL Server and Azure DW, always send decimal and
+                 * numeric as money/smallmoney if the destination column is money/smallmoney
+                 * and the source is decimal/numeric.
+                 */
+                if (destSSType == SSType.MONEY) {
+                    return "money";
+                } else if (destSSType == SSType.SMALLMONEY) {
+                    return "smallmoney";
+                }
                 return "decimal(" + bulkPrecision + ", " + bulkScale + ")";
 
             case java.sql.Types.NUMERIC:
+                if (destSSType == SSType.MONEY) {
+                    return "money";
+                } else if (destSSType == SSType.SMALLMONEY) {
+                    return "smallmoney";
+                }
                 return "numeric(" + bulkPrecision + ", " + bulkScale + ")";
 
             case microsoft.sql.Types.GUID:
-            case java.sql.Types.CHAR:
                 // For char the value has to be between 0 to 8000.
                 return "char(" + bulkPrecision + ")";
-
+            case java.sql.Types.CHAR:
+                if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
+                    return "nchar(" + bulkPrecision + ")";
+                } else {
+                    return "char(" + bulkPrecision + ")";
+                }
             case java.sql.Types.NCHAR:
                 return "NCHAR(" + bulkPrecision + ")";
 
@@ -1282,12 +1332,19 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.VARCHAR:
                 // Here the actual size of the varchar is used from the source table.
                 // Doesn't need to match with the exact size of data or with the destination column size.
-                if (isStreaming) {
-                    return "varchar(max)";
+                if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
+                    if (isStreaming) {
+                        return "nvarchar(max)";
+                    } else {
+                        return "nvarchar(" + bulkPrecision + ")";
+                    }
                 } else {
-                    return "varchar(" + bulkPrecision + ")";
+                    if (isStreaming) {
+                        return "varchar(max)";
+                    } else {
+                        return "varchar(" + bulkPrecision + ")";
+                    }
                 }
-
                 // For INSERT BULK operations, XMLTYPE is to be sent as NVARCHAR(N) or NVARCHAR(MAX) data type.
                 // An error is produced if XMLTYPE is specified.
             case java.sql.Types.LONGNVARCHAR:
@@ -1314,7 +1371,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.TIMESTAMP:
                 switch (destSSType) {
                     case SMALLDATETIME:
-                        if (null != sourceBulkRecord) {
+                        if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                             return "varchar("
                                     + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision : bulkPrecision)
                                     + ")";
@@ -1322,7 +1379,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             return "smalldatetime";
                         }
                     case DATETIME:
-                        if (null != sourceBulkRecord) {
+                        if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                             return "varchar("
                                     + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision : bulkPrecision)
                                     + ")";
@@ -1337,7 +1394,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                          * will do the conversion. if the source is ResultSet, we send the data as the corresponding
                          * temporal type.
                          */
-                        if (null != sourceBulkRecord) {
+                        if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                             return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
                         } else {
                             return "datetime2(" + bulkScale + ")";
@@ -1350,7 +1407,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                  * unencrypted bulk copy if the source is CSV, we send the data as varchar and SQL Server will do the
                  * conversion. if the source is ResultSet, we send the data as the corresponding temporal type.
                  */
-                if (null != sourceBulkRecord) {
+                if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                     return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
                 } else {
                     return "date";
@@ -1362,7 +1419,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                  * unencrypted bulk copy if the source is CSV, we send the data as varchar and SQL Server will do the
                  * conversion. if the source is ResultSet, we send the data as the corresponding temporal type.
                  */
-                if (null != sourceBulkRecord) {
+                if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                     return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
                 } else {
                     return "time(" + bulkScale + ")";
@@ -1379,7 +1436,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                  * unencrypted bulk copy if the source is CSV, we send the data as varchar and SQL Server will do the
                  * conversion. if the source is ResultSet, we send the data as the corresponding temporal type.
                  */
-                if (null != sourceBulkRecord) {
+                if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                     return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
                 } else {
                     return "datetimeoffset(" + bulkScale + ")";
@@ -1544,13 +1601,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         // Create and send the initial command for bulk copy ("INSERT BULK ...").
         TDSWriter tdsWriter = command.startRequest(TDS.PKT_QUERY);
         String bulkCmd = createInsertBulkCommand(tdsWriter);
+        tdsWriter.sendEnclavePackage(null, null);
         tdsWriter.writeString(bulkCmd);
         TDSParser.parse(command.startResponse(), command.getLogContext());
 
         // Send the bulk data. This is the BulkLoadBCP TDS stream.
         tdsWriter = command.startRequest(TDS.PKT_BULK);
-
         // Write the COLUMNMETADATA token in the stream.
+
         writeColumnMetaData(tdsWriter);
 
         return tdsWriter;
@@ -1720,8 +1778,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // Unable to retrieve meta data for destination
                 throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
             }
-        } else if (null != sourceBulkRecord) {
-            Set<Integer> columnOrdinals = sourceBulkRecord.getColumnOrdinals();
+        } else if (null != serverBulkData) {
+            Set<Integer> columnOrdinals = serverBulkData.getColumnOrdinals();
             if (null == columnOrdinals || 0 == columnOrdinals.size()) {
                 throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), null);
             } else {
@@ -1729,10 +1787,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 for (Integer columnOrdinal : columnOrdinals) {
                     currentColumn = columnOrdinal;
                     srcColumnMetadata.put(currentColumn, new BulkColumnMetaData(
-                            sourceBulkRecord.getColumnName(currentColumn), true,
-                            sourceBulkRecord.getPrecision(currentColumn), sourceBulkRecord.getScale(currentColumn),
-                            sourceBulkRecord.getColumnType(currentColumn),
-                            ((sourceBulkRecord instanceof SQLServerBulkCSVFileRecord) ? ((SQLServerBulkCSVFileRecord) sourceBulkRecord)
+                            serverBulkData.getColumnName(currentColumn), true,
+                            serverBulkData.getPrecision(currentColumn), serverBulkData.getScale(currentColumn),
+                            serverBulkData.getColumnType(currentColumn),
+                            ((serverBulkData instanceof SQLServerBulkCSVFileRecord) ? ((SQLServerBulkCSVFileRecord) serverBulkData)
                                     .getColumnDateTimeFormatter(currentColumn) : null)));
                 }
             }
@@ -1779,8 +1837,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     }
                 }
                 // if no mapping is provided for csv file and metadata is missing for some columns throw error
-                if (null != sourceBulkRecord) {
-                    Set<Integer> columnOrdinals = sourceBulkRecord.getColumnOrdinals();
+                if (null != serverBulkData) {
+                    Set<Integer> columnOrdinals = serverBulkData.getColumnOrdinals();
                     Iterator<Integer> columnsIterator = columnOrdinals.iterator();
                     int j = 1;
                     while (columnsIterator.hasNext()) {
@@ -1847,9 +1905,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 }
                             }
                         } else {
-                            Set<Integer> columnOrdinals = sourceBulkRecord.getColumnOrdinals();
+                            Set<Integer> columnOrdinals = serverBulkData.getColumnOrdinals();
                             for (Integer currentColumn : columnOrdinals) {
-                                if (sourceBulkRecord.getColumnName(currentColumn).equals(cm.sourceColumnName)) {
+                                if (serverBulkData.getColumnName(currentColumn).equals(cm.sourceColumnName)) {
                                     foundColumn = true;
                                     cm.sourceColumnOrdinal = currentColumn;
                                     break;
@@ -1949,6 +2007,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.TIME:
             case 2013: // java.sql.Types.TIME_WITH_TIMEZONE
             case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
+            case microsoft.sql.Types.MONEY:
+            case microsoft.sql.Types.SMALLMONEY:
             case microsoft.sql.Types.DATETIMEOFFSET:
                 tdsWriter.writeByte((byte) 0x00);
                 return;
@@ -1985,11 +2045,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         else if (null != sourceCryptoMeta) {
             bulkJdbcType = destColumnMetadata.get(destColOrdinal).jdbcType;
             bulkScale = destColumnMetadata.get(destColOrdinal).scale;
-        } else if (null != sourceBulkRecord) {
-            // Bulk copy from CSV and destination is not encrypted. In this case, we send the temporal types as varchar
-            // and
-            // SQL Server does the conversion. If destination is encrypted, then temporal types can not be sent as
-            // varchar.
+        } else if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
+            /*
+             * Bulk copy from CSV and destination is not encrypted. In this case, we send the temporal types as varchar
+             * and
+             * SQL Server does the conversion. If destination is encrypted, then temporal types can not be sent as
+             * varchar.
+             */
             switch (bulkJdbcType) {
                 case java.sql.Types.DATE:
                 case java.sql.Types.TIME:
@@ -2074,7 +2136,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         tdsWriter.writeDouble((float) colValue);
                     }
                     break;
-                    
+
                 case java.sql.Types.DOUBLE:
                     if (null == colValue) {
                         writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
@@ -2099,6 +2161,25 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                 case microsoft.sql.Types.MONEY:
                 case microsoft.sql.Types.SMALLMONEY:
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    } else {
+                        /*
+                         * if the precision that user provides is smaller than the precision of the actual value, the
+                         * driver assumes the precision that user provides is the correct precision, and throws
+                         * exception
+                         */
+                        if (bulkPrecision < Util.getValueLengthBaseOnJavaType(colValue, JavaType.of(colValue), null,
+                                null, JDBCType.of(bulkJdbcType))) {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_valueOutOfRange"));
+                            Object[] msgArgs = {destSSType};
+                            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH,
+                                    DriverError.NOT_SET, null);
+                        }
+                        tdsWriter.writeMoney((BigDecimal) colValue, bulkJdbcType);
+                    }
+                    break;
                 case java.sql.Types.DECIMAL:
                 case java.sql.Types.NUMERIC:
                     if (null == colValue) {
@@ -2113,11 +2194,24 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 null, JDBCType.of(bulkJdbcType))) {
                             MessageFormat form = new MessageFormat(
                                     SQLServerException.getErrString("R_valueOutOfRange"));
-                            Object[] msgArgs = {SSType.DECIMAL};
+                            Object[] msgArgs = {destSSType};
                             throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH,
                                     DriverError.NOT_SET, null);
                         }
-                        tdsWriter.writeBigDecimal((BigDecimal) colValue, bulkJdbcType, bulkPrecision, bulkScale);
+                        /*
+                         * SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column,
+                         * but Azure DW only accepts money types for money column.
+                         * To make the code compatible against both SQL Server and Azure DW, always send decimal and
+                         * numeric as money/smallmoney if the destination column is money/smallmoney
+                         * and the source is decimal/numeric.
+                         */
+                        if (destSSType == SSType.MONEY) {
+                            tdsWriter.writeMoney((BigDecimal) colValue, microsoft.sql.Types.MONEY);
+                        } else if (destSSType == SSType.SMALLMONEY) {
+                            tdsWriter.writeMoney((BigDecimal) colValue, microsoft.sql.Types.SMALLMONEY);
+                        } else {
+                            tdsWriter.writeBigDecimal((BigDecimal) colValue, bulkJdbcType, bulkPrecision, bulkScale);
+                        }
                     }
                     break;
 
@@ -2146,19 +2240,23 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 } else {
                                     reader = new StringReader(colValue.toString());
                                 }
-
-                                if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)
-                                        || (SSType.VARBINARYMAX == destSSType) || (SSType.IMAGE == destSSType)) {
-                                    tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true,
-                                            null);
+                                if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
+                                    // writeReader is unicode.
+                                    tdsWriter.writeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
                                 } else {
-                                    SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
-                                    if (null != destCollation) {
-                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, false,
-                                                destCollation.getCharset());
-                                    } else {
-                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, false,
+                                    if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)
+                                            || (SSType.VARBINARYMAX == destSSType) || (SSType.IMAGE == destSSType)) {
+                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true,
                                                 null);
+                                    } else {
+                                        SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
+                                        if (null != destCollation) {
+                                            tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH,
+                                                    false, destCollation.getCharset());
+                                        } else {
+                                            tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH,
+                                                    false, null);
+                                        }
                                     }
                                 }
                                 reader.close();
@@ -2167,33 +2265,41 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                         SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
                             }
                         }
-                    } else // Non-PLP
-                    {
+                    } else {
                         if (null == colValue) {
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
                             String colValueStr = colValue.toString();
-                            if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)) {
-                                byte[] bytes = null;
-                                try {
-                                    bytes = ParameterUtils.HexToBin(colValueStr);
-                                } catch (SQLServerException e) {
-                                    throw new SQLServerException(
-                                            SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
-                                }
-                                tdsWriter.writeShort((short) bytes.length);
-                                tdsWriter.writeBytes(bytes);
+                            if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
+                                int stringLength = colValue.toString().length();
+                                byte[] typevarlen = new byte[2];
+                                typevarlen[0] = (byte) (2 * stringLength & 0xFF);
+                                typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
+                                tdsWriter.writeBytes(typevarlen);
+                                tdsWriter.writeString(colValue.toString());
                             } else {
-                                tdsWriter.writeShort((short) (colValueStr.length()));
-                                // converting string into destination collation using Charset
-
-                                SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
-                                if (null != destCollation) {
-                                    tdsWriter.writeBytes(colValueStr
-                                            .getBytes(destColumnMetadata.get(destColOrdinal).collation.getCharset()));
-
+                                if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)) {
+                                    byte[] bytes = null;
+                                    try {
+                                        bytes = ParameterUtils.HexToBin(colValueStr);
+                                    } catch (SQLServerException e) {
+                                        throw new SQLServerException(
+                                                SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
+                                    }
+                                    tdsWriter.writeShort((short) bytes.length);
+                                    tdsWriter.writeBytes(bytes);
                                 } else {
-                                    tdsWriter.writeBytes(colValueStr.getBytes());
+                                    tdsWriter.writeShort((short) (colValueStr.length()));
+                                    // converting string into destination collation using Charset
+
+                                    SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
+                                    if (null != destCollation) {
+                                        tdsWriter.writeBytes(colValueStr.getBytes(
+                                                destColumnMetadata.get(destColOrdinal).collation.getCharset()));
+
+                                    } else {
+                                        tdsWriter.writeBytes(colValueStr.getBytes());
+                                    }
                                 }
                             }
                         }
@@ -2362,8 +2468,30 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             tdsWriter.writeByte((byte) 0x04);
                         else
                             tdsWriter.writeByte((byte) 0x05);
-
-                        tdsWriter.writeTime((java.sql.Timestamp) colValue, bulkScale);
+                        if (colValue instanceof String) {
+                            /*
+                             * if colValue is an instance of String, this means the data is coming from a CSV file.
+                             * Time string is expected to come in with this pattern: hh:mm:ss[.nnnnnnn]
+                             * First, look for the '.' character to determine if the String has the optional nanoseconds
+                             * component.
+                             * Next, create a java.sql.Time instance with the hh:mm:ss part we extracted, then set that
+                             * time as the timestamp's time.
+                             * Then, add the nanoseconds (optional, 0 if not provided) to the timestamp value.
+                             * Finally, provide the timestamp value to writeTime method.
+                             */
+                            java.sql.Timestamp ts = new java.sql.Timestamp(0);
+                            int nanos = 0;
+                            int decimalIndex = ((String) colValue).indexOf('.');
+                            if (decimalIndex != -1) {
+                                nanos = Integer.parseInt(((String) colValue).substring(decimalIndex + 1));
+                                colValue = ((String) colValue).substring(0, decimalIndex);
+                            }
+                            ts.setTime(java.sql.Time.valueOf(colValue.toString()).getTime());
+                            ts.setNanos(nanos);
+                            tdsWriter.writeTime(ts, bulkScale);
+                        } else {
+                            tdsWriter.writeTime((java.sql.Timestamp) colValue, bulkScale);
+                        }
                     }
                     break;
 
@@ -2683,7 +2811,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Write header for sql_variant
      * 
-     * @param length:
+     * @param length
      *        length of base type + Basetype + probBytes
      * @param tdsType
      * @param probBytes
@@ -2861,9 +2989,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
         // If we are using ISQLBulkRecord and the data we are passing is char type, we need to check the source and dest
         // precision
-        else if (null != sourceBulkRecord && (null == destCryptoMeta)) {
+        else if (null != serverBulkData && (null == destCryptoMeta)) {
             validateStringBinaryLengths(colValue, srcColOrdinal, destColOrdinal);
-        } else if ((null != sourceBulkRecord) && (null != destCryptoMeta)) {
+        } else if ((null != serverBulkData) && (null != destCryptoMeta)) {
             // From CSV to encrypted column. Convert to respective object.
             if ((java.sql.Types.DATE == srcJdbcType) || (java.sql.Types.TIME == srcJdbcType)
                     || (java.sql.Types.TIMESTAMP == srcJdbcType) || (microsoft.sql.Types.DATETIMEOFFSET == srcJdbcType)
@@ -3362,7 +3490,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     Float floatValue = (value instanceof String) ? Float.parseFloat((String) value) : (Float) value;
                     return ByteBuffer.allocate((Float.SIZE / Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN)
                             .putFloat(floatValue).array();
-                    
+
                 case FLOAT:
                 case DOUBLE:
                     Double doubleValue = (value instanceof String) ? Double.parseDouble((String) value)
@@ -3436,7 +3564,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             if (null != sourceResultSet) {
                 return sourceResultSet.next();
             } else {
-                return sourceBulkRecord.next();
+                return serverBulkData.next();
             }
         } catch (SQLException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
@@ -3493,7 +3621,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 Object[] rowObjects;
 
                 try {
-                    rowObjects = sourceBulkRecord.getRowData();
+                    rowObjects = serverBulkData.getRowData();
                 } catch (Exception ex) {
                     // if no more data available to retrive
                     throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), ex);
@@ -3526,5 +3654,18 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
     protected void setDestinationTableMetadata(SQLServerResultSet rs) {
         destinationTableMetadata = rs;
+    }
+
+    /**
+     * For the case when source database stores unicode data in CHAR/VARCHAR and destination column is NCHAR/NVARCHAR.
+     *
+     * @param jdbcType
+     * @param ssType
+     * @return whether conversion to unicode is required.
+     */
+    private boolean unicodeConversionRequired(int jdbcType, SSType ssType) {
+        return ((java.sql.Types.CHAR == jdbcType || java.sql.Types.VARCHAR == jdbcType
+                || java.sql.Types.LONGNVARCHAR == jdbcType)
+                && (SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType));
     }
 }

@@ -25,7 +25,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
  * 
  * 1. Generate Kerberos Ticket and validate its availability with klist tool, or
  * 
- * 2. Place sqljdbc_auth.dll in the same directory as the pom.xml file. (Only applicable for Windows OS)
+ * 2. Place mssql-jdbc_auth in the same directory as the pom.xml file. (Only applicable for Windows OS)
  * 
  * For testing 'ActiveDirectoryPassword' Authentication, none of the above setup is required.
  * 
@@ -46,7 +46,7 @@ public class AzureActiveDirectoryAuthentication {
 
             System.out.println("For testing 'ActiveDirectoryIntegrated' Authentication, do one of the following:");
             System.out.println("   1. Generate Kerberos Ticket and validate its availability with klist tool, or");
-            System.out.println("   2. Place sqljdbc_auth.dll in the same directory as the pom.xml file.");
+            System.out.println("   2. Place mssql-jdbc_auth-${version}.${JVMBitness}.dll in the same directory as the pom.xml file.");
             System.out.println(
                     "For testing 'ActiveDirectoryPassword' Authentication, none of the above setup is not required.");//
             System.out.println();

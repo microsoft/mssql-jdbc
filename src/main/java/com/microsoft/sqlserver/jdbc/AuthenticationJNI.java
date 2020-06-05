@@ -48,8 +48,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
         UnsatisfiedLinkError temp = null;
         // Load the DLL
         try {
-            String libName = "sqljdbc_auth";
-            System.loadLibrary(libName);
+            System.loadLibrary(SQLServerDriver.AUTH_DLL_NAME);
             int[] pkg = new int[1];
             pkg[0] = 0;
             if (0 == SNISecInitPackage(pkg, authLogger)) {
@@ -158,6 +157,9 @@ final class AuthenticationJNI extends SSPIAuthentication {
             String servicePrincipalName, String clientConnectionId, String clientId, long expirationFileTime,
             java.util.logging.Logger log);
 
-    static native byte[] DecryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
+    static synchronized native byte[] DecryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] encryptedColumnEncryptionKey) throws DLLException;
+
+    static synchronized native boolean VerifyColumnMasterKeyMetadata(String keyPath, boolean allowEnclaveComputations,
+            byte[] signature) throws DLLException;
 }

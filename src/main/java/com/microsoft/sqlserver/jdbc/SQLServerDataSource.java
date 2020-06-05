@@ -358,6 +358,10 @@ public class SQLServerDataSource
                 trustStorePassword);
     }
 
+    String getTrustStorePassword() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString(), null);
+    }
+
     @Override
     public void setHostNameInCertificate(String hostName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(), hostName);
@@ -478,11 +482,10 @@ public class SQLServerDataSource
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                 SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
     }
-    
+
     @Override
     public void setUseFmtOnly(boolean useFmtOnly) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString(),
-                useFmtOnly);
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString(), useFmtOnly);
     }
 
     @Override
@@ -490,7 +493,19 @@ public class SQLServerDataSource
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString(),
                 SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue());
     }
-    
+
+    @Override
+    public void setDelayLoadingLobs(boolean delayLoadingLobs) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString(),
+                delayLoadingLobs);
+    }
+
+    @Override
+    public boolean getDelayLoadingLobs() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString(),
+                SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue());
+    }
+
     /**
      * Sets whether string parameters are sent to the server in UNICODE format.
      * 
@@ -655,6 +670,29 @@ public class SQLServerDataSource
     public boolean getFIPS() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.FIPS.toString(),
                 SQLServerDriverBooleanProperty.FIPS.getDefaultValue());
+    }
+
+    @Override
+    public String getSocketFactoryClass() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString(), null);
+    }
+
+    @Override
+    public void setSocketFactoryClass(String socketFactoryClass) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString(),
+                socketFactoryClass);
+    }
+
+    @Override
+    public String getSocketFactoryConstructorArg() {
+        return getStringProperty(connectionProps,
+                SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString(), null);
+    }
+
+    @Override
+    public void setSocketFactoryConstructorArg(String socketFactoryConstructorArg) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString(),
+                socketFactoryConstructorArg);
     }
 
     @Override
@@ -908,14 +946,90 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setDomain(String domain) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(), domain);
+    public void setKeyStorePrincipalId(String keyStorePrincipalId) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString(),
+                keyStorePrincipalId);
+    }
+
+    @Override
+    public String getKeyStorePrincipalId() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString(),
+                SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.getDefaultValue());
     }
 
     @Override
     public String getDomain() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(),
                 SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
+    }
+
+    @Override
+    public void setDomain(String domain) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.DOMAIN.toString(), domain);
+    }
+
+    @Override
+    public String getEnclaveAttestationUrl() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString(),
+                SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.getDefaultValue());
+    }
+
+    @Override
+    public void setEnclaveAttestationUrl(String url) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString(), url);
+    }
+
+    @Override
+    public String getEnclaveAttestationProtocol() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString(),
+                SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.getDefaultValue());
+    }
+
+    @Override
+    public void setEnclaveAttestationProtocol(String protocol) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString(),
+                protocol);
+    }
+
+    @Override
+    public String getClientCertificate() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString(),
+                SQLServerDriverStringProperty.CLIENT_CERTIFICATE.getDefaultValue());
+    }
+
+    @Override
+    public void setClientCertificate(String certPath) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString(), certPath);
+    }
+
+    @Override
+    public String getClientKey() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY.toString(),
+                SQLServerDriverStringProperty.CLIENT_KEY.getDefaultValue());
+    }
+
+    @Override
+    public void setClientKey(String keyPath) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY.toString(), keyPath);
+    }
+
+    @Override
+    public void setClientKeyPassword(String password) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(), password);
+    }
+
+    @Override
+    public boolean getSendTemporalDataTypesAsStringForBulkCopy() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString(),
+                SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.getDefaultValue());
+    }
+
+    @Override
+    public void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy) {
+        setBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString(),
+                sendTemporalDataTypesAsStringForBulkCopy);
     }
 
     /**
