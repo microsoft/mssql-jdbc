@@ -34,6 +34,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 
+
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.Fedauth)
 public class FedauthTest extends FedauthCommon {
@@ -258,27 +259,23 @@ public class FedauthTest extends FedauthCommon {
     private void testValid(String authentication, boolean encrypt, boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
-
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
             if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
                 ds.setUser(azureUserName);
-                ds.setPassword("WrongPassword");
+                ds.setPassword(azurePassword);
             }
-
             ds.setAuthentication(authentication);
             ds.setEncrypt(encrypt);
             ds.setTrustServerCertificate(trustServerCertificate);
 
             try (Connection conn = ds.getConnection()) {}
-
-            fail(TestResource.getResource("R_expectedFailPassed"));
-
         } catch (Exception e) {
-            if (authentication.toLowerCase().contains("activedirectory")) {
+            if (authentication.toLowerCase().contains("activedirectorypassword")) {
+                fail(e.getMessage());
+            } else if (authentication.toLowerCase().contains("activedirectoryintegrated")) {
                 assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed"))
                         || e.getMessage().contains("Failed to authenticate"));
-
             } else {
                 assertTrue(e.getMessage().contains("Cannot open server"));
             }
@@ -289,7 +286,6 @@ public class FedauthTest extends FedauthCommon {
             boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
-
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
             if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
@@ -301,14 +297,11 @@ public class FedauthTest extends FedauthCommon {
             ds.setTrustServerCertificate(trustServerCertificate);
 
             try (Connection conn = ds.getConnection()) {}
-
             fail(TestResource.getResource("R_expectedFailPassed"));
-
         } catch (Exception e) {
             if (authentication.toLowerCase().contains("activedirectory")) {
                 assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed"))
                         || e.getMessage().contains("Failed to authenticate"));
-
             } else {
                 assertTrue(e.getMessage().contains("Cannot open server"));
             }

@@ -26,6 +26,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.Constants;
 
+
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.Fedauth)
 public class ConnectionEncryptionTest extends FedauthCommon {
@@ -39,7 +40,6 @@ public class ConnectionEncryptionTest extends FedauthCommon {
 
     @Test
     public void testCorrectCertificate() throws SQLException {
-
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
                 + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword;"
                 + "HostNameInCertificate=" + hostNameInCertificate;

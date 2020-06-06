@@ -19,6 +19,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.Constants;
 
+
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.Fedauth)
 public class ServerCertificateValidationTest extends FedauthCommon {
@@ -54,7 +55,7 @@ public class ServerCertificateValidationTest extends FedauthCommon {
     }
 
     @Test
-    public void testNotValidADPasswordEncrypedtrustServerCert() throws SQLException {
+    public void testNotValidADPasswordEncrypedrustServerCert() throws SQLException {
         testNotValid("ActiveDirectoryPassword", true, true);
     }
 
@@ -64,7 +65,7 @@ public class ServerCertificateValidationTest extends FedauthCommon {
     }
 
     @Test
-    public void testNotValidADIntegratedEncrypedrustServerCert() throws SQLException {
+    public void testNotValidADIntegratedEncrypedTrustServerCert() throws SQLException {
         testNotValid("ActiveDirectoryIntegrated", true, true);
     }
 
@@ -94,7 +95,7 @@ public class ServerCertificateValidationTest extends FedauthCommon {
     }
 
     @Test
-    public void testValidADInegratedNotEncryptedNotTrustServerCert() throws SQLException {
+    public void testValidADIntegratedNotEncryptedNotTrustServerCert() throws SQLException {
         testValid("ActiveDirectoryIntegrated", false, false);
     }
 
@@ -106,27 +107,36 @@ public class ServerCertificateValidationTest extends FedauthCommon {
     private void testValid(String authentication, boolean encrypt, boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
-
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
             if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
                 ds.setUser(azureUserName);
-                ds.setPassword("WrongPassword");
+                ds.setPassword(azurePassword);
             }
             ds.setAuthentication(authentication);
             ds.setEncrypt(encrypt);
             ds.setTrustServerCertificate(trustServerCertificate);
 
             try (Connection connection = ds.getConnection()) {}
-            fail(TestResource.getResource("R_expectedFailPassed"));
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            if (authentication.toLowerCase().contains("activedirectorypassword")) {
+                fail(e.getMessage());
+            } else if (authentication.toLowerCase().contains("activedirectoryintegrated")) {
+                assertTrue(
+                        e.getMessage().contains("Login failed for")
+                                || e.getMessage().contains("Failed to authenticate"),
+                        "Invalid exception message: \n" + e.getMessage());
+            } else {
+                assertTrue(e.getMessage().contains("Cannot open server"),
+                        "Invalid exception message: \n" + e.getMessage());
+            }
+        }
     }
 
     private void testNotValid(String authentication, boolean encrypt,
             boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
-
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
             if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {

@@ -21,6 +21,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.testframework.Constants;
 
+
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.Fedauth)
 public class ConcurrentLoginTest extends FedauthCommon {

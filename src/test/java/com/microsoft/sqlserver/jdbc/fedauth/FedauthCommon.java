@@ -13,6 +13,7 @@ import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
+
 @Tag(Constants.Fedauth)
 public class FedauthCommon extends AbstractTest {
 

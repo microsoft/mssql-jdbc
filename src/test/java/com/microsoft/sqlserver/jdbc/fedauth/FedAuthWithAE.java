@@ -40,15 +40,10 @@ import com.microsoft.sqlserver.jdbc.SQLServerKeyVaultAuthenticationCallback;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.Constants;
 
+
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.Fedauth)
 public class FedAuthWithAE extends FedauthCommon {
-    /*
-     * private static String charTablePrefix = "FedAuthWithAECharTable_", charTableOld, charTableNew, charTable; private
-     * static String cmkName1Prefix = "CMK1_", cmkName1; private static String cmkName2Prefix = "CMK2_", cmkName2;
-     * private static String cmkName3Prefix = "CMK3_", cmkName3; private static String cekNamePrefix =
-     * "CEK_FedAuthWithAE", cekName; private static String team = "_jdbc_";
-     */
 
     static String cmkName1 = Constants.CMK_NAME + "fedauthAE1";
     static String cmkName2 = Constants.CMK_NAME + "fedauthAE2";
