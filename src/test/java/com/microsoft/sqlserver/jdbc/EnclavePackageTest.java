@@ -323,7 +323,7 @@ public class EnclavePackageTest extends AbstractTest {
         try {
             trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths();
             List<String> paths = new ArrayList<String>();
-            paths.add(AEjavaKeyPath);
+            paths.add(javaKeyPath);
             String serverName = connection.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString()).toUpperCase();
 

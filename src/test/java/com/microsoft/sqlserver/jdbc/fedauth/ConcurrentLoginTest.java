@@ -18,18 +18,17 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
-public class ConcurrentLoginTest extends AbstractTest {
+public class ConcurrentLoginTest extends FedauthCommon {
 
     @Test
     public void testConcurrentLogin() {
         Random rand = new Random();
         int numberOfThreadsForEachType = rand.nextInt(15) + 1; // 1 to 15
 
-        getFedauthInfo();
+        FedauthCommon.getFedauthInfo();
 
         for (int i = 0; i < numberOfThreadsForEachType; i++) {
             // Access token based authentication

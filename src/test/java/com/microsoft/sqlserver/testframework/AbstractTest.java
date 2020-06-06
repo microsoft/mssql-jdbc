@@ -7,11 +7,14 @@ package com.microsoft.sqlserver.testframework;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -22,8 +25,6 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -36,8 +37,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
-import com.microsoft.aad.adal4j.AuthenticationContext;
-import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
@@ -77,37 +76,11 @@ public abstract class AbstractTest {
     protected static String trustStorePath = "";
 
     protected static String windowsKeyPath = null;
-    protected static String AEjavaKeyPath = null;
-    protected static String AEjavaKeyAliases = null;
+    protected static String javaKeyPath = null;
+    protected static String javaKeyAliases = null;
     protected static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
     protected static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static boolean isKspRegistered = false;
-
-    public static String[] jksPaths = null;
-    public static String[] jksPathsLinux = null;
-    public static String[] javaKeyAliases = null;
-
-    public static String azureServer = null;
-    public static String azureDatabase = null;
-    public static String azureUserName = null;
-    public static String azurePassword = null;
-    public static String azureGroupUserName = null;
-
-    public enum AzureAuthMode {
-        SqlPassword,
-        ActiveDirectoryIntegrated,
-        ActiveDirectoryMSI
-    };
-
-    public static boolean enableADIntegrated = false;
-
-    public static String spn = null;
-    public static String stsurl = null;
-    public static String fedauthClientId = null;
-    public static long secondsBeforeExpiration = -1;
-    public static String secretstrJks = "";
-    public static String accessToken = null;
-    public static String hostNameInCertificate = "*.database.windows.net";
 
     // properties needed for MSI
     protected static String msiClientId = null;
@@ -136,7 +109,8 @@ public abstract class AbstractTest {
     private static PrintStream logPrintStream = null;
     private static Properties configProperties = null;
 
-    // String OS = System.getProperty("os.name").toLowerCase();
+    protected static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
+
     public static Properties properties = null;
 
     /**
@@ -163,22 +137,12 @@ public abstract class AbstractTest {
 
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
-        AEjavaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
+
+        readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
+        javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
+
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
-        windowsKeyPath = getConfiguredProperty("windowsKeyPath ");
-
-        enableADIntegrated = !System.getProperty("os.name").startsWith("Windows") ? false :               
-                getConfiguredProperty("enableADIntegrated").equalsIgnoreCase("true") ? true : false;
-        
-        azureServer = getConfiguredProperty("azureServer");
-        azureDatabase = getConfiguredProperty("azureDatabase");
-        azureUserName = getConfiguredProperty("azureUserName");
-        azurePassword = getConfiguredProperty("azurePassword");
-        azureGroupUserName = getConfiguredProperty("azureGroupUserName");
-
-        spn = getConfiguredProperty("spn");
-        stsurl = getConfiguredProperty("stsurl");
-        fedauthClientId = getConfiguredProperty("fedauthClientId");
+        windowsKeyPath = getConfiguredProperty("windowsKeyPath");
 
         String prop;
         prop = getConfiguredProperty("enclaveServer", null);
@@ -208,7 +172,7 @@ public abstract class AbstractTest {
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
-            jksProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(AEjavaKeyPath,
+            jksProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath,
                     Constants.JKS_SECRET.toCharArray());
             map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
@@ -643,17 +607,30 @@ public abstract class AbstractTest {
     }
 
     /**
-     * Get Fedauth info
+     * Read the alias from file which is created during creating jks If the jks and alias name in JavaKeyStore.txt does
+     * not exists, will not run!
      * 
+     * @param inputFile
+     * @param lookupValue
+     * @throws IOException
      */
-    protected static void getFedauthInfo() {
+    protected static void readFromFile(String inputFile, String lookupValue) throws IOException {
+        String filePath = TestUtils.getCurrentClassPath();
         try {
-            AuthenticationContext context = new AuthenticationContext(stsurl, false, Executors.newFixedThreadPool(1));
-            Future<AuthenticationResult> future = context.acquireToken(spn, fedauthClientId, azureUserName,
-                    azurePassword, null);
-            secondsBeforeExpiration = future.get().getExpiresAfter();
-            accessToken = future.get().getAccessToken();
-        } catch (Exception e) {
+            File f = new File(filePath + inputFile);
+            try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
+                String readLine = "";
+                String[] linecontents;
+
+                while ((readLine = buffer.readLine()) != null) {
+                    if (readLine.trim().contains(lookupValue)) {
+                        linecontents = readLine.split(" ");
+                        javaKeyAliases = linecontents[2];
+                        break;
+                    }
+                }
+            }
+        } catch (IOException e) {
             fail(e.getMessage());
         }
     }

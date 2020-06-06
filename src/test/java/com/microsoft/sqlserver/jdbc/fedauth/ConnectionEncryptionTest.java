@@ -27,13 +27,13 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
-public class ConnectionEncryptionTest extends AbstractTest {
+public class ConnectionEncryptionTest extends FedauthCommon {
 
     static String charTable = RandomUtil.getIdentifier("charTableFedAuth");
 
     @BeforeAll
     public static void setupTests() throws Throwable {
-        getFedauthInfo();
+        FedauthCommon.getFedauthInfo();
     }
 
     @Test

@@ -32,12 +32,11 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
-import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-public class FedauthTest extends AbstractTest {
+public class FedauthTest extends FedauthCommon {
     static String charTable = RandomUtil.getIdentifier("charTableFedAuth");
 
     static class TrustStore {
@@ -184,9 +183,10 @@ public class FedauthTest extends AbstractTest {
         testNotValid("SqlPassword", true, true);
     }
 
-    @Tag(Constants.xUnix)
     @Test
     public void testNotValidActiveDirectoryIntegrated() throws SQLException {
+        org.junit.Assume.assumeTrue(isWindows);
+
         testNotValid("ActiveDirectoryIntegrated", false, true);
         testNotValid("ActiveDirectoryIntegrated", true, true);
     }
@@ -213,9 +213,10 @@ public class FedauthTest extends AbstractTest {
         testValid("SqlPassword", true, true);
     }
 
-    @Tag(Constants.xUnix)
     @Test
     public void testValidActiveDirectoryIntegrated() throws SQLException {
+        org.junit.Assume.assumeTrue(isWindows);
+
         testValid("ActiveDirectoryIntegrated", false, true);
         testValid("ActiveDirectoryIntegrated", true, true);
     }
@@ -252,21 +253,6 @@ public class FedauthTest extends AbstractTest {
         try (Connection conn = ds.getConnection()) {} catch (Exception e) {
             fail(e.getMessage());
         }
-    }
-
-    public static SQLServerDataSource getDataSource() {
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setServerName(azureServer);
-        ds.setDatabaseName(azureDatabase);
-        ds.setUser(azureUserName);
-        ds.setPassword(azurePassword);
-        ds.setAuthentication("ActiveDirectoryPassword");
-        ds.setHostNameInCertificate(hostNameInCertificate);
-        ds.setColumnEncryptionSetting("enabled");
-        ds.setKeyStoreAuthentication("JavaKeyStorePassword");
-        ds.setKeyStoreLocation(jksPaths[0]);
-        ds.setKeyStoreSecret(secretstrJks);
-        return ds;
     }
 
     private void testValid(String authentication, boolean encrypt, boolean trustServerCertificate) throws SQLException {

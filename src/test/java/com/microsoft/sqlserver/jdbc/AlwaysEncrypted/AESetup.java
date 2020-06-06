@@ -70,9 +70,6 @@ public class AESetup extends AbstractTest {
     static Properties AEInfo;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
 
-    // test that only run on Windows will be skipped
-    static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
-
     public static final String tableName = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("AETest_")));
     public static final String CHAR_TABLE_AE = TestUtils
@@ -203,7 +200,7 @@ public class AESetup extends AbstractTest {
         AEInfo = new Properties();
         AEInfo.setProperty("ColumnEncryptionSetting", Constants.ENABLED);
         AEInfo.setProperty("keyStoreAuthentication", Constants.JAVA_KEY_STORE_SECRET);
-        AEInfo.setProperty("keyStoreLocation", AEjavaKeyPath);
+        AEInfo.setProperty("keyStoreLocation", javaKeyPath);
         AEInfo.setProperty("keyStoreSecret", Constants.JKS_SECRET);
 
         // reset logging to avoid severe logs due to negative testing
@@ -221,7 +218,7 @@ public class AESetup extends AbstractTest {
 
             setAEConnectionString(serverName, url, protocol);
 
-            createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, AEjavaKeyAliases, Constants.CMK_SIGNATURE);
+            createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
             createCEK(cmkJks, cekJks, jksProvider);
 
             if (null != keyIDs && !keyIDs[0].isEmpty()) {
@@ -272,35 +269,6 @@ public class AESetup extends AbstractTest {
         dropAll();
         if (null != connection) {
             connection.close();
-        }
-    }
-
-    /**
-     * Read the alias from file which is created during creating jks If the jks and alias name in JavaKeyStore.txt does
-     * not exists, will not run!
-     * 
-     * @param inputFile
-     * @param lookupValue
-     * @throws IOException
-     */
-    private static void readFromFile(String inputFile, String lookupValue) throws IOException {
-        String filePath = TestUtils.getCurrentClassPath();
-        try {
-            File f = new File(filePath + inputFile);
-            try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
-                String readLine = "";
-                String[] linecontents;
-
-                while ((readLine = buffer.readLine()) != null) {
-                    if (readLine.trim().contains(lookupValue)) {
-                        linecontents = readLine.split(" ");
-                        AEjavaKeyAliases = linecontents[2];
-                        break;
-                    }
-                }
-            }
-        } catch (IOException e) {
-            fail(e.getMessage());
         }
     }
 
@@ -537,7 +505,7 @@ public class AESetup extends AbstractTest {
             String encryptedValue;
 
             if (storeProvider instanceof SQLServerColumnEncryptionJavaKeyStoreProvider) {
-                byte[] key = storeProvider.encryptColumnEncryptionKey(AEjavaKeyAliases, Constants.CEK_ALGORITHM,
+                byte[] key = storeProvider.encryptColumnEncryptionKey(javaKeyAliases, Constants.CEK_ALGORITHM,
                         valuesDefault);
                 encryptedValue = "0x" + TestUtils.bytesToHexString(key, key.length);
             } else if (storeProvider instanceof SQLServerColumnEncryptionAzureKeyVaultProvider) {

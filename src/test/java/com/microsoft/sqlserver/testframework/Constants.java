@@ -22,7 +22,6 @@ public final class Constants {
      * xAzureSQLDB - - - - For tests not compatible with Azure SQL Database
      * xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
-     * xUnix - - - - - - - For tests not compatible with Unix platform
      * NTLM  - - - - - - - For NTLM tests
      * reqExternalSetup  - For tests requiring external setup
      * clientCertAuth  - - For tests requiring client certificate authentication setup
@@ -36,7 +35,6 @@ public final class Constants {
     public static final String xAzureSQLDB = "xAzureSQLDB";
     public static final String xAzureSQLDW = "xAzureSQLDW";
     public static final String xAzureSQLMI = "xAzureSQLMI";
-    public static final String xUnix = "xUnix";
     public static final String NTLM = "NTLM";
     public static final String MSI = "MSI";
     public static final String reqExternalSetup = "reqExternalSetup";
@@ -165,26 +163,4 @@ public final class Constants {
         NCLOB,
         BLOB
     };
-
-    public static final String AZURESERVER = "azureServer";
-    public static final String AZUREDATABASE = "azureDatabase";
-    public static final String AZUREUSERNAME = "azureUserName";
-    public static final String AZUREPASSWORD = "azurePassword";
-    public static final String AZUREGROUPUSERNAME = "azureGroupUserName";
-    public static final String MSAZURESERVER = "msAzureServer";
-    public static final String MSAZUREDATABASE = "msAzureDatabase";
-    public static final String MSAZUREUSERNAME = "msAzureUserName";
-    public static final String MSAZUREPASSWORD = "msAzurePassword";
-    public static final String SPN = "spn";
-    public static final String STSURL = "stsurl";
-    public static final String FEDAUTHCLIENTID = "fedauthClientId";
-    public static final String ENABLEADINTEGRATED = "enableADIntegrated";
-    public static final String ENABLEADMSI = "enableADMSI";
-    public static final String APPLICATIONCLIENTID = "applicationClientId";
-    public static final String APPLICATIONKEY = "applicationKey";
-    public static final String KEYID = "keyId";
-    public static final String JKSPATH = "jksPaths";
-    public static final String JKSPATHSLINUX = "jksPathsLinux";
-    public static final String JAVAKEYALIASES = "javaKeyAliases";
-    public static final String WINDOWSKEYPATH = "windowsKeyPath";
 }

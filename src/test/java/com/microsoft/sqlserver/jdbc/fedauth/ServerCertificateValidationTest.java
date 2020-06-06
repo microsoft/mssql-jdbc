@@ -16,11 +16,10 @@ import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
-public class ServerCertificateValidationTest extends AbstractTest {
+public class ServerCertificateValidationTest extends FedauthCommon {
 
     @Test
     public void testNotValidNotSpecifiedNotEncryptedNotTrustServerCert() throws SQLException {

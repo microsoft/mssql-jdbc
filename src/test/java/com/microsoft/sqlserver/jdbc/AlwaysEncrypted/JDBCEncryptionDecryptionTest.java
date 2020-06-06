@@ -77,7 +77,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
         try {
             SQLServerColumnEncryptionJavaKeyStoreProvider jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(
-                    AEjavaKeyPath, new char[1]);
+                    javaKeyPath, new char[1]);
             String keystoreName = "keystoreName";
             jksp.setName(keystoreName);
             assertTrue(jksp.getName().equals(keystoreName));
@@ -152,7 +152,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         SQLServerColumnEncryptionJavaKeyStoreProvider jksp = null;
         char[] secret = new char[1];
         try {
-            jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(AEjavaKeyPath, secret);
+            jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath, secret);
         } catch (SQLServerException e) {
             fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
@@ -168,7 +168,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         // empty cek
         try {
             byte[] emptyCek = new byte[0];
-            jksp.encryptColumnEncryptionKey(AEjavaKeyPath, Constants.CEK_ALGORITHM, emptyCek);
+            jksp.encryptColumnEncryptionKey(javaKeyPath, Constants.CEK_ALGORITHM, emptyCek);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyColumnEncryptionKey")));
@@ -243,7 +243,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
 
         try {
-            jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(AEjavaKeyPath, secret);
+            jksp = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath, secret);
         } catch (SQLServerException e) {
             fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
@@ -251,7 +251,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         // bad cert
         try {
             byte[] badCek = new byte[1];
-            jksp.decryptColumnEncryptionKey(AEjavaKeyAliases, "RSA_OAEP", badCek);
+            jksp.decryptColumnEncryptionKey(javaKeyAliases, "RSA_OAEP", badCek);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidKeyStoreFile")));
