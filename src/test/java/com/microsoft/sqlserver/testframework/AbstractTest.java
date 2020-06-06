@@ -576,7 +576,7 @@ public abstract class AbstractTest {
      * @param key
      * @return property value or default value
      */
-    private static String getConfiguredProperty(String key, String defaultValue) {
+    protected static String getConfiguredProperty(String key, String defaultValue) {
         String value = getConfiguredProperty(key);
 
         if (null == value) {

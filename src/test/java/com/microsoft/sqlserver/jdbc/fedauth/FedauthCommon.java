@@ -41,11 +41,11 @@ public class FedauthCommon extends AbstractTest {
         azurePassword = getConfiguredProperty("azurePassword");
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
 
-        fedauthJksPaths = getConfiguredProperty("fedauthJksPaths").split(Constants.SEMI_COLON);
+        fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
         if (!isWindows) {
-            fedauthJksPaths = getConfiguredProperty("fedauthJksPaths").split(Constants.SEMI_COLON);
+            fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
         }
-        fedauthJavaKeyAliases = getConfiguredProperty("fedauthJavaKeyAliases").split(Constants.SEMI_COLON);
+        fedauthJavaKeyAliases = getConfiguredProperty("fedauthJavaKeyAliases", "").split(Constants.SEMI_COLON);
 
         enableADIntegrated = !System.getProperty("os.name").startsWith(
                 "Windows") ? false

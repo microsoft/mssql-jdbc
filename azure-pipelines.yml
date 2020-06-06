@@ -30,6 +30,10 @@ jobs:
       Remove-Item –path .\JavaKeyStoreBase.txt
     displayName: 'PowerShell Script'
   - task: DownloadSecureFile@1
+    displayName: 'Download config.properties'
+    inputs:
+      secureFile: config.properties
+  - task: DownloadSecureFile@1
     name: pkcs12_truststore
     displayName: 'Download PKCS12 truststore file'
     inputs:
