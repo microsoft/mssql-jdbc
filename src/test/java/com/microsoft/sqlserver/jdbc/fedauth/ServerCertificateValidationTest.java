@@ -12,13 +12,15 @@ import java.sql.SQLException;
 
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
-
+import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.Fedauth)
 public class ServerCertificateValidationTest extends FedauthCommon {
 
     @Test

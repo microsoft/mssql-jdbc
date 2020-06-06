@@ -13,14 +13,16 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Random;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-
+import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.Fedauth)
 public class ConcurrentLoginTest extends FedauthCommon {
 
     @Test

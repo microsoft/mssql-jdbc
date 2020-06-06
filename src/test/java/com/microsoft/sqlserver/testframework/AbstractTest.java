@@ -138,7 +138,6 @@ public abstract class AbstractTest {
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
 
-        readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
         javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
 
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
@@ -604,34 +603,5 @@ public abstract class AbstractTest {
         }
 
         return value;
-    }
-
-    /**
-     * Read the alias from file which is created during creating jks If the jks and alias name in JavaKeyStore.txt does
-     * not exists, will not run!
-     * 
-     * @param inputFile
-     * @param lookupValue
-     * @throws IOException
-     */
-    protected static void readFromFile(String inputFile, String lookupValue) throws IOException {
-        String filePath = TestUtils.getCurrentClassPath();
-        try {
-            File f = new File(filePath + inputFile);
-            try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
-                String readLine = "";
-                String[] linecontents;
-
-                while ((readLine = buffer.readLine()) != null) {
-                    if (readLine.trim().contains(lookupValue)) {
-                        linecontents = readLine.split(" ");
-                        javaKeyAliases = linecontents[2];
-                        break;
-                    }
-                }
-            }
-        } catch (IOException e) {
-            fail(e.getMessage());
-        }
     }
 }

@@ -24,8 +24,8 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.Constants;
 
-
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.Fedauth)
 public class ErrorMessageTest extends FedauthCommon {
 
     private static final String ERR_MSG_SQL_AUTH_FAILED_SSL = "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption.";

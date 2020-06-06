@@ -21,6 +21,7 @@ import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -39,8 +40,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerKeyVaultAuthenticationCallback;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.Constants;
 
-
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.Fedauth)
 public class FedAuthWithAE extends FedauthCommon {
     /*
      * private static String charTablePrefix = "FedAuthWithAECharTable_", charTableOld, charTableNew, charTable; private
