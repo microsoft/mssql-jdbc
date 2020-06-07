@@ -38,7 +38,8 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.Fedauth)
 public class FedauthTest extends FedauthCommon {
-    static String charTable = RandomUtil.getIdentifier("charTableFedAuth");
+    static String charTable = TestUtils
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthTest")));
 
     static class TrustStore {
         private File trustStoreFile;
@@ -309,7 +310,7 @@ public class FedauthTest extends FedauthCommon {
     }
 
     public static void testChar(Statement stmt, String charTable) throws SQLException {
-        try (ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(charTable))) {
+        try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
             int numberOfColumns = rs.getMetaData().getColumnCount();
             rs.next();
             for (int i = 1; i <= numberOfColumns; i++) {
@@ -340,15 +341,14 @@ public class FedauthTest extends FedauthCommon {
     }
 
     public static void createTable(Statement stmt, String charTable) throws SQLException {
-        stmt.execute("create table " + AbstractSQLGenerator.escapeIdentifier(charTable) + " ("
-                + "PlainChar char(20) null," + "PlainVarchar varchar(50) null," + "PlainVarcharMax varchar(max) null,"
-                + "PlainNchar nchar(30) null," + "PlainNvarchar nvarchar(60) null,"
-                + "PlainNvarcharMax nvarchar(max) null" + ");");
+        stmt.execute("create table " + charTable + " (" + "PlainChar char(20) null," + "PlainVarchar varchar(50) null,"
+                + "PlainVarcharMax varchar(max) null," + "PlainNchar nchar(30) null,"
+                + "PlainNvarchar nvarchar(60) null," + "PlainNvarcharMax nvarchar(max) null" + ");");
     }
 
     public static void populateCharTable(Connection conn, String charTable) throws SQLException {
-        try (PreparedStatement pstmt = conn.prepareStatement("insert into "
-                + AbstractSQLGenerator.escapeIdentifier(charTable) + " values( " + "?,?,?,?,?,?" + ")")) {
+        try (PreparedStatement pstmt = conn
+                .prepareStatement("insert into " + charTable + " values( " + "?,?,?,?,?,?" + ")")) {
             for (int i = 1; i <= 6; i++) {
                 pstmt.setString(i, "hello world!!!");
             }

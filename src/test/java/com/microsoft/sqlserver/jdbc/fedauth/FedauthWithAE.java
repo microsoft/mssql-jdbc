@@ -38,20 +38,24 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerKeyVaultAuthenticationCallback;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.Fedauth)
-public class FedAuthWithAE extends FedauthCommon {
+public class FedauthWithAE extends FedauthCommon {
 
     static String cmkName1 = Constants.CMK_NAME + "fedauthAE1";
     static String cmkName2 = Constants.CMK_NAME + "fedauthAE2";
     static String cmkName3 = Constants.CMK_NAME + "fedauthAE3";
     static String cekName = Constants.CEK_NAME + "fedauthAE";
-    static String charTable = RandomUtil.getIdentifier("charTableFedAuthAE");
-    static String charTableOld = charTable + "_old";
-    static String charTableNew = charTable + "_new";
+    static String charTable = TestUtils
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthAE")));
+    static String charTableOld = TestUtils
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthAE_old")));
+    static String charTableNew = TestUtils
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthAE_new")));
 
     static SQLServerDataSource ds = null;
 
@@ -142,7 +146,7 @@ public class FedAuthWithAE extends FedauthCommon {
     }
 
     private void testChar(String[] values, Statement stmt, String charTable) throws SQLException {
-        try (ResultSet rs = stmt.executeQuery("select * from [" + charTable + "]")) {
+        try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
             int numberOfColumns = rs.getMetaData().getColumnCount();
             while (rs.next()) {
                 testGetString(rs, numberOfColumns, values);
@@ -170,7 +174,7 @@ public class FedAuthWithAE extends FedauthCommon {
 
     private void populateCharNormalCase(String[] charValues, Connection connection,
             String charTable) throws SQLException {
-        String sql = "insert into [" + charTable + "] values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+        String sql = "insert into " + charTable + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             // char
@@ -208,7 +212,7 @@ public class FedAuthWithAE extends FedauthCommon {
     }
 
     private void createCharTable(Statement stmt, String charTable) throws SQLException {
-        String sql = "create table [" + charTable + "] (" + "PlainChar char(20) NULL,"
+        String sql = "create table " + charTable + " (" + "PlainChar char(20) NULL,"
                 + "RandomizedChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
                 + cekName + ") NULL,"
                 + "DeterministicChar char(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
