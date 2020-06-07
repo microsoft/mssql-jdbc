@@ -54,7 +54,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(e.getMessage());
             }
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         }
     }
 
@@ -73,7 +74,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(e.getMessage());
             }
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         }
     }
 
@@ -88,7 +90,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         }
     }
 
@@ -105,7 +108,7 @@ public class ErrorMessageTest extends FedauthCommon {
             }
 
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                     e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
         }
     }
@@ -127,7 +130,7 @@ public class ErrorMessageTest extends FedauthCommon {
             }
 
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                     e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
         }
     }
@@ -144,7 +147,7 @@ public class ErrorMessageTest extends FedauthCommon {
             }
 
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                     e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
         }
     }
@@ -162,7 +165,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                     e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
         }
     }
@@ -185,7 +188,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                     e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
         }
     }
@@ -202,7 +205,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                     e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
         }
     }
@@ -219,7 +222,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_SQL_AUTH_FAILED_SSL));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_SQL_AUTH_FAILED_SSL));
         }
     }
 
@@ -232,11 +236,12 @@ public class ErrorMessageTest extends FedauthCommon {
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage()
-                    .contains("Failed to authenticate the user " + userName
-                            + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                    && e.getCause().getCause().getMessage()
-                            .contains("To sign into this application, the account must be added to"));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage()
+                            .contains("Failed to authenticate the user " + userName
+                                    + " in Active Directory (Authentication=ActiveDirectoryPassword).")
+                            && e.getCause().getCause().getMessage()
+                                    .contains("To sign into this application, the account must be added to"));
         }
     }
 
@@ -254,11 +259,12 @@ public class ErrorMessageTest extends FedauthCommon {
             try (Connection connection = ds.getConnection()) {}
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage()
-                    .contains("Failed to authenticate the user " + userName
-                            + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                    && e.getCause().getCause().getMessage()
-                            .contains("To sign into this application, the account must be added to"));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage()
+                            .contains("Failed to authenticate the user " + userName
+                                    + " in Active Directory (Authentication=ActiveDirectoryPassword).")
+                            && e.getCause().getCause().getMessage()
+                                    .contains("To sign into this application, the account must be added to"));
         }
     }
 
@@ -271,11 +277,12 @@ public class ErrorMessageTest extends FedauthCommon {
 
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage()
-                    .contains("Failed to authenticate the user " + userName
-                            + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                    && e.getCause().getCause().getMessage()
-                            .contains("To sign into this application, the account must be added to"));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage()
+                            .contains("Failed to authenticate the user " + userName
+                                    + " in Active Directory (Authentication=ActiveDirectoryPassword).")
+                            && e.getCause().getCause().getMessage()
+                                    .contains("To sign into this application, the account must be added to"));
         }
     }
 
@@ -290,7 +297,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         }
     }
 
@@ -309,7 +317,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         }
     }
 
@@ -337,7 +346,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 }
 
                 String wrongUserName = azureUserName.split("@")[1];
-                assertTrue(e.getMessage()
+                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
                         .startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
                 retry = false;
             }
@@ -366,7 +375,7 @@ public class ErrorMessageTest extends FedauthCommon {
             }
 
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                     e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
         }
     }
@@ -387,7 +396,7 @@ public class ErrorMessageTest extends FedauthCommon {
             }
 
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                     e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
         }
     }
@@ -405,7 +414,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().contains(TestResource.getResource("R_loginFailed")));
         }
     }
 
@@ -422,7 +432,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
 
-            assertTrue(e.getMessage()
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
                     .contains("Failed to authenticate the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
                     && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
@@ -449,7 +459,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
 
-            assertTrue(e.getMessage()
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
                     .contains("Failed to authenticate the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
                     && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
@@ -470,7 +480,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
 
-            assertTrue(e.getMessage()
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
                     .contains("Failed to authenticate the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
                     && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
@@ -497,7 +507,7 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage()
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
                     .startsWith("Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."));
         }
     }
@@ -514,7 +524,7 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage()
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
                     .startsWith("Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."));
         }
     }
@@ -531,7 +541,7 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage()
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
                     .startsWith("Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."));
         }
     }
@@ -552,8 +562,9 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(
-                    "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(
+                            "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."));
         }
     }
 
@@ -568,8 +579,9 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(
-                    "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(
+                            "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."));
         }
     }
 
@@ -584,8 +596,9 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(
-                    "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(
+                            "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."));
         }
     }
 
@@ -605,7 +618,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_CANNOT_SET_ACCESS_TOKEN));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_CANNOT_SET_ACCESS_TOKEN));
         }
     }
 
@@ -625,7 +639,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_CANNOT_SET_ACCESS_TOKEN));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_CANNOT_SET_ACCESS_TOKEN));
         }
     }
 
@@ -647,7 +662,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_CANNOT_SET_ACCESS_TOKEN));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_CANNOT_SET_ACCESS_TOKEN));
         }
     }
 
@@ -664,7 +680,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_CANNOT_SET_ACCESS_TOKEN));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_CANNOT_SET_ACCESS_TOKEN));
         }
     }
 
@@ -682,7 +699,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_CANNOT_SET_ACCESS_TOKEN));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_CANNOT_SET_ACCESS_TOKEN));
         }
     }
 
@@ -703,7 +721,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().contains(ERR_MSG_ACCESS_TOKEN_EMPTY));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().contains(ERR_MSG_ACCESS_TOKEN_EMPTY));
         }
     }
 
@@ -723,7 +742,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
         }
     }
 
@@ -744,7 +764,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
         }
     }
 
@@ -759,7 +780,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
         }
     }
 
@@ -774,7 +796,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
         }
     }
 
@@ -794,7 +817,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
         }
     }
 
@@ -814,7 +838,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
         }
     }
 
@@ -829,7 +854,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
         }
     }
 
@@ -845,7 +871,8 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
         }
     }
 
@@ -866,7 +893,7 @@ public class ErrorMessageTest extends FedauthCommon {
             if (!(e instanceof SQLServerException)) {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
-            assertTrue(
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                     e.getMessage().startsWith("The authentication value") && e.getMessage().endsWith("is not valid."));
         }
     }

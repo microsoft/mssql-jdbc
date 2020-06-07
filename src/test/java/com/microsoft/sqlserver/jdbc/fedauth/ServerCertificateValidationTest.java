@@ -4,7 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.fedauth;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
@@ -122,13 +122,12 @@ public class ServerCertificateValidationTest extends FedauthCommon {
             if (authentication.toLowerCase().contains("activedirectorypassword")) {
                 fail(e.getMessage());
             } else if (authentication.toLowerCase().contains("activedirectoryintegrated")) {
-                assertTrue(
+                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                         e.getMessage().contains("Login failed for")
-                                || e.getMessage().contains("Failed to authenticate"),
-                        "Invalid exception message: \n" + e.getMessage());
+                                || e.getMessage().contains("Failed to authenticate"));
             } else {
-                assertTrue(e.getMessage().contains("Cannot open server"),
-                        "Invalid exception message: \n" + e.getMessage());
+                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                        e.getMessage().contains("Cannot open server"));
             }
         }
     }
@@ -151,13 +150,12 @@ public class ServerCertificateValidationTest extends FedauthCommon {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
             if (authentication.toLowerCase().contains("activedirectory")) {
-                assertTrue(
+                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                         e.getMessage().contains("Login failed for")
-                                || e.getMessage().contains("Failed to authenticate"),
-                        "Invalid exception message: \n" + e.getMessage());
+                                || e.getMessage().contains("Failed to authenticate"));
             } else {
-                assertTrue(e.getMessage().contains("Cannot open server"),
-                        "Invalid exception message: \n" + e.getMessage());
+                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                        e.getMessage().contains("Cannot open server"));
             }
         }
     }

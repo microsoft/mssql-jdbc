@@ -79,8 +79,9 @@ public class ConnectionEncryptionTest extends FedauthCommon {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             }
 
-            assertTrue(e.getMessage().startsWith(
-                    "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption."));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                    e.getMessage().startsWith(
+                            "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption."));
         }
     }
 

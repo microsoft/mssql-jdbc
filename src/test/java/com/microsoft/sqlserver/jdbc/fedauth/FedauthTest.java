@@ -275,10 +275,12 @@ public class FedauthTest extends FedauthCommon {
             if (authentication.toLowerCase().contains("activedirectorypassword")) {
                 fail(e.getMessage());
             } else if (authentication.toLowerCase().contains("activedirectoryintegrated")) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed"))
-                        || e.getMessage().contains("Failed to authenticate"));
+                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                        e.getMessage().contains(TestResource.getResource("R_loginFailed"))
+                                || e.getMessage().contains("Failed to authenticate"));
             } else {
-                assertTrue(e.getMessage().contains("Cannot open server"));
+                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                        e.getMessage().contains("Cannot open server"));
             }
         }
     }
@@ -301,10 +303,12 @@ public class FedauthTest extends FedauthCommon {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
             if (authentication.toLowerCase().contains("activedirectory")) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed"))
-                        || e.getMessage().contains("Failed to authenticate"));
+                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                        e.getMessage().contains(TestResource.getResource("R_loginFailed"))
+                                || e.getMessage().contains("Failed to authenticate"));
             } else {
-                assertTrue(e.getMessage().contains("Cannot open server"));
+                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                        e.getMessage().contains("Cannot open server"));
             }
         }
     }
