@@ -24,6 +24,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
@@ -31,7 +32,8 @@ import com.microsoft.sqlserver.testframework.Constants;
 @Tag(Constants.Fedauth)
 public class ConnectionEncryptionTest extends FedauthCommon {
 
-    static String charTable = RandomUtil.getIdentifier("charTableFedAuth");
+    static String charTable = TestUtils.escapeSingleQuotes(
+            AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_ConnectionEncryption")));
 
     @BeforeAll
     public static void setupTests() throws Throwable {
