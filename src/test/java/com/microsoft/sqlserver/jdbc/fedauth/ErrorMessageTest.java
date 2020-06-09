@@ -109,7 +109,8 @@ public class ErrorMessageTest extends FedauthCommon {
 
             String wrongUserName = azureUserName.split("@")[1];
             assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                    e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
+                    e.getMessage().startsWith(TestResource.getResource("R_cannotOpenServer") + " \"" + wrongUserName
+                            + "\" requested by the login."));
         }
     }
 
@@ -131,7 +132,8 @@ public class ErrorMessageTest extends FedauthCommon {
 
             String wrongUserName = azureUserName.split("@")[1];
             assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                    e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
+                    e.getMessage().startsWith(TestResource.getResource("R_cannotOpenServer") + " \"" + wrongUserName
+                            + "\" requested by the login."));
         }
     }
 
@@ -148,13 +150,13 @@ public class ErrorMessageTest extends FedauthCommon {
 
             String wrongUserName = azureUserName.split("@")[1];
             assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                    e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
+                    e.getMessage().startsWith(TestResource.getResource("R_cannotOpenServer") + " \"" + wrongUserName
+                            + "\" requested by the login."));
         }
     }
 
     @Test
     public void testSQLPasswordWithAzureDBWithConnectionStringUserName() throws SQLException {
-        // testSQLPasswordWithAzureDB with connectionStringUserName
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
                 + azureUserName + ";password=" + azurePassword + ";"
                 + "Authentication=SqlPassword;HostNameInCertificate=" + hostNameInCertificate;
@@ -166,7 +168,8 @@ public class ErrorMessageTest extends FedauthCommon {
             }
             String wrongUserName = azureUserName.split("@")[1];
             assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                    e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
+                    e.getMessage().startsWith(TestResource.getResource("R_cannotOpenServer") + " \"" + wrongUserName
+                            + "\" requested by the login."));
         }
     }
 
@@ -189,7 +192,8 @@ public class ErrorMessageTest extends FedauthCommon {
             }
             String wrongUserName = azureUserName.split("@")[1];
             assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                    e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
+                    e.getMessage().startsWith(TestResource.getResource("R_cannotOpenServer") + " \"" + wrongUserName
+                            + "\" requested by the login."));
         }
     }
 
@@ -206,7 +210,8 @@ public class ErrorMessageTest extends FedauthCommon {
             }
             String wrongUserName = azureUserName.split("@")[1];
             assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                    e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
+                    e.getMessage().startsWith(TestResource.getResource("R_cannotOpenServer") + " \"" + wrongUserName
+                            + "\" requested by the login."));
         }
     }
 
@@ -236,12 +241,10 @@ public class ErrorMessageTest extends FedauthCommon {
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                    e.getMessage()
-                            .contains("Failed to authenticate the user " + userName
-                                    + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                            && e.getCause().getCause().getMessage()
-                                    .contains("To sign into this application, the account must be added to"));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
+                    .contains(TestResource.getResource("R_failedToAuthenticate") + " the user " + userName
+                            + " in Active Directory (Authentication=ActiveDirectoryPassword).")
+                    && e.getCause().getCause().getMessage().contains(TestResource.getResource("R_toSigninAdd")));
         }
     }
 
@@ -259,12 +262,10 @@ public class ErrorMessageTest extends FedauthCommon {
             try (Connection connection = ds.getConnection()) {}
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                    e.getMessage()
-                            .contains("Failed to authenticate the user " + userName
-                                    + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                            && e.getCause().getCause().getMessage()
-                                    .contains("To sign into this application, the account must be added to"));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
+                    .contains(TestResource.getResource("R_failedToAuthenticate") + " the user " + userName
+                            + " in Active Directory (Authentication=ActiveDirectoryPassword).")
+                    && e.getCause().getCause().getMessage().contains(TestResource.getResource("R_toSigninAdd")));
         }
     }
 
@@ -277,12 +278,10 @@ public class ErrorMessageTest extends FedauthCommon {
 
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                    e.getMessage()
-                            .contains("Failed to authenticate the user " + userName
-                                    + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                            && e.getCause().getCause().getMessage()
-                                    .contains("To sign into this application, the account must be added to"));
+            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
+                    .contains(TestResource.getResource("R_failedToAuthenticate") + " the user " + userName
+                            + " in Active Directory (Authentication=ActiveDirectoryPassword).")
+                    && e.getCause().getCause().getMessage().contains(TestResource.getResource("R_toSigninAdd")));
         }
     }
 
@@ -346,8 +345,9 @@ public class ErrorMessageTest extends FedauthCommon {
                 }
 
                 String wrongUserName = azureUserName.split("@")[1];
-                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
-                        .startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
+                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
+                        e.getMessage().startsWith(TestResource.getResource("R_cannotOpenServer") + " \"" + wrongUserName
+                                + "\" requested by the login."));
                 retry = false;
             }
         }
@@ -376,7 +376,8 @@ public class ErrorMessageTest extends FedauthCommon {
 
             String wrongUserName = azureUserName.split("@")[1];
             assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                    e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
+                    e.getMessage().startsWith(TestResource.getResource("R_cannotOpenServer") + " \"" + wrongUserName
+                            + "\" requested by the login."));
         }
     }
 
@@ -397,7 +398,8 @@ public class ErrorMessageTest extends FedauthCommon {
 
             String wrongUserName = azureUserName.split("@")[1];
             assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                    e.getMessage().startsWith("Cannot open server \"" + wrongUserName + "\" requested by the login."));
+                    e.getMessage().startsWith(TestResource.getResource("R_cannotOpenServer") + " \"" + wrongUserName
+                            + "\" requested by the login."));
         }
     }
 
@@ -433,11 +435,11 @@ public class ErrorMessageTest extends FedauthCommon {
             }
 
             assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
-                    .contains("Failed to authenticate the user " + azureUserName
+                    .contains(TestResource.getResource("R_failedToAuthenticate") + " the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
                     && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
-                            || e.getCause().getCause().getMessage().contains(
-                                    "You've tried to sign in too many times with an incorrect user ID or password.")));
+                            || e.getCause().getCause().getMessage()
+                                    .contains(TestResource.getResource("R_signinTooManyTimes"))));
         }
     }
 
@@ -460,11 +462,11 @@ public class ErrorMessageTest extends FedauthCommon {
             }
 
             assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
-                    .contains("Failed to authenticate the user " + azureUserName
+                    .contains(TestResource.getResource("R_failedToAuthenticate") + " the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
                     && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
-                            || e.getCause().getCause().getMessage().contains(
-                                    "You've tried to sign in too many times with an incorrect user ID or password.")));
+                            || e.getCause().getCause().getMessage()
+                                    .contains(TestResource.getResource("R_signinTooManyTimes"))));
         }
     }
 
@@ -481,11 +483,11 @@ public class ErrorMessageTest extends FedauthCommon {
             }
 
             assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(), e.getMessage()
-                    .contains("Failed to authenticate the user " + azureUserName
+                    .contains(TestResource.getResource("R_failedToAuthenticate") + " the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
                     && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
-                            || e.getCause().getCause().getMessage().contains(
-                                    "You've tried to sign in too many times with an incorrect user ID or password.")));
+                            || e.getCause().getCause().getMessage()
+                                    .contains(TestResource.getResource("R_signinTooManyTimes"))));
         }
     }
 

@@ -60,8 +60,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_failedValidate", "failed to validate values in $0} "}, {"R_tableNotDropped", "table not dropped. "},
             {"R_connectionReset", "Connection reset"}, {"R_unknownException", "Unknown exception"},
             {"R_deadConnection", "Dead connection should be invalid"},
-            {"R_wrongExceptionMessage", "Wrong exception message"},
-            {"R_wrongSqlState", "Wrong sql state"},
+            {"R_wrongExceptionMessage", "Wrong exception message"}, {"R_wrongSqlState", "Wrong sql state"},
             {"R_parameterNotDefined", "Parameter {0} was not defined"},
             {"R_unexpectedExceptionContent", "Unexpected content in exception message"},
             {"R_connectionClosed", "The connection has been closed"},
@@ -187,5 +186,9 @@ public final class TestResource extends ListResourceBundle {
             {"R_invalidEnclaveSessionFailed", "invalidate enclave session failed."},
             {"R_invalidEnclaveType", "Invalid enclave type {0}."},
             {"R_keystorePassword", "keystore password was incorrect"},
-            {"R_enclaveNotEnabled", "The statement triggers enclave computations"}};
+            {"R_enclaveNotEnabled", "The statement triggers enclave computations"}, {"R_hasClosed", "has closed"},
+            {"R_hasBeenClosed", "has been closed"}, {"R_cannotOpenServer", "Cannot open server"},
+            {"R_failedToAuthenticate", "Failed to authenticate"},
+            {"R_signinTooManyTimes", "You've tried to sign in too many times with an incorrect user ID or password."},
+            {"R_toSigninAdd", "To sign into this application, the account must be added to"}};
 }

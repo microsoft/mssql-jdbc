@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -111,7 +112,7 @@ public class ConcurrentLoginTest extends FedauthCommon {
 
         // sleep in order to catch exception from other threads if tests fail.
         try {
-            Thread.sleep(60 * 1000);
+            Thread.sleep(TimeUnit.SECONDS.toMillis(60));
         } catch (InterruptedException e) {
             fail(e.getMessage());
         }

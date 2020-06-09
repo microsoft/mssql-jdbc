@@ -277,10 +277,10 @@ public class FedauthTest extends FedauthCommon {
             } else if (authentication.toLowerCase().contains("activedirectoryintegrated")) {
                 assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                         e.getMessage().contains(TestResource.getResource("R_loginFailed"))
-                                || e.getMessage().contains("Failed to authenticate"));
+                                || e.getMessage().contains(TestResource.getResource("R_failedToAuthenticate")));
             } else {
                 assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                        e.getMessage().contains("Cannot open server"));
+                        e.getMessage().contains(TestResource.getResource("R_cannotOpenServer")));
             }
         }
     }
@@ -305,10 +305,10 @@ public class FedauthTest extends FedauthCommon {
             if (authentication.toLowerCase().contains("activedirectory")) {
                 assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
                         e.getMessage().contains(TestResource.getResource("R_loginFailed"))
-                                || e.getMessage().contains("Failed to authenticate"));
+                                || e.getMessage().contains(TestResource.getResource("R_failedToAuthenticate")));
             } else {
                 assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                        e.getMessage().contains("Cannot open server"));
+                        e.getMessage().contains(TestResource.getResource("R_cannotOpenServer")));
             }
         }
     }

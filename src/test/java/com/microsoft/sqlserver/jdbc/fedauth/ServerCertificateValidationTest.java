@@ -123,11 +123,11 @@ public class ServerCertificateValidationTest extends FedauthCommon {
                 fail(e.getMessage());
             } else if (authentication.toLowerCase().contains("activedirectoryintegrated")) {
                 assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                        e.getMessage().contains("Login failed for")
-                                || e.getMessage().contains("Failed to authenticate"));
+                        e.getMessage().contains(TestResource.getResource("R_loginFailed"))
+                                || e.getMessage().contains(TestResource.getResource("R_failedToAuthenticate")));
             } else {
                 assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                        e.getMessage().contains("Cannot open server"));
+                        e.getMessage().contains(TestResource.getResource("R_cannotOpenServer")));
             }
         }
     }
@@ -151,11 +151,12 @@ public class ServerCertificateValidationTest extends FedauthCommon {
         } catch (Exception e) {
             if (authentication.toLowerCase().contains("activedirectory")) {
                 assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                        e.getMessage().contains("Login failed for")
-                                || e.getMessage().contains("Failed to authenticate"));
+                        e.getMessage().contains(TestResource.getResource("R_loginFailed"))
+                                || e.getMessage().contains(TestResource.getResource("R_failedToAuthenticate")));
             } else {
                 assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                        e.getMessage().contains("Cannot open server"));
+                        e.getMessage().contains(TestResource.getResource("R_loginFailed"))
+                                || e.getMessage().contains(TestResource.getResource("R_cannotOpenServer")));
             }
         }
     }
