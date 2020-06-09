@@ -76,6 +76,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         SP_STORED_PROCEDURES("{call sp_stored_procedures(?, ?, ?) }", "{call sp_stored_procedures(?, ?, ?) }"),
         SP_TABLE_PRIVILEGES("{call sp_table_privileges(?,?,?) }", "{call sp_table_privileges(?,?,?) }"),
         SP_PKEYS("{ call sp_pkeys (?, ?, ?)}", "{ call sp_pkeys (?, ?, ?)}");
+
         // stored procs before Katmai ie SS10
         private final String preKatProc;
         // procs on or after katmai
@@ -755,8 +756,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     userRs.getColumn(7).setFilter(new ZeroFixupFilter());
                     userRs.getColumn(8).setFilter(new ZeroFixupFilter());
                     userRs.getColumn(16).setFilter(new ZeroFixupFilter());
-                    userRs.getColumn(23).setFilter(new IntColumnIdentityFilter());
-                    userRs.getColumn(24).setFilter(new IntColumnIdentityFilter());
                 } catch (SQLException e) {
                     if (null != resultPstmt) {
                         try {
@@ -785,7 +784,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 if (null == o) {
                     sb.append("NULL");
                 } else if (o instanceof Number) {
-                    sb.append(o.toString());
+                    if ("IS_AUTOINCREMENT".equalsIgnoreCase(p.getValue())
+                            || "IS_GENERATEDCOLUMN".equalsIgnoreCase(p.getValue())) {
+                        sb.append("'").append(Util.escapeSingleQuotes(Util.zeroOneToYesNo(((Number) o).intValue())))
+                                .append("'");
+                    } else {
+                        sb.append(o.toString());
+                    }
                 } else {
                     sb.append("'").append(Util.escapeSingleQuotes(o.toString())).append("'");
                 }
@@ -2630,10 +2635,6 @@ abstract class IntColumnFilter extends ColumnFilter {
  * proc returns and what the JDBC spec expects.
  */
 class IntColumnIdentityFilter extends ColumnFilter {
-    private static String zeroOneToYesNo(int i) {
-        return 0 == i ? "NO" : "YES";
-    }
-
     final Object apply(Object value, JDBCType asJDBCType) throws SQLServerException {
         if (null == value)
             return value;
@@ -2658,12 +2659,12 @@ class IntColumnIdentityFilter extends ColumnFilter {
                 // anyways. Only thing is that
                 // the user will get a cast exception in this case.
                 assert (value instanceof Number);
-                return zeroOneToYesNo(((Number) value).intValue());
+                return Util.zeroOneToYesNo(((Number) value).intValue());
             case CHAR:
             case VARCHAR:
             case LONGVARCHAR:
                 assert (value instanceof String);
-                return zeroOneToYesNo(Integer.parseInt((String) value));
+                return Util.zeroOneToYesNo(Integer.parseInt((String) value));
             default:
                 DataTypes.throwConversionError("char", asJDBCType.toString());
                 return value;
