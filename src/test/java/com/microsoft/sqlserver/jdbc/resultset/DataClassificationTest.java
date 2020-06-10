@@ -151,6 +151,7 @@ public class DataClassificationTest extends AbstractTest {
      * Verifies ResultSet received to contain data classification information as set.
      * 
      * @param rs
+     * @param rank
      * @throws SQLException
      */
     private void verifySensitivityClassification(SQLServerResultSet rs, int rank) throws SQLException {

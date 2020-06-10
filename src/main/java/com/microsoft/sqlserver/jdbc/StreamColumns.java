@@ -276,7 +276,7 @@ final class StreamColumns extends StreamPacket {
 
         int sensitivityRank = SensitivityRank.NOT_DEFINED.getValue();
         if (TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION <= tdsReader.getServerSupportedDataClassificationVersion()) {
-            sensitivityRank = tdsReader.getServerSupportedDataClassificationVersion();
+            sensitivityRank = tdsReader.readInt();
             if (!SensitivityRank.isValid(sensitivityRank)) {
                 tdsReader.throwInvalidTDS();
             }
