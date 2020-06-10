@@ -275,12 +275,11 @@ public class FedauthTest extends FedauthCommon {
             if (authentication.toLowerCase().contains("activedirectorypassword")) {
                 fail(e.getMessage());
             } else if (authentication.toLowerCase().contains("activedirectoryintegrated")) {
-                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                        e.getMessage().contains(TestResource.getResource("R_loginFailed"))
-                                || e.getMessage().contains(TestResource.getResource("R_failedToAuthenticate")));
+                assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED)
+                        || e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE));
             } else {
-                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                        e.getMessage().contains(TestResource.getResource("R_cannotOpenServer")));
+                assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                        e.getMessage().contains(ERR_MSG_CANNOT_OPEN_SERVER));
             }
         }
     }
@@ -303,12 +302,11 @@ public class FedauthTest extends FedauthCommon {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
             if (authentication.toLowerCase().contains("activedirectory")) {
-                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                        e.getMessage().contains(TestResource.getResource("R_loginFailed"))
-                                || e.getMessage().contains(TestResource.getResource("R_failedToAuthenticate")));
+                assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED)
+                        || e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE));
             } else {
-                assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                        e.getMessage().contains(TestResource.getResource("R_cannotOpenServer")));
+                assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                        e.getMessage().contains(ERR_MSG_CANNOT_OPEN_SERVER));
             }
         }
     }
@@ -326,8 +324,7 @@ public class FedauthTest extends FedauthCommon {
     private void testUserName(Connection conn, String user) throws SQLException {
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
             rs.next();
-            String retrievedUserName = rs.getString(1);
-            assertTrue(retrievedUserName.equals(user));
+            assertTrue(user.equals(rs.getString(1)));
         }
     }
 

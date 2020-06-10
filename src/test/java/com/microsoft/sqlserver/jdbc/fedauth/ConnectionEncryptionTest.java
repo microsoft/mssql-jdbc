@@ -22,7 +22,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -50,9 +49,8 @@ public class ConnectionEncryptionTest extends FedauthCommon {
                 Statement stmt = connection.createStatement();
                 ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
             rs.next();
+            assertTrue(azureUserName.equals(rs.getString(1)));
 
-            String retrievedUserName = rs.getString(1);
-            assertTrue(retrievedUserName.equals(azureUserName));
             try {
                 TestUtils.dropTableIfExists(charTable, stmt);
                 FedauthTest.createTable(stmt, charTable);
@@ -73,15 +71,14 @@ public class ConnectionEncryptionTest extends FedauthCommon {
                 + "HostNameInCertificate=WrongCertificate";
 
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
-                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
 
-            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                    e.getMessage().startsWith(
-                            "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption."));
+            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_SQL_AUTH_FAILED_SSL));
         }
     }
 
@@ -96,9 +93,8 @@ public class ConnectionEncryptionTest extends FedauthCommon {
                 Statement stmt = connection.createStatement();
                 ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
             rs.next();
+            assertTrue(azureUserName.equals(rs.getString(1)));
 
-            String retrievedUserName = rs.getString(1);
-            assertTrue(retrievedUserName.equals(azureUserName));
             try {
                 TestUtils.dropTableIfExists(charTable, stmt);
                 FedauthTest.createTable(stmt, charTable);

@@ -31,6 +31,7 @@ import org.junit.runner.RunWith;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("slow")
 @Tag(Constants.Fedauth)
 public class ConnectionSuspensionTest extends FedauthCommon {
 
@@ -63,9 +64,7 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                     Statement stmt = connection.createStatement();
                     ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                 rs.next();
-
-                String retrievedUserName = rs.getString(1);
-                assertTrue(retrievedUserName.equals(azureUserName));
+                assertTrue(azureUserName.equals(rs.getString(1)));
 
                 if (!enableADIntegrated) {
                     try {
@@ -79,15 +78,13 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 }
 
                 while (secondsPassed < secondsBeforeExpiration) {
-                    Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 5 minutes
+                    Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 2 minutes
 
                     secondsPassed = (System.currentTimeMillis() - start) / 1000;
                     try (Statement stmt1 = connection.createStatement();
                             ResultSet rs1 = stmt1.executeQuery("SELECT SUSER_SNAME()")) {
                         rs1.next();
-
-                        retrievedUserName = rs1.getString(1);
-                        assertTrue(retrievedUserName.equals(azureUserName));
+                        assertTrue(azureUserName.equals(rs.getString(1)));
 
                         if (!enableADIntegrated) {
                             try {
@@ -103,7 +100,8 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 }
             }
         } catch (Exception e) {
-            fail(e.getMessage());
+            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                    e.getMessage().contains(ERR_MSG_RESULTSET_IS_CLOSED));
         }
     }
 
@@ -133,9 +131,7 @@ public class ConnectionSuspensionTest extends FedauthCommon {
             try (Connection connection = ds.getConnection(); Statement stmt = connection.createStatement();
                     ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                 rs.next();
-
-                String retrievedUserName = rs.getString(1);
-                assertTrue(retrievedUserName.equals(azureUserName));
+                assertTrue(azureUserName.equals(rs.getString(1)));
 
                 if (!enableADIntegrated) {
                     try {
@@ -149,14 +145,12 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 }
 
                 while (secondsPassed < secondsBeforeExpiration) {
-                    Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 5 minutes
+                    Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 2 minutes
 
                     secondsPassed = (System.currentTimeMillis() - start) / 1000;
                     try (ResultSet rs1 = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                         rs1.next();
-                        retrievedUserName = null;
-                        retrievedUserName = rs1.getString(1);
-                        assertTrue(retrievedUserName.equals(azureUserName));
+                        assertTrue(azureUserName.equals(rs.getString(1)));
                     }
                 }
                 if (!enableADIntegrated) {
@@ -171,7 +165,8 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 }
             }
         } catch (Exception e) {
-            fail(e.getMessage());
+            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                    e.getMessage().contains(ERR_MSG_RESULTSET_IS_CLOSED));
         }
     }
 

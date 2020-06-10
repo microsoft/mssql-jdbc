@@ -190,5 +190,12 @@ public final class TestResource extends ListResourceBundle {
             {"R_hasBeenClosed", "has been closed"}, {"R_cannotOpenServer", "Cannot open server"},
             {"R_failedToAuthenticate", "Failed to authenticate"},
             {"R_signinTooManyTimes", "You've tried to sign in too many times with an incorrect user ID or password."},
-            {"R_toSigninAdd", "To sign into this application, the account must be added to"}};
+            {"R_toSigninAdd", "To sign into this application, the account must be added to"},
+            {"R_sslConnectionError",
+                    "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption."},
+            {"R_notAuthandIS", "Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."},
+            {"R_notAuthandUserPassword",
+                    "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."},
+            {"R_resultset_IsClosed", "The result set is closed."}
+    };
 }

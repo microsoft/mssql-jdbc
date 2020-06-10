@@ -48,8 +48,7 @@ public class ConcurrentLoginTest extends FedauthCommon {
                         try (Connection connection = ds.getConnection(); Statement st = connection.createStatement();
                                 ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                             if (rs.next()) {
-                                String retrievedUserName = rs.getString(1);
-                                assertTrue(retrievedUserName.equals(azureUserName));
+                                assertTrue(azureUserName.equals(rs.getString(1)));
                             }
                         }
                     } catch (SQLException e) {
@@ -73,8 +72,7 @@ public class ConcurrentLoginTest extends FedauthCommon {
                         try (Connection connection = ds.getConnection(); Statement st = connection.createStatement();
                                 ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                             if (rs.next()) {
-                                String retrievedUserName = rs.getString(1);
-                                assertTrue(retrievedUserName.equals(azureUserName));
+                                assertTrue(azureUserName.equals(rs.getString(1)));
                             }
                         }
                     } catch (SQLException e) {
@@ -98,8 +96,7 @@ public class ConcurrentLoginTest extends FedauthCommon {
                                     Statement st = connection.createStatement();
                                     ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                                 if (rs.next()) {
-                                    String retrievedUserName = rs.getString(1);
-                                    assertTrue(retrievedUserName.equals(azureUserName));
+                                    assertTrue(azureUserName.equals(rs.getString(1)));
                                 }
                             }
                         } catch (SQLException e) {

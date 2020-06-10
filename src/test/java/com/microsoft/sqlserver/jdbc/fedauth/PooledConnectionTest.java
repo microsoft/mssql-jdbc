@@ -15,10 +15,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.LogManager;
 
 import javax.sql.PooledConnection;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -26,18 +28,24 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
-import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag("slow")
 @Tag(Constants.Fedauth)
 public class PooledConnectionTest extends FedauthCommon {
 
     static String charTable = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_PooledConnection")));
+
+    @BeforeAll
+    public static void setUp() throws Exception {
+        // reset logging to avoid server logs
+        LogManager.getLogManager().reset();
+    }
 
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnect() throws SQLException {
@@ -74,9 +82,7 @@ public class PooledConnectionTest extends FedauthCommon {
                 try (Statement stmt = connection1.createStatement();
                         ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                     rs.next();
-
-                    String retrievedUserName = rs.getString(1);
-                    assertTrue(retrievedUserName.equals(azureUserName));
+                    assertTrue(azureUserName.equals(rs.getString(1)));
 
                     if (!enableADIntegrated) {
                         try {
@@ -98,9 +104,7 @@ public class PooledConnectionTest extends FedauthCommon {
                 try (Statement stmt = connection2.createStatement();
                         ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                     rs.next();
-
-                    String retrievedUserName = rs.getString(1);
-                    assertTrue(retrievedUserName.equals(azureUserName));
+                    assertTrue(azureUserName.equals(rs.getString(1)));
 
                     if (!enableADIntegrated) {
                         try {
@@ -151,9 +155,7 @@ public class PooledConnectionTest extends FedauthCommon {
                 try (Statement stmt = connection1.createStatement();
                         ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                     rs.next();
-
-                    String retrievedUserName = rs.getString(1);
-                    assertTrue(retrievedUserName.equals(azureUserName));
+                    assertTrue(azureUserName.equals(rs.getString(1)));
                 }
             }
             Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds));
@@ -170,16 +172,15 @@ public class PooledConnectionTest extends FedauthCommon {
                                     Statement st = connection2.createStatement();
                                     ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                                 if (rs.next()) {
-                                    String retrievedUserName = rs.getString(1);
-                                    assertTrue(retrievedUserName.equals(azureUserName));
+                                    assertTrue(azureUserName.equals(rs.getString(1)));
                                 }
                             }
                         } catch (SQLException e) {
-                            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                                    e.getMessage().contains(TestResource.getResource("R_connectionClosed"))
-                                            || e.getMessage().contains(TestResource.getResource("R_connectionIsClosed"))
-                                            || e.getMessage().contains(TestResource.getResource("R_hasClosed"))
-                                            || e.getMessage().contains(TestResource.getResource("R_hasBeenClosed")));
+                            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                                    e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
+                                            || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
+                                            || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
+                                            || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED));
                         }
                     }
                 }.start();
@@ -191,16 +192,15 @@ public class PooledConnectionTest extends FedauthCommon {
                                     Statement st = connection2.createStatement();
                                     ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                                 if (rs.next()) {
-                                    String retrievedUserName = rs.getString(1);
-                                    assertTrue(retrievedUserName.equals(azureUserName));
+                                    assertTrue(azureUserName.equals(rs.getString(1)));
                                 }
                             }
                         } catch (SQLException e) {
-                            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                                    e.getMessage().contains(TestResource.getResource("R_connectionClosed"))
-                                            || e.getMessage().contains(TestResource.getResource("R_connectionIsClosed"))
-                                            || e.getMessage().contains(TestResource.getResource("R_hasClosed"))
-                                            || e.getMessage().contains(TestResource.getResource("R_hasBeenClosed")));
+                            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                                    e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
+                                            || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
+                                            || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
+                                            || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED));
                         }
                     }
                 }.start();
@@ -212,16 +212,15 @@ public class PooledConnectionTest extends FedauthCommon {
                                     Statement st = connection2.createStatement();
                                     ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                                 if (rs.next()) {
-                                    String retrievedUserName = rs.getString(1);
-                                    assertTrue(retrievedUserName.equals(azureUserName));
+                                    assertTrue(azureUserName.equals(rs.getString(1)));
                                 }
                             }
                         } catch (SQLException e) {
-                            assertTrue(TestResource.getResource("R_invalidExceptionMessage") + ": " + e.getMessage(),
-                                    e.getMessage().contains(TestResource.getResource("R_connectionClosed"))
-                                            || e.getMessage().contains(TestResource.getResource("R_connectionIsClosed"))
-                                            || e.getMessage().contains(TestResource.getResource("R_hasClosed"))
-                                            || e.getMessage().contains(TestResource.getResource("R_hasBeenClosed")));
+                            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                                    e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
+                                            || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
+                                            || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
+                                            || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED));
                         }
                     }
                 }.start();
@@ -261,9 +260,7 @@ public class PooledConnectionTest extends FedauthCommon {
                 try (Statement stmt = connection1.createStatement();
                         ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                     rs.next();
-
-                    String retrievedUserName = rs.getString(1);
-                    assertTrue(retrievedUserName.equals(azureUserName));
+                    assertTrue(azureUserName.equals(rs.getString(1)));
                 }
             }
 
@@ -277,8 +274,7 @@ public class PooledConnectionTest extends FedauthCommon {
                                     Statement st = connection2.createStatement();
                                     ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                                 if (rs.next()) {
-                                    String retrievedUserName = rs.getString(1);
-                                    assertTrue(retrievedUserName.equals(azureUserName));
+                                    assertTrue(azureUserName.equals(rs.getString(1)));
                                 }
                             }
                         } catch (SQLException e) {
@@ -294,8 +290,7 @@ public class PooledConnectionTest extends FedauthCommon {
                                     Statement st = connection2.createStatement();
                                     ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                                 if (rs.next()) {
-                                    String retrievedUserName = rs.getString(1);
-                                    assertTrue(retrievedUserName.equals(azureUserName));
+                                    assertTrue(azureUserName.equals(rs.getString(1)));
                                 }
                             }
                         } catch (SQLException e) {
@@ -311,8 +306,7 @@ public class PooledConnectionTest extends FedauthCommon {
                                     Statement st = connection2.createStatement();
                                     ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                                 if (rs.next()) {
-                                    String retrievedUserName = rs.getString(1);
-                                    assertTrue(retrievedUserName.equals(azureUserName));
+                                    assertTrue(azureUserName.equals(rs.getString(1)));
                                 }
                             }
                         } catch (SQLException e) {
