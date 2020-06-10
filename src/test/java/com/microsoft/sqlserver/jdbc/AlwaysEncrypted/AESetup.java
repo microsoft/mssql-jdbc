@@ -155,7 +155,8 @@ public class AESetup extends AbstractTest {
             "PlainDecimal decimal(30)", "PlainNumeric numeric(30)"};
 
     // junit test parameters: serverName, enclaveAttestationUrl, enclaveAttestationProtocol
-    static String[][] param = new String[AbstractTest.enclaveServer.length][3];
+    static String[][] param = new String[(null == AbstractTest.enclaveServer ? 0
+                                                                             : AbstractTest.enclaveServer.length)][3];
 
     /**
      * This provides the arguments (serverName, enclaveAttestationUrl, enclaveAttestationProtocol) for the parameterized

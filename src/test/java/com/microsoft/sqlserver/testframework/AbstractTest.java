@@ -346,6 +346,8 @@ public abstract class AbstractTest {
                         case Constants.CLIENT_KEY_PASSWORD:
                             ds.setClientKeyPassword(value);
                             break;
+                        case Constants.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY:
+                            ds.setSendTemporalDataTypesAsStringForBulkCopy(Boolean.parseBoolean(value));
                         default:
                             break;
                     }

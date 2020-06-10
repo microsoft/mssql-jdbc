@@ -136,6 +136,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private String clientKey = null;
     private String clientKeyPassword = "";
 
+    private boolean sendTemporalDataTypesAsStringForBulkCopy = true;
+
     final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
@@ -653,6 +655,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (columnEncryptionSetting.equalsIgnoreCase(ColumnEncryptionSetting.Enabled.toString()));
     }
 
+    boolean getSendTemporalDataTypesAsStringForBulkCopy() {
+        return sendTemporalDataTypesAsStringForBulkCopy;
+    }
+
     String enclaveAttestationUrl = null;
     String enclaveAttestationProtocol = null;
 
@@ -682,6 +688,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     byte getServerSupportedDataClassificationVersion() {
         return serverSupportedDataClassificationVersion;
+    }
+	
+    // Boolean that indicates whether LOB objects created by this connection should be loaded into memory
+    private boolean delayLoadingLobs = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue();
+
+    boolean getDelayLoadingLobs() {
+        return delayLoadingLobs;
     }
 
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
@@ -2125,6 +2138,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 clientKeyPassword = sPropValue;
             }
+
+            sPropKey = SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                sendTemporalDataTypesAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
+            }
+
+            sPropKey = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+            delayLoadingLobs = isBooleanPropertyOn(sPropKey, sPropValue);
 
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();

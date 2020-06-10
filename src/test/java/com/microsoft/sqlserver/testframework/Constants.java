@@ -155,6 +155,7 @@ public final class Constants {
     public static final String CLIENT_CERTIFICATE = "CLIENTCERTIFICATE";
     public static final String CLIENT_KEY = "CLIENTKEY";
     public static final String CLIENT_KEY_PASSWORD = "CLIENTKEYPASSWORD";
+    public static final String SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY = "SENDTEMPORALDATATYPESASSTRINGFORBULKCOPY";
     public static final String CONFIG_PROPERTIES_FILE = "config.properties";
 
     public enum LOB {

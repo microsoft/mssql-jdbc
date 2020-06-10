@@ -885,6 +885,10 @@ final class Util {
                     return ((null == scale) ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : scale);
                 } else if (JDBCType.BINARY == jdbcType || JDBCType.VARBINARY == jdbcType) {
                     return ((null == value) ? 0 : (ParameterUtils.HexToBin((String) value).length));
+                } else if (JDBCType.GEOMETRY == jdbcType) {
+                    return ((null == value) ? 0 : ((Geometry) value).serialize().length);
+                } else if (JDBCType.GEOGRAPHY == jdbcType) {
+                    return ((null == value) ? 0 : ((Geography) value).serialize().length);
                 } else {
                     return ((null == value) ? 0 : ((String) value).length());
                 }
