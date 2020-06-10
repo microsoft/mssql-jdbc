@@ -18,22 +18,22 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @Tag(Constants.Fedauth)
 public class FedauthCommon extends AbstractTest {
 
-    public static String azureServer = null;
-    public static String azureDatabase = null;
-    public static String azureUserName = null;
-    public static String azurePassword = null;
-    public static String azureGroupUserName = null;
+    static String azureServer = null;
+    static String azureDatabase = null;
+    static String azureUserName = null;
+    static String azurePassword = null;
+    static String azureGroupUserName = null;
 
-    public static boolean enableADIntegrated = false;
-    public static String spn = null;
-    public static String stsurl = null;
-    public static String fedauthClientId = null;
-    public static long secondsBeforeExpiration = -1;
-    public static String accessToken = null;
-    public static String hostNameInCertificate = null;
-    public static String[] fedauthJksPaths = null;
-    public static String[] fedauthJksPathsLinux = null;
-    public static String[] fedauthJavaKeyAliases = null;
+    static boolean enableADIntegrated = false;
+    static String spn = null;
+    static String stsurl = null;
+    static String fedauthClientId = null;
+    static long secondsBeforeExpiration = -1;
+    static String accessToken = null;
+    static String hostNameInCertificate = null;
+    static String[] fedauthJksPaths = null;
+    static String[] fedauthJksPathsLinux = null;
+    static String[] fedauthJavaKeyAliases = null;
 
     static final String INVALID_EXCEPION_MSG = TestResource.getResource("R_invalidExceptionMessage");
     static final String EXPECTED_EXCEPTION_NOT_THROWN = TestResource.getResource("R_expectedExceptionNotThrown");

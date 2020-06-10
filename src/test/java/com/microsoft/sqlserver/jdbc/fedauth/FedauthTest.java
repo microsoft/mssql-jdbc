@@ -49,7 +49,7 @@ public class FedauthTest extends FedauthCommon {
         TrustStore(String certificateName) throws Exception {
             trustStoreFile = File.createTempFile("myTrustStore", null, new File("."));
             trustStoreFile.deleteOnExit();
-            KeyStore ks = KeyStore.getInstance("JKS");
+            KeyStore ks = KeyStore.getInstance(Constants.JKS);
             ks.load(null, null);
 
             ks.setCertificateEntry(certificateName, getCertificate(certificateName));
