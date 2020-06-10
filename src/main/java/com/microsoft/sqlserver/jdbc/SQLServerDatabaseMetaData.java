@@ -638,9 +638,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN, "
                     + "SS_IS_SPARSE, SS_IS_COLUMN_SET, SS_UDT_CATALOG_NAME, SS_UDT_SCHEMA_NAME, SS_UDT_ASSEMBLY_TYPE_NAME,"
                     + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
-                    + "FROM @mssqljdbc_temp_sp_columns_result "
-
-                    + "ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
+                    + "FROM @mssqljdbc_temp_sp_columns_result ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION;";
             SQLServerResultSet rs = null;
             PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
             pstmt.closeOnCompletion();
@@ -741,8 +739,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     boolean isFirstRow = true; // less expensive than continuously checking isFirst()
                     while (rs.next()) {
                         if (!isFirstRow) {
-                            azureDwSelectBuilder
-                                    .append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION ");
                             azureDwSelectBuilder.append(" UNION ALL ");
                         }
                         azureDwSelectBuilder.append(generateAzureDWSelect(rs, getColumnsDWColumns));
@@ -751,7 +747,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
                     if (0 == azureDwSelectBuilder.length()) {
                         azureDwSelectBuilder.append(generateAzureDWEmptyRS(getColumnsDWColumns));
+                    } else {
+                        azureDwSelectBuilder.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION ");
                     }
+                    
                     resultPstmt = (SQLServerPreparedStatement) this.connection
                             .prepareStatement(azureDwSelectBuilder.toString());
                     userRs = (SQLServerResultSet) resultPstmt.executeQuery();
