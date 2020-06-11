@@ -72,7 +72,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     void checkClosed() throws SQLServerException {
         if (!bIsOpen) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
-                    null, false);
+                    SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
         }
     }
 

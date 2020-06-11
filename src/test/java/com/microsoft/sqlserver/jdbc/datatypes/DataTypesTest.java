@@ -1824,7 +1824,7 @@ public class DataTypesTest extends AbstractTest {
             }
         }
     }
-    
+
     @Test
     public void testNullValuesWithGetObject() throws Exception {
         String ldtTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ldtTable"));
