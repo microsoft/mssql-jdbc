@@ -124,6 +124,25 @@ public class FedauthTest extends FedauthCommon {
     }
 
     @Test
+    public void testADIntegratedAuthenticationDS() throws Exception {
+        org.junit.Assume.assumeTrue(null != adIntegratedAzureServer && null != adIntegratedAzureDatabase);
+
+        SQLServerDataSource ds = new SQLServerDataSource();
+
+        ds.setServerName(adIntegratedAzureServer);
+        ds.setDatabaseName(adIntegratedAzureDatabase);
+        ds.setAuthentication("ActiveDirectoryIntegrated");
+        ds.setHostNameInCertificate(hostNameInCertificate);
+
+        try (Connection conn = ds.getConnection()) {
+            testUserName(conn, adIntegratedAzureUserName);
+            testCharTable(conn);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    @Test
     public void testGroupAuthentication() throws SQLException {
         // connection string with userName
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
@@ -188,6 +207,7 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testNotValidActiveDirectoryIntegrated() throws SQLException {
         org.junit.Assume.assumeTrue(isWindows);
+        org.junit.Assume.assumeTrue(null != adIntegratedAzureServer && null != adIntegratedAzureDatabase);
 
         testNotValid("ActiveDirectoryIntegrated", false, true);
         testNotValid("ActiveDirectoryIntegrated", true, true);
@@ -218,6 +238,7 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testValidActiveDirectoryIntegrated() throws SQLException {
         org.junit.Assume.assumeTrue(isWindows);
+        org.junit.Assume.assumeTrue(null != adIntegratedAzureServer && null != adIntegratedAzureDatabase);
 
         testValid("ActiveDirectoryIntegrated", false, true);
         testValid("ActiveDirectoryIntegrated", true, true);
@@ -260,11 +281,14 @@ public class FedauthTest extends FedauthCommon {
     private void testValid(String authentication, boolean encrypt, boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
-            ds.setServerName(azureServer);
-            ds.setDatabaseName(azureDatabase);
             if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                ds.setServerName(azureServer);
+                ds.setDatabaseName(azureDatabase);
                 ds.setUser(azureUserName);
                 ds.setPassword(azurePassword);
+            } else {
+                ds.setServerName(adIntegratedAzureServer);
+                ds.setDatabaseName(adIntegratedAzureDatabase);
             }
             ds.setAuthentication(authentication);
             ds.setEncrypt(encrypt);
@@ -288,12 +312,16 @@ public class FedauthTest extends FedauthCommon {
             boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
-            ds.setServerName(azureServer);
-            ds.setDatabaseName(azureDatabase);
             if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                ds.setServerName(azureServer);
+                ds.setDatabaseName(azureDatabase);
                 ds.setUser(azureUserName);
                 ds.setPassword("WrongPassword");
+            } else {
+                ds.setServerName(adIntegratedAzureServer);
+                ds.setDatabaseName(adIntegratedAzureDatabase);
             }
+
             ds.setAuthentication(authentication);
             ds.setEncrypt(encrypt);
             ds.setTrustServerCertificate(trustServerCertificate);

@@ -25,6 +25,11 @@ public class FedauthCommon extends AbstractTest {
     static String azureGroupUserName = null;
 
     static boolean enableADIntegrated = false;
+    static String adIntegratedAzureServer = null;
+    static String adIntegratedAzureDatabase = null;
+    static String adIntegratedAzureUserName = null;
+    static String adIntegratedAzurePassword = null;
+
     static String spn = null;
     static String stsurl = null;
     static String fedauthClientId = null;
@@ -61,6 +66,11 @@ public class FedauthCommon extends AbstractTest {
         azureUserName = getConfiguredProperty("azureUserName");
         azurePassword = getConfiguredProperty("azurePassword");
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
+
+        adIntegratedAzureServer = getConfiguredProperty("adIntegratedAzureServer");
+        adIntegratedAzureDatabase = getConfiguredProperty("adIntegratedAzureDatabase");
+        adIntegratedAzureUserName = getConfiguredProperty("adIntegratedAzureUserName");
+        adIntegratedAzurePassword = getConfiguredProperty("adIntegratedAzurePassword");
 
         fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
         if (!isWindows) {

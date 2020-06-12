@@ -57,14 +57,22 @@ public class FedauthWithAE extends FedauthCommon {
     static String charTableNew = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthAE_new")));
 
-    static SQLServerDataSource ds = null;
+    static SQLServerDataSource ds = new SQLServerDataSource();
 
     @BeforeAll
     public static void setupTests() throws Throwable {
         getFedauthInfo();
-        if (null == ds) {
-            ds = getDataSource();
-        }
+
+        ds.setServerName(azureServer);
+        ds.setDatabaseName(azureDatabase);
+        ds.setUser(azureUserName);
+        ds.setPassword(azurePassword);
+        ds.setAuthentication("ActiveDirectoryPassword");
+        ds.setHostNameInCertificate(hostNameInCertificate);
+        ds.setColumnEncryptionSetting(Constants.ENABLED);
+        ds.setKeyStoreAuthentication(Constants.JAVA_KEY_STORE_SECRET);
+        ds.setKeyStoreLocation(fedauthJksPaths[0]);
+        ds.setKeyStoreSecret(Constants.JKS_SECRET_STRING);
     }
 
     @Test
@@ -360,21 +368,6 @@ public class FedauthWithAE extends FedauthCommon {
             sb.append(hexChars[(hexVal & 0x0F)]);
         }
         return sb.toString();
-    }
-
-    private static SQLServerDataSource getDataSource() {
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setServerName(azureServer);
-        ds.setDatabaseName(azureDatabase);
-        ds.setUser(azureUserName);
-        ds.setPassword(azurePassword);
-        ds.setAuthentication("ActiveDirectoryPassword");
-        ds.setHostNameInCertificate(hostNameInCertificate);
-        ds.setColumnEncryptionSetting(Constants.ENABLED);
-        ds.setKeyStoreAuthentication(Constants.JAVA_KEY_STORE_SECRET);
-        ds.setKeyStoreLocation(fedauthJksPaths[0]);
-        ds.setKeyStoreSecret(Constants.JKS_SECRET_STRING);
-        return ds;
     }
 
     @AfterAll
