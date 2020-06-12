@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -700,11 +701,13 @@ public class DatabaseMetaDataTest extends AbstractTest {
                         String columnName = rsmd.getColumnName(i);
                         Object value = resultSet.getObject(columnName);
                         if (0 == rowCount) {
-                            Object expectedValue = firstRow.get(columnName);
-                            if (expectedValue instanceof String) {
+                            int expectedType = rsmd.getColumnType(i);
+                            if (null != firstRow.get(columnName)
+                                    && (Types.VARCHAR == expectedType || Types.NVARCHAR == expectedType)) {
                                 assertEquals(firstRow.get(columnName).toString().toLowerCase(),
-                                        (String) resultSet.getString(columnName).toLowerCase());
-                            } else if (expectedValue instanceof Number) {
+                                        resultSet.getString(columnName).toLowerCase());
+                            } else if (null != firstRow.get(columnName) && (Types.TINYINT == expectedType
+                                    || Types.SMALLINT == expectedType || Types.INTEGER == expectedType)) {
                                 assertEquals(firstRow.get(columnName), resultSet.getInt(columnName));
                             } else {
                                 assertEquals(firstRow.get(columnName), value);
