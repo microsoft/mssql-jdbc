@@ -38,28 +38,28 @@ public class Geometry extends SQLServerSpatialDatatype {
 
         parseWKTForSerialization(this, currentWktPos, -1, false);
 
-        serializeToWkb(false, this);
+        serializeToClr(false, this);
         isNull = false;
     }
 
     /**
-     * Private constructor used for creating a Geometry object from WKB.
+     * Private constructor used for creating a Geometry object from internal SQL Server format.
      * 
-     * @param wkb
-     *        Well-Known Binary (WKB) provided by the user.
+     * @param clr
+     *        Internal SQL Server format provided by the user.
      * @throws SQLServerException
      *         if an exception occurs
      */
-    protected Geometry(byte[] wkb) throws SQLServerException {
-        if (null == wkb || wkb.length <= 0) {
-            throwIllegalWKB();
+    protected Geometry(byte[] clr) throws SQLServerException {
+        if (null == clr || clr.length <= 0) {
+            throwIllegalByteArray();
         }
 
-        this.wkb = wkb;
-        buffer = ByteBuffer.wrap(wkb);
+        this.clr = clr;
+        buffer = ByteBuffer.wrap(clr);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-        parseWkb(this);
+        parseClr(this);
 
         WKTsb = new StringBuffer();
         WKTsbNoZM = new StringBuffer();
@@ -104,14 +104,14 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      * Constructor for a Geometry instance from an internal SQL Server format for spatial data.
      * 
-     * @param wkb
-     *        Well-Known Binary (WKB) provided by the user.
-     * @return Geometry Geometry instance created from WKB
+     * @param 
+     *        Internal SQL Server format provided by the user.
+     * @return Geometry Geometry instance created from clr
      * @throws SQLServerException
      *         if an exception occurs
      */
-    public static Geometry deserialize(byte[] wkb) throws SQLServerException {
-        return new Geometry(wkb);
+    public static Geometry deserialize(byte[] clr) throws SQLServerException {
+        return new Geometry(clr);
     }
 
     /**
@@ -156,10 +156,10 @@ public class Geometry extends SQLServerSpatialDatatype {
      */
     public String STAsText() throws SQLServerException {
         if (null == wktNoZM) {
-            buffer = ByteBuffer.wrap(wkb);
+            buffer = ByteBuffer.wrap(clr);
             buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-            parseWkb(this);
+            parseClr(this);
 
             WKTsb = new StringBuffer();
             WKTsbNoZM = new StringBuffer();
@@ -174,12 +174,14 @@ public class Geometry extends SQLServerSpatialDatatype {
      * value will not contain any Z or M values carried by the instance.
      * 
      * @return byte array representation of the Geometry object.
+     * @throws SQLServerException
+     *         if an exception occurs
      */
-    public byte[] STAsBinary() {
-        if (null == wkbNoZM) {
-            serializeToWkb(true, this);
+    public byte[] STAsBinary() throws SQLServerException {
+        if (null == wkb) {
+            serializeToWkb(this);
         }
-        return wkbNoZM;
+        return wkb;
     }
 
     /**
@@ -188,7 +190,7 @@ public class Geometry extends SQLServerSpatialDatatype {
      * @return byte array representation of the Geometry object.
      */
     public byte[] serialize() {
-        return wkb;
+        return clr;
     }
 
     /**

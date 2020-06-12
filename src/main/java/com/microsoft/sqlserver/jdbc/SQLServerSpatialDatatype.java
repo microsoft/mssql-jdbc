@@ -25,7 +25,7 @@ import com.microsoft.sqlserver.jdbc.spatialdatatypes.Shape;
 
 abstract class SQLServerSpatialDatatype {
 
-    /** WKT = Well-Known-Text, WKB = Well-Knwon-Binary */
+    /** WKT = Well-Known-Text, WKB = Well-Knwon-Binary, CLR = Client Runtime Language */
     /**
      * As a general rule, the ~IndexEnd variables are non-inclusive (i.e. pointIndexEnd = 8 means the shape using it
      * will only go up to the 7th index of the array)
@@ -34,8 +34,8 @@ abstract class SQLServerSpatialDatatype {
     protected InternalSpatialDatatype internalType;
     protected String wkt;
     protected String wktNoZM;
-    protected byte[] wkb;
-    protected byte[] wkbNoZM;
+    protected byte[] clr;
+    protected byte[] clrNoZM;
     protected int srid;
     protected byte version = 1;
     protected int numberOfPoints;
@@ -48,6 +48,10 @@ abstract class SQLServerSpatialDatatype {
     protected int currentFigureIndex = 0;
     protected int currentSegmentIndex = 0;
     protected int currentShapeIndex = 0;
+    protected int currentWKBPointIndex = 0;
+    protected int currentWKBFigureIndex = 0;
+    protected int currentWKBSegmentIndex = 0;
+    protected int currentWKBShapeIndex = 0;
     protected double xValues[];
     protected double yValues[];
     protected double zValues[];
@@ -55,6 +59,19 @@ abstract class SQLServerSpatialDatatype {
     protected Figure figures[];
     protected Shape shapes[];
     protected Segment segments[];
+
+    // WKB properties
+    protected byte[] wkb;
+    protected byte endian = 1;
+    protected int wkbType;
+    final private int WKB_POINT_SIZE = 16; // two doubles, x and y, are 16 bytes together
+    final private int BYTE_ORDER_SIZE = 1;
+    final private int INTERNAL_TYPE_SIZE = 4;
+    final private int NUMBER_OF_SHAPES_SIZE = 4;
+    final private int LINEAR_RING_HEADER_SIZE = 4;
+    final private int WKB_POINT_HEADER_SIZE = BYTE_ORDER_SIZE + INTERNAL_TYPE_SIZE;
+    final private int WKB_HEADER_SIZE = BYTE_ORDER_SIZE + INTERNAL_TYPE_SIZE + NUMBER_OF_SHAPES_SIZE;
+    final private int WKB_FULLGLOBE_CODE = 126;
 
     // serialization properties
     protected boolean hasZvalues = false;
@@ -74,7 +91,7 @@ abstract class SQLServerSpatialDatatype {
     protected final byte FA_ARC = 2;
     protected final byte FA_COMPOSITE_CURVE = 3;
 
-    // WKT to WKB properties
+    // WKT to CLR properties
     protected int currentWktPos = 0;
     protected List<Point> pointList = new ArrayList<Point>();
     protected List<Figure> figureList = new ArrayList<Figure>();
@@ -97,21 +114,21 @@ abstract class SQLServerSpatialDatatype {
     private List<Integer> version_one_shape_indexes = new ArrayList<Integer>();
 
     /**
-     * Serializes the Geogemetry/Geography instance to WKB.
+     * Serializes the Geogemetry/Geography instance to internal SQL Server format (CLR).
      * 
-     * @param excludeZMFromWKB
-     *        flag to indicate if Z and M coordinates should be excluded from the WKB representation
+     * @param excludeZMFromCLR
+     *        flag to indicate if Z and M coordinates should be excluded from the internal SQL Server format
      * @param type
      *        Type of Spatial Datatype (Geometry/Geography)
      */
-    protected void serializeToWkb(boolean excludeZMFromWKB, SQLServerSpatialDatatype type) {
-        ByteBuffer buf = ByteBuffer.allocate(determineWkbCapacity(excludeZMFromWKB));
+    protected void serializeToClr(boolean excludeZMFromCLR, SQLServerSpatialDatatype type) {
+        ByteBuffer buf = ByteBuffer.allocate(determineClrCapacity(excludeZMFromCLR));
         createSerializationProperties();
 
         buf.order(ByteOrder.LITTLE_ENDIAN);
         buf.putInt(srid);
         buf.put(version);
-        if (excludeZMFromWKB) {
+        if (excludeZMFromCLR) {
             byte serializationPropertiesNoZM = serializationProperties;
             if (hasZvalues) {
                 serializationPropertiesNoZM -= hasZvaluesMask;
@@ -141,7 +158,7 @@ abstract class SQLServerSpatialDatatype {
             }
         }
 
-        if (!excludeZMFromWKB) {
+        if (!excludeZMFromCLR) {
             if (hasZvalues) {
                 for (int i = 0; i < numberOfPoints; i++) {
                     buf.putDouble(zValues[i]);
@@ -156,10 +173,10 @@ abstract class SQLServerSpatialDatatype {
         }
 
         if (isSinglePoint || isSingleLineSegment) {
-            if (excludeZMFromWKB) {
-                wkbNoZM = buf.array();
+            if (excludeZMFromCLR) {
+                clrNoZM = buf.array();
             } else {
-                wkb = buf.array();
+                clr = buf.array();
             }
             return;
         }
@@ -184,15 +201,413 @@ abstract class SQLServerSpatialDatatype {
             }
         }
 
-        if (excludeZMFromWKB) {
-            wkbNoZM = buf.array();
+        if (excludeZMFromCLR) {
+            clrNoZM = buf.array();
         } else {
-            wkb = buf.array();
+            clr = buf.array();
         }
     }
 
     /**
-     * Deserializes the buffer (that contains WKB representation of Geometry/Geography data), and stores it into
+     * Serializes the Geogemetry/Geography instance to Well-Known Binary format.
+     * 
+     * @param type
+     *        Type of Spatial Datatype (Geometry/Geography)
+     * @throws SQLServerException
+     */
+    protected void serializeToWkb(SQLServerSpatialDatatype type) throws SQLServerException {
+        ByteBuffer buf = ByteBuffer.allocate(determineWkbCapacity());
+        buf.order(ByteOrder.LITTLE_ENDIAN);
+        switch (internalType) {
+            case POINT:
+                addPointToBuffer(buf, numberOfPoints);
+                break;
+            case LINESTRING:
+                addLineStringToBuffer(buf, numberOfPoints);
+                break;
+            case POLYGON:
+                addPolygonToBuffer(buf, numberOfFigures);
+                break;
+            case MULTIPOINT:
+                addMultiPointToBuffer(buf, numberOfFigures);
+                break;
+            case MULTILINESTRING:
+                addMultiLineStringToBuffer(buf, numberOfFigures);
+                break;
+            case MULTIPOLYGON:
+                addMultiPolygonToBuffer(buf, numberOfShapes - 1);
+                break;
+            case GEOMETRYCOLLECTION:
+                addGeometryCollectionToBuffer(buf, calculateNumShapesInThisGeometryCollection());
+                break;
+            case CIRCULARSTRING:
+                addCircularStringToBuffer(buf, numberOfPoints);
+                break;
+            case COMPOUNDCURVE:
+                addCompoundCurveToBuffer(buf, calculateNumCurvesInThisFigure());
+                break;
+            case CURVEPOLYGON:
+                addCurvePolygonToBuffer(buf, numberOfFigures);
+                break;
+            case FULLGLOBE:
+                addFullGlobeToBuffer(buf);
+                break;
+            default:
+                String strError = SQLServerException.getErrString("R_illegalWKB");
+                throw new SQLServerException(strError, null, 0, null);
+        }
+
+        wkb = buf.array();
+    }
+
+    private void addPointToBuffer(ByteBuffer buf, int numberOfPoints) {
+        buf.put(endian);
+        buf.putInt(InternalSpatialDatatype.POINT.getTypeCode());
+        addCoordinateToBuffer(buf, numberOfPoints);
+        currentWKBFigureIndex++;
+    }
+
+    private void addLineStringToBuffer(ByteBuffer buf, int numberOfPoints) {
+        buf.put(endian);
+        buf.putInt(InternalSpatialDatatype.LINESTRING.getTypeCode());
+        buf.putInt(numberOfPoints);
+        addCoordinateToBuffer(buf, numberOfPoints);
+        currentWKBFigureIndex++;
+    }
+
+    private void addPolygonToBuffer(ByteBuffer buf, int numberOfFigures) throws SQLServerException {
+        buf.put(endian);
+        buf.putInt(InternalSpatialDatatype.POLYGON.getTypeCode());
+        buf.putInt(numberOfFigures);
+        addStructureToBuffer(buf, numberOfFigures, InternalSpatialDatatype.POLYGON);
+    }
+
+    private void addMultiPointToBuffer(ByteBuffer buf, int numberOfFigures) throws SQLServerException {
+        buf.put(endian);
+        buf.putInt(InternalSpatialDatatype.MULTIPOINT.getTypeCode());
+        buf.putInt(numberOfFigures);
+        addStructureToBuffer(buf, numberOfFigures, InternalSpatialDatatype.MULTIPOINT);
+    }
+
+    private void addMultiLineStringToBuffer(ByteBuffer buf, int numberOfFigures) throws SQLServerException {
+        buf.put(endian);
+        buf.putInt(InternalSpatialDatatype.MULTILINESTRING.getTypeCode());
+        buf.putInt(numberOfFigures);
+        addStructureToBuffer(buf, numberOfFigures, InternalSpatialDatatype.MULTILINESTRING);
+    }
+
+    private void addMultiPolygonToBuffer(ByteBuffer buf, int numberOfShapes) throws SQLServerException {
+        buf.put(endian);
+        buf.putInt(InternalSpatialDatatype.MULTIPOLYGON.getTypeCode());
+        buf.putInt(numberOfShapes);
+        // increment shape index by 1 because the first shape is always itself, which we don't need.
+        currentWKBShapeIndex++;
+        addStructureToBuffer(buf, numberOfShapes, InternalSpatialDatatype.MULTIPOLYGON);
+    }
+
+    private void addCircularStringToBuffer(ByteBuffer buf, int numberOfPoints) {
+        buf.put(endian);
+        buf.putInt(InternalSpatialDatatype.CIRCULARSTRING.getTypeCode());
+        buf.putInt(numberOfPoints);
+        addCoordinateToBuffer(buf, numberOfPoints);
+        currentWKBFigureIndex++;
+    }
+
+    private void addCompoundCurveToBuffer(ByteBuffer buf, int numberOfCurves) throws SQLServerException {
+        buf.put(endian);
+        buf.putInt(InternalSpatialDatatype.COMPOUNDCURVE.getTypeCode());
+        buf.putInt(numberOfCurves);
+        addStructureToBuffer(buf, numberOfCurves, InternalSpatialDatatype.COMPOUNDCURVE);
+        currentWKBFigureIndex++;
+    }
+
+    private void addCurvePolygonToBuffer(ByteBuffer buf, int numberOfFigures) throws SQLServerException {
+        buf.put(endian);
+        buf.putInt(InternalSpatialDatatype.CURVEPOLYGON.getTypeCode());
+        buf.putInt(numberOfFigures);
+        for (int i = 0; i < numberOfFigures; i++) {
+            switch (figures[currentWKBFigureIndex].getFiguresAttribute()) {
+                case FA_LINE:
+                    addStructureToBuffer(buf, 1, InternalSpatialDatatype.LINESTRING);
+                    break;
+                case FA_ARC:
+                    addStructureToBuffer(buf, 1, InternalSpatialDatatype.CIRCULARSTRING);
+                    break;
+                case FA_COMPOSITE_CURVE:
+                    int numCurvesInThisFigure = calculateNumCurvesInThisFigure();
+                    buf.put(endian);
+                    buf.putInt(InternalSpatialDatatype.COMPOUNDCURVE.getTypeCode());
+                    buf.putInt(numCurvesInThisFigure);
+                    addStructureToBuffer(buf, numCurvesInThisFigure, InternalSpatialDatatype.COMPOUNDCURVE);
+                    currentWKBFigureIndex++;
+                    break;
+                default:
+                    String strError = SQLServerException.getErrString("R_illegalWKB");
+                    throw new SQLServerException(strError, null, 0, null);
+            }
+        }
+    }
+
+    private void addGeometryCollectionToBuffer(ByteBuffer buf, int numberOfRemainingGeometries) throws SQLServerException {
+        buf.put(endian);
+        buf.putInt(internalType.getTypeCode());
+        buf.putInt(numberOfRemainingGeometries);
+        // increment shape index by 1 because the first shape is always itself, which we don't need.
+        currentWKBShapeIndex++;
+        while (numberOfRemainingGeometries > 0) {
+            switch (InternalSpatialDatatype.valueOf(shapes[currentWKBShapeIndex].getOpenGISType())) {
+                case POINT:
+                    addPointToBuffer(buf, calculateNumPointsInThisFigure());
+                    currentWKBShapeIndex++;
+                    break;
+                case LINESTRING:
+                    addLineStringToBuffer(buf, calculateNumPointsInThisFigure());
+                    currentWKBShapeIndex++;
+                    break;
+                case POLYGON:
+                    addPolygonToBuffer(buf, calculateNumFiguresInThisShape(false));
+                    currentWKBShapeIndex++;
+                    break;
+                case MULTIPOINT:
+                    addMultiPointToBuffer(buf, calculateNumFiguresInThisShape(true));
+                    currentWKBShapeIndex++;
+                    break;
+                case MULTILINESTRING:
+                    addMultiLineStringToBuffer(buf, calculateNumFiguresInThisShape(true));
+                    currentWKBShapeIndex++;
+                    break;
+                case MULTIPOLYGON:
+                    /*
+                     * increment WKBShapeIndex for all shapes except for GeometryCollection and Multipolygon, since
+                     * their shape index was incremented earlier to be used for calculation.
+                     */
+                    addMultiPolygonToBuffer(buf, calculateNumShapesInThisMultiPolygon());
+                    break;
+                case GEOMETRYCOLLECTION:
+                    addGeometryCollectionToBuffer(buf, calculateNumShapesInThisGeometryCollection());
+                    break;
+                case CIRCULARSTRING:
+                    addCircularStringToBuffer(buf, calculateNumPointsInThisFigure());
+                    currentWKBShapeIndex++;
+                    break;
+                case COMPOUNDCURVE:
+                    addCompoundCurveToBuffer(buf, calculateNumCurvesInThisFigure());
+                    currentWKBShapeIndex++;
+                    break;
+                case CURVEPOLYGON:
+                    addCurvePolygonToBuffer(buf, calculateNumFiguresInThisShape(false));
+                    currentWKBShapeIndex++;
+                    break;
+                default:
+                    String strError = SQLServerException.getErrString("R_illegalWKB");
+                    throw new SQLServerException(strError, null, 0, null);
+            }
+            numberOfRemainingGeometries--;
+        }
+    }
+
+    private void addFullGlobeToBuffer(ByteBuffer buf) throws SQLServerException {
+        buf.put(endian);
+        buf.putInt(WKB_FULLGLOBE_CODE);
+    }
+    
+    private void addCoordinateToBuffer(ByteBuffer buf, int numPoint) {
+        while (numPoint > 0) {
+            buf.putDouble(xValues[currentWKBPointIndex]);
+            buf.putDouble(yValues[currentWKBPointIndex]);
+            currentWKBPointIndex++;
+            numPoint--;
+        }
+    }
+
+    private void addStructureToBuffer(ByteBuffer buf, int remainingStructureCount,
+            InternalSpatialDatatype internalParentType) throws SQLServerException {
+        int originalRemainingStructureCount = remainingStructureCount;
+        while (remainingStructureCount > 0) {
+            int numPointsInThisFigure = calculateNumPointsInThisFigure();
+            switch (internalParentType) {
+                case LINESTRING:
+                    buf.put(endian);
+                    buf.putInt(InternalSpatialDatatype.LINESTRING.getTypeCode());
+                    buf.putInt(numPointsInThisFigure);
+                    addCoordinateToBuffer(buf, numPointsInThisFigure);
+                    currentWKBFigureIndex++;
+                    break;
+                case POLYGON:
+                    buf.putInt(numPointsInThisFigure);
+                    addCoordinateToBuffer(buf, numPointsInThisFigure);
+                    currentWKBFigureIndex++;
+                    break;
+                case MULTIPOINT:
+                    buf.put(endian);
+                    buf.putInt(InternalSpatialDatatype.POINT.getTypeCode());
+                    addCoordinateToBuffer(buf, 1);
+                    currentWKBFigureIndex++;
+                    currentWKBShapeIndex++;
+                    break;
+                case MULTILINESTRING:
+                    buf.put(endian);
+                    buf.putInt(InternalSpatialDatatype.LINESTRING.getTypeCode());
+                    buf.putInt(numPointsInThisFigure);
+                    addCoordinateToBuffer(buf, numPointsInThisFigure);
+                    currentWKBFigureIndex++;
+                    currentWKBShapeIndex++;
+                    break;
+                case MULTIPOLYGON:
+                    int numFiguresInThisShape = calculateNumFiguresInThisShape(false);
+                    buf.put(endian);
+                    buf.putInt(InternalSpatialDatatype.POLYGON.getTypeCode());
+                    buf.putInt(remainingStructureCount);
+                    addStructureToBuffer(buf, numFiguresInThisShape, InternalSpatialDatatype.POLYGON);
+                    currentWKBShapeIndex++;
+                    break;
+                case GEOMETRYCOLLECTION:
+                    break;
+                case CIRCULARSTRING:
+                    buf.put(endian);
+                    buf.putInt(InternalSpatialDatatype.CIRCULARSTRING.getTypeCode());
+                    buf.putInt(numPointsInThisFigure);
+                    addCoordinateToBuffer(buf, numPointsInThisFigure);
+                    currentWKBFigureIndex++;
+                    break;
+                case COMPOUNDCURVE:
+                    if (segments[currentWKBSegmentIndex].getSegmentType() == SEGMENT_FIRST_ARC) {
+                        int numberOfPointsInStructure = 3;
+                        currentWKBSegmentIndex++;
+                        while (currentWKBSegmentIndex < segments.length
+                                && segments[currentWKBSegmentIndex].getSegmentType() != SEGMENT_FIRST_ARC
+                                && segments[currentWKBSegmentIndex].getSegmentType() != SEGMENT_FIRST_LINE) {
+                            numberOfPointsInStructure = numberOfPointsInStructure + 2;
+                            currentWKBSegmentIndex++;
+                        }
+                        buf.put(endian);
+                        buf.putInt(InternalSpatialDatatype.CIRCULARSTRING.getTypeCode());
+                        buf.putInt(numberOfPointsInStructure);
+                        if (originalRemainingStructureCount != remainingStructureCount) {
+                            currentWKBPointIndex--;
+                        }
+                        addCoordinateToBuffer(buf, numberOfPointsInStructure);
+                    } else if (segments[currentWKBSegmentIndex].getSegmentType() == SEGMENT_FIRST_LINE) {
+                        int numberOfPointsInStructure = 2;
+                        currentWKBSegmentIndex++;
+                        while (currentWKBSegmentIndex < segments.length
+                                && segments[currentWKBSegmentIndex].getSegmentType() != SEGMENT_FIRST_ARC
+                                && segments[currentWKBSegmentIndex].getSegmentType() != SEGMENT_FIRST_LINE) {
+                            numberOfPointsInStructure++;
+                            currentWKBSegmentIndex++;
+                        }
+                        buf.put(endian);
+                        buf.putInt(InternalSpatialDatatype.LINESTRING.getTypeCode());
+                        buf.putInt(numberOfPointsInStructure);
+                        if (originalRemainingStructureCount != remainingStructureCount) {
+                            currentWKBPointIndex--;
+                        }
+                        addCoordinateToBuffer(buf, numberOfPointsInStructure);
+                    } else {
+                        // CompoundCurves should start with first arc or first line, it should not come here
+                        String strError = SQLServerException.getErrString("R_illegalWKB");
+                        throw new SQLServerException(strError, null, 0, null);
+                    }
+                    break;
+                default:
+                    String strError = SQLServerException.getErrString("R_illegalWKB");
+                    throw new SQLServerException(strError, null, 0, null);
+            }
+            remainingStructureCount--;
+        }
+    }
+
+    private int calculateNumPointsInThisFigure() {
+        return (currentWKBFigureIndex == figures.length - 1)
+                                                             ? (numberOfPoints
+                                                                     - figures[currentWKBFigureIndex].getPointOffset())
+                                                             : (figures[currentWKBFigureIndex + 1].getPointOffset()
+                                                                     - figures[currentWKBFigureIndex].getPointOffset());
+    }
+
+    private int calculateNumCurvesInThisFigure() throws SQLServerException {
+        int numPointsInThisFigure = calculateNumPointsInThisFigure();
+        int numCurvesInThisFigure = 0;
+        int tempCurrentWKBSegmentIndex = currentWKBSegmentIndex;
+        boolean isFirstSegment = true;
+        while (numPointsInThisFigure > 0) {
+            switch (segments[tempCurrentWKBSegmentIndex].getSegmentType()) {
+                case SEGMENT_LINE:
+                    numPointsInThisFigure--;
+                    break;
+                case SEGMENT_ARC:
+                    numPointsInThisFigure -= 2;
+                    break;
+                case SEGMENT_FIRST_LINE:
+                    if (isFirstSegment) {
+                        numPointsInThisFigure -= 2;
+                    } else {
+                        numPointsInThisFigure -= 1;
+                    }
+                    numCurvesInThisFigure++;
+                    break;
+                case SEGMENT_FIRST_ARC:
+                    if (isFirstSegment) {
+                        numPointsInThisFigure -= 3;
+                    } else {
+                        numPointsInThisFigure -= 2;
+                    }
+                    numCurvesInThisFigure++;
+                    break;
+                default:
+                    String strError = SQLServerException.getErrString("R_illegalWKB");
+                    throw new SQLServerException(strError, null, 0, null);
+            }
+            isFirstSegment = false;
+            tempCurrentWKBSegmentIndex++;
+        }
+        return numCurvesInThisFigure;
+    }
+
+    private int calculateNumFiguresInThisShape(boolean containsInnerStructures) {
+        if (containsInnerStructures) {
+            int nextNonInnerShapeIndex = currentWKBShapeIndex + 1;
+            while (nextNonInnerShapeIndex < shapes.length
+                    && shapes[nextNonInnerShapeIndex].getParentOffset() == currentWKBShapeIndex) {
+                nextNonInnerShapeIndex++;
+            }
+
+            if (nextNonInnerShapeIndex == shapes.length) {
+                return (numberOfFigures - shapes[currentWKBShapeIndex].getFigureOffset());
+            } else {
+                return (shapes[nextNonInnerShapeIndex].getFigureOffset()
+                        - shapes[currentWKBShapeIndex].getFigureOffset());
+            }
+        } else {
+            return (currentWKBShapeIndex == shapes.length
+                    - 1) ? (numberOfFigures - shapes[currentWKBShapeIndex].getFigureOffset())
+                         : (shapes[currentWKBShapeIndex + 1].getFigureOffset()
+                                 - shapes[currentWKBShapeIndex].getFigureOffset());
+        }
+    }
+
+    private int calculateNumShapesInThisMultiPolygon() {
+        int nextNonInnerShapeIndex = currentWKBShapeIndex + 1;
+        while (nextNonInnerShapeIndex < shapes.length
+                && shapes[nextNonInnerShapeIndex].getParentOffset() == currentWKBShapeIndex) {
+            nextNonInnerShapeIndex++;
+        }
+
+        return (nextNonInnerShapeIndex - currentWKBShapeIndex - 1); // subtract 1 for Multipolygon itself
+    }
+
+    private int calculateNumShapesInThisGeometryCollection() {
+        int numberOfGeometries = 0;
+        for (int i = 0; i < shapes.length; i++) {
+            if (shapes[i].getParentOffset() == currentWKBShapeIndex) {
+                numberOfGeometries++;
+            }
+        }
+        return numberOfGeometries;
+    }
+
+    /**
+     * Deserializes the buffer (that contains CLR representation of Geometry/Geography data), and stores it into
      * multiple corresponding data structures.
      * 
      * @param type
@@ -200,7 +615,7 @@ abstract class SQLServerSpatialDatatype {
      * @throws SQLServerException
      *         if an Exception occurs
      */
-    protected void parseWkb(SQLServerSpatialDatatype type) throws SQLServerException {
+    protected void parseClr(SQLServerSpatialDatatype type) throws SQLServerException {
         srid = readInt();
         version = readByte();
         serializationProperties = readByte();
@@ -231,6 +646,45 @@ abstract class SQLServerSpatialDatatype {
                 readNumberOfSegments();
                 readSegments();
             }
+        }
+    }
+
+    /**
+     * Deserializes the buffer (that contains WKB representation of Geometry/Geography data), and stores it into
+     * multiple corresponding data structures.
+     * 
+     * @param type
+     *        Type of Spatial Datatype (Geography/Geometry)
+     * @throws SQLServerException
+     *         if an Exception occurs
+     */
+    protected void parseWkb(SQLServerSpatialDatatype type) throws SQLServerException {
+        endian = readByte();
+        wkbType = readInt();
+
+        switch (wkbType) {
+            case 1:
+                break;
+            case 2:
+                break;
+            case 3:
+                break;
+            case 4:
+                break;
+            case 5:
+                break;
+            case 6:
+                break;
+            case 7:
+                break;
+            case 8:
+                break;
+            case 9:
+                break;
+            case 10:
+                break;
+            default:
+                break;
         }
     }
 
@@ -1303,7 +1757,7 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected int determineWkbCapacity(boolean excludeZMFromWKB) {
+    protected int determineClrCapacity(boolean excludeZMFromCLR) {
         int totalSize = 0;
 
         totalSize += 6; // SRID + version + SerializationPropertiesByte
@@ -1311,7 +1765,7 @@ abstract class SQLServerSpatialDatatype {
         if (isSinglePoint || isSingleLineSegment) {
             totalSize += 16 * numberOfPoints;
 
-            if (!excludeZMFromWKB) {
+            if (!excludeZMFromCLR) {
                 if (hasZvalues) {
                     totalSize += 8 * numberOfPoints;
                 }
@@ -1325,7 +1779,7 @@ abstract class SQLServerSpatialDatatype {
         }
 
         int pointSize = 16;
-        if (!excludeZMFromWKB) {
+        if (!excludeZMFromCLR) {
             if (hasZvalues) {
                 pointSize += 8;
             }
@@ -1343,6 +1797,146 @@ abstract class SQLServerSpatialDatatype {
         if (version == 2) {
             totalSize += 4; // 4 bytes for 1 int, representing the number of segments
             totalSize += numberOfSegments;
+        }
+
+        return totalSize;
+    }
+
+    protected int determineWkbCapacity() {
+        int totalSize = 0;
+
+        totalSize += BYTE_ORDER_SIZE; // byte order
+        totalSize += INTERNAL_TYPE_SIZE; // internal type size
+
+        switch (internalType) {
+            case POINT:
+                totalSize += WKB_POINT_SIZE;
+                break;
+            case LINESTRING:
+                totalSize += NUMBER_OF_SHAPES_SIZE; // number of points
+                totalSize += numberOfPoints * WKB_POINT_SIZE;
+                break;
+            case POLYGON:
+                totalSize += NUMBER_OF_SHAPES_SIZE; // number of rings
+                totalSize += figures.length * 4 + (numberOfPoints * WKB_POINT_SIZE);
+                break;
+            case MULTIPOINT:
+                totalSize += NUMBER_OF_SHAPES_SIZE; // number of points
+                totalSize += numberOfFigures * WKB_POINT_HEADER_SIZE;
+                totalSize += numberOfPoints * WKB_POINT_SIZE;
+                break;
+            case MULTILINESTRING:
+                totalSize += NUMBER_OF_SHAPES_SIZE; // number of LineStrings
+                totalSize += numberOfFigures * WKB_HEADER_SIZE;
+                totalSize += numberOfPoints * WKB_POINT_SIZE;
+                break;
+            case MULTIPOLYGON:
+                totalSize += NUMBER_OF_SHAPES_SIZE; // number of polygons
+                totalSize += (numberOfShapes - 1) * WKB_HEADER_SIZE;
+                for (int i = 1; i < shapes.length; i++) {
+                    if (i == shapes.length - 1) { // last element
+                        totalSize += LINEAR_RING_HEADER_SIZE * (figures.length - shapes[i].getFigureOffset());
+                    } else {
+                        int nextFigureOffset = shapes[i + 1].getFigureOffset();
+                        totalSize += LINEAR_RING_HEADER_SIZE * (nextFigureOffset - shapes[i].getFigureOffset());
+                    }
+                }
+                totalSize += numberOfPoints * WKB_POINT_SIZE;
+                break;
+            case GEOMETRYCOLLECTION:
+                totalSize += NUMBER_OF_SHAPES_SIZE; // number of shapes
+                int actualNumberOfPoints = numberOfPoints;
+                for (Segment s : segments) {
+                    if (s.getSegmentType() == SEGMENT_FIRST_ARC || s.getSegmentType() == SEGMENT_FIRST_LINE) {
+                        totalSize += WKB_HEADER_SIZE;
+                        actualNumberOfPoints++;
+                    }
+                }
+                int numberOfCompositeCurves = 0;
+                for (Figure f : figures) {
+                    if (f.getFiguresAttribute() == FA_COMPOSITE_CURVE) {
+                        numberOfCompositeCurves++;
+                    }
+                }
+                if (numberOfCompositeCurves > 1) {
+                    actualNumberOfPoints = actualNumberOfPoints - (numberOfCompositeCurves - 1);
+                }
+                if (numberOfSegments > 1) {
+                    actualNumberOfPoints--;
+                }
+                // start from 1
+                for (int i = 1; i < shapes.length; i++) {
+                    if (shapes[i].getOpenGISType() == InternalSpatialDatatype.POINT.getTypeCode()) {
+                        totalSize += WKB_POINT_HEADER_SIZE;
+                    } else if (shapes[i].getOpenGISType() == InternalSpatialDatatype.POLYGON.getTypeCode()) {
+                        if (i == shapes.length - 1) { // last element
+                            totalSize += LINEAR_RING_HEADER_SIZE * (figures.length - shapes[i].getFigureOffset());
+                        } else {
+                            int nextFigureOffset = shapes[i + 1].getFigureOffset();
+                            totalSize += LINEAR_RING_HEADER_SIZE * (nextFigureOffset - shapes[i].getFigureOffset());
+                        }
+                        totalSize += WKB_HEADER_SIZE;
+                    } else if (shapes[i].getOpenGISType() == InternalSpatialDatatype.CURVEPOLYGON.getTypeCode()) {
+                        if (i == shapes.length - 1) { // last element
+                            totalSize += WKB_HEADER_SIZE * (figures.length - shapes[i].getFigureOffset());
+                        } else {
+                            int nextFigureOffset = shapes[i + 1].getFigureOffset();
+                            totalSize += WKB_HEADER_SIZE * (nextFigureOffset - shapes[i].getFigureOffset());
+                        }
+                        totalSize += WKB_HEADER_SIZE;
+                    } else {
+                        totalSize += WKB_HEADER_SIZE;
+                    }
+                }
+                totalSize += actualNumberOfPoints * WKB_POINT_SIZE;
+                break;
+            case CIRCULARSTRING:
+                totalSize += NUMBER_OF_SHAPES_SIZE; // number of points
+                totalSize += numberOfPoints * WKB_POINT_SIZE;
+                break;
+            case COMPOUNDCURVE:
+                totalSize += NUMBER_OF_SHAPES_SIZE; // number of curves
+                actualNumberOfPoints = numberOfPoints;
+                for (Segment s : segments) {
+                    if (s.getSegmentType() == SEGMENT_FIRST_ARC || s.getSegmentType() == SEGMENT_FIRST_LINE) {
+                        totalSize += WKB_HEADER_SIZE;
+                        actualNumberOfPoints++;
+                    }
+                }
+                if (numberOfSegments > 1) {
+                    actualNumberOfPoints--;
+                }
+                totalSize += actualNumberOfPoints * WKB_POINT_SIZE;
+                break;
+            case CURVEPOLYGON:
+                totalSize += NUMBER_OF_SHAPES_SIZE; // number of shapes
+                actualNumberOfPoints = numberOfPoints;
+                for (Segment s : segments) {
+                    if (s.getSegmentType() == SEGMENT_FIRST_ARC || s.getSegmentType() == SEGMENT_FIRST_LINE) {
+                        totalSize += WKB_HEADER_SIZE;
+                        actualNumberOfPoints++;
+                    }
+                }
+                numberOfCompositeCurves = 0;
+                for (Figure f : figures) {
+                    totalSize += WKB_HEADER_SIZE;
+                    if (f.getFiguresAttribute() == FA_COMPOSITE_CURVE) {
+                        numberOfCompositeCurves++;
+                    }
+                }
+                if (numberOfCompositeCurves > 1) {
+                    actualNumberOfPoints = actualNumberOfPoints - (numberOfCompositeCurves - 1);
+                }
+                if (numberOfSegments > 1) {
+                    actualNumberOfPoints--;
+                }
+                totalSize += actualNumberOfPoints * WKB_POINT_SIZE;
+                break;
+            case FULLGLOBE:
+                totalSize = 5; // create a variable for this later?
+                break;
+            default:
+                break;
         }
 
         return totalSize;
@@ -1496,7 +2090,7 @@ abstract class SQLServerSpatialDatatype {
         throw new SQLServerException(strError, null, 0, null);
     }
 
-    protected void throwIllegalWKB() throws SQLServerException {
+    protected void throwIllegalByteArray() throws SQLServerException {
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
         Object[] msgArgs = {JDBCType.VARBINARY};
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
@@ -1511,7 +2105,7 @@ abstract class SQLServerSpatialDatatype {
     }
 
     /**
-     * Helper used for resurcive iteration for constructing GeometryCollection in WKT form.
+     * Helper used for resursive iteration for constructing GeometryCollection in WKT form.
      * 
      * @param shapeEndIndex
      *        .
@@ -1796,7 +2390,7 @@ abstract class SQLServerSpatialDatatype {
 
     private void checkNegSize(int num) throws SQLServerException {
         if (num < 0) {
-            throwIllegalWKB();
+            throwIllegalByteArray();
         }
     }
 
@@ -1819,7 +2413,7 @@ abstract class SQLServerSpatialDatatype {
 
     private void checkBuffer(int i) throws SQLServerException {
         if (buffer.remaining() < i) {
-            throwIllegalWKB();
+            throwIllegalByteArray();
         }
     }
 

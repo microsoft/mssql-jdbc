@@ -38,28 +38,59 @@ public class Geography extends SQLServerSpatialDatatype {
 
         parseWKTForSerialization(this, currentWktPos, -1, false);
 
-        serializeToWkb(false, this);
+        serializeToClr(false, this);
         isNull = false;
     }
 
     /**
-     * Private constructor used for creating a Geography object from WKB.
+     * Private constructor used for creating a Geography object from internal SQL Server format.
      * 
-     * @param wkb
-     *        Well-Known Binary (WKB) provided by the user.
+     * @param clr
+     *        Internal SQL Server format provided by the user.
      * @throws SQLServerException
      *         if an exception occurs
      */
-    protected Geography(byte[] wkb) throws SQLServerException {
+    protected Geography(byte[] clr) throws SQLServerException {
+        if (null == clr || clr.length <= 0) {
+            throwIllegalByteArray();
+        }
+
+        this.clr = clr;
+        buffer = ByteBuffer.wrap(clr);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+
+        parseClr(this);
+
+        WKTsb = new StringBuffer();
+        WKTsbNoZM = new StringBuffer();
+
+        constructWKT(this, internalType, numberOfPoints, numberOfFigures, numberOfSegments, numberOfShapes);
+
+        wkt = WKTsb.toString();
+        wktNoZM = WKTsbNoZM.toString();
+        isNull = false;
+    }
+    
+    /**
+     * Private constructor used for creating a Geography object from WKB.
+     * 
+     * @param wkb
+     *        Well-Known Binary provided by the user.
+     * @param isWKB
+     *        indicates if the byte array is WKB.
+     * @throws SQLServerException
+     *         if an exception occurs
+     */
+    protected Geography(byte[] wkb, boolean isWKB) throws SQLServerException {
         if (null == wkb || wkb.length <= 0) {
-            throwIllegalWKB();
+            throwIllegalByteArray();
         }
 
         this.wkb = wkb;
         buffer = ByteBuffer.wrap(wkb);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-        parseWkb(this);
+        parseClr(this);
 
         WKTsb = new StringBuffer();
         WKTsbNoZM = new StringBuffer();
@@ -98,20 +129,20 @@ public class Geography extends SQLServerSpatialDatatype {
      *         if an exception occurs
      */
     public static Geography STGeomFromWKB(byte[] wkb) throws SQLServerException {
-        return new Geography(wkb);
+        return new Geography(wkb, true);
     }
 
     /**
      * Constructor for a Geography instance from an internal SQL Server format for spatial data.
      * 
-     * @param wkb
-     *        Well-Known Binary (WKB) provided by the user.
-     * @return Geography Geography instance created from WKB
+     * @param clr
+     *        Internal SQL Server format provided by the user.
+     * @return Geography Geography instance created from clr
      * @throws SQLServerException
      *         if an exception occurs
      */
-    public static Geography deserialize(byte[] wkb) throws SQLServerException {
-        return new Geography(wkb);
+    public static Geography deserialize(byte[] clr) throws SQLServerException {
+        return new Geography(clr);
     }
 
     /**
@@ -156,10 +187,10 @@ public class Geography extends SQLServerSpatialDatatype {
      */
     public String STAsText() throws SQLServerException {
         if (null == wktNoZM) {
-            buffer = ByteBuffer.wrap(wkb);
+            buffer = ByteBuffer.wrap(clr);
             buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-            parseWkb(this);
+            parseClr(this);
 
             WKTsb = new StringBuffer();
             WKTsbNoZM = new StringBuffer();
@@ -174,12 +205,14 @@ public class Geography extends SQLServerSpatialDatatype {
      * value will not contain any Z or M values carried by the instance.
      * 
      * @return byte array representation of the Geography object.
+     * @throws SQLServerException
+     *         if an exception occurs
      */
-    public byte[] STAsBinary() {
-        if (null == wkbNoZM) {
-            serializeToWkb(true, this);
+    public byte[] STAsBinary() throws SQLServerException {
+        if (null == wkb) {
+            serializeToWkb(this);
         }
-        return wkbNoZM;
+        return wkb;
     }
 
     /**
@@ -188,7 +221,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * @return byte array representation of the Geography object.
      */
     public byte[] serialize() {
-        return wkb;
+        return clr;
     }
 
     /**
