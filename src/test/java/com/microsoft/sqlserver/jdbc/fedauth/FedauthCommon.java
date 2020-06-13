@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -87,6 +88,9 @@ public class FedauthCommon extends AbstractTest {
         spn = getConfiguredProperty("spn");
         stsurl = getConfiguredProperty("stsurl");
         fedauthClientId = getConfiguredProperty("fedauthClientId");
+        
+        // reset logging to avoid server logs
+        LogManager.getLogManager().reset();
     }
 
     /**

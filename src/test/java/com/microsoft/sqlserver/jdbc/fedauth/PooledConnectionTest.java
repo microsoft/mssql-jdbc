@@ -41,12 +41,6 @@ public class PooledConnectionTest extends FedauthCommon {
     static String charTable = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_PooledConnection")));
 
-    @BeforeAll
-    public static void setUp() throws Exception {
-        // reset logging to avoid server logs
-        LogManager.getLogManager().reset();
-    }
-
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnect() throws SQLException {
         testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60); // suspend 5 mins
