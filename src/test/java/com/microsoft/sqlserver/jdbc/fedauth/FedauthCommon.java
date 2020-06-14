@@ -59,6 +59,7 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_NOT_AUTH_AND_USER_PASSWORD = TestResource.getResource("R_notAuthandUserPassword");
     static final String ERR_MSG_SIGNIN_ADD = TestResource.getResource("R_toSigninAdd");
     static final String ERR_MSG_RESULTSET_IS_CLOSED = TestResource.getResource("R_resultset_IsClosed");
+    static final String ERR_MSG_SOCKET_CLOSED = TestResource.getResource("R_socketClosed");
 
     @BeforeAll
     public static void getConfigs() throws Exception {

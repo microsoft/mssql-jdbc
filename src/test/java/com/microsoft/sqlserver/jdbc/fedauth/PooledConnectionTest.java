@@ -174,7 +174,8 @@ public class PooledConnectionTest extends FedauthCommon {
                                     e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
                                             || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
                                             || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED));
+                                            || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED)
+                                            || e.getMessage().contains(ERR_MSG_SOCKET_CLOSED));
                         }
                     }
                 }.start();
@@ -194,7 +195,8 @@ public class PooledConnectionTest extends FedauthCommon {
                                     e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
                                             || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
                                             || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED));
+                                            || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED)
+                                            || e.getMessage().contains(ERR_MSG_SOCKET_CLOSED));
                         }
                     }
                 }.start();
@@ -214,7 +216,8 @@ public class PooledConnectionTest extends FedauthCommon {
                                     e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
                                             || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
                                             || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED));
+                                            || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED)
+                                            || e.getMessage().contains(ERR_MSG_SOCKET_CLOSED));
                         }
                     }
                 }.start();
