@@ -21,7 +21,7 @@ import java.sql.Statement;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -70,11 +70,6 @@ public class FedauthTest extends FedauthCommon {
                 return cf.generateCertificate(is);
             }
         }
-    }
-
-    @BeforeAll
-    public static void setupTests() throws Throwable {
-        getFedauthInfo();
     }
 
     @Test

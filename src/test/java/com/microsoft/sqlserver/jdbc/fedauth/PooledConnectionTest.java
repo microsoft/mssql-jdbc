@@ -15,12 +15,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.LogManager;
 
 import javax.sql.PooledConnection;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -44,6 +42,8 @@ public class PooledConnectionTest extends FedauthCommon {
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnect() throws SQLException {
         testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60); // suspend 5 mins
+
+        // get another token
         getFedauthInfo();
 
         // suspend until access token expires
@@ -119,7 +119,6 @@ public class PooledConnectionTest extends FedauthCommon {
 
     @Test
     public void testPooledConnectionMultiThread() throws SQLException {
-        getFedauthInfo();
         testPooledConnectionMultiThread(secondsBeforeExpiration);
     }
 
@@ -238,8 +237,6 @@ public class PooledConnectionTest extends FedauthCommon {
     // suspend until access token expires
     @Test
     public void testPooledConnectionWithAccessToken() throws SQLException {
-        getFedauthInfo();
-
         try {
 
             SQLServerConnectionPoolDataSource cpds = new SQLServerConnectionPoolDataSource();

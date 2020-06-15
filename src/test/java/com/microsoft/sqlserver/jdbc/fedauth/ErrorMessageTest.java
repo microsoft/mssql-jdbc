@@ -12,7 +12,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -29,11 +29,6 @@ import com.microsoft.sqlserver.testframework.Constants;
 public class ErrorMessageTest extends FedauthCommon {
 
     String userName = "abc" + azureUserName;
-
-    @BeforeAll
-    public static void setupTests() throws Throwable {
-        FedauthCommon.getFedauthInfo();
-    }
 
     @Test
     public void testWrongAccessTokenWithConnectionStringUserName() throws SQLException {

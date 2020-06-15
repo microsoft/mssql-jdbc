@@ -32,8 +32,6 @@ public class ConcurrentLoginTest extends FedauthCommon {
         Random rand = new Random();
         int numberOfThreadsForEachType = rand.nextInt(15) + 1; // 1 to 15
 
-        FedauthCommon.getFedauthInfo();
-
         for (int i = 0; i < numberOfThreadsForEachType; i++) {
             // Access token based authentication
             new Thread() {

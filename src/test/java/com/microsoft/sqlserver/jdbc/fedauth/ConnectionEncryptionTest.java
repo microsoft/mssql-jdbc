@@ -34,11 +34,6 @@ public class ConnectionEncryptionTest extends FedauthCommon {
     static String charTable = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_ConnectionEncryption")));
 
-    @BeforeAll
-    public static void setupTests() throws Throwable {
-        FedauthCommon.getFedauthInfo();
-    }
-
     @Test
     public void testCorrectCertificate() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="

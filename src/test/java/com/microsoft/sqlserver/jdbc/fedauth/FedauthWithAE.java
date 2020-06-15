@@ -60,9 +60,7 @@ public class FedauthWithAE extends FedauthCommon {
     static SQLServerDataSource ds = new SQLServerDataSource();
 
     @BeforeAll
-    public static void setupTests() throws Throwable {
-        getFedauthInfo();
-
+    public static void setupTests()  {
         ds.setServerName(azureServer);
         ds.setDatabaseName(azureDatabase);
         ds.setUser(azureUserName);

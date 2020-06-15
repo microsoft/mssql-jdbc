@@ -40,7 +40,6 @@ public class ConnectionSuspensionTest extends FedauthCommon {
 
     @Test
     public void testAccessTokenExpiredThenCreateNewStatement() throws SQLException {
-        getFedauthInfo();
         long secondsPassed = 0;
         long start = System.currentTimeMillis();
         try {
@@ -107,7 +106,6 @@ public class ConnectionSuspensionTest extends FedauthCommon {
 
     @Test
     public void testAccessTokenExpiredThenExecuteUsingSameStatement() throws SQLException {
-        getFedauthInfo();
         long secondsPassed = 0;
         long start = System.currentTimeMillis();
         try {
