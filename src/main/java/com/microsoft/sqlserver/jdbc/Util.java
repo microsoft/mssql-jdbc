@@ -1023,6 +1023,10 @@ final class Util {
         }
         return result.toString();
     }
+
+    static String zeroOneToYesNo(int i) {
+        return 0 == i ? "NO" : "YES";
+    }
 }
 
 
@@ -1081,8 +1085,8 @@ final class SQLIdentifier {
             fullName.append("[").append(databaseName).append("].");
         else
             assert 0 == serverName.length();
-
         if (schemaName.length() > 0)
+
             fullName.append("[").append(schemaName).append("].");
         else if (databaseName.length() > 0)
             fullName.append('.');
