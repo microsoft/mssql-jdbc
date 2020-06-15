@@ -248,7 +248,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testADPasswordUnregisteredUserWithConnectionStringUser() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user="
-                + userName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPasswor";
+                + userName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (SQLServerException e) {

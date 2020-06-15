@@ -196,5 +196,5 @@ public final class TestResource extends ListResourceBundle {
             {"R_notAuthandIS", "Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."},
             {"R_notAuthandUserPassword",
                     "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."},
-            {"R_resultset_IsClosed", "The result set is closed."}, {"R_socketClosed", "Socket closed."},};
+            {"R_resultset_IsClosed", "The result set is closed."}, {"R_socketClosed", "Socket closed"},};
 }
