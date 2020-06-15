@@ -37,7 +37,6 @@ public class FedauthCommon extends AbstractTest {
     static String fedauthClientId = null;
     static long secondsBeforeExpiration = -1;
     static String accessToken = null;
-    static String hostNameInCertificate = null;
     static String[] fedauthJksPaths = null;
     static String[] fedauthJksPathsLinux = null;
     static String[] fedauthJavaKeyAliases = null;
@@ -89,8 +88,6 @@ public class FedauthCommon extends AbstractTest {
         enableADIntegrated = !System.getProperty("os.name").startsWith(
                 "Windows") ? false
                            : getConfiguredProperty("enableADIntegrated", "").equalsIgnoreCase("true") ? true : false;
-
-        hostNameInCertificate = getConfiguredProperty("hostNameInCertificate");
 
         spn = getConfiguredProperty("spn");
         stsurl = getConfiguredProperty("stsurl");

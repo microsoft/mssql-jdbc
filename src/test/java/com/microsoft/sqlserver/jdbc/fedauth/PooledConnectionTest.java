@@ -58,14 +58,12 @@ public class PooledConnectionTest extends FedauthCommon {
                 cpds.setServerName(azureServer);
                 cpds.setDatabaseName(azureDatabase);
                 cpds.setAuthentication("ActiveDirectoryIntegrated");
-                cpds.setHostNameInCertificate(hostNameInCertificate);
             } else {
                 cpds.setServerName(azureServer);
                 cpds.setDatabaseName(azureDatabase);
                 cpds.setUser(azureUserName);
                 cpds.setPassword(azurePassword);
                 cpds.setAuthentication("ActiveDirectoryPassword");
-                cpds.setHostNameInCertificate(hostNameInCertificate);
             }
 
             // create pooled connection
@@ -130,14 +128,12 @@ public class PooledConnectionTest extends FedauthCommon {
                 cpds.setServerName(azureServer);
                 cpds.setDatabaseName(azureDatabase);
                 cpds.setAuthentication("ActiveDirectoryIntegrated");
-                cpds.setHostNameInCertificate(hostNameInCertificate);
             } else {
                 cpds.setServerName(azureServer);
                 cpds.setDatabaseName(azureDatabase);
                 cpds.setUser(azureUserName);
                 cpds.setPassword(azurePassword);
                 cpds.setAuthentication("ActiveDirectoryPassword");
-                cpds.setHostNameInCertificate(hostNameInCertificate);
             }
 
             // create pooled connection
@@ -244,7 +240,6 @@ public class PooledConnectionTest extends FedauthCommon {
             cpds.setServerName(azureServer);
             cpds.setDatabaseName(azureDatabase);
             cpds.setAccessToken(accessToken);
-            cpds.setHostNameInCertificate(hostNameInCertificate);
 
             // create pooled connection
             final PooledConnection pc = cpds.getPooledConnection();

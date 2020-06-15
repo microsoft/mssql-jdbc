@@ -12,7 +12,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -32,8 +31,7 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testWrongAccessTokenWithConnectionStringUserName() throws SQLException {
-        String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";"
-                + "HostNameInCertificate=" + hostNameInCertificate;
+        String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase;
         try {
             Properties info = new Properties();
             info.setProperty("accesstoken", "test");
@@ -55,7 +53,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
             ds.setAccessToken("test");
-            ds.setHostNameInCertificate(hostNameInCertificate);
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -70,7 +67,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testCorrectAccessTokenPassedInConnectionString() {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "accesstoken="
-                + accessToken + ";HostNameInCertificate=" + hostNameInCertificate;
+                + accessToken;
 
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -142,8 +139,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testSQLPasswordWithAzureDBWithConnectionStringUserName() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";password=" + azurePassword + ";"
-                + "Authentication=SqlPassword;HostNameInCertificate=" + hostNameInCertificate;
+                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=SqlPassword";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -165,7 +161,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setUser(azureUserName);
             ds.setPassword(azurePassword);
             ds.setAuthentication("SqlPassword");
-            ds.setHostNameInCertificate(hostNameInCertificate);
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -182,8 +177,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testSQLPasswordWithAzureDBWithConnectionStringUser() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user="
-                + azureUserName + ";password=" + azurePassword + ";"
-                + "Authentication=SqlPassword;HostNameInCertificate=" + hostNameInCertificate;
+                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=SqlPassword";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -218,8 +212,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testADPasswordUnregisteredUserWithConnectionStringUserName() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + userName + ";password=" + azurePassword + ";"
-                + "Authentication=ActiveDirectoryPassword;HostNameInCertificate=" + hostNameInCertificate;
+                + userName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (SQLServerException e) {
@@ -240,7 +233,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setUser(userName);
             ds.setPassword(azurePassword);
             ds.setAuthentication("ActiveDirectoryPassword");
-            ds.setHostNameInCertificate(hostNameInCertificate);
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -256,8 +248,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testADPasswordUnregisteredUserWithConnectionStringUser() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user="
-                + userName + ";password=" + azurePassword + ";"
-                + "Authentication=ActiveDirectoryPassword;HostNameInCertificate=" + hostNameInCertificate;
+                + userName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPasswor";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (SQLServerException e) {
@@ -406,8 +397,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testADPasswordWrongPasswordWithConnectionStringUserName() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";password=WrongPassword;"
-                + "Authentication=ActiveDirectoryPassword;HostNameInCertificate=" + hostNameInCertificate;
+                + azureUserName + ";password=WrongPassword;" + "Authentication=ActiveDirectoryPassword";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -432,7 +422,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setUser(azureUserName);
             ds.setPassword("WrongPassword");
             ds.setAuthentication("ActiveDirectoryPassword");
-            ds.setHostNameInCertificate(hostNameInCertificate);
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -452,8 +441,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testADPasswordWrongPasswordWithConnectionStringUser() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user="
-                + azureUserName + ";password=WrongPassword;"
-                + "Authentication=ActiveDirectoryPassword;HostNameInCertificate=" + hostNameInCertificate;
+                + azureUserName + ";password=WrongPassword;" + "Authentication=ActiveDirectoryPassword";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -478,7 +466,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setUser(azureUserName);
             ds.setPassword(azurePassword);
             ds.setAuthentication("ActiveDirectoryPassword");
-            ds.setHostNameInCertificate(hostNameInCertificate);
             ds.setIntegratedSecurity(true);
 
             try (Connection connection = ds.getConnection()) {}
@@ -495,8 +482,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testSetAuthenticationWithIntegratedSecurityTrueWithConnectionStringUserName() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";password=" + azurePassword + ";"
-                + "Authentication=ActiveDirectoryPassword;HostNameInCertificate=" + hostNameInCertificate
+                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword"
                 + ";IntegratedSecurity=true;";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -512,8 +498,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testSetAuthenticationWithIntegratedSecurityTrueWithConnectionStringUser() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user="
-                + azureUserName + ";password=" + azurePassword + ";"
-                + "Authentication=ActiveDirectoryPassword;HostNameInCertificate=" + hostNameInCertificate
+                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword"
                 + ";IntegratedSecurity=true;";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -535,7 +520,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setUser(azureUserName);
             ds.setPassword(azurePassword);
             ds.setAuthentication("ActiveDirectoryIntegrated");
-            ds.setHostNameInCertificate(hostNameInCertificate);
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -550,8 +534,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testADIntegratedWithUserAndPasswordWithConnectionStringUserName() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";password=" + azurePassword + ";"
-                + "Authentication=ActiveDirectoryIntegrated;HostNameInCertificate=" + hostNameInCertificate;
+                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryIntegrated";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -566,8 +549,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testADIntegratedWithUserAndPasswordWithConnectionStringUser() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user="
-                + azureUserName + ";password=" + azurePassword + ";"
-                + "Authentication=ActiveDirectoryIntegrated;HostNameInCertificate=" + hostNameInCertificate;
+                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryIntegrated";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -587,7 +569,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setDatabaseName(azureDatabase);
             ds.setAuthentication("ActiveDirectoryIntegrated");
             ds.setAccessToken(accessToken);
-            ds.setHostNameInCertificate(hostNameInCertificate);
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -608,7 +589,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setDatabaseName(azureDatabase);
             ds.setIntegratedSecurity(true);
             ds.setAccessToken(accessToken);
-            ds.setHostNameInCertificate(hostNameInCertificate);
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -631,7 +611,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setAccessToken(accessToken);
             ds.setUser(azureUserName);
             ds.setPassword(azurePassword);
-            ds.setHostNameInCertificate(hostNameInCertificate);
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -647,7 +626,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testAccessTokenWithUserAndPasswordWithConnectionStringUserName() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";password=" + azurePassword + ";" + "HostNameInCertificate=" + hostNameInCertificate;
+                + azureUserName + ";password=" + azurePassword;
         Properties info = new Properties();
         info.setProperty("accesstoken", accessToken);
 
@@ -665,7 +644,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testAccessTokenWithUserAndPasswordWithConnectionStringUser() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user="
-                + azureUserName + ";password=" + azurePassword + ";" + "HostNameInCertificate=" + hostNameInCertificate;
+                + azureUserName + ";password=" + azurePassword;
         Properties info = new Properties();
         info.setProperty("accesstoken", accessToken);
 
@@ -688,7 +667,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
             ds.setAccessToken(accessToken);
-            ds.setHostNameInCertificate(hostNameInCertificate);
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -708,7 +686,6 @@ public class ErrorMessageTest extends FedauthCommon {
         ds.setDatabaseName(azureDatabase);
         ds.setPassword(azurePassword);
         ds.setAuthentication("ActiveDirectoryPassword");
-        ds.setHostNameInCertificate(hostNameInCertificate);
 
         try {
             try (Connection connection = ds.getConnection()) {}
@@ -731,7 +708,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setDatabaseName(azureDatabase);
             ds.setUser(azureUserName);
             ds.setAuthentication("ActiveDirectoryPassword");
-            ds.setHostNameInCertificate(hostNameInCertificate);
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -746,8 +722,8 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testADPasswordWithoutPasswordWithConnectionStringUserName() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";" + "Authentication=ActiveDirectoryPassword;HostNameInCertificate="
-                + hostNameInCertificate;
+                + azureUserName + ";" + "Authentication=ActiveDirectoryPassword";
+
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -762,8 +738,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testADPasswordWithoutPasswordWithConnectionStringUser() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user="
-                + azureUserName + ";" + "Authentication=ActiveDirectoryPassword;HostNameInCertificate="
-                + hostNameInCertificate;
+                + azureUserName + ";" + "Authentication=ActiveDirectoryPassword";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -783,7 +758,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setDatabaseName(azureDatabase);
             ds.setPassword(azurePassword);
             ds.setAuthentication("SqlPassword");
-            ds.setHostNameInCertificate(hostNameInCertificate);
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -804,7 +778,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setDatabaseName(azureDatabase);
             ds.setUser(azureUserName);
             ds.setAuthentication("SqlPassword");
-            ds.setHostNameInCertificate(hostNameInCertificate);
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -820,7 +793,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testSqlPasswordWithoutPasswordWithConnectionStringUserName() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";" + "Authentication=SqlPassword;HostNameInCertificate=" + hostNameInCertificate;
+                + azureUserName + ";" + "Authentication=SqlPassword";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -835,7 +808,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testSqlPasswordWithoutPasswordWithConnectionStringUser() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user="
-                + azureUserName + ";" + "Authentication=SqlPassword;HostNameInCertificate=" + hostNameInCertificate;
+                + azureUserName + ";" + "Authentication=SqlPassword";
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -857,7 +830,6 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setUser(azureUserName);
             ds.setPassword(azurePassword);
             ds.setAuthentication("ActiveDirectoryPass");
-            ds.setHostNameInCertificate(hostNameInCertificate);
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);

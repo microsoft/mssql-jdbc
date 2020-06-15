@@ -49,14 +49,12 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 ds.setServerName(azureServer);
                 ds.setDatabaseName(azureDatabase);
                 ds.setAuthentication("ActiveDirectoryIntegrated");
-                ds.setHostNameInCertificate(hostNameInCertificate);
             } else {
                 ds.setServerName(azureServer);
                 ds.setDatabaseName(azureDatabase);
                 ds.setUser(azureUserName);
                 ds.setPassword(azurePassword);
                 ds.setAuthentication("ActiveDirectoryPassword");
-                ds.setHostNameInCertificate(hostNameInCertificate);
             }
 
             try (Connection connection = (SQLServerConnection) ds.getConnection();
@@ -116,14 +114,12 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 ds.setServerName(azureServer);
                 ds.setDatabaseName(azureDatabase);
                 ds.setAuthentication("ActiveDirectoryIntegrated");
-                ds.setHostNameInCertificate(hostNameInCertificate);
             } else {
                 ds.setServerName(azureServer);
                 ds.setDatabaseName(azureDatabase);
                 ds.setUser(azureUserName);
                 ds.setPassword(azurePassword);
                 ds.setAuthentication("ActiveDirectoryPassword");
-                ds.setHostNameInCertificate(hostNameInCertificate);
             }
 
             try (Connection connection = ds.getConnection(); Statement stmt = connection.createStatement();

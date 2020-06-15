@@ -14,7 +14,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -37,8 +36,7 @@ public class ConnectionEncryptionTest extends FedauthCommon {
     @Test
     public void testCorrectCertificate() throws SQLException {
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword;"
-                + "HostNameInCertificate=" + hostNameInCertificate;
+                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
 
         try (Connection connection = DriverManager.getConnection(connectionUrl);
                 Statement stmt = connection.createStatement();

@@ -40,7 +40,6 @@ public class ConcurrentLoginTest extends FedauthCommon {
                         SQLServerDataSource ds = new SQLServerDataSource();
                         ds.setServerName(azureServer);
                         ds.setDatabaseName(azureDatabase);
-                        ds.setHostNameInCertificate(hostNameInCertificate);
                         ds.setAccessToken(accessToken);
 
                         try (Connection connection = ds.getConnection(); Statement st = connection.createStatement();
@@ -65,7 +64,6 @@ public class ConcurrentLoginTest extends FedauthCommon {
                         ds.setUser(azureUserName);
                         ds.setPassword(azurePassword);
                         ds.setAuthentication("ActiveDirectoryPassword");
-                        ds.setHostNameInCertificate(hostNameInCertificate);
 
                         try (Connection connection = ds.getConnection(); Statement st = connection.createStatement();
                                 ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
@@ -88,7 +86,6 @@ public class ConcurrentLoginTest extends FedauthCommon {
                             ds.setServerName(azureServer);
                             ds.setDatabaseName(azureDatabase);
                             ds.setAuthentication("ActiveDirectoryIntegrated");
-                            ds.setHostNameInCertificate(hostNameInCertificate);
 
                             try (Connection connection = ds.getConnection();
                                     Statement st = connection.createStatement();

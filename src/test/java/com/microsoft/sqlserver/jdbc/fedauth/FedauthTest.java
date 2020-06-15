@@ -21,7 +21,6 @@ import java.sql.Statement;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -76,8 +75,7 @@ public class FedauthTest extends FedauthCommon {
     public void testADPasswordAuthentication() throws Exception {
         // connection string with userName
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";password=" + azurePassword + ";"
-                + "Authentication=ActiveDirectoryPassword;HostNameInCertificate=" + hostNameInCertificate;
+                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
 
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureUserName);
@@ -88,8 +86,7 @@ public class FedauthTest extends FedauthCommon {
 
         // connection string with user
         connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user=" + azureUserName
-                + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword;HostNameInCertificate="
-                + hostNameInCertificate;
+                + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
 
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureUserName);
@@ -108,7 +105,6 @@ public class FedauthTest extends FedauthCommon {
         ds.setUser(azureUserName);
         ds.setPassword(azurePassword);
         ds.setAuthentication("ActiveDirectoryPassword");
-        ds.setHostNameInCertificate(hostNameInCertificate);
 
         try (Connection conn = ds.getConnection()) {
             testUserName(conn, azureUserName);
@@ -123,11 +119,9 @@ public class FedauthTest extends FedauthCommon {
         org.junit.Assume.assumeTrue(null != adIntegratedAzureServer && null != adIntegratedAzureDatabase);
 
         SQLServerDataSource ds = new SQLServerDataSource();
-
         ds.setServerName(adIntegratedAzureServer);
         ds.setDatabaseName(adIntegratedAzureDatabase);
         ds.setAuthentication("ActiveDirectoryIntegrated");
-        ds.setHostNameInCertificate(hostNameInCertificate);
 
         try (Connection conn = ds.getConnection()) {
             testUserName(conn, adIntegratedAzureUserName);
@@ -141,8 +135,7 @@ public class FedauthTest extends FedauthCommon {
     public void testGroupAuthentication() throws SQLException {
         // connection string with userName
         String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureGroupUserName + ";password=" + azurePassword + ";"
-                + "Authentication=ActiveDirectoryPassword;HostNameInCertificate=" + hostNameInCertificate;
+                + azureGroupUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
 
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureGroupUserName);
@@ -152,8 +145,7 @@ public class FedauthTest extends FedauthCommon {
 
         // connection string with user
         connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user="
-                + azureGroupUserName + ";password=" + azurePassword + ";"
-                + "Authentication=ActiveDirectoryPassword;HostNameInCertificate=" + hostNameInCertificate;
+                + azureGroupUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
 
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureGroupUserName);
@@ -177,7 +169,6 @@ public class FedauthTest extends FedauthCommon {
         ds.setUser(azureGroupUserName);
         ds.setPassword(azurePassword);
         ds.setAuthentication("ActiveDirectoryPassword");
-        ds.setHostNameInCertificate(hostNameInCertificate);
 
         try (Connection conn = ds.getConnection()) {
             testUserName(conn, azureGroupUserName);
@@ -247,8 +238,7 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testCorrectAccessToken() throws SQLException {
-        String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";"
-                + "HostNameInCertificate=" + hostNameInCertificate;
+        String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase;
         Properties info = new Properties();
         info.setProperty("accesstoken", accessToken);
 
@@ -266,7 +256,6 @@ public class FedauthTest extends FedauthCommon {
         ds.setServerName(azureServer);
         ds.setDatabaseName(azureDatabase);
         ds.setAccessToken(accessToken);
-        ds.setHostNameInCertificate(hostNameInCertificate);
 
         try (Connection conn = ds.getConnection()) {} catch (Exception e) {
             fail(e.getMessage());
