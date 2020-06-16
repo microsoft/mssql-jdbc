@@ -182,13 +182,16 @@ public class ErrorMessageTest extends FedauthCommon {
         }
     }
 
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
     @Test
     public void testSQLPasswordWithUntrustedSqlDB() throws SQLException {
         try {
             java.util.Properties info = new Properties();
             info.put("Authentication", "SqlPassword");
 
-            try (Connection connection = DriverManager.getConnection(connectionUrl, info)) {}
+            try (Connection connection = DriverManager.getConnection(
+                    connectionUrl + ";" + "user=" + azureUserName + ";password=" + azurePassword, info)) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {

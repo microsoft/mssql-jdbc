@@ -83,6 +83,12 @@ public class FedauthCommon extends AbstractTest {
         spn = getConfiguredProperty("spn");
         stsurl = getConfiguredProperty("stsurl");
         fedauthClientId = getConfiguredProperty("fedauthClientId");
+        
+        System.out.println("azureServer="+azureServer);
+        System.out.println("azureDatabase="+azureDatabase);
+        System.out.println("azureUserName="+azureUserName);
+        System.out.println("azurePassword="+azurePassword);
+        System.out.println("azureGroupUserName="+azureGroupUserName);
 
         // reset logging to avoid server logs
         LogManager.getLogManager().reset();
