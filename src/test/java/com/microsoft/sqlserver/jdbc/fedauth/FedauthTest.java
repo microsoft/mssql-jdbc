@@ -245,11 +245,14 @@ public class FedauthTest extends FedauthCommon {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
             if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                ds.setServerName(azureServer);
+                ds.setDatabaseName(azureDatabase);
                 ds.setUser(azureUserName);
                 ds.setPassword(azurePassword);
+            } else {
+                ds.setServerName(azureServer);
+                ds.setDatabaseName(azureDatabase);
             }
-            ds.setServerName(azureServer);
-            ds.setDatabaseName(azureDatabase);
             ds.setAuthentication(authentication);
             ds.setEncrypt(encrypt);
             ds.setTrustServerCertificate(trustServerCertificate);
@@ -273,11 +276,15 @@ public class FedauthTest extends FedauthCommon {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
             if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                ds.setServerName(azureServer);
+                ds.setDatabaseName(azureDatabase);
                 ds.setUser(azureUserName);
                 ds.setPassword("WrongPassword");
+            } else {
+                ds.setServerName(azureServer);
+                ds.setDatabaseName(azureDatabase);
             }
-            ds.setServerName(azureServer);
-            ds.setDatabaseName(azureDatabase);
+
             ds.setAuthentication(authentication);
             ds.setEncrypt(encrypt);
             ds.setTrustServerCertificate(trustServerCertificate);

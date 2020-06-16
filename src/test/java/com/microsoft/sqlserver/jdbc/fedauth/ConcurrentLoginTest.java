@@ -89,7 +89,7 @@ public class ConcurrentLoginTest extends FedauthCommon {
                         try (Connection connection = ds.getConnection(); Statement st = connection.createStatement();
                                 ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                             if (rs.next()) {
-                                assertTrue(azureUserName.equals(rs.getString(1)));
+                                assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
                             }
                         }
                     } catch (SQLException e) {
