@@ -78,28 +78,25 @@ public class ConcurrentLoginTest extends FedauthCommon {
             }.start();
 
             // active directory integrated
-            if (enableADIntegrated) {
-                new Thread() {
-                    public void run() {
-                        try {
-                            SQLServerDataSource ds = new SQLServerDataSource();
-                            ds.setServerName(azureServer);
-                            ds.setDatabaseName(azureDatabase);
-                            ds.setAuthentication("ActiveDirectoryIntegrated");
+            new Thread() {
+                public void run() {
+                    try {
+                        SQLServerDataSource ds = new SQLServerDataSource();
+                        ds.setServerName(azureServer);
+                        ds.setDatabaseName(azureDatabase);
+                        ds.setAuthentication("ActiveDirectoryIntegrated");
 
-                            try (Connection connection = ds.getConnection();
-                                    Statement st = connection.createStatement();
-                                    ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
-                                if (rs.next()) {
-                                    assertTrue(azureUserName.equals(rs.getString(1)));
-                                }
+                        try (Connection connection = ds.getConnection(); Statement st = connection.createStatement();
+                                ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
+                            if (rs.next()) {
+                                assertTrue(azureUserName.equals(rs.getString(1)));
                             }
-                        } catch (SQLException e) {
-                            fail(e.getMessage());
                         }
+                    } catch (SQLException e) {
+                        fail(e.getMessage());
                     }
-                }.start();
-            }
+                }
+            }.start();
         }
 
         // sleep in order to catch exception from other threads if tests fail.

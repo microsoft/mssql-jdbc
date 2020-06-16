@@ -73,21 +73,15 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testADPasswordAuthentication() throws Exception {
-        // connection string with userName
-        String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
-
-        try (Connection conn = DriverManager.getConnection(connectionUrl)) {
+        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr)) {
             testUserName(conn, azureUserName);
             testCharTable(conn);
         } catch (Exception e) {
             fail(e.getMessage());
         }
 
-        // connection string with user
-        connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user=" + azureUserName
-                + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
-
+        // connection string with userName
+        String connectionUrl = TestUtils.removeProperty(adPasswordConnectionStr, "user") + ";userName=" + azureUserName;
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureUserName);
             testCharTable(conn);
@@ -116,15 +110,12 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testADIntegratedAuthenticationDS() throws Exception {
-        org.junit.Assume.assumeTrue(null != adIntegratedAzureServer && null != adIntegratedAzureDatabase);
-
         SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setServerName(adIntegratedAzureServer);
-        ds.setDatabaseName(adIntegratedAzureDatabase);
+        ds.setServerName(azureServer);
+        ds.setDatabaseName(azureDatabase);
         ds.setAuthentication("ActiveDirectoryIntegrated");
 
         try (Connection conn = ds.getConnection()) {
-            testUserName(conn, adIntegratedAzureUserName);
             testCharTable(conn);
         } catch (Exception e) {
             fail(e.getMessage());
@@ -134,9 +125,8 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testGroupAuthentication() throws SQLException {
         // connection string with userName
-        String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureGroupUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
-
+        String connectionUrl = TestUtils.removeProperty(adPasswordConnectionStr, "user") + ";userName="
+                + azureGroupUserName;
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureGroupUserName);
         } catch (Exception e) {
@@ -144,15 +134,7 @@ public class FedauthTest extends FedauthCommon {
         }
 
         // connection string with user
-        connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "user="
-                + azureGroupUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
-
-        try (Connection conn = DriverManager.getConnection(connectionUrl)) {
-            testUserName(conn, azureGroupUserName);
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-
+        connectionUrl = TestUtils.removeProperty(adPasswordConnectionStr, "user") + ";user" + azureUserName;
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureGroupUserName);
         } catch (Exception e) {
@@ -163,7 +145,6 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testGroupAuthenticationDS() throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
-
         ds.setServerName(azureServer);
         ds.setDatabaseName(azureDatabase);
         ds.setUser(azureGroupUserName);
@@ -193,7 +174,6 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testNotValidActiveDirectoryIntegrated() throws SQLException {
         org.junit.Assume.assumeTrue(isWindows);
-        org.junit.Assume.assumeTrue(null != adIntegratedAzureServer && null != adIntegratedAzureDatabase);
 
         testNotValid("ActiveDirectoryIntegrated", false, true);
         testNotValid("ActiveDirectoryIntegrated", true, true);
@@ -224,7 +204,6 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testValidActiveDirectoryIntegrated() throws SQLException {
         org.junit.Assume.assumeTrue(isWindows);
-        org.junit.Assume.assumeTrue(null != adIntegratedAzureServer && null != adIntegratedAzureDatabase);
 
         testValid("ActiveDirectoryIntegrated", false, true);
         testValid("ActiveDirectoryIntegrated", true, true);
@@ -266,14 +245,11 @@ public class FedauthTest extends FedauthCommon {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
             if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
-                ds.setServerName(azureServer);
-                ds.setDatabaseName(azureDatabase);
                 ds.setUser(azureUserName);
                 ds.setPassword(azurePassword);
-            } else {
-                ds.setServerName(adIntegratedAzureServer);
-                ds.setDatabaseName(adIntegratedAzureDatabase);
             }
+            ds.setServerName(azureServer);
+            ds.setDatabaseName(azureDatabase);
             ds.setAuthentication(authentication);
             ds.setEncrypt(encrypt);
             ds.setTrustServerCertificate(trustServerCertificate);
@@ -297,15 +273,11 @@ public class FedauthTest extends FedauthCommon {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
             if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
-                ds.setServerName(azureServer);
-                ds.setDatabaseName(azureDatabase);
                 ds.setUser(azureUserName);
                 ds.setPassword("WrongPassword");
-            } else {
-                ds.setServerName(adIntegratedAzureServer);
-                ds.setDatabaseName(adIntegratedAzureDatabase);
             }
-
+            ds.setServerName(azureServer);
+            ds.setDatabaseName(azureDatabase);
             ds.setAuthentication(authentication);
             ds.setEncrypt(encrypt);
             ds.setTrustServerCertificate(trustServerCertificate);
@@ -371,7 +343,8 @@ public class FedauthTest extends FedauthCommon {
 
     @AfterAll
     public static void terminate() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr);
+                Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(charTable, stmt);
         }
     }

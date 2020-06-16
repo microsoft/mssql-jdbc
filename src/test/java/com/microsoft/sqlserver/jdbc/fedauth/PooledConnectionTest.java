@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import javax.sql.PooledConnection;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -39,35 +40,49 @@ public class PooledConnectionTest extends FedauthCommon {
     static String charTable = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_PooledConnection")));
 
+    static SQLServerConnectionPoolDataSource adIntegrated_ds = new SQLServerConnectionPoolDataSource();
+    static SQLServerConnectionPoolDataSource adPassword_ds = new SQLServerConnectionPoolDataSource();
+
+    @BeforeAll
+    public static void setupDS() throws Exception {
+        adPassword_ds.setServerName(azureServer);
+        adPassword_ds.setDatabaseName(azureDatabase);
+        adPassword_ds.setUser(azureUserName);
+        adPassword_ds.setPassword(azurePassword);
+        adPassword_ds.setAuthentication("ActiveDirectoryPassword");
+
+        adIntegrated_ds.setServerName(azureServer);
+        adIntegrated_ds.setDatabaseName(azureDatabase);
+        adIntegrated_ds.setAuthentication("ActiveDirectoryIntegrated");
+    }
+
     @Test
-    public void testPooledConnectionAccessTokenExpiredThenReconnect() throws SQLException {
-        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60); // suspend 5 mins
+    public void testPooledConnectionAccessTokenExpiredThenReconnectADPassword() throws SQLException {
+        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, adPassword_ds); // suspend 5 mins
 
         // get another token
         getFedauthInfo();
 
         // suspend until access token expires
-        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration);
+        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration, adPassword_ds);
     }
 
-    private void testPooledConnectionAccessTokenExpiredThenReconnect(long testingTimeInSeconds) throws SQLException {
+    @Test
+    public void testPooledConnectionAccessTokenExpiredThenReconnectADIntegrated() throws SQLException {
+        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, adIntegrated_ds); // suspend 5 mins
+
+        // get another token
+        getFedauthInfo();
+
+        // suspend until access token expires
+        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration, adIntegrated_ds);
+    }
+
+    private void testPooledConnectionAccessTokenExpiredThenReconnect(long testingTimeInSeconds,
+            SQLServerConnectionPoolDataSource ds) throws SQLException {
         try {
-            SQLServerConnectionPoolDataSource cpds = new SQLServerConnectionPoolDataSource();
-
-            if (enableADIntegrated) {
-                cpds.setServerName(azureServer);
-                cpds.setDatabaseName(azureDatabase);
-                cpds.setAuthentication("ActiveDirectoryIntegrated");
-            } else {
-                cpds.setServerName(azureServer);
-                cpds.setDatabaseName(azureDatabase);
-                cpds.setUser(azureUserName);
-                cpds.setPassword(azurePassword);
-                cpds.setAuthentication("ActiveDirectoryPassword");
-            }
-
             // create pooled connection
-            PooledConnection pc = cpds.getPooledConnection();
+            PooledConnection pc = ds.getPooledConnection();
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection()) {
@@ -76,16 +91,16 @@ public class PooledConnectionTest extends FedauthCommon {
                     rs.next();
                     assertTrue(azureUserName.equals(rs.getString(1)));
 
-                    if (!enableADIntegrated) {
-                        try {
-                            TestUtils.dropTableIfExists(charTable, stmt);
-                            createTable(stmt, charTable);
-                            populateCharTable(connection1, charTable);
-                            testChar(stmt, charTable);
-                        } finally {
-                            TestUtils.dropTableIfExists(charTable, stmt);
-                        }
+                    // if (!enableADIntegrated) {
+                    try {
+                        TestUtils.dropTableIfExists(charTable, stmt);
+                        createTable(stmt, charTable);
+                        populateCharTable(connection1, charTable);
+                        testChar(stmt, charTable);
+                    } finally {
+                        TestUtils.dropTableIfExists(charTable, stmt);
                     }
+                    // }
                 }
             }
             Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds));
@@ -98,16 +113,16 @@ public class PooledConnectionTest extends FedauthCommon {
                     rs.next();
                     assertTrue(azureUserName.equals(rs.getString(1)));
 
-                    if (!enableADIntegrated) {
-                        try {
-                            TestUtils.dropTableIfExists(charTable, stmt);
-                            createTable(stmt, charTable);
-                            populateCharTable(connection2, charTable);
-                            testChar(stmt, charTable);
-                        } finally {
-                            TestUtils.dropTableIfExists(charTable, stmt);
-                        }
+                    // if (!enableADIntegrated) {
+                    try {
+                        TestUtils.dropTableIfExists(charTable, stmt);
+                        createTable(stmt, charTable);
+                        populateCharTable(connection2, charTable);
+                        testChar(stmt, charTable);
+                    } finally {
+                        TestUtils.dropTableIfExists(charTable, stmt);
                     }
+                    // }
                 }
             }
         } catch (Exception e) {
@@ -116,28 +131,20 @@ public class PooledConnectionTest extends FedauthCommon {
     }
 
     @Test
-    public void testPooledConnectionMultiThread() throws SQLException {
-        testPooledConnectionMultiThread(secondsBeforeExpiration);
+    public void testPooledConnectionMultiThreadADPassword() throws SQLException {
+        testPooledConnectionMultiThread(secondsBeforeExpiration, adPassword_ds);
     }
 
-    private void testPooledConnectionMultiThread(long testingTimeInSeconds) throws SQLException {
+    @Test
+    public void testPooledConnectionMultiThreadADIntegrated() throws SQLException {
+        testPooledConnectionMultiThread(secondsBeforeExpiration, adIntegrated_ds);
+    }
+
+    private void testPooledConnectionMultiThread(long testingTimeInSeconds,
+            SQLServerConnectionPoolDataSource ds) throws SQLException {
         try {
-            SQLServerConnectionPoolDataSource cpds = new SQLServerConnectionPoolDataSource();
-
-            if (enableADIntegrated) {
-                cpds.setServerName(azureServer);
-                cpds.setDatabaseName(azureDatabase);
-                cpds.setAuthentication("ActiveDirectoryIntegrated");
-            } else {
-                cpds.setServerName(azureServer);
-                cpds.setDatabaseName(azureDatabase);
-                cpds.setUser(azureUserName);
-                cpds.setPassword(azurePassword);
-                cpds.setAuthentication("ActiveDirectoryPassword");
-            }
-
             // create pooled connection
-            final PooledConnection pc = cpds.getPooledConnection();
+            final PooledConnection pc = ds.getPooledConnection();
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection()) {
@@ -234,15 +241,14 @@ public class PooledConnectionTest extends FedauthCommon {
     @Test
     public void testPooledConnectionWithAccessToken() throws SQLException {
         try {
+            SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
 
-            SQLServerConnectionPoolDataSource cpds = new SQLServerConnectionPoolDataSource();
-
-            cpds.setServerName(azureServer);
-            cpds.setDatabaseName(azureDatabase);
-            cpds.setAccessToken(accessToken);
+            ds.setServerName(azureServer);
+            ds.setDatabaseName(azureDatabase);
+            ds.setAccessToken(accessToken);
 
             // create pooled connection
-            final PooledConnection pc = cpds.getPooledConnection();
+            final PooledConnection pc = ds.getPooledConnection();
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection()) {
@@ -336,7 +342,6 @@ public class PooledConnectionTest extends FedauthCommon {
     }
 
     private void testChar(Statement stmt, String charTable) throws SQLException {
-
         try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
             int numberOfColumns = rs.getMetaData().getColumnCount();
             rs.next();
@@ -350,7 +355,7 @@ public class PooledConnectionTest extends FedauthCommon {
 
     @AfterAll
     public static void terminate() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr); Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(charTable, stmt);
         }
     }

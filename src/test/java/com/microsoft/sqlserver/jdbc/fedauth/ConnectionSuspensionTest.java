@@ -13,9 +13,11 @@ import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -38,62 +40,72 @@ public class ConnectionSuspensionTest extends FedauthCommon {
     static String charTable = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_ConnectionSuspension")));
 
+    static SQLServerConnectionPoolDataSource adIntegrated_ds = new SQLServerConnectionPoolDataSource();
+    static SQLServerConnectionPoolDataSource adPassword_ds = new SQLServerConnectionPoolDataSource();
+
+    @BeforeAll
+    public static void setupDS() throws Exception {
+        adPassword_ds.setServerName(azureServer);
+        adPassword_ds.setDatabaseName(azureDatabase);
+        adPassword_ds.setUser(azureUserName);
+        adPassword_ds.setPassword(azurePassword);
+        adPassword_ds.setAuthentication("ActiveDirectoryPassword");
+
+        adIntegrated_ds.setServerName(azureServer);
+        adIntegrated_ds.setDatabaseName(azureDatabase);
+        adIntegrated_ds.setAuthentication("ActiveDirectoryIntegrated");
+    }
+
     @Test
-    public void testAccessTokenExpiredThenCreateNewStatement() throws SQLException {
+    public void testAccessTokenExpiredThenCreateNewStatementADPassword() throws SQLException {
+        testAccessTokenExpiredThenCreateNewStatement(adPassword_ds);
+    }
+
+    @Test
+    public void testAccessTokenExpiredThenCreateNewStatementADIntegrated() throws SQLException {
+        testAccessTokenExpiredThenCreateNewStatement(adIntegrated_ds);
+    }
+
+    private void testAccessTokenExpiredThenCreateNewStatement(SQLServerDataSource ds) throws SQLException {
         long secondsPassed = 0;
         long start = System.currentTimeMillis();
-        try {
-            SQLServerDataSource ds = new SQLServerDataSource();
 
-            if (enableADIntegrated) {
-                ds.setServerName(azureServer);
-                ds.setDatabaseName(azureDatabase);
-                ds.setAuthentication("ActiveDirectoryIntegrated");
-            } else {
-                ds.setServerName(azureServer);
-                ds.setDatabaseName(azureDatabase);
-                ds.setUser(azureUserName);
-                ds.setPassword(azurePassword);
-                ds.setAuthentication("ActiveDirectoryPassword");
+        try (Connection connection = (SQLServerConnection) ds.getConnection();
+                Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
+            rs.next();
+            assertTrue(azureUserName.equals(rs.getString(1)));
+
+            // if (!enableADIntegrated) {
+            try {
+                TestUtils.dropTableIfExists(charTable, stmt);
+                createTable(charTable, stmt);
+                populateCharTable(charTable, connection);
+                testChar(charTable, stmt);
+            } finally {
+                TestUtils.dropTableIfExists(charTable, stmt);
             }
+            // }
 
-            try (Connection connection = (SQLServerConnection) ds.getConnection();
-                    Statement stmt = connection.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
-                rs.next();
-                assertTrue(azureUserName.equals(rs.getString(1)));
+            while (secondsPassed < secondsBeforeExpiration) {
+                Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 2 minutes
 
-                if (!enableADIntegrated) {
+                secondsPassed = (System.currentTimeMillis() - start) / 1000;
+                try (Statement stmt1 = connection.createStatement();
+                        ResultSet rs1 = stmt1.executeQuery("SELECT SUSER_SNAME()")) {
+                    rs1.next();
+                    assertTrue(azureUserName.equals(rs.getString(1)));
+
+                    // if (!enableADIntegrated) {
                     try {
-                        TestUtils.dropTableIfExists(charTable, stmt);
-                        createTable(charTable, stmt);
+                        TestUtils.dropTableIfExists(charTable, stmt1);
+                        createTable(charTable, stmt1);
                         populateCharTable(charTable, connection);
-                        testChar(charTable, stmt);
+                        testChar(charTable, stmt1);
                     } finally {
-                        TestUtils.dropTableIfExists(charTable, stmt);
+                        TestUtils.dropTableIfExists(charTable, stmt1);
                     }
-                }
-
-                while (secondsPassed < secondsBeforeExpiration) {
-                    Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 2 minutes
-
-                    secondsPassed = (System.currentTimeMillis() - start) / 1000;
-                    try (Statement stmt1 = connection.createStatement();
-                            ResultSet rs1 = stmt1.executeQuery("SELECT SUSER_SNAME()")) {
-                        rs1.next();
-                        assertTrue(azureUserName.equals(rs.getString(1)));
-
-                        if (!enableADIntegrated) {
-                            try {
-                                TestUtils.dropTableIfExists(charTable, stmt1);
-                                createTable(charTable, stmt1);
-                                populateCharTable(charTable, connection);
-                                testChar(charTable, stmt1);
-                            } finally {
-                                TestUtils.dropTableIfExists(charTable, stmt1);
-                            }
-                        }
-                    }
+                    /// }
                 }
             }
         } catch (Exception e) {
@@ -103,40 +115,42 @@ public class ConnectionSuspensionTest extends FedauthCommon {
     }
 
     @Test
-    public void testAccessTokenExpiredThenExecuteUsingSameStatement() throws SQLException {
+    public void testAccessTokenExpiredThenExecuteUsingSameStatementADPassword() throws SQLException {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setServerName(azureServer);
+        ds.setDatabaseName(azureDatabase);
+        ds.setAuthentication("ActiveDirectoryIntegrated");
+        testAccessTokenExpiredThenExecuteUsingSameStatement(ds);
+
+    }
+
+    @Test
+    public void testAccessTokenExpiredThenExecuteUsingSameStatementADIntegrated() throws SQLException {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        testAccessTokenExpiredThenExecuteUsingSameStatement(ds);
+
+    }
+
+    private void testAccessTokenExpiredThenExecuteUsingSameStatement(SQLServerDataSource ds) throws SQLException {
         long secondsPassed = 0;
         long start = System.currentTimeMillis();
         try {
-
-            SQLServerDataSource ds = new SQLServerDataSource();
-
-            if (enableADIntegrated) {
-                ds.setServerName(azureServer);
-                ds.setDatabaseName(azureDatabase);
-                ds.setAuthentication("ActiveDirectoryIntegrated");
-            } else {
-                ds.setServerName(azureServer);
-                ds.setDatabaseName(azureDatabase);
-                ds.setUser(azureUserName);
-                ds.setPassword(azurePassword);
-                ds.setAuthentication("ActiveDirectoryPassword");
-            }
 
             try (Connection connection = ds.getConnection(); Statement stmt = connection.createStatement();
                     ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                 rs.next();
                 assertTrue(azureUserName.equals(rs.getString(1)));
 
-                if (!enableADIntegrated) {
-                    try {
-                        TestUtils.dropTableIfExists(charTable, stmt);
-                        createTable(charTable, stmt);
-                        populateCharTable(charTable, connection);
-                        testChar(charTable, stmt);
-                    } finally {
-                        TestUtils.dropTableIfExists(charTable, stmt);
-                    }
+                // if (!enableADIntegrated) {
+                try {
+                    TestUtils.dropTableIfExists(charTable, stmt);
+                    createTable(charTable, stmt);
+                    populateCharTable(charTable, connection);
+                    testChar(charTable, stmt);
+                } finally {
+                    TestUtils.dropTableIfExists(charTable, stmt);
                 }
+                // }
 
                 while (secondsPassed < secondsBeforeExpiration) {
                     Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 2 minutes
@@ -147,16 +161,16 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                         assertTrue(azureUserName.equals(rs.getString(1)));
                     }
                 }
-                if (!enableADIntegrated) {
-                    try {
-                        TestUtils.dropTableIfExists(charTable, stmt);
-                        createTable(charTable, stmt);
-                        populateCharTable(charTable, connection);
-                        testChar(charTable, stmt);
-                    } finally {
-                        TestUtils.dropTableIfExists(charTable, stmt);
-                    }
+                // if (!enableADIntegrated) {
+                try {
+                    TestUtils.dropTableIfExists(charTable, stmt);
+                    createTable(charTable, stmt);
+                    populateCharTable(charTable, connection);
+                    testChar(charTable, stmt);
+                } finally {
+                    TestUtils.dropTableIfExists(charTable, stmt);
                 }
+                // }
             }
         } catch (Exception e) {
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
@@ -199,7 +213,7 @@ public class ConnectionSuspensionTest extends FedauthCommon {
 
     @AfterAll
     public static void terminate() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr); Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(charTable, stmt);
         }
     }

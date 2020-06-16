@@ -60,7 +60,7 @@ public class FedauthWithAE extends FedauthCommon {
     static SQLServerDataSource ds = new SQLServerDataSource();
 
     @BeforeAll
-    public static void setupTests()  {
+    public static void setupTests() {
         ds.setServerName(azureServer);
         ds.setDatabaseName(azureDatabase);
         ds.setUser(azureUserName);
@@ -349,7 +349,7 @@ public class FedauthWithAE extends FedauthCommon {
     }
 
     private void callDbccFreeProcCache() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = DriverManager.getConnection(adPasswordConnectionStr);
                 Statement stmt = connection.createStatement()) {
             stmt.execute("DBCC FREEPROCCACHE");
         }
@@ -369,7 +369,8 @@ public class FedauthWithAE extends FedauthCommon {
 
     @AfterAll
     public static void terminate() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr);
+                Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(charTableOld, stmt);
             TestUtils.dropTableIfExists(charTableNew, stmt);
             TestUtils.dropTableIfExists(charTable, stmt);

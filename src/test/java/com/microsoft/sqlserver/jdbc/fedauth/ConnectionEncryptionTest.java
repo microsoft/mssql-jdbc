@@ -35,10 +35,7 @@ public class ConnectionEncryptionTest extends FedauthCommon {
 
     @Test
     public void testCorrectCertificate() throws SQLException {
-        String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
-
-        try (Connection connection = DriverManager.getConnection(connectionUrl);
+        try (Connection connection = DriverManager.getConnection(adPasswordConnectionStr);
                 Statement stmt = connection.createStatement();
                 ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
             rs.next();
@@ -59,11 +56,8 @@ public class ConnectionEncryptionTest extends FedauthCommon {
 
     @Test
     public void testWrongCertificate() throws SQLException {
-        String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword;"
-                + "HostNameInCertificate=WrongCertificate";
-
-        try (Connection connection = DriverManager.getConnection(connectionUrl)) {
+        try (Connection connection = DriverManager
+                .getConnection(adPasswordConnectionStr + ";HostNameInCertificate=WrongCertificate")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -78,11 +72,8 @@ public class ConnectionEncryptionTest extends FedauthCommon {
     // set TrustServerCertificate to true, which skips server certificate validation.
     @Test
     public void testWrongCertificateButTrustServerCertificate() throws SQLException {
-        String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";" + "userName="
-                + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword;"
-                + "HostNameInCertificate=WrongCertificate;" + "TrustServerCertificate=true";
-
-        try (Connection connection = DriverManager.getConnection(connectionUrl);
+        try (Connection connection = DriverManager.getConnection(
+                adPasswordConnectionStr + ";HostNameInCertificate=WrongCertificate" + ";TrustServerCertificate=true");
                 Statement stmt = connection.createStatement();
                 ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
             rs.next();
@@ -103,7 +94,8 @@ public class ConnectionEncryptionTest extends FedauthCommon {
 
     @AfterAll
     public static void terminate() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr);
+                Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(charTable, stmt);
         }
     }

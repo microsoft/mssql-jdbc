@@ -26,12 +26,6 @@ public class FedauthCommon extends AbstractTest {
     static String azurePassword = null;
     static String azureGroupUserName = null;
 
-    static boolean enableADIntegrated = false;
-    static String adIntegratedAzureServer = null;
-    static String adIntegratedAzureDatabase = null;
-    static String adIntegratedAzureUserName = null;
-    static String adIntegratedAzurePassword = null;
-
     static String spn = null;
     static String stsurl = null;
     static String fedauthClientId = null;
@@ -61,6 +55,12 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_RESULTSET_IS_CLOSED = TestResource.getResource("R_resultset_IsClosed");
     static final String ERR_MSG_SOCKET_CLOSED = TestResource.getResource("R_socketClosed");
 
+    static String adPasswordConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";"
+            + "user=" + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
+
+    static String adIntegratedConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";"
+            + "Authentication=ActiveDirectoryIntegrated";
+
     @BeforeEach
     public void setupEachTest() {
         getFedauthInfo();
@@ -74,25 +74,16 @@ public class FedauthCommon extends AbstractTest {
         azurePassword = getConfiguredProperty("azurePassword");
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
 
-        adIntegratedAzureServer = getConfiguredProperty("adIntegratedAzureServer");
-        adIntegratedAzureDatabase = getConfiguredProperty("adIntegratedAzureDatabase");
-        adIntegratedAzureUserName = getConfiguredProperty("adIntegratedAzureUserName");
-        adIntegratedAzurePassword = getConfiguredProperty("adIntegratedAzurePassword");
-
         fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
         if (!isWindows) {
             fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
         }
         fedauthJavaKeyAliases = getConfiguredProperty("fedauthJavaKeyAliases", "").split(Constants.SEMI_COLON);
 
-        enableADIntegrated = !System.getProperty("os.name").startsWith(
-                "Windows") ? false
-                           : getConfiguredProperty("enableADIntegrated", "").equalsIgnoreCase("true") ? true : false;
-
         spn = getConfiguredProperty("spn");
         stsurl = getConfiguredProperty("stsurl");
         fedauthClientId = getConfiguredProperty("fedauthClientId");
-        
+
         // reset logging to avoid server logs
         LogManager.getLogManager().reset();
     }
