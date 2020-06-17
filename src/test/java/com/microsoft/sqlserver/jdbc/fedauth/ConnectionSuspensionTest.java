@@ -142,7 +142,11 @@ public class ConnectionSuspensionTest extends FedauthCommon {
             try (Connection connection = ds.getConnection(); Statement stmt = connection.createStatement();
                     ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                 rs.next();
-                assertTrue(azureUserName.equals(rs.getString(1)));
+                if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                    assertTrue(azureUserName.equals(rs.getString(1)));
+                } else {
+                    assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
+                }
 
                 try {
                     TestUtils.dropTableIfExists(charTable, stmt);

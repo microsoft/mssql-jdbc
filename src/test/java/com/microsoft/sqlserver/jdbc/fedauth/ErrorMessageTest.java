@@ -66,7 +66,7 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testCorrectAccessTokenPassedInConnectionString() {
-        try (Connection connection = DriverManager.getConnection(connectionUrl + ";" + accessToken)) {
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";accessToken=" + accessToken)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -79,7 +79,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testNotProvideWithConnectionStringUserName() throws SQLException {
         try (Connection connection = DriverManager
-                .getConnection(connectionUrl + ";" + "userName=" + azureUserName + ";password=" + azurePassword)) {
+                .getConnection(connectionUrl + ";userName=" + azureUserName + ";password=" + azurePassword)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -117,7 +117,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testNotProvideWithConnectionStringUser() throws SQLException {
         try (Connection connection = DriverManager
-                .getConnection(connectionUrl + ";" + "user=" + azureUserName + ";password=" + azurePassword)) {
+                .getConnection(connectionUrl + ";user=" + azureUserName + ";password=" + azurePassword)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -132,16 +132,16 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testSQLPasswordWithAzureDBWithConnectionStringUserName() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionUrl + ";" + "userName=" + azureUserName
-                + ";password=" + azurePassword + ";" + "Authentication=SqlPassword")) {
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";userName=" + azureUserName
+                + ";password=" + azurePassword + ";Authentication=SqlPassword")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
-            String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage()
-                    .startsWith(ERR_MSG_CANNOT_OPEN_SERVER + " \"" + wrongUserName + "\" requested by the login."));
+            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                    e.getMessage().startsWith(ERR_MSG_CANNOT_OPEN_SERVER)
+                            || e.getMessage().startsWith(ERR_TCPIP_CONNECTION));
         }
     }
 
@@ -169,8 +169,8 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testSQLPasswordWithAzureDBWithConnectionStringUser() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionUrl + ";" + "user=" + azureUserName
-                + ";password=" + azurePassword + ";" + "Authentication=SqlPassword")) {
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";user=" + azureUserName + ";password="
+                + azurePassword + ";Authentication=SqlPassword")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -182,30 +182,29 @@ public class ErrorMessageTest extends FedauthCommon {
         }
     }
 
-    @Tag(Constants.xAzureSQLDB)
-    @Tag(Constants.xAzureSQLDW)
     @Test
     public void testSQLPasswordWithUntrustedSqlDB() throws SQLException {
         try {
             java.util.Properties info = new Properties();
             info.put("Authentication", "SqlPassword");
 
-            try (Connection connection = DriverManager.getConnection(
-                    connectionUrl + ";" + "user=" + azureUserName + ";password=" + azurePassword, info)) {}
+            try (Connection connection = DriverManager
+                    .getConnection(connectionUrl + ";user=" + azureUserName + ";password=" + azurePassword, info)) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
+
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                    e.getMessage().startsWith(ERR_MSG_SQL_AUTH_FAILED_SSL));
+                    e.getMessage().startsWith(ERR_MSG_CANNOT_OPEN_SERVER));
         }
     }
 
     @Test
     public void testADPasswordUnregisteredUserWithConnectionStringUserName() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionUrl + ";" + "userName=" + userName
-                + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword")) {
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";userName=" + userName + ";password="
+                + azurePassword + ";Authentication=ActiveDirectoryPassword")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (SQLServerException e) {
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
@@ -239,8 +238,8 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testADPasswordUnregisteredUserWithConnectionStringUser() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionUrl + ";" + "user=" + userName + ";password="
-                + azurePassword + ";" + "Authentication=ActiveDirectoryPassword")) {
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";user=" + userName + ";password="
+                + azurePassword + ";Authentication=ActiveDirectoryPassword")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (SQLServerException e) {
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
@@ -256,13 +255,16 @@ public class ErrorMessageTest extends FedauthCommon {
         java.util.Properties info = new Properties();
         info.put("TrustServerCertificate", "true");
         info.put("Authentication", "activedirectorypassword");
-        try (Connection connection = DriverManager.getConnection(connectionUrl, info)) {
+
+        try (Connection connection = DriverManager
+                .getConnection(connectionUrl + ";user=" + userName + ";password=" + azurePassword, info)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
-            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED));
+            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE
+                    + " the user " + userName + " in Active Directory (Authentication=ActiveDirectoryPassword)."));
         }
     }
 
@@ -272,13 +274,8 @@ public class ErrorMessageTest extends FedauthCommon {
         info.put("TrustServerCertificate", "true");
         info.put("Authentication", "activedirectoryIntegrated");
 
-        try (Connection connection = DriverManager.getConnection(connectionUrl, info)) {
-            fail(EXPECTED_EXCEPTION_NOT_THROWN);
-        } catch (Exception e) {
-            if (!(e instanceof SQLServerException)) {
-                fail(EXPECTED_EXCEPTION_NOT_THROWN);
-            }
-            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED));
+        try (Connection connection = DriverManager.getConnection(connectionUrl, info)) {} catch (Exception e) {
+            fail(e.getMessage());
         }
     }
 
@@ -290,15 +287,15 @@ public class ErrorMessageTest extends FedauthCommon {
             trials++;
             try {
                 // testNotSpecified with connectionStringUserName
-                try (Connection connection = DriverManager.getConnection(connectionUrl + "userName=" + azureUserName
-                        + ";password=" + azurePassword + ";" + "Authentication=NotSpecified;")) {}
+                try (Connection connection = DriverManager.getConnection(connectionUrl + ";userName=" + azureUserName
+                        + ";password=" + azurePassword + ";Authentication=NotSpecified;")) {}
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             } catch (Exception e) {
                 if (!(e instanceof SQLServerException)) {
                     fail(EXPECTED_EXCEPTION_NOT_THROWN);
                 }
 
-                if (e.getMessage().startsWith(TestResource.getResource("R_tcpipConnectionToHost"))) {
+                if (e.getMessage().startsWith(ERR_TCPIP_CONNECTION)) {
                     System.out.println("Re-attempting connection to " + azureServer);
                     continue;
                 }
@@ -329,15 +326,17 @@ public class ErrorMessageTest extends FedauthCommon {
             }
 
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage()
-                    .startsWith(ERR_MSG_CANNOT_OPEN_SERVER + " \"" + wrongUserName + "\" requested by the login."));
+            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                    e.getMessage().startsWith(
+                            ERR_MSG_CANNOT_OPEN_SERVER + " \"" + wrongUserName + "\" requested by the login.")
+                            || e.getMessage().startsWith(ERR_TCPIP_CONNECTION));
         }
     }
 
     @Test
     public void testNotSpecifiedWithConnectionStringUser() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionUrl + "user=" + azureUserName + ";password="
-                + azurePassword + ";" + "Authentication=NotSpecified;")) {
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";user=" + azureUserName + ";password="
+                + azurePassword + ";Authentication=NotSpecified;")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -356,19 +355,14 @@ public class ErrorMessageTest extends FedauthCommon {
         info.put("accesstoken", accessToken);
         info.put("TrustServerCertificate", "true");
 
-        try (Connection connection = DriverManager.getConnection(connectionUrl, info)) {
-            fail(EXPECTED_EXCEPTION_NOT_THROWN);
-        } catch (Exception e) {
-            if (!(e instanceof SQLServerException)) {
-                fail(EXPECTED_EXCEPTION_NOT_THROWN);
-            }
-            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED));
+        try (Connection connection = DriverManager.getConnection(connectionUrl, info)) {} catch (Exception e) {
+            fail(e.getMessage());
         }
     }
 
     @Test
     public void testADPasswordWrongPasswordWithConnectionStringUserName() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionUrl + "userName=" + azureUserName
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";userName=" + azureUserName
                 + ";password=WrongPassword;" + "Authentication=ActiveDirectoryPassword")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -411,7 +405,7 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testADPasswordWrongPasswordWithConnectionStringUser() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionUrl + ";" + "user=" + azureUserName
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";user=" + azureUserName
                 + ";password=WrongPassword;" + "Authentication=ActiveDirectoryPassword")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -452,8 +446,8 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testSetAuthenticationWithIntegratedSecurityTrueWithConnectionStringUserName() throws SQLException {
         try (Connection connection = DriverManager
-                .getConnection(connectionUrl + ";" + "userName=" + azureUserName + ";password=" + azurePassword + ";"
-                        + "Authentication=ActiveDirectoryPassword" + ";IntegratedSecurity=true;")) {
+                .getConnection(connectionUrl + ";userName=" + azureUserName + ";password=" + azurePassword
+                        + ";Authentication=ActiveDirectoryPassword" + ";IntegratedSecurity=true;")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -466,9 +460,8 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testSetAuthenticationWithIntegratedSecurityTrueWithConnectionStringUser() throws SQLException {
-        try (Connection connection = DriverManager
-                .getConnection(connectionUrl + ";" + "user=" + azureUserName + ";password=" + azurePassword + ";"
-                        + "Authentication=ActiveDirectoryPassword" + ";IntegratedSecurity=true;")) {
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";user=" + azureUserName + ";password="
+                + azurePassword + ";Authentication=ActiveDirectoryPassword" + ";IntegratedSecurity=true;")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -501,8 +494,8 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testADIntegratedWithUserAndPasswordWithConnectionStringUserName() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionUrl + ";" + "userName=" + azureUserName
-                + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryIntegrated")) {
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";userName=" + azureUserName
+                + ";password=" + azurePassword + ";Authentication=ActiveDirectoryIntegrated")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -515,8 +508,8 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testADIntegratedWithUserAndPasswordWithConnectionStringUser() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionUrl + ";" + "user=" + azureUserName
-                + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryIntegrated")) {
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";user=" + azureUserName + ";password="
+                + azurePassword + ";Authentication=ActiveDirectoryIntegrated")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -594,8 +587,8 @@ public class ErrorMessageTest extends FedauthCommon {
         Properties info = new Properties();
         info.setProperty("accesstoken", accessToken);
 
-        try (Connection connection = DriverManager.getConnection(
-                connectionUrl + ";" + "userName=" + azureUserName + ";password=" + azurePassword, info)) {
+        try (Connection connection = DriverManager
+                .getConnection(connectionUrl + ";userName=" + azureUserName + ";password=" + azurePassword, info)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -612,7 +605,7 @@ public class ErrorMessageTest extends FedauthCommon {
         info.setProperty("accesstoken", accessToken);
 
         try (Connection connection = DriverManager
-                .getConnection(connectionUrl + ";" + "user=" + azureUserName + ";password=" + azurePassword, info)) {
+                .getConnection(connectionUrl + ";user=" + azureUserName + ";password=" + azurePassword, info)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -686,7 +679,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testADPasswordWithoutPasswordWithConnectionStringUserName() throws SQLException {
         try (Connection connection = DriverManager.getConnection(
-                connectionUrl + ";" + "userName=" + azureUserName + ";" + "Authentication=ActiveDirectoryPassword")) {
+                connectionUrl + ";userName=" + azureUserName + ";Authentication=ActiveDirectoryPassword")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -699,8 +692,8 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testADPasswordWithoutPasswordWithConnectionStringUser() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(
-                connectionUrl + ";" + "user=" + azureUserName + ";" + "Authentication=ActiveDirectoryPassword")) {
+        try (Connection connection = DriverManager
+                .getConnection(connectionUrl + ";user=" + azureUserName + ";Authentication=ActiveDirectoryPassword")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -753,8 +746,8 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testSqlPasswordWithoutPasswordWithConnectionStringUserName() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(
-                connectionUrl + ";" + "userName=" + azureUserName + ";" + "Authentication=SqlPassword")) {
+        try (Connection connection = DriverManager
+                .getConnection(connectionUrl + ";userName=" + azureUserName + ";Authentication=SqlPassword")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -768,8 +761,7 @@ public class ErrorMessageTest extends FedauthCommon {
     @Test
     public void testSqlPasswordWithoutPasswordWithConnectionStringUser() throws SQLException {
         try (Connection connection = DriverManager
-                .getConnection(connectionUrl + ";" + "user=" + azureUserName + ";" + "Authentication=SqlPassword")) {
-            fail(EXPECTED_EXCEPTION_NOT_THROWN);
+                .getConnection(connectionUrl + ";user=" + azureUserName + ";Authentication=SqlPassword")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {

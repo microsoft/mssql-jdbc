@@ -168,8 +168,6 @@ public class FedauthTest extends FedauthCommon {
         testNotValid("Notspecified", true, true);
     }
 
-    @Tag(Constants.xAzureSQLDB)
-    @Tag(Constants.xAzureSQLDW)
     @Test
     public void testNotValidSqlPassword() throws SQLException {
         testNotValid("SqlPassword", false, true);
