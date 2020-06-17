@@ -40,42 +40,38 @@ public class PooledConnectionTest extends FedauthCommon {
     static String charTable = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_PooledConnection")));
 
-    static SQLServerConnectionPoolDataSource adIntegrated_ds = new SQLServerConnectionPoolDataSource();
-    static SQLServerConnectionPoolDataSource adPassword_ds = new SQLServerConnectionPoolDataSource();
-
-    @BeforeAll
-    public static void setupDS() throws Exception {
-        adPassword_ds.setServerName(azureServer);
-        adPassword_ds.setDatabaseName(azureDatabase);
-        adPassword_ds.setUser(azureUserName);
-        adPassword_ds.setPassword(azurePassword);
-        adPassword_ds.setAuthentication("ActiveDirectoryPassword");
-
-        adIntegrated_ds.setServerName(azureServer);
-        adIntegrated_ds.setDatabaseName(azureDatabase);
-        adIntegrated_ds.setAuthentication("ActiveDirectoryIntegrated");
-    }
-
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnectADPassword() throws SQLException {
-        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, adPassword_ds); // suspend 5 mins
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+        ds.setServerName(azureServer);
+        ds.setDatabaseName(azureDatabase);
+        ds.setUser(azureUserName);
+        ds.setPassword(azurePassword);
+        ds.setAuthentication("ActiveDirectoryPassword");
+
+        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, ds); // suspend 5 mins
 
         // get another token
         getFedauthInfo();
 
         // suspend until access token expires
-        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration, adPassword_ds);
+        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration, ds);
     }
 
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnectADIntegrated() throws SQLException {
-        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, adIntegrated_ds); // suspend 5 mins
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+        ds.setServerName(azureServer);
+        ds.setDatabaseName(azureDatabase);
+        ds.setAuthentication("ActiveDirectoryIntegrated");
+
+        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, ds); // suspend 5 mins
 
         // get another token
         getFedauthInfo();
 
         // suspend until access token expires
-        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration, adIntegrated_ds);
+        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration, ds);
     }
 
     private void testPooledConnectionAccessTokenExpiredThenReconnect(long testingTimeInSeconds,
@@ -132,12 +128,24 @@ public class PooledConnectionTest extends FedauthCommon {
 
     @Test
     public void testPooledConnectionMultiThreadADPassword() throws SQLException {
-        testPooledConnectionMultiThread(secondsBeforeExpiration, adPassword_ds);
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+        ds.setServerName(azureServer);
+        ds.setDatabaseName(azureDatabase);
+        ds.setUser(azureUserName);
+        ds.setPassword(azurePassword);
+        ds.setAuthentication("ActiveDirectoryPassword");
+
+        testPooledConnectionMultiThread(secondsBeforeExpiration, ds);
     }
 
     @Test
     public void testPooledConnectionMultiThreadADIntegrated() throws SQLException {
-        testPooledConnectionMultiThread(secondsBeforeExpiration, adIntegrated_ds);
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+        ds.setServerName(azureServer);
+        ds.setDatabaseName(azureDatabase);
+        ds.setAuthentication("ActiveDirectoryIntegrated");
+
+        testPooledConnectionMultiThread(secondsBeforeExpiration, ds);
     }
 
     private void testPooledConnectionMultiThread(long testingTimeInSeconds,
@@ -355,7 +363,8 @@ public class PooledConnectionTest extends FedauthCommon {
 
     @AfterAll
     public static void terminate() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr);
+                Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(charTable, stmt);
         }
     }

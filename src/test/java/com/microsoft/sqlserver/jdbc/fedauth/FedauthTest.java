@@ -127,7 +127,7 @@ public class FedauthTest extends FedauthCommon {
         // connection string with userName
         String connectionUrl = TestUtils.removeProperty(adPasswordConnectionStr, "user") + ";userName="
                 + azureGroupUserName;
-
+System.out.println("testGroupAuthentication: "+connectionUrl);
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureGroupUserName);
         } catch (Exception e) {
@@ -291,7 +291,9 @@ public class FedauthTest extends FedauthCommon {
             ds.setTrustServerCertificate(trustServerCertificate);
 
             try (Connection conn = ds.getConnection()) {}
-            fail(TestResource.getResource("R_expectedFailPassed"));
+            if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            }
         } catch (Exception e) {
             if (authentication.toLowerCase().contains("activedirectory")) {
                 assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED)

@@ -71,11 +71,11 @@ public class FedauthCommon extends AbstractTest {
         azurePassword = getConfiguredProperty("azurePassword");
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
 
-        adPasswordConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";"
-                + "user=" + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
+        adPasswordConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user="
+                + azureUserName + ";password=" + azurePassword + ";Authentication=ActiveDirectoryPassword";
 
-        adIntegratedConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";"
-                + "Authentication=ActiveDirectoryIntegrated";
+        adIntegratedConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase
+                + ";Authentication=ActiveDirectoryIntegrated";
 
         fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
         if (!isWindows) {

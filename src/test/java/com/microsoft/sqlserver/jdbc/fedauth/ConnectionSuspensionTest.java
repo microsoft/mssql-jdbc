@@ -40,30 +40,26 @@ public class ConnectionSuspensionTest extends FedauthCommon {
     static String charTable = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_ConnectionSuspension")));
 
-    static SQLServerConnectionPoolDataSource adIntegrated_ds = new SQLServerConnectionPoolDataSource();
-    static SQLServerConnectionPoolDataSource adPassword_ds = new SQLServerConnectionPoolDataSource();
-
-    @BeforeAll
-    public static void setupDS() throws Exception {
-        adPassword_ds.setServerName(azureServer);
-        adPassword_ds.setDatabaseName(azureDatabase);
-        adPassword_ds.setUser(azureUserName);
-        adPassword_ds.setPassword(azurePassword);
-        adPassword_ds.setAuthentication("ActiveDirectoryPassword");
-
-        adIntegrated_ds.setServerName(azureServer);
-        adIntegrated_ds.setDatabaseName(azureDatabase);
-        adIntegrated_ds.setAuthentication("ActiveDirectoryIntegrated");
-    }
-
     @Test
     public void testAccessTokenExpiredThenCreateNewStatementADPassword() throws SQLException {
-        testAccessTokenExpiredThenCreateNewStatement(adPassword_ds);
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+        ds.setServerName(azureServer);
+        ds.setDatabaseName(azureDatabase);
+        ds.setUser(azureUserName);
+        ds.setPassword(azurePassword);
+        ds.setAuthentication("ActiveDirectoryPassword");
+
+        testAccessTokenExpiredThenCreateNewStatement(ds);
     }
 
     @Test
     public void testAccessTokenExpiredThenCreateNewStatementADIntegrated() throws SQLException {
-        testAccessTokenExpiredThenCreateNewStatement(adIntegrated_ds);
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+        ds.setServerName(azureServer);
+        ds.setDatabaseName(azureDatabase);
+        ds.setAuthentication("ActiveDirectoryIntegrated");
+
+        testAccessTokenExpiredThenCreateNewStatement(ds);
     }
 
     private void testAccessTokenExpiredThenCreateNewStatement(SQLServerDataSource ds) throws SQLException {
@@ -119,7 +115,10 @@ public class ConnectionSuspensionTest extends FedauthCommon {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setServerName(azureServer);
         ds.setDatabaseName(azureDatabase);
-        ds.setAuthentication("ActiveDirectoryIntegrated");
+        ds.setUser(azureUserName);
+        ds.setPassword(azurePassword);
+        ds.setAuthentication("ActiveDirectoryPassword");
+
         testAccessTokenExpiredThenExecuteUsingSameStatement(ds);
 
     }
@@ -127,8 +126,11 @@ public class ConnectionSuspensionTest extends FedauthCommon {
     @Test
     public void testAccessTokenExpiredThenExecuteUsingSameStatementADIntegrated() throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
-        testAccessTokenExpiredThenExecuteUsingSameStatement(ds);
+        ds.setServerName(azureServer);
+        ds.setDatabaseName(azureDatabase);
+        ds.setAuthentication("ActiveDirectoryIntegrated");
 
+        testAccessTokenExpiredThenExecuteUsingSameStatement(ds);
     }
 
     private void testAccessTokenExpiredThenExecuteUsingSameStatement(SQLServerDataSource ds) throws SQLException {
@@ -213,7 +215,8 @@ public class ConnectionSuspensionTest extends FedauthCommon {
 
     @AfterAll
     public static void terminate() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr); Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr);
+                Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(charTable, stmt);
         }
     }
