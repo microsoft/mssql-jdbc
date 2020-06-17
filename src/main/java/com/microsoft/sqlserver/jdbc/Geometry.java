@@ -104,8 +104,9 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      * Constructor for a Geometry instance from an internal SQL Server format for spatial data.
      * 
-     * @param 
-     *        Internal SQL Server format provided by the user.
+     * @param
+     * Internal
+     *        SQL Server format provided by the user.
      * @return Geometry Geometry instance created from clr
      * @throws SQLServerException
      *         if an exception occurs
@@ -177,7 +178,7 @@ public class Geometry extends SQLServerSpatialDatatype {
      * @throws SQLServerException
      *         if an exception occurs
      */
-    public byte[] STAsBinary() throws SQLServerException {
+    public byte[] STAsBinary() {
         if (null == wkb) {
             serializeToWkb(this);
         }

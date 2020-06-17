@@ -70,7 +70,7 @@ public class Geography extends SQLServerSpatialDatatype {
         wktNoZM = WKTsbNoZM.toString();
         isNull = false;
     }
-    
+
     /**
      * Private constructor used for creating a Geography object from WKB.
      * 
@@ -208,7 +208,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * @throws SQLServerException
      *         if an exception occurs
      */
-    public byte[] STAsBinary() throws SQLServerException {
+    public byte[] STAsBinary() {
         if (null == wkb) {
             serializeToWkb(this);
         }
