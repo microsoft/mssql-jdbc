@@ -127,7 +127,6 @@ public class FedauthTest extends FedauthCommon {
         // connection string with userName
         String connectionUrl = TestUtils.removeProperty(adPasswordConnectionStr, "user") + ";userName="
                 + azureGroupUserName;
-        System.out.println("testGroupAuthentication:connectionUrl="+connectionUrl);
 
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureGroupUserName);

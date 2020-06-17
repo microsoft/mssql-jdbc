@@ -328,10 +328,6 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
 
-            if (e.getMessage().startsWith(TestResource.getResource("R_tcpipConnectionToHost"))) {
-                System.out.println("Re-attempting connection to " + azureServer);
-            }
-
             String wrongUserName = azureUserName.split("@")[1];
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage()
                     .startsWith(ERR_MSG_CANNOT_OPEN_SERVER + " \"" + wrongUserName + "\" requested by the login."));
@@ -346,10 +342,6 @@ public class ErrorMessageTest extends FedauthCommon {
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
-            }
-
-            if (e.getMessage().startsWith(TestResource.getResource("R_tcpipConnectionToHost"))) {
-                System.out.println("Re-attempting connection to " + azureServer);
             }
 
             String wrongUserName = azureUserName.split("@")[1];

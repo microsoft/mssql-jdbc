@@ -55,11 +55,8 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_RESULTSET_IS_CLOSED = TestResource.getResource("R_resultset_IsClosed");
     static final String ERR_MSG_SOCKET_CLOSED = TestResource.getResource("R_socketClosed");
 
-    static String adPasswordConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";"
-            + "user=" + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
-
-    static String adIntegratedConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";"
-            + "Authentication=ActiveDirectoryIntegrated";
+    static String adPasswordConnectionStr;
+    static String adIntegratedConnectionStr;
 
     @BeforeEach
     public void setupEachTest() {
@@ -74,6 +71,12 @@ public class FedauthCommon extends AbstractTest {
         azurePassword = getConfiguredProperty("azurePassword");
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
 
+        adPasswordConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";"
+                + "user=" + azureUserName + ";password=" + azurePassword + ";" + "Authentication=ActiveDirectoryPassword";
+
+        adIntegratedConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";"
+                + "Authentication=ActiveDirectoryIntegrated";
+
         fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
         if (!isWindows) {
             fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
@@ -83,12 +86,6 @@ public class FedauthCommon extends AbstractTest {
         spn = getConfiguredProperty("spn");
         stsurl = getConfiguredProperty("stsurl");
         fedauthClientId = getConfiguredProperty("fedauthClientId");
-        
-        System.out.println("azureServer="+azureServer);
-        System.out.println("azureDatabase="+azureDatabase);
-        System.out.println("azureUserName="+azureUserName);
-        System.out.println("azurePassword="+azurePassword);
-        System.out.println("azureGroupUserName="+azureGroupUserName);
 
         // reset logging to avoid server logs
         LogManager.getLogManager().reset();
