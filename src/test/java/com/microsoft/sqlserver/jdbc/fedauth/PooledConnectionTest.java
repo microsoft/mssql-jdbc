@@ -112,7 +112,11 @@ public class PooledConnectionTest extends FedauthCommon {
                 try (Statement stmt = connection2.createStatement();
                         ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                     rs.next();
-                    assertTrue(azureUserName.equals(rs.getString(1)));
+                    if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                        assertTrue(azureUserName.equals(rs.getString(1)));
+                    } else {
+                        assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
+                    }
 
                     try {
                         TestUtils.dropTableIfExists(charTable, stmt);
@@ -184,7 +188,11 @@ public class PooledConnectionTest extends FedauthCommon {
                                     Statement st = connection2.createStatement();
                                     ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                                 if (rs.next()) {
-                                    assertTrue(azureUserName.equals(rs.getString(1)));
+                                    if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                                        assertTrue(azureUserName.equals(rs.getString(1)));
+                                    } else {
+                                        assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
+                                    }
                                 }
                             }
                         } catch (SQLException e) {
@@ -205,7 +213,11 @@ public class PooledConnectionTest extends FedauthCommon {
                                     Statement st = connection2.createStatement();
                                     ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                                 if (rs.next()) {
-                                    assertTrue(azureUserName.equals(rs.getString(1)));
+                                    if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                                        assertTrue(azureUserName.equals(rs.getString(1)));
+                                    } else {
+                                        assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
+                                    }
                                 }
                             }
                         } catch (SQLException e) {
@@ -226,7 +238,11 @@ public class PooledConnectionTest extends FedauthCommon {
                                     Statement st = connection2.createStatement();
                                     ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
                                 if (rs.next()) {
-                                    assertTrue(azureUserName.equals(rs.getString(1)));
+                                    if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                                        assertTrue(azureUserName.equals(rs.getString(1)));
+                                    } else {
+                                        assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
+                                    }
                                 }
                             }
                         } catch (SQLException e) {
