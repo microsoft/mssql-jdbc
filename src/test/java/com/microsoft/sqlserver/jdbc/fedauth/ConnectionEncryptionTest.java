@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -35,17 +34,15 @@ public class ConnectionEncryptionTest extends FedauthCommon {
 
     @Test
     public void testCorrectCertificate() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(adPasswordConnectionStr);
-                Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
-            rs.next();
-            assertTrue(azureUserName.equals(rs.getString(1)));
+        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr);
+                Statement stmt = connection.createStatement()) {
+            testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
 
             try {
                 TestUtils.dropTableIfExists(charTable, stmt);
-                FedauthTest.createTable(stmt, charTable);
-                FedauthTest.populateCharTable(connection, charTable);
-                FedauthTest.testChar(stmt, charTable);
+                createTable(stmt, charTable);
+                populateCharTable(connection, charTable);
+                testChar(stmt, charTable);
             } finally {
                 TestUtils.dropTableIfExists(charTable, stmt);
             }
@@ -72,18 +69,16 @@ public class ConnectionEncryptionTest extends FedauthCommon {
     // set TrustServerCertificate to true, which skips server certificate validation.
     @Test
     public void testWrongCertificateButTrustServerCertificate() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(
+        try (Connection conn = DriverManager.getConnection(
                 adPasswordConnectionStr + ";HostNameInCertificate=WrongCertificate" + ";TrustServerCertificate=true");
-                Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
-            rs.next();
-            assertTrue(azureUserName.equals(rs.getString(1)));
+                Statement stmt = conn.createStatement()) {
+            testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
 
             try {
                 TestUtils.dropTableIfExists(charTable, stmt);
-                FedauthTest.createTable(stmt, charTable);
-                FedauthTest.populateCharTable(connection, charTable);
-                FedauthTest.testChar(stmt, charTable);
+                createTable(stmt, charTable);
+                populateCharTable(connection, charTable);
+                testChar(stmt, charTable);
             } finally {
                 TestUtils.dropTableIfExists(charTable, stmt);
             }

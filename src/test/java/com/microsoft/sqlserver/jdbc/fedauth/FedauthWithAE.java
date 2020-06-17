@@ -65,7 +65,7 @@ public class FedauthWithAE extends FedauthCommon {
         ds.setDatabaseName(azureDatabase);
         ds.setUser(azureUserName);
         ds.setPassword(azurePassword);
-        ds.setAuthentication("ActiveDirectoryPassword");
+        ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
         ds.setColumnEncryptionSetting(Constants.ENABLED);
         ds.setKeyStoreAuthentication(Constants.JAVA_KEY_STORE_SECRET);
         ds.setKeyStoreLocation(fedauthJksPaths[0]);

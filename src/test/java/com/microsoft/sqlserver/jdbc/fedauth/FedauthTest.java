@@ -14,8 +14,6 @@ import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
@@ -74,7 +72,7 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testADPasswordAuthentication() throws Exception {
         try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr)) {
-            testUserName(conn, azureUserName);
+            testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
             testCharTable(conn);
         } catch (Exception e) {
             fail(e.getMessage());
@@ -83,7 +81,7 @@ public class FedauthTest extends FedauthCommon {
         // connection string with userName
         String connectionUrl = TestUtils.removeProperty(adPasswordConnectionStr, "user") + ";userName=" + azureUserName;
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
-            testUserName(conn, azureUserName);
+            testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
             testCharTable(conn);
         } catch (Exception e) {
             fail(e.getMessage());
@@ -98,10 +96,10 @@ public class FedauthTest extends FedauthCommon {
         ds.setDatabaseName(azureDatabase);
         ds.setUser(azureUserName);
         ds.setPassword(azurePassword);
-        ds.setAuthentication("ActiveDirectoryPassword");
+        ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
 
         try (Connection conn = ds.getConnection()) {
-            testUserName(conn, azureUserName);
+            testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
             testCharTable(conn);
         } catch (Exception e) {
             fail(e.getMessage());
@@ -113,9 +111,10 @@ public class FedauthTest extends FedauthCommon {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setServerName(azureServer);
         ds.setDatabaseName(azureDatabase);
-        ds.setAuthentication("ActiveDirectoryIntegrated");
+        ds.setAuthentication(SqlAuthentication.ActiveDirectoryIntegrated.toString());
 
         try (Connection conn = ds.getConnection()) {
+            testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryIntegrated);
             testCharTable(conn);
         } catch (Exception e) {
             fail(e.getMessage());
@@ -128,7 +127,7 @@ public class FedauthTest extends FedauthCommon {
         String connectionUrl = TestUtils.removeProperty(TestUtils.removeProperty(adPasswordConnectionStr, "user"),
                 "password") + ";userName=" + azureGroupUserName + ";password=" + azurePassword;
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
-            testUserName(conn, azureGroupUserName);
+            testUserName(conn, azureGroupUserName, SqlAuthentication.ActiveDirectoryPassword);
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -136,10 +135,8 @@ public class FedauthTest extends FedauthCommon {
         // connection string with user
         connectionUrl = TestUtils.removeProperty(TestUtils.removeProperty(adPasswordConnectionStr, "user"), "password")
                 + ";user=" + azureGroupUserName + ";password=" + azurePassword;
-
-        // connectionUrl = TestUtils.removeProperty(adPasswordConnectionStr, "user") + ";user" + azureUserName;
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
-            testUserName(conn, azureGroupUserName);
+            testUserName(conn, azureGroupUserName, SqlAuthentication.ActiveDirectoryPassword);
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -152,10 +149,10 @@ public class FedauthTest extends FedauthCommon {
         ds.setDatabaseName(azureDatabase);
         ds.setUser(azureGroupUserName);
         ds.setPassword(azurePassword);
-        ds.setAuthentication("ActiveDirectoryPassword");
+        ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
 
         try (Connection conn = ds.getConnection()) {
-            testUserName(conn, azureGroupUserName);
+            testUserName(conn, azureGroupUserName, SqlAuthentication.ActiveDirectoryPassword);
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -163,56 +160,56 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testNotValidNotSpecified() throws SQLException {
-        testNotValid("Notspecified", false, false);
-        testNotValid("Notspecified", false, true);
-        testNotValid("Notspecified", true, true);
+        testNotValid(SqlAuthentication.NotSpecified.toString(), false, false);
+        testNotValid(SqlAuthentication.NotSpecified.toString(), false, true);
+        testNotValid(SqlAuthentication.NotSpecified.toString(), true, true);
     }
 
     @Test
     public void testNotValidSqlPassword() throws SQLException {
-        testNotValid("SqlPassword", false, true);
-        testNotValid("SqlPassword", true, true);
+        testNotValid(SqlAuthentication.SqlPassword.toString(), false, true);
+        testNotValid(SqlAuthentication.SqlPassword.toString(), true, true);
     }
 
     @Test
     public void testNotValidActiveDirectoryIntegrated() throws SQLException {
         org.junit.Assume.assumeTrue(isWindows);
 
-        testNotValid("ActiveDirectoryIntegrated", false, true);
-        testNotValid("ActiveDirectoryIntegrated", true, true);
+        testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), false, true);
+        testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), true, true);
     }
 
     @Test
     public void testNotValidActiveDirectoryPassword() throws SQLException {
-        testNotValid("ActiveDirectoryPassword", false, true);
-        testNotValid("ActiveDirectoryPassword", true, true);
+        testNotValid(SqlAuthentication.ActiveDirectoryPassword.toString(), false, true);
+        testNotValid(SqlAuthentication.ActiveDirectoryPassword.toString(), true, true);
     }
 
     @Test
     public void testValidNotSpecified() throws SQLException {
-        testValid("Notspecified", false, false);
-        testValid("Notspecified", false, true);
-        testValid("Notspecified", true, true);
+        testValid(SqlAuthentication.NotSpecified.toString(), false, false);
+        testValid(SqlAuthentication.NotSpecified.toString(), false, true);
+        testValid(SqlAuthentication.NotSpecified.toString(), true, true);
     }
 
     @Test
     public void testValidSqlPassword() throws SQLException {
-        testValid("SqlPassword", false, true);
-        testValid("SqlPassword", true, true);
+        testValid(SqlAuthentication.SqlPassword.toString(), false, true);
+        testValid(SqlAuthentication.SqlPassword.toString(), true, true);
     }
 
     @Test
     public void testValidActiveDirectoryIntegrated() throws SQLException {
         org.junit.Assume.assumeTrue(isWindows);
 
-        testValid("ActiveDirectoryIntegrated", false, true);
-        testValid("ActiveDirectoryIntegrated", true, true);
+        testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), false, true);
+        testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), true, true);
     }
 
     @Test
     public void testValidActiveDirectoryPassword() throws SQLException {
-        testValid("ActiveDirectoryPassword", false, true);
-        testValid("ActiveDirectoryPassword", true, true);
+        testValid(SqlAuthentication.ActiveDirectoryPassword.toString(), false, true);
+        testValid(SqlAuthentication.ActiveDirectoryPassword.toString(), true, true);
     }
 
     @Test
@@ -222,7 +219,7 @@ public class FedauthTest extends FedauthCommon {
         info.setProperty("accesstoken", accessToken);
 
         try (Connection conn = DriverManager.getConnection(connectionUrl, info)) {
-            testUserName(conn, azureUserName);
+            testUserName(conn, azureUserName, SqlAuthentication.NotSpecified);
             testCharTable(conn);
         } catch (Exception e) {
             fail(e.getMessage());
@@ -244,7 +241,7 @@ public class FedauthTest extends FedauthCommon {
     private void testValid(String authentication, boolean encrypt, boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
-            if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+            if (!authentication.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
                 ds.setServerName(azureServer);
                 ds.setDatabaseName(azureDatabase);
                 ds.setUser(azureUserName);
@@ -275,7 +272,7 @@ public class FedauthTest extends FedauthCommon {
             boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
-            if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+            if (!authentication.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
                 ds.setServerName(azureServer);
                 ds.setDatabaseName(azureDatabase);
                 ds.setUser(azureUserName);
@@ -290,7 +287,7 @@ public class FedauthTest extends FedauthCommon {
             ds.setTrustServerCertificate(trustServerCertificate);
 
             try (Connection conn = ds.getConnection()) {}
-            if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+            if (!authentication.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (Exception e) {
@@ -304,23 +301,6 @@ public class FedauthTest extends FedauthCommon {
         }
     }
 
-    public static void testChar(Statement stmt, String charTable) throws SQLException {
-        try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
-            int numberOfColumns = rs.getMetaData().getColumnCount();
-            rs.next();
-            for (int i = 1; i <= numberOfColumns; i++) {
-                assertTrue(rs.getString(i).trim().equals("hello world!!!"));
-            }
-        }
-    }
-
-    private void testUserName(Connection conn, String user) throws SQLException {
-        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
-            rs.next();
-            assertTrue(user.equals(rs.getString(1)));
-        }
-    }
-
     private void testCharTable(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
             try {
@@ -331,22 +311,6 @@ public class FedauthTest extends FedauthCommon {
             } finally {
                 TestUtils.dropTableIfExists(charTable, stmt);
             }
-        }
-    }
-
-    public static void createTable(Statement stmt, String charTable) throws SQLException {
-        stmt.execute("create table " + charTable + " (" + "PlainChar char(20) null," + "PlainVarchar varchar(50) null,"
-                + "PlainVarcharMax varchar(max) null," + "PlainNchar nchar(30) null,"
-                + "PlainNvarchar nvarchar(60) null," + "PlainNvarcharMax nvarchar(max) null" + ");");
-    }
-
-    public static void populateCharTable(Connection conn, String charTable) throws SQLException {
-        try (PreparedStatement pstmt = conn
-                .prepareStatement("insert into " + charTable + " values( " + "?,?,?,?,?,?" + ")")) {
-            for (int i = 1; i <= 6; i++) {
-                pstmt.setString(i, "hello world!!!");
-            }
-            pstmt.execute();
         }
     }
 

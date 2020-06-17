@@ -4,13 +4,10 @@
  */
 package com.microsoft.sqlserver.jdbc.fedauth;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -42,11 +39,8 @@ public class ConcurrentLoginTest extends FedauthCommon {
                         ds.setDatabaseName(azureDatabase);
                         ds.setAccessToken(accessToken);
 
-                        try (Connection connection = ds.getConnection(); Statement st = connection.createStatement();
-                                ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
-                            if (rs.next()) {
-                                assertTrue(azureUserName.equals(rs.getString(1)));
-                            }
+                        try (Connection conn = ds.getConnection()) {
+                            testUserName(conn, azureUserName, SqlAuthentication.NotSpecified);
                         }
                     } catch (SQLException e) {
                         fail(e.getMessage());
@@ -63,13 +57,10 @@ public class ConcurrentLoginTest extends FedauthCommon {
                         ds.setDatabaseName(azureDatabase);
                         ds.setUser(azureUserName);
                         ds.setPassword(azurePassword);
-                        ds.setAuthentication("ActiveDirectoryPassword");
+                        ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
 
-                        try (Connection connection = ds.getConnection(); Statement st = connection.createStatement();
-                                ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
-                            if (rs.next()) {
-                                assertTrue(azureUserName.equals(rs.getString(1)));
-                            }
+                        try (Connection conn = ds.getConnection()) {
+                            testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
                         }
                     } catch (SQLException e) {
                         fail(e.getMessage());
@@ -84,13 +75,10 @@ public class ConcurrentLoginTest extends FedauthCommon {
                         SQLServerDataSource ds = new SQLServerDataSource();
                         ds.setServerName(azureServer);
                         ds.setDatabaseName(azureDatabase);
-                        ds.setAuthentication("ActiveDirectoryIntegrated");
+                        ds.setAuthentication(SqlAuthentication.ActiveDirectoryIntegrated.toString());
 
-                        try (Connection connection = ds.getConnection(); Statement st = connection.createStatement();
-                                ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
-                            if (rs.next()) {
-                                assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
-                            }
+                        try (Connection conn = ds.getConnection()) {
+                            testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryIntegrated);
                         }
                     } catch (SQLException e) {
                         fail(e.getMessage());

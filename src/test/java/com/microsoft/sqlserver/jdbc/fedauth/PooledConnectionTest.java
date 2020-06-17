@@ -9,8 +9,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Random;
@@ -41,42 +39,44 @@ public class PooledConnectionTest extends FedauthCommon {
 
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnectADPassword() throws SQLException {
-        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, "ActiveDirectoryPassword"); // suspend 5 //
-                                                                                                       // mins
+        // suspend 5 mins
+        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, SqlAuthentication.ActiveDirectoryPassword);
 
         // get another token
         getFedauthInfo();
 
         // suspend until access token expires
-        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration, "ActiveDirectoryPassword");
+        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration,
+                SqlAuthentication.ActiveDirectoryPassword);
     }
 
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnectADIntegrated() throws SQLException {
-        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, "ActiveDirectoryIntegrated"); // suspend // 5
-                                                                                                         // mins
+        // suspend 5 mins
+        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, SqlAuthentication.ActiveDirectoryIntegrated); // mins
 
         // get another token
         getFedauthInfo();
 
         // suspend until access token expires
-        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration, "ActiveDirectoryIntegrated");
+        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration,
+                SqlAuthentication.ActiveDirectoryIntegrated);
     }
 
     private void testPooledConnectionAccessTokenExpiredThenReconnect(long testingTimeInSeconds,
-            String authentication) throws SQLException {
+            SqlAuthentication authentication) throws SQLException {
         SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
 
-        if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+        if (SqlAuthentication.ActiveDirectoryIntegrated != authentication) {
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
             ds.setUser(azureUserName);
             ds.setPassword(azurePassword);
-            ds.setAuthentication("ActiveDirectoryPassword");
+            ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
         } else {
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
-            ds.setAuthentication("ActiveDirectoryIntegrated");
+            ds.setAuthentication(SqlAuthentication.ActiveDirectoryIntegrated.toString());
         }
 
         try {
@@ -84,48 +84,32 @@ public class PooledConnectionTest extends FedauthCommon {
             PooledConnection pc = ds.getPooledConnection();
 
             // get first connection from pool
-            try (Connection connection1 = pc.getConnection()) {
-                try (Statement stmt = connection1.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
-                    rs.next();
-                    if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
-                        assertTrue(azureUserName.equals(rs.getString(1)));
-                    } else {
-                        assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
-                    }
+            try (Connection connection1 = pc.getConnection(); Statement stmt = connection1.createStatement()) {
+                testUserName(connection1, azureUserName, authentication);
 
-                    try {
-                        TestUtils.dropTableIfExists(charTable, stmt);
-                        createTable(stmt, charTable);
-                        populateCharTable(connection1, charTable);
-                        testChar(stmt, charTable);
-                    } finally {
-                        TestUtils.dropTableIfExists(charTable, stmt);
-                    }
+                try {
+                    TestUtils.dropTableIfExists(charTable, stmt);
+                    createTable(stmt, charTable);
+                    populateCharTable(connection1, charTable);
+                    testChar(stmt, charTable);
+                } finally {
+                    TestUtils.dropTableIfExists(charTable, stmt);
                 }
             }
             Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds));
             Thread.sleep(TimeUnit.SECONDS.toMillis(2)); // give 2 mins more to make sure the access token is expired.
 
             // get second connection from pool
-            try (Connection connection2 = pc.getConnection()) {
-                try (Statement stmt = connection2.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
-                    rs.next();
-                    if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
-                        assertTrue(azureUserName.equals(rs.getString(1)));
-                    } else {
-                        assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
-                    }
+            try (Connection connection2 = pc.getConnection(); Statement stmt = connection2.createStatement()) {
+                testUserName(connection2, azureUserName, authentication);
 
-                    try {
-                        TestUtils.dropTableIfExists(charTable, stmt);
-                        createTable(stmt, charTable);
-                        populateCharTable(connection2, charTable);
-                        testChar(stmt, charTable);
-                    } finally {
-                        TestUtils.dropTableIfExists(charTable, stmt);
-                    }
+                try {
+                    TestUtils.dropTableIfExists(charTable, stmt);
+                    createTable(stmt, charTable);
+                    populateCharTable(connection2, charTable);
+                    testChar(stmt, charTable);
+                } finally {
+                    TestUtils.dropTableIfExists(charTable, stmt);
                 }
             }
         } catch (Exception e) {
@@ -135,27 +119,28 @@ public class PooledConnectionTest extends FedauthCommon {
 
     @Test
     public void testPooledConnectionMultiThreadADPassword() throws SQLException {
-        testPooledConnectionMultiThread(secondsBeforeExpiration, "ActiveDirectoryPasswordd");
+        testPooledConnectionMultiThread(secondsBeforeExpiration, SqlAuthentication.ActiveDirectoryPassword);
     }
 
     @Test
     public void testPooledConnectionMultiThreadADIntegrated() throws SQLException {
-        testPooledConnectionMultiThread(secondsBeforeExpiration, "ActiveDirectoryIntegrated");
+        testPooledConnectionMultiThread(secondsBeforeExpiration, SqlAuthentication.ActiveDirectoryIntegrated);
     }
 
-    private void testPooledConnectionMultiThread(long testingTimeInSeconds, String authentication) throws SQLException {
+    private void testPooledConnectionMultiThread(long testingTimeInSeconds,
+            SqlAuthentication authentication) throws SQLException {
         SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
 
-        if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+        if (SqlAuthentication.ActiveDirectoryIntegrated != authentication) {
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
             ds.setUser(azureUserName);
             ds.setPassword(azurePassword);
-            ds.setAuthentication("ActiveDirectoryPassword");
+            ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
         } else {
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
-            ds.setAuthentication("ActiveDirectoryIntegrated");
+            ds.setAuthentication(SqlAuthentication.ActiveDirectoryIntegrated.toString());
         }
 
         try {
@@ -163,16 +148,8 @@ public class PooledConnectionTest extends FedauthCommon {
             final PooledConnection pc = ds.getPooledConnection();
 
             // get first connection from pool
-            try (Connection connection1 = pc.getConnection()) {
-                try (Statement stmt = connection1.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
-                    rs.next();
-                    if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
-                        assertTrue(azureUserName.equals(rs.getString(1)));
-                    } else {
-                        assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
-                    }
-                }
+            try (Connection connection1 = pc.getConnection(); Statement stmt = connection1.createStatement()) {
+                testUserName(connection1, azureUserName, authentication);
             }
             Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds));
             Thread.sleep(TimeUnit.SECONDS.toMillis(2)); // give 2 mins more to make sure the access token is expired.
@@ -183,18 +160,9 @@ public class PooledConnectionTest extends FedauthCommon {
             for (int i = 0; i < numberOfThreadsForEachType; i++) {
                 new Thread() {
                     public void run() {
-                        try {
-                            try (Connection connection2 = pc.getConnection();
-                                    Statement st = connection2.createStatement();
-                                    ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
-                                if (rs.next()) {
-                                    if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
-                                        assertTrue(azureUserName.equals(rs.getString(1)));
-                                    } else {
-                                        assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
-                                    }
-                                }
-                            }
+
+                        try (Connection connection2 = pc.getConnection()) {
+                            testUserName(connection2, azureUserName, authentication);
                         } catch (SQLException e) {
                             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
                                     e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
@@ -208,18 +176,8 @@ public class PooledConnectionTest extends FedauthCommon {
 
                 new Thread() {
                     public void run() {
-                        try {
-                            try (Connection connection2 = pc.getConnection();
-                                    Statement st = connection2.createStatement();
-                                    ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
-                                if (rs.next()) {
-                                    if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
-                                        assertTrue(azureUserName.equals(rs.getString(1)));
-                                    } else {
-                                        assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
-                                    }
-                                }
-                            }
+                        try (Connection connection2 = pc.getConnection()) {
+                            testUserName(connection2, azureUserName, authentication);
                         } catch (SQLException e) {
                             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
                                     e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
@@ -233,18 +191,8 @@ public class PooledConnectionTest extends FedauthCommon {
 
                 new Thread() {
                     public void run() {
-                        try {
-                            try (Connection connection2 = pc.getConnection();
-                                    Statement st = connection2.createStatement();
-                                    ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
-                                if (rs.next()) {
-                                    if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
-                                        assertTrue(azureUserName.equals(rs.getString(1)));
-                                    } else {
-                                        assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
-                                    }
-                                }
-                            }
+                        try (Connection connection2 = pc.getConnection()) {
+                            testUserName(connection2, azureUserName, authentication);
                         } catch (SQLException e) {
                             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
                                     e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
@@ -284,11 +232,7 @@ public class PooledConnectionTest extends FedauthCommon {
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection()) {
-                try (Statement stmt = connection1.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
-                    rs.next();
-                    assertTrue(azureUserName.equals(rs.getString(1)));
-                }
+                testUserName(connection1, azureUserName, SqlAuthentication.NotSpecified);
             }
 
             Random rand = new Random();
@@ -296,14 +240,8 @@ public class PooledConnectionTest extends FedauthCommon {
             for (int i = 0; i < numberOfThreadsForEachType; i++) {
                 new Thread() {
                     public void run() {
-                        try {
-                            try (Connection connection2 = pc.getConnection();
-                                    Statement st = connection2.createStatement();
-                                    ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
-                                if (rs.next()) {
-                                    assertTrue(azureUserName.equals(rs.getString(1)));
-                                }
-                            }
+                        try (Connection connection2 = pc.getConnection()) {
+                            testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
                         } catch (SQLException e) {
                             fail(e.getMessage());
                         }
@@ -312,14 +250,8 @@ public class PooledConnectionTest extends FedauthCommon {
 
                 new Thread() {
                     public void run() {
-                        try {
-                            try (Connection connection2 = pc.getConnection();
-                                    Statement st = connection2.createStatement();
-                                    ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
-                                if (rs.next()) {
-                                    assertTrue(azureUserName.equals(rs.getString(1)));
-                                }
-                            }
+                        try (Connection connection2 = pc.getConnection()) {
+                            testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
                         } catch (SQLException e) {
                             fail(e.getMessage());
                         }
@@ -328,14 +260,8 @@ public class PooledConnectionTest extends FedauthCommon {
 
                 new Thread() {
                     public void run() {
-                        try {
-                            try (Connection connection2 = pc.getConnection();
-                                    Statement st = connection2.createStatement();
-                                    ResultSet rs = st.executeQuery("SELECT SUSER_SNAME()")) {
-                                if (rs.next()) {
-                                    assertTrue(azureUserName.equals(rs.getString(1)));
-                                }
-                            }
+                        try (Connection connection2 = pc.getConnection()) {
+                            testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
                         } catch (SQLException e) {
                             fail(e.getMessage());
                         }
@@ -351,37 +277,6 @@ public class PooledConnectionTest extends FedauthCommon {
             }
         } catch (Exception e) {
             fail(e.getMessage());
-        }
-    }
-
-    private void createTable(Statement stmt, String charTable) throws SQLException {
-        String createTableSql = "create table " + charTable + " (" + "PlainChar char(20) null,"
-                + "PlainVarchar varchar(50) null," + "PlainVarcharMax varchar(max) null," + "PlainNchar nchar(30) null,"
-                + "PlainNvarchar nvarchar(60) null," + "PlainNvarcharMax nvarchar(max) null" + ");";
-
-        stmt.execute(createTableSql);
-    }
-
-    private void populateCharTable(Connection connection, String charTable) throws SQLException {
-        String sql = "insert into " + charTable + " values( " + "?,?,?,?,?,?" + ")";
-
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            for (int i = 1; i <= 6; i++) {
-                pstmt.setString(i, "hello world!!!");
-            }
-            pstmt.execute();
-        }
-    }
-
-    private void testChar(Statement stmt, String charTable) throws SQLException {
-        try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
-            int numberOfColumns = rs.getMetaData().getColumnCount();
-            rs.next();
-            for (int i = 1; i <= numberOfColumns; i++) {
-                try {} catch (Exception e) {
-                    fail(e.getMessage());
-                }
-            }
         }
     }
 

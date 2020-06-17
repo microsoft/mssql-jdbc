@@ -19,7 +19,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
@@ -153,7 +152,7 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setDatabaseName(azureDatabase);
             ds.setUser(azureUserName);
             ds.setPassword(azurePassword);
-            ds.setAuthentication("SqlPassword");
+            ds.setAuthentication(SqlAuthentication.SqlPassword.toString());
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -186,7 +185,7 @@ public class ErrorMessageTest extends FedauthCommon {
     public void testSQLPasswordWithUntrustedSqlDB() throws SQLException {
         try {
             java.util.Properties info = new Properties();
-            info.put("Authentication", "SqlPassword");
+            info.put("Authentication", SqlAuthentication.SqlPassword.toString());
 
             try (Connection connection = DriverManager
                     .getConnection(connectionUrl + ";user=" + azureUserName + ";password=" + azurePassword, info)) {}
@@ -223,7 +222,7 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setDatabaseName(azureDatabase);
             ds.setUser(userName);
             ds.setPassword(azurePassword);
-            ds.setAuthentication("ActiveDirectoryPassword");
+            ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -316,7 +315,7 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setDatabaseName(azureDatabase);
             ds.setUser(azureUserName);
             ds.setPassword(azurePassword);
-            ds.setAuthentication("NotSpecified");
+            ds.setAuthentication(SqlAuthentication.NotSpecified.toString());
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -386,7 +385,7 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setDatabaseName(azureDatabase);
             ds.setUser(azureUserName);
             ds.setPassword("WrongPassword");
-            ds.setAuthentication("ActiveDirectoryPassword");
+            ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -429,7 +428,7 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setDatabaseName(azureDatabase);
             ds.setUser(azureUserName);
             ds.setPassword(azurePassword);
-            ds.setAuthentication("ActiveDirectoryPassword");
+            ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
             ds.setIntegratedSecurity(true);
 
             try (Connection connection = ds.getConnection()) {}
@@ -480,7 +479,7 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setDatabaseName(azureDatabase);
             ds.setUser(azureUserName);
             ds.setPassword(azurePassword);
-            ds.setAuthentication("ActiveDirectoryIntegrated");
+            ds.setAuthentication(SqlAuthentication.ActiveDirectoryIntegrated.toString());
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -526,7 +525,7 @@ public class ErrorMessageTest extends FedauthCommon {
             SQLServerDataSource ds = new SQLServerDataSource();
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
-            ds.setAuthentication("ActiveDirectoryIntegrated");
+            ds.setAuthentication(SqlAuthentication.ActiveDirectoryIntegrated.toString());
             ds.setAccessToken(accessToken);
 
             try (Connection connection = ds.getConnection()) {}
@@ -642,7 +641,7 @@ public class ErrorMessageTest extends FedauthCommon {
         ds.setServerName(azureServer);
         ds.setDatabaseName(azureDatabase);
         ds.setPassword(azurePassword);
-        ds.setAuthentication("ActiveDirectoryPassword");
+        ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
 
         try {
             try (Connection connection = ds.getConnection()) {}
@@ -664,7 +663,7 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
             ds.setUser(azureUserName);
-            ds.setAuthentication("ActiveDirectoryPassword");
+            ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -711,7 +710,7 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
             ds.setPassword(azurePassword);
-            ds.setAuthentication("SqlPassword");
+            ds.setAuthentication(SqlAuthentication.SqlPassword.toString());
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
@@ -731,7 +730,7 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
             ds.setUser(azureUserName);
-            ds.setAuthentication("SqlPassword");
+            ds.setAuthentication(SqlAuthentication.SqlPassword.toString());
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
