@@ -13,11 +13,9 @@ import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -42,37 +40,41 @@ public class ConnectionSuspensionTest extends FedauthCommon {
 
     @Test
     public void testAccessTokenExpiredThenCreateNewStatementADPassword() throws SQLException {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-        ds.setServerName(azureServer);
-        ds.setDatabaseName(azureDatabase);
-        ds.setUser(azureUserName);
-        ds.setPassword(azurePassword);
-        ds.setAuthentication("ActiveDirectoryPassword");
-
-        testAccessTokenExpiredThenCreateNewStatement(ds);
+        testAccessTokenExpiredThenCreateNewStatement("ActiveDirectoryPassword");
     }
 
     @Test
     public void testAccessTokenExpiredThenCreateNewStatementADIntegrated() throws SQLException {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-        ds.setServerName(azureServer);
-        ds.setDatabaseName(azureDatabase);
-        ds.setAuthentication("ActiveDirectoryIntegrated");
-
-        testAccessTokenExpiredThenCreateNewStatement(ds);
+        testAccessTokenExpiredThenCreateNewStatement("ActiveDirectoryIntegrated");
     }
 
-    private void testAccessTokenExpiredThenCreateNewStatement(SQLServerDataSource ds) throws SQLException {
+    private void testAccessTokenExpiredThenCreateNewStatement(String authentication) throws SQLException {
         long secondsPassed = 0;
         long start = System.currentTimeMillis();
+        SQLServerDataSource ds = new SQLServerDataSource();
+
+        if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+            ds.setServerName(azureServer);
+            ds.setDatabaseName(azureDatabase);
+            ds.setUser(azureUserName);
+            ds.setPassword(azurePassword);
+            ds.setAuthentication("ActiveDirectoryPassword");
+        } else {
+            ds.setServerName(azureServer);
+            ds.setDatabaseName(azureDatabase);
+            ds.setAuthentication("ActiveDirectoryIntegrated");
+        }
 
         try (Connection connection = (SQLServerConnection) ds.getConnection();
                 Statement stmt = connection.createStatement();
                 ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
             rs.next();
-            assertTrue(azureUserName.equals(rs.getString(1)));
+            if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                assertTrue(azureUserName.equals(rs.getString(1)));
+            } else {
+                assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
+            }
 
-            // if (!enableADIntegrated) {
             try {
                 TestUtils.dropTableIfExists(charTable, stmt);
                 createTable(charTable, stmt);
@@ -81,7 +83,6 @@ public class ConnectionSuspensionTest extends FedauthCommon {
             } finally {
                 TestUtils.dropTableIfExists(charTable, stmt);
             }
-            // }
 
             while (secondsPassed < secondsBeforeExpiration) {
                 Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 2 minutes
@@ -92,7 +93,6 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                     rs1.next();
                     assertTrue(azureUserName.equals(rs.getString(1)));
 
-                    // if (!enableADIntegrated) {
                     try {
                         TestUtils.dropTableIfExists(charTable, stmt1);
                         createTable(charTable, stmt1);
@@ -101,7 +101,6 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                     } finally {
                         TestUtils.dropTableIfExists(charTable, stmt1);
                     }
-                    /// }
                 }
             }
         } catch (Exception e) {
@@ -112,30 +111,32 @@ public class ConnectionSuspensionTest extends FedauthCommon {
 
     @Test
     public void testAccessTokenExpiredThenExecuteUsingSameStatementADPassword() throws SQLException {
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setServerName(azureServer);
-        ds.setDatabaseName(azureDatabase);
-        ds.setUser(azureUserName);
-        ds.setPassword(azurePassword);
-        ds.setAuthentication("ActiveDirectoryPassword");
-
-        testAccessTokenExpiredThenExecuteUsingSameStatement(ds);
-
+        testAccessTokenExpiredThenExecuteUsingSameStatement("ActiveDirectoryPassword");
     }
 
     @Test
     public void testAccessTokenExpiredThenExecuteUsingSameStatementADIntegrated() throws SQLException {
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setServerName(azureServer);
-        ds.setDatabaseName(azureDatabase);
-        ds.setAuthentication("ActiveDirectoryIntegrated");
-
-        testAccessTokenExpiredThenExecuteUsingSameStatement(ds);
+        testAccessTokenExpiredThenExecuteUsingSameStatement("ActiveDirectoryIntegrated");
     }
 
-    private void testAccessTokenExpiredThenExecuteUsingSameStatement(SQLServerDataSource ds) throws SQLException {
+    private void testAccessTokenExpiredThenExecuteUsingSameStatement(String authentication) throws SQLException {
         long secondsPassed = 0;
         long start = System.currentTimeMillis();
+
+        SQLServerDataSource ds = new SQLServerDataSource();
+
+        if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+            ds.setServerName(azureServer);
+            ds.setDatabaseName(azureDatabase);
+            ds.setUser(azureUserName);
+            ds.setPassword(azurePassword);
+            ds.setAuthentication("ActiveDirectoryPassword");
+        } else {
+            ds.setServerName(azureServer);
+            ds.setDatabaseName(azureDatabase);
+            ds.setAuthentication("ActiveDirectoryIntegrated");
+        }
+
         try {
 
             try (Connection connection = ds.getConnection(); Statement stmt = connection.createStatement();
@@ -143,7 +144,6 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 rs.next();
                 assertTrue(azureUserName.equals(rs.getString(1)));
 
-                // if (!enableADIntegrated) {
                 try {
                     TestUtils.dropTableIfExists(charTable, stmt);
                     createTable(charTable, stmt);
@@ -152,7 +152,6 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 } finally {
                     TestUtils.dropTableIfExists(charTable, stmt);
                 }
-                // }
 
                 while (secondsPassed < secondsBeforeExpiration) {
                     Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 2 minutes
@@ -160,10 +159,14 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                     secondsPassed = (System.currentTimeMillis() - start) / 1000;
                     try (ResultSet rs1 = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                         rs1.next();
-                        assertTrue(azureUserName.equals(rs.getString(1)));
+                        if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                            assertTrue(azureUserName.equals(rs.getString(1)));
+                        } else {
+                            assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
+                        }
                     }
                 }
-                // if (!enableADIntegrated) {
+
                 try {
                     TestUtils.dropTableIfExists(charTable, stmt);
                     createTable(charTable, stmt);
@@ -172,7 +175,6 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 } finally {
                     TestUtils.dropTableIfExists(charTable, stmt);
                 }
-                // }
             }
         } catch (Exception e) {
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),

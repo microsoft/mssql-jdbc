@@ -125,9 +125,8 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testGroupAuthentication() throws SQLException {
         // connection string with userName
-        String connectionUrl = TestUtils.removeProperty(adPasswordConnectionStr, "user") + ";userName="
-                + azureGroupUserName;
-System.out.println("testGroupAuthentication: "+connectionUrl);
+        String connectionUrl = TestUtils.removeProperty(TestUtils.removeProperty(adPasswordConnectionStr, "user"),
+                "password") + ";userName=" + azureGroupUserName + ";password=" + azurePassword;
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureGroupUserName);
         } catch (Exception e) {
@@ -135,7 +134,10 @@ System.out.println("testGroupAuthentication: "+connectionUrl);
         }
 
         // connection string with user
-        connectionUrl = TestUtils.removeProperty(adPasswordConnectionStr, "user") + ";user" + azureUserName;
+        connectionUrl = TestUtils.removeProperty(TestUtils.removeProperty(adPasswordConnectionStr, "user"), "password")
+                + ";user=" + azureGroupUserName + ";password=" + azurePassword;
+
+        // connectionUrl = TestUtils.removeProperty(adPasswordConnectionStr, "user") + ";user" + azureUserName;
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureGroupUserName);
         } catch (Exception e) {
@@ -166,6 +168,8 @@ System.out.println("testGroupAuthentication: "+connectionUrl);
         testNotValid("Notspecified", true, true);
     }
 
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
     @Test
     public void testNotValidSqlPassword() throws SQLException {
         testNotValid("SqlPassword", false, true);
@@ -193,9 +197,6 @@ System.out.println("testGroupAuthentication: "+connectionUrl);
         testValid("Notspecified", true, true);
     }
 
-    @Tag(Constants.xAzureSQLDB)
-    @Tag(Constants.xAzureSQLDW)
-    @Tag(Constants.xAzureSQLMI)
     @Test
     public void testValidSqlPassword() throws SQLException {
         testValid("SqlPassword", false, true);

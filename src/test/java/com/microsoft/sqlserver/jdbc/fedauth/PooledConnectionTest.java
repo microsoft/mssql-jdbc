@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 import javax.sql.PooledConnection;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -42,40 +41,44 @@ public class PooledConnectionTest extends FedauthCommon {
 
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnectADPassword() throws SQLException {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-        ds.setServerName(azureServer);
-        ds.setDatabaseName(azureDatabase);
-        ds.setUser(azureUserName);
-        ds.setPassword(azurePassword);
-        ds.setAuthentication("ActiveDirectoryPassword");
-
-        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, ds); // suspend 5 mins
+        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, "ActiveDirectoryPassword"); // suspend 5 //
+                                                                                                       // mins
 
         // get another token
         getFedauthInfo();
 
         // suspend until access token expires
-        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration, ds);
+        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration, "ActiveDirectoryPassword");
     }
 
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnectADIntegrated() throws SQLException {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-        ds.setServerName(azureServer);
-        ds.setDatabaseName(azureDatabase);
-        ds.setAuthentication("ActiveDirectoryIntegrated");
-
-        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, ds); // suspend 5 mins
+        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, "ActiveDirectoryIntegrated"); // suspend // 5
+                                                                                                         // mins
 
         // get another token
         getFedauthInfo();
 
         // suspend until access token expires
-        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration, ds);
+        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration, "ActiveDirectoryIntegrated");
     }
 
     private void testPooledConnectionAccessTokenExpiredThenReconnect(long testingTimeInSeconds,
-            SQLServerConnectionPoolDataSource ds) throws SQLException {
+            String authentication) throws SQLException {
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+
+        if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+            ds.setServerName(azureServer);
+            ds.setDatabaseName(azureDatabase);
+            ds.setUser(azureUserName);
+            ds.setPassword(azurePassword);
+            ds.setAuthentication("ActiveDirectoryPassword");
+        } else {
+            ds.setServerName(azureServer);
+            ds.setDatabaseName(azureDatabase);
+            ds.setAuthentication("ActiveDirectoryIntegrated");
+        }
+
         try {
             // create pooled connection
             PooledConnection pc = ds.getPooledConnection();
@@ -85,9 +88,12 @@ public class PooledConnectionTest extends FedauthCommon {
                 try (Statement stmt = connection1.createStatement();
                         ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                     rs.next();
-                    assertTrue(azureUserName.equals(rs.getString(1)));
+                    if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                        assertTrue(azureUserName.equals(rs.getString(1)));
+                    } else {
+                        assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
+                    }
 
-                    // if (!enableADIntegrated) {
                     try {
                         TestUtils.dropTableIfExists(charTable, stmt);
                         createTable(stmt, charTable);
@@ -96,7 +102,6 @@ public class PooledConnectionTest extends FedauthCommon {
                     } finally {
                         TestUtils.dropTableIfExists(charTable, stmt);
                     }
-                    // }
                 }
             }
             Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds));
@@ -109,7 +114,6 @@ public class PooledConnectionTest extends FedauthCommon {
                     rs.next();
                     assertTrue(azureUserName.equals(rs.getString(1)));
 
-                    // if (!enableADIntegrated) {
                     try {
                         TestUtils.dropTableIfExists(charTable, stmt);
                         createTable(stmt, charTable);
@@ -118,7 +122,6 @@ public class PooledConnectionTest extends FedauthCommon {
                     } finally {
                         TestUtils.dropTableIfExists(charTable, stmt);
                     }
-                    // }
                 }
             }
         } catch (Exception e) {
@@ -128,28 +131,29 @@ public class PooledConnectionTest extends FedauthCommon {
 
     @Test
     public void testPooledConnectionMultiThreadADPassword() throws SQLException {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-        ds.setServerName(azureServer);
-        ds.setDatabaseName(azureDatabase);
-        ds.setUser(azureUserName);
-        ds.setPassword(azurePassword);
-        ds.setAuthentication("ActiveDirectoryPassword");
-
-        testPooledConnectionMultiThread(secondsBeforeExpiration, ds);
+        testPooledConnectionMultiThread(secondsBeforeExpiration, "ActiveDirectoryPasswordd");
     }
 
     @Test
     public void testPooledConnectionMultiThreadADIntegrated() throws SQLException {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-        ds.setServerName(azureServer);
-        ds.setDatabaseName(azureDatabase);
-        ds.setAuthentication("ActiveDirectoryIntegrated");
-
-        testPooledConnectionMultiThread(secondsBeforeExpiration, ds);
+        testPooledConnectionMultiThread(secondsBeforeExpiration, "ActiveDirectoryIntegrated");
     }
 
-    private void testPooledConnectionMultiThread(long testingTimeInSeconds,
-            SQLServerConnectionPoolDataSource ds) throws SQLException {
+    private void testPooledConnectionMultiThread(long testingTimeInSeconds, String authentication) throws SQLException {
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+
+        if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+            ds.setServerName(azureServer);
+            ds.setDatabaseName(azureDatabase);
+            ds.setUser(azureUserName);
+            ds.setPassword(azurePassword);
+            ds.setAuthentication("ActiveDirectoryPassword");
+        } else {
+            ds.setServerName(azureServer);
+            ds.setDatabaseName(azureDatabase);
+            ds.setAuthentication("ActiveDirectoryIntegrated");
+        }
+
         try {
             // create pooled connection
             final PooledConnection pc = ds.getPooledConnection();
@@ -159,7 +163,11 @@ public class PooledConnectionTest extends FedauthCommon {
                 try (Statement stmt = connection1.createStatement();
                         ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
                     rs.next();
-                    assertTrue(azureUserName.equals(rs.getString(1)));
+                    if (!authentication.equalsIgnoreCase("ActiveDirectoryIntegrated")) {
+                        assertTrue(azureUserName.equals(rs.getString(1)));
+                    } else {
+                        assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
+                    }
                 }
             }
             Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds));
