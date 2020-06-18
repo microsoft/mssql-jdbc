@@ -1959,30 +1959,6 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
-    // @Test
-    // @Tag(Constants.xAzureSQLDW)
-    // public void testSTAsBinary() throws SQLException {
-    // beforeEachSetup();
-    //
-    // String geoWKT = "POINT(3 40 5 6)";
-    // String geoWKT2 = "POINT(3 40)";
-    //
-    // Geometry geomWKT = Geometry.STGeomFromText(geoWKT, 0);
-    // Geography geogWKT = Geography.STGeomFromText(geoWKT, 4326);
-    //
-    // byte[] geomCLR = geomWKT.STAsBinary();
-    // byte[] geogCLR = geogWKT.STAsBinary();
-    //
-    // Geometry geomWKT2 = Geometry.STGeomFromText(geoWKT2, 0);
-    // Geography geogWKT2 = Geography.STGeomFromText(geoWKT2, 4326);
-    //
-    // byte[] geomCLR2 = geomWKT2.STAsBinary();
-    // byte[] geogCLR2 = geogWKT2.STAsBinary();
-    //
-    // assertArrayEquals(geomCLR, geomCLR2);
-    // assertArrayEquals(geogCLR, geogCLR2);
-    // }
-
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testCheckGeomMetaData() throws SQLException {
@@ -2110,7 +2086,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                             assertEquals(rs.getGeometry(1).asTextZM(), geoWKTListExpected.get(i));
                             assertEquals(rs.getGeography(2).asTextZM(), geoWKTListExpected.get(i));
                             assertEquals(rs.getString(3), s);
-                            assertEquals(rs.getDouble(4), d);
+                            assertEquals((Double) rs.getDouble(4), d);
                             assertEquals(rs.getInt(5), i2);
                         }
                     }
