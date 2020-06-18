@@ -91,6 +91,11 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Constructor for a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Binary (WKB)
      * representation.
      * 
+     * Note: This method currently uses internal SQL Server format (CLR) to create a Geometry instance,
+     * but in the future this will be changed to accept WKB data instead, as the SQL Server counterpart of this
+     * method (STGeomFromWKB) uses WKB.
+     * For existing users who are already using this method, consider switching to deserialize(byte) instead.
+     * 
      * @param wkb
      *        Well-Known Binary (WKB) provided by the user.
      * @return Geometry Geometry instance created from WKB
@@ -104,9 +109,8 @@ public class Geometry extends SQLServerSpatialDatatype {
     /**
      * Constructor for a Geometry instance from an internal SQL Server format for spatial data.
      * 
-     * @param
-     * Internal
-     *        SQL Server format provided by the user.
+     * @param clr
+     *        Internal SQL Server format provided by the user.
      * @return Geometry Geometry instance created from clr
      * @throws SQLServerException
      *         if an exception occurs

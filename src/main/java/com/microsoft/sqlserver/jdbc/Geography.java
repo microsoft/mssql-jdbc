@@ -72,37 +72,6 @@ public class Geography extends SQLServerSpatialDatatype {
     }
 
     /**
-     * Private constructor used for creating a Geography object from WKB.
-     * 
-     * @param wkb
-     *        Well-Known Binary provided by the user.
-     * @param isWKB
-     *        indicates if the byte array is WKB.
-     * @throws SQLServerException
-     *         if an exception occurs
-     */
-    protected Geography(byte[] wkb, boolean isWKB) throws SQLServerException {
-        if (null == wkb || wkb.length <= 0) {
-            throwIllegalByteArray();
-        }
-
-        this.wkb = wkb;
-        buffer = ByteBuffer.wrap(wkb);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-
-        parseClr(this);
-
-        WKTsb = new StringBuffer();
-        WKTsbNoZM = new StringBuffer();
-
-        constructWKT(this, internalType, numberOfPoints, numberOfFigures, numberOfSegments, numberOfShapes);
-
-        wkt = WKTsb.toString();
-        wktNoZM = WKTsbNoZM.toString();
-        isNull = false;
-    }
-
-    /**
      * Constructor for a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Text (WKT)
      * representation augmented with any Z (elevation) and M (measure) values carried by the instance.
      * 
@@ -122,6 +91,11 @@ public class Geography extends SQLServerSpatialDatatype {
      * Constructor for a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Binary (WKB)
      * representation.
      * 
+     * Note: This method currently uses internal SQL Server format (CLR) to create a Geography instance,
+     * but in the future this will be changed to accept WKB data instead, as the SQL Server counterpart of this
+     * method (STGeomFromWKB) uses WKB.
+     * For existing users who are already using this method, consider switching to deserialize(byte) instead.
+     * 
      * @param wkb
      *        Well-Known Binary (WKB) provided by the user.
      * @return Geography Geography instance created from WKB
@@ -129,7 +103,7 @@ public class Geography extends SQLServerSpatialDatatype {
      *         if an exception occurs
      */
     public static Geography STGeomFromWKB(byte[] wkb) throws SQLServerException {
-        return new Geography(wkb, true);
+        return new Geography(wkb);
     }
 
     /**
