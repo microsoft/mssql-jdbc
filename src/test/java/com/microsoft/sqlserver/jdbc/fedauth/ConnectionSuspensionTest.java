@@ -42,6 +42,8 @@ public class ConnectionSuspensionTest extends FedauthCommon {
 
     @Test
     public void testAccessTokenExpiredThenCreateNewStatementADIntegrated() throws SQLException {
+        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
+
         testAccessTokenExpiredThenCreateNewStatement(SqlAuthentication.ActiveDirectoryIntegrated);
     }
 
@@ -105,6 +107,8 @@ public class ConnectionSuspensionTest extends FedauthCommon {
 
     @Test
     public void testAccessTokenExpiredThenExecuteUsingSameStatementADIntegrated() throws SQLException {
+        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
+
         testAccessTokenExpiredThenExecuteUsingSameStatement(SqlAuthentication.ActiveDirectoryIntegrated);
     }
 

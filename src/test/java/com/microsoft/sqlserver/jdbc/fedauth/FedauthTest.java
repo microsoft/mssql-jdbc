@@ -70,7 +70,7 @@ public class FedauthTest extends FedauthCommon {
     }
 
     @Test
-    public void testADPasswordAuthentication() throws Exception {
+    public void testActiveDirectoryPassword() throws Exception {
         try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr)) {
             testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
             testCharTable(conn);
@@ -89,7 +89,7 @@ public class FedauthTest extends FedauthCommon {
     }
 
     @Test
-    public void testADPasswordAuthenticationDS() throws Exception {
+    public void testActiveDirectoryPasswordDS() throws Exception {
         SQLServerDataSource ds = new SQLServerDataSource();
 
         ds.setServerName(azureServer);
@@ -107,7 +107,9 @@ public class FedauthTest extends FedauthCommon {
     }
 
     @Test
-    public void testADIntegratedAuthenticationDS() throws Exception {
+    public void testActiveDirectoryIntegratedDS() throws Exception {
+        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
+
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setServerName(azureServer);
         ds.setDatabaseName(azureDatabase);
@@ -200,7 +202,7 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testValidActiveDirectoryIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(isWindows);
+        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
 
         testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), false, true);
         testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), true, true);

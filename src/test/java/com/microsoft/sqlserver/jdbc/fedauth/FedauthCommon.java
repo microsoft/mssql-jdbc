@@ -34,6 +34,8 @@ public class FedauthCommon extends AbstractTest {
     static String azurePassword = null;
     static String azureGroupUserName = null;
 
+    static boolean enableADIntegrated = false;
+
     static String spn = null;
     static String stsurl = null;
     static String fedauthClientId = null;
@@ -104,11 +106,15 @@ public class FedauthCommon extends AbstractTest {
         azurePassword = getConfiguredProperty("azurePassword");
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
 
+        String prop = getConfiguredProperty("enableADIntegrated");
+        enableADIntegrated = (isWindows && null != prop && prop.equalsIgnoreCase("true")) ? true : false;
+
         adPasswordConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user="
-                + azureUserName + ";password=" + azurePassword + ";Authentication=ActiveDirectoryPassword";
+                + azureUserName + ";password=" + azurePassword + ";Authentication="
+                + SqlAuthentication.ActiveDirectoryPassword.toString();
 
         adIntegratedConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase
-                + ";Authentication=ActiveDirectoryIntegrated";
+                + ";Authentication=" + SqlAuthentication.ActiveDirectoryIntegrated.toString();
 
         fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
         if (!isWindows) {
@@ -120,7 +126,7 @@ public class FedauthCommon extends AbstractTest {
         stsurl = getConfiguredProperty("stsurl");
         fedauthClientId = getConfiguredProperty("fedauthClientId");
 
-        // reset logging to avoid server logs
+        // reset logging to avoid severe logs
         LogManager.getLogManager().reset();
     }
 
@@ -143,7 +149,7 @@ public class FedauthCommon extends AbstractTest {
     void testUserName(Connection conn, String user, SqlAuthentication authentication) throws SQLException {
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
             rs.next();
-            if (SqlAuthentication.ActiveDirectoryIntegrated != authentication ) {
+            if (SqlAuthentication.ActiveDirectoryIntegrated != authentication) {
                 assertTrue(user.equals(rs.getString(1)));
             } else {
                 assertTrue(rs.getString(1).contains(System.getProperty("user.name")));

@@ -69,22 +69,24 @@ public class ConcurrentLoginTest extends FedauthCommon {
             }.start();
 
             // active directory integrated
-            new Thread() {
-                public void run() {
-                    try {
-                        SQLServerDataSource ds = new SQLServerDataSource();
-                        ds.setServerName(azureServer);
-                        ds.setDatabaseName(azureDatabase);
-                        ds.setAuthentication(SqlAuthentication.ActiveDirectoryIntegrated.toString());
+            if (isWindows && enableADIntegrated) {
+                new Thread() {
+                    public void run() {
+                        try {
+                            SQLServerDataSource ds = new SQLServerDataSource();
+                            ds.setServerName(azureServer);
+                            ds.setDatabaseName(azureDatabase);
+                            ds.setAuthentication(SqlAuthentication.ActiveDirectoryIntegrated.toString());
 
-                        try (Connection conn = ds.getConnection()) {
-                            testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryIntegrated);
+                            try (Connection conn = ds.getConnection()) {
+                                testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryIntegrated);
+                            }
+                        } catch (SQLException e) {
+                            fail(e.getMessage());
                         }
-                    } catch (SQLException e) {
-                        fail(e.getMessage());
                     }
-                }
-            }.start();
+                }.start();
+            }
         }
 
         // sleep in order to catch exception from other threads if tests fail.
