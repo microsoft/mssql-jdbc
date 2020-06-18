@@ -35,13 +35,13 @@ public class ConnectionEncryptionTest extends FedauthCommon {
     @Test
     public void testCorrectCertificate() throws SQLException {
         try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr);
-                Statement stmt = connection.createStatement()) {
+                Statement stmt = conn.createStatement()) {
             testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
 
             try {
                 TestUtils.dropTableIfExists(charTable, stmt);
                 createTable(stmt, charTable);
-                populateCharTable(connection, charTable);
+                populateCharTable(conn, charTable);
                 testChar(stmt, charTable);
             } finally {
                 TestUtils.dropTableIfExists(charTable, stmt);
@@ -53,7 +53,7 @@ public class ConnectionEncryptionTest extends FedauthCommon {
 
     @Test
     public void testWrongCertificate() throws SQLException {
-        try (Connection connection = DriverManager
+        try (Connection conn = DriverManager
                 .getConnection(adPasswordConnectionStr + ";HostNameInCertificate=WrongCertificate")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
@@ -77,7 +77,7 @@ public class ConnectionEncryptionTest extends FedauthCommon {
             try {
                 TestUtils.dropTableIfExists(charTable, stmt);
                 createTable(stmt, charTable);
-                populateCharTable(connection, charTable);
+                populateCharTable(conn, charTable);
                 testChar(stmt, charTable);
             } finally {
                 TestUtils.dropTableIfExists(charTable, stmt);
