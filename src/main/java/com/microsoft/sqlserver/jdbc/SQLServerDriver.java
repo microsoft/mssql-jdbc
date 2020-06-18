@@ -463,6 +463,7 @@ enum SensitivityRank {
     HIGH(30),
     CRITICAL(40);
 
+    private static final SensitivityRank[] VALUES = values();
     private int rank;
 
     private SensitivityRank(int rank) {
@@ -474,7 +475,7 @@ enum SensitivityRank {
     }
 
     static boolean isValid(int rank) throws SQLServerException {
-        for (SensitivityRank r : SensitivityRank.values()) {
+        for (SensitivityRank r : VALUES) {
             if (r.getValue() == rank) {
                 return true;
             }
