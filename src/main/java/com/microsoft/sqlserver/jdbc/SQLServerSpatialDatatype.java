@@ -215,7 +215,6 @@ abstract class SQLServerSpatialDatatype {
      * 
      * @param type
      *        Type of Spatial Datatype (Geometry/Geography)
-     * @throws SQLServerException
      */
     protected void serializeToWkb(SQLServerSpatialDatatype type) {
         ByteBuffer buf = ByteBuffer.allocate(determineWkbCapacity());

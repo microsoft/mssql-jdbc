@@ -179,8 +179,6 @@ public class Geography extends SQLServerSpatialDatatype {
      * value will not contain any Z or M values carried by the instance.
      * 
      * @return byte array representation of the Geography object.
-     * @throws SQLServerException
-     *         if an exception occurs
      */
     public byte[] STAsBinary() {
         if (null == wkb) {
