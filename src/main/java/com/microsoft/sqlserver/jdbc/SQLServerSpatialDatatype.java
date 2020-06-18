@@ -539,8 +539,6 @@ abstract class SQLServerSpatialDatatype {
                     addStructureToBuffer(buf, numFiguresInThisShape, InternalSpatialDatatype.POLYGON);
                     currentWKBShapeIndex++;
                     break;
-                case GEOMETRYCOLLECTION:
-                    break;
                 case CIRCULARSTRING:
                     buf.put(endian);
                     buf.putInt(InternalSpatialDatatype.CIRCULARSTRING.getTypeCode());
@@ -549,6 +547,23 @@ abstract class SQLServerSpatialDatatype {
                     currentWKBFigureIndex++;
                     break;
                 case COMPOUNDCURVE:
+                    /*
+                     * COMPOUNDCURVEs are made of these four types of segments:
+                     * SEGMENT_FIRST_ARC
+                     * - It's a circularstring. It has 3 points and signals the beginning of an arc.
+                     * SEGMENT_FIRST_LINE
+                     * - It's a linestring. It has 2 points and signals the beginning of a line.
+                     * SEGMENT_ARC
+                     * - It only comes after SEGMENT_FIRST_ARC or other SEGMENT_ARCs. Adds 2 points each.
+                     * SEGMENT_LINE
+                     * - It only comes after SEGMENT_FIRST_LINE or other SEGMENT_LINE. Adds 1 point each.
+                     * 
+                     * The FIRST_ARCs and FIRST_LINEs are considered as a full geometric object by WKB
+                     * and it takes up a header spot, so we need to calculate how many of these occur
+                     * in a compoundcurve and handle them individually. On the other hand, SEGMENT_ARCs
+                     * and SEGMENT_LINEs only add up additional points.
+                     * 
+                     */
                     if (segments[currentWKBSegmentIndex].getSegmentType() == SEGMENT_FIRST_ARC) {
                         int numberOfPointsInStructure = 3;
                         currentWKBSegmentIndex++;
