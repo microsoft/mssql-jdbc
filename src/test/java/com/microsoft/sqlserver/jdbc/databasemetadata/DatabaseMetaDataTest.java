@@ -24,8 +24,11 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.text.MessageFormat;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -56,8 +59,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
     private static final String tableName = RandomUtil.getIdentifier("DBMetadataTable");
     private static final String functionName = RandomUtil.getIdentifier("DBMetadataFunction");
-    private static LinkedHashMap<Integer, String> getColumnsDWColumns = null;
-    private static LinkedHashMap<Integer, String> getImportedKeysDWColumns = null;
+    private static Map<Integer, String> getColumnsDWColumns = null;
+    private static Map<Integer, String> getImportedKeysDWColumns = null;
 
     /**
      * Verify DatabaseMetaData#isWrapperFor and DatabaseMetaData#unwrap.
@@ -117,6 +120,15 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 int intDriverVersion = Integer.valueOf(driverVersion);
                 assertTrue(intDriverVersion == intBuildVersion, TestResource.getResource("R_buildVersionError"));
             }
+        }
+    }
+
+    @Test
+    public void testDatabaseCompatibilityLevel() throws SQLException {
+        try (Connection conn = getConnection()) {
+            SQLServerDatabaseMetaData dbmData = (SQLServerDatabaseMetaData) conn.getMetaData();
+            int compatibilityLevel = dbmData.getDatabaseCompatibilityLevel();
+            assertTrue(compatibilityLevel > 0);
         }
     }
 
@@ -613,7 +625,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @Test
-    public void testGetColumn() throws SQLException {
+    public void testGetColumns() throws SQLException {
         try (Connection conn = getConnection();) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
 
@@ -651,12 +663,66 @@ public class DatabaseMetaDataTest extends AbstractTest {
             getColumnsDWColumns.put(27, "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME");
             getColumnsDWColumns.put(28, "SS_XML_SCHEMACOLLECTION_NAME");
 
+            Map<String, Object> firstRow = new HashMap<String, Object>();
+            String dbName = ds.getDatabaseName();
+            if (null == dbName) {
+                firstRow.put("TABLE_CAT", "master");
+            } else {
+                firstRow.put("TABLE_CAT", ds.getDatabaseName());
+            }
+            firstRow.put("TABLE_SCHEM", "dbo");
+            firstRow.put("TABLE_NAME", tableName);
+            firstRow.put("COLUMN_NAME", "col_1");
+            firstRow.put("DATA_TYPE", 4);
+            firstRow.put("TYPE_NAME", "int");
+            firstRow.put("COLUMN_SIZE", 10);
+            firstRow.put("BUFFER_LENGTH", 4);
+            firstRow.put("DECIMAL_DIGITS", 0);
+            firstRow.put("NUM_PREC_RADIX", 10);
+            firstRow.put("NULLABLE", 0);
+            firstRow.put("REMARKS", null);
+            firstRow.put("COLUMN_DEF", null);
+            firstRow.put("SQL_DATA_TYPE", 4);
+            firstRow.put("SQL_DATETIME_SUB", null);
+            firstRow.put("CHAR_OCTET_LENGTH", null);
+            firstRow.put("ORDINAL_POSITION", 1);
+            firstRow.put("IS_NULLABLE", "NO");
+            firstRow.put("SCOPE_CATALOG", null);
+            firstRow.put("SCOPE_SCHEMA", null);
+            firstRow.put("SCOPE_TABLE", null);
+            firstRow.put("SOURCE_DATA_TYPE", 56);
+            firstRow.put("IS_AUTOINCREMENT", "NO");
+            firstRow.put("IS_GENERATEDCOLUMN", "NO");
+            firstRow.put("SS_IS_SPARSE", 0);
+            firstRow.put("SS_IS_COLUMN_SET", 0);
+            firstRow.put("SS_UDT_CATALOG_NAME", null);
+            firstRow.put("SS_UDT_SCHEMA_NAME", null);
+            firstRow.put("SS_UDT_ASSEMBLY_TYPE_NAME", null);
+            firstRow.put("SS_XML_SCHEMACOLLECTION_CATALOG_NAME", null);
+            firstRow.put("SS_XML_SCHEMACOLLECTION_SCHEMA_NAME", null);
+            firstRow.put("SS_XML_SCHEMACOLLECTION_NAME", null);
+
             try (ResultSet resultSet = databaseMetaData.getColumns(null, null, tableName, "%");) {
                 ResultSetMetaData rsmd = resultSet.getMetaData();
                 int rowCount = 0;
                 while (resultSet.next()) {
                     for (int i = 1; i < rsmd.getColumnCount(); i++) {
-                        assertEquals(rsmd.getColumnName(i), getColumnsDWColumns.values().toArray()[i - 1]);
+                        String columnName = rsmd.getColumnName(i);
+                        Object value = resultSet.getObject(columnName);
+                        if (0 == rowCount) {
+                            int expectedType = rsmd.getColumnType(i);
+                            if (null != firstRow.get(columnName)
+                                    && (Types.VARCHAR == expectedType || Types.NVARCHAR == expectedType)) {
+                                assertEquals(firstRow.get(columnName).toString().toLowerCase(),
+                                        resultSet.getString(columnName).toLowerCase());
+                            } else if (null != firstRow.get(columnName) && (Types.TINYINT == expectedType
+                                    || Types.SMALLINT == expectedType || Types.INTEGER == expectedType)) {
+                                assertEquals(firstRow.get(columnName), resultSet.getInt(columnName));
+                            } else {
+                                assertEquals(firstRow.get(columnName), value);
+                            }
+                        }
+                        assertEquals(getColumnsDWColumns.values().toArray()[i - 1], columnName);
                     }
                     rowCount++;
                 }
