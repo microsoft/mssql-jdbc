@@ -659,10 +659,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 if (null != pstmt) {
                     try {
                         pstmt.close();
-                    } catch (SQLServerException ignore) {
+                    } catch (Throwable ignore) {
                         if (loggerExternal.isLoggable(Level.FINER)) {
-                            loggerExternal.finer(
-                                    "getColumns() threw an exception when attempting to close PreparedStatement");
+                            loggerExternal.log(Level.FINER,
+                                    "getColumns() threw an exception when attempting to close PreparedStatement",
+                                    ignore);
                         }
                     }
                 }
@@ -763,10 +764,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     if (null != resultPstmt) {
                         try {
                             resultPstmt.close();
-                        } catch (SQLServerException ignore) {
+                        } catch (Throwable ignore) {
                             if (loggerExternal.isLoggable(Level.FINER)) {
-                                loggerExternal.finer(
-                                        "getColumns() threw an exception when attempting to close PreparedStatement");
+                                loggerExternal.log(Level.FINER,
+                                        "getColumns() threw an exception when attempting to close PreparedStatement",
+                                        ignore);
                             }
                         }
                     }
@@ -1100,10 +1102,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 if (null != pstmt) {
                     try {
                         pstmt.close();
-                    } catch (SQLServerException ignore) {
+                    } catch (Throwable ignore) {
                         if (loggerExternal.isLoggable(Level.FINER)) {
-                            loggerExternal.finer(
-                                    "executeSPFkeys() threw an exception when attempting to close PreparedStatement");
+                            loggerExternal.log(Level.FINER,
+                                    "executeSPFkeys() threw an exception when attempting to close PreparedStatement",
+                                    ignore);
                         }
                     }
                 }
