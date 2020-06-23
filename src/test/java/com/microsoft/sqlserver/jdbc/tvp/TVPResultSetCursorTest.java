@@ -224,7 +224,18 @@ public class TVPResultSetCursorTest extends AbstractTest {
                 pstmt.execute();
             } catch (SQLException e) {
                 if (!e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound"))) {
-                    fail(e.getMessage());
+                    // diff error msg if AE enabled
+                    int start = connectionString.toUpperCase().indexOf(Constants.COLUMN_ENCRYPTION_SETTING);
+                    if (-1 != start) {
+                        int end = connectionString.indexOf(";", start);
+                        String value = connectionString.substring(
+                                start + Constants.COLUMN_ENCRYPTION_SETTING.length() + 1,
+                                (-1 != end) ? end : connectionString.length());
+                        if (value.equalsIgnoreCase(Constants.ENABLED)
+                                && !e.getMessage().contains(TestResource.getResource("R_incorrectSyntaxP0"))) {
+                            fail(e.getMessage());
+                        }
+                    }
                 }
             } finally {
                 dropProcedure();
