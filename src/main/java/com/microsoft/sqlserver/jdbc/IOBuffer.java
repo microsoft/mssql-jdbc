@@ -2656,7 +2656,7 @@ final class SocketFinder {
                         + ". Using IP address from DNS cache.");
             }
             InetSocketAddress cacheEntry = SQLServerConnection.getDNSEntry(hostName);
-            addr = null != cacheEntry ? cacheEntry : addr;
+            addr = (null != cacheEntry) ? cacheEntry : addr;
         }
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }

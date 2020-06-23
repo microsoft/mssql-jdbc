@@ -691,7 +691,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private static ConcurrentHashMap<String, InetSocketAddress> dnsCache = null;
 
     static InetSocketAddress getDNSEntry(String key) {
-        return null != dnsCache ? dnsCache.get(key) : null;
+        return (null != dnsCache) ? dnsCache.get(key) : null;
     }
 
     // Boolean that indicates whether LOB objects created by this connection should be loaded into memory
@@ -2681,13 +2681,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
-        InetSocketAddress inetSocketAddress;
-        if (0 == timeOutFullInSeconds)
-            inetSocketAddress = tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), 0, useParallel,
-                    useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
-        else
-            inetSocketAddress = tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(),
-                    timeOutSliceInMillis, useParallel, useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
+        InetSocketAddress inetSocketAddress = tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(),
+                (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel, useTnir, isTnirFirstAttempt,
+                timeOutsliceInMillisForFullTimeout);
 
         setState(State.Connected);
 
