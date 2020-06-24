@@ -627,7 +627,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             if (isSqlAzureDW()) {
                 assertTrue(e.getMessage().contains(TestResource.getResource("R_incorrectSyntaxTableDW")));
             } else {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_incorrectSyntaxNear")));
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_incorrectSyntaxTable")));
             }
         }
 
