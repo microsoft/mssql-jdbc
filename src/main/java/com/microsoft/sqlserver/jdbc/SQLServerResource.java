@@ -581,6 +581,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_UnknownDataClsTokenNumber", "Unknown token for Data Classification."}, // From Server
             {"R_InvalidDataClsVersionNumber", "Invalid version number {0} for Data Classification."}, // From Server
             {"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},
+            {"R_unknownAzureSQLDNSCachingValue", "Unknown value for Azure SQL DNS Caching."},
             {"R_illegalWKT", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
             {"R_illegalTypeForGeometry", "{0} is not supported for Geometry."},
             {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},
