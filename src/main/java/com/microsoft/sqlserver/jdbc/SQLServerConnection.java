@@ -682,6 +682,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private boolean serverSupportsDataClassification = false;
+    private byte serverSupportedDataClassificationVersion = TDS.DATA_CLASSIFICATION_NOT_ENABLED;
 
     boolean getServerSupportsDataClassification() {
         return serverSupportsDataClassification;
@@ -692,6 +693,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     static InetSocketAddress getDNSEntry(String key) {
         return (null != dnsCache) ? dnsCache.get(key) : null;
+    }
+
+    byte getServerSupportedDataClassificationVersion() {
+        return serverSupportedDataClassificationVersion;
     }
 
     // Boolean that indicates whether LOB objects created by this connection should be loaded into memory
@@ -4694,9 +4699,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_UnknownDataClsTokenNumber"), null);
                 }
 
-                byte supportedDataClassificationVersion = data[0];
-                if ((0 == supportedDataClassificationVersion)
-                        || (supportedDataClassificationVersion > TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION)) {
+                serverSupportedDataClassificationVersion = data[0];
+                if ((0 == serverSupportedDataClassificationVersion)
+                        || (serverSupportedDataClassificationVersion > TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION)) {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidDataClsVersionNumber"),
                             null);
                 }
