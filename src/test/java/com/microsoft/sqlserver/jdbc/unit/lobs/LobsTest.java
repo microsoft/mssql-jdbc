@@ -41,6 +41,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -201,7 +202,8 @@ public class LobsTest extends AbstractTest {
                         if (!verified) {
                             // Odd CharacterStream length will throw this exception
                             if (!e.getMessage().contains(TestResource.getResource("R_badStreamLength"))) {
-                                assertTrue(e.getMessage().contains(TestResource.getResource("R_streamReadError")));
+                                assertTrue(e.getMessage().contains(TestResource.getResource("R_streamReadError"))
+                                        || e.getMessage().contains(TestResource.getResource("R_aeStreamReadError")));
                             }
 
                         }
