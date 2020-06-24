@@ -181,9 +181,6 @@ public class DataTypesTest extends AbstractTest {
                 try (PreparedStatement pstmt = conn.prepareStatement("{call " + escapedProcName + "(?)}")) {
                     ParameterMetaData metadata = pstmt.getParameterMetaData();
 
-                    System.out.println("sqlType.jdbcType="+sqlType.jdbcType);
-                    System.out.println("metadata.getParameterType(1)="+metadata.getParameterType(1));
-
                     assertEquals(sqlType.jdbcType, metadata.getParameterType(1),
                             "getParameterType() of " + sqlCastExpression());
                     assertEquals(sqlType.toString(), metadata.getParameterTypeName(1),
@@ -1114,7 +1111,6 @@ public class DataTypesTest extends AbstractTest {
     public void testParameterMetaData() throws Exception {
         try (Connection conn = getConnection()) {
             for (TestValue value : TestValue.values()) {
-                System.out.println("value: "+value.toString());
                 value.sqlValue.verifyParameterMetaData(conn);
             }
         } ;
