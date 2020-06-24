@@ -2926,9 +2926,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return sourceResultSet.getDate(srcColOrdinal);
 
                 case microsoft.sql.Types.DATETIMEOFFSET:
-                    // We can safely cast the result set to a SQLServerResultSet as the DatetimeOffset type is only
-                    // available in the JDBC driver.
-                    return ((SQLServerResultSet) sourceResultSet).getDateTimeOffset(srcColOrdinal);
+                    return sourceResultSet.getObject(srcColOrdinal, DateTimeOffset.class);
 
                 case microsoft.sql.Types.SQL_VARIANT:
                     return sourceResultSet.getObject(srcColOrdinal);

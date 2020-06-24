@@ -259,42 +259,50 @@ final class StreamColumns extends StreamPacket {
         SensitivityClassification sensitivityClassification = null;
 
         // get the label count
-        int numLabels = tdsReader.readUnsignedShort();
-        List<Label> labels = new ArrayList<Label>(numLabels);
+        int sensitivityLabelCount = tdsReader.readUnsignedShort();
+        List<Label> sensitivityLabels = new ArrayList<Label>(sensitivityLabelCount);
 
-        for (int i = 0; i < numLabels; i++) {
-            labels.add(readSensitivityLabel(tdsReader));
+        for (int i = 0; i < sensitivityLabelCount; i++) {
+            sensitivityLabels.add(readSensitivityLabel(tdsReader));
         }
 
         // get the information type count
-        int numInformationTypes = tdsReader.readUnsignedShort();
+        int informationTypeCount = tdsReader.readUnsignedShort();
 
-        List<InformationType> informationTypes = new ArrayList<InformationType>(numInformationTypes);
-        for (int i = 0; i < numInformationTypes; i++) {
+        List<InformationType> informationTypes = new ArrayList<InformationType>(informationTypeCount);
+        for (int i = 0; i < informationTypeCount; i++) {
             informationTypes.add(readSensitivityInformationType(tdsReader));
         }
 
-        // get the per column classification data (corresponds to order of output columns for query)
-        int numResultColumns = tdsReader.readUnsignedShort();
+        int sensitivityRank = SensitivityRank.NOT_DEFINED.getValue();
+        if (TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION <= tdsReader.getServerSupportedDataClassificationVersion()) {
+            sensitivityRank = tdsReader.readInt();
+            if (!SensitivityRank.isValid(sensitivityRank)) {
+                tdsReader.throwInvalidTDS();
+            }
+        }
 
-        List<ColumnSensitivity> columnSensitivities = new ArrayList<ColumnSensitivity>(numResultColumns);
-        for (int columnNum = 0; columnNum < numResultColumns; columnNum++) {
+        // get the per column classification data (corresponds to order of output columns for query)
+        int numResultSetColumns = tdsReader.readUnsignedShort();
+
+        List<ColumnSensitivity> columnSensitivities = new ArrayList<ColumnSensitivity>(numResultSetColumns);
+        for (int columnNum = 0; columnNum < numResultSetColumns; columnNum++) {
 
             // get sensitivity properties for all the different sources which were used in generating the column output
-            int numSources = tdsReader.readUnsignedShort();
-            List<SensitivityProperty> sensitivityProperties = new ArrayList<SensitivityProperty>(numSources);
-            for (int sourceNum = 0; sourceNum < numSources; sourceNum++) {
+            int numSensitivityProperties = tdsReader.readUnsignedShort();
+            List<SensitivityProperty> sensitivityProperties = new ArrayList<SensitivityProperty>(
+                    numSensitivityProperties);
+            for (int sourceNum = 0; sourceNum < numSensitivityProperties; sourceNum++) {
 
                 // get the label index and then lookup label to use for source
-                int labelIndex = tdsReader.readUnsignedShort();
+                int sensitivityLabelIndex = tdsReader.readUnsignedShort();
                 Label label = null;
-                if (labelIndex != Integer.MAX_VALUE) {
-                    if (labelIndex >= labels.size()) {
+                if (sensitivityLabelIndex != Integer.MAX_VALUE) {
+                    if (sensitivityLabelIndex >= sensitivityLabels.size()) {
                         tdsReader.throwInvalidTDS();
                     }
-                    label = labels.get(labelIndex);
+                    label = sensitivityLabels.get(sensitivityLabelIndex);
                 }
-
                 // get the information type index and then lookup information type to use for source
                 int informationTypeIndex = tdsReader.readUnsignedShort();
                 InformationType informationType = null;
@@ -302,12 +310,22 @@ final class StreamColumns extends StreamPacket {
                     if (informationTypeIndex >= informationTypes.size()) {}
                     informationType = informationTypes.get(informationTypeIndex);
                 }
+
+                if (TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION <= tdsReader
+                        .getServerSupportedDataClassificationVersion()) {
+                    sensitivityRank = tdsReader.readInt();
+                    if (!SensitivityRank.isValid(sensitivityRank)) {
+                        tdsReader.throwInvalidTDS();
+                    }
+                }
+
                 // add sensitivity properties for the source
-                sensitivityProperties.add(new SensitivityProperty(label, informationType));
+                sensitivityProperties.add(new SensitivityProperty(label, informationType, sensitivityRank));
             }
             columnSensitivities.add(new ColumnSensitivity(sensitivityProperties));
         }
-        sensitivityClassification = new SensitivityClassification(labels, informationTypes, columnSensitivities);
+        sensitivityClassification = new SensitivityClassification(sensitivityLabels, informationTypes,
+                columnSensitivities);
         return sensitivityClassification;
     }
 

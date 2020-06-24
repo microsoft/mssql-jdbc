@@ -125,7 +125,7 @@ final class TDS {
     // Data Classification constants
     static final byte TDS_FEATURE_EXT_DATACLASSIFICATION = 0x09;
     static final byte DATA_CLASSIFICATION_NOT_ENABLED = 0x00;
-    static final byte MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION = 0x01;
+    static final byte MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION = 0x02;
 
     static final int AES_256_CBC = 1;
     static final int AEAD_AES_256_CBC_HMAC_SHA256 = 2;
@@ -6434,6 +6434,8 @@ final class TDSReader implements Serializable {
     private boolean useColumnEncryption = false;
     private boolean serverSupportsColumnEncryption = false;
     private boolean serverSupportsDataClassification = false;
+    private byte serverSupportedDataClassificationVersion = TDS.DATA_CLASSIFICATION_NOT_ENABLED;
+
     private ColumnEncryptionVersion columnEncryptionVersion;
 
     private final byte valueBytes[] = new byte[256];
@@ -6461,6 +6463,7 @@ final class TDSReader implements Serializable {
         serverSupportsColumnEncryption = con.getServerSupportsColumnEncryption();
         columnEncryptionVersion = con.getServerColumnEncryptionVersion();
         serverSupportsDataClassification = con.getServerSupportsDataClassification();
+        serverSupportedDataClassificationVersion = con.getServerSupportedDataClassificationVersion();
     }
 
     final boolean isColumnEncryptionSettingEnabled() {
@@ -6473,6 +6476,10 @@ final class TDSReader implements Serializable {
 
     final boolean getServerSupportsDataClassification() {
         return serverSupportsDataClassification;
+    }
+
+    final byte getServerSupportedDataClassificationVersion() {
+        return serverSupportedDataClassificationVersion;
     }
 
     final void throwInvalidTDS() throws SQLServerException {
