@@ -39,6 +39,7 @@ import com.azure.security.keyvault.keys.cryptography.models.VerifyResult;
 import com.azure.security.keyvault.keys.cryptography.models.WrapResult;
 import com.azure.security.keyvault.keys.models.KeyType;
 import com.azure.security.keyvault.keys.models.KeyVaultKey;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 
 /**
  * Provides implementation similar to certificate store provider. A CEK encrypted with certificate store provider should
@@ -133,6 +134,10 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             throw new SQLServerException(form.format(msgArgs1), null);
         }
         createKeyvaultClients(new ManagedIdentityCredentialBuilder().clientId(clientId).build());
+    }
+
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(TokenCredential tokenCredential) throws SQLServerException {
+        createKeyvaultClients(tokenCredential);
     }
 
     private void createKeyvaultClients(TokenCredential credential) {
