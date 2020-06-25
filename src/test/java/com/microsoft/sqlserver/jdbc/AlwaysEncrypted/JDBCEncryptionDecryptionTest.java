@@ -2242,11 +2242,10 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     private TokenCredential createTokenCredential() {
-        // FIXME needs tenant
         return new ClientSecretCredentialBuilder()
                 .clientId(applicationClientID)
                 .clientSecret(applicationKey)
-                .tenantId(null)
+                .tenantId(tenantID)
                 .build();
     }
 }

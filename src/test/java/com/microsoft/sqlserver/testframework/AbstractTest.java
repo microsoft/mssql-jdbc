@@ -59,6 +59,7 @@ public abstract class AbstractTest {
     protected static String applicationClientID = null;
     protected static String applicationKey = null;
     protected static String[] keyIDs = null;
+    protected static String tenantID = null;
 
     protected static String[] enclaveServer = null;
     protected static String[] enclaveAttestationUrl = null;
@@ -131,6 +132,7 @@ public abstract class AbstractTest {
         applicationKey = getConfiguredProperty("applicationKey");
         javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
+        tenantID = getConfiguredProperty("tenantID");
         windowsKeyPath = getConfiguredProperty("windowsKeyPath");
 
         String prop;
