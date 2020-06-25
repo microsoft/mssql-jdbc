@@ -19,6 +19,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.Level;
 
@@ -93,7 +94,17 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * @param clientKey
      *        Key of the client requesting the token.
      */
-    public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) {
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
+        if (clientId == null || clientId.isEmpty()) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Client ID"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+        if (clientKey == null || clientKey.isEmpty()) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Client Key"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
         createKeyvaultClients(new ClientSecretCredentialBuilder()
               .clientId(clientId)
               .clientSecret(clientKey)
@@ -115,7 +126,12 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * @param clientId
      *        Identifier of the client requesting the token.
      */
-    SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId) {
+    SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId) throws SQLServerException {
+        if (clientId == null || clientId.isEmpty()) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Client ID"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
         createKeyvaultClients(new ManagedIdentityCredentialBuilder().clientId(clientId).build());
     }
 

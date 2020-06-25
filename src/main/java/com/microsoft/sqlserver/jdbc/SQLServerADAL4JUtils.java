@@ -8,6 +8,8 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.text.MessageFormat;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -15,6 +17,10 @@ import java.util.logging.Level;
 
 import javax.security.auth.kerberos.KerberosPrincipal;
 
+import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.IntegratedWindowsAuthenticationParameters;
+import com.microsoft.aad.msal4j.PublicClientApplication;
+import com.microsoft.aad.msal4j.UserNamePasswordParameters;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 
@@ -28,13 +34,33 @@ class SQLServerADAL4JUtils {
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         try {
-            AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
-            Future<AuthenticationResult> future = context.acquireToken(fedAuthInfo.spn,
-                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, user, password, null);
+//            AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
+//            Future<AuthenticationResult> future = context.acquireToken(
+//                    fedAuthInfo.spn,
+//                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID,
+//                    user,
+//                    password,
+//                    null);
+//
+//            AuthenticationResult authenticationResult = future.get();
+//
+//            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
 
-            AuthenticationResult authenticationResult = future.get();
 
-            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
+            final PublicClientApplication clientApplication = PublicClientApplication
+                    .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID)
+                    .executorService(executorService)
+                    .authority(fedAuthInfo.stsurl)
+                    .build();
+            final CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(UserNamePasswordParameters.builder(
+                    Set.of(fedAuthInfo.spn + "/.default"),
+                    user,
+                    password.toCharArray()
+            ).build());
+
+            final IAuthenticationResult authenticationResult = future.get();
+            return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
@@ -46,8 +72,7 @@ class SQLServerADAL4JUtils {
              * correct format
              */
             String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
-            AuthenticationException correctedAuthenticationException = new AuthenticationException(
-                    correctedErrorMessage);
+            RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage);
 
             /*
              * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to match
@@ -71,19 +96,32 @@ class SQLServerADAL4JUtils {
              * principal_name@realm_name format
              */
             KerberosPrincipal kerberosPrincipal = new KerberosPrincipal("username");
-            String username = kerberosPrincipal.getName();
+            String user = kerberosPrincipal.getName();
 
             if (adal4jLogger.isLoggable(Level.FINE)) {
                 adal4jLogger.fine(adal4jLogger.toString() + " realm name is:" + kerberosPrincipal.getRealm());
             }
 
-            AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
-            Future<AuthenticationResult> future = context.acquireToken(fedAuthInfo.spn,
-                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, username, null, null);
+//            AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
+//            Future<AuthenticationResult> future = context.acquireToken(fedAuthInfo.spn,
+//                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, username, null, null);
+//
+//            AuthenticationResult authenticationResult = future.get();
+//
+//            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
 
-            AuthenticationResult authenticationResult = future.get();
+            final PublicClientApplication clientApplication = PublicClientApplication
+                .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID)
+                .executorService(executorService)
+                .authority(fedAuthInfo.stsurl)
+                .build();
+            final CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(IntegratedWindowsAuthenticationParameters.builder(
+                Set.of(fedAuthInfo.spn + "/.default"),
+                user
+            ).build());
 
-            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
+            final IAuthenticationResult authenticationResult = future.get();
+            return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
@@ -99,8 +137,7 @@ class SQLServerADAL4JUtils {
                  * correct format
                  */
                 String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
-                AuthenticationException correctedAuthenticationException = new AuthenticationException(
-                        correctedErrorMessage);
+                RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage);
 
                 /*
                  * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to
