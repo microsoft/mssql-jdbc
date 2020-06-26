@@ -340,6 +340,7 @@ final class StreamColumns extends StreamPacket {
             sensitivityClassification = new SensitivityClassification(sensitivityLabels, informationTypes,
                     columnSensitivities);
         }
+
         return sensitivityClassification;
     }
 
