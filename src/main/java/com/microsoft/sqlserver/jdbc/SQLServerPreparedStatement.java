@@ -2719,6 +2719,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
+
+            /*
+             * flag to indicate a request had been started already. This prevents duplicate startRquest calls which
+             * could happen in AE when SPDE is called and also indicates when a starResponse is necessary to complete
+             * the request
+             */
             boolean reqStarted = false;
 
             if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()) {
